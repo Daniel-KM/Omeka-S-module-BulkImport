@@ -309,11 +309,11 @@ trait ResourceUpdateTrait
         if ($isOldOmeka) {
             $base['literal'] = ['property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
             $base['resource'] = ['property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-            $base['url'] = ['o:label' => null, 'property_id' => 0, 'type' => 'url', '@id' => ''];
+            $base['uri'] = ['o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
         } else {
             $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
             $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-            $base['url'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'url', '@id' => ''];
+            $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
         }
         foreach ($values as $key => $value) {
             $values[$key] = array_values(
@@ -322,7 +322,7 @@ trait ResourceUpdateTrait
                     'serialize',
                     // Normalize values.
                     array_map(function ($v) use ($base, $isOldOmeka) {
-                        $mainType = empty($v['@id']) ? (empty($v['value_resource_id']) ? 'literal' : 'resource') : 'url';
+                        $mainType = empty($v['@id']) ? (empty($v['value_resource_id']) ? 'literal' : 'resource') : 'uri';
                         // Keep order and meaning keys.
                         $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
                         if (!$isOldOmeka) {
@@ -334,7 +334,7 @@ trait ResourceUpdateTrait
                                     $r['@language'] = null;
                                 }
                                 break;
-                            case 'url':
+                            case 'uri':
                                 if (empty($r['o:label'])) {
                                     $r['o:label'] = null;
                                 }
