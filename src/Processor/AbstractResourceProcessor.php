@@ -332,8 +332,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     break;
                 case 'uri':
                 case strpos($resourceValue['type'], 'valuesuggest:') === 0:
-                    $resourceValue['@id'] = $value;
-                    // $resourceValue['o:label'] = null;
+                    if (!empty($target['extra'])) {
+                        switch ($target['extra']) {
+                            case 'uri-label':
+                                if (strpos($value, ' ')) {
+                                    list($uri, $label) = explode(' ', $value, 2);
+                                    $label = trim($label);
+                                    if (!strlen($label)) {
+                                        $label = null;
+                                    }
+                                } else {
+                                    $uri = $value;
+                                    $label = null;
+                                }
+                                $resourceValue['@id'] = $uri;
+                                $resourceValue['o:label'] = $label;
+                                break;
+                        }
+                    } else {
+                        $resourceValue['@id'] = $value;
+                        // $resourceValue['o:label'] = null;
+                    }
                     break;
                 case 'resource':
                 case 'resource:item':
@@ -785,11 +804,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $result['target_data'] = $targetData;
                     $propertyId = $this->getPropertyId($targetData);
                     if ($propertyId) {
-                        $result['target_data_value'] = [
-                            'property_id' => $propertyId,
-                            'type' => 'literal',
-                            'is_public' => true,
-                        ];
+                        $subValue = [];
+                        $subValue['property_id'] = $propertyId;
+                        // TODO Allow different types for subvalues (inside "[]").
+                        $subValue['type'] = 'literal';
+                        $subValue['is_public'] = true;
+                        $result['target_data_value'] = $subValue;
                     }
                 } else {
                     $result['target'] = $target;
@@ -798,7 +818,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $propertyId = $this->getPropertyId($target);
                 if ($propertyId) {
                     $result['value']['property_id'] = $propertyId;
-                    $result['value']['type'] = $this->getDataType($metadata['type']) ?: 'literal';
+                    // Manage data type exceptions.
+                    switch ($metadata['type']) {
+                        case 'uri-label':
+                            $result['value']['type'] = 'uri';
+                            $result['extra'] = 'uri-label';
+                            break;
+                        default:
+                            $result['value']['type'] = $this->getDataType($metadata['type']) ?: 'literal';
+                            break;
+                    }
                     $result['value']['@language'] = $metadata['@language'];
                     $result['value']['is_public'] = true;
                 } else {

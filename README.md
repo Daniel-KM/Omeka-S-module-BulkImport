@@ -51,8 +51,21 @@ Then, config the reader and the processor.
 Finally, process the import.
 
 
-Internal differences with Csv Import
-------------------------------------
+Spreadsheet
+-----------
+
+To import a spreadsheet, choose its format and the multivalue separator if any.
+Then do the mapping. The mapping is automatic when the header are properties
+label, or existing terms, or Omeka metadata names, or existing keywords.
+
+The header can have a language (with `@language`) and a datatype (with `^^datatype`).
+For example to import a French title, use header `Title @fr` or `dcterms:title@fr`.
+To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation^^uri`.
+To import an uri with its label, if any, use header `Relation ^^uri-label`.
+To import a value as an Omeka resource, use header `Relation ^^resource`. The
+value should be the internal id or the resource identifier (generally dcterms:identifier).
+
+### Internal differences with Csv Import
 
 - Two columns with the same headers should be mapped the same.
 - Empty values for boolean metadata (is_public…) in spreadsheet reader are
