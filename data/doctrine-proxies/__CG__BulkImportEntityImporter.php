@@ -64,10 +64,10 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner'];
+            return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
         }
 
-        return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner'];
+        return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
     }
 
     /**
@@ -318,6 +318,17 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getOwner', []);
 
         return parent::getOwner();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getImports()
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getImports', []);
+
+        return parent::getImports();
     }
 
     /**

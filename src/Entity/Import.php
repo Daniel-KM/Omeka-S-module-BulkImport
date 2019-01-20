@@ -23,7 +23,7 @@ class Import extends AbstractEntity
      * @var Importer
      * @ManyToOne(
      *     targetEntity=Importer::class,
-     *     inversedBy="import",
+     *     inversedBy="imports",
      *     fetch="EXTRA_LAZY"
      * )
      * @JoinColumn(
@@ -136,23 +136,5 @@ class Import extends AbstractEntity
     public function getProcessorParams()
     {
         return $this->processorParams;
-    }
-
-    /**
-     * @param string $status
-     * @return self
-     */
-    public function setStatus($status)
-    {
-        $this->status = $status;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getStatus()
-    {
-        return $this->status;
     }
 }
