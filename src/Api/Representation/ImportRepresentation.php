@@ -64,8 +64,8 @@ class ImportRepresentation extends AbstractEntityRepresentation
     {
         $job = $this->resource->getJob();
         return $job
-        ? $this->getAdapter('jobs')->getRepresentation($job)
-        : null;
+            ? $this->getAdapter('jobs')->getRepresentation($job)
+            : null;
     }
 
     /**
@@ -74,7 +74,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
     public function status()
     {
         $job = $this->job();
-        return $job ? $job->status() : 'Ready'; // @translate
+        return $job ? $job->status() : 'ready'; // @translate
     }
 
     /**

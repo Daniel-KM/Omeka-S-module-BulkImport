@@ -44,7 +44,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetReader
     public function isValid()
     {
         if (!extension_loaded('zip') || !extension_loaded('xml')) {
-            $this->errorMessage = new PsrMessage(
+            $this->lastErrorMessage = new PsrMessage(
                 'To process import of "{label}", the php extensions "zip" and "xml" are required.', // @translate
                 ['label' => $this->getLabel()]
             );

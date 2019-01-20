@@ -1,6 +1,7 @@
 <?php
 namespace BulkImport\Job;
 
+use BulkImport\Api\Representation\ImportRepresentation;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Processor\Manager as ProcessorManager;
@@ -11,6 +12,9 @@ use Zend\Log\Logger;
 
 class Import extends AbstractJob
 {
+    /**
+     * @var ImportRepresentation
+     */
     protected $import;
 
     /**
@@ -93,6 +97,10 @@ class Import extends AbstractJob
         return $this->import;
     }
 
+    /**
+     * @throws \Omeka\Job\Exception\InvalidArgumentException
+     * @return \BulkImport\Interfaces\Reader
+     */
     protected function getReader()
     {
         $services = $this->getServiceLocator();
@@ -117,6 +125,10 @@ class Import extends AbstractJob
         return $reader;
     }
 
+    /**
+     * @throws \Omeka\Job\Exception\InvalidArgumentException
+     * @return \BulkImport\Interfaces\Processor
+     */
     protected function getProcessor()
     {
         $services = $this->getServiceLocator();

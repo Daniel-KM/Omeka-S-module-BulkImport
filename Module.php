@@ -7,4 +7,5 @@ use BulkImport\Module\AbstractGenericModule;
 
 class Module extends AbstractGenericModule
 {
+    protected $dependency = 'Log';
 }

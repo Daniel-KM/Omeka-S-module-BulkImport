@@ -5,8 +5,6 @@ use Zend\Form\Element;
 
 class SpreadsheetReaderParamsForm extends CsvReaderConfigForm
 {
-    protected $reader;
-
     public function init()
     {
         // Set binary content encoding

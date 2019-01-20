@@ -5,8 +5,6 @@ use Zend\Form\Element;
 
 class TsvReaderParamsForm extends SpreadsheetReaderConfigForm
 {
-    protected $reader;
-
     public function init()
     {
         // Set binary content encoding

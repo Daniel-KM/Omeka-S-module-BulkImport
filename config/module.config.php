@@ -93,12 +93,12 @@ return [
                     'bulk' => [
                         'type' => \Zend\Router\Http\Literal::class,
                         'options' => [
-                            'route'    => '/bulk',
+                            'route' => '/bulk',
                             'defaults' => [
                                 '__NAMESPACE__' => 'BulkImport\Controller\Admin',
                                 '__ADMIN__' => true,
                                 'controller' => 'Index',
-                                'action'     => 'index',
+                                'action' => 'index',
                             ],
                         ],
                         'may_terminate' => true,

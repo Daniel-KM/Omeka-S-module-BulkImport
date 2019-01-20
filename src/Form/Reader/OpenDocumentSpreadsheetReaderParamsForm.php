@@ -5,8 +5,6 @@ use Zend\Form\Element;
 
 class OpenDocumentSpreadsheetReaderParamsForm extends SpreadsheetReaderConfigForm
 {
-    protected $reader;
-
     public function init()
     {
         // Set binary content encoding

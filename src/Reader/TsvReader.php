@@ -42,7 +42,6 @@ class TsvReader extends CsvReader
         $this->setParams($params);
     }
 
-
     protected function reset()
     {
         parent::reset();

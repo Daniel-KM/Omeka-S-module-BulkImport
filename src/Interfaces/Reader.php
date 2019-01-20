@@ -19,7 +19,7 @@ interface Reader extends \Iterator, \Countable
     public function __construct(ServiceLocatorInterface $services);
 
     /**
-     * @var string
+     * @return string
      */
     public function getLabel();
 
