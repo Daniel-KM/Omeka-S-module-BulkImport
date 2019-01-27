@@ -72,7 +72,9 @@ class AutomapFields extends AbstractHelper
      */
     public function __invoke($fields, array $options = [])
     {
-        $automaps = [];
+        // Return all values, even without matching normalized name, with the
+        // same keys in the same order.
+        $automaps = array_fill_keys(array_keys($fields), null);
 
         $defaultOptions = [
             'map' => [],
@@ -101,6 +103,8 @@ class AutomapFields extends AbstractHelper
         $automapList = [];
         if ($this->map) {
             $automapList = $this->map;
+            // Add all the defined values as key too.
+            $automapList += array_combine($automapList, $automapList);
             $automapLists['base'] = array_combine(
                 array_keys($automapList),
                 array_keys($automapList)
@@ -138,11 +142,14 @@ class AutomapFields extends AbstractHelper
             $lists['lower_local_labels'] = array_map('strtolower', $lists['local_labels']);
         }
 
-        // Pattern is a value, then optional @language and ^^datatype, with or
-        // without prefix.
+        // The pattern checks a term or keyword, then an optional @language, then
+        // an optional ^^ data type.
         $pattern = '~'
+            // Check a term/keyword.
             . '^([a-zA-Z][^@^]*)'
+            // Check a language + country.
             . '\s*(?:@\s*([a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))?'
+            // Check a data type.
             . '\s*(?:\^\^\s*([a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][\w-]*|[a-zA-Z][\w-]*|))?$'
             . '~';
         $matches = [];
@@ -150,7 +157,6 @@ class AutomapFields extends AbstractHelper
         foreach ($fields as $index => $field) {
             $meta = preg_match($pattern, $field, $matches);
             if (!$meta) {
-                $automaps[$index] = null;
                 continue;
             }
 
@@ -200,9 +206,6 @@ class AutomapFields extends AbstractHelper
                     continue 2;
                 }
             }
-
-            // Return all input fields in the same order.
-            $automaps[$index] = null;
         }
 
         return $automaps;

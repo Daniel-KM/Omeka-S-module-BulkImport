@@ -203,6 +203,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $reader = $processor->getReader();
 
         $services = $this->getServiceLocator();
+        /** @var \BulkImport\View\Helper\AutomapFields $automapFields */
         $automapFields = $services->get('ViewHelperManager')->get('automapFields');
 
         $this->add([

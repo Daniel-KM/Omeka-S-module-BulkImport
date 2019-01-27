@@ -272,6 +272,12 @@ class ImporterController extends AbstractActionController
         if ($this->getRequest()->isPost()) {
             // Current form.
             $currentForm = $this->getRequest()->getPost('current_form');
+            // Avoid an issue if the user reloads the page.
+            if (!isset($formsCallbacks[$currentForm])) {
+                $message = new PsrMessage('The page was reloaded, but params are lost. Restart the import.'); // @translate
+                $this->messenger()->addError($message);
+                return $this->redirect()->toRoute('admin/bulk');
+            }
             $form = call_user_func($formsCallbacks[$currentForm]);
 
             // Make certain to merge the files info!
