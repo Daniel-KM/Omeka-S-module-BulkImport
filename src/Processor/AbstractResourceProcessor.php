@@ -798,12 +798,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $result['field'] = $metadata['field'];
 
                 // Manage the property of a target when it is a resource type,
-                // like "o:item_set {dcterms:title}".
+                // like "o:item_set [dcterms:title]".
                 // It is used to set a metadata for derived resource (media for
                 // item) or to find another resource (item set for item, as an
                 // identifier name).
-                if ($pos = strpos($target, '{')) {
-                    $targetData = trim(substr($target, $pos + 1), '{} ');
+                $pos = strpos($target, '[');
+                if ($pos) {
+                    $targetData = trim(substr($target, $pos + 1), '[] ');
                     $target = trim(substr($target, $pos));
                     $result['target'] = $target;
                     $result['target_data'] = $targetData;
