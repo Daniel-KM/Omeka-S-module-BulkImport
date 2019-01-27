@@ -174,6 +174,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $dataToProcess = [];
         foreach ($this->reader as $index => $entry) {
+            if ($this->job->shouldStop()) {
+                $this->logger->warn('The job "Import" was stopped.'); // @translate
+                break;
+            }
+
             ++$this->totalIndexResources;
             // The first entry is #1, but the iterator (array) numbered it 0.
             $this->indexResource = $index + 1;

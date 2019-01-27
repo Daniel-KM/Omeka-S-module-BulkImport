@@ -38,6 +38,7 @@ class Import extends AbstractJob
         $processor = $this->getProcessor();
         $processor->setReader($reader);
         $processor->setLogger($logger);
+        $processor->setJob($this);
 
         $logger->log(Logger::NOTICE, 'Import started'); // @translate
 

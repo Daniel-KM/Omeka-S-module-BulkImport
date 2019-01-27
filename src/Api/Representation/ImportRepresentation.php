@@ -96,6 +96,24 @@ class ImportRepresentation extends AbstractEntityRepresentation
     }
 
     /**
+     * @return bool
+     */
+    public function isInProgress()
+    {
+        $job = $this->job();
+        return $job && $job->status() === \Omeka\Entity\Job::STATUS_IN_PROGRESS;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCompleted()
+    {
+        $job = $this->job();
+        return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
+    }
+
+    /**
      * @return int
      */
     public function logCount()

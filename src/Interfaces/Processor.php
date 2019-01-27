@@ -1,6 +1,7 @@
 <?php
 namespace BulkImport\Interfaces;
 
+use Omeka\Job\AbstractJob as Job;
 use Zend\Log\Logger;
 
 interface Processor
@@ -19,6 +20,11 @@ interface Processor
      * @param Logger $logger
      */
     public function setLogger(Logger $logger);
+
+    /**
+     * @param Job $job
+     */
+    public function setJob(Job $job);
 
     /**
      * Perform the process.

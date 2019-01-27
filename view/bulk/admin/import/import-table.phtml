@@ -6,6 +6,8 @@
 
 $translate = $this->plugin('translate');
 $escape = $this->plugin('escapeHtml');
+$hyperlink = $this->plugin('hyperlink');
+$url = $this->plugin('url');
 ?>
 <table class="tablesaw" data-tablesaw-mode="stack">
     <thead>
@@ -20,7 +22,17 @@ $escape = $this->plugin('escapeHtml');
     <tbody>
         <?php foreach ($imports as $import): ?>
             <tr>
-                <td><?php echo $import->importer()->label(); ?></td>
+                <td>
+                    <?php echo $import->importer()->label(); ?>
+                    <ul class="actions">
+                        <?php if ($import->isInProgress()): ?>
+                        <li><?php echo $hyperlink('', $url('admin/id', ['controller' => 'job', 'action' => 'stop', 'id' => $import->job()->id()]), [
+                            'class' => 'fas fa-stop-circle',
+                            'title' => $translate('Stop'), // @translate
+                        ]); ?></li>
+                        <?php endif; ?>
+                    </ul>
+                </td>
                 <td><?php echo $import->status(); ?></td>
                 <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
                 <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>

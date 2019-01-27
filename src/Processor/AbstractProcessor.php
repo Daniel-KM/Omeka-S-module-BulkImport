@@ -5,6 +5,7 @@ use ArrayObject;
 use BulkImport\Interfaces\Processor;
 use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Omeka\Job\AbstractJob as Job;
 use Zend\Log\Logger;
 use Zend\ServiceManager\ServiceLocatorInterface;
 
@@ -51,6 +52,11 @@ abstract class AbstractProcessor implements Processor
      * @var Logger
      */
     protected $logger;
+
+    /**
+     * @var Job
+     */
+    protected $job;
 
     /**
      * @var \Omeka\Api\Manager
@@ -114,6 +120,12 @@ abstract class AbstractProcessor implements Processor
     public function setLogger(Logger $logger)
     {
         $this->logger = $logger;
+        return $this;
+    }
+
+    public function setJob(Job $job)
+    {
+        $this->job = $job;
         return $this;
     }
 
