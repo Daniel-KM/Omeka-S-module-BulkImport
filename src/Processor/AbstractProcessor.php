@@ -354,7 +354,7 @@ abstract class AbstractProcessor implements Processor
      */
     protected function checkId(ArrayObject $resource)
     {
-        if ($resource['checked_id']) {
+        if (!empty($resource['checked_id'])) {
             return !empty($resource['o:id']);
         }
         // The id is set, but not checked. So check it.
