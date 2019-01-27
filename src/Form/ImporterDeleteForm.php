@@ -16,14 +16,14 @@ class ImporterDeleteForm extends Form
 
         $this->add([
             'name' => 'importer_submit',
-            'type' =>  Fieldset::class,
+            'type' => Fieldset::class,
         ]);
 
         $fieldset = $this->get('importer_submit');
 
         $fieldset->add([
             'name' => 'submit',
-            'type'  => Element\Submit::class,
+            'type' => Element\Submit::class,
             'attributes' => [
                 'id' => 'submitbutton',
                 'value' => 'Delete importer', // @translate

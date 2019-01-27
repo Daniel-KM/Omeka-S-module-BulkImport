@@ -349,7 +349,7 @@ abstract class AbstractProcessor implements Processor
      * Check the id of a resource.
      *
      * @param ArrayObject $resource
-     * @return boolean The action should be checked separately, else the result
+     * @return bool The action should be checked separately, else the result
      * may have no meaning.
      */
     protected function checkId(ArrayObject $resource)
@@ -389,7 +389,7 @@ abstract class AbstractProcessor implements Processor
      * of the process.
      *
      * @param ArrayObject $resource
-     * @return boolean
+     * @return bool
      */
     protected function fillId(ArrayObject $resource)
     {

@@ -141,11 +141,11 @@ class ImporterController extends AbstractActionController
 
         $form->add([
             'name' => 'importer_submit',
-            'type'  => Fieldset::class,
+            'type' => Fieldset::class,
         ]);
         $form->get('importer_submit')->add([
             'name' => 'submit',
-            'type'  => Element\Submit::class,
+            'type' => Element\Submit::class,
             'attributes' => [
                 'value' => 'Save', // @translate
                 'id' => 'submitbutton',
@@ -197,11 +197,11 @@ class ImporterController extends AbstractActionController
 
         $form->add([
             'name' => 'importer_submit',
-            'type'  => Fieldset::class,
+            'type' => Fieldset::class,
         ]);
         $form->get('importer_submit')->add([
             'name' => 'submit',
-            'type'  => Element\Submit::class,
+            'type' => Element\Submit::class,
             'attributes' => [
                 'value' => 'Save', // @translate
                 'id' => 'submitbutton',
@@ -392,7 +392,7 @@ class ImporterController extends AbstractActionController
 
         $reader = $importer->reader();
         if ($reader instanceof Parametrizable) {
-            /** @return \Zend\Form\Form */
+            /* @return \Zend\Form\Form */
             $formsCallbacks['reader'] = function () use ($reader, $controller) {
                 $readerForm = $controller->getForm($reader->getParamsFormClass());
                 $readerConfig = $reader->getConfig() ?: [];
@@ -400,18 +400,18 @@ class ImporterController extends AbstractActionController
 
                 $readerForm->add([
                     'name' => 'current_form',
-                    'type'  => Element\Hidden::class,
+                    'type' => Element\Hidden::class,
                     'attributes' => [
                         'value' => 'reader',
                     ],
                 ]);
                 $readerForm->add([
                     'name' => 'reader_submit',
-                    'type'  => Fieldset::class,
+                    'type' => Fieldset::class,
                 ]);
                 $readerForm->get('reader_submit')->add([
                     'name' => 'submit',
-                    'type'  => Element\Submit::class,
+                    'type' => Element\Submit::class,
                     'attributes' => [
                         'value' => 'Continue', // @translate
                     ],
@@ -424,7 +424,7 @@ class ImporterController extends AbstractActionController
         $processor = $importer->processor();
         $processor->setReader($reader);
         if ($processor instanceof Parametrizable) {
-            /** @return \Zend\Form\Form */
+            /* @return \Zend\Form\Form */
             $formsCallbacks['processor'] = function () use ($processor, $controller) {
                 $processorForm = $controller->getForm($processor->getParamsFormClass(), [
                     'processor' => $processor,
@@ -434,18 +434,18 @@ class ImporterController extends AbstractActionController
 
                 $processorForm->add([
                     'name' => 'current_form',
-                    'type'  => Element\Hidden::class,
+                    'type' => Element\Hidden::class,
                     'attributes' => [
                         'value' => 'processor',
                     ],
                 ]);
                 $processorForm->add([
                     'name' => 'reader_submit',
-                    'type'  => Fieldset::class,
+                    'type' => Fieldset::class,
                 ]);
                 $processorForm->get('reader_submit')->add([
                     'name' => 'submit',
-                    'type'  => Element\Submit::class,
+                    'type' => Element\Submit::class,
                     'attributes' => [
                         'value' => 'Continue', // @translate
                     ],
@@ -455,12 +455,12 @@ class ImporterController extends AbstractActionController
             };
         }
 
-        /** @return \Zend\Form\Form */
+        /* @return \Zend\Form\Form */
         $formsCallbacks['start'] = function () use ($controller) {
             $startForm = $controller->getForm(ImporterStartForm::class);
             $startForm->add([
                 'name' => 'current_form',
-                'type'  => Element\Hidden::class,
+                'type' => Element\Hidden::class,
                 'attributes' => [
                     'value' => 'start',
                 ],

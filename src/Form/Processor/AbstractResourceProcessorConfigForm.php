@@ -74,7 +74,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'options' => [
                 'label' => 'Owner', // @translate
                 'prepend_value_options' => [
-                    'current' => 'Current user' // @translate
+                    'current' => 'Current user', // @translate
                 ],
                 'resource_value_options' => [
                     'resource' => 'users',
@@ -131,7 +131,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'attributes' => [
                 'id' => 'action',
                 'multiple' => false,
-                'required' =>false,
+                'required' => false,
                 'class' => 'chosen-select',
             ],
         ]);
@@ -168,7 +168,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'attributes' => [
                 'id' => 'identifier_name',
                 'multiple' => true,
-                'required' =>false,
+                'required' => false,
                 'value' => [
                     'o:id',
                     'dcterms:identifier',
@@ -183,7 +183,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'type' => Element\Checkbox::class,
             'options' => [
                 'label' => 'Allow duplicate identifiers', // @translate
-                'info' => 'Not recommended, but needed to be compliant with old databases. Duplicates are logged.' // @translate
+                'info' => 'Not recommended, but needed to be compliant with old databases. Duplicates are logged.', // @translate
             ],
             'attributes' => [
                 'id' => 'allow_duplicate_identifiers',

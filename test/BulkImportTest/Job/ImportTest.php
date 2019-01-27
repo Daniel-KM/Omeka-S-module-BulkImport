@@ -392,13 +392,13 @@ SQL;
     protected function importerArgs()
     {
         return [
-            'label'=> 'Spreadsheet mixed',
+            'label' => 'Spreadsheet mixed',
             'reader_class' => \BulkImport\Reader\SpreadsheetReader::class,
             'reader_config' => [
                 'delimiter' => ',',
                 'enclosure' => '"',
                 'escape' => '\\',
-                'separator' => ','
+                'separator' => ',',
             ],
             'processor_class' => \BulkImport\Processor\ResourceProcessor::class,
             'processor_config' => [
@@ -422,11 +422,11 @@ SQL;
                     'name' => 'filename.tsv',
                     'type' => 'text/tab-separated-values',
                     'error' => 0,
-                    'size' => 27482
+                    'size' => 27482,
                 ],
                 'delimiter' => "\t",
                 'enclosure' => chr(0),
-                'escape' => chr(0)
+                'escape' => chr(0),
             ],
             'processor_params' => [
                 'o:resource_template' => '1',
@@ -436,8 +436,8 @@ SQL;
                 'o:item_set' => [],
                 'o:item' => '',
                 'mapping' => [
-                ]
-            ]
+                ],
+            ],
         ];
     }
 }

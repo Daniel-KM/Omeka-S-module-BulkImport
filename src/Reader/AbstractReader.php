@@ -204,7 +204,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Check if the reader is ready, or prepare it.
      *
-     * @return boolean
+     * @return bool
      */
     protected function isReady()
     {
@@ -308,7 +308,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @param string $filepath
      * @param array $file
-     * @return boolean
+     * @return bool
      */
     protected function isValidFilepath($filepath, $file)
     {

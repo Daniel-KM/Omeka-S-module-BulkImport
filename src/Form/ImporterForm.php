@@ -35,7 +35,7 @@ class ImporterForm extends Form
 
         $this->add([
             'name' => 'o-module-bulk:reader_class',
-            'type'  => Element\Select::class,
+            'type' => Element\Select::class,
             'options' => [
                 'label' => 'Reader', // @translate
                 'value_options' => $this->getReaderOptions(),
@@ -47,7 +47,7 @@ class ImporterForm extends Form
 
         $this->add([
             'name' => 'o-module-bulk:processor_class',
-            'type'  => Element\Select::class,
+            'type' => Element\Select::class,
             'options' => [
                 'label' => 'Processor', // @translate
                 'value_options' => $this->getProcessorOptions(),
@@ -66,7 +66,7 @@ class ImporterForm extends Form
 
         $fieldset->add([
             'name' => 'submit',
-            'type'  => Element\Submit::class,
+            'type' => Element\Submit::class,
             'attributes' => [
                 'id' => 'submitbutton',
                 'value' => 'Save', // @translate

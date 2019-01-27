@@ -9,7 +9,7 @@ trait EntriesByBatchTrait
     {
         $this->add([
             'name' => 'entries_by_batch',
-            'type'  => Element\Number::class,
+            'type' => Element\Number::class,
             'options' => [
                 'label' => 'Entries by batch', // @translate
                 'info' => 'This value has no impact on process, but when it is set to "1" (default), the order of internal ids will be in the same order than the input and medias will follow their items. If it is greater, the order will follow the number of entries by resource types.', // @translate
