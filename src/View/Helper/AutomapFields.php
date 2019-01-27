@@ -154,6 +154,8 @@ class AutomapFields extends AbstractHelper
                 continue;
             }
 
+            // TODO Add a check of the type with the list of data types.
+
             $field = trim($matches[1]);
             $lowerField = strtolower($field);
 
