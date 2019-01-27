@@ -27,7 +27,7 @@ $url = $this->plugin('url');
                     <ul class="actions">
                         <?php if ($import->isInProgress()): ?>
                         <li><?php echo $hyperlink('', $url('admin/id', ['controller' => 'job', 'action' => 'stop', 'id' => $import->job()->id()]), [
-                            'class' => 'fas fa-stop-circle',
+                            'class' => 'fas fa-times-circle',
                             'title' => $translate('Stop'), // @translate
                         ]); ?></li>
                         <?php endif; ?>
