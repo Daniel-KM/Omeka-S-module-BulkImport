@@ -84,6 +84,9 @@ class ResourceProcessor extends AbstractResourceProcessor
         if (is_null($resourceTypes)) {
             $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
             $resourceTypes = [
+                'o:item' => 'items',
+                'o:itemset' => 'item_sets',
+                'o:media' => 'media',
                 'item' => 'items',
                 'itemset' => 'item_sets',
                 'media' => 'media',
