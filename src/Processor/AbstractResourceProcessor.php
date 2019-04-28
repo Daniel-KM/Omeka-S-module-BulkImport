@@ -363,8 +363,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 case 'resource:item':
                 case 'resource:itemset':
                 case 'resource:media':
-                    $resourceValue['value_resource_id'] = $value;
-                    $resourceValue['@language'] = null;
+                    $resourceType = isset($resource['resource_type']) ? $resource['resource_type'] : null;
+                    $id = $this->findResourceFromIdentifier($value, null, $resourceType);
+                    if ($id) {
+                        $resourceValue['value_resource_id'] = $id;
+                        $resourceValue['@language'] = null;
+                    } else {
+                        $resource['has_error'] = true;
+                        $this->logger->err(
+                            'Resource id for value "{value}" cannot be found: the entry is skipped.', // @translate
+                            ['value' => $value]
+                        );
+                    }
                     break;
             }
             $resource[$target['target']][] = $resourceValue;

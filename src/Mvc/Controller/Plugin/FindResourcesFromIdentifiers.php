@@ -257,6 +257,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'item_sets' => \Omeka\Entity\ItemSet::class,
             'media' => \Omeka\Entity\Media::class,
             'resources' => '',
+            'resource' => '',
+            'resource:item' => \Omeka\Entity\Item::class,
+            'resource:itemset' => \Omeka\Entity\ItemSet::class,
+            'resource:media' => \Omeka\Entity\Media::class,
             // Avoid a check and make the plugin more flexible.
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
@@ -265,6 +269,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'o:item' => \Omeka\Entity\Item::class,
             'o:item_set' => \Omeka\Entity\ItemSet::class,
             'o:media' => \Omeka\Entity\Media::class,
+            // Other resource types.
+            'item' => \Omeka\Entity\Item::class,
+            'item_set' => \Omeka\Entity\ItemSet::class,
+            'item-set' => \Omeka\Entity\ItemSet::class,
+            'itemset' => \Omeka\Entity\ItemSet::class,
+            'resource:item_set' => \Omeka\Entity\ItemSet::class,
+            'resource:item-set' => \Omeka\Entity\ItemSet::class,
         ];
         return isset($resourceTypes[$resourceType])
             ? $resourceTypes[$resourceType]
