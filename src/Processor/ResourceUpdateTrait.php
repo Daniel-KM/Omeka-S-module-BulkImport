@@ -322,7 +322,10 @@ trait ResourceUpdateTrait
                     'serialize',
                     // Normalize values.
                     array_map(function ($v) use ($base, $isOldOmeka) {
-                        $mainType = empty($v['@id']) ? (empty($v['value_resource_id']) ? 'literal' : 'resource') : 'uri';
+                        // Data types "resource" and "uri" have "@id" (in json).
+                        $mainType = array_key_exists('value_resource_id', $v)
+                            ? 'resource'
+                            : (array_key_exists('@id', $v) ? 'uri' : 'literal');
                         // Keep order and meaning keys.
                         $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
                         if (!$isOldOmeka) {
