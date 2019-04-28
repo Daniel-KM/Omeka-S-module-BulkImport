@@ -25,7 +25,7 @@ built by [Biblibre].
 Installation
 ------------
 
-This module requires the module [Log].
+This module requires the modules [Generic] and [Log].
 
 See general end user documentation for [installing a module].
 
@@ -63,7 +63,10 @@ For example to import a French title, use header `Title @fr` or `dcterms:title@f
 To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation^^uri`.
 To import an uri with its label, if any, use header `Relation ^^uri-label`.
 To import a value as an Omeka resource, use header `Relation ^^resource`. The
-value should be the internal id or the resource identifier (generally dcterms:identifier).
+value should be the internal id or a resource identifier (generally dcterms:identifier).
+
+Media can be imported with the item. The mapping is automatic with headers `Media url`,
+`Media html`, etc.
 
 ### Internal differences with Csv Import
 
@@ -138,6 +141,7 @@ Copyright
 [CSV Import module]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
+[Generic]: https://github.com/Daniel-KM/Omeka-S-module-Generic
 [Log]: https://github.com/Daniel-KM/Omeka-S-module-Log
 [`BulkImport.zip`]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases
 [installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
