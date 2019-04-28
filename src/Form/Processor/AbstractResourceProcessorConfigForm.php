@@ -220,6 +220,9 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $availableFields = $reader->getAvailableFields();
         $fields = $automapFields($availableFields);
         foreach ($availableFields as $index => $name) {
+            if (!strlen(trim($name))) {
+                continue;
+            }
             $fieldset->add([
                 'name' => $name,
                 'type' => PropertySelect::class,
