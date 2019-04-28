@@ -801,7 +801,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if (empty($targets)) {
                 continue;
             }
-            $metadata = $sourceFields[$index];
+
+            // Default metadata (type and language). For consistency, only the
+            // first metadata is used.
+            $metadatas = $sourceFields[$index];
+            $metadata = reset($metadatas);
+
             $fullTargets = [];
             foreach ($targets as $target) {
                 $result = [];

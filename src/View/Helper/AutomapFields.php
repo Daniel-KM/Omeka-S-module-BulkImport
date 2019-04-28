@@ -57,6 +57,9 @@ class AutomapFields extends AbstractHelper
      * xsd:date, xsd:dateTime, xsd:decimal, xsd:gDay, xsd:gMonth, xsd:gMonthDay,
      * xsd:gYear, xsd:gYearMonth, xsd:integer, xsd:time, rdf:HTML, with or
      * without prefix. The datatypes are checked by the processor.
+     * Multiple targets can be mapped with the separator "|". Note that if there
+     * may be multiple properties, only the first language and type will be
+     * used.
      *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
      *
@@ -154,56 +157,59 @@ class AutomapFields extends AbstractHelper
             . '~';
         $matches = [];
 
-        foreach ($fields as $index => $field) {
-            $meta = preg_match($pattern, $field, $matches);
-            if (!$meta) {
-                continue;
-            }
-
-            // TODO Add a check of the type with the list of data types.
-
-            $field = trim($matches[1]);
-            $lowerField = strtolower($field);
-
-            // Check first with the specific auto-mapping list.
-            foreach ($automapLists as $listName => $list) {
-                $toSearch = strpos($listName, 'lower_') === 0 ? $lowerField : $field;
-                $found = array_search($toSearch, $list, true);
-                if ($found) {
-                    // The automap list is used to keep the sensitive value.
-                    if ($outputFullMatches) {
-                        $result = [];
-                        $result['field'] = $automapList[$found];
-                        $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
-                        $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
-                        $automaps[$index] = $result;
-                    } else {
-                        $automaps[$index] = $automapList[$found];
-                    }
-                    continue 2;
+        foreach ($fields as $index => $fieldsMulti) {
+            $fieldsMulti = array_filter(array_map('trim', explode('|', $fieldsMulti)));
+            foreach ($fieldsMulti as $field) {
+                $meta = preg_match($pattern, $field, $matches);
+                if (!$meta) {
+                    continue;
                 }
-            }
 
-            // Check strict term name, like "dcterms:title", sensitively then
-            // insensitively, then term label like "Dublin Core : Title"
-            // sensitively then insensitively too. Because all the lists contain
-            // the same keys in the same order, the process can be done in one
-            // step.
-            foreach ($lists as $listName => $list) {
-                $toSearch = strpos($listName, 'lower_') === 0 ? $lowerField : $field;
-                $found = array_search($toSearch, $list, true);
-                if ($found) {
-                    if ($outputFullMatches) {
-                        $result = [];
-                        $result['field'] = $propertyLists['names'][$found];
-                        $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
-                        $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
-                        $automaps[$index] = $result;
-                    } else {
-                        $property = $propertyLists['names'][$found];
-                        $automaps[$index] = $property;
+                // TODO Add a check of the type with the list of data types.
+
+                $field = trim($matches[1]);
+                $lowerField = strtolower($field);
+
+                // Check first with the specific auto-mapping list.
+                foreach ($automapLists as $listName => $list) {
+                    $toSearch = strpos($listName, 'lower_') === 0 ? $lowerField : $field;
+                    $found = array_search($toSearch, $list, true);
+                    if ($found) {
+                        // The automap list is used to keep the sensitive value.
+                        if ($outputFullMatches) {
+                            $result = [];
+                            $result['field'] = $automapList[$found];
+                            $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
+                            $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
+                            $automaps[$index][] = $result;
+                        } else {
+                            $automaps[$index][] = $automapList[$found];
+                        }
+                        continue 2;
                     }
-                    continue 2;
+                }
+
+                // Check strict term name, like "dcterms:title", sensitively then
+                // insensitively, then term label like "Dublin Core : Title"
+                // sensitively then insensitively too. Because all the lists contain
+                // the same keys in the same order, the process can be done in one
+                // step.
+                foreach ($lists as $listName => $list) {
+                    $toSearch = strpos($listName, 'lower_') === 0 ? $lowerField : $field;
+                    $found = array_search($toSearch, $list, true);
+                    if ($found) {
+                        if ($outputFullMatches) {
+                            $result = [];
+                            $result['field'] = $propertyLists['names'][$found];
+                            $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
+                            $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
+                            $automaps[$index][] = $result;
+                        } else {
+                            $property = $propertyLists['names'][$found];
+                            $automaps[$index][] = $property;
+                        }
+                        continue 2;
+                    }
                 }
             }
         }

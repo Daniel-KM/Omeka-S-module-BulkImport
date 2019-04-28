@@ -64,9 +64,13 @@ To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation
 To import an uri with its label, if any, use header `Relation ^^uri-label`.
 To import a value as an Omeka resource, use header `Relation ^^resource`. The
 value should be the internal id or a resource identifier (generally dcterms:identifier).
+To import multiple targets for a column, use the separator "|" in the header.
+Note that if there may be multiple properties, only the first language and type
+will be used. It allows to keep consistency in the metadata.
 
 Media can be imported with the item. The mapping is automatic with headers `Media url`,
 `Media html`, etc.
+
 
 ### Internal differences with Csv Import
 
