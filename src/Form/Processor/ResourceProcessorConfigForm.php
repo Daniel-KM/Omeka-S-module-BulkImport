@@ -80,7 +80,9 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
 
         $this->add([
             'name' => 'o:item',
-            'type' => ResourceSelect::class,
+            // Disabled, because not usable with a big base.
+            // 'type' => ResourceSelect::class,
+            'type' => Element\Select::class,
             'options' => [
                 'label' => 'Item', // @translate
                 'empty_option' => '',
@@ -99,6 +101,8 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
                 'required' => false,
                 'data-placeholder' => 'Select one item…', // @translate
                 'data-api-base-url' => $urlHelper('api/default', ['resource' => 'items']),
+                // Disabled, because not usable with a big base.
+                'disabled' => true,
             ],
         ]);
     }
