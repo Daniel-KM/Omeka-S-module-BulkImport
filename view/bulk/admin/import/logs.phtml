@@ -89,6 +89,8 @@ $severityNames = [
         </tbody>
     </table>
 
+    <?php echo $this->pagination(); ?>
+
     <p>
         <?php echo $this->hyperlink(sprintf($translate('Manage logs')),
             $this->url('admin/log/default', [], ['query' => ['reference' => 'bulk/import/' . $import->id()]])); ?>
