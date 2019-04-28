@@ -16,7 +16,6 @@ $url = $this->plugin('url');
             <th><?php echo $escape($translate('Status')); ?></th>
             <th><?php echo $escape($translate('Started')); ?></th>
             <th><?php echo $escape($translate('Completed')); ?></th>
-            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -31,14 +30,19 @@ $url = $this->plugin('url');
                             'title' => $translate('Stop'), // @translate
                         ]); ?></li>
                         <?php endif; ?>
+                        <li><?php echo $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
+                            'class' => 'fas fa-cogs',
+                            'title' => $translate('See params'),
+                        ]); ?></li>
+                        <li><?php echo $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
+                            'class' => 'fas fa-list',
+                            'title' => $translate('See logs'),
+                        ]); ?></li>
                     </ul>
                 </td>
                 <td><?php echo $import->status(); ?></td>
                 <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
                 <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>
-                <td>
-                    <?php echo $this->hyperlink($translate('See logs'), $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()])); ?>
-                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>

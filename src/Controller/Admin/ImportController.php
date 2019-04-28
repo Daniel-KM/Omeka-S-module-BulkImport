@@ -37,6 +37,17 @@ class ImportController extends AbstractActionController
         return $view;
     }
 
+    public function showAction()
+    {
+        $id = $this->params()->fromRoute('id');
+        $import = $this->api()->read('bulk_imports', $id)->getContent();
+
+        $view = new ViewModel;
+        $view->setVariable('import', $import);
+        $view->setVariable('resource', $import);
+        return $view;
+    }
+
     public function logsAction()
     {
         $id = $this->params()->fromRoute('id');

@@ -1,0 +1,32 @@
+<?php
+/**
+ * @var \Zend\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImportRepresentation $import
+ * @var \BulkImport\Api\Representation\ImportRepresentation $resource
+ */
+
+$translate = $this->plugin('translate');
+$escape = $this->plugin('escapeHtml');
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
+$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+?>
+
+<?php echo $this->pageTitle($translate('Import'), 1, $translate('Bulk import')); ?>
+
+<div id="content">
+    <h2><?php echo $escape(sprintf($translate('Import #%d'), $import->id())); ?></h2>
+    <h3><?php echo $escape($translate('Parameters')); ?></h3>
+    <h4><?php echo $escape($translate('Reader')); ?></h4>
+    <div class="value">
+        <pre><?php
+            echo $escape(json_encode($import->readerParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        ?></pre>
+    </div>
+    <h4><?php echo $escape($translate('Processor')); ?></h4>
+    <div class="value">
+        <pre><?php
+            echo $escape(json_encode($import->processorParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        ?></pre>
+    </div>
+</div>
