@@ -189,7 +189,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
-        /** @var Processor $processor */
+        /** @var \BulkImport\Interfaces\Processor $processor */
         $processor = $entity->processor();
         $form = $this->getForm($processor->getConfigFormClass());
         $processorConfig = ($processor->getConfig()) ? $processor->getConfig() : [];
