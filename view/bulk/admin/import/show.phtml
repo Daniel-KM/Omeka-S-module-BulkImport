@@ -16,6 +16,16 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <div id="content">
     <h2><?php echo $escape(sprintf($translate('Import #%d'), $import->id())); ?></h2>
+    <ul>
+        <li><?php echo sprintf($translate('Importer: %s'), $import->importer()->label()); ?></li>
+        <li><?php echo sprintf($translate('Status: %s'), $import->statusLabel()); ?></li>
+        <?php if ($v = $import->started()): ?>
+        <li><?php echo sprintf($translate('Started: %s'), $v->format('Y-m-d H:i:s')); ?></li>
+        <?php endif; ?>
+        <?php if ($v = $import->ended()): ?>
+        <li><?php echo sprintf($translate('Ended: %s'), $v->format('Y-m-d H:i:s')); ?></li>
+        <?php endif; ?>
+    </ul>
     <h3><?php echo $escape($translate('Parameters')); ?></h3>
     <h4><?php echo $escape($translate('Reader')); ?></h4>
     <div class="value">
@@ -29,4 +39,6 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
             echo $escape(json_encode($import->processorParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         ?></pre>
     </div>
+    <h4><?php echo $escape($translate('Logs')); ?></h4>
+    <?php echo $this->hyperlink($translate('See logs'), $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()])); ?>
 </div>

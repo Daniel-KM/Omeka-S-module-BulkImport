@@ -40,7 +40,7 @@ $url = $this->plugin('url');
                         ]); ?></li>
                     </ul>
                 </td>
-                <td><?php echo $import->status(); ?></td>
+                <td><?php echo $translate($import->statusLabel()); ?></td>
                 <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
                 <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>
             </tr>
