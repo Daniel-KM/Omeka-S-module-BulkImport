@@ -364,14 +364,16 @@ abstract class AbstractProcessor implements Processor
                 : $resource['resource_type'];
             if (empty($resourceType) || $resourceType === 'resources') {
                 $this->logger->err(
-                    'The resource id cannot be checked: the resource type is undefined.' // @translate
+                    'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
+                    ['index' => $this->indexResource]
                 );
                 $resource['has_error'] = true;
             } else {
                 $id = $this->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceType);
                 if (!$id) {
                     $this->logger->err(
-                        'The id of this resource doesn’t exist.' // @translate
+                        'Index #{index}: The id of this resource doesn’t exist.', // @translate
+                        ['index' => $this->indexResource]
                     );
                     $resource['has_error'] = true;
                 }
@@ -402,7 +404,8 @@ abstract class AbstractProcessor implements Processor
             : $resource['resource_type'];
         if (empty($resourceType) || $resourceType === 'resources') {
             $this->logger->err(
-                'The resource id cannot be filled: the resource type is undefined.' // @translate
+                'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
+                ['index' => $this->indexResource]
             );
             $resource['has_error'] = true;
         }
@@ -414,7 +417,8 @@ abstract class AbstractProcessor implements Processor
         }
         if (empty($identifierNames)) {
             $this->logger->err(
-                'The resource id cannot be filled: no metadata defined as identifier.' // @translate
+                'Index #{index}: The resource id cannot be filled: no metadata defined as identifier.', // @translate
+                ['index' => $this->indexResource]
             );
             $resource['has_error'] = true;
         }
@@ -458,19 +462,22 @@ abstract class AbstractProcessor implements Processor
             $flipped = array_flip($ids);
             if (count($flipped) > 1) {
                 $this->logger->warn(
-                    'Resource doesn’t have a unique identifier.' // @translate
+                    'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
+                    ['index' => $this->indexResource]
                 );
                 if (!$this->allowDuplicateIdentifiers) {
                     $this->logger->err(
-                        'Duplicate identifiers are not allowed.' // @translate
+                        'Index #{index}: Duplicate identifiers are not allowed.', // @translate
+                        ['index' => $this->indexResource]
                     );
                     break;
                 }
             }
             $resource['o:id'] = reset($ids);
             $this->logger->info(
-                'Identifier "{identifier}" ({metadata}) matches {resource_type} #{resource_id}.', // @translate
+                'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_type} #{resource_id}.', // @translate
                 [
+                    'index' => $this->indexResource,
                     'identifier' => key($ids),
                     'metadata' => $identifierName,
                     'resource_type' => $this->label($resourceType),

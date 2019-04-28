@@ -175,7 +175,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $dataToProcess = [];
         foreach ($this->reader as $index => $entry) {
             if ($this->job->shouldStop()) {
-                $this->logger->warn('The job "Import" was stopped.'); // @translate
+                $this->logger->warn(
+                    'Index #{index}: The job "Import" was stopped.', // @translate
+                    ['index' => $this->indexResource]
+                );
                 break;
             }
 
@@ -183,7 +186,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // The first entry is #1, but the iterator (array) numbered it 0.
             $this->indexResource = $index + 1;
             $this->logger->notice(
-                'Processing resource index #{index}', // @translate
+                'Index #{index} processing', // @translate
                 ['index' => $this->indexResource]
             );
 
@@ -231,7 +234,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         if ($entry->isEmpty()) {
             $this->logger->warn(
-                'Resource index #{index} is empty and is skipped.', // @translate
+                'Index #{index}: Cell is empty and is skipped.', // @translate
                 ['index' => $this->indexResource]
             );
             ++$this->totalSkipped;
@@ -247,8 +250,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // Probably an issue in the config.
                 if (!$entry->offsetExists($sourceField)) {
                     $this->logger->warn(
-                        'The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
-                        ['field' => $sourceField]
+                        'Index #{index}: The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
+                        ['index' => $this->indexResource, 'field' => $sourceField]
                     );
                 }
                 $this->skippedSourceFields[] = $sourceField;
@@ -371,8 +374,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     } else {
                         $resource['has_error'] = true;
                         $this->logger->err(
-                            'Resource id for value "{value}" cannot be found: the entry is skipped.', // @translate
-                            ['value' => $value]
+                            'Index #{index}: Resource id for value "{value}" cannot be found: the entry is skipped.', // @translate
+                            ['index' => $this->indexResource, 'value' => $value]
                         );
                     }
                     break;
@@ -398,8 +401,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } else {
                     $resource['has_error'] = true;
                     $this->logger->err(
-                        'Internal id #{id} cannot be found: the entry is skipped.', // @translate
-                        ['id' => $id]
+                        'Index #{index}: Internal id #{id} cannot be found: the entry is skipped.', // @translate
+                        ['index' => $this->indexResource, 'id' => $id]
                     );
                 }
                 return true;
@@ -464,13 +467,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         } elseif (!$resource['o:id'] && $checkUnidentified) {
             if ($this->allowDuplicateIdentifiers) {
                 $this->logger->err(
-                    'The action "{action}" requires an identifier.', // @translate
-                    ['action' => $this->action]
+                    'Index #{index}: The action "{action}" requires an identifier.', // @translate
+                    ['index' => $this->indexResource, 'action' => $this->action]
                 );
             } else {
                 $this->logger->err(
-                    'The action "{action}" requires a unique identifier.', // @translate
-                    ['action' => $this->action]
+                    'Index #{index}: The action "{action}" requires a unique identifier.', // @translate
+                    ['index' => $this->indexResource, 'action' => $this->action]
                 );
             }
             $resource['has_error'] = true;
@@ -536,15 +539,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ->batchCreate($resourceType, $data, [], ['continueOnError' => true])->getContent();
             }
         } catch (\Exception $e) {
-            $this->logger->err('Core error during creation: {exception}', ['exception' => $e]); // @translate
+            $this->logger->err(
+                'Index #{index}: Core error during creation: {exception}', // @translate
+                ['index' => $this->indexResource, 'exception' => $e]
+            );
             ++$this->totalErrors;
             return;
         }
 
         foreach ($resources as $resource) {
             $this->logger->notice(
-                'Created {resource_type} #{resource_id}', // @translate
-                ['resource_type' => $this->label($resourceType), 'resource_id' => $resource->id()]
+                'Index #{index}: Created {resource_type} #{resource_id}', // @translate
+                ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $resource->id()]
             );
         }
     }
@@ -608,11 +614,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             try {
                 $this->api()->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
                 $this->logger->notice(
-                    'Updated {resource_type} #{resource_id}', // @translate
-                    ['resource_type' => $this->label($resourceType), 'resource_id' => $dataResource['o:id']]
+                    'Index #{index}: Updated {resource_type} #{resource_id}', // @translate
+                    ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $dataResource['o:id']]
                 );
             } catch (\Exception $e) {
-                $this->logger->err('Core error during update: {exception}', ['exception' => $e]);
+                $this->logger->err(
+                    'Index #{index}: Core error during update: {exception}', // @translate
+                    ['index' => $this->indexResource, 'exception' => $e]
+                );
                 ++$this->totalErrors;
             }
         }
@@ -658,14 +667,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         } catch (\Exception $e) {
             // There is no error, only ids already deleted, so continue.
-            $this->logger->err('Core error during deletion: {exception}', ['exception' => $e]);
+            $this->logger->err(
+                'Index #{index}: Core error during deletion: {exception}', // @translate
+                ['index' => $this->indexResource, 'exception' => $e]
+            );
             ++$this->totalErrors;
         }
 
         foreach ($ids as $id) {
             $this->logger->notice(
-                'Deleted {resource_type} #{resource_id}', // @translate
-                ['resource_type' => $this->label($resourceType), 'resource_id' => $id]
+                'Index #{index}: Deleted {resource_type} #{resource_id}', // @translate
+                ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $id]
             );
         }
     }

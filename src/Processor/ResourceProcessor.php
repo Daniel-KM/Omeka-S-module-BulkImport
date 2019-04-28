@@ -289,7 +289,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         if (empty($resource['resource_type'])) {
             $this->logger->err(
-                'Skipped resource index #{index}: no resource type set',  // @translate
+                'Index #{index} skipped: no resource type set',  // @translate
                 ['index' => $this->indexResource]
             );
             return false;
@@ -297,7 +297,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         if (!in_array($resource['resource_type'], ['items', 'item_sets', 'media'])) {
             $this->logger->err(
-                'Skipped resource index #{index}: resource type "{resource_type}" not managed', // @translate
+                'Index #{index} skipped: resource type "{resource_type}" not managed', // @translate
                 [
                     'index' => $this->indexResource,
                     'resource_type' => $resource['resource_type'],
@@ -393,7 +393,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         if (empty($resource['o:item']['o:id'])) {
             if ($this->action !== self::ACTION_DELETE) {
                 $this->logger->err(
-                    'Skipped media index #{index}: no item is set', // @translate
+                    'Index #{index} skipped: no item is set for the media', // @translate
                     ['index' => $this->indexResource]
                 );
                 return false;
