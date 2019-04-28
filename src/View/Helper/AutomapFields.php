@@ -109,7 +109,7 @@ class AutomapFields extends AbstractHelper
                 array_keys($automapList),
                 array_keys($automapList)
             );
-            $automapLists['lower_base'] = array_map('strtolower', $automapLists['base']);
+            $automapLists['lower_base'] = array_map('mb_strtolower', $automapLists['base']);
             if ($automapLists['base'] === $automapLists['lower_base']) {
                 unset($automapLists['base']);
             }
@@ -121,12 +121,12 @@ class AutomapFields extends AbstractHelper
             array_keys($propertyLists['names']),
             array_keys($propertyLists['names'])
         );
-        $lists['lower_names'] = array_map('strtolower', $lists['names']);
+        $lists['lower_names'] = array_map('mb_strtolower', $lists['names']);
         $lists['labels'] = array_combine(
             array_keys($propertyLists['names']),
             array_keys($propertyLists['labels'])
         );
-        $lists['lower_labels'] = array_map('strtolower', $lists['labels']);
+        $lists['lower_labels'] = array_map('mb_strtolower', $lists['labels']);
 
         // Check names alone, like "Title", for "dcterms:title".
         if ($checkNamesAlone) {
@@ -134,12 +134,12 @@ class AutomapFields extends AbstractHelper
                 $w = explode(':', $v);
                 return end($w);
             }, $lists['names']);
-            $lists['lower_local_names'] = array_map('strtolower', $lists['local_names']);
+            $lists['lower_local_names'] = array_map('mb_strtolower', $lists['local_names']);
             $lists['local_labels'] = array_map(function ($v) {
                 $w = explode(':', $v);
                 return end($w);
             }, $lists['labels']);
-            $lists['lower_local_labels'] = array_map('strtolower', $lists['local_labels']);
+            $lists['lower_local_labels'] = array_map('mb_strtolower', $lists['local_labels']);
         }
 
         // The pattern checks a term or keyword, then an optional @language, then
