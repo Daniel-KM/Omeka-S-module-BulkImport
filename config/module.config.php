@@ -39,6 +39,7 @@ return [
     ],
     'form_elements' => [
         'factories' => [
+            Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
             Form\ImporterDeleteForm::class => Service\Form\FormFactory::class,
             Form\ImporterForm::class => Service\Form\FormFactory::class,
             Form\ImporterStartForm::class => Service\Form\FormFactory::class,
@@ -71,6 +72,7 @@ return [
         'factories' => [
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
+            'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
         ],
         'aliases' => [
             'findResourcesFromIdentifiers' => Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class,
@@ -145,6 +147,11 @@ return [
                 'pattern' => '%s.mo',
                 'text_domain' => null,
             ],
+        ],
+    ],
+    'bulkimport' => [
+        'config' => [
+            'bulkimport_xslt_processor' => '',
         ],
     ],
     'bulk_import' => [
