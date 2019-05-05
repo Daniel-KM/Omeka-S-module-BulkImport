@@ -166,7 +166,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->prepareMapping();
 
-        $this->allowDuplicateIdentifiers = (bool) $this->getParam('allow_duplicate_identifiers');
+        $this->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers'));
 
         $batch = (int) $this->getParam('entries_by_batch') ?: self::ENTRIES_BY_BATCH;
 

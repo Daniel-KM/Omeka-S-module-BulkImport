@@ -517,6 +517,6 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      */
     protected function trimUnicode($string)
     {
-        return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', $string);
+        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', $string);
     }
 }

@@ -265,14 +265,14 @@ class AutomapFields extends AbstractHelper
     }
 
     /**
-     * Clean and trim all whitespace, included the unicode ones.
+     * Clean and trim all whitespaces, included the unicode ones.
      *
      * @param string $string
      * @return string
      */
     protected function cleanUnicode($string)
     {
-        return trim(preg_replace('/[\h\v\s[:blank:][:space:]]+/u', ' ', $string));
+        return trim(preg_replace('/[\s\h\v[:blank:][:space:]]+/u', ' ', $string));
     }
 
     protected function api()

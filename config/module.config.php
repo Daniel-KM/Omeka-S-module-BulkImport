@@ -69,6 +69,7 @@ return [
     ],
     'controller_plugins' => [
         'factories' => [
+            'bulk' => Service\ControllerPlugin\BulkFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
         ],
         'aliases' => [

@@ -261,7 +261,7 @@ trait ResourceUpdateTrait
     {
         static $listOfTerms;
         if (empty($listOfTerms)) {
-            $response = $this->api->search('properties', []);
+            $response = $this->api()->search('properties', []);
             foreach ($response->getContent() as $member) {
                 $term = $member->term();
                 $listOfTerms[$term] = $term;
