@@ -91,7 +91,7 @@ class Bulk extends AbstractPlugin
     public function __construct(ServiceLocatorInterface $services)
     {
         $this->services = $services;
-        $this->logger =  $services->get('Omeka\Logger');
+        $this->logger = $services->get('Omeka\Logger');
 
         $pluginManager = $services->get('ControllerPluginManager');
         $this->api = $pluginManager->get('api');
@@ -103,6 +103,7 @@ class Bulk extends AbstractPlugin
     /**
      * Manage various methods to manage bulk import.
      *
+     * @return self
      */
     public function __invoke()
     {
@@ -168,6 +169,16 @@ class Bulk extends AbstractPlugin
         }
 
         return $this->properties;
+    }
+
+    /**
+     * Get all property terms by id.
+     *
+     * @return array Associative array of terms by id.
+     */
+    public function getPropertyTerms()
+    {
+        return array_flip($this->getPropertyIds());
     }
 
     /**
