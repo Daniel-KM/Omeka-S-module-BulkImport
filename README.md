@@ -69,7 +69,12 @@ Examples for Debian 8+ / Ubuntu / Mint (with the package "libsaxonhe-java"):
 CLASSPATH=/usr/share/java/Saxon-HE.jar java net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
 ```
 
-Example for Fedora / RedHat / Centos / Mandriva / Mageia:
+Example for Fedora / RedHat / Centos / Mandriva / Mageia (package "saxon"):
+```
+java -cp /usr/share/java/saxon.jar net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
+```
+
+Or with packages "saxon", "saxon-scripts", "xml-commons-apis" and "xerces-j2":
 ```
 saxon -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
 ```
