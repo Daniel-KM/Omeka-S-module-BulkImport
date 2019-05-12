@@ -359,7 +359,8 @@ class Bulk extends AbstractPlugin
     {
         return strpos($string, 'https:') === 0
             || strpos($string, 'http:') === 0
-            || strpos($string, 'ftp:') === 0;
+            || strpos($string, 'ftp:') === 0
+            || strpos($string, 'sftp:') === 0;
     }
 
     /**
