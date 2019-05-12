@@ -496,6 +496,22 @@ class Bulk extends AbstractPlugin
         return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceType);
     }
 
+    /**
+     * Escape a value for use in XML.
+     *
+     * From Omeka Classic application/libraries/globals.php
+     *
+     * @param string $value
+     * @return string
+     */
+    public function xml_escape($value)
+    {
+        return htmlspecialchars(
+            preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', $value),
+            ENT_QUOTES
+        );
+    }
+
     public function logger()
     {
         return $this->logger;
