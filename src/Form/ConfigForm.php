@@ -9,6 +9,15 @@ class ConfigForm extends Form
     public function init()
     {
         $this->add([
+            'name' => 'bulkimport_local_path',
+            'type' => Element\Text::class,
+            'options' => [
+                'label' => 'Folder for local files', // @translate
+                'info' => 'For security reasons, local files to import should be inside this folder.', // @translate
+            ],
+        ]);
+
+        $this->add([
             'name' => 'bulkimport_xslt_processor',
             'type' => Element\Text::class,
             'options' => [

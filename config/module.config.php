@@ -151,6 +151,7 @@ return [
     ],
     'bulkimport' => [
         'config' => [
+            'bulkimport_local_path' => OMEKA_PATH . '/files/import',
             'bulkimport_xslt_processor' => '',
         ],
     ],
