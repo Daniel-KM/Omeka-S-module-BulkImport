@@ -25,7 +25,7 @@ built by [Biblibre].
 Installation
 ------------
 
-This module requires the modules [Generic] and [Log]. An external xslt 2
+This module requires the module [Log] and optionnaly [Generic]. An external xslt 2
 processor may be needed if you import xml files that are not importable with
 xlt 1.
 
