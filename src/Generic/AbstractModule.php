@@ -326,7 +326,8 @@ abstract class AbstractModule extends \Omeka\Module\AbstractModule
                 $id = null;
                 break;
             case 'site_settings':
-                $id = $services->get('ControllerPluginManager')->get('currentSite')->id();
+                $site = $services->get('ControllerPluginManager')->get('currentSite');
+                $id = $site()->id();
                 break;
             case 'user_settings':
                 /** @var \Zend\Router\RouteMatch $routeMatch */
@@ -397,7 +398,7 @@ abstract class AbstractModule extends \Omeka\Module\AbstractModule
      *
      * @param SettingsInterface $settings
      * @param string $settingsType
-     * @param int $id
+     * @param int $id Site id or user id.
      */
     protected function initDataToPopulate(SettingsInterface $settings, $settingsType, $id = null)
     {
@@ -419,8 +420,8 @@ abstract class AbstractModule extends \Omeka\Module\AbstractModule
             if (!method_exists($settings, 'getTargetIdColumnName')) {
                 return;
             }
-            $sql = sprintf('SELECT id, value FROM %s WHERE %s = ?', $settings->getTableName(), $settings->getTargetIdColumnName());
-            $stmt = $connection->query($sql, [$id]);
+            $sql = sprintf('SELECT id, value FROM %s WHERE %s = :target_id', $settings->getTableName(), $settings->getTargetIdColumnName());
+            $stmt = $connection->executeQuery($sql, ['target_id' => $id]);
         } else {
             $sql = sprintf('SELECT id, value FROM %s', $settings->getTableName());
             $stmt = $connection->query($sql);
@@ -561,13 +562,13 @@ abstract class AbstractModule extends \Omeka\Module\AbstractModule
     /**
      * Clean the text area from end of lines.
      *
-     * This method fixes Apple copy/paste from a textarea input.
+     * This method fixes Windows and Apple copy/paste from a textarea input.
      *
      * @param string $string
      * @return string
      */
     protected function fixEndOfLine($string)
     {
-        return str_replace(["\r\n", "\n\r", "\r", "\n"], "\n", $string);
+        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], $string);
     }
 }
