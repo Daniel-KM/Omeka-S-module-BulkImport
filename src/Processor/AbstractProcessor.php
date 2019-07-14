@@ -485,7 +485,7 @@ abstract class AbstractProcessor implements Processor
                 }
             }
             $resource['o:id'] = reset($ids);
-            $this->logger->info(
+            $this->logger->notice(
                 'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_type} #{resource_id}.', // @translate
                 [
                     'index' => $this->indexResource,
