@@ -455,16 +455,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->fillId($resource);
         }
 
-        $requiresId = $this->actionRequiresId();
-        $checkUnidentified = $requiresId
-            && $this->actionUnidentified === self::ACTION_SKIP;
-
-        if ($resource['o:id'] && !$requiresId) {
-            if (!$this->allowDuplicateIdentifiers) {
-                // Message is already displayed.
-                $resource['has_error'] = true;
+        if ($resource['o:id']) {
+            if (!$this->actionRequiresId()) {
+                if ($this->allowDuplicateIdentifiers) {
+                    // Action is create or skip.
+                    if ($this->action === self::ACTION_CREATE) {
+                        unset($resource['o:id']);
+                    }
+                } else {
+                    $this->logger->err(
+                        'Index #{index}: The action "{action}" requires a unique identifier.', // @translate
+                        ['index' => $this->indexResource, 'action' => $this->action]
+                    );
+                    $resource['has_error'] = true;
+                }
             }
-        } elseif (!$resource['o:id'] && $checkUnidentified) {
+        }
+        // No resource id, so it is an error, so add message if choice is skip.
+        elseif ($this->actionUnidentified === self::ACTION_SKIP) {
             if ($this->allowDuplicateIdentifiers) {
                 $this->logger->err(
                     'Index #{index}: The action "{action}" requires an identifier.', // @translate
