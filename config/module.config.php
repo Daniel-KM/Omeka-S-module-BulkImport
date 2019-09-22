@@ -86,6 +86,33 @@ return [
                 'route' => 'admin/bulk',
                 'resource' => 'BulkImport\Controller\Admin\Index',
                 'class' => 'o-icon-install',
+                'pages' => [
+                    [
+                        'label' => 'Dashboard', // @translate
+                        'route' => 'admin/bulk',
+                        'resource' => 'BulkImport\Controller\Admin\Index',
+                        'pages' => [
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'visible' => false,
+                            ],
+                        ],
+                    ],
+                    [
+                        'label' => 'Past Imports', // @translate
+                        'route' => 'admin/bulk/default',
+                        'controller' => 'import',
+                        'action' => 'index',
+                        'pages' => [
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'import',
+                                'visible' => false,
+                            ],
+                        ],
+                    ],
+                ],
             ],
         ],
     ],
