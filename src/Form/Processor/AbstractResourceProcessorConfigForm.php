@@ -227,7 +227,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'name' => $name,
                 'type' => PropertySelect::class,
                 'options' => [
-                    'label' => $name,
+                    // Fix an issue when a header of a csv file is "0".
+                    'label' => is_numeric($name) && intval($name) === 0 ? "[$name]" : $name,
                     'term_as_value' => true,
                     'prepend_value_options' => $this->prependMappingOptions(),
                 ],
