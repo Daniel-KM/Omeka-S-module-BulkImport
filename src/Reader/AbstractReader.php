@@ -306,12 +306,15 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     }
 
     /**
-     * @param string $filepath
-     * @param array $file
+     * @param string $filepath The full and real filepath.
+     * @param array $file Data of the file info (original name, type). If data
+     * are not present, checks may be skipped.
      * @return bool
      */
-    protected function isValidFilepath($filepath, $file)
+    protected function isValidFilepath($filepath, array $file)
     {
+        $file += ['name' => '[unknown]', 'type' => null];
+
         if (empty($filepath)) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" doesn’t exist.', // @translate
@@ -342,7 +345,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
                 );
                 return false;
             }
-        } elseif ($mediaType !== $this->mediaType) {
+        } elseif ($mediaType && $mediaType !== $this->mediaType) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" has media type "{file_media_type}", not "{media_type}".', // @translate
                 ['filename' => $file['name'], 'file_media_type' => $mediaType, 'media_type' => $this->mediaType]
