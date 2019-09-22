@@ -345,10 +345,20 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
+     * Get the default param to allow duplicate identifiers.
+     *
+     * @return bool
+     */
+    protected function getAllowDuplicateIdentifiers()
+    {
+        return $this->bulk->getAllowDuplicateIdentifiers();
+    }
+
+    /**
      * Set the default param to allow duplicate identifiers.
      *
      * @param bool $allowDuplicateIdentifiers
-     * @return $this;
+     * @return self
      */
     protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
     {
@@ -476,7 +486,7 @@ abstract class AbstractProcessor implements Processor
                     'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
                     ['index' => $this->indexResource]
                 );
-                if (!$this->allowDuplicateIdentifiers) {
+                if (!$this->getAllowDuplicateIdentifiers()) {
                     $this->logger->err(
                         'Index #{index}: Duplicate identifiers are not allowed.', // @translate
                         ['index' => $this->indexResource]

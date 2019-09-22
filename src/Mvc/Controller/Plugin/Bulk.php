@@ -457,13 +457,13 @@ class Bulk extends AbstractPlugin
                         'Identifier "{identifier}" is not unique ({count} values).', // @translate
                         ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
                     );
-                    // if (!$this->allowDuplicateIdentifiers) {
+                    // if (!$this->getAllowDuplicateIdentifiers() {
                     //     unset($result['result'][$identifier]);
                     // }
                 }
             }
 
-            if (!$this->allowDuplicateIdentifiers) {
+            if (!$this->getAllowDuplicateIdentifiers()) {
                 $this->logger->err(
                     'Duplicate identifiers are not allowed.' // @translate
                 );
@@ -523,10 +523,20 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get the default param to allow duplicate identifiers.
+     *
+     * @return bool
+     */
+    public function getAllowDuplicateIdentifiers()
+    {
+        return $this->allowDuplicateIdentifiers;
+    }
+
+    /**
      * Set the default param to allow duplicate identifiers.
      *
      * @param bool $allowDuplicateIdentifiers
-     * @return $this;
+     * @return self
      */
     public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
     {
