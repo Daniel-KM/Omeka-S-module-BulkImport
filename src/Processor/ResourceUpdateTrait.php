@@ -217,8 +217,8 @@ trait ResourceUpdateTrait
                     if (array_key_exists($name, $newData)) {
                         if (is_null($newData[$name])) {
                             $merged[$name] = $keepIfNull
-                            ? $currentData[$name]
-                            : ($type == 'boolean' ? false : null);
+                                ? $currentData[$name]
+                                : ($type == 'boolean' ? false : null);
                         } else {
                             $merged[$name] = $newData[$name];
                         }
