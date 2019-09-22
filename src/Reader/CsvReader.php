@@ -133,7 +133,7 @@ class CsvReader extends AbstractSpreadsheetReader
         $this->availableFields = $this->cleanData($fields);
     }
 
-    protected function isValidFilepath($filepath, $file)
+    protected function isValidFilepath($filepath, array $file)
     {
         if (!parent::isValidFilepath($filepath, $file)) {
             return false;
