@@ -11,15 +11,15 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
 
-<?php echo $this->pageTitle($translate('Imports'), 1, $translate('Bulk import')); ?>
+<?= $this->pageTitle($translate('Imports'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?php echo $escape($translate('Imports')); ?></h2>
+    <h2><?= $escape($translate('Imports')) ?></h2>
 
     <?php if (count($imports)): ?>
-        <?php echo $this->pagination(); ?>
-        <?php echo $this->partial('bulk/admin/import/import-table', ['imports' => $imports]); ?>
+        <?= $this->pagination() ?>
+        <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
     <?php else: ?>
-        <p><?php echo $escape($translate('No imports yet.')); ?></p>
+        <p><?= $escape($translate('No imports yet.')) ?></p>
     <?php endif; ?>
 </div>

@@ -13,12 +13,12 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?php echo $this->pageTitle($translate('Configure reader'), 1, $translate('Bulk import')); ?>
+<?= $this->pageTitle($translate('Configure reader'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?php echo $escape($translate('Configure reader')); ?></h2>
-    <h3><?php echo $escape(sprintf($translate('Reader: %s'), $reader->getLabel())); ?></h3>
-    <p><?php echo $escape($translate('Fill the default values of the reader.')); ?></p>
+    <h2><?= $escape($translate('Configure reader')); ?></h2>
+    <h3><?= $escape(sprintf($translate('Reader: %s'), $reader->getLabel())) ?></h3>
+    <p><?= $escape($translate('Fill the default values of the reader.')) ?></p>
     <?php
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);

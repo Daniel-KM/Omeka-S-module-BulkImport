@@ -12,33 +12,33 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
 
-<?php echo $this->pageTitle($translate('Import'), 1, $translate('Bulk import')); ?>
+<?= $this->pageTitle($translate('Import'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?php echo $escape(sprintf($translate('Import #%d'), $import->id())); ?></h2>
+    <h2><?= $escape(sprintf($translate('Import #%d'), $import->id())) ?></h2>
     <ul>
-        <li><?php echo sprintf($translate('Importer: %s'), $import->importer()->label()); ?></li>
-        <li><?php echo sprintf($translate('Status: %s'), $import->statusLabel()); ?></li>
+        <li><?= sprintf($translate('Importer: %s'), $import->importer()->label()) ?></li>
+        <li><?= sprintf($translate('Status: %s'), $import->statusLabel()) ?></li>
         <?php if ($v = $import->started()): ?>
-        <li><?php echo sprintf($translate('Started: %s'), $v->format('Y-m-d H:i:s')); ?></li>
+        <li><?= sprintf($translate('Started: %s'), $v->format('Y-m-d H:i:s')) ?></li>
         <?php endif; ?>
         <?php if ($v = $import->ended()): ?>
-        <li><?php echo sprintf($translate('Ended: %s'), $v->format('Y-m-d H:i:s')); ?></li>
+        <li><?= sprintf($translate('Ended: %s'), $v->format('Y-m-d H:i:s')) ?></li>
         <?php endif; ?>
     </ul>
-    <h3><?php echo $escape($translate('Parameters')); ?></h3>
-    <h4><?php echo $escape($translate('Reader')); ?></h4>
+    <h3><?= $escape($translate('Parameters')) ?></h3>
+    <h4><?= $escape($translate('Reader')) ?></h4>
     <div class="value">
         <pre><?php
             echo $escape(json_encode($import->readerParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         ?></pre>
     </div>
-    <h4><?php echo $escape($translate('Processor')); ?></h4>
+    <h4><?= $escape($translate('Processor')) ?></h4>
     <div class="value">
         <pre><?php
             echo $escape(json_encode($import->processorParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         ?></pre>
     </div>
-    <h4><?php echo $escape($translate('Logs')); ?></h4>
-    <?php echo $this->hyperlink($translate('See logs'), $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()])); ?>
+    <h4><?= $escape($translate('Logs')) ?></h4>
+    <?= $this->hyperlink($translate('See logs'), $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()])) ?>
 </div>

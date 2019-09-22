@@ -12,10 +12,10 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?php echo $this->pageTitle($translate('Create new importer'), 1, $translate('Bulk Import')); ?>
+<?= $this->pageTitle($translate('Create new importer'), 1, $translate('Bulk Import')) ?>
 
 <div id="content">
-    <h2><?php echo $escape($translate('Create new importer')); ?></h2>
+    <h2><?= $escape($translate('Create new importer')) ?></h2>
     <?php
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);

@@ -15,18 +15,18 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-import
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
 
-<?php echo $this->pageTitle($translate('Bulk import'), 1, $translate('Bulk import')); ?>
+<?= $this->pageTitle($translate('Bulk import'), 1, $translate('Bulk import')) ?>
 
-<h2><?php echo $escape($translate('Available importers')); ?></h2>
-<?php echo $hyperlink('Add an importer', $this->url('admin/bulk/default', ['controller' => 'importer', 'action' => 'add'])); ?>
+<h2><?= $escape($translate('Available importers')) ?></h2>
+<?= $hyperlink('Add an importer', $this->url('admin/bulk/default', ['controller' => 'importer', 'action' => 'add'])) ?>
 
 <?php if (count($importers)): ?>
 <table class="tablesaw batch-edit" data-tablesaw-mode="stack">
     <thead>
         <tr>
-            <th><?php echo $escape($translate('Name')); ?></th>
-            <th><?php echo $escape($translate('Reader')); ?></th>
-            <th><?php echo $escape($translate('Processor')); ?></th>
+            <th><?= $escape($translate('Name')) ?></th>
+            <th><?= $escape($translate('Reader')) ?></th>
+            <th><?= $escape($translate('Processor')) ?></th>
         </tr>
     </thead>
     <tbody>
@@ -35,20 +35,20 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <?php $userIsAllowedDelete = $importer->userIsAllowed('delete'); ?>
         <tr>
             <td>
-                <?php echo $hyperlink($importer->label(), $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])); ?>
+                <?= $hyperlink($importer->label(), $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])) ?>
                 <ul class="actions">
-                    <li><?php echo $importer->link('', 'start', [
+                    <li><?= $importer->link('', 'start', [
                         'class' => 'fas fa-cloud-download-alt',
                         'title' => $translate('Import'),
                     ]); ?></li>
                     <?php if ($userIsAllowedUpdate): ?>
-                    <li><?php echo $importer->link('', 'edit', [
+                    <li><?= $importer->link('', 'edit', [
                         'class' => 'o-icon-edit',
                         'title' => $translate('Edit'),
-                    ]); ?></li>
+                    ]) ?></li>
                     <?php endif; ?>
                     <?php if ($userIsAllowedDelete): ?>
-                    <li><?php echo $importer->link('', 'delete', [
+                    <li><?= $importer->link('', 'delete', [
                         'class' => 'o-icon-delete',
                         'title' => $translate('Delete'),
                     ]); /*
@@ -63,16 +63,16 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
             </td>
             <td>
                 <?php $reader = $importer->reader(); ?>
-                <?php echo $reader ? $reader->getLabel() : null; ?>
+                <?= $reader ? $reader->getLabel() : null; ?>
                 <?php if ($reader instanceof ConfigurableImport): ?>
-                    (<?php echo $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()])); ?>)
+                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()])) ?>)
                 <?php endif; ?>
             </td>
             <td>
                 <?php $processor = $importer->processor(); ?>
-                <?php echo $processor ? $processor->getLabel() : null; ?>
+                <?= $processor ? $processor->getLabel() : null; ?>
                 <?php if ($processor instanceof ConfigurableImport): ?>
-                    (<?php echo $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()])); ?>)
+                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()])) ?>)
                 <?php endif; ?>
             </td>
         </tr>
@@ -83,7 +83,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 <?php endif; ?>
 
 <?php if (!empty($imports)): ?>
-    <h2><?php echo $escape($translate('Last imports')); ?></h2>
-    <?php echo $hyperlink('See all imports', $this->url('admin/bulk/default', ['controller' => 'import', 'action' => 'index'])); ?>
-    <?php echo $this->partial('bulk/admin/import/import-table', ['imports' => $imports]); ?>
+    <h2><?= $escape($translate('Last imports')) ?></h2>
+    <?= $hyperlink('See all imports', $this->url('admin/bulk/default', ['controller' => 'import', 'action' => 'index'])) ?>
+    <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
 <?php endif; ?>

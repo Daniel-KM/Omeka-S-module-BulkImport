@@ -9,38 +9,39 @@ $escape = $this->plugin('escapeHtml');
 $hyperlink = $this->plugin('hyperlink');
 $url = $this->plugin('url');
 ?>
+
 <table class="tablesaw" data-tablesaw-mode="stack">
     <thead>
         <tr>
-            <th><?php echo $escape($translate('Importer')); ?></th>
-            <th><?php echo $escape($translate('Status')); ?></th>
-            <th><?php echo $escape($translate('Started')); ?></th>
-            <th><?php echo $escape($translate('Completed')); ?></th>
+            <th><?= $escape($translate('Importer')) ?></th>
+            <th><?= $escape($translate('Status')) ?></th>
+            <th><?= $escape($translate('Started')) ?></th>
+            <th><?= $escape($translate('Completed')) ?></th>
         </tr>
     </thead>
     <tbody>
         <?php foreach ($imports as $import): ?>
             <tr>
                 <td>
-                    <?php echo $import->importer()->label(); ?>
+                    <?= $import->importer()->label() ?>
                     <ul class="actions">
                         <?php if ($import->isInProgress()): ?>
-                        <li><?php echo $hyperlink('', $url('admin/id', ['controller' => 'job', 'action' => 'stop', 'id' => $import->job()->id()]), [
+                        <li><?= $hyperlink('', $url('admin/id', ['controller' => 'job', 'action' => 'stop', 'id' => $import->job()->id()]), [
                             'class' => 'fas fa-times-circle',
                             'title' => $translate('Stop'), // @translate
-                        ]); ?></li>
+                        ]) ?></li>
                         <?php endif; ?>
-                        <li><?php echo $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
+                        <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
                             'class' => 'fas fa-cogs',
                             'title' => $translate('See params'),
-                        ]); ?></li>
-                        <li><?php echo $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
+                        ]) ?></li>
+                        <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
                             'class' => 'fas fa-list',
                             'title' => $translate('See logs'),
-                        ]); ?></li>
+                        ]) ?></li>
                     </ul>
                 </td>
-                <td><?php echo $translate($import->statusLabel()); ?></td>
+                <td><?= $translate($import->statusLabel()) ?></td>
                 <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
                 <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>
             </tr>

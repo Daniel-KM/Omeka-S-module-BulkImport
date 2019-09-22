@@ -29,32 +29,32 @@ $severityNames = [
 ];
 ?>
 
-<?php echo $this->pageTitle($translate('Import logs'), 1, $translate('Bulk import')); ?>
+<?= $this->pageTitle($translate('Import logs'), 1, $translate('Bulk import')) ?>
 <div id="content">
-    <h2><?php echo $escape($translate('Import logs')); ?></h2>
+    <h2><?= $escape($translate('Import logs')) ?></h2>
 
     <form>
         <label>
-            <?php echo $escape($translate('Show only messages whose severity is higher than or equal to')); ?>
+            <?= $escape($translate('Show only messages whose severity is higher than or equal to')) ?>
             <select name="severity">
                 <?php foreach ($severityNames as $i => $name): ?>
                     <?php $selected = ($i === $severity) ? 'selected' : ''; ?>
-                    <option value="<?php echo $i; ?>" <?php echo $selected; ?>><?php echo $name; ?></option>
+                    <option value="<?= $i; ?>" <?= $selected; ?>><?= $name ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
-        <button type="submit"><?php echo $translate('Show'); ?></button>
+        <button type="submit"><?= $translate('Show') ?></button>
     </form>
 
 <?php if (count($logs)): ?>
-    <?php echo $this->pagination(); ?>
+    <?= $pagination = $this->pagination() ?>
 
     <table class="tablesaw batch-edit" data-tablesaw-mode="stack">
         <thead>
         <tr>
-            <th><?php echo $escape($translate('Message')); ?></th>
-            <th><?php echo $escape($translate('Severity')); ?></th>
-            <th><?php echo $escape($translate('Time')); ?></th>
+            <th><?= $escape($translate('Message')) ?></th>
+            <th><?= $escape($translate('Severity')) ?></th>
+            <th><?= $escape($translate('Time')) ?></th>
         </tr>
         </thead>
         <tbody>
@@ -65,9 +65,9 @@ $severityNames = [
                         <?php $text = $log->text(); ?>
                         <?php $isLong = strlen($text) > 240; ?>
                         <?php if ($isLong): ?>
-                        <span class="log-message-truncated truncate"><?php echo nl2br(substr($text, 0, 240)) . '…'; ?></span>
+                        <span class="log-message-truncated truncate"><?= nl2br(substr($text, 0, 240)) . '…' ?></span>
                         <?php else: ?>
-                        <?php echo nl2br($text); ?>
+                        <?= nl2br($text) ?>
                         <?php endif; ?>
                     </span>
                     <ul class="actions">
@@ -77,26 +77,26 @@ $severityNames = [
                                 'class' => 'o-icon- fa fa-expand popover',
                                 'title' => $translate('Full log'),
                             ]); ?>
-                            <div class="log-message-full webui-popover-content webui-popover-current"><?php echo nl2br($escape($text)); ?></div>
+                            <div class="log-message-full webui-popover-content webui-popover-current"><?= nl2br($escape($text)) ?></div>
                         </li>
                         <?php endif; ?>
                     </ul>
                 </td>
-                <td><?php echo $translate($log->severityLabel()); ?> </td>
-                <td><?php echo $log->created()->format('Y-m-d H:i:s'); ?></td>
+                <td><?= $translate($log->severityLabel()) ?> </td>
+                <td><?= $log->created()->format('Y-m-d H:i:s') ?></td>
             </tr>
         <?php } ?>
         </tbody>
     </table>
 
-    <?php echo $this->pagination(); ?>
+    <?= $pagination ?>
 
     <p>
-        <?php echo $this->hyperlink(sprintf($translate('Manage logs')),
-            $this->url('admin/log/default', [], ['query' => ['reference' => 'bulk/import/' . $import->id()]])); ?>
+        <?= $this->hyperlink(sprintf($translate('Manage logs')),
+            $this->url('admin/log/default', [], ['query' => ['reference' => 'bulk/import/' . $import->id()]])) ?>
     </p>
 
 <?php else: ?>
-    <p><?php echo $escape($translate('No logs yet.')); ?> <a href=""><?php echo $escape($translate('Refresh page')); ?></a></p>
+    <p><?= $escape($translate('No logs yet.')); ?> <a href=""><?= $escape($translate('Refresh page')) ?></a></p>
 <?php endif; ?>
 </div>
