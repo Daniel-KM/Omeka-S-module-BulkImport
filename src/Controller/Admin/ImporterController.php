@@ -5,6 +5,7 @@ use BulkImport\Api\Representation\ImporterRepresentation;
 use BulkImport\Form\ImporterDeleteForm;
 use BulkImport\Form\ImporterForm;
 use BulkImport\Form\ImporterStartForm;
+use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Job\Import as JobImport;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -125,6 +126,7 @@ class ImporterController extends AbstractActionController
 
     public function configureReaderAction()
     {
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation $entity */
         $id = (int) $this->params()->fromRoute('id');
         $entity = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
 
@@ -134,9 +136,10 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
+        /** @var \BulkImport\Interfaces\Reader $reader */
         $reader = $entity->reader();
         $form = $this->getForm($reader->getConfigFormClass());
-        $readerConfig = ($reader->getConfig()) ? $reader->getConfig() : [];
+        $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
         $form->setData($readerConfig);
 
         $form->add([
@@ -192,7 +195,7 @@ class ImporterController extends AbstractActionController
         /** @var \BulkImport\Interfaces\Processor $processor */
         $processor = $entity->processor();
         $form = $this->getForm($processor->getConfigFormClass());
-        $processorConfig = ($processor->getConfig()) ? $processor->getConfig() : [];
+        $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
         $form->setData($processorConfig);
 
         $form->add([
