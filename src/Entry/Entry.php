@@ -1,6 +1,7 @@
 <?php
 namespace BulkImport\Entry;
 
+use ArrayIterator;
 use BulkImport\Interfaces\Entry as EntryInterface;
 
 class Entry implements EntryInterface
@@ -66,6 +67,15 @@ class Entry implements EntryInterface
             }));
         });
         return count($data) == 0;
+    }
+
+    public function getArrayCopy()
+    {
+        return $this->data;
+    }
+
+    public function getIterator() {
+        return new ArrayIterator($this->data);
     }
 
     public function offsetExists($offset)
