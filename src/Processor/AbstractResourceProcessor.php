@@ -55,6 +55,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionUnidentified;
 
     /**
+     * @var bool
+     */
+    protected $hasMapping = false;
+
+    /**
      * @var array
      */
     protected $mapping;
@@ -124,7 +129,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $params = new ArrayObject;
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
-        $params['mapping'] = $values['mapping'];
+        $params['mapping'] = isset($values['mapping']) ? $values['mapping'] : [];
         $this->setParams($params);
     }
 
@@ -234,13 +239,71 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         if ($entry->isEmpty()) {
             $this->logger->warn(
-                'Index #{index}: Cell is empty and is skipped.', // @translate
+                'Index #{index}: the entry is empty and is skipped.', // @translate
                 ['index' => $this->indexResource]
             );
             ++$this->totalSkipped;
             return null;
         }
 
+        return $this->hasMapping
+            ? $this->processEntryWithMapping($entry)
+            :  $this->processEntryDirectly($entry);
+    }
+
+    protected function processEntryDirectly(Entry $entry)
+    {
+        /** @var \ArrayObject $resource */
+        $resource = clone $this->base;
+
+        // Added for security.
+        $skipKeys = [
+            'checked_id' => null,
+            'has_error' => null,
+        ];
+
+        // List of keys that can have only one value.
+        // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
+        $singleKeys = [
+            // Generic.
+            'o:id' => null,
+            'o:resource_template' => null,
+            'o:resource_class' => null,
+            'o:owner' => null,
+            'o:is_public' => null,
+            // Resource.
+            'resource_type' => null,
+            // Item.
+            // 'o:item_set' => null,
+            // 'o:media' => null,
+            // Item set.
+            'o:is_open' => null,
+            // Media.
+            'o:item' => null,
+            'o:ingester' => null,
+            'o:source' => null,
+            'ingest_filename' => null,
+            'html' => null,
+        ];
+
+        foreach ($entry as $key => $values) {
+            if (array_key_exists($key, $skipKeys)) {
+                continue;
+            } elseif (array_key_exists($key, $singleKeys)) {
+                $resource[$key] = $values;
+            } elseif (array_key_exists($key, $resource) && is_array($resource[$key])) {
+                $resource[$key] = array_merge($resource[$key], $values);
+            } else {
+                $resource[$key] = $values;
+            }
+        }
+
+        return $resource;
+    }
+
+    protected function processEntryWithMapping(Entry $entry)
+    {
+        /** @var \ArrayObject $resource */
         $resource = clone $this->base;
 
         $this->skippedSourceFields = [];
@@ -883,5 +946,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Filter the mapping to avoid to loop entries without target.
         $this->mapping = array_filter($mapping);
+        // Some readers don't need a mapping (xml reader do the process itself).
+        $this->hasMapping = (bool) $this->mapping;
     }
 }

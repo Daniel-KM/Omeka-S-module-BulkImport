@@ -202,6 +202,13 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         /** @var \BulkImport\Interfaces\Reader $reader */
         $reader = $processor->getReader();
 
+        // Add all columns from file as inputs.
+        $availableFields = $reader->getAvailableFields();
+
+        if (!count($availableFields)) {
+            return;
+        }
+
         $services = $this->getServiceLocator();
         /** @var \BulkImport\View\Helper\AutomapFields $automapFields */
         $automapFields = $services->get('ViewHelperManager')->get('automapFields');
@@ -216,8 +223,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
         $fieldset = $this->get('mapping');
 
-        // Add all columns from file as inputs.
-        $availableFields = $reader->getAvailableFields();
         $fields = $automapFields($availableFields);
         foreach ($availableFields as $index => $name) {
             if (!strlen(trim($name))) {
@@ -303,7 +308,12 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
     protected function addMappingFilter()
     {
-        $inputFilter = $this->getInputFilter()->get('mapping');
+        $inputFilter = $this->getInputFilter();
+        if (!$inputFilter->has('mapping')) {
+            return;
+        }
+
+        $inputFilter = $inputFilter->get('mapping');
         // Change required to false.
         foreach ($inputFilter->getInputs() as $input) {
             $input->setRequired(false);

@@ -257,6 +257,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected function finalizePrepareIterator()
     {
         $this->totalEntries = iterator_count($this->iterator);
+        $this->iterator->rewind();
     }
 
     /**

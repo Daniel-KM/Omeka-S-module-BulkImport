@@ -122,6 +122,10 @@ trait ResourceUpdateTrait
      */
     protected function fillEmptyData(array $data)
     {
+        if (!$this->hasMapping) {
+            return $data;
+        }
+
         // Note: mapping is not available in the trait.
         $mapping = array_filter(array_intersect_key(
             $this->mapping,
