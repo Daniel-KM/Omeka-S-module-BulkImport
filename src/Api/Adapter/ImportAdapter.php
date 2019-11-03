@@ -34,10 +34,14 @@ class ImportAdapter extends AbstractEntityAdapter
 
     public function buildQuery(QueryBuilder $qb, array $query)
     {
+        $isOldOmeka = \Omeka\Module::VERSION < 2;
+        $alias = $isOldOmeka ? $this->getEntityClass() : 'omeka_root';
+        $expr = $qb->expr();
+
         if (isset($query['id'])) {
             $qb->andWhere(
-                $qb->expr()->eq(
-                    $this->getEntityClass() . '.id',
+                $expr->eq(
+                    $alias . '.id',
                     $this->createNamedParameter($qb, $query['id'])
                 )
             );
@@ -45,8 +49,8 @@ class ImportAdapter extends AbstractEntityAdapter
 
         if (isset($query['importer_id'])) {
             $qb->andWhere(
-                $qb->expr()->eq(
-                    $this->getEntityClass() . '.importer',
+                $expr->eq(
+                    $alias . '.importer',
                     $this->createNamedParameter($qb, $query['importer_id'])
                 )
             );
@@ -54,8 +58,8 @@ class ImportAdapter extends AbstractEntityAdapter
 
         if (isset($query['job_id'])) {
             $qb->andWhere(
-                $qb->expr()->eq(
-                    $this->getEntityClass() . '.job',
+                $expr->eq(
+                    $alias . '.job',
                     $this->createNamedParameter($qb, $query['job_id'])
                 )
             );
