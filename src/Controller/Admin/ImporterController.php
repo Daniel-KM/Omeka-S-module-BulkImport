@@ -398,7 +398,7 @@ class ImporterController extends AbstractActionController
             /* @return \Zend\Form\Form */
             $formsCallbacks['reader'] = function () use ($reader, $controller) {
                 $readerForm = $controller->getForm($reader->getParamsFormClass());
-                $readerConfig = $reader->getConfig() ?: [];
+                $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
                 $readerForm->setData($readerConfig);
 
                 $readerForm->add([
@@ -432,7 +432,7 @@ class ImporterController extends AbstractActionController
                 $processorForm = $controller->getForm($processor->getParamsFormClass(), [
                     'processor' => $processor,
                 ]);
-                $processorConfig = $processor->getConfig() ?: [];
+                $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
                 $processorForm->setData($processorConfig);
 
                 $processorForm->add([
