@@ -1,0 +1,950 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-11-04 00:00+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/Generic/AbstractModule.php:518
+#, php-format
+msgid "This module requires the module \"%s\"."
+msgstr ""
+
+#: src/Generic/AbstractModule.php:538
+#, php-format
+msgid "This module requires modules \"%s\"."
+msgstr ""
+
+#: src/Generic/AbstractModule.php:606
+#, php-format
+msgid ""
+"The module \"%s\" was automatically deactivated because the dependencies are "
+"unavailable."
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:104
+msgid "itemset"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:107
+msgid "itemsets"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:108
+msgid "medias"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:109
+msgid "collection"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:110
+msgid "collections"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:111
+msgid "file"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:112
+msgid "files"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:16
+msgid "Importer"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:31
+msgid "Stop"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:36
+msgid "See params"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:40
+#: view/bulk/admin/import/show.phtml:43
+msgid "See logs"
+msgstr ""
+
+#: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/index.phtml:17
+msgid "Imports"
+msgstr ""
+
+#: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/logs.phtml:32
+#: view/bulk/admin/import/show.phtml:15
+#: view/bulk/admin/importer/configure-reader.phtml:16
+#: view/bulk/admin/importer/delete.phtml:16
+#: view/bulk/admin/importer/edit.phtml:16
+#: view/bulk/admin/importer/start.phtml:17 view/bulk/admin/index/index.phtml:18
+msgid "Bulk import"
+msgstr ""
+
+#: view/bulk/admin/import/index.phtml:23
+msgid "No imports yet."
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:21
+msgid "Emergency"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:22
+msgid "Alert"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:23
+msgid "Critical"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:26
+msgid "Notice"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:27
+msgid "Info"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:28
+msgid "Debug"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:32 view/bulk/admin/import/logs.phtml:34
+msgid "Import logs"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:38
+msgid "Show only messages whose severity is higher than or equal to"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:46
+msgid "Show"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:55
+msgid "Message"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:56
+msgid "Severity"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:57
+msgid "Time"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:78
+msgid "Full log"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:95
+msgid "Manage logs"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:100
+msgid "No logs yet."
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:100
+msgid "Refresh page"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:18
+#, php-format
+msgid "Import #%d"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:20 view/bulk/admin/importer/start.phtml:21
+#, php-format
+msgid "Importer: %s"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:23
+#, php-format
+msgid "Started: %s"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:26
+#, php-format
+msgid "Ended: %s"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:29 view/bulk/admin/importer/start.phtml:23
+msgid "Parameters"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:30 view/bulk/admin/index/index.phtml:28
+msgid "Reader"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:36 view/bulk/admin/index/index.phtml:29
+msgid "Processor"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:42
+msgid "Logs"
+msgstr ""
+
+#: view/bulk/admin/importer/add.phtml:15 view/bulk/admin/importer/add.phtml:18
+msgid "Create new importer"
+msgstr ""
+
+#: view/bulk/admin/importer/add.phtml:15
+#: view/bulk/admin/importer/configure-processor.phtml:16
+msgid "Bulk Import"
+msgstr ""
+
+#: view/bulk/admin/importer/configure-processor.phtml:16
+#: view/bulk/admin/importer/configure-processor.phtml:19
+msgid "Configure processor"
+msgstr ""
+
+#: view/bulk/admin/importer/configure-processor.phtml:20
+#, php-format
+msgid "Processor: %s"
+msgstr ""
+
+#: view/bulk/admin/importer/configure-processor.phtml:21
+msgid "Fill the default values of the processor."
+msgstr ""
+
+#: view/bulk/admin/importer/configure-reader.phtml:16
+#: view/bulk/admin/importer/configure-reader.phtml:19
+msgid "Configure reader"
+msgstr ""
+
+#: view/bulk/admin/importer/configure-reader.phtml:20
+#, php-format
+msgid "Reader: %s"
+msgstr ""
+
+#: view/bulk/admin/importer/configure-reader.phtml:21
+msgid "Fill the default values of the reader."
+msgstr ""
+
+#: view/bulk/admin/importer/delete.phtml:16
+msgid "Delete importer"
+msgstr ""
+
+#: view/bulk/admin/importer/delete.phtml:19
+#, php-format
+msgid "Delete importer (%s)"
+msgstr ""
+
+#: view/bulk/admin/importer/delete.phtml:20
+msgid "Are you sure you want to delete this importer ?"
+msgstr ""
+
+#: view/bulk/admin/importer/edit.phtml:16
+#: view/bulk/admin/importer/edit.phtml:19
+msgid "Edit importer"
+msgstr ""
+
+#: view/bulk/admin/importer/start.phtml:17
+#: view/bulk/admin/importer/start.phtml:20
+msgid "Start import"
+msgstr ""
+
+#: view/bulk/admin/index/index.phtml:20
+msgid "Available importers"
+msgstr ""
+
+#: view/bulk/admin/index/index.phtml:86
+msgid "Last imports"
+msgstr ""
+
+#: data/scripts/upgrade.php:32
+msgid "BulkImport requires module Log version 3.2.2 or higher."
+msgstr ""
+
+#: data/importers/ods.php:4
+msgid "OpenDocument spreadsheet (ods)"
+msgstr ""
+
+#: data/importers/tsv.php:4 src/Reader/TsvReader.php:12
+msgid "TSV (tab-separated values)"
+msgstr ""
+
+#: data/importers/csv.php:4 src/Reader/CsvReader.php:21
+msgid "CSV"
+msgstr ""
+
+#: src/Form/EntriesByBatchTrait.php:14 src/Form/EntriesByBatchTrait.php:23
+msgid "Entries by batch"
+msgstr ""
+
+#: src/Form/EntriesByBatchTrait.php:15
+msgid ""
+"This value has no impact on process, but when it is set to \"1\" (default), "
+"the order of internal ids will be in the same order than the input and "
+"medias will follow their items. If it is greater, the order will follow the "
+"number of entries by resource types."
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:27
+#: src/Form/Processor/ItemSetProcessorParamsForm.php:28
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:255
+msgid "Resource metadata"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:30
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:164
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:258
+msgid "Internal id"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:33
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:60
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:260
+msgid "Resource class"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:35
+#: src/Form/Processor/ResourceProcessorParamsForm.php:59
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:262
+#: src/Form/Processor/ItemProcessorParamsForm.php:40
+msgid "Visibility public/private"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:41
+#: src/Form/Processor/ResourceProcessorParamsForm.php:47
+#: src/Form/Processor/ResourceProcessorParamsForm.php:54
+#: src/Form/Processor/MediaProcessorParamsForm.php:30
+#: src/Form/Processor/ItemProcessorParamsForm.php:30
+msgid "Identifier / Internal id"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:48
+#: src/Form/Processor/ItemSetProcessorParamsForm.php:30
+#: src/Form/Processor/ResourceProcessorConfigForm.php:64
+#: src/Form/Processor/ItemSetProcessorConfigForm.php:16
+msgid "Openness"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:55
+#: src/Form/Processor/MediaProcessorParamsForm.php:36
+#: src/Form/Processor/ItemProcessorParamsForm.php:36
+msgid "Url"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:56
+#: src/Form/Processor/MediaProcessorParamsForm.php:37
+#: src/Form/Processor/ItemProcessorParamsForm.php:37
+msgid "File"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:57
+#: src/Form/Processor/MediaProcessorParamsForm.php:38
+#: src/Form/Processor/ItemProcessorParamsForm.php:38
+msgid "Html"
+msgstr ""
+
+#: src/Form/Processor/ItemProcessorConfigForm.php:23
+#: src/Form/Processor/ResourceProcessorConfigForm.php:53
+msgid "Select one or more item sets…"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorConfigForm.php:31
+msgid "Select the resource type…"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorConfigForm.php:102
+#: src/Form/Processor/MediaProcessorConfigForm.php:20
+#: src/Form/Processor/MediaProcessorConfigForm.php:34
+msgid "Select one item…"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:51
+msgid "Select a template…"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:67
+msgid "Select a class…"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:77
+msgid "Current user"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:91
+msgid "Select a user"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:115
+msgid "Action"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:116
+msgid ""
+"In addition to the default \"Create\" and to the common \"Delete\", to "
+"manage most of the common cases, four modes of update are provided:\n"
+"- append: add new data to complete the resource;\n"
+"- revise: replace existing data by the ones set in each entry, except if "
+"empty (don’t modify data that are not provided, except for default values);\n"
+"- update: replace existing data by the ones set in each entry, even empty "
+"(don’t modify data that are not provided, except for default values);\n"
+"- replace: remove all properties of the resource, and fill new ones from the "
+"entry."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:122
+msgid "Create new resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:123
+msgid "Append data to resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:124
+msgid "Revise data of resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:125
+msgid "Update data of resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:126
+msgid "Replace all data of resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:127
+msgid "Delete resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:128
+msgid "Skip entries (dry run)"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:143
+msgid "Action on unidentified resources"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:144
+msgid "What to do when a resource to update does not exist."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:146
+msgid "Skip entry"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:147
+msgid "Create a new resource"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:160
+msgid "Identifier name"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:161
+msgid ""
+"Allows to identify existing resources, for example to attach a media to an "
+"existing item or to update a resource. It is always recommended to set one "
+"ore more unique identifiers to all resources, with a prefix."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:177
+msgid "Select an identifier name…"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:185
+msgid "Allow duplicate identifiers"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:186
+msgid ""
+"Not recommended, but needed to be compliant with old databases. Duplicates "
+"are logged."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:220
+msgid "Mapping"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:245
+msgid "Select one or more targets…"
+msgstr ""
+
+#: src/Form/Validator/ReadableDirectory.php:20
+msgid "The path should not contain double dot or be hidden."
+msgstr ""
+
+#: src/Form/Validator/ReadableDirectory.php:21
+msgid "The path does not exist."
+msgstr ""
+
+#: src/Form/Validator/ReadableDirectory.php:22
+msgid "The path is not a directory"
+msgstr ""
+
+#: src/Form/Validator/ReadableDirectory.php:23
+msgid "The path is not readable"
+msgstr ""
+
+#: src/Form/Validator/ReadableDirectory.php:24
+msgid "The path is not inside the restricted path"
+msgstr ""
+
+#: src/Form/Reader/SpreadsheetReaderParamsForm.php:17
+msgid "Spreadsheet (csv, tsv, OpenDocument ods)"
+msgstr ""
+
+#: src/Form/Reader/TsvReaderParamsForm.php:17
+msgid "File (tsv)"
+msgstr ""
+
+#: src/Form/Reader/CsvReaderConfigForm.php:14
+msgid "Delimiter"
+msgstr ""
+
+#: src/Form/Reader/CsvReaderConfigForm.php:25
+msgid "Enclosure"
+msgstr ""
+
+#: src/Form/Reader/CsvReaderConfigForm.php:36
+msgid "Escape"
+msgstr ""
+
+#: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:17
+msgid "OpenDocument Spreadsheet (ods)"
+msgstr ""
+
+#: src/Form/Reader/CsvReaderParamsForm.php:17
+msgid "CSV file"
+msgstr ""
+
+#: src/Form/Reader/SpreadsheetReaderConfigForm.php:20
+msgid "Multi-value separator"
+msgstr ""
+
+#: src/Form/Reader/SpreadsheetReaderConfigForm.php:21
+msgid ""
+"If cells are multivalued, it is recommended to use a character that is never "
+"used, like \"|\" or a random string."
+msgstr ""
+
+#: src/Form/ConfigForm.php:15
+msgid "Folder for local files"
+msgstr ""
+
+#: src/Form/ConfigForm.php:16
+msgid ""
+"For security reasons, local files to import should be inside this folder."
+msgstr ""
+
+#: src/Form/ConfigForm.php:24
+msgid "Command of the xslt processor"
+msgstr ""
+
+#: src/Form/ConfigForm.php:25
+msgid ""
+"Needed to import metadata in xml files, when the process uses xslt2 sheets."
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:12
+msgid "Mixed resources"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:295
+msgid "Index #{index} skipped: no resource type set"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:303
+msgid "Index #{index} skipped: resource type \"{resource_type}\" not managed"
+msgstr ""
+
+#: src/Processor/ResourceProcessor.php:399
+msgid "Index #{index} skipped: no item is set for the media"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:37
+msgid "create"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:38
+msgid "append"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:39
+msgid "revise"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:40
+msgid "update"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:41
+msgid "replace"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:42
+msgid "delete"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:43
+msgid "skip"
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:388
+msgid ""
+"Index #{index}: The resource id cannot be checked: the resource type is "
+"undefined."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:396
+msgid "Index #{index}: The id of this resource doesn’t exist."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:428
+msgid ""
+"Index #{index}: The resource id cannot be filled: the resource type is "
+"undefined."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:441
+msgid ""
+"Index #{index}: The resource id cannot be filled: no metadata defined as "
+"identifier."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:486
+msgid "Index #{index}: Resource doesn’t have a unique identifier."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:491
+msgid "Index #{index}: Duplicate identifiers are not allowed."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:499
+msgid ""
+"Index #{index}: Identifier \"{identifier}\" ({metadata}) matches "
+"{resource_type} #{resource_id}."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:184
+msgid "Index #{index}: The job \"Import\" was stopped."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:194
+msgid "Index #{index}: Process started"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:222
+msgid ""
+"End of process: {total_resources} resources to process, {total_skipped} "
+"skipped, {total_processed} processed, {total_errors} errors inside data."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:242
+msgid "Index #{index}: the entry is empty and is skipped."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:321
+msgid ""
+"Index #{index}: The source field \"{field}\" is set in the mapping, but not "
+"in the entry. The params may have an issue."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:445
+msgid ""
+"Index #{index}: Resource id for value \"{value}\" cannot be found: the entry "
+"is skipped."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:472
+msgid ""
+"Index #{index}: Internal id #{id} cannot be found: the entry is skipped."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:535
+#: src/Processor/AbstractResourceProcessor.php:551
+msgid "Index #{index}: The action \"{action}\" requires a unique identifier."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:546
+msgid "Index #{index}: The action \"{action}\" requires an identifier."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:619
+msgid "Index #{index}: Core error during creation: {exception}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:628
+msgid "Index #{index}: Created {resource_type} #{resource_id}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:693
+msgid "Index #{index}: Updated {resource_type} #{resource_id}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:698
+msgid "Index #{index}: Core error during update: {exception}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:747
+msgid "Index #{index}: Core error during deletion: {exception}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:755
+msgid "Index #{index}: Deleted {resource_type} #{resource_id}"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:823
+msgid "Action \"{action}\" is not managed."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:837
+msgid "Action \"{action}\" for unidentified resource is not managed."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:849
+msgid "No identifier name was selected."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:870
+msgid "Invalid identifier names: check your params."
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:44
+#: src/Controller/Admin/ImporterController.php:89
+#: src/Controller/Admin/ImporterController.php:134
+#: src/Controller/Admin/ImporterController.php:190
+#: src/Controller/Admin/ImporterController.php:248
+msgid "importer_id"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:67
+msgid "Importer successfully saved"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:70
+msgid "Save of importer failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:97
+msgid "This importerd cannot be deleted: imports that use it exist."
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:110
+msgid "Importer successfully deleted"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:113
+msgid "Delete of importer failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:167
+msgid "Reader configuration saved"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:170
+msgid "Save of reader configuration failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:224
+msgid "Processor configuration saved"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:227
+msgid "Save of processor configuration failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:280
+msgid "The page was reloaded, but params are lost. Restart the import."
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:332
+msgid "Save of import failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:349
+msgid ""
+"Import started in background (<a href=\"{job_url}\">job #{job_id}</a>). This "
+"may take a while."
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:358
+msgid "Import start failed"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:419
+#: src/Controller/Admin/ImporterController.php:453
+msgid "Continue"
+msgstr ""
+
+#: src/Api/Representation/ImportRepresentation.php:77
+msgid "ready"
+msgstr ""
+
+#: src/Api/Representation/ImportRepresentation.php:86
+msgid "Ready"
+msgstr ""
+
+#: src/Reader/CsvReader.php:129
+#: src/Reader/OpenDocumentSpreadsheetReader.php:138
+msgid "File has no available fields."
+msgstr ""
+
+#: src/Reader/CsvReader.php:143
+msgid "File \"{filepath}\" is not fully utf-8."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:282
+msgid "Unable to upload file."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:292
+msgid "The \"temp_dir\" is not configured"
+msgstr ""
+
+#: src/Reader/AbstractReader.php:300
+msgid "Unable to move uploaded file to {filename}"
+msgstr ""
+
+#: src/Reader/AbstractReader.php:321
+msgid "File \"{filename}\" doesn’t exist."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:328
+msgid "File \"{filename}\" is empty."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:335
+msgid "File \"{filename}\" is not readable."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:344
+msgid ""
+"File \"{filename}\" has media type \"{file_media_type}\" and is not managed."
+msgstr ""
+
+#: src/Reader/AbstractReader.php:351
+msgid ""
+"File \"{filename}\" has media type \"{file_media_type}\", not "
+"\"{media_type}\"."
+msgstr ""
+
+#: src/Reader/SpreadsheetReader.php:9
+msgid "Spreadsheet"
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:13
+msgid "OpenDocument Spreadsheet"
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:48
+msgid ""
+"To process import of \"{label}\", the php extensions \"zip\" and \"xml\" are "
+"required."
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:108
+msgid "File \"{filepath}\" cannot be open."
+msgstr ""
+
+#: src/Job/Import.php:43
+msgid "Import started"
+msgstr ""
+
+#: src/Job/Import.php:47
+msgid "Import completed"
+msgstr ""
+
+#: src/Job/Import.php:95
+msgid "Import record does not exist"
+msgstr ""
+
+#: src/Job/Import.php:115
+msgid "Reader \"{reader}\" is not available."
+msgstr ""
+
+#: src/Job/Import.php:143
+msgid "Processor \"{processor}\" is not available."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:379
+msgid "resource"
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:380
+msgid "annotation"
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:400
+msgid "resources"
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:401
+msgid "annotations"
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:457
+msgid "Identifier \"{identifier}\" is not unique ({count} values)."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:468
+msgid "Duplicate identifiers are not allowed."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:74
+#, php-format
+msgid "The remote file \"%s\" is not readable or empty."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:78
+#, php-format
+msgid "The input file \"%s\" is not readable."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:127
+#, php-format
+msgid ""
+"An error occurs during the xsl transformation of the file \"%s\" with the "
+"sheet \"%s\"."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:152
+#, php-format
+msgid ""
+"Could not load \"%s\". Verify that you have rights to access this folder and "
+"subfolders."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:155
+#, php-format
+msgid "The file \"%s\" is empty. Process is aborted."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:196
+#, php-format
+msgid ""
+"An error occurs during the xsl transformation of the file \"%s\" with the "
+"sheet \"%s\" : %s"
+msgstr ""
+
+#: src/Entry/Entry.php:95 src/Entry/Entry.php:100
+msgid "Modification forbidden"
+msgstr ""
+
+#: config/module.config.php:92
+msgid "Dashboard"
+msgstr ""
+
+#: config/module.config.php:105
+msgid "Past Imports"
+msgstr ""
+
+#: test/BulkImportTest/Job/ImportTest.php:287
+#, php-format
+msgid "No argument files (%s)."
+msgstr ""

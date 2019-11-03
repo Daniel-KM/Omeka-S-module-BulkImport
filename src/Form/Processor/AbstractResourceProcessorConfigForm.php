@@ -159,7 +159,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'options' => [
                 'label' => 'Identifier name', // @translate
                 'info' => 'Allows to identify existing resources, for example to attach a media to an existing item or to update a resource. It is always recommended to set one ore more unique identifiers to all resources, with a prefix.', // @translate
-                'empty_option' => '', // @translate
+                'empty_option' => '',
                 'prepend_value_options' => [
                     'o:id' => 'Internal id', // @translate
                 ],
