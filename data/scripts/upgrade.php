@@ -83,3 +83,25 @@ CREATE INDEX IDX_2DAF62D7E3C61F9 ON bulk_importer (owner_id);
 SQL;
     $connection->exec($sql);
 }
+
+if (version_compare($oldVersion, '3.0.11', '<')) {
+    $user = $services->get('Omeka\AuthenticationService')->getIdentity();
+
+    // The resource "bulk_exporters" is not available during upgrade.
+    require_once dirname(dirname(__DIR__)) . '/src/Entity/Import.php';
+    require_once dirname(dirname(__DIR__)) . '/src/Entity/Importer.php';
+
+    $directory = new \RecursiveDirectoryIterator(dirname(__DIR__) . '/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
+    $iterator = new \RecursiveIteratorIterator($directory);
+    foreach ($iterator as $filepath => $file) {
+        $data = include $filepath;
+        $data['owner'] = $user;
+        $entity = new \BulkImport\Entity\Importer();
+        foreach ($data as $key => $value) {
+            $method = 'set' . ucfirst($key);
+            $entity->$method($value);
+        }
+        $entityManager->persist($entity);
+    }
+    $entityManager->flush();
+}

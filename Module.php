@@ -20,4 +20,20 @@ class Module extends AbstractModule
     {
         require_once __DIR__ . '/vendor/autoload.php';
     }
+
+    protected function postInstall()
+    {
+        $services = $this->getServiceLocator();
+        $user = $services->get('Omeka\AuthenticationService')->getIdentity();
+        /** @var \Omeka\Api\Manager $api */
+        $api = $services->get('Omeka\ApiManager');
+
+        $directory = new \RecursiveDirectoryIterator(__DIR__ . '/data/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
+        $iterator = new \RecursiveIteratorIterator($directory);
+        foreach ($iterator as $filepath => $file) {
+            $data = include $filepath;
+            $data['owner'] = $user;
+            $api->create('bulk_importers', $data);
+        }
+    }
 }
