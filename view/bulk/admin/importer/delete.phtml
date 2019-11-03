@@ -16,7 +16,7 @@ $form->prepare();
 <?= $this->pageTitle($translate('Delete importer'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?= $escape(sprintf($translate('Delete importer (%s)'), $entity->name())) ?></h2>
+    <h2><?= $escape(sprintf($translate('Delete importer (%s)'), $entity->label())) ?></h2>
     <p><?= $escape($translate('Are you sure you want to delete this importer ?')) ?></p>
     <?php
     echo $this->form()->openTag($form);
