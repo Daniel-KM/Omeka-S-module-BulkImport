@@ -27,7 +27,7 @@ return [
             dirname(__DIR__) . '/view',
         ],
         'controller_map' => [
-            Controller\Admin\IndexController::class => 'bulk/admin/index',
+            Controller\Admin\BulkImportController::class => 'bulk/admin/index',
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
         ],
@@ -63,9 +63,9 @@ return [
         'factories' => [
             // Class is not used as key, since it's set dynamically by sub-route
             // and it should be available in acl (so alias is mapped later).
+            'BulkImport\Controller\Admin\BulkImport' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Import' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Importer' => Service\Controller\ControllerFactory::class,
-            'BulkImport\Controller\Admin\Index' => Service\Controller\ControllerFactory::class,
         ],
     ],
     'controller_plugins' => [
@@ -83,14 +83,16 @@ return [
         'AdminModule' => [
             'bulk' => [
                 'label' => 'Bulk Import', // @translate
-                'route' => 'admin/bulk',
-                'resource' => 'BulkImport\Controller\Admin\Index',
+                'route' => 'admin/bulk/default',
+                'controller' => 'bulk-import',
+                'resource' => 'BulkImport\Controller\Admin\BulkImport',
                 'class' => 'o-icon-install',
                 'pages' => [
                     [
                         'label' => 'Dashboard', // @translate
-                        'route' => 'admin/bulk',
-                        'resource' => 'BulkImport\Controller\Admin\Index',
+                        'route' => 'admin/bulk/default',
+                        'controller' => 'bulk-import',
+                        'resource' => 'BulkImport\Controller\Admin\BulkImport',
                         'pages' => [
                             [
                                 'route' => 'admin/bulk/id',
@@ -127,7 +129,7 @@ return [
                             'defaults' => [
                                 '__NAMESPACE__' => 'BulkImport\Controller\Admin',
                                 '__ADMIN__' => true,
-                                'controller' => 'Index',
+                                'controller' => 'BulkImport',
                                 'action' => 'index',
                             ],
                         ],
