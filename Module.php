@@ -24,16 +24,26 @@ class Module extends AbstractModule
     protected function postInstall()
     {
         $services = $this->getServiceLocator();
+        $entityManager = $services->get('Omeka\EntityManager');
+
         $user = $services->get('Omeka\AuthenticationService')->getIdentity();
-        /** @var \Omeka\Api\Manager $api */
-        $api = $services->get('Omeka\ApiManager');
+
+        // The resource "bulk_exporters" is not available during upgrade.
+        require_once __DIR__ . '/src/Entity/Import.php';
+        require_once __DIR__ . '/src/Entity/Importer.php';
 
         $directory = new \RecursiveDirectoryIterator(__DIR__ . '/data/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($directory);
         foreach ($iterator as $filepath => $file) {
             $data = include $filepath;
             $data['owner'] = $user;
-            $api->create('bulk_importers', $data);
+            $entity = new \BulkImport\Entity\Importer();
+            foreach ($data as $key => $value) {
+                $method = 'set' . ucfirst($key);
+                $entity->$method($value);
+            }
+            $entityManager->persist($entity);
         }
+        $entityManager->flush();
     }
 }
