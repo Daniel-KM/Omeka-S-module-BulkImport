@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0bb0adcbfe8598fceaabc7494c612073",
+    "content-hash": "b2f228e23bb11c48c775f7ea72b90d9a",
     "packages": [
         {
             "name": "box/spout",
@@ -76,21 +76,21 @@
         },
         {
             "name": "mikehaertl/php-pdftk",
-            "version": "0.5.0",
+            "version": "0.6.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mikehaertl/php-pdftk.git",
-                "reference": "a07f459d85e876a58cbe1ee7f4b4e0a9d9ed335d"
+                "reference": "c0a92725dab676ffb8c6ef764642b6f5c6f365cd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mikehaertl/php-pdftk/zipball/a07f459d85e876a58cbe1ee7f4b4e0a9d9ed335d",
-                "reference": "a07f459d85e876a58cbe1ee7f4b4e0a9d9ed335d",
+                "url": "https://api.github.com/repos/mikehaertl/php-pdftk/zipball/c0a92725dab676ffb8c6ef764642b6f5c6f365cd",
+                "reference": "c0a92725dab676ffb8c6ef764642b6f5c6f365cd",
                 "shasum": ""
             },
             "require": {
-                "mikehaertl/php-shellcommand": "^1.0.2",
-                "mikehaertl/php-tmpfile": "^1.0.0",
+                "mikehaertl/php-shellcommand": "^1.5.0",
+                "mikehaertl/php-tmpfile": "^1.1.0",
                 "php": ">=5.3.0"
             },
             "suggest": {
@@ -117,7 +117,7 @@
                 "pdf",
                 "pdftk"
             ],
-            "time": "2018-10-11T07:29:34+00:00"
+            "time": "2019-08-17T08:00:52+00:00"
         },
         {
             "name": "mikehaertl/php-shellcommand",
