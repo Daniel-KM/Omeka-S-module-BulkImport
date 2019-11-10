@@ -22,6 +22,11 @@ return [
             'bulk_imports' => Api\Adapter\ImportAdapter::class,
         ],
     ],
+    'media_ingesters' => [
+        'invokables' => [
+            'bulk' => Media\Ingester\Bulk::class,
+        ],
+    ],
     'view_manager' => [
         'template_path_stack' => [
             dirname(__DIR__) . '/view',

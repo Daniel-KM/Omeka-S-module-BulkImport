@@ -8,6 +8,8 @@ if (!class_exists(\Generic\AbstractModule::class)) {
 }
 
 use Generic\AbstractModule;
+use Zend\EventManager\Event;
+use Zend\EventManager\SharedEventManagerInterface;
 use Zend\ModuleManager\ModuleManager;
 
 class Module extends AbstractModule
@@ -45,5 +47,27 @@ class Module extends AbstractModule
             $entityManager->persist($entity);
         }
         $entityManager->flush();
+    }
+
+    public function attachListeners(SharedEventManagerInterface $sharedEventManager)
+    {
+        $sharedEventManager->attach(
+            \Omeka\Media\Ingester\Manager::class,
+            'service.registered_names',
+            [$this, 'handleMediaIngesterRegisteredNames']
+       );
+    }
+
+    /**
+     * Avoid to display ingester in item edit, because it's an internal one.
+     *
+     * @param Event $event
+     */
+    public function handleMediaIngesterRegisteredNames(Event $event)
+    {
+        $names = $event->getParam('registered_names');
+        $key = array_search('bulk', $names);
+        unset($names[$key]);
+        $event->setParam('registered_names', $names);
     }
 }
