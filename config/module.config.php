@@ -76,6 +76,7 @@ return [
     'controller_plugins' => [
         'factories' => [
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
+            'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
         ],
@@ -187,6 +188,7 @@ return [
         'config' => [
             'bulkimport_local_path' => OMEKA_PATH . '/files/import',
             'bulkimport_xslt_processor' => '',
+            'bulkimport_pdftk' => '',
         ],
     ],
     'bulk_import' => [
