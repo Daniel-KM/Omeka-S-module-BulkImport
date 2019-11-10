@@ -99,9 +99,9 @@ class ExtractDataFromPdf extends AbstractPlugin
         if ($this->executeStrategy === 'exec') {
             $options['useExec'] = true;
         }
-
         $pdf = new Pdf($filepath, $options);
-        $data = (string) $pdf->getData();
+        // TODO There is a bug in version 0.6.1, so remove notices.
+        $data = (string) @$pdf->getData();
         if (empty($data)) {
             $error = $pdf->getError() ?: sprintf('Command pdftk unavailable or failed: %s', $pdf->getCommand()); // @translate
             $this->logger()->err(sprintf('Unable to process pdf: %s', $error));
