@@ -4,11 +4,9 @@
     header nav .bulk-imports::before,
     header nav .bulk-importers::before,
     .bulk-imports .subhead::before,
-    .bulk-importers .subhead::before {
-        content:"";
-    }
+    .bulk-importers .subhead::before,
     .bulk-imports .no-resources:before,
     .bulk-importers .no-resources:before {
-        content:"";
+        content:"";
     }
 }

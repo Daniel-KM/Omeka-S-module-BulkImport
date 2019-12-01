@@ -38,7 +38,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                 <?= $hyperlink($importer->label(), $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])) ?>
                 <ul class="actions">
                     <li><?= $importer->link('', 'start', [
-                        'class' => 'fas fa-cloud-download-alt',
+                        'class' => 'fas fa-cloud-upload-alt',
                         'title' => $translate('Import'),
                     ]); ?></li>
                     <?php if ($userIsAllowedUpdate): ?>
