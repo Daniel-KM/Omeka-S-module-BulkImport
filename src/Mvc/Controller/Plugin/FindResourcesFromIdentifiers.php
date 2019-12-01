@@ -163,7 +163,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             if (isset($identifierName['o:ingester'])) {
                 // TODO Currently, the media source cannot be html.
                 if ($identifierName['o:ingester'] === 'html') {
-                    return;
+                    return null;
                 }
                 $identifierType = 'media_source';
                 $identifierTypeName = $identifierName['o:ingester'];
@@ -181,21 +181,22 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $identifierType = 'property';
             // No check of the property id for quicker process.
             $identifierTypeName = (int) $identifierName;
+        } elseif (in_array($identifierName, ['url', 'file'])) {
+            $identifierType = 'media_source';
+            $identifierTypeName = $identifierName;
+            $resourceType = 'media';
+            $itemId = null;
         } else {
             $property = $this->api
                 ->searchOne('properties', ['term' => $identifierName])->getContent();
             if ($property) {
                 $identifierType = 'property';
                 $identifierTypeName = $property->id();
-            } elseif (in_array($identifierName, ['url', 'file'])) {
-                $identifierType = 'media_source';
-                $identifierTypeName = $identifierName;
-                $resourceType = 'media';
-                $itemId = null;
             }
         }
+
         if (empty($identifierTypeName)) {
-            return;
+            return null;
         }
 
         if ($resourceType) {
@@ -233,7 +234,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             }
         }
         if (!$identifierTypeNames) {
-            return;
+            return null;
         }
 
         if ($resourceType) {

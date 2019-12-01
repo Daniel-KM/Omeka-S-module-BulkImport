@@ -294,8 +294,7 @@ trait ResourceUpdateTrait
             }, $data)
         )));
         // Keep original data first.
-        $data = array_intersect_key($dataBase, $data);
-        return $data;
+        return array_intersect_key($dataBase, $data);
     }
 
     /**
