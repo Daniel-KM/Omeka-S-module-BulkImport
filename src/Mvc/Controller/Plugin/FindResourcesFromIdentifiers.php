@@ -201,8 +201,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         if ($resourceType) {
             $resourceType = $this->normalizeResourceType($resourceType);
-            if (empty($resourceType)) {
-                return;
+            if (is_null($resourceType)) {
+                return null;
             }
         }
 
@@ -239,8 +239,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         if ($resourceType) {
             $resourceType = $this->normalizeResourceType($resourceType);
-            if (empty($resourceType)) {
-                return;
+            if (is_null($resourceType)) {
+                return null;
             }
         }
 
