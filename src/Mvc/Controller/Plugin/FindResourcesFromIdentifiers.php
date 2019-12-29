@@ -69,6 +69,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * All identifiers are returned, even without id.
      *
      * @todo Manage Media source html.
+     * @todo Clarify and simplify input and output.
      *
      * @param array|string $identifiers Identifiers should be unique. If a
      * string is sent, the result will be the resource.
@@ -83,7 +84,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * option is false, when there are true duplicates, it returns the first and
      * when there are case insensitive duplicates, it returns the first too.
      * This option is useless when identifiers are ids and not recommended when
-     * there are multiple fields.
+     * there are multiple type of fields (doesnfor example, it doesn't work
+     * totally with o:id and properties).
      * @return array|int|null|Object Associative array with the identifiers as key
      * and the ids or null as value. Order is kept, but duplicate identifiers
      * are removed. If $identifiers is a string, return directly the resource
@@ -114,21 +116,34 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         }
         list($identifierTypeNames, $resourceType, $itemId) = $args;
 
+        $results = [
+            'result' => [],
+            'count' => [],
+            'has_duplicate' => false,
+        ];
         foreach ($identifierTypeNames as $identifierType => $identifierName) {
             $result = $this->findResources($identifierType, $identifiers, $identifierName, $resourceType, $itemId);
             if (empty($result['result'])) {
                 continue;
             }
-            if ($result['has_duplicate'] && $uniqueOnly) {
-                if ($isSingle) {
-                    return (object) ['result' => reset($result['result']), 'count' => reset($result['count'])];
-                }
-                unset($result['has_duplicate']);
-                return (object) $result;
-            }
-            return $isSingle ? reset($result['result']) : $result['result'];
+            $results['result'] = array_filter($results['result']) + $result['result'];
+            // TODO Count is not manageable with multiple types.
+            $results['count'] = array_filter($results['count']) + (empty($result['count']) ? [] : $result['count']);
+            $results['has_duplicate'] = $results['has_duplicate'] || $result['has_duplicate'];
         }
-        return $isSingle ? null : [];
+
+        if (empty($results['result'])) {
+            return $isSingle ? null : [];
+        }
+
+        if ($result['has_duplicate'] && $uniqueOnly) {
+            if ($isSingle) {
+                return (object) ['result' => reset($result['result']), 'count' => reset($result['count'])];
+            }
+            unset($result['has_duplicate']);
+            return (object) $result;
+        }
+        return $isSingle ? reset($result['result']) : $result['result'];
     }
 
     protected function findResources($identifierType, array $identifiers, $identifierName, $resourceType, $itemId)
