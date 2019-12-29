@@ -123,6 +123,22 @@ return [
                 ],
             ],
         ],
+        'BulkImport' => [
+            [
+                'label' => 'Params', // @translate
+                'route' => 'admin/bulk/id',
+                'controller' => 'import',
+                'action' => 'show',
+                'useRouteMatch' => true,
+            ],
+            [
+                'label' => 'Logs', // @translate
+                'route' => 'admin/bulk/id',
+                'controller' => 'import',
+                'action' => 'logs',
+                'useRouteMatch' => true,
+            ],
+        ],
     ],
     'router' => [
         'routes' => [

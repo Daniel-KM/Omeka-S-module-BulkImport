@@ -12,10 +12,14 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
 
-<?= $this->pageTitle($translate('Import'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle(sprintf($translate('Import #%d'), $resource->id()), 1, $translate('Bulk import')) ?>
+
+<nav class="section-nav">
+    <?= $this->navigation('Zend\Navigation\BulkImport')->menu() ?>
+</nav>
 
 <div id="content">
-    <h2><?= $escape(sprintf($translate('Import #%d'), $import->id())) ?></h2>
+    <h3><?= $translate('Status') ?></h3>
     <ul>
         <li><?= sprintf($translate('Importer: %s'), $import->importer()->label()) ?></li>
         <li><?= sprintf($translate('Status: %s'), $import->statusLabel()) ?></li>
@@ -39,6 +43,4 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
             echo $escape(json_encode($import->processorParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         ?></pre>
     </div>
-    <h4><?= $escape($translate('Logs')) ?></h4>
-    <?= $this->hyperlink($translate('See logs'), $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()])) ?>
 </div>
