@@ -602,8 +602,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         try {
             if (count($data) === 1) {
-                $resource = $this->api()
-                    ->create($resourceType, reset($data))->getContent();
+                $response = $this->api()
+                    ->create($resourceType, reset($data));
+                if (!$response) {
+                    throw new \Exception('Unable to create resource.'); // @translate
+                }
+                $resource = $response->getContent();
                 $resources = [$resource];
             } else {
                 $resources = $this->api()
