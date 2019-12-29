@@ -219,7 +219,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->processEntities($dataToProcess);
 
         $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_errors} errors inside data.', // @translate
+            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each file.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_skipped' => $this->totalSkipped,

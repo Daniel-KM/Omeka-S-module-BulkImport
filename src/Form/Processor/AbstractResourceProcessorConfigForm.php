@@ -217,7 +217,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             'name' => 'mapping',
             'type' => Fieldset::class,
             'options' => [
-                'label' => 'Mapping', // @translate
+                'label' => 'Mapping from sources to resources', // @translate
             ],
         ]);
 
