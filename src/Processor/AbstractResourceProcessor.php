@@ -176,9 +176,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         /** @var \Doctrine\ORM\EntityManager $entityManager */
         $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
 
+        $shouldStop = false;
         $dataToProcess = [];
         foreach ($this->reader as $index => $entry) {
-            if ($this->job->shouldStop()) {
+            if ($shouldStop = $this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped.', // @translate
                     ['index' => $this->indexResource]
@@ -221,7 +222,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Take care of remainder from the modulo check.
-        if ($dataToProcess) {
+        if (!$shouldStop && $dataToProcess) {
             $this->processEntities($dataToProcess);
             // Avoid memory issue.
             unset($dataToProcess);
