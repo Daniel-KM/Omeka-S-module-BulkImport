@@ -356,7 +356,7 @@ class ImporterController extends AbstractActionController
                                     'link_close' => '</a>',
                                     'link_open_log' => sprintf(
                                         '<a href="%s">',
-                                        htmlspecialchars($urlHelper->fromRoute('admin/log/default', [], ['query' => ['job_id' => $job->getId()]]))
+                                        htmlspecialchars($urlHelper->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]))
                                     ),
                                 ]
                             );
