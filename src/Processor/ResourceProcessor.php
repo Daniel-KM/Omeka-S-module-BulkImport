@@ -44,7 +44,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function handleFormMedia(ArrayObject $args, array $values)
     {
-        if (isset($values['o:item'])) {
+        if (!empty($values['o:item'])) {
             $id = $this->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
             if ($id) {
                 $args['o:item'] = ['o:id' => $id];
