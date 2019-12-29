@@ -37,6 +37,8 @@ class ItemSetProcessor extends ResourceProcessor
 
     protected function checkEntity(ArrayObject $resource)
     {
-        return $this->checkItemSet($resource);
+        parent::checkEntity($resource);
+        $this->checkItemSet($resource);
+        return !$resource['has_error'];
     }
 }

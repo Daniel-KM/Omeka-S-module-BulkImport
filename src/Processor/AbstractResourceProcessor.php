@@ -530,7 +530,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
         // No resource id, so it is an error, so add message if choice is skip.
-        elseif ($this->actionUnidentified === self::ACTION_SKIP) {
+        elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
             if ($this->getAllowDuplicateIdentifiers()) {
                 $this->logger->err(
                     'Index #{index}: The action "{action}" requires an identifier.', // @translate

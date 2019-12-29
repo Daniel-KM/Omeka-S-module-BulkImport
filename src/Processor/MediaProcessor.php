@@ -37,6 +37,8 @@ class MediaProcessor extends ResourceProcessor
 
     protected function checkEntity(ArrayObject $resource)
     {
-        return $this->checkMedia($resource);
+        parent::checkEntity($resource);
+        $this->checkMedia($resource);
+        return !$resource['has_error'];
     }
 }
