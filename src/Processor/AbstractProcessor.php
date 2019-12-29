@@ -344,6 +344,18 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
+     * Set the default param to allow duplicate identifiers.
+     *
+     * @param bool $allowDuplicateIdentifiers
+     * @return self
+     */
+    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    {
+        $this->bulk->setAllowDuplicateIdentifiers($allowDuplicateIdentifiers);
+        return $this;
+    }
+
+    /**
      * Get the default param to allow duplicate identifiers.
      *
      * @return bool
@@ -354,15 +366,25 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
-     * Set the default param to allow duplicate identifiers.
+     * Set the default identifier names.
      *
-     * @param bool $allowDuplicateIdentifiers
+     * @param array|string $identifierNames
      * @return self
      */
-    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    public function setIdentifierNames($identifierNames)
     {
-        $this->bulk->setAllowDuplicateIdentifiers($allowDuplicateIdentifiers);
+        $this->bulk->setIdentifierNames($identifierNames);
         return $this;
+    }
+
+    /**
+     * Get the default identifier names.
+     *
+     * @return array|string|int
+     */
+    public function getIdentifierNames()
+    {
+        return $this->bulk->getIdentifierNames();
     }
 
     /**
@@ -430,7 +452,7 @@ abstract class AbstractProcessor implements Processor
             $resource['has_error'] = true;
         }
 
-        $identifierNames = $this->identifierNames;
+        $identifierNames = $this->getIdentifierNames();
         $key = array_search('o:id', $identifierNames);
         if ($key !== false) {
             unset($identifierNames[$key]);

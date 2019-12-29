@@ -36,11 +36,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $paramsFormClass;
 
     /**
-     * @var string|int|array
-     */
-    protected $identifierNames;
-
-    /**
      * @var ArrayObject
      */
     protected $base;
@@ -430,8 +425,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 case 'resource:item':
                 case 'resource:itemset':
                 case 'resource:media':
-                    $resourceType = isset($resource['resource_type']) ? $resource['resource_type'] : null;
-                    $id = $this->findResourceFromIdentifier($value, null, $resourceType);
+                    $id = $this->findResourceFromIdentifier($value, null, $resourceValue['type']);
                     if ($id) {
                         $resourceValue['value_resource_id'] = $id;
                         $resourceValue['@language'] = null;
@@ -870,9 +864,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     protected function prepareIdentifierNames()
     {
-        $this->identifierNames = [];
         $identifierNames = $this->getParam('identifier_name', ['o:id', 'dcterms:identifier']);
         if (empty($identifierNames)) {
+            $this->bulk->setIdentifierNames([]);
             $this->logger->warn(
                 'No identifier name was selected.' // @translate
             );
@@ -884,20 +878,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // For quicker search, prepare the ids of the properties.
+        $result = [];
         foreach ($identifierNames as $identifierName) {
             $id = $this->getPropertyId($identifierName);
             if ($id) {
-                $this->identifierNames[$this->getPropertyTerm($id)] = $id;
+                $result[$this->getPropertyTerm($id)] = $id;
             } else {
-                $this->identifierNames[$identifierName] = $identifierName;
+                $result[$identifierName] = $identifierName;
             }
         }
-        $this->identifierNames = array_filter($this->identifierNames);
-        if (empty($this->identifierNames)) {
+        $result = array_filter($result);
+        if (empty($result)) {
             $this->logger->err(
                 'Invalid identifier names: check your params.' // @translate
             );
         }
+        $this->bulk->setIdentifierNames($result);
     }
 
     /**

@@ -143,7 +143,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:item_set':
-                $identifierName = isset($target['target_data']) ? $target['target_data'] : $this->identifierNames;
+                $identifierName = isset($target['target_data']) ? $target['target_data'] : $this->getIdentifierNames();
                 $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'item_sets');
                 foreach ($ids as $id) {
                     $resource['o:item_set'][] = [
@@ -225,7 +225,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         switch ($target['target']) {
             case 'o:item':
                 // $value = array_pop($values);
-                $identifierName = isset($target["target_data"]) ? $target["target_data"] : $this->identifierNames;
+                $identifierName = isset($target["target_data"]) ? $target["target_data"] : $this->getIdentifierNames();
                 $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'items');
                 $id = $ids ? array_pop($ids) : null;
                 $resource['o:item'] = [

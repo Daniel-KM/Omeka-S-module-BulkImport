@@ -66,6 +66,14 @@ class Bulk extends AbstractPlugin
     protected $allowDuplicateIdentifiers = false;
 
     /**
+     * @var array|string
+     */
+    protected $identifierNames = [
+        'o:id',
+        'dcterms:identifier',
+    ];
+
+    /**
      * @var array
      */
     protected $properties;
@@ -436,7 +444,7 @@ class Bulk extends AbstractPlugin
     public function findResourcesFromIdentifiers($identifiers, $identifierName = null, $resourceType = null)
     {
         $findResourcesFromIdentifiers = $this->findResourcesFromIdentifiers;
-        $identifierName = $identifierName ?: $this->identifierNames;
+        $identifierName = $identifierName ?: $this->getIdentifierNames();
         $result = $findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType, true);
 
         $isSingle = !is_array($identifiers);
@@ -532,6 +540,18 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Set the default param to allow duplicate identifiers.
+     *
+     * @param bool $allowDuplicateIdentifiers
+     * @return self
+     */
+    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    {
+        $this->allowDuplicateIdentifiers = (bool) $allowDuplicateIdentifiers;
+        return $this;
+    }
+
+    /**
      * Get the default param to allow duplicate identifiers.
      *
      * @return bool
@@ -542,14 +562,24 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Set the default param to allow duplicate identifiers.
+     * Set the default identifier names.
      *
-     * @param bool $allowDuplicateIdentifiers
+     * @param array|string|int $identifierNames
      * @return self
      */
-    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    public function setIdentifierNames($identifierNames)
     {
-        $this->allowDuplicateIdentifiers = (bool) $allowDuplicateIdentifiers;
+        $this->identifierNames = $identifierNames;
         return $this;
+    }
+
+    /**
+     * Get the default identifier names.
+     *
+     * @return array|string
+     */
+    public function getIdentifierNames()
+    {
+        return $this->identifierNames;
     }
 }
