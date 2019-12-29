@@ -403,7 +403,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resourceValue['@value'] = $value;
                     break;
                 case 'uri':
-                case strpos($resourceValue['type'], 'valuesuggest:') === 0:
+                case strpos($resourceValue['type'], 'valuesuggest:') === 0 || strpos($resourceValue['type'], 'valuesuggestall:') === 0:
                     if (!empty($target['extra'])) {
                         switch ($target['extra']) {
                             case 'uri-label':
