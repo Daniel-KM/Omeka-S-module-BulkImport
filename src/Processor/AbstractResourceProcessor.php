@@ -723,7 +723,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             try {
-                $api->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
+                $response = $api->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
                 $this->logger->notice(
                     'Index #{index}: Updated {resource_type} #{resource_id}', // @translate
                     ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $dataResource['o:id']]
@@ -740,6 +740,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->logger->err(
                     'Index #{index}: Core error during update: {exception}', // @translate
                     ['index' => $this->indexResource, 'exception' => $e]
+                );
+                ++$this->totalErrors;
+                return;
+            }
+            if (!$response) {
+                $this->logger->err(
+                    'Index #{index}: Unknown error occured during update.', // @translate
+                    ['index' => $this->indexResource]
                 );
                 ++$this->totalErrors;
                 return;
