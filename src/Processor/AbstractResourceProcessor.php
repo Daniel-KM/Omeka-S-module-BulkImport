@@ -140,8 +140,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'action_unidentified' => null,
             'identifier_name' => null,
             'allow_duplicate_identifiers' => false,
+            'entries_to_skip' => 0,
             'entries_by_batch' => null,
         ];
+
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
         $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
         $args->exchangeArray($result);
@@ -167,9 +169,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->prepareMapping();
 
-        $this->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers'));
+        $this->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
 
-        $batch = (int) $this->getParam('entries_by_batch') ?: self::ENTRIES_BY_BATCH;
+        $toSkip = $this->getParam('entries_to_skip', 0);
+        if ($toSkip) {
+            $this->logger->notice(
+                'The first {skip} entries are skipped by user.', // @translate
+                ['skip' => $toSkip]
+            );
+        }
+
+        $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
 
         $this->base = $this->baseEntity();
 
@@ -185,6 +195,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource]
                 );
                 break;
+            }
+
+            if ($toSkip) {
+                --$toSkip;
+                continue;
             }
 
             ++$this->totalIndexResources;
@@ -448,7 +463,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     } else {
                         $resource['has_error'] = true;
                         $this->logger->err(
-                            'Index #{index}: Resource id for value "{value}" cannot be found: the entry is skipped.', // @translate
+                            'Index #{index}: Resource id for value "{value}" cannot be found. The entry is skipped.', // @translate
                             ['index' => $this->indexResource, 'value' => $value]
                         );
                     }
@@ -475,7 +490,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } else {
                     $resource['has_error'] = true;
                     $this->logger->err(
-                        'Index #{index}: Internal id #{id} cannot be found: the entry is skipped.', // @translate
+                        'Index #{index}: Internal id #{id} cannot be found. The entry is skipped.', // @translate
                         ['index' => $this->indexResource, 'id' => $id]
                     );
                 }

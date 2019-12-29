@@ -19,6 +19,7 @@ return [
             'dcterms:identifier',
         ],
         'allow_duplicate_identifiers' => false,
+        'entries_to_skip' => 0,
         'entries_by_batch' => '',
         'resource_type' => '',
     ],

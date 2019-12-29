@@ -1,8 +1,9 @@
 <?php
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use BulkImport\Form\EntriesByBatchTrait;
+use BulkImport\Form\EntriesToSkipTrait;
+use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Omeka\Form\Element\PropertySelect;
 use Omeka\Form\Element\ResourceClassSelect;
 use Omeka\Form\Element\ResourceSelect;
@@ -14,15 +15,18 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
     use EntriesByBatchTrait;
+    use EntriesToSkipTrait;
 
     public function init()
     {
         $this->baseFieldset();
         $this->addFieldsets();
+        $this->addEntriesToSkip();
         $this->addEntriesByBatch();
 
         $this->baseInputFilter();
         $this->addInputFilter();
+        $this->addEntriesToSkipInputFilter();
         $this->addEntriesByBatchInputFilter();
     }
 

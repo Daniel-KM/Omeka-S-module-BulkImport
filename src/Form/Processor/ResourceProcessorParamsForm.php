@@ -2,20 +2,24 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
+use BulkImport\Form\EntriesToSkipTrait;
 
 class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
 {
     use EntriesByBatchTrait;
+    use EntriesToSkipTrait;
 
     public function init()
     {
         $this->baseFieldset();
         $this->addFieldsets();
+        $this->addEntriesToSkip();
         $this->addEntriesByBatch();
         $this->addMapping();
 
         $this->baseInputFilter();
         $this->addInputFilter();
+        $this->addEntriesToSkipInputFilter();
         $this->addEntriesByBatchInputFilter();
         $this->addMappingFilter();
     }
