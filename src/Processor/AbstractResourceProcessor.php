@@ -173,6 +173,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->base = $this->baseEntity();
 
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+
         $dataToProcess = [];
         foreach ($this->reader as $index => $entry) {
             if ($this->job->shouldStop()) {
@@ -207,12 +210,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Only add every X for batch import.
             if ($this->processing >= $batch) {
                 $this->processEntities($dataToProcess);
+                // Avoid memory issue.
+                unset($dataToProcess);
+                $entityManager->flush();
+                $entityManager->clear();
+                // Reset for next batch.
                 $dataToProcess = [];
                 $this->processing = 0;
             }
         }
+
         // Take care of remainder from the modulo check.
-        $this->processEntities($dataToProcess);
+        if ($dataToProcess) {
+            $this->processEntities($dataToProcess);
+            // Avoid memory issue.
+            unset($dataToProcess);
+            $entityManager->flush();
+            $entityManager->clear();
+        }
 
         $this->logger->notice(
             'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each file.', // @translate
