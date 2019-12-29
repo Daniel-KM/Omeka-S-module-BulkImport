@@ -512,14 +512,23 @@ class Bulk extends AbstractPlugin
         );
     }
 
+    /**
+     * @return \Zend\Log\Logger
+     */
     public function logger()
     {
         return $this->logger;
     }
 
-    public function api()
+    /**
+     * @param \Zend\Form\Form $form
+     * @param boolean $throwValidationException
+     * @return \Omeka\Mvc\Controller\Plugin\Api
+     */
+    public function api(\Zend\Form\Form $form = null, $throwValidationException = false)
     {
-        return $this->api;
+        $api = $this->api;
+        return $api($form, $throwValidationException);
     }
 
     /**

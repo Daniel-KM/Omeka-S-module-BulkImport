@@ -5,6 +5,7 @@ use ArrayObject;
 use BulkImport\Interfaces\Processor;
 use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Omeka\Api\Exception\ValidationException;
 use Omeka\Job\AbstractJob as Job;
 use Zend\Log\Logger;
 use Zend\ServiceManager\ServiceLocatorInterface;
@@ -57,11 +58,6 @@ abstract class AbstractProcessor implements Processor
      * @var Job
      */
     protected $job;
-
-    /**
-     * @var \Omeka\Api\Manager
-     */
-    protected $api;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk;
@@ -337,11 +333,14 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
-     * @return \Omeka\Api\Manager
+     * @param \Zend\Form\Form $form Unused, but kept for compatibility with
+     * default api.
+     * @param boolean $throwValidationException
+     * @return \Omeka\Mvc\Controller\Plugin\Api
      */
-    protected function api()
+    protected function api(\Zend\Form\Form $form = null, $throwValidationException = false)
     {
-        return $this->bulk->api();
+        return $this->bulk->api($form, $throwValidationException);
     }
 
     /**
@@ -495,7 +494,7 @@ abstract class AbstractProcessor implements Processor
                 }
             }
             $resource['o:id'] = reset($ids);
-            $this->logger->notice(
+            $this->logger->info(
                 'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_type} #{resource_id}.', // @translate
                 [
                     'index' => $this->indexResource,
@@ -509,5 +508,24 @@ abstract class AbstractProcessor implements Processor
         }
 
         return false;
+    }
+
+    /**
+     * @param ValidationException $e
+     * @return array
+     */
+    protected function listValidationMessages(ValidationException $e)
+    {
+        $messages = [];
+        foreach ($e->getErrorStore()->getErrors() as $error) {
+            foreach ($error as $message) {
+                // Some messages can be nested.
+                if (!is_array($message)) {
+                    $message = [$message];
+                }
+                $messages = array_merge($messages, array_values($message));
+            }
+        }
+        return $messages;
     }
 }

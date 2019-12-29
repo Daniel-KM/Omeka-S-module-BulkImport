@@ -7,6 +7,7 @@ use BulkImport\Interfaces\Entry;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
+use Omeka\Api\Exception\ValidationException;
 use Zend\Form\Form;
 
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
@@ -549,6 +550,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
             $resource['has_error'] = true;
         }
+
         return !$resource['has_error'];
     }
 
@@ -602,17 +604,23 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         try {
             if (count($data) === 1) {
-                $response = $this->api()
+                $response = $this->api(null, true)
                     ->create($resourceType, reset($data));
-                if (!$response) {
-                    throw new \Exception('Unable to create resource.'); // @translate
-                }
                 $resource = $response->getContent();
                 $resources = [$resource];
             } else {
-                $resources = $this->api()
+                // TODO Clarify continuation on exception for batch.
+                $resources = $this->api(null, true)
                     ->batchCreate($resourceType, $data, [], ['continueOnError' => true])->getContent();
             }
+        } catch (ValidationException $e) {
+            $messages = $this->listValidationMessages($e);
+            $this->logger->err(
+                "Index #{index}: Error during validation of the data before creation:\n{messages}", // @translate
+                ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
+            );
+            ++$this->totalErrors;
+            return;
         } catch (\Exception $e) {
             $this->logger->err(
                 'Index #{index}: Core error during creation: {exception}', // @translate
@@ -669,6 +677,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // resource is updated separately.
         $options = [];
         $fileData = [];
+        $api = $this->api(null, true);
         foreach ($data as $dataResource) {
             switch ($this->action) {
                 case self::ACTION_APPEND:
@@ -687,17 +696,26 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             try {
-                $this->api()->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
+                $api->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
                 $this->logger->notice(
                     'Index #{index}: Updated {resource_type} #{resource_id}', // @translate
                     ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $dataResource['o:id']]
                 );
+            } catch (ValidationException $e) {
+                $messages = $this->listValidationMessages($e);
+                $this->logger->err(
+                    "Index #{index}: Error during validation of the data before update:\n{messages}", // @translate
+                    ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
+                );
+                ++$this->totalErrors;
+                return;
             } catch (\Exception $e) {
                 $this->logger->err(
                     'Index #{index}: Core error during update: {exception}', // @translate
                     ['index' => $this->indexResource, 'exception' => $e]
                 );
                 ++$this->totalErrors;
+                return;
             }
         }
     }
@@ -734,12 +752,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         try {
             if (count($ids) === 1) {
-                $this->api()
+                $this->api(null, true)
                     ->delete($resourceType, reset($ids))->getContent();
             } else {
-                $this->api()
+                $this->api(null, true)
                     ->batchDelete($resourceType, $ids, [], ['continueOnError' => true])->getContent();
             }
+        } catch (ValidationException $e) {
+            $messages = $this->listValidationMessages($e);
+            $this->logger->err(
+                "Index #{index}: Error during validation of the data before deletion:\n{messages}", // @translate
+                ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
+            );
+            ++$this->totalErrors;
+            return;
         } catch (\Exception $e) {
             // There is no error, only ids already deleted, so continue.
             $this->logger->err(
@@ -747,6 +773,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource, 'exception' => $e]
             );
             ++$this->totalErrors;
+            return;
         }
 
         foreach ($ids as $id) {
