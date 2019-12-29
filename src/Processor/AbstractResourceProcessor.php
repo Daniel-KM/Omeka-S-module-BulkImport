@@ -677,7 +677,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // resource is updated separately.
         $options = [];
         $fileData = [];
-        $api = $this->api(null, true);
+        // Clone is required to keep option to throw issue. The api plugin may
+        // be used by other methods.
+        $api = clone $this->api(null, true);
         foreach ($data as $dataResource) {
             switch ($this->action) {
                 case self::ACTION_APPEND:
