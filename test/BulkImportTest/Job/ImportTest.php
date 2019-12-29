@@ -9,9 +9,24 @@ use OmekaTestHelper\Controller\OmekaControllerTestCase;
 
 class ImportTest extends OmekaControllerTestCase
 {
+    /**
+     * @var \Doctrine\ORM\EntityManager
+     */
     protected $entityManager;
+
+    /**
+     * @var \Zend\Authentication\AuthenticationService;
+     */
     protected $auth;
+
+    /**
+     * @var \Omeka\Api\Manager
+     */
     protected $api;
+
+    /**
+     * @var string
+     */
     protected $basepath;
 
     /**
@@ -19,6 +34,9 @@ class ImportTest extends OmekaControllerTestCase
      */
     protected $moduleManager;
 
+    /**
+     * @var string
+     */
     protected $tempfile;
 
     public function setUp()
@@ -311,7 +329,7 @@ SQL;
         $this->entityManager->persist($import);
         $this->entityManager->flush();
 
-        $args = ['import_id' => $import->getId()];
+        $args = ['bulk_import_id' => $import->getId()];
 
         $job = new Job;
         $job->setStatus(Job::STATUS_STARTING);

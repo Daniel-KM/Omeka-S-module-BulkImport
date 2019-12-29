@@ -84,7 +84,7 @@ class Import extends AbstractJob
             return $this->import;
         }
 
-        $id = $this->getArg('import_id');
+        $id = $this->getArg('bulk_import_id');
         if ($id) {
             $content = $this->api()->search('bulk_imports', ['id' => $id, 'limit' => 1])->getContent();
             $this->import = is_array($content) && count($content) ? reset($content) : null;

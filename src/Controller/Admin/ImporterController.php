@@ -337,7 +337,7 @@ class ImporterController extends AbstractActionController
                         // Clear import session.
                         $session->exchangeArray([]);
 
-                        $args = ['import_id' => $import->id()];
+                        $args = ['bulk_import_id' => $import->id()];
 
                         $dispatcher = $this->jobDispatcher();
                         try {
