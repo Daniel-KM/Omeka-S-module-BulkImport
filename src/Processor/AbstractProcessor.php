@@ -520,7 +520,14 @@ abstract class AbstractProcessor implements Processor
         foreach ($e->getErrorStore()->getErrors() as $error) {
             foreach ($error as $message) {
                 // Some messages can be nested.
-                if (!is_array($message)) {
+                if (is_array($message)) {
+                    $result = [];
+                    array_walk_recursive($message, function($v) use(&$result) {
+                        $result[] = $v;
+                    });
+                    $message = $result;
+                    unset($result);
+                } else {
                     $message = [$message];
                 }
                 $messages = array_merge($messages, array_values($message));
