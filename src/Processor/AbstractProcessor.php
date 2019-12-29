@@ -335,7 +335,7 @@ abstract class AbstractProcessor implements Processor
     /**
      * @param \Zend\Form\Form $form Unused, but kept for compatibility with
      * default api.
-     * @param boolean $throwValidationException
+     * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
     protected function api(\Zend\Form\Form $form = null, $throwValidationException = false)
@@ -546,7 +546,7 @@ abstract class AbstractProcessor implements Processor
                 // Some messages can be nested.
                 if (is_array($message)) {
                     $result = [];
-                    array_walk_recursive($message, function($v) use(&$result) {
+                    array_walk_recursive($message, function ($v) use (&$result) {
                         $result[] = $v;
                     });
                     $message = $result;

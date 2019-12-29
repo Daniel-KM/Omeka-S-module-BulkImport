@@ -530,7 +530,7 @@ class Bulk extends AbstractPlugin
 
     /**
      * @param \Zend\Form\Form $form
-     * @param boolean $throwValidationException
+     * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
     public function api(\Zend\Form\Form $form = null, $throwValidationException = false)

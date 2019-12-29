@@ -74,7 +74,8 @@ class Entry implements EntryInterface
         return $this->data;
     }
 
-    public function getIterator() {
+    public function getIterator()
+    {
         return new ArrayIterator($this->data);
     }
 

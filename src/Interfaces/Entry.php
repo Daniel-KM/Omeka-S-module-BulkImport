@@ -29,7 +29,7 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      */
     public function getArrayCopy();
 
-     /**
+    /**
      * {@inheritDoc}
      * @see \Iterator::current()
      *
