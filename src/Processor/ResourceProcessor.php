@@ -224,9 +224,10 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:item':
-                $value = array_pop($values);
+                // $value = array_pop($values);
                 $identifierName = isset($target["target_data"]) ? $target["target_data"] : $this->identifierNames;
-                $id = $this->findResourceFromIdentifier($value, $identifierName, 'items');
+                $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'items');
+                $id = $ids ? array_pop($ids) : null;
                 $resource['o:item'] = [
                     'o:id' => $id,
                     'checked_id' => true,
