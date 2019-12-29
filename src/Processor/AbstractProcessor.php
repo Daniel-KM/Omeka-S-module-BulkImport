@@ -401,6 +401,7 @@ abstract class AbstractProcessor implements Processor
         }
         // The id is set, but not checked. So check it.
         if ($resource['o:id']) {
+            // TODO getResourceType() is only in child AbstractResourceProcessor.
             $resourceType = empty($resource['resource_type'])
                 ? $this->getResourceType()
                 : $resource['resource_type'];
@@ -441,6 +442,7 @@ abstract class AbstractProcessor implements Processor
             return true;
         }
 
+        // TODO getResourceType() is only in child AbstractResourceProcessor.
         $resourceType = empty($resource['resource_type'])
             ? $this->getResourceType()
             : $resource['resource_type'];

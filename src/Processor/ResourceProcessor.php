@@ -62,18 +62,21 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function baseItem(ArrayObject $resource)
     {
+        $resource['resource_type'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
         $resource['o:media'] = [];
     }
 
     protected function baseItemSet(ArrayObject $resource)
     {
+        $resource['resource_type'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
         $resource['o:is_open'] = $isOpen;
     }
 
     protected function baseMedia(ArrayObject $resource)
     {
+        $resource['resource_type'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
     }
 
