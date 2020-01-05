@@ -51,13 +51,20 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
     protected $api;
 
     /**
+     * @param bool
+     */
+    protected $supportAnyValue;
+
+    /**
      * @param Connection $connection
      * @param Api $api
+     * @param bool $supportAnyValue
      */
-    public function __construct(Connection $connection, Api $api)
+    public function __construct(Connection $connection, Api $api, $supportAnyValue)
     {
         $this->connection = $connection;
         $this->api = $api;
+        $this->supportAnyValue = $supportAnyValue;
     }
 
     /**
@@ -359,15 +366,34 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         $qb = $conn->createQueryBuilder();
         $expr = $qb->expr();
-        $qb
-            ->select('value.value AS identifier', 'value.resource_id AS id', 'COUNT(DISTINCT(value.resource_id)) AS "count"')
-            ->from('value', 'value')
-            ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
-            // ->andWhere($expr->in('value.property_id', $propertyIds))
-            // ->andWhere($expr->in('value.value', $identifiers))
-            ->addGroupBy('value.value')
-            ->addOrderBy('resource.id', 'ASC')
-            ->addOrderBy('value.id', 'ASC');
+        if ($this->supportAnyValue) {
+            $qb
+                ->select([
+                    'ANY_VALUE(value.value) AS "identifier"',
+                    'ANY_VALUE(value.resource_id) AS "id"',
+                    'COUNT(DISTINCT(value.resource_id)) AS "count"'
+                ])
+                ->from('value', 'value')
+                ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
+                // ->andWhere($expr->in('value.property_id', $propertyIds))
+                // ->andWhere($expr->in('value.value', $identifiers))
+                ->addGroupBy('value.value')
+                ->addOrderBy('"id"', 'ASC');
+        } else {
+            $qb
+                ->select([
+                    'value.value AS "identifier"',
+                    'value.resource_id AS "id"',
+                    'COUNT(DISTINCT(value.resource_id)) AS "count"'
+                ])
+                ->from('value', 'value')
+                ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
+                // ->andWhere($expr->in('value.property_id', $propertyIds))
+                // ->andWhere($expr->in('value.value', $identifiers))
+                ->addGroupBy('value.value')
+                ->addOrderBy('"id"', 'ASC')
+                ->addOrderBy('value.id', 'ASC');
+        }
 
         $parameters = [];
         if (count($identifiers) === 1) {
@@ -428,13 +454,31 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         $qb = $conn->createQueryBuilder();
         $expr = $qb->expr();
-        $qb
-            ->select('media.source AS identifier', 'media.id AS id', 'COUNT(media.source) AS "count"')
-            ->from('media', 'media')
-            ->andWhere('media.ingester = :ingester')
-            // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
-            ->addGroupBy('media.source')
-            ->addOrderBy('media.id', 'ASC');
+        if ($this->supportAnyValue) {
+            $qb
+                ->select([
+                    'ANY_VALUE(media.source) AS "identifier"',
+                    'ANY_VALUE(media.id) AS "id"',
+                    'COUNT(media.source) AS "count"'
+                ])
+                ->from('media', 'media')
+                ->andWhere('media.ingester = :ingester')
+                // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
+                ->addGroupBy('media.source')
+                ->addOrderBy('"id"', 'ASC');
+        } else {
+            $qb
+                ->select([
+                    'media.source AS "identifier"',
+                    'media.id AS "id"',
+                    'COUNT(media.source) AS "count"'
+                ])
+                ->from('media', 'media')
+                ->andWhere('media.ingester = :ingester')
+                // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
+                ->addGroupBy('media.source')
+                ->addOrderBy('media.id', 'ASC');
+        }
 
         $parameters = [];
         $parameters['ingester'] = $ingesterName;
