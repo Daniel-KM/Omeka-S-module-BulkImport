@@ -54,10 +54,12 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function baseSpecific(ArrayObject $resource)
     {
-        $resource['resource_type'] = $this->getParam('resource_type');
+        // Determined by the entry, but prepare all possible types in the case
+        // there is a mapping.
         $this->baseItem($resource);
         $this->baseItemSet($resource);
         $this->baseMedia($resource);
+        $resource['resource_type'] = $this->getParam('resource_type');
     }
 
     protected function baseItem(ArrayObject $resource)
