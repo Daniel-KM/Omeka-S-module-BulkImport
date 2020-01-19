@@ -30,6 +30,12 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <li><?= sprintf($translate('Ended: %s'), $v->format('Y-m-d H:i:s')) ?></li>
         <?php endif; ?>
     </ul>
+    <?php if ($import->isInProgress()): ?>
+    <p>
+        <?= $this->hyperlink($translate('Attempt to stop job'),
+            $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()], true)) ?>
+    <p>
+    <?php endif; ?>
     <h3><?= $escape($translate('Parameters')) ?></h3>
     <h4><?= $escape($translate('Reader')) ?></h4>
     <div class="value">

@@ -48,6 +48,26 @@ class ImportController extends AbstractActionController
         return $view;
     }
 
+    public function stopAction()
+    {
+        $id = $this->params()->fromRoute('id');
+        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
+        $import = $this->api()->read('bulk_imports', $id)->getContent();
+
+        $job = $import->job();
+        if ($job) {
+            $status = $job->status();
+            if (in_array($status, [\Omeka\Entity\Job::STATUS_STARTING, \Omeka\Entity\Job::STATUS_STOPPING, \Omeka\Entity\Job::STATUS_IN_PROGRESS])) {
+                $this->jobDispatcher()->stop($job->id());
+                $this->messenger()->addSuccess('Attempting to stop the job.'); // @translate
+            } else {
+                $this->messenger()->addWarning('The job is not running.'); // @translate
+            }
+        }
+
+        return $this->redirect()->toRoute(null, ['action' => 'logs'], true);
+    }
+
     public function logsAction()
     {
         $id = $this->params()->fromRoute('id');

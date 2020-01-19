@@ -94,6 +94,13 @@ $severityNames = [
 
     <?= $pagination ?>
 
+    <?php if ($import->isInProgress()): ?>
+    <p>
+        <?= $hyperlink($translate('Attempt to stop job'),
+            $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()], true)) ?>
+    <p>
+    <?php endif; ?>
+
     <p>
         <?= $this->hyperlink(sprintf($translate('Manage logs')),
             $this->url('admin/log/default', [], ['query' => ['reference' => 'bulk/import/' . $import->id()]])) ?>
