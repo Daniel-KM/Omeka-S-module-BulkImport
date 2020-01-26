@@ -375,15 +375,19 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        unset($resource['o:item']);
+        // Use of unsetOffset() instead of unset() avoids a notice.
+        @$resource->unsetOffset('o:item');
+
         return true;
     }
 
     protected function checkItemSet(ArrayObject $resource)
     {
-        unset($resource['o:item']);
-        unset($resource['o:item_set']);
-        unset($resource['o:media']);
+        // This is an ArrayObject, so the key should be checked to avoid notice.
+        // Use of offsetUnset() avoids the check.
+        @$resource->unsetOffset('o:item');
+        @$resource->unsetOffset('o:item_set');
+        @$resource->unsetOffset('o:media');
         return true;
     }
 
@@ -409,8 +413,9 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        unset($resource['o:item_set']);
-        unset($resource['o:media']);
+        // Use of unsetOffset() instead of unset() avoids a notice.
+        @$resource->unsetOffset('o:item_set');
+        @$resource->unsetOffset('o:media');
         return true;
     }
 
