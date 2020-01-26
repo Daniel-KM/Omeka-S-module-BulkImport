@@ -30,7 +30,7 @@ class Module extends AbstractModule
 
         $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
-        // The resource "bulk_exporters" is not available during upgrade.
+        // The resource "bulk_importers" is not available during upgrade.
         require_once __DIR__ . '/src/Entity/Import.php';
         require_once __DIR__ . '/src/Entity/Importer.php';
 

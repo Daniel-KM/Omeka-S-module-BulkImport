@@ -375,19 +375,26 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        // Use of unsetOffset() instead of unset() avoids a notice.
-        @$resource->unsetOffset('o:item');
+        // The check is needed to avoid a notice because it's an ArrayObject.
+        if (array_key_exists('o:item')) {
+            unset($resource['o:item']);
+        }
 
         return true;
     }
 
     protected function checkItemSet(ArrayObject $resource)
     {
-        // This is an ArrayObject, so the key should be checked to avoid notice.
-        // Use of offsetUnset() avoids the check.
-        @$resource->unsetOffset('o:item');
-        @$resource->unsetOffset('o:item_set');
-        @$resource->unsetOffset('o:media');
+        // The check is needed to avoid a notice because it's an ArrayObject.
+        if (array_key_exists('o:item')) {
+            unset($resource['o:item']);
+        }
+        if (array_key_exists('o:item_set')) {
+            unset($resource['o:item_set']);
+        }
+        if (array_key_exists('o:media')) {
+            unset($resource['o:media']);
+        }
         return true;
     }
 
@@ -413,9 +420,13 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        // Use of unsetOffset() instead of unset() avoids a notice.
-        @$resource->unsetOffset('o:item_set');
-        @$resource->unsetOffset('o:media');
+        // The check is needed to avoid a notice because it's an ArrayObject.
+        if (array_key_exists('o:item_set')) {
+            unset($resource['o:item_set']);
+        }
+        if (array_key_exists('o:media')) {
+            unset($resource['o:media']);
+        }
         return true;
     }
 
