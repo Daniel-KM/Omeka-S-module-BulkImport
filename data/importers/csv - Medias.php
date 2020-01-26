@@ -1,7 +1,7 @@
 <?php
 return [
     'owner' => null,
-    'label' => 'CSV', // @translate
+    'label' => 'CSV - Medias', // @translate
     'readerClass' => \BulkImport\Reader\CsvReader::class,
     'readerConfig' => [
         'delimiter' => ',',
@@ -9,7 +9,7 @@ return [
         'escape' => '\\',
         'separator' => '|',
     ],
-    'processorClass' => \BulkImport\Processor\ResourceProcessor::class,
+    'processorClass' => \BulkImport\Processor\MediaProcessor::class,
     'processorConfig' => [
         'o:resource_template' => '',
         'o:resource_class' => '',

@@ -1,12 +1,12 @@
 <?php
 return [
     'owner' => null,
-    'label' => 'TSV (tab-separated values)', // @translate
+    'label' => 'TSV (tab-separated values) - Items', // @translate
     'readerClass' => \BulkImport\Reader\TsvReader::class,
     'readerConfig' => [
         'separator' => '|',
     ],
-    'processorClass' => \BulkImport\Processor\ResourceProcessor::class,
+    'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [
         'o:resource_template' => '',
         'o:resource_class' => '',

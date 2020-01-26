@@ -1,8 +1,8 @@
 <?php
 return [
     'owner' => null,
-    'label' => 'OpenDocument spreadsheet (ods)', // @translate
-    'readerClass' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
+    'label' => 'TSV (tab-separated values) - Mixed resources', // @translate
+    'readerClass' => \BulkImport\Reader\TsvReader::class,
     'readerConfig' => [
         'separator' => '|',
     ],
