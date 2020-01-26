@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-30 00:00+0100\n"
+"POT-Creation-Date: 2020-01-27 00:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,58 +42,57 @@ msgid "Used only for internal bulk process."
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:107
-#: src/Processor/ResourceProcessor.php:107
+#: src/Processor/ResourceProcessor.php:109
 msgid "itemset"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:110
-#: src/Processor/ResourceProcessor.php:110
+#: src/Processor/ResourceProcessor.php:112
 msgid "itemsets"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:111
-#: src/Processor/ResourceProcessor.php:111
+#: src/Processor/ResourceProcessor.php:113
 msgid "medias"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:112
-#: src/Processor/ResourceProcessor.php:112
+#: src/Processor/ResourceProcessor.php:114
 msgid "collection"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:113
-#: src/Processor/ResourceProcessor.php:113
+#: src/Processor/ResourceProcessor.php:115
 msgid "collections"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:114
-#: src/Processor/ResourceProcessor.php:114
+#: src/Processor/ResourceProcessor.php:116
 msgid "file"
 msgstr ""
 
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:115
-#: src/Processor/ResourceProcessor.php:115
+#: src/Processor/ResourceProcessor.php:117
 msgid "files"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/import-table.phtml:16
-#: view/bulk/admin/import/import-table.phtml:16
 msgid "Importer"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/import-table.phtml:31
-#: view/bulk/admin/import/import-table.phtml:31
+#: view/bulk/admin/import/import-table.phtml:37
 msgid "Stop"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/import-table.phtml:36
-#: view/bulk/admin/import/import-table.phtml:36
+#: view/bulk/admin/import/import-table.phtml:42
 msgid "See params"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/import-table.phtml:40
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:43
-#: view/bulk/admin/import/import-table.phtml:40
+#: view/bulk/admin/import/import-table.phtml:46
 msgid "See logs"
 msgstr ""
 
@@ -191,17 +190,17 @@ msgid "Full log"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/logs.phtml:95
-#: view/bulk/admin/import/logs.phtml:98
+#: view/bulk/admin/import/logs.phtml:105
 msgid "Manage logs"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/logs.phtml:100
-#: view/bulk/admin/import/logs.phtml:103
+#: view/bulk/admin/import/logs.phtml:110
 msgid "No logs yet."
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/logs.phtml:100
-#: view/bulk/admin/import/logs.phtml:103
+#: view/bulk/admin/import/logs.phtml:110
 msgid "Refresh page"
 msgstr ""
 
@@ -219,32 +218,34 @@ msgid "Importer: %s"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:23
-#: view/bulk/admin/import/show.phtml:27
+#: view/bulk/admin/import/show.phtml:28
 #, php-format
 msgid "Started: %s"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:26
-#: view/bulk/admin/import/show.phtml:30
+#: view/bulk/admin/import/show.phtml:31
 #, php-format
 msgid "Ended: %s"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:29
 #: BulkImport_hp2/view/bulk/admin/importer/start.phtml:23
-#: view/bulk/admin/import/show.phtml:33 view/bulk/admin/importer/start.phtml:23
+#: view/bulk/admin/import/show.phtml:40 view/bulk/admin/importer/start.phtml:26
 msgid "Parameters"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:30
 #: BulkImport_hp2/view/bulk/admin/index/index.phtml:28
-#: view/bulk/admin/import/show.phtml:34 view/bulk/admin/index/index.phtml:28
+#: view/bulk/admin/import/show.phtml:41 view/bulk/admin/importer/start.phtml:27
+#: view/bulk/admin/index/index.phtml:28
 msgid "Reader"
 msgstr ""
 
 #: BulkImport_hp2/view/bulk/admin/import/show.phtml:36
 #: BulkImport_hp2/view/bulk/admin/index/index.phtml:29
-#: view/bulk/admin/import/show.phtml:43 view/bulk/admin/index/index.phtml:29
+#: view/bulk/admin/import/show.phtml:50 view/bulk/admin/importer/start.phtml:31
+#: view/bulk/admin/index/index.phtml:29
 msgid "Processor"
 msgstr ""
 
@@ -341,24 +342,65 @@ msgstr ""
 msgid "Last imports"
 msgstr ""
 
+#: view/bulk/admin/import/logs.phtml:99 view/bulk/admin/import/show.phtml:36
+msgid "Attempt to stop job"
+msgstr ""
+
+#: view/bulk/admin/import/show.phtml:25 view/bulk/admin/importer/start.phtml:25
+#, php-format
+msgid "Comment: %s"
+msgstr ""
+
 #: data/scripts/upgrade.php:32 BulkImport_hp2/data/scripts/upgrade.php:32
 msgid "BulkImport requires module Log version 3.2.2 or higher."
 msgstr ""
 
-#: data/importers/ods.php:4 BulkImport_hp2/data/importers/ods.php:4
-msgid "OpenDocument spreadsheet (ods)"
+#: data/importers/csv - item_sets.php:4
+msgid "CSV - Item sets"
 msgstr ""
 
-#: data/importers/tsv.php:4 src/Reader/TsvReader.php:12
-#: BulkImport_hp2/data/importers/tsv.php:4
-#: BulkImport_hp2/src/Reader/TsvReader.php:12
-msgid "TSV (tab-separated values)"
+#: data/importers/tsv - Medias.php:4
+msgid "TSV (tab-separated values) - Medias"
 msgstr ""
 
-#: data/importers/csv.php:4 src/Reader/CsvReader.php:21
-#: BulkImport_hp2/data/importers/csv.php:4
-#: BulkImport_hp2/src/Reader/CsvReader.php:21
-msgid "CSV"
+#: data/importers/tsv - items.php:4
+msgid "TSV (tab-separated values) - Items"
+msgstr ""
+
+#: data/importers/csv - items.php:4
+msgid "CSV - Items"
+msgstr ""
+
+#: data/importers/csv - resources.php:4
+msgid "CSV - Mixed resources"
+msgstr ""
+
+#: data/importers/ods - resources.php:4
+msgid "OpenDocument spreadsheet (ods) - Mixed resources"
+msgstr ""
+
+#: data/importers/ods - item_sets.php:4
+msgid "OpenDocument spreadsheet (ods) - Item sets"
+msgstr ""
+
+#: data/importers/ods - Medias.php:4
+msgid "OpenDocument spreadsheet (ods) - Medias"
+msgstr ""
+
+#: data/importers/tsv - item_sets.php:4
+msgid "TSV (tab-separated values) - Item sets"
+msgstr ""
+
+#: data/importers/tsv - resources.php:4
+msgid "TSV (tab-separated values) - Mixed resources"
+msgstr ""
+
+#: data/importers/csv - Medias.php:4
+msgid "CSV - Medias"
+msgstr ""
+
+#: data/importers/ods - items.php:4
+msgid "OpenDocument spreadsheet (ods) - Items"
 msgstr ""
 
 #: src/Form/EntriesByBatchTrait.php:14 src/Form/EntriesByBatchTrait.php:23
@@ -378,7 +420,7 @@ msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:31
 #: src/Form/Processor/ItemSetProcessorParamsForm.php:32
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:259
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:273
 #: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:31
 #: BulkImport_hp2/src/Form/Processor/ItemSetProcessorParamsForm.php:32
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:259
@@ -386,8 +428,8 @@ msgid "Resource metadata"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:34
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:168
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:262
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:182
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:276
 #: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:34
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:168
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:262
@@ -395,8 +437,8 @@ msgid "Internal id"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:37
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:64
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:264
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:78
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:278
 #: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:37
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:64
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:264
@@ -405,7 +447,7 @@ msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:39
 #: src/Form/Processor/ResourceProcessorParamsForm.php:63
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:266
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:280
 #: src/Form/Processor/ItemProcessorParamsForm.php:44
 #: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:39
 #: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:63
@@ -447,15 +489,6 @@ msgstr ""
 msgid "Url"
 msgstr ""
 
-#: src/Form/Processor/ResourceProcessorParamsForm.php:60
-#: src/Form/Processor/MediaProcessorParamsForm.php:41
-#: src/Form/Processor/ItemProcessorParamsForm.php:41
-#: BulkImport_hp2/src/Form/Processor/ResourceProcessorParamsForm.php:60
-#: BulkImport_hp2/src/Form/Processor/MediaProcessorParamsForm.php:41
-#: BulkImport_hp2/src/Form/Processor/ItemProcessorParamsForm.php:41
-msgid "File"
-msgstr ""
-
 #: src/Form/Processor/ResourceProcessorParamsForm.php:61
 #: src/Form/Processor/MediaProcessorParamsForm.php:42
 #: src/Form/Processor/ItemProcessorParamsForm.php:42
@@ -486,32 +519,40 @@ msgstr ""
 msgid "Select one item…"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:55
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:43
+msgid "This optional comment will help admins for future reference."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:48
+msgid "Optional comment for future reference."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:69
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:55
 msgid "Select a template…"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:71
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:85
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:71
 msgid "Select a class…"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:81
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:95
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:81
 msgid "Current user"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:95
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:109
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:95
 msgid "Select a user"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:119
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:133
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:119
 msgid "Action"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:120
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:134
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:120
 msgid ""
 "In addition to the default \"Create\" and to the common \"Delete\", to "
@@ -525,67 +566,67 @@ msgid ""
 "entry."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:126
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:140
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:126
 msgid "Create new resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:127
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:141
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:127
 msgid "Append data to resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:128
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:142
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:128
 msgid "Revise data of resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:129
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:143
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:129
 msgid "Update data of resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:130
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:144
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:130
 msgid "Replace all data of resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:131
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:145
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:131
 msgid "Delete resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:132
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:146
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:132
 msgid "Skip entries (dry run)"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:147
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:161
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:147
 msgid "Action on unidentified resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:148
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:162
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:148
 msgid "What to do when a resource to update does not exist."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:150
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:164
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:150
 msgid "Skip entry"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:151
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:165
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:151
 msgid "Create a new resource"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:164
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:178
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:164
 msgid "Identifier name"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:165
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:179
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:165
 msgid ""
 "Allows to identify existing resources, for example to attach a media to an "
@@ -593,29 +634,29 @@ msgid ""
 "ore more unique identifiers to all resources, with a prefix."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:181
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:195
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:181
 msgid "Select an identifier name…"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:189
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:203
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:189
 msgid "Allow duplicate identifiers"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:190
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:204
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:190
 msgid ""
 "Not recommended, but needed to be compliant with old databases. Duplicates "
 "are logged."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:224
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:238
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:224
 msgid "Mapping from sources to resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:249
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:263
 #: BulkImport_hp2/src/Form/Processor/AbstractResourceProcessorConfigForm.php:249
 msgid "Select one or more targets…"
 msgstr ""
@@ -646,6 +687,7 @@ msgid "The path is not inside the restricted path"
 msgstr ""
 
 #: src/Form/Reader/SpreadsheetReaderParamsForm.php:17
+#: src/Form/Reader/AbstractReaderParamsForm.test.php:17
 #: BulkImport_hp2/src/Form/Reader/SpreadsheetReaderParamsForm.php:17
 msgid "Spreadsheet (csv, tsv, OpenDocument ods)"
 msgstr ""
@@ -680,12 +722,12 @@ msgstr ""
 msgid "CSV file"
 msgstr ""
 
-#: src/Form/Reader/SpreadsheetReaderConfigForm.php:20
+#: src/Form/Reader/SpreadsheetReaderConfigForm.php:16
 #: BulkImport_hp2/src/Form/Reader/SpreadsheetReaderConfigForm.php:20
 msgid "Multi-value separator"
 msgstr ""
 
-#: src/Form/Reader/SpreadsheetReaderConfigForm.php:21
+#: src/Form/Reader/SpreadsheetReaderConfigForm.php:17
 #: BulkImport_hp2/src/Form/Reader/SpreadsheetReaderConfigForm.php:21
 msgid ""
 "If cells are multivalued, it is recommended to use a character that is never "
@@ -738,17 +780,17 @@ msgstr ""
 msgid "Mixed resources"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:299
+#: src/Processor/ResourceProcessor.php:301
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:299
 msgid "Index #{index} skipped: no resource type set"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:307
+#: src/Processor/ResourceProcessor.php:309
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:307
 msgid "Index #{index} skipped: resource type \"{resource_type}\" not managed"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:403
+#: src/Processor/ResourceProcessor.php:409
 #: BulkImport_hp2/src/Processor/ResourceProcessor.php:403
 msgid "Index #{index} skipped: no item is set for the media"
 msgstr ""
@@ -965,11 +1007,15 @@ msgstr ""
 msgid "Invalid identifier names: check your params."
 msgstr ""
 
+#: src/Controller/Admin/ImportController.php:64
+msgid "The job is not running."
+msgstr ""
+
 #: src/Controller/Admin/ImporterController.php:44
 #: src/Controller/Admin/ImporterController.php:89
 #: src/Controller/Admin/ImporterController.php:134
 #: src/Controller/Admin/ImporterController.php:190
-#: src/Controller/Admin/ImporterController.php:248
+#: src/Controller/Admin/ImporterController.php:252
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:44
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:89
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:134
@@ -1023,43 +1069,48 @@ msgstr ""
 msgid "Save of processor configuration failed"
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:280
+#: src/Controller/Admin/ImporterController.php:284
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:280
 msgid "The page was reloaded, but params are lost. Restart the import."
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:332
+#: src/Controller/Admin/ImporterController.php:338
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:332
 msgid "Save of import failed"
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:349
+#: src/Controller/Admin/ImporterController.php:355
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:349
 msgid ""
 "Import started in background (job {link_open_job}#{jobId}{link_close}, "
 "{link_open_log}logs{link_close}). This may take a while."
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:366
+#: src/Controller/Admin/ImporterController.php:372
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:366
 msgid "Import start failed"
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:427
-#: src/Controller/Admin/ImporterController.php:461
+#: src/Controller/Admin/ImporterController.php:434
+#: src/Controller/Admin/ImporterController.php:468
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:427
 #: BulkImport_hp2/src/Controller/Admin/ImporterController.php:461
 msgid "Continue"
 msgstr ""
 
-#: src/Api/Representation/ImportRepresentation.php:77
+#: src/Api/Representation/ImportRepresentation.php:86
 #: BulkImport_hp2/src/Api/Representation/ImportRepresentation.php:77
 msgid "ready"
 msgstr ""
 
-#: src/Api/Representation/ImportRepresentation.php:86
+#: src/Api/Representation/ImportRepresentation.php:95
 #: BulkImport_hp2/src/Api/Representation/ImportRepresentation.php:86
 msgid "Ready"
+msgstr ""
+
+#: src/Reader/CsvReader.php:21 BulkImport_hp2/data/importers/csv.php:4
+#: BulkImport_hp2/src/Reader/CsvReader.php:21
+msgid "CSV"
 msgstr ""
 
 #: src/Reader/CsvReader.php:129
@@ -1114,6 +1165,11 @@ msgstr ""
 msgid ""
 "File \"{filename}\" has media type \"{file_media_type}\", not "
 "\"{media_type}\"."
+msgstr ""
+
+#: src/Reader/TsvReader.php:12 BulkImport_hp2/data/importers/tsv.php:4
+#: BulkImport_hp2/src/Reader/TsvReader.php:12
+msgid "TSV (tab-separated values)"
 msgstr ""
 
 #: src/Reader/SpreadsheetReader.php:9
@@ -1248,8 +1304,8 @@ msgid ""
 "sheet \"%s\" : %s"
 msgstr ""
 
-#: src/Entry/Entry.php:95 src/Entry/Entry.php:100
-#: BulkImport_hp2/src/Entry/Entry.php:95 BulkImport_hp2/src/Entry/Entry.php:100
+#: src/Entry/Entry.php:96 src/Entry/Entry.php:101
+#: BulkImport_hp2/src/Entry/Entry.php:96 BulkImport_hp2/src/Entry/Entry.php:101
 msgid "Modification forbidden"
 msgstr ""
 
@@ -1263,6 +1319,10 @@ msgstr ""
 
 #: config/module.config.php:128
 msgid "Params"
+msgstr ""
+
+#: BulkImport_hp2/data/importers/ods.php:4
+msgid "OpenDocument spreadsheet (ods)"
 msgstr ""
 
 #: BulkImport_hp2/src/Form/Reader/XmlReaderConfigForm.php:15
