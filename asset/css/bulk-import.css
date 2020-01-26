@@ -9,4 +9,14 @@
     .bulk-importers .no-resources:before {
         content:"";
     }
+
+    .bulk-label-sub {
+        font-style: italic;
+        opacity: .5;
+        font-size: small;
+    }
+    /* Fix default css of tables in Omeka: space and no-break space. */
+    .bulk-label-sub:before {
+        content: '  ';
+    }
 }

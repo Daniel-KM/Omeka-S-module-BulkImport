@@ -36,6 +36,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $urlHelper = $services->get('ViewHelperManager')->get('url');
 
         $this->add([
+            'name' => 'comment',
+            'type' => Element\Textarea::class,
+            'options' => [
+                'label' => 'Comment', // @translate
+                'info' => 'This optional comment will help admins for future reference.', // @translate
+            ],
+            'attributes' => [
+                'id' => 'comment',
+                'value' => '',
+                'placeholder' => 'Optional comment for future reference.', // @translate
+            ],
+        ]);
+
+        $this->add([
             'name' => 'o:resource_template',
             'type' => ResourceSelect::class,
             'options' => [

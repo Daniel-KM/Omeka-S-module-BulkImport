@@ -13,7 +13,7 @@ $url = $this->plugin('url');
 <table class="tablesaw" data-tablesaw-mode="stack">
     <thead>
         <tr>
-            <th><?= $escape($translate('Importer')) ?></th>
+            <th><?= $escape($translate('Comment')) ?></th>
             <th><?= $escape($translate('Status')) ?></th>
             <th><?= $escape($translate('Started')) ?></th>
             <th><?= $escape($translate('Completed')) ?></th>
@@ -23,7 +23,13 @@ $url = $this->plugin('url');
         <?php foreach ($imports as $import): ?>
             <tr>
                 <td>
+                    <?php $comment = $import->comment() ?>
+                    <?php if ($comment): ?>
+                    <?= $comment ?>
+                    <span class="bulk-label-sub"><?= $import->importer()->label() ?></span>
+                    <?php else: ?>
                     <?= $import->importer()->label() ?>
+                    <?php endif; ?>
                     <ul class="actions">
                         <?php if ($import->isInProgress()): ?>
                         <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()]), [

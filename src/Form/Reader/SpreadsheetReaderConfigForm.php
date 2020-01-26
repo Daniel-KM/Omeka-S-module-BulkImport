@@ -1,14 +1,10 @@
 <?php
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Zend\Form\Element;
-use Zend\Form\Form;
 
-class SpreadsheetReaderConfigForm extends Form
+class SpreadsheetReaderConfigForm extends AbstractReaderConfigForm
 {
-    use ServiceLocatorAwareTrait;
-
     public function init()
     {
         parent::init();

@@ -2,6 +2,7 @@ CREATE TABLE bulk_import (
     id INT AUTO_INCREMENT NOT NULL,
     importer_id INT DEFAULT NULL,
     job_id INT DEFAULT NULL,
+    `comment` VARCHAR(190) DEFAULT NULL,
     reader_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
     processor_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
     INDEX IDX_BD98E8747FCFE58E (importer_id),

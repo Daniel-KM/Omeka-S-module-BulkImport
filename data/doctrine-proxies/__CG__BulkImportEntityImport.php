@@ -12,14 +12,14 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
      *      three parameters, being respectively the proxy object to be initialized, the method that triggered the
      *      initialization process and an array of ordered parameters that were passed to that method.
      *
-     * @see \Doctrine\Common\Persistence\Proxy::__setInitializer
+     * @see \Doctrine\Common\Proxy\Proxy::__setInitializer
      */
     public $__initializer__;
 
     /**
      * @var \Closure the callback responsible of loading properties that need to be copied in the cloned object
      *
-     * @see \Doctrine\Common\Persistence\Proxy::__setCloner
+     * @see \Doctrine\Common\Proxy\Proxy::__setCloner
      */
     public $__cloner__;
 
@@ -34,7 +34,7 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
      * @var array properties to be lazy loaded, with keys being the property
      *            names and values being their default values
      *
-     * @see \Doctrine\Common\Persistence\Proxy::__getLazyProperties
+     * @see \Doctrine\Common\Proxy\Proxy::__getLazyProperties
      */
     public static $lazyPropertiesDefaults = [];
 
@@ -64,10 +64,10 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'importer', 'job', 'readerParams', 'processorParams'];
+            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'readerParams', 'processorParams'];
         }
 
-        return ['__isInitialized__', 'id', 'importer', 'job', 'readerParams', 'processorParams'];
+        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'readerParams', 'processorParams'];
     }
 
     /**
@@ -208,6 +208,28 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getImporter', []);
 
         return parent::getImporter();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setComment($comment)
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setComment', [$comment]);
+
+        return parent::setComment($comment);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getComment()
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getComment', []);
+
+        return parent::getComment();
     }
 
     /**

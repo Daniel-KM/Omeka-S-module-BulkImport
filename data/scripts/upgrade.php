@@ -105,3 +105,11 @@ if (version_compare($oldVersion, '3.0.11', '<')) {
     }
     $entityManager->flush();
 }
+
+if (version_compare($oldVersion, '3.0.16', '<')) {
+    $sql = <<<'SQL'
+ALTER TABLE `bulk_import`
+    ADD `comment` VARCHAR(190) DEFAULT NULL AFTER `job_id`;
+SQL;
+    $connection->exec($sql);
+}

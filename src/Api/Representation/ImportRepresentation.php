@@ -11,12 +11,13 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return [
             'o:id' => $this->id(),
             'o-module-bulk:importer' => $this->importer()->getReference(),
-            'o-module-bulk:reader_params' => $this->readerParams(),
-            'o-module-bulk:processor_params' => $this->processorParams(),
+            'o-module-bulk:comment' => $this->comment(),
             'o:job' => $this->job(),
             'o:status' => $this->status(),
             'o:started' => $this->started(),
             'o:ended' => $this->ended(),
+            'o-module-bulk:reader_params' => $this->readerParams(),
+            'o-module-bulk:processor_params' => $this->processorParams(),
         ];
     }
 
@@ -42,6 +43,25 @@ class ImportRepresentation extends AbstractEntityRepresentation
     }
 
     /**
+     * @return string
+     */
+    public function comment()
+    {
+        return $this->resource->getComment();
+    }
+
+    /**
+     * @return JobRepresentation|null
+     */
+    public function job()
+    {
+        $job = $this->resource->getJob();
+        return $job
+            ? $this->getAdapter('jobs')->getRepresentation($job)
+            : null;
+    }
+
+    /**
      * @return array
      */
     public function readerParams()
@@ -55,17 +75,6 @@ class ImportRepresentation extends AbstractEntityRepresentation
     public function processorParams()
     {
         return $this->resource->getProcessorParams();
-    }
-
-    /**
-     * @return JobRepresentation|null
-     */
-    public function job()
-    {
-        $job = $this->resource->getJob();
-        return $job
-            ? $this->getAdapter('jobs')->getRepresentation($job)
-            : null;
     }
 
     /**

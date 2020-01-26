@@ -238,6 +238,10 @@ class ImporterController extends AbstractActionController
         return $view;
     }
 
+    /**
+     * @todo Simplify code of this three steps process.
+     * @return \Zend\Http\Response|\Zend\View\Model\ViewModel
+     */
     public function startAction()
     {
         $id = (int) $this->params()->fromRoute('id');
@@ -312,6 +316,7 @@ class ImporterController extends AbstractActionController
 
                     case 'processor':
                         $processor->handleParamsForm($form);
+                        $session->comment = trim($data['comment']);
                         $session->processor = $processor->getParams();
                         $next = 'start';
                         $formCallback = $formsCallbacks['start'];
@@ -319,6 +324,7 @@ class ImporterController extends AbstractActionController
 
                     case 'start':
                         $importData = [];
+                        $importData['o-module-bulk:comment'] = trim($session['comment']) ?: null;
                         $importData['o-module-bulk:importer'] = $importer->getResource();
                         if ($reader instanceof Parametrizable) {
                             $importData['o-module-bulk:reader_params'] = $reader->getParams();
@@ -387,6 +393,7 @@ class ImporterController extends AbstractActionController
         $view->setVariable('form', $form);
         if ($next === 'start') {
             $importArgs = [];
+            $importArgs['comment'] = $session['comment'];
             $importArgs['reader'] = $session['reader'];
             $importArgs['processor'] = $currentForm === 'reader' ? [] : $session['processor'];
             // For security purpose.

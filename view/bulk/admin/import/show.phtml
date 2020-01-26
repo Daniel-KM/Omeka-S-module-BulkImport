@@ -22,6 +22,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <h3><?= $translate('Status') ?></h3>
     <ul>
         <li><?= sprintf($translate('Importer: %s'), $import->importer()->label()) ?></li>
+        <li><?= sprintf($translate('Comment: %s'), $import->comment()) ?></li>
         <li><?= sprintf($translate('Status: %s'), $import->statusLabel()) ?></li>
         <?php if ($v = $import->started()): ?>
         <li><?= sprintf($translate('Started: %s'), $v->format('Y-m-d H:i:s')) ?></li>

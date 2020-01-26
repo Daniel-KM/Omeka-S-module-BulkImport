@@ -20,9 +20,17 @@ $form->prepare();
     <h2><?= $escape($translate('Start import')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <?php if (isset($importArgs)): ?>
+    <?php $comment = $importArgs['comment']; ?>
+    <?php unset($importArgs['comment']); ?>
+    <p><?= $escape(sprintf($translate('Comment: %s'), $comment)) ?></p>
     <h3><?= $escape($translate('Parameters')) ?></h3>
+    <h4><?= $escape($translate('Reader')) ?></h4>
     <div class="value">
-        <pre><?= $escape(json_encode($importArgs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
+        <pre><?= $escape(json_encode($importArgs['reader'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
+    </div>
+    <h4><?= $escape($translate('Processor')) ?></h4>
+    <div class="value">
+        <pre><?= $escape(json_encode($importArgs['processor'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
     </div>
     <?php endif; ?>
     <?php
