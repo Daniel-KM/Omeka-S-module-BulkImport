@@ -66,9 +66,9 @@ $severityNames = [
                 <td class="webui-popover-parent">
                     <span class="log-message">
                         <?php $text = $log->text(); ?>
-                        <?php $isLong = strlen($text) > 240; ?>
+                        <?php $isLong = mb_strlen($text) > 240; ?>
                         <?php if ($isLong): ?>
-                        <span class="log-message-truncated truncate"><?= nl2br(substr($text, 0, 240)) . '…' ?></span>
+                        <span class="log-message-truncated truncate"><?= nl2br(mb_substr($text, 0, 240)) . '…' ?></span>
                         <?php else: ?>
                         <?= nl2br($text) ?>
                         <?php endif; ?>
