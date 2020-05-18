@@ -109,6 +109,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     protected $adapterManager;
 
     /**
+     * @var \Omeka\DataType\Manager
+     */
+    protected $datatypeManager;
+
+    /**
      * @var \Omeka\File\TempFileFactory $tempFileFactory
      */
     protected $tempFileFactory;
@@ -165,6 +170,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
      * @var array
      */
     protected $allowedExtensions = [];
+
+    /**
+     * @var int
+     */
+    protected $srid;
 
     /**
      * @var array
@@ -244,6 +254,8 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->connection = $services->get('Omeka\Connection');
 
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
+        $this->datatypeManager = $services->get('Omeka\DataTypeManager');
+
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
         $this->allowedDataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
 
@@ -267,6 +279,8 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist', []);
         $this->allowedExtensions = $settings->get('extension_whitelist', []);
+
+        $this->srid = $services->get('Omeka\Settings')->get('datatypegeometry_locate_srid', 4326);
 
         $this->checkAvailableModules();
 
@@ -898,6 +912,13 @@ SQL;
                         ? $this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype']
                         : 'literal';
                 }
+                // Convert datatype idref of deprecated module IdRef into a
+                // literal or a valuesuggest.
+                if ($rtProperty['o:data_type'] === 'idref') {
+                    $rtProperty['o:data_type'] = !empty($this->modules['ValueSuggest'])
+                        ? 'valuesuggest:idref:person'
+                        : 'literal';
+                }
             }
             unset($rtProperty);
 
@@ -1378,12 +1399,72 @@ SQL;
                     }
                 }
 
-                if (!in_array($value['type'], $this->allowedDataTypes)) {
-                    $this->logger->warn(
-                        'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
-                        ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                    );
-                    continue;
+                if (!in_array($datatype, $this->allowedDataTypes)) {
+                    // Try to manage some types when matching module is not installed.
+                    switch ($datatype) {
+                        case strtok($datatype, ':') === 'numeric':
+                            $this->logger->warn(
+                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
+                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                            );
+                            $this->logger->info(
+                                'It’s recommended to install module Numeric Data Types.' // @translate
+                            );
+                            $datatype = $value['type'] = 'literal';
+                            break;
+                        case 'rdf:XMLLiteral':
+                        case 'xsd:boolean':
+                        case 'xsd:date':
+                        case 'xsd:dateTime':
+                        case 'xsd:decimal':
+                        case 'xsd:gDay':
+                        case 'xsd:gMonth':
+                        case 'xsd:gMonthDay':
+                        case 'xsd:gYear':
+                        case 'xsd:gYearMonth':
+                        case 'xsd:integer':
+                        case 'xsd:time':
+                            $this->logger->warn(
+                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
+                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                            );
+                            $this->logger->info(
+                                'It’s recommended to install module Rdf Datatypes.' // @translate
+                            );
+                            $datatype = $value['type'] = 'literal';
+                            break;
+                        case 'geometry:geography':
+                        case 'geometry:geometry':
+                            $this->logger->warn(
+                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
+                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                            );
+                            $this->logger->info(
+                                'It’s recommended to install module Data Type Geometry.' // @translate
+                            );
+                            $datatype = $value['type'] = 'literal';
+                            break;
+                        case 'idref':
+                            if (!empty($this->modules['ValueSuggest'])) {
+                                $datatype = $value['type'] = 'valuesuggest:idref:person';
+                            } else {
+                                $this->logger->warn(
+                                    'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
+                                    ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                                );
+                                $this->logger->info(
+                                    'It’s recommended to install module ValueSuggest.' // @translate
+                                );
+                                $datatype = $value['type'] = 'literal';
+                            }
+                            break;
+                        default:
+                            $this->logger->warn(
+                                'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
+                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                            );
+                            continue 2;
+                    }
                 }
 
                 $valueValue = $value['@value'];
@@ -1412,6 +1493,8 @@ SQL;
                         continue;
                     }
                     $valueValue = null;
+                    $value['@id'] = null;
+                    $value['lang'] = null;
                 }
 
                 if (!empty($value['@id'])) {
@@ -1429,8 +1512,42 @@ SQL;
                 $entity->setLang(empty($value['lang']) ? null : $value['lang']);
                 $entity->setIsPublic(!empty($value['is_public']));
 
-                // TODO Manage hydrating of some datatypes (numeric, geometry).
                 $entityValues->add($entity);
+
+                // Manage specific datatypes (without validation: it's an Omeka source).
+                switch ($datatype) {
+                    case 'numeric:timestamp':
+                    case 'numeric:integer':
+                    case 'numeric:duration':
+                    case 'numeric:interval':
+                        $datatypeAdapter = $this->datatypeManager->get($datatype);
+                        $class = $datatypeAdapter->getEntityClass();
+                        $dataValue = new $class;
+                        $dataValue->setResource($this->entity);
+                        $dataValue->setProperty($property);
+                        $datatypeAdapter->setEntityValues($dataValue, $entity);
+                        $this->entityManager->persist($dataValue);
+                        break;
+                    case 'geometry:geography':
+                    case 'geometry:geometry':
+                        $datatypeAdapter = $this->datatypeManager->get($datatype);
+                        $class = $datatypeAdapter->getEntityClass();
+                        $dataValue = new $class;
+                        $dataValue->setResource($this->entity);
+                        $dataValue->setProperty($property);
+                        $dataValueValue = $datatypeAdapter->getGeometryFromValue($valueValue);
+                        if ($this->srid
+                            && $datatype === 'geometry:geography'
+                            && empty($dataValueValue->getSrid())
+                        ) {
+                            $dataValueValue->setSrid($this->srid);
+                        }
+                        $dataValue->setValue($dataValueValue);
+                        $this->entityManager->persist($dataValue);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -1636,17 +1753,19 @@ SQL;
     protected function checkAvailableModules()
     {
         // Modules managed by the module.
-        $modules = [
+        $moduleClasses = [
             'CustomVocab',
+            'DataTypeGeometry',
             'Mapping',
+            'NumericDataTypes',
+            'RdfDatatype',
+            'ValueSuggest',
         ];
-
-        $services = $this->getServiceLocator();
         /** @var \Omeka\Module\Manager $moduleManager */
-        $moduleManager = $services->get('Omeka\ModuleManager');
-        foreach ($modules as $moduleClass) {
+        $moduleManager = $this->getServiceLocator()->get('Omeka\ModuleManager');
+        foreach ($moduleClasses as $moduleClass) {
             $module = $moduleManager->getModule($moduleClass);
-            $this->modules[$module] = $module
+            $this->modules[$moduleClass] = $module
                 && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
         }
     }
