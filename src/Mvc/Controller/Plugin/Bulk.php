@@ -386,6 +386,10 @@ class Bulk extends AbstractPlugin
             'media' => 'media', // @translate
             'resources' => 'resource', // @translate
             'annotations' => 'annotation', // @translate
+            'vocabularies' => 'vocabulary', // @translate
+            'properties' => 'property', // @translate
+            'resource_classes' => 'resource class', // @translate
+            'resource_templates' => 'resource template', // @translate
         ];
         return isset($labels[$resourceType])
             ? $labels[$resourceType]
@@ -407,6 +411,10 @@ class Bulk extends AbstractPlugin
             'media' => 'media', // @translate
             'resources' => 'resources', // @translate
             'annotations' => 'annotations', // @translate
+            'vocabularies' => 'vocabularies', // @translate
+            'properties' => 'properties', // @translate
+            'resource_classes' => 'resource classes', // @translate
+            'resource_templates' => 'resource templates', // @translate
         ];
         return isset($labels[$resourceType])
             ? $labels[$resourceType]

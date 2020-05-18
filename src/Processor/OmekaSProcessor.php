@@ -582,105 +582,131 @@ SQL;
     protected function prepareProperties()
     {
         $properties = $this->getPropertyIds();
-
-        $index = 0;
-        $created = 0;
-        $skipped = 0;
-        foreach ($this->reader->setObjectType('properties') as $property) {
-            ++$index;
-            $sourceId = $property['o:id'];
-            $sourceTerm = $property['o:term'];
-            $sourcePrefix = strtok($sourceTerm, ':');
-            if (!isset($this->map['vocabularies'][$sourcePrefix])) {
-                ++$skipped;
-                $this->logger->warn(
-                    'The vocabulary of the property {term} does not exist.', // @translate
-                    ['term' => $sourceTerm]
-                );
-                continue;
-            }
-
-            $destTerm = $this->map['vocabularies'][$sourcePrefix]['destination']['prefix'] . ':' . $property['o:local_name'];
-            if (isset($properties[$destTerm])) {
-                $destTermId = $properties[$destTerm];
-            } else {
-                $property['o:vocabulary'] = $this->map['vocabularies'][$sourcePrefix]['destination'];
-                $property['o:term'] = $destTerm;
-                unset($property['@id'], $property['o:id']);
-                $property['o:owner'] = $this->ownerOId;
-                // TODO Use orm.
-                $response = $this->api()->create('properties', $property);
-                $this->logger->notice(
-                    'Property {term} has been created.', // @translate
-                    ['term' => $property['o:term']]
-                );
-                $destTermId = $response->getContent()->id();
-                ++$created;
-            }
-
-            $this->map['properties'][$sourceTerm] = [
-                'source' => $sourceId,
-                'id' => $destTermId,
-                'term' => $destTerm,
-            ];
-        }
-
-        $this->logger->notice(
-            '{total} properties ready, {created} created, {skipped} skipped.', // @translate
-            ['total' => $index, 'created' => $created, 'skipped' => $skipped]
-        );
+        $this->prepareVocabularyMembers('properties', $properties, \Omeka\Entity\Property::class);
     }
 
     protected function prepareResourceClasses()
     {
         $resourceClasses = $this->getResourceClassIds();
+        $this->prepareVocabularyMembers('resource_classes', $resourceClasses, \Omeka\Entity\ResourceClass::class);
+    }
 
+    protected function prepareVocabularyMembers($resourceType, $memberIdsByTerm, $class)
+    {
+        $this->refreshOwner();
+
+        /** @var \Omeka\Api\Adapter\AssetAdapter $adapter */
+        $adapter = $this->adapterManager->get($resourceType);
+
+        $total = $this->reader->setObjectType($resourceType)->count();
         $index = 0;
+        $existing = 0;
         $created = 0;
         $skipped = 0;
-        foreach ($this->reader->setObjectType('resource_classes') as $resourceClass) {
+        foreach ($this->reader->setObjectType($resourceType) as $member) {
             ++$index;
-            $sourceId = $resourceClass['o:id'];
-            $sourceTerm = $resourceClass['o:term'];
+
+            $sourceId = $member['o:id'];
+            $sourceTerm = $member['o:term'];
             $sourcePrefix = strtok($sourceTerm, ':');
             if (!isset($this->map['vocabularies'][$sourcePrefix])) {
                 ++$skipped;
                 $this->logger->warn(
-                    'The vocabulary of the resource class {term} does not exist.', // @translate
-                    ['term' => $sourceTerm]
+                    'The vocabulary of the {member} {term} does not exist.', // @translate
+                    ['member' => $this->label($resourceType), 'term' => $sourceTerm]
                 );
                 continue;
             }
 
-            $destTerm = $this->map['vocabularies'][$sourcePrefix]['destination']['prefix'] . ':' . $resourceClass['o:local_name'];
-            if (isset($resourceClasses[$destTerm])) {
-                $destTermId = $resourceClasses[$destTerm];
-            } else {
-                $resourceClass['o:vocabulary'] = $this->map['vocabularies'][$sourcePrefix]['destination'];
-                $resourceClass['o:term'] = $destTerm;
-                unset($resourceClass['@id'], $resourceClass['o:id']);
-                $resourceClass['o:owner'] = $this->ownerOId;
-                // TODO Use orm.
-                $response = $this->api()->create('resource_classes', $resourceClass);
-                $this->logger->notice(
-                    'Resource class {term} has been created.', // @translate
-                    ['term' => $resourceClass['o:term']]
-                );
-                $destTermId = $response->getContent()->id();
-                ++$created;
+            $destTerm = $this->map['vocabularies'][$sourcePrefix]['destination']['prefix'] . ':' . $member['o:local_name'];
+
+            $this->map[$resourceType][$sourceTerm] = [
+                'term' => $destTerm,
+                'source' => $sourceId,
+                'id' => null,
+            ];
+
+            if (isset($memberIdsByTerm[$destTerm])) {
+                ++$existing;
+                $this->map[$resourceType][$sourceTerm]['id'] = $memberIdsByTerm[$destTerm];
+                continue;
             }
 
-            $this->map['resource_classes'][$sourceTerm] = [
-                'source' => $sourceId,
-                'id' => $destTermId,
-                'term' => $destTerm,
-            ];
+            // The entity manager is used, because the api doesn't allow to
+            // create individual vocabulary member (only as a whole with
+            // vocabulary).
+            $vocabulary = $this->entityManager->find(\Omeka\Entity\Vocabulary::class, $this->map['vocabularies'][$sourcePrefix]['destination']['id']);
+            if (!$vocabulary) {
+                $this->logger->err(
+                    'Unable to find vocabulary for {member} {term}.', // @translate
+                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+                );
+                $this->hasError = true;
+                return;
+            }
+
+            $this->entity = new $class;
+            $this->entity->setOwner($this->owner);
+            $this->entity->setVocabulary($vocabulary);
+            $this->entity->setLocalName($member['o:local_name']);
+            $this->entity->setLabel($member['o:label']);
+            $this->entity->setComment($member['o:comment']);
+
+            $errorStore = new \Omeka\Stdlib\ErrorStore;
+            $adapter->validateEntity($this->entity, $errorStore);
+            if ($errorStore->hasErrors()) {
+                $this->hasError = true;
+                ++$skipped;
+                $this->logger->err(
+                    'Unable to create {member} {term}.', // @translate
+                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+                );
+                $this->logErrors($this->entity, $errorStore);
+                continue;
+            }
+
+            $this->entityManager->persist($this->entity);
+            ++$created;
+
+            if ($created % self::CHUNK_ENTITIES === 0) {
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+                $this->refreshOwner();
+                $this->logger->notice(
+                    '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
+                    ['count' => $created, 'total' => $total, 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
+                );
+            }
+
+            $this->logger->notice(
+                'Vocabulary {member} {term} has been created.', // @translate
+                ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+            );
+            ++$created;
         }
 
-        $this->logger->notice(
-            '{total} resource classes ready, {created} created, {skipped} skipped.', // @translate
-            ['total' => $index, 'created' => $created, 'skipped' => $skipped]
-        );
+        // Remaining entities.
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshOwner();
+
+        // Fill the missing new member ids.
+       $api = $this->api();
+        foreach ($this->map[$resourceType] as $sourceTerm => $data) {
+            if ($data['id']) {
+                continue;
+            }
+            $member = $api->searchOne($resourceType, ['term' => $data['term']])->getContent();
+            if (!$member) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'Unable to find {member} {term}.', // @translate
+                    ['member' => $this->label($resourceType), 'term' => $data['term']]
+                );
+                continue;
+            }
+            $this->map[$resourceType][$sourceTerm]['id'] = $member->id();
+        }
     }
 
     protected function prepareCustomVocabs()
@@ -872,7 +898,7 @@ SQL;
             // TODO Use orm.
             $response = $this->api()->create('resource_templates', $resourceTemplate);
             if (!$response) {
-                $this->logger->notice(
+                $this->logger->err(
                     'Unable to create resource template "{label}".', // @translate
                     ['label' => $resourceTemplate['o:label']]
                 );
