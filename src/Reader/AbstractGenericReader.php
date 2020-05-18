@@ -97,6 +97,7 @@ abstract class AbstractGenericReader extends AbstractReader
         }
         $this->initializeReader();
         $this->isReady = true;
+        return $this;
     }
 
     protected function initializeReader()
@@ -110,5 +111,6 @@ abstract class AbstractGenericReader extends AbstractReader
         if ($this->reader instanceof Parametrizable) {
             $this->reader->setParams($this->getParams());
         }
+        return $this;
     }
 }

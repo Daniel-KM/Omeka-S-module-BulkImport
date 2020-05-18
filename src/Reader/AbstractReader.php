@@ -125,6 +125,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $config = array_intersect_key($values, array_flip($this->configKeys));
         $this->setConfig($config);
         $this->reset();
+        return $this;
     }
 
     public function getParamsFormClass()
@@ -147,6 +148,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         }
         $this->setParams($params);
         $this->reset();
+        return $this;
     }
 
     public function current()
@@ -226,6 +228,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->totalEntries = null;
         $this->currentData = [];
         $this->iisReady = false;
+        return $this;
     }
 
     /**
@@ -244,6 +247,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->prepareAvailableFields();
 
         $this->isReady = true;
+        return $this;
     }
 
     /**
@@ -258,6 +262,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     {
         $this->totalEntries = iterator_count($this->iterator);
         $this->iterator->rewind();
+        return $this;
     }
 
     /**
@@ -265,6 +270,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
      */
     protected function prepareAvailableFields()
     {
+        return $this;
     }
 
     /**
