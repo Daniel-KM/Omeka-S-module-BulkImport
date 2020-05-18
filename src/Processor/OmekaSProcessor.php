@@ -356,6 +356,14 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         );
         $this->fillResources();
 
+        // Additional metadata from modules (available only by reference).
+        if (!empty($this->modules['Mapping'])) {
+            $this->logger->info(
+                'Preparation of metadata of module Mapping.' // @translate
+            );
+            $this->fillMapping();
+        }
+
         $this->logger->notice(
             'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each file.', // @translate
             [
@@ -1478,6 +1486,111 @@ SQL;
         }
     }
 
+    protected function fillMapping()
+    {
+        if (empty($this->modules['Mapping'])) {
+            return;
+        }
+
+        $resourceTypes = [
+            'mappings' => \Mapping\Entity\Mapping::class,
+            'mapping_markers' => \Mapping\Entity\MappingMarker::class,
+        ];
+        $methods = [
+            'mappings' => 'fillMappingMapping',
+            'mapping_markers' => 'fillMappingMarkers',
+        ];
+
+        foreach ($resourceTypes as $resourceType => $class) {
+            $total = $this->reader->setObjectType($resourceType)->count();
+            /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
+            $adapter = $this->adapterManager->get($resourceType);
+            $index = 0;
+            $created = 0;
+            $skipped = 0;
+            $method = $methods[$resourceType];
+            foreach ($this->reader->setObjectType($resourceType) as $resource) {
+                ++$index;
+
+                $this->entity = new $class;
+                $this->$method($resource);
+
+                $errorStore = new \Omeka\Stdlib\ErrorStore;
+                $adapter->validateEntity($this->entity, $errorStore);
+                if ($errorStore->hasErrors()) {
+                    ++$skipped;
+                    $this->logErrors($this->entity, $errorStore);
+                    continue;
+                }
+
+                $this->entityManager->persist($this->entity);
+                ++$created;
+
+                if ($created % self::CHUNK_ENTITIES === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                    $this->logger->notice(
+                        '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
+                        ['count' => $created, 'total' => $total, 'type' => $resourceType, 'skipped' => $skipped]
+                    );
+                }
+            }
+
+            // Remaining entities.
+            $this->entityManager->flush();
+            $this->entityManager->clear();
+            $this->logger->notice(
+                '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
+                ['count' => $created, 'total' => count($this->map[$resourceType]), 'type' => $resourceType, 'skipped' => $skipped]
+            );
+        }
+    }
+
+    protected function fillMappingMappings(array $resource)
+    {
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
+        if (!$item) {
+            $this->logger->warn(
+                'The source item #{source_id} is not found for its mapping zone.', // @translate
+                ['source_id' => $resource['o:item']['o:id']]
+                );
+        } else {
+            $this->entity->setItem($item);
+        }
+        $this->entity->setBounds($resource['o-module-mapping:bounds']);
+    }
+
+    protected function fillMappingMarkers(array $resource)
+    {
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
+        if (!$item) {
+            $this->logger->warn(
+                'The source item #{source_id} is not found for its mapping marker.', // @translate
+                ['source_id' => $resource['o:item']['o:id']]
+            );
+        } else {
+            $this->entity->setItem($item);
+        }
+
+        if (!empty($resource['o:item']['o:id'])) {
+            $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media'][$resource['o:media']['o:id']]);
+            if (!$media) {
+                $this->logger->warn(
+                    'The source media #{source_id} is not found for its mapping marker.', // @translate
+                    ['source_id' => $resource['o:media']['o:id']]
+                );
+            } else {
+                $this->entity->setMedia($media);
+            }
+        }
+
+        $this->entity->setLat($resource['o-module-mapping:lat']);
+        $this->entity->setLng($resource['o-module-mapping:lng']);
+        if (array_key_exists('o-module-mapping:label', $resource)) {
+            $this->entity->setLabel($resource['o-module-mapping:label']);
+        }
+    }
+
     /**
      * Check if managed modules are available.
      */
@@ -1486,6 +1599,7 @@ SQL;
         // Modules managed by the module.
         $modules = [
             'CustomVocab',
+            'Mapping',
         ];
 
         $services = $this->getServiceLocator();
