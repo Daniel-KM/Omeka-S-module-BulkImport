@@ -12,7 +12,7 @@ use SplFileObject;
  * manages end of line and encoding). So the basic file handler is used for csv.
  * The format tsv uses the Spout reader, because there is no escape.
  */
-class CsvReader extends AbstractSpreadsheetReader
+class CsvReader extends AbstractSpreadsheetFileReader
 {
     const DEFAULT_DELIMITER = ',';
     const DEFAULT_ENCLOSURE = '"';

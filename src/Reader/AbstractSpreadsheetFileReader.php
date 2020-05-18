@@ -3,7 +3,7 @@ namespace BulkImport\Reader;
 
 use BulkImport\Entry\SpreadsheetEntry;
 
-abstract class AbstractSpreadsheetReader extends AbstractReader
+abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
 {
     protected function currentEntry()
     {

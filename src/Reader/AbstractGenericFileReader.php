@@ -4,7 +4,7 @@ namespace BulkImport\Reader;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 
-abstract class AbstractGenericReader extends AbstractReader
+abstract class AbstractGenericFileReader extends AbstractFileReader
 {
     protected $mediaTypeReaders = [];
 

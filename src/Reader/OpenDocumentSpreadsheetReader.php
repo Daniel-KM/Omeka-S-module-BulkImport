@@ -8,7 +8,7 @@ use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
 use Log\Stdlib\PsrMessage;
 
-class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetReader
+class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 {
     protected $label = 'OpenDocument Spreadsheet'; // @translate
     protected $mediaType = 'application/vnd.oasis.opendocument.spreadsheet';

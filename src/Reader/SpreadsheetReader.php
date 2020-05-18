@@ -4,7 +4,7 @@ namespace BulkImport\Reader;
 use BulkImport\Form\Reader\CsvReaderConfigForm;
 use BulkImport\Form\Reader\SpreadsheetReaderParamsForm;
 
-class SpreadsheetReader extends AbstractGenericReader
+class SpreadsheetReader extends AbstractGenericFileReader
 {
     protected $label = 'Spreadsheet'; // @translate
     protected $mediaType = [
