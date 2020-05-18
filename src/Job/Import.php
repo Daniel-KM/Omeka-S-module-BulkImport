@@ -31,20 +31,21 @@ class Import extends AbstractJob
     {
         ini_set('auto_detect_line_endings', true);
 
-        $logger = $this->getLogger();
-        $import = $this->getImport();
-        $this->api()->update('bulk_imports', $import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
+        $this->getLogger();
+        $this->getImport();
+
+        $this->api()->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
         $reader = $this->getReader();
         $processor = $this->getProcessor();
         $processor->setReader($reader);
-        $processor->setLogger($logger);
+        $processor->setLogger($this->logger);
         $processor->setJob($this);
 
-        $logger->log(Logger::NOTICE, 'Import started'); // @translate
+        $this->logger->log(Logger::NOTICE, 'Import started'); // @translate
 
         $processor->process();
 
-        $logger->log(Logger::NOTICE, 'Import completed'); // @translate
+        $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
     }
 
     /**
@@ -119,8 +120,10 @@ class Import extends AbstractJob
         }
         $reader = $readerManager->get($readerClass);
         $reader->setServiceLocator($services);
-        if ($reader instanceof Configurable && $reader instanceof Parametrizable) {
+        if ($reader instanceof Configurable) {
             $reader->setConfig($importer->readerConfig());
+        }
+        if ($reader instanceof Parametrizable) {
             $reader->setParams($import->readerParams());
         }
         return $reader;
@@ -147,8 +150,10 @@ class Import extends AbstractJob
         }
         $processor = $processorManager->get($processorClass);
         $processor->setServiceLocator($services);
-        if ($processor instanceof Configurable && $processor instanceof Parametrizable) {
+        if ($processor instanceof Configurable) {
             $processor->setConfig($importer->processorConfig());
+        }
+        if ($processor instanceof Parametrizable) {
             $processor->setParams($import->processorParams());
         }
         return $processor;

@@ -1,7 +1,6 @@
 <?php
 namespace BulkImport\Reader;
 
-use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Interfaces\Reader;
@@ -13,6 +12,7 @@ use Zend\ServiceManager\ServiceLocatorInterface;
 
 abstract class AbstractReader implements Reader, Configurable, Parametrizable
 {
+    // TODO Remove these traits so sub reader won't be all configurable.
     use ConfigurableTrait, ParametrizableTrait, ServiceLocatorAwareTrait;
 
     /**

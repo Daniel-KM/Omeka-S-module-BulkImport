@@ -38,6 +38,12 @@ interface Reader extends \Iterator, \Countable
     public function getLastErrorMessage();
 
     /**
+     * @param string$objectType An Omeka api key like "items", "vocabularies"…
+     * @return self
+     */
+    public function setObjectType($objectType);
+
+    /**
      * List of fields used in the input, for example the first spreadsheet row.
      *
      * It allows to do the mapping in the user interface.

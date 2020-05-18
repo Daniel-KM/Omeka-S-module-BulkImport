@@ -2,16 +2,10 @@
 namespace BulkImport\Reader;
 
 use BulkImport\Entry\Entry;
-use BulkImport\Interfaces\Configurable;
-use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Interfaces\Reader;
-use BulkImport\Traits\ConfigurableTrait;
-use BulkImport\Traits\ParametrizableTrait;
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Iterator;
 use Log\Stdlib\PsrMessage;
 use Zend\Form\Form;
-use Zend\ServiceManager\ServiceLocatorInterface;
 
 abstract class AbstractFileReader extends AbstractReader
 {

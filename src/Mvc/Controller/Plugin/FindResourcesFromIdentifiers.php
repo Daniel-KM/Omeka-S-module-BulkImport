@@ -371,7 +371,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->select([
                     'ANY_VALUE(value.value) AS "identifier"',
                     'ANY_VALUE(value.resource_id) AS "id"',
-                    'COUNT(DISTINCT(value.resource_id)) AS "count"'
+                    'COUNT(DISTINCT(value.resource_id)) AS "count"',
                 ])
                 ->from('value', 'value')
                 ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
@@ -384,7 +384,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->select([
                     'value.value AS "identifier"',
                     'value.resource_id AS "id"',
-                    'COUNT(DISTINCT(value.resource_id)) AS "count"'
+                    'COUNT(DISTINCT(value.resource_id)) AS "count"',
                 ])
                 ->from('value', 'value')
                 ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
@@ -459,7 +459,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->select([
                     'ANY_VALUE(media.source) AS "identifier"',
                     'ANY_VALUE(media.id) AS "id"',
-                    'COUNT(media.source) AS "count"'
+                    'COUNT(media.source) AS "count"',
                 ])
                 ->from('media', 'media')
                 ->andWhere('media.ingester = :ingester')
@@ -471,7 +471,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->select([
                     'media.source AS "identifier"',
                     'media.id AS "id"',
-                    'COUNT(media.source) AS "count"'
+                    'COUNT(media.source) AS "count"',
                 ])
                 ->from('media', 'media')
                 ->andWhere('media.ingester = :ingester')
