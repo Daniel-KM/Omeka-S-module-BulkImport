@@ -1432,8 +1432,15 @@ SQL;
         $this->fillResource($resource);
 
         $itemSets = $this->entity->getItemSets();
+        $itemSetIds = [];
+        foreach ($itemSets as $itemSet) {
+            $itemSetIds[] = $itemSet->getId();
+        }
         foreach ($resource['o:item_set'] as $itemSet) {
-            if (isset($this->map['item_sets'][$itemSet['o:id']])) {
+            if (isset($this->map['item_sets'][$itemSet['o:id']])
+                // This check avoids a core bug.
+                && !in_array($this->map['item_sets'][$itemSet['o:id']], $itemSetIds)
+            ) {
                 $itemSets->add($this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['item_sets'][$itemSet['o:id']]));
             }
         }
