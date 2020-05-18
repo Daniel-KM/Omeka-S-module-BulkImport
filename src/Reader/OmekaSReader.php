@@ -314,7 +314,7 @@ class OmekaSReader extends AbstractReader
         $keyCredential = $this->getParam('key_credential');
         if ($keyIdentity && $keyCredential) {
             $this->queryCredentials['key_identity'] = $keyIdentity;
-            $this->queryCredentials['key_credential'] = $keyIdentity;
+            $this->queryCredentials['key_credential'] = $keyCredential;
         }
     }
 
