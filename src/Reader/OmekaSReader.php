@@ -194,9 +194,10 @@ class OmekaSReader extends AbstractReader
                 // first and last page. The pages may be cached, if they are not
                 // too big.
                 // $this->totalCount = iterator_count($this->getInnerIterator());
+                $perPage = $this->perPage;
                 $response = $this->fetchData($this->path, $this->subpath, $this->queryParams, $this->lastPage);
                 $json = json_decode($response->getBody(), true) ?: [];
-                $this->totalCount = ($this->lastPage - 1) * $this->perPage + count($json);
+                $this->totalCount = ($this->lastPage - 1) * $perPage + count($json);
             }
         }
         return $this->totalCount;
@@ -471,12 +472,11 @@ class OmekaSReader extends AbstractReader
         if ($page) {
             $args['page'] = $page;
         }
-        $response = $this->getHttpClient()
+        return $this->getHttpClient()
             ->resetParameters()
             ->setUri($uri)
             ->setMethod(Request::METHOD_GET)
             ->setParameterGet($args)
             ->send();
-        return $response;
     }
 }

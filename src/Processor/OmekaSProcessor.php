@@ -89,6 +89,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     protected $map = [];
 
     /**
+     * @var array
+     */
+    protected $totals = [];
+
+    /**
      * @var \Doctrine\ORM\EntityManager
      */
     protected $entityManager;
@@ -599,7 +604,7 @@ SQL;
         /** @var \Omeka\Api\Adapter\AssetAdapter $adapter */
         $adapter = $this->adapterManager->get($resourceType);
 
-        $total = $this->reader->setObjectType($resourceType)->count();
+        $this->totals[$resourceType] = $this->reader->setObjectType($resourceType)->count();
         $index = 0;
         $existing = 0;
         $created = 0;
@@ -675,7 +680,7 @@ SQL;
                 $this->refreshOwner();
                 $this->logger->notice(
                     '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => $total, 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
+                    ['count' => $created, 'total' => $this->totals[$resourceType], 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
                 );
             }
 
@@ -940,18 +945,18 @@ SQL;
 
         // Check the size of the import.
         foreach (array_keys($resourceTypes) as $resourceType) {
-            $total = $this->reader->setObjectType($resourceType)->count();
-            if ($total > 10000000) {
+            $this->totals[$resourceType] = $this->reader->setObjectType($resourceType)->count();
+            if ($this->totals[$resourceType] > 10000000) {
                 $this->hasError = true;
                 $this->logger->err(
                     'Resource "{type}" has too much records ({total}).', // @translate
-                    ['type' => $resourceType, 'total' => $total]
+                    ['type' => $resourceType, 'total' => $this->totals[$resourceType]]
                 );
                 return;
             }
             $this->logger->notice(
                 'Preparation of {total} resource "{type}".', // @translate
-                ['total' => $total, 'type' => $resourceType]
+                ['total' => $this->totals[$resourceType], 'type' => $resourceType]
             );
         }
 
@@ -1276,6 +1281,16 @@ SQL;
                 '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
                 ['count' => $created, 'total' => count($this->map[$resourceType]), 'type' => $resourceType, 'skipped' => $skipped]
             );
+
+            // Check total in case of an issue in the network or with Omeka < 2.1.
+            // In particular, an issue occurred when a linked resource is private.
+            if ($this->totals[$resourceType] !== count($this->map[$resourceType])) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The total {total} of resources {type} is not the same than the count {count}.', // @translate
+                    ['total' => $this->totals[$resourceType], 'count' => count($this->map[$resourceType]), 'type' => $resourceType]
+                );
+            }
         }
     }
 
@@ -1526,7 +1541,7 @@ SQL;
         ];
 
         foreach ($resourceTypes as $resourceType => $class) {
-            $total = $this->reader->setObjectType($resourceType)->count();
+            $this->totals[$resourceType] = $this->reader->setObjectType($resourceType)->count();
             /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
             $adapter = $this->adapterManager->get($resourceType);
             $index = 0;
@@ -1555,7 +1570,7 @@ SQL;
                     $this->entityManager->clear();
                     $this->logger->notice(
                         '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
-                        ['count' => $created, 'total' => $total, 'type' => $resourceType, 'skipped' => $skipped]
+                        ['count' => $created, 'total' => $this->totals[$resourceType], 'type' => $resourceType, 'skipped' => $skipped]
                     );
                 }
             }
