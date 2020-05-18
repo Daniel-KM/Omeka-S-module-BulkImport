@@ -53,7 +53,7 @@ interface Reader extends \Iterator, \Countable
      * {@inheritDoc}
      * @see \Iterator::current()
      *
-     * @return Entry
+     * @return Entry|mixed
      */
     public function current();
 

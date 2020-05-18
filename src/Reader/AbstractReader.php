@@ -28,6 +28,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $availableFields = [];
 
     /**
+     * @var string
+     */
+    protected $objectType;
+
+    /**
      * @var string|null
      */
     protected $lastErrorMessage;
@@ -201,6 +206,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     {
         $this->isReady();
         return $this->totalEntries;
+    }
+
+    public function setObjectType($objectType)
+    {
+        $this->objectType = $objectType;
+        return $this;
     }
 
     /**
