@@ -13,13 +13,11 @@ Because multiple importers can be prepared with the same readers and processors,
 it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
-As an example, this module defines a sample reader for spreadsheet files and a
-processor that creates resources based on a user-defined mapping. Note: if your
-only need is to import a CSV file into Omeka, you should probably use [CSV Import module],
-which does a perfect job for that.
-
-This module was initially based on a port of the [Omeka Classic] [Import plugin],
-built by [Biblibre].
+Default readers are Omeka S reader (via the api json endpoint) and spreadsheet
+reader. The spreadsheet uses a processor that creates resources based on a
+user-defined mapping. Note: if your only need is to import a CSV file into
+Omeka, you should probably use [CSV Import module], which does a perfect job for
+that.
 
 
 Installation
@@ -39,7 +37,13 @@ uncompress it in the `modules` directory.
 * From the source and for development
 
 If the module was installed from the source, rename the name of the folder of
-the module to `BulkImport`.
+the module to `BulkImport`, go to the root of the module, and run:
+
+```
+    composer install
+```
+
+Then install it like any other Omeka module.
 
 * Files extensions
 
@@ -102,6 +106,17 @@ Then, config the reader and the processor.
 Finally, process the import.
 
 
+Omeka S
+-------
+
+Simply set the endpoint and eventually the credentials and run it. All data are
+fetch: vocabularies, resource templates, assets and of course items, item sets
+and media. Custom vocabs are imported too. It is recommended to have the same
+modules installed, in particular those that add new data types (Value Suggest,
+Numeric Data Types, Rdf Data Types, Data Type Geometry).
+Specific metadata of other modules are currently not managed.
+
+
 Spreadsheet
 -----------
 
@@ -136,7 +151,7 @@ TODO
 
 - Full dry-run.
 - Fix numeric data type (doctrine issue).
-- Distinction between skipped and blank.
+- Distinction between skipped and blank (for spreadsheet).
 
 
 Warning
@@ -189,7 +204,10 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2019 (see [Daniel-KM] on GitHub)
+* Copyright Daniel Berthereau, 2017-2020 (see [Daniel-KM] on GitHub)
+
+This module was initially inspired by the [Omeka Classic] [Import plugin], built
+by [Biblibre].
 
 
 [Bulk Import]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport
