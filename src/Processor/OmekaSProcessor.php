@@ -550,6 +550,7 @@ SQL;
                 $vocab = $result['data']['source'];
                 unset($vocab['@id'], $vocab['o:id']);
                 $vocab['o:owner'] = $this->ownerOId;
+                $vocab['o:prefix'] = trim($vocab['o:prefix']);
                 // TODO Use orm.
                 $response = $this->api()->create('vocabularies', $vocab);
                 $result['data']['destination'] = $response->getContent();
