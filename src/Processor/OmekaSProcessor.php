@@ -122,9 +122,14 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     protected $owner;
 
     /**
-     * @var int|string
+     * @var int|null
      */
-    protected $ownerIdOrNull;
+    protected $ownerId;
+
+    /**
+     * @var array|null
+     */
+    protected $ownerOId;
 
     /**
      * @var string
@@ -245,7 +250,8 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         } elseif ($ownerId) {
             $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
         }
-        $this->ownerIdOrNull = $this->owner ? $this->owner->getId() : 'NULL';
+        $this->ownerId = $this->owner ? $this->owner->getId() : null;
+        $this->ownerOId = $this->owner ? ['o:id' => $this->owner->getId()] : null;
 
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
@@ -543,7 +549,7 @@ SQL;
             if (!$result['data']['destination']) {
                 $vocab = $result['data']['source'];
                 unset($vocab['@id'], $vocab['o:id']);
-                $vocab['o:owner'] = $this->owner ? ['o:id' => $this->owner->getId()] : null;
+                $vocab['o:owner'] = $this->ownerOId;
                 // TODO Use orm.
                 $response = $this->api()->create('vocabularies', $vocab);
                 $result['data']['destination'] = $response->getContent();
@@ -601,7 +607,7 @@ SQL;
                 $property['o:vocabulary'] = $this->map['vocabularies'][$sourcePrefix]['destination'];
                 $property['o:term'] = $destTerm;
                 unset($property['@id'], $property['o:id']);
-                $property['o:owner'] = $this->owner ? ['o:id' => $this->owner->getId()] : null;
+                $property['o:owner'] = $this->ownerOId;
                 // TODO Use orm.
                 $response = $this->api()->create('properties', $property);
                 $this->logger->notice(
@@ -653,7 +659,7 @@ SQL;
                 $resourceClass['o:vocabulary'] = $this->map['vocabularies'][$sourcePrefix]['destination'];
                 $resourceClass['o:term'] = $destTerm;
                 unset($resourceClass['@id'], $resourceClass['o:id']);
-                $resourceClass['o:owner'] = $this->owner ? ['o:id' => $this->owner->getId()] : null;
+                $resourceClass['o:owner'] = $this->ownerOId;
                 // TODO Use orm.
                 $response = $this->api()->create('resource_classes', $resourceClass);
                 $this->logger->notice(
@@ -736,7 +742,7 @@ SQL;
             }
 
             unset($customVocab['@id'], $customVocab['o:id']);
-            $customVocab['o:owner'] = $this->owner ? ['o:id' => $this->owner->getId()] : null;
+            $customVocab['o:owner'] = $this->ownerOId;
             // TODO Use orm.
             $response = $this->api()->create('custom_vocabs', $customVocab);
             if (!$response) {
@@ -836,7 +842,7 @@ SQL;
 
             $resourceTemplateId = $resourceTemplate['o:id'];
             unset($resourceTemplate['@id'], $resourceTemplate['o:id']);
-            $resourceTemplate['o:owner'] = $this->owner ? ['o:id' => $this->owner->getId()] : null;
+            $resourceTemplate['o:owner'] = $this->ownerOId;
             $resourceTemplate['o:resource_class'] = !empty($resourceTemplate['o:resource_class'])
                 && !empty($this->map['resource_classes'][$resourceTemplate['o:resource_class']['o:id']]['id'])
                 ? ['o:id' => $this->map['resource_classes'][$resourceTemplate['o:resource_class']['o:id']]['id']]
@@ -902,6 +908,8 @@ SQL;
             'media' => 'media',
             'item_sets' => 'item_set',
         ];
+
+        $ownerIdOrNull = $this->owner ? $this->owner->getId() : 'NULL';
 
         // Check the size of the import.
         foreach (array_keys($resourceTypes) as $resourceType) {
@@ -999,7 +1007,7 @@ SQL;
 INSERT INTO resource
     (owner_id, resource_class_id, resource_template_id, is_public, created, modified, resource_type, thumbnail_id, title)
 SELECT
-    $this->ownerIdOrNull, NULL, NULL, 0, "$this->defaultDate", NULL, $resourceClass, NULL, id
+    $ownerIdOrNull, NULL, NULL, 0, "$this->defaultDate", NULL, $resourceClass, NULL, id
 FROM temporary_source_resource;
 
 DROP TABLE IF EXISTS temporary_source_resource;
@@ -1078,12 +1086,7 @@ SQL;
 
     protected function fillAssets()
     {
-        // The owner should be reloaded each time the entity manager is cleared,
-        // so it is saved and reloaded.
-        $ownerId = $this->owner ? $this->owner->getId() : false;
-        if ($ownerId) {
-            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-        }
+        $this->refreshOwner();
 
         /** @var \Omeka\Api\Adapter\AssetAdapter $adapter */
         $adapter = $this->adapterManager->get('assets');
@@ -1155,9 +1158,7 @@ SQL;
             if ($created % self::CHUNK_ENTITIES === 0) {
                 $this->entityManager->flush();
                 $this->entityManager->clear();
-                if ($ownerId) {
-                    $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-                }
+                $this->refreshOwner();
                 $this->logger->notice(
                     '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
                     ['count' => $created, 'total' => count($this->map['assets']), 'type' => 'asset', 'skipped' => $skipped]
@@ -1168,9 +1169,7 @@ SQL;
         // Remaining entities.
         $this->entityManager->flush();
         $this->entityManager->clear();
-        if ($ownerId) {
-            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-        }
+        $this->refreshOwner();
 
         $this->logger->notice(
             '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
@@ -1191,12 +1190,7 @@ SQL;
             'media' => 'fillMedia',
         ];
 
-        // The owner should be reloaded each time the entity manager is cleared,
-        // so it is saved and reloaded.
-        $ownerId = $this->owner ? $this->owner->getId() : false;
-        if ($ownerId) {
-            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-        }
+        $this->refreshOwner();
 
         foreach ($resourceTypes as $resourceType => $class) {
             /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
@@ -1238,9 +1232,7 @@ SQL;
                 if ($created % self::CHUNK_ENTITIES === 0) {
                     $this->entityManager->flush();
                     $this->entityManager->clear();
-                    if ($ownerId) {
-                        $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-                    }
+                    $this->refreshOwner();
                     $this->logger->notice(
                         '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
                         ['count' => $created, 'total' => count($this->map[$resourceType]), 'type' => $resourceType, 'skipped' => $skipped]
@@ -1251,9 +1243,7 @@ SQL;
             // Remaining entities.
             $this->entityManager->flush();
             $this->entityManager->clear();
-            if ($ownerId) {
-                $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
-            }
+            $this->refreshOwner();
 
             $this->logger->notice(
                 '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
@@ -1609,6 +1599,17 @@ SQL;
             $module = $moduleManager->getModule($moduleClass);
             $this->modules[$module] = $module
                 && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
+        }
+    }
+
+    /**
+     * The owner should be reloaded each time the entity manager is cleared, so
+     * it is saved and reloaded.
+     */
+    protected function refreshOwner()
+    {
+        if ($this->ownerId) {
+            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $this->ownerId);
         }
     }
 
