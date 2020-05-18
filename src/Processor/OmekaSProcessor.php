@@ -157,6 +157,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     protected $allowedExtensions = [];
 
     /**
+     * @var array
+     */
+    protected $modules = [];
+
+    /**
      * The entity being inserted.
      *
      * @var \Omeka\Entity\EntityInterface
@@ -232,6 +237,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
         $this->allowedDataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
 
+        // The owner should be reloaded each time the entity manager is flushed.
         $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
         if ($ownerId === 'current') {
             $identity = $services->get('ControllerPluginManager')->get('identity');
@@ -250,6 +256,8 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist', []);
         $this->allowedExtensions = $settings->get('extension_whitelist', []);
+
+        $this->checkAvailableModules();
 
         // Check database integrity for assets.
         $this->logger->info(
@@ -663,14 +671,14 @@ SQL;
 
     protected function prepareCustomVocabs()
     {
-        // Check if the module is available.
         $this->map['custom_vocabs'] = [];
-        try {
-            $result = $this->api()
-                ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
-        } catch (\Exception $e) {
+
+        if (empty($this->modules['CustomVocab'])) {
             return;
         }
+
+        $result = $this->api()
+            ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
 
         $customVocabs = [];
         foreach ($result as $customVocab) {
@@ -754,6 +762,10 @@ SQL;
 
     protected function prepareCustomVocabsFinalize()
     {
+        if (empty($this->modules['CustomVocab'])) {
+            return;
+        }
+
         $api = $this->api();
         foreach ($this->map['custom_vocabs'] as &$customVocab) {
             if (empty($customVocab['source_item_set'])) {
@@ -1463,6 +1475,26 @@ SQL;
                 $this->entity->setPosition($position);
                 break;
             }
+        }
+    }
+
+    /**
+     * Check if managed modules are available.
+     */
+    protected function checkAvailableModules()
+    {
+        // Modules managed by the module.
+        $modules = [
+            'CustomVocab',
+        ];
+
+        $services = $this->getServiceLocator();
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $services->get('Omeka\ModuleManager');
+        foreach ($modules as $moduleClass) {
+            $module = $moduleManager->getModule($moduleClass);
+            $this->modules[$module] = $module
+                && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
         }
     }
 
