@@ -13,7 +13,7 @@ trait EntriesToSkipTrait
                 'type' => Element\Number::class,
                 'options' => [
                     'label' => 'Number of entries to skip', // @translate
-                    'info' => 'Allows to start on the next entry without preparing a new file in case of an issue. Note: don’t include the header row.', // @translate
+                    'info' => 'Allows to start on the next entry without preparing a new file when there are multiple headers or in case of an issue. Note: don’t include the header row.', // @translate
                 ],
                 'attributes' => [
                     'attributes' => [

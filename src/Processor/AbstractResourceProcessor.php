@@ -953,8 +953,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 continue;
             }
 
-            // Default metadata (type and language). For consistency, only the
-            // first metadata is used.
+            // Default metadata (type, language and visibility).
+            // For consistency, only the first metadata is used.
             $metadatas = $sourceFields[$index];
             $metadata = reset($metadatas);
 
@@ -1001,10 +1001,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             break;
                     }
                     $result['value']['@language'] = $metadata['@language'];
-                    $result['value']['is_public'] = true;
+                    $result['value']['is_public'] = $metadata['is_public'] !== 'private';
                 } else {
                     $result['@language'] = $metadata['@language'];
                     $result['type'] = $metadata['type'];
+                    $result['is_public'] = $metadata['is_public'] !== 'private';
                 }
 
                 $fullTargets[] = $result;

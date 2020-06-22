@@ -40,8 +40,8 @@ class AutomapFields extends AbstractHelper
      * This is a simplified but improved version of the full automap of an old
      * version of the automap of the module CSVImport. it returns all the input
      * fields, with field name, identified metadata, language and datatype.
-     * It manages language and datatype, as in "dcterms:title@fr-fr^^xsd:string",
-     * following turtle convention, without the double quote.
+     * It manages language and datatype, as in "dcterms:title @fr-fr ^^xsd:string §private",
+     * following some convention, without the double quote.
      * Furthermore, user mappings are replaced by the file /data/mappings/fields_to_metadata.php.
      *
      * Default supported datatypes are the ones managed by omeka (cf. config[data_types]:
@@ -60,6 +60,8 @@ class AutomapFields extends AbstractHelper
      * Multiple targets can be mapped with the separator "|". Note that if there
      * may be multiple properties, only the first language and type will be
      * used.
+     * The visibility of each data can be public or private, prefixed by "§".
+     *
      *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
      *
@@ -146,14 +148,17 @@ class AutomapFields extends AbstractHelper
         }
 
         // The pattern checks a term or keyword, then an optional @language, then
-        // an optional ^^ data type.
+        // an optional ^^data type, then an optional §visibility.
         $pattern = '~'
-            // Check a term/keyword.
-            . '^([a-zA-Z][^@^]*)'
-            // Check a language + country.
+            // Check a term/keyword (dcterms:title).
+            . '^([a-zA-Z][^@§^]*)'
+            // Check a language + country (@fr-Fr).
             . '\s*(?:@\s*([a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))?'
-            // Check a data type.
-            . '\s*(?:\^\^\s*([a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][\w-]*|[a-zA-Z][\w-]*|))?$'
+            // Check a data type (^^resource:item).
+            . '\s*(?:\^\^\s*([a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][\w-]*|[a-zA-Z][\w-]*|))?'
+            // Check visibility (§private).
+            . '\s*(?:§\s*(public|private|))?'
+            . '$'
             . '~';
         $matches = [];
 
@@ -181,6 +186,7 @@ class AutomapFields extends AbstractHelper
                             $result['field'] = $automapList[$found];
                             $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
                             $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
+                            $result['is_public'] = empty($matches[4]) ? null : trim($matches[4]);
                             $automaps[$index][] = $result;
                         } else {
                             $automaps[$index][] = $automapList[$found];
@@ -203,6 +209,7 @@ class AutomapFields extends AbstractHelper
                             $result['field'] = $propertyLists['names'][$found];
                             $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
                             $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
+                            $result['is_public'] = empty($matches[4]) ? null : trim($matches[4]);
                             $automaps[$index][] = $result;
                         } else {
                             $property = $propertyLists['names'][$found];

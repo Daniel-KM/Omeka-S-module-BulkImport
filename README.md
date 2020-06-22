@@ -124,9 +124,10 @@ To import a spreadsheet, choose its format and the multivalue separator if any.
 Then do the mapping. The mapping is automatic when the header are properties
 label, or existing terms, or Omeka metadata names, or existing keywords.
 
-The header can have a language (with `@language`) and a datatype (with `^^datatype`).
-For example to import a French title, use header `Title @fr` or `dcterms:title@fr`.
-To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation^^uri`.
+The header can have a language (with `@language`), a datatype (with `^^datatype`)
+and a visibility (with `§private`).
+For example to import a French title, use header `Title @fr` or `dcterms:title @fr`.
+To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation ^^uri`.
 To import an uri with its label, if any, use header `Relation ^^uri-label`.
 To import a value as an Omeka resource, use header `Relation ^^resource`. The
 value should be the internal id or a resource identifier (generally dcterms:identifier).
