@@ -304,6 +304,12 @@ class OmekaSReader extends AbstractReader
             );
             return false;
         }
+        $url = $this->getServiceLocator()->get('ViewHelperManager')->get('url');
+        if ($this->endpoint === $url('api', [], ['force_canonical' => true])) {
+            $this->lastErrorMessage = new PsrMessage(
+                'It is useless to import Omeka S itself. Check your endpoint.' // @translate
+            );
+        }
         return true;
     }
 
