@@ -26,7 +26,7 @@ trait ResourceUpdateTrait
      * replace current ones with "update", but only the filled ones replace
      * current one with "revise".
      *
-     * Note: when the targets are seton multiple columns, all data are removed.
+     * Note: when the targets are set on multiple columns, all data are removed.
      *
      * @todo What to do with other data, and external data?
      *
@@ -58,6 +58,21 @@ trait ResourceUpdateTrait
                 $newData = array_replace($data, $replaced);
                 break;
         }
+
+        // To keep the markers during update, they must be developed.
+        if (!empty($newData['o-module-mapping:mapping']['o:id']) && empty($newData['o-module-mapping:mapping']['o-module-mapping:bounds'])) {
+            $newData['o-module-mapping:mapping'] = $this->api()->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
+            $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
+        }
+        if (!empty($newData['o-module-mapping:marker'][0]['o:id']) && !isset($newData['o-module-mapping:marker'][0]['o-module-mapping:lat'])) {
+            $markers = [];
+            foreach ($newData['o-module-mapping:marker'] as $value) {
+                $value = $this->api()->read('mapping_markers', ['id' => $value['o:id']])->getContent();
+                $markers[$value->id()] = json_decode(json_encode($value), true);
+            }
+            $newData['o-module-mapping:marker'] = $markers;
+        }
+
         return $newData;
     }
 

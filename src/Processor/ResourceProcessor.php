@@ -208,6 +208,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                     }
                 }
                 break;
+            // TODO Support of module mapping (append/revise/deduplicate).
+            case 'o-module-mapping:mapping':
+                break;
+            case 'o-module-mapping:marker':
+                break;
         }
         return false;
     }
