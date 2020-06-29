@@ -133,11 +133,12 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->availableFields = $this->cleanData($fields);
     }
 
-    protected function isValidFilepath($filepath, array $file)
+    protected function isValidFilepath($filepath, array $file = [])
     {
         if (!parent::isValidFilepath($filepath, $file)) {
             return false;
         }
+
         if (!$this->isUtf8($filepath)) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filepath}" is not fully utf-8.', // @translate

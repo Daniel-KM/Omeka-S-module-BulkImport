@@ -210,7 +210,7 @@ abstract class AbstractFileReader extends AbstractReader
      * are not present, checks may be skipped.
      * @return bool
      */
-    protected function isValidFilepath($filepath, array $file)
+    protected function isValidFilepath($filepath, array $file = [])
     {
         $file += ['name' => '[unknown]', 'type' => null];
 
