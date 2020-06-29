@@ -88,13 +88,22 @@ return [
     'file sources' => 'file',
 
     // From module Mapping.
+    'o-module-mapping:mapping' => 'o-module-mapping:bounds',
+    'o-module-mapping:bounds' => 'o-module-mapping:bounds',
+    'bounds' => 'o-module-mapping:bounds',
+    'mapping bounds' => 'o-module-mapping:bounds',
+
+    'o-module-mapping:marker' => 'o-module-mapping:marker',
+    'o-module-mapping:lat' => 'o-module-mapping:lat',
+    'o-module-mapping:lng' => 'o-module-mapping:lng',
+    'o-module-mapping:label' => 'o-module-mapping:label',
     'latitude' => 'o-module-mapping:lat',
     'longitude' => 'o-module-mapping:lng',
-    'latitude/longitude' => 'o-module-mapping:lat o-module-mapping:lng',
-    'bounds' => 'o-module-mapping:bounds',
+    'latitude/longitude' => 'o-module-mapping:marker',
+
     'default latitude' => 'o-module-mapping:default_lat',
     'default longitude' => 'o-module-mapping:default_lng',
-    'default latitude/longitude' => 'o-module-mapping:default_lat o-module-mapping:default_lng',
+    'default latitude/longitude' => 'o-module-mapping:default_marker',
     'default zoom' => 'o-module-mapping:default_zoom',
 
     // From module Folksonomy.

@@ -26,7 +26,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
 
     protected function prependMappingOptions()
     {
-        return [
+        $mapping = [
             'metadata' => [
                 'label' => 'Resource metadata', // @translate
                 'options' => [
@@ -64,5 +64,14 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                 ],
             ],
         ];
+
+        if ($this->isModuleActive(\Mapping::class)) {
+            $mapping['item']['options']['o-module-mapping:marker'] = 'Mapping latitude/longitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:lat'] = 'Mapping latitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:lng'] = 'Mapping longitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:label'] = 'Mapping marker label'; // @translate
+            $mapping['item']['options']['o-module-mapping:bounds'] = 'Mapping bounds'; // @translate
+        }
+        return $mapping;
     }
 }

@@ -337,4 +337,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             $input->setRequired(false);
         }
     }
+
+    /**
+     * Check if a module is active.
+     *
+     * @param string $moduleClass
+     * @return bool
+     */
+    protected function isModuleActive($moduleClass)
+    {
+        $services = $this->getServiceLocator();
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $services->get('Omeka\ModuleManager');
+        $module = $moduleManager->getModule($moduleClass);
+        return $module
+            && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
+    }
 }

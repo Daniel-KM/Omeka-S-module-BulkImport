@@ -27,7 +27,7 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
     protected function prependMappingOptions()
     {
         $mapping = parent::prependMappingOptions();
-        return array_merge_recursive($mapping, [
+        $mapping = array_merge_recursive($mapping, [
             'item_sets' => [
                 'label' => 'Item sets', // @translate
                 'options' => [
@@ -45,5 +45,14 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
                 ],
             ],
         ]);
+
+        if ($this->isModuleActive(\Mapping::class)) {
+            $mapping['item']['options']['o-module-mapping:marker'] = 'Mapping latitude/longitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:lat'] = 'Mapping latitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:lng'] = 'Mapping longitude'; // @translate
+            // $mapping['item']['options']['o-module-mapping:label'] = 'Mapping marker label'; // @translate
+            $mapping['item']['options']['o-module-mapping:bounds'] = 'Mapping bounds'; // @translate
+        }
+        return $mapping;
     }
 }

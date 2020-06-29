@@ -208,11 +208,49 @@ class ResourceProcessor extends AbstractResourceProcessor
                     }
                 }
                 break;
-            // TODO Support of module mapping (append/revise/deduplicate).
-            case 'o-module-mapping:mapping':
+            case 'o-module-mapping:bounds':
+                // There can be only one mapping zone.
+                $bounds = reset($values);
+                if (!$bounds) {
+                    return true;
+                }
+                // @see \Mapping\Api\Adapter\MappingAdapter::validateEntity().
+                if (null !== $bounds
+                    && 4 !== count(array_filter(explode(',', $bounds), 'is_numeric'))
+                ) {
+                    $this->logger->err(
+                        'Index #{index} skipped: the mapping bounds requires four numeric values separated by a comma.',  // @translate
+                        ['index' => $this->indexResource]
+                    );
+                    $resource['has_error'] = true;
+                    return true;
+                }
+                // TODO Manage the update of a mapping.
+                $resource['o-module-mapping:mapping'] = [
+                    'o-id' => null,
+                    'o-module-mapping:bounds' => $bounds,
+                ];
                 break;
             case 'o-module-mapping:marker':
-                break;
+                $resource['o-module-mapping:marker'] = [];
+                foreach ($values as $value) {
+                    list($lat, $lng) = array_filter(array_map('trim', explode('/', $value, 2)), 'is_numeric');
+                    if (!strlen($lat) || !strlen($lng)) {
+                        $this->logger->err(
+                            'Index #{index} skipped: the mapping marker requires a latitude and a longitude separated by a "/".',  // @translate
+                            ['index' => $this->indexResource]
+                        );
+                        $resource['has_error'] = true;
+                        return true;
+                    }
+                    $resource['o-module-mapping:marker'][] = [
+                        'o:id' => null,
+                        'o-module-mapping:lat' => $lat,
+                        'o-module-mapping:lng' => $lng,
+                        'o-module-mapping:label' => null,
+                    ];
+                }
+                return true;
         }
         return false;
     }

@@ -1002,7 +1002,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                     $result['value']['@language'] = $metadata['@language'];
                     $result['value']['is_public'] = $metadata['is_public'] !== 'private';
-                } else {
+                }
+                // A specific or module field. These fields may be useless.
+                else {
+                    $result['full_field'] = $sourceField;
                     $result['@language'] = $metadata['@language'];
                     $result['type'] = $metadata['type'];
                     $result['is_public'] = $metadata['is_public'] !== 'private';

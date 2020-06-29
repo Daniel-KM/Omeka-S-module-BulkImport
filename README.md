@@ -153,6 +153,7 @@ TODO
 - Full dry-run.
 - Fix numeric data type (doctrine issue).
 - Distinction between skipped and blank (for spreadsheet).
+- Update for module Mapping.
 
 
 Warning
