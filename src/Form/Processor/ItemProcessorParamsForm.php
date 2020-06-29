@@ -39,6 +39,7 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
                 'options' => [
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
+                    'tile' => 'Tile', // @translate
                     'html' => 'Html', // @translate
                     'o:media {dcterms:title}' => 'Title', // @translate
                     'o:media {o:is_public}' => 'Visibility public/private', // @translate
@@ -53,6 +54,11 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
             // $mapping['item']['options']['o-module-mapping:label'] = 'Mapping marker label'; // @translate
             $mapping['item']['options']['o-module-mapping:bounds'] = 'Mapping bounds'; // @translate
         }
+
+        if (!$this->isModuleActive(\ImageServer::class) && !$this->isModuleActive(\IiifServer::class)) {
+            unset($mapping['media']['options']['tile']);
+        }
+
         return $mapping;
     }
 }

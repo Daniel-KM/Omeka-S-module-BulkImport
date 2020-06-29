@@ -27,7 +27,7 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
     protected function prependMappingOptions()
     {
         $mapping = parent::prependMappingOptions();
-        return array_merge_recursive($mapping, [
+        $mapping = array_merge_recursive($mapping, [
             'item' => [
                 'label' => 'Item', // @translate
                 'options' => [
@@ -39,9 +39,16 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
                 'options' => [
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
+                    'tile' => 'Tile', // @translate
                     'html' => 'Html', // @translate
                 ],
             ],
         ]);
+
+        if (!$this->isModuleActive(\ImageServer::class) && !$this->isModuleActive(\IiifServer::class)) {
+            unset($mapping['media']['options']['tile']);
+        }
+
+        return $mapping;
     }
 }

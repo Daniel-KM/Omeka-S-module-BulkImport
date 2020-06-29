@@ -180,6 +180,15 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            case 'tile':
+                foreach ($values as $value) {
+                    $media = [];
+                    $media['o:ingester'] = 'tile';
+                    $media['ingest_url'] = $value;
+                    $media['o:source'] = $value;
+                    $this->appendRelated($resource, $media);
+                }
+                return true;
             case 'html':
                 foreach ($values as $value) {
                     $media = [];
@@ -296,6 +305,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resource['o:ingester'] = 'sideload';
                     $resource['ingest_filename'] = $value;
                 }
+                $resource['o:source'] = $value;
+                return true;
+            case 'tile':
+                $value = array_pop($values);
+                $resource['o:ingester'] = 'tile';
+                $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
             case 'html':

@@ -87,6 +87,10 @@ return [
     'file source' => 'file',
     'file sources' => 'file',
 
+    // A tile for image server.
+    'tile' => 'tile',
+    'media tile' => 'tile',
+
     // From module Mapping.
     'o-module-mapping:mapping' => 'o-module-mapping:bounds',
     'o-module-mapping:bounds' => 'o-module-mapping:bounds',

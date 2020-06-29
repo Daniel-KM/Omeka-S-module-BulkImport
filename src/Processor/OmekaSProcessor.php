@@ -711,7 +711,7 @@ SQL;
         $this->refreshOwner();
 
         // Fill the missing new member ids.
-       $api = $this->api();
+        $api = $this->api();
         foreach ($this->map[$resourceType] as $sourceTerm => $data) {
             if ($data['id']) {
                 continue;
@@ -1119,7 +1119,7 @@ SQL;
 
             // Manage the exception for media, that require the good item id.
             if ($resourceType === 'media') {
-                foreach (array_chunk($mediaItems, self::CHUNK_RECORD_IDS,  true) as $chunk) {
+                foreach (array_chunk($mediaItems, self::CHUNK_RECORD_IDS, true) as $chunk) {
                     $sql = str_repeat("UPDATE media SET item_id=? WHERE id=?;\n", count($chunk));
                     $bind = [];
                     foreach ($chunk as $sourceMediaId => $sourceItemId) {

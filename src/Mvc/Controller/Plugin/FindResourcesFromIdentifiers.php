@@ -77,6 +77,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      *
      * @todo Manage Media source html.
      * @todo Clarify and simplify input and output.
+     * @todo Check collation for some identifiers (see CleanUrl).
      *
      * @param array|string $identifiers Identifiers should be unique. If a
      * string is sent, the result will be the resource.
@@ -110,9 +111,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         if ($isSingle) {
             $identifiers = [$identifiers];
         }
-        $identifiers = array_unique(array_filter(array_map(function ($v) {
-            return $this->trimUnicode($v);
-        }, $identifiers)));
+        $identifiers = array_unique(array_filter(array_map([$this, 'trimUnicode'], $identifiers)));
         if (empty($identifiers)) {
             return $isSingle ? null : [];
         }
@@ -203,7 +202,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $identifierType = 'property';
             // No check of the property id for quicker process.
             $identifierTypeName = (int) $identifierName;
-        } elseif (in_array($identifierName, ['url', 'file'])) {
+        } elseif (in_array($identifierName, ['url', 'file', 'tile'])) {
             $identifierType = 'media_source';
             $identifierTypeName = $identifierName;
             $resourceType = 'media';
