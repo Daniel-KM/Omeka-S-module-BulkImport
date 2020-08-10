@@ -209,7 +209,7 @@ Copyright
 * Copyright Daniel Berthereau, 2017-2020 (see [Daniel-KM] on GitHub)
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
-by [Biblibre].
+by [BibLibre].
 
 
 [Bulk Import]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport
