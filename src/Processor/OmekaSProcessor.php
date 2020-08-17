@@ -404,12 +404,12 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     {
         // Check if there are empty data, for example from an incomplete import.
         $sql = <<<SQL
-SELECT id
-FROM asset
-WHERE asset.name = ""
-    AND asset.media_type = ""
-    AND asset.extension = ""
-    AND asset.owner_id IS NULL;
+SELECT `id`
+FROM `asset`
+WHERE `asset`.`name` = ""
+    AND `asset`.`media_type` = ""
+    AND `asset`.`extension` = ""
+    AND `asset`.`owner_id` IS NULL;
 SQL;
         $result = $this->connection->query($sql)->fetchAll(\PDO::FETCH_COLUMN);
         if (count($result)) {
@@ -433,11 +433,11 @@ SQL;
         foreach ($resourceTables as $resourceTable => $class) {
             $resourceClass = $this->connection->quote($class);
             $sql = <<<SQL
-SELECT resource.id
-FROM resource AS resource
-LEFT JOIN $resourceTable AS spec ON spec.id = resource.id
-WHERE resource.resource_type = $resourceClass
-    AND spec.id IS NULL;
+SELECT `resource`.`id`
+FROM `resource` AS `resource`
+LEFT JOIN `$resourceTable` AS `spec` ON `spec`.`id` = `resource`.`id`
+WHERE `resource`.`resource_type` = $resourceClass
+    AND `spec`.`id` IS NULL;
 SQL;
             $result = $this->connection->query($sql)->fetchAll(\PDO::FETCH_COLUMN);
             if (count($result)) {
@@ -1028,18 +1028,18 @@ SQL;
                 $sql = '';
                 // Save the ids as storage, it should be unique anyway.
                 foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-                    $sql .= 'INSERT INTO asset (name,media_type,storage_id) VALUES("","",' . implode('),("","",', $chunk) . ');' ."\n";
+                    $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' ."\n";
                 }
                 $this->connection->query($sql);
 
                 // Get the mapping of source and destination ids.
                 $sql = <<<SQL
-SELECT asset.storage_id AS s, asset.id AS d
-FROM asset AS asset
-WHERE asset.name = ""
-    AND asset.media_type = ""
-    AND (asset.extension IS NULL OR asset.extension = "")
-    AND asset.owner_id IS NULL;
+SELECT `asset`.`storage_id` AS `s`, `asset`.`id `AS `d`
+FROM `asset` AS `asset`
+WHERE `asset`.`name` = ""
+    AND `asset`.`media_type` = ""
+    AND (`asset`.`extension` IS NULL OR `asset`.`extension` = "")
+    AND `asset`.`owner_id` IS NULL;
 SQL;
                 // Fetch by key pair is not supported by doctrine 2.0.
                 $this->map[$resourceType] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
@@ -1049,31 +1049,31 @@ SQL;
             // For compatibility with old database, a temporary table is used in
             // order to create a generator of enough consecutive rows.
             $sql = <<<SQL
-DROP TABLE IF EXISTS temporary_source_resource;
-CREATE TEMPORARY TABLE temporary_source_resource (id INT unsigned NOT NULL, PRIMARY KEY (id));
+DROP TABLE IF EXISTS `temporary_source_resource`;
+CREATE TEMPORARY TABLE `temporary_source_resource` (`id` INT unsigned NOT NULL, PRIMARY KEY (`id`));
 
 SQL;
             foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-                $sql .= 'INSERT INTO temporary_source_resource (id) VALUES(' . implode('),(', $chunk) . ");\n";
+                $sql .= 'INSERT INTO `temporary_source_resource` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
             }
             $sql .= <<<SQL
-INSERT INTO resource
-    (owner_id, resource_class_id, resource_template_id, is_public, created, modified, resource_type, thumbnail_id, title)
+INSERT INTO `resource`
+    (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
     $ownerIdOrNull, NULL, NULL, 0, "$this->defaultDate", NULL, $resourceClass, NULL, id
-FROM temporary_source_resource;
+FROM `temporary_source_resource`;
 
-DROP TABLE IF EXISTS temporary_source_resource;
+DROP TABLE IF EXISTS `temporary_source_resource`;
 SQL;
             $this->connection->query($sql);
 
             // Get the mapping of source and destination ids.
             $sql = <<<SQL
-SELECT resource.title AS s, resource.id AS d
-FROM resource AS resource
-LEFT JOIN {$resourceTables[$resourceType]} AS spec ON spec.id = resource.id
-WHERE spec.id IS NULL
-    AND resource.resource_type = $resourceClass;
+SELECT `resource`.`title` AS `s`, `resource`.`id` AS `d`
+FROM `resource` AS `resource`
+LEFT JOIN {$resourceTables[$resourceType]} AS `spec` ON `spec`.`id` = `resource`.`id`
+WHERE `spec`.`id` IS NULL
+    AND `resource`.`resource_type` = $resourceClass;
 SQL;
             // Fetch by key pair is not supported by doctrine 2.0.
             $this->map[$resourceType] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
@@ -1082,8 +1082,8 @@ SQL;
             switch ($resourceType) {
                 case 'items':
                     $sql = <<<SQL
-INSERT INTO item
-SELECT resource.id
+INSERT INTO `item`
+SELECT `resource`.`id`
 SQL;
                     break;
 
@@ -1091,10 +1091,10 @@ SQL;
                     // Attach all media to first item id for now, updated below.
                     $itemId = (int) reset($this->map['items']);
                     $sql = <<<SQL
-INSERT INTO media
-    (id, item_id, ingester, renderer, data, source, media_type, storage_id, extension, sha256, has_original, has_thumbnails, position, lang, size)
+INSERT INTO `media`
+    (`id`, `item_id`, `ingester`, `renderer`, `data`, `source`, `media_type`, `storage_id`, `extension`, `sha256`, `has_original`, `has_thumbnails`, `position`, `lang`, `size`)
 SELECT
-    resource.id, $itemId, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
+    `resource`.`id`, $itemId, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
 SQL;
                     break;
 
@@ -1102,25 +1102,25 @@ SQL;
                     // Finalize custom vocabs early: item sets map is available.
                     $this->prepareCustomVocabsFinalize();
                     $sql = <<<SQL
-INSERT INTO item_set
-SELECT resource.id, 0
+INSERT INTO `item_set`
+SELECT `resource`.`id`, 0
 SQL;
                     break;
                 default:
                     return;
             }
             $sql .= PHP_EOL . <<<SQL
-FROM resource AS resource
-LEFT JOIN {$resourceTables[$resourceType]} AS spec ON spec.id = resource.id
-WHERE spec.id IS NULL
-    AND resource.resource_type = $resourceClass;
+FROM `resource` AS `resource`
+LEFT JOIN {$resourceTables[$resourceType]} AS `spec` ON `spec`.`id` = `resource`.`id`
+WHERE `spec`.`id` IS NULL
+    AND `resource`.`resource_type` = $resourceClass;
 SQL;
             $this->connection->query($sql);
 
             // Manage the exception for media, that require the good item id.
             if ($resourceType === 'media') {
                 foreach (array_chunk($mediaItems, self::CHUNK_RECORD_IDS, true) as $chunk) {
-                    $sql = str_repeat("UPDATE media SET item_id=? WHERE id=?;\n", count($chunk));
+                    $sql = str_repeat("UPDATE `media` SET `item_id`=? WHERE `id`=?;\n", count($chunk));
                     $bind = [];
                     foreach ($chunk as $sourceMediaId => $sourceItemId) {
                         $bind[] = $this->map['items'][$sourceItemId];
