@@ -160,16 +160,16 @@
         },
         {
             "name": "mikehaertl/php-tmpfile",
-            "version": "1.1.4",
+            "version": "1.1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mikehaertl/php-tmpfile.git",
-                "reference": "001362513e500ca8006144974c5b8cfc0516015a"
+                "reference": "491476ffb63612ee4bbfa063d4ff02717fc6bf42"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mikehaertl/php-tmpfile/zipball/001362513e500ca8006144974c5b8cfc0516015a",
-                "reference": "001362513e500ca8006144974c5b8cfc0516015a",
+                "url": "https://api.github.com/repos/mikehaertl/php-tmpfile/zipball/491476ffb63612ee4bbfa063d4ff02717fc6bf42",
+                "reference": "491476ffb63612ee4bbfa063d4ff02717fc6bf42",
                 "shasum": ""
             },
             "require-dev": {
@@ -195,7 +195,7 @@
             "keywords": [
                 "files"
             ],
-            "time": "2020-05-06T07:28:50+00:00"
+            "time": "2020-07-21T11:54:36+00:00"
         }
     ],
     "packages-dev": [
