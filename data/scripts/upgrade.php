@@ -123,3 +123,13 @@ INSERT INTO `bulk_importer` (`owner_id`, `label`, `reader_class`, `reader_config
 SQL;
     $connection->exec($sql);
 }
+
+if (version_compare($oldVersion, '3.0.19', '<')) {
+    $identity = $services->get('ControllerPluginManager')->get('identity');
+    $ownerId = $identity()->getId();
+    $sql = <<<SQL
+INSERT INTO `bulk_importer` (`owner_id`, `label`, `reader_class`, `reader_config`, `processor_class`, `processor_config`) VALUES
+($ownerId, 'Omeka Classic', 'BulkImport\\\\Reader\\\\OmekaClassicReader', NULL, 'BulkImport\\\\Processor\\\\OmekaClassicProcessor', NULL);
+SQL;
+    $connection->exec($sql);
+}
