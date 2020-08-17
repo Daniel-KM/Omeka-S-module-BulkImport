@@ -288,7 +288,7 @@ trait ResourceUpdateTrait
         }
         return array_intersect_key($resourceJson, $listOfTerms);
         // TODO Replace this method by:
-        return array_intersect_key($resourceJson, $this->getPropertyIds());
+        // return array_intersect_key($resourceJson, $this->getPropertyIds());
     }
 
     /**
@@ -323,32 +323,25 @@ trait ResourceUpdateTrait
         // Base to normalize data in order to deduplicate them in one pass.
         $base = [];
 
-        $isOldOmeka = version_compare(\Omeka\Module::VERSION, '1.3.0', '<');
-        if ($isOldOmeka) {
-            $base['literal'] = ['property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
-            $base['resource'] = ['property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-            $base['uri'] = ['o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
-        } else {
-            $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
-            $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-            $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
-        }
+        $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
+        $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
+        $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
         foreach ($values as $key => $value) {
             $values[$key] = array_values(
                 // Deduplicate values.
                 array_map('unserialize', array_unique(array_map(
                     'serialize',
                     // Normalize values.
-                    array_map(function ($v) use ($base, $isOldOmeka) {
+                    array_map(function ($v) use ($base) {
                         // Data types "resource" and "uri" have "@id" (in json).
-                        $mainType = array_key_exists('value_resource_id', $v)
-                            ? 'resource'
-                            : (array_key_exists('@id', $v) ? 'uri' : 'literal');
+                        if (array_key_exists('value_resource_id', $v)) {
+                            $mainType = 'resource';
+                        } else {
+                            $mainType = array_key_exists('@id', $v) ? 'uri' : 'literal';
+                        }
                         // Keep order and meaning keys.
                         $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
-                        if (!$isOldOmeka) {
-                            $r['is_public'] = (bool) $r['is_public'];
-                        }
+                        $r['is_public'] = (bool) $r['is_public'];
                         switch ($mainType) {
                             case 'literal':
                                 if (empty($r['@language'])) {
