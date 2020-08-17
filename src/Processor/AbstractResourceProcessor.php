@@ -51,6 +51,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionUnidentified;
 
     /**
+     * @var string
+     */
+    protected $actionIdentifier;
+
+    /**
      * @var bool
      */
     protected $hasMapping = false;
@@ -139,6 +144,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'action' => null,
             'action_unidentified' => null,
             'identifier_name' => null,
+            'action_identifier_update' => null,
             'allow_duplicate_identifiers' => false,
             'entries_to_skip' => 0,
             'entries_by_batch' => null,
@@ -166,6 +172,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->prepareIdentifierNames();
+
+        $this->prepareActionIdentifier();
 
         $this->prepareMapping();
 
@@ -713,7 +721,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     break;
                 case self::ACTION_REVISE:
                 case self::ACTION_UPDATE:
-                    $dataResource = $this->updateData($resourceType, $dataResource, $this->action);
+                    $dataResource = $this->updateData($resourceType, $dataResource, $this->action, $this->actionIdentifier, $this->getIdentifierNames());
                     $options['isPartial'] = true;
                     $options['collectionAction'] = 'replace';
                     break;
@@ -933,6 +941,40 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
         $this->bulk->setIdentifierNames($result);
+    }
+
+    protected function prepareActionIdentifier()
+    {
+        if (!in_array($this->action, [
+            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
+            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
+        ])) {
+            $this->actionIdentifier = \BulkImport\Processor\AbstractProcessor::ACTION_SKIP;
+            return;
+        }
+
+        // This option doesn't apply when "o:id" is the only one identifier.
+        $identifierNames = $this->bulk->getIdentifierNames();
+        if (empty($identifierNames)
+            || (count($identifierNames) === 1 && reset($identifierNames) === 'o:id')
+        ) {
+            $this->actionIdentifier = \BulkImport\Processor\AbstractProcessor::ACTION_SKIP;
+            return;
+        }
+
+        $this->actionIdentifier = $this->getParam('action_identifier_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionUnidentified, [
+            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
+        ])) {
+            $this->actionIdentifier = self::ACTION_APPEND;
+            $this->logger->err(
+                'Action "{action}" for identifier is not managed.', // @translate
+                ['action' => $this->actionUnidentified]
+            );
+        }
+
+        // TODO Prepare the list of identifiers one time (only properties) (see extractIdentifiers())?
     }
 
     /**

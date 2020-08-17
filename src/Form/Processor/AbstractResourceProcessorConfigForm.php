@@ -197,6 +197,23 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         ]);
 
         $this->add([
+            'name' => 'action_identifier_update',
+            'type' => Element\Radio::class,
+            'options' => [
+                'label' => 'Action on identifier', // @translate
+                'info' => 'When a "revise" or an "update" is done, the identifier may be updated, but you may want to keep existing identifiers if all of them are not provided.', // @translate
+                'value_options' => [
+                    \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep and append new identifiers', // @translate
+                    \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                ],
+            ],
+            'attributes' => [
+                'id' => 'action_identifier_update',
+                'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+            ],
+        ]);
+
+        $this->add([
             'name' => 'allow_duplicate_identifiers',
             'type' => Element\Checkbox::class,
             'options' => [
@@ -285,39 +302,43 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
     protected function baseInputFilter()
     {
-        $inputFilter = $this->getInputFilter();
-        $inputFilter->add([
-            'name' => 'o:resource_template',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'o:resource_class',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'o:owner',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'o:is_public',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'action',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'action_unidentified',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'identifier_name',
-            'required' => false,
-        ]);
-        $inputFilter->add([
-            'name' => 'allow_duplicate_identifiers',
-            'required' => false,
-        ]);
+        $this->getInputFilter()
+                ->add([
+                'name' => 'o:resource_template',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'o:resource_class',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'o:owner',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'o:is_public',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'action',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'action_unidentified',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'identifier_name',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'action_identifier_update',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'allow_duplicate_identifiers',
+                'required' => false,
+            ]);
     }
 
     protected function addInputFilter()

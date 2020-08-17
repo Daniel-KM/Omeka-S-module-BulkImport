@@ -33,9 +33,12 @@ trait ResourceUpdateTrait
      * @param string $resourceType
      * @param array $data Should have an existing and checked "o:id".
      * @param string $action "update" or "revise"
+     * @param string $actionIdentifier "append" or "update", used only for
+     *   update processes.
+     * @param array $IdentifierNames
      * @return array
      */
-    protected function updateData($resourceType, $data, $action)
+    protected function updateData($resourceType, $data, $action, $actionIdentifier, $identifierNames)
     {
         $resource = $this->api()->read($resourceType, $data['o:id'])->getContent();
 
@@ -48,15 +51,23 @@ trait ResourceUpdateTrait
                 $newData = array_replace($currentData, $data);
                 break;
             case self::ACTION_REVISE:
-                $data = $this->removeEmptyData($data);
-                $replaced = $this->replacePropertyValues($currentData, $data);
-                $newData = array_replace($data, $replaced);
-                break;
             case self::ACTION_UPDATE:
-                $data = $this->fillEmptyData($data);
+                $data = $action === self::ACTION_REVISE
+                    ? $this->removeEmptyData($data)
+                    : $this->fillEmptyData($data);
+                if ($actionIdentifier === \BulkImport\Processor\AbstractProcessor::ACTION_APPEND) {
+                    $data = $this->keepExistingIdentifiers($currentData, $data, $identifierNames);
+                }
                 $replaced = $this->replacePropertyValues($currentData, $data);
                 $newData = array_replace($data, $replaced);
                 break;
+            default:
+                $this->logger->err(
+                    'Index #{index}: Unable to update data with action "{action}".', // @translate
+                    ['index' => $this->indexResource, 'action' => $action]
+                );
+                ++$this->totalErrors;
+                return $currentData;
         }
 
         // To keep the markers during update, they must be developed.
@@ -179,6 +190,32 @@ trait ResourceUpdateTrait
                         $data[$name] = [];
                         break;
                 }
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Prepend existing identifiers to new data.
+     *
+     * @param array $currentData
+     * @param array $data
+     * @param array $identifierNames
+     * @return array
+     */
+    protected function keepExistingIdentifiers(array $currentData, $data, array $identifierNames)
+    {
+        // Keep only identifiers that are properties.
+        $identifierNames = array_filter($identifierNames, 'is_numeric');
+        foreach (array_keys(array_intersect_key($identifierNames, $currentData)) as $propertyTerm) {
+            if (isset($data[$propertyTerm]) && count($data[$propertyTerm])) {
+                $newData = array_merge(
+                    array_values($currentData[$propertyTerm]),
+                    array_values($data[$propertyTerm])
+                );
+                $data[$propertyTerm] = $this->deduplicateSinglePropertyValues($newData);
+            } else {
+                $data[$propertyTerm] = $currentData[$propertyTerm];
             }
         }
         return $data;
