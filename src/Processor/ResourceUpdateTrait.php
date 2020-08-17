@@ -278,17 +278,7 @@ trait ResourceUpdateTrait
      */
     protected function extractPropertyValuesFromResource($resourceJson)
     {
-        static $listOfTerms;
-        if (empty($listOfTerms)) {
-            $response = $this->api()->search('properties', []);
-            foreach ($response->getContent() as $member) {
-                $term = $member->term();
-                $listOfTerms[$term] = $term;
-            }
-        }
-        return array_intersect_key($resourceJson, $listOfTerms);
-        // TODO Replace this method by:
-        // return array_intersect_key($resourceJson, $this->getPropertyIds());
+        return array_intersect_key($resourceJson, $this->getPropertyIds());
     }
 
     /**
@@ -315,50 +305,62 @@ trait ResourceUpdateTrait
     /**
      * Deduplicate property values.
      *
+     * @param array $valuesByProperty
+     * @return array
+     */
+    protected function deduplicatePropertyValues($valuesByProperty)
+    {
+        return array_map([$this, 'deduplicateSinglePropertyValues'], $valuesByProperty);
+    }
+
+    /**
+     * Deduplicate values of a single property.
+     *
      * @param array $values
      * @return array
      */
-    protected function deduplicatePropertyValues($values)
+    protected function deduplicateSinglePropertyValues($values)
     {
-        // Base to normalize data in order to deduplicate them in one pass.
-        $base = [];
+        static $base;
 
-        $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
-        $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-        $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
-        foreach ($values as $key => $value) {
-            $values[$key] = array_values(
-                // Deduplicate values.
-                array_map('unserialize', array_unique(array_map(
-                    'serialize',
-                    // Normalize values.
-                    array_map(function ($v) use ($base) {
-                        // Data types "resource" and "uri" have "@id" (in json).
-                        if (array_key_exists('value_resource_id', $v)) {
-                            $mainType = 'resource';
-                        } else {
-                            $mainType = array_key_exists('@id', $v) ? 'uri' : 'literal';
-                        }
-                        // Keep order and meaning keys.
-                        $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
-                        $r['is_public'] = (bool) $r['is_public'];
-                        switch ($mainType) {
-                            case 'literal':
-                                if (empty($r['@language'])) {
-                                    $r['@language'] = null;
-                                }
-                                break;
-                            case 'uri':
-                                if (empty($r['o:label'])) {
-                                    $r['o:label'] = null;
-                                }
-                                break;
-                        }
-                        return $r;
-                    }, $value)
-                )))
-            );
+        if (is_null($base)) {
+            // Base to normalize data in order to deduplicate them in one pass.
+            $base = [];
+            $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
+            $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
+            $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
         }
-        return $values;
+
+        return array_values(
+            // Deduplicate values.
+            array_map('unserialize', array_unique(array_map(
+                'serialize',
+                // Normalize values.
+                array_map(function ($v) use ($base) {
+                    // Data types "resource" and "uri" have "@id" (in json).
+                    if (array_key_exists('value_resource_id', $v)) {
+                        $mainType = 'resource';
+                    } else {
+                        $mainType = array_key_exists('@id', $v) ? 'uri' : 'literal';
+                    }
+                    // Keep order and meaning keys.
+                    $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
+                    $r['is_public'] = (bool) $r['is_public'];
+                    switch ($mainType) {
+                        case 'literal':
+                            if (empty($r['@language'])) {
+                                $r['@language'] = null;
+                            }
+                            break;
+                        case 'uri':
+                            if (empty($r['o:label'])) {
+                                $r['o:label'] = null;
+                            }
+                            break;
+                    }
+                    return $r;
+                }, $values)
+            )))
+        );
     }
 }
