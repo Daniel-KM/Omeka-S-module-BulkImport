@@ -12,11 +12,23 @@ $escape = $this->plugin('escapeHtml');
 $hyperlink = $this->plugin('hyperlink');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-imports logs browse');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
-$this->headLink()->appendStylesheet($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.css', 'Log'));
-$this->headLink()->appendStylesheet($this->assetUrl('css/log.css', 'Log'));
-$this->headScript()->appendFile($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.js', 'Log'));
-$this->headScript()->appendFile($this->assetUrl('js/log.js', 'Log'));
+
+$script = <<<'JS'
+$(document).ready(function() {
+    $('select[name=severity]').on('change', function() {
+        $(this).closest('form').submit();
+    });
+});
+JS;
+
+$this->headLink()
+    ->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'))
+    ->appendStylesheet($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.css', 'Log'))
+    ->appendStylesheet($this->assetUrl('css/log.css', 'Log'));
+$this->headScript()
+    ->appendScript($script)
+    ->appendFile($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
+    ->appendFile($this->assetUrl('js/log.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
 $severityNames = [
     \Zend\Log\Logger::EMERG => $escape($translate('Emergency')),
     \Zend\Log\Logger::ALERT => $escape($translate('Alert')),
@@ -28,6 +40,12 @@ $severityNames = [
     \Zend\Log\Logger::DEBUG => $escape($translate('Debug')),
 ];
 ?>
+
+<script>
+$('select[name=severity]').on('change', function() {
+    $(this).closest('form').submit();
+});
+</script>
 
 <?= $this->pageTitle(sprintf($translate('Import #%d'), $resource->id()), 1, $translate('Bulk import')) ?>
 
@@ -46,7 +64,6 @@ $severityNames = [
                 <?php endforeach; ?>
             </select>
         </label>
-        <button type="submit"><?= $translate('Show') ?></button>
     </form>
 
 <?php if (count($logs)): ?>
