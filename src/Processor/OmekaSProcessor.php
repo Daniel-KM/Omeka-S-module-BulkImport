@@ -284,6 +284,8 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
         $this->checkAvailableModules();
 
+        $toImport = $this->getParam('resource_types') ?: [];
+
         // Check database integrity for assets.
         $this->logger->info(
             'Check integrity of assets.' // @translate
@@ -370,11 +372,13 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             return;
         }
 
-        // Second loop.
-        $this->logger->info(
-            'Finalization of assets.' // @translate
-        );
-        $this->fillAssets();
+        if (in_array('assets', $toImport)) {
+            // Second loop.
+            $this->logger->info(
+                'Finalization of assets.' // @translate
+            );
+            $this->fillAssets();
+        }
 
         $this->logger->info(
             'Preparation of metadata of all resources.' // @translate
@@ -962,6 +966,16 @@ SQL;
             'item_sets' => 'item_set',
         ];
 
+        $toImport = $this->getParam('resource_types') ?: [];
+        $resourceTypes = array_intersect_key($resourceTypes, array_flip($toImport));
+        if (isset($resourceTypes['media']) && !isset($resourceTypes['item'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Resource "media" cannot be imported without items.' // @translate
+            );
+            return;
+        }
+
         $ownerIdOrNull = $this->owner ? $this->owner->getId() : 'NULL';
 
         // Check the size of the import.
@@ -1027,6 +1041,7 @@ SQL;
             if ($resourceType === 'assets') {
                 $sql = '';
                 // Save the ids as storage, it should be unique anyway.
+                // FIXME Duplicates are possible when reimporting…
                 foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
                     $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
                 }
@@ -1242,6 +1257,12 @@ SQL;
             'items' => 'fillItem',
             'media' => 'fillMedia',
         ];
+
+        $toImport = $this->getParam('resource_types') ?: [];
+        $resourceTypes = array_intersect_key($resourceTypes, array_flip($toImport));
+        if (isset($resourceTypes['media']) && !isset($resourceTypes['item'])) {
+            unset($resourceTypes['media']);
+        }
 
         $this->refreshOwner();
 

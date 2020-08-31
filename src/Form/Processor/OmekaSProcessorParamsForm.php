@@ -58,7 +58,31 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                     'data-placeholder' => 'Select a user', // @translate
                     'data-api-base-url' => $urlHelper('api/default', ['resource' => 'users'], ['query' => ['sort_by' => 'email', 'sort_dir' => 'ASC']]),
                 ],
-            ]);
+            ])
+            ->add([
+                'name' => 'resources_types',
+                'type' => Element\MultiCheckbox::class,
+                'options' => [
+                    'label' => 'Resource types to import', // @translate
+                    'value_options' => [
+                        'items' => 'Items', // @translate
+                        'media' => 'Media', // @translate
+                        'item_sets' => 'Item sets', // @translate
+                        'assets' => 'Assets', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'resources_types',
+                    'value' => [
+                        'items',
+                        'media',
+                        'item_sets',
+                        'assets',
+                    ],
+                    'required' => false,
+                ],
+            ])
+        ;
     }
 
     protected function baseInputFilter()
@@ -66,6 +90,10 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
         $this->getInputFilter()
             ->add([
                 'name' => 'o:owner',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'resources_types',
                 'required' => false,
             ])
         ;
