@@ -59,7 +59,6 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                     'data-api-base-url' => $urlHelper('api/default', ['resource' => 'users'], ['query' => ['sort_by' => 'email', 'sort_dir' => 'ASC']]),
                 ],
             ]);
-        ;
     }
 
     protected function baseInputFilter()

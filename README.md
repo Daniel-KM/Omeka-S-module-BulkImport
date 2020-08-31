@@ -40,7 +40,7 @@ If the module was installed from the source, rename the name of the folder of
 the module to `BulkImport`, go to the root of the module, and run:
 
 ```
-    composer install
+composer install --no-dev
 ```
 
 Then install it like any other Omeka module.

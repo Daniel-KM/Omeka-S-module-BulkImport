@@ -245,7 +245,7 @@ class AutomapFields extends AbstractHelper
             }
             foreach ($properties as $property) {
                 $result['names'][$property->term()] = $property->term();
-                $name = $vocabulary->label() .  ':' . $property->label();
+                $name = $vocabulary->label() . ':' . $property->label();
                 if (isset($result['labels'][$name])) {
                     $result['labels'][$vocabulary->label() . ':' . $property->label() . ' (#' . $property->id() . ')'] = $property->term();
                 } else {

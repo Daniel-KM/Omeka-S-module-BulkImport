@@ -1028,7 +1028,7 @@ SQL;
                 $sql = '';
                 // Save the ids as storage, it should be unique anyway.
                 foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-                    $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' ."\n";
+                    $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
                 }
                 $this->connection->query($sql);
 
