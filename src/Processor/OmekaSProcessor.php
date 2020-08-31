@@ -288,7 +288,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->logger->info(
             'Check integrity of assets.' // @translate
         );
-        $this->checkResources();
+        $this->checkAssets();
         if ($this->hasError) {
             return;
         }
