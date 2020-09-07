@@ -761,6 +761,9 @@ SQL;
             }
             $this->map[$resourceType][$sourceTerm]['id'] = $member->id();
         }
+
+        // Prepare simple maps of source id and destination id.
+        $this->map['by_id'][$resourceType] = array_column($this->map[$resourceType], 'id', 'source');
     }
 
     protected function prepareCustomVocabs()
@@ -899,18 +902,67 @@ SQL;
         }
         unset($result);
 
+        $isMultiDatatypes = method_exists(\Omeka\Api\Representation\ResourceTemplatePropertyRepresentation::class, 'dataTypes');
+        $defaultDatatypes = $isMultiDatatypes ? [] : null;
+
         $index = 0;
         $created = 0;
         $skipped = 0;
         foreach ($this->reader->setObjectType('resource_templates') as $resourceTemplate) {
             ++$index;
-            if (isset($resourceTemplates[$resourceTemplate['o:label']])) {
-                if ($this->equalResourceTemplates($rts[$resourceTemplate['o:label']], $resourceTemplate)) {
-                    ++$skipped;
-                    $this->map['resource_templates'][$resourceTemplate['o:id']] = $rts[$resourceTemplate['o:label']]->id();
-                    continue;
-                }
+            // Clean the metadata to simplify check and import.
+            $resourceTemplateId = $resourceTemplate['o:id'];
+            unset($resourceTemplate['@id'], $resourceTemplate['o:id']);
+            $resourceTemplate['o:owner'] = $this->ownerOId;
 
+            $resourceTemplate['o:resource_class'] = !empty($resourceTemplate['o:resource_class']['o:id'])
+                && isset($this->map['by_id']['resource_classes'][$resourceTemplate['o:resource_class']['o:id']])
+                ? ['o:id' => $this->map['by_id']['resource_classes'][$resourceTemplate['o:resource_class']['o:id']]]
+                : null;
+            $resourceTemplate['o:title_property'] = !empty($resourceTemplate['o:title_property']['o:id'])
+                && !empty($this->map['by_id']['properties'][$resourceTemplate['o:title_property']['o:id']])
+                ? ['o:id' => $this->map['by_id']['properties'][$resourceTemplate['o:title_property']['o:id']]]
+                : null;
+            $resourceTemplate['o:description_property'] = !empty($resourceTemplate['o:description_property']['o:id'])
+                && !empty($this->map['by_id']['properties'][$resourceTemplate['o:description_property']['o:id']])
+                ? ['o:id' => $this->map['by_id']['properties'][$resourceTemplate['o:description_property']['o:id']]]
+                : null;
+            foreach ($resourceTemplate['o:resource_template_property'] as &$rtProperty) {
+                $rtProperty['o:property'] = !empty($rtProperty['o:property']['o:id'])
+                    && !empty($this->map['by_id']['properties'][$rtProperty['o:property']['o:id']])
+                    ? ['o:id' => $this->map['by_id']['properties'][$rtProperty['o:property']['o:id']]]
+                    : null;
+                // Convert unknown custom vocab into a literal.
+                if (strtok($rtProperty['o:data_type'], ':' === 'customvocab')) {
+                    $rtProperty['o:data_type'] = !empty($this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype'])
+                        ? $this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype']
+                        : $defaultDatatypes;
+                }
+                // Convert datatype idref of deprecated module IdRef into a
+                // literal or a valuesuggest.
+                if ($rtProperty['o:data_type'] === 'idref') {
+                    $rtProperty['o:data_type'] = !empty($this->modules['ValueSuggest'])
+                        ? 'valuesuggest:idref:person'
+                        : $defaultDatatypes;
+                }
+            }
+            unset($rtProperty);
+
+            // Loop all resource templates to know if label was renamed.
+            foreach ($rts as $rt) {
+                if ($this->equalResourceTemplates($rt, $resourceTemplate)) {
+                    ++$skipped;
+                    $this->map['resource_templates'][$resourceTemplate['o:id']] = $rt->id();
+                    $this->logger->notice(
+                        'Resource template "{label}" already exists.', // @translate
+                        ['label' => $resourceTemplate['o:label']]
+                    );
+                    continue 2;
+                }
+            }
+
+            // Rename the label if it already exists.
+            if (isset($resourceTemplates[$resourceTemplate['o:label']])) {
                 $sourceLabel = $resourceTemplate['o:label'];
                 $resourceTemplate['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
                     . ' ' . substr(bin2hex(\Zend\Math\Rand::getBytes(20)), 0, 5);
@@ -919,42 +971,6 @@ SQL;
                     ['old_label' => $sourceLabel, 'label' => $resourceTemplate['o:label']]
                 );
             }
-
-            $resourceTemplateId = $resourceTemplate['o:id'];
-            unset($resourceTemplate['@id'], $resourceTemplate['o:id']);
-            $resourceTemplate['o:owner'] = $this->ownerOId;
-            $resourceTemplate['o:resource_class'] = !empty($resourceTemplate['o:resource_class'])
-                && !empty($this->map['resource_classes'][$resourceTemplate['o:resource_class']['o:id']]['id'])
-                ? ['o:id' => $this->map['resource_classes'][$resourceTemplate['o:resource_class']['o:id']]['id']]
-                : null;
-            $resourceTemplate['o:title_property'] = !empty($resourceTemplate['o:title_property'])
-                && !empty($this->map['properties'][$resourceTemplate['o:title_property']['o:id']]['id'])
-                ? ['o:id' => $this->map['properties'][$resourceTemplate['o:title_property']['o:id']]['id']]
-                : null;
-            $resourceTemplate['o:description_property'] = !empty($resourceTemplate['o:description_property'])
-                && !empty($this->map['properties'][$resourceTemplate['o:description_property']['o:id']]['id'])
-                ? ['o:id' => $this->map['properties'][$resourceTemplate['o:description_property']['o:id']]['id']]
-                : null;
-            foreach ($resourceTemplate['o:resource_template_property'] as &$rtProperty) {
-                $rtProperty['o:property'] = !empty($rtProperty['o:property'])
-                    && !empty($this->map['properties'][$rtProperty['o:property']['o:id']]['id'])
-                    ? ['o:id' => $this->map['properties'][$rtProperty['o:property']['o:id']]['id']]
-                    : null;
-                // Convert unknown custom vocab into a literal.
-                if (strtok($rtProperty['o:data_type'], ':' === 'customvocab')) {
-                    $rtProperty['o:data_type'] = !empty($this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype'])
-                        ? $this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype']
-                        : 'literal';
-                }
-                // Convert datatype idref of deprecated module IdRef into a
-                // literal or a valuesuggest.
-                if ($rtProperty['o:data_type'] === 'idref') {
-                    $rtProperty['o:data_type'] = !empty($this->modules['ValueSuggest'])
-                        ? 'valuesuggest:idref:person'
-                        : 'literal';
-                }
-            }
-            unset($rtProperty);
 
             // TODO Use orm.
             $response = $this->api()->create('resource_templates', $resourceTemplate);
@@ -1832,54 +1848,57 @@ SQL;
         }
     }
 
+    /**
+     * @param \Omeka\Api\Representation\ResourceTemplateRepresentation $rta
+     * @param array $rtb
+     * @return boolean
+     */
     protected function equalResourceTemplates(
         \Omeka\Api\Representation\ResourceTemplateRepresentation $rta,
         array $rtb
     ) {
-        $resourceClassById = [];
-        foreach ($this->map['resource_classes'] as $resourceClass) {
-            $resourceClassById[$resourceClass['source']] = $resourceClass['id'];
-        }
-        $propertiesById = [];
-        foreach ($this->map['properties'] as $property) {
-            $propertiesById[$property['source']] = $property['id'];
-        }
-
-        // Local uris are incorrect since server base url may be not set in job.
         $rta = json_decode(json_encode($rta), true);
-        unset($rta['@context'], $rta['@id'], $rta['o:id'], $rta['o:owner'], $rta['o:resource_class']['@id'],
+
+        // Don't take the label into account.
+        $rta['o:label'] = $rtb['o:label'];
+        // Local uris are incorrect since server base url may be not set in job.
+        unset($rta['@context'], $rta['@type'], $rta['@id'], $rta['o:id'], $rta['o:owner'], $rta['o:resource_class']['@id'],
             $rta['o:title_property']['@id'], $rta['o:description_property']['@id']);
         foreach ($rta['o:resource_template_property'] as &$rtProperty) {
             unset($rtProperty['o:property']['@id']);
+            // To simplify comparaison, all empty values are removed.
+            $rtProperty = array_filter($rtProperty);
+            asort($rtProperty);
         }
         unset($rtProperty);
+        $rta['o:resource_template_property'] = array_values($rta['o:resource_template_property']);
 
-        unset($rtb['@context'], $rtb['@id'], $rtb['o:id'], $rtb['o:owner'], $rtb['o:resource_class']['@id'],
+        // Update the same for the remote resource template.
+        unset($rtb['@context'], $rtb['@type'], $rtb['@id'], $rtb['o:id'], $rtb['o:owner'], $rtb['o:resource_class']['@id'],
             $rtb['o:title_property']['@id'], $rtb['o:description_property']['@id']);
-        if ($rtb['o:resource_class']) {
-            $rtb['o:resource_class']['o:id'] = isset($resourceClassById[$rtb['o:resource_class']['o:id']])
-                ? $resourceClassById[$rtb['o:resource_class']['o:id']]
-                : null;
+        if (!empty($rtb['o:resource_class']['o:id'])) {
+            $rtb['o:resource_class']['o:id'] = (int) $rtb['o:resource_class']['o:id'];
         }
-        if ($rtb['o:title_property']) {
-            $rtb['o:title_property']['o:id'] = isset($propertiesById[$rtb['o:title_property']['o:id']])
-                ? $propertiesById[$rtb['o:title_property']['o:id']]
-                : null;
+        if (!empty($rtb['o:title_property']['o:id'])) {
+            $rtb['o:title_property']['o:id'] = (int) $rtb['o:title_property']['o:id'];
         }
-        if ($rtb['o:description_property']) {
-            $rtb['o:description_property']['o:id'] = isset($propertiesById[$rtb['o:description_property']['o:id']])
-                ? $propertiesById[$rtb['o:description_property']['o:id']]
-                : null;
+        if (!empty($rtb['o:description_property']['o:id'])) {
+            $rtb['o:description_property']['o:id'] = (int) $rtb['o:description_property']['o:id'];
         }
         foreach ($rtb['o:resource_template_property'] as &$rtProperty) {
             unset($rtProperty['o:property']['@id']);
-            $rtProperty['o:property']['o:id'] = isset($propertiesById[$rtProperty['o:property']['o:id']])
-                ? $propertiesById[$rtProperty['o:property']['o:id']]
-                : null;
+            $rtProperty['o:property']['o:id'] = (int) $rtProperty['o:property']['o:id'];
+            $rtProperty = array_filter($rtProperty);
+            asort($rtProperty);
         }
         unset($rtProperty);
+        $rtb['o:resource_template_property'] = array_values($rtb['o:resource_template_property']);
+        $rta = array_filter($rta);
+        $rtb = array_filter($rtb);
+        asort($rta);
+        asort($rtb);
 
-        return $rta === $rtb;
+        return $rta == $rtb;
     }
 
     /**
