@@ -8,10 +8,10 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use finfo;
+use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\VocabularyRepresentation;
 use Zend\Form\Form;
-use Log\Stdlib\PsrMessage;
 
 /**
  * @todo The processor is only parametrizable currently.
@@ -502,19 +502,23 @@ SQL;
      */
     protected function checkVocabulary(array $vocabulary, $skipLog = false)
     {
-        try {
+        // Check existing namespace, but avoid some issues with uri, that may
+        // have a trailing "#" or "/".
+        $vocabularies = $this->bulk->getVocabularyUris(true);
+        $prefix = array_search(rtrim($vocabulary['o:namespace_uri'], '#/'), $vocabularies);
+        if ($prefix) {
             /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
             $vocabularyRepresentation = $this->api()
                 // Api "search" uses "namespace_uri", but "read" uses "namespaceUri".
-                ->read('vocabularies', ['namespaceUri' => $vocabulary['o:namespace_uri']])->getContent();
+                ->read('vocabularies', ['prefix' => $prefix])->getContent();
             if ($vocabularyRepresentation->prefix() !== $vocabulary['o:prefix']) {
-                $vocabulary['o:prefix'] = $vocabularyRepresentation->prefix();
                 if (!$skipLog) {
                     $this->logger->notice(
-                        'Vocabulary {prefix} exists as vocabulary #{vocabulary_id}, but the prefix is not the same.', // @translate
-                        ['prefix' => $vocabulary['o:prefix'], 'vocabulary_id' => $vocabularyRepresentation->id()]
+                        'Vocabulary "{prefix}" exists as vocabulary #{vocabulary_id}, but the prefix is not the same ("{prefix_2}").', // @translate
+                        ['prefix' => $vocabularyRepresentation->prefix(), 'vocabulary_id' => $vocabularyRepresentation->id(), 'prefix_2' => $vocabulary['o:prefix']]
                     );
                 }
+                $vocabulary['o:prefix'] = $vocabularyRepresentation->prefix();
             }
             return [
                 'status' => 'success',
@@ -523,7 +527,6 @@ SQL;
                     'destination' => $vocabularyRepresentation,
                 ],
             ];
-        } catch (NotFoundException $e) {
         }
 
         try {

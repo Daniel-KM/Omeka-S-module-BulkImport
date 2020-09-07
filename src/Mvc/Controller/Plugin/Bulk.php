@@ -238,7 +238,7 @@ class Bulk extends AbstractPlugin
     {
         $ids = $this->getResourceClassIds();
         return is_numeric($termOrId)
-            ? (array_search($termOrId, $ids ) ?: null)
+            ? (array_search($termOrId, $ids) ?: null)
             : (array_key_exists($termOrId, $ids) ? $termOrId : null);
     }
 
@@ -322,7 +322,7 @@ class Bulk extends AbstractPlugin
     {
         $ids = $this->getResourceTemplateIds();
         return is_numeric($labelOrId)
-            ? (array_search($labelOrId, $ids ) ?: null)
+            ? (array_search($labelOrId, $ids) ?: null)
             : (array_key_exists($labelOrId, $ids) ? $labelOrId : null);
     }
 
@@ -362,6 +362,40 @@ class Bulk extends AbstractPlugin
     public function getResourceTemplateLabels()
     {
         return array_flip($this->getResourceTemplateIds());
+    }
+
+    /**
+     * Get the list of vocabulary uris by prefix.
+     *
+     * @param bool $fixed If fixed, the uri are returned without final "#" and "/".
+     * @return array
+     */
+    public function getVocabularyUris($fixed = false)
+    {
+        static $vocabularies;
+        static $fixedVocabularies;
+        if (!is_null($vocabularies)) {
+            return $fixed ? $fixedVocabularies : $vocabularies;
+        }
+
+        $connection = $this->services->get('Omeka\Connection');
+        $qb = $connection->createQueryBuilder();
+        $qb
+            ->select([
+                'vocabulary.prefix AS prefix',
+                'vocabulary.namespace_uri AS uri',
+            ])
+            ->from('vocabulary', 'vocabulary')
+            ->orderBy('vocabulary.prefix', 'asc')
+        ;
+        $stmt = $connection->executeQuery($qb);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $vocabularies = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $vocabularies = array_column($vocabularies, 'uri', 'prefix');
+        $fixedVocabularies = array_map(function ($v) {
+            return rtrim($v, '#/');
+        }, $vocabularies);
+        return $fixed ? $fixedVocabularies : $vocabularies;
     }
 
     /**

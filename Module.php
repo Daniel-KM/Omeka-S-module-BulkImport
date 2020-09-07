@@ -55,7 +55,7 @@ class Module extends AbstractModule
             \Omeka\Media\Ingester\Manager::class,
             'service.registered_names',
             [$this, 'handleMediaIngesterRegisteredNames']
-       );
+        );
     }
 
     /**
