@@ -56,6 +56,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionIdentifier;
 
     /**
+     * @var string
+     */
+    protected $actionMedia;
+
+    /**
+     * @var string
+     */
+    protected $actionItemSet;
+
+    /**
      * @var bool
      */
     protected $hasMapping = false;
@@ -145,6 +155,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'action_unidentified' => null,
             'identifier_name' => null,
             'action_identifier_update' => null,
+            'action_media_update' => null,
+            'action_item_set_update' => null,
             'allow_duplicate_identifiers' => false,
             'entries_to_skip' => 0,
             'entries_by_batch' => null,
@@ -174,6 +186,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->prepareIdentifierNames();
 
         $this->prepareActionIdentifier();
+        $this->prepareActionMedia();
+        $this->prepareActionItemSet();
 
         $this->prepareMapping();
 
@@ -708,27 +722,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // In the api manager, batchUpdate() allows to update a set of resources
         // with the same data. Here, data are specific to each entry, so each
         // resource is updated separately.
-        $options = [];
-        $fileData = [];
+
         // Clone is required to keep option to throw issue. The api plugin may
         // be used by other methods.
         $api = clone $this->api(null, true);
         foreach ($data as $dataResource) {
+            $options = [];
+            $fileData = [];
             switch ($this->action) {
                 case self::ACTION_APPEND:
-                    $dataResource = $this->updateData($resourceType, $dataResource, $this->action);
+                case self::ACTION_REPLACE:
                     $options['isPartial'] = false;
                     break;
                 case self::ACTION_REVISE:
                 case self::ACTION_UPDATE:
-                    $dataResource = $this->updateData($resourceType, $dataResource, $this->action, $this->actionIdentifier, $this->getIdentifierNames());
                     $options['isPartial'] = true;
                     $options['collectionAction'] = 'replace';
                     break;
-                case self::ACTION_REPLACE:
-                    $options['isPartial'] = false;
-                    break;
+                default:
+                    return;
             }
+            $dataResource = $this->updateData($resourceType, $dataResource);
 
             try {
                 $response = $api->update($resourceType, $dataResource['o:id'], $dataResource, $fileData, $options);
@@ -963,18 +977,48 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->actionIdentifier = $this->getParam('action_identifier_update') ?: self::ACTION_APPEND;
-        if (!in_array($this->actionUnidentified, [
-            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
+        if (!in_array($this->actionIdentifier, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
         ])) {
-            $this->actionIdentifier = self::ACTION_APPEND;
             $this->logger->err(
                 'Action "{action}" for identifier is not managed.', // @translate
-                ['action' => $this->actionUnidentified]
+                ['action' => $this->actionIdentifier]
             );
+            $this->actionIdentifier = self::ACTION_APPEND;
         }
 
         // TODO Prepare the list of identifiers one time (only properties) (see extractIdentifiers())?
+    }
+
+    protected function prepareActionMedia()
+    {
+        $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionMedia, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->logger->err(
+                'Action "{action}" for media (update of item) is not managed.', // @translate
+                ['action' => $this->actionMedia]
+            );
+            $this->actionMedia = self::ACTION_APPEND;
+        }
+    }
+
+    protected function prepareActionItemSet()
+    {
+        $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionItemSet, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->logger->err(
+                'Action "{action}" for item set (update of item) is not managed.', // @translate
+                ['action' => $this->actionItemSet]
+            );
+            $this->actionItemSet = self::ACTION_APPEND;
+        }
     }
 
     /**

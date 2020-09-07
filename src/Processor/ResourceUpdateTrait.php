@@ -28,17 +28,13 @@ trait ResourceUpdateTrait
      *
      * Note: when the targets are set on multiple columns, all data are removed.
      *
-     * @todo What to do with other data, and external data?
+     * @todo What to do with external data?
      *
      * @param string $resourceType
      * @param array $data Should have an existing and checked "o:id".
-     * @param string $action "update" or "revise"
-     * @param string $actionIdentifier "append" or "update", used only for
-     *   update processes.
-     * @param array $IdentifierNames
      * @return array
      */
-    protected function updateData($resourceType, $data, $action, $actionIdentifier, $identifierNames)
+    protected function updateData($resourceType, $data)
     {
         $resource = $this->api()->read($resourceType, $data['o:id'])->getContent();
 
@@ -55,16 +51,34 @@ trait ResourceUpdateTrait
                 $data = $action === self::ACTION_REVISE
                     ? $this->removeEmptyData($data)
                     : $this->fillEmptyData($data);
-                if ($actionIdentifier === \BulkImport\Processor\AbstractProcessor::ACTION_APPEND) {
-                    $data = $this->keepExistingIdentifiers($currentData, $data, $identifierNames);
+                if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->getIdentifierNames());
+                }
+                if ($resourceType === 'items') {
+                    if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                        $data = $this->keepExistingMedia($currentData, $data);
+                    }
+                    if ($this->actionItemSet !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                        $data = $this->keepExistingItemSets($currentData, $data);
+                    }
                 }
                 $replaced = $this->replacePropertyValues($currentData, $data);
                 $newData = array_replace($data, $replaced);
                 break;
+            case \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE:
+                if ($resourceType === 'items') {
+                    if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                        $newData = $this->keepExistingMedia($currentData, $data);
+                    }
+                    if ($this->actionItemSet !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                        $newData = $this->keepExistingItemSets($currentData, $data);
+                    }
+                }
+                break;
             default:
                 $this->logger->err(
                     'Index #{index}: Unable to update data with action "{action}".', // @translate
-                    ['index' => $this->indexResource, 'action' => $action]
+                    ['index' => $this->indexResource, 'action' => $this->action]
                 );
                 ++$this->totalErrors;
                 return $currentData;
@@ -216,6 +230,64 @@ trait ResourceUpdateTrait
                 $data[$propertyTerm] = $this->deduplicateSinglePropertyValues($newData);
             } else {
                 $data[$propertyTerm] = $currentData[$propertyTerm];
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Prepend existing media to new data.
+     *
+     * @param array $currentData
+     * @param array $data
+     * @return array
+     */
+    protected function keepExistingMedia(array $currentData, $data)
+    {
+        if (empty($currentData['o:media'])) {
+            return $data;
+        }
+        if (empty($data['o:media'])) {
+            $data['o:media'] = $currentData['o:media'];
+            return $data;
+        }
+        $currentIds = array_map(function ($v) {
+            return (int) $v['o:id'];
+        }, $currentData['o:media']);
+        $dataMedias = $data['o:media'];
+        $data['o:media'] = $currentData['o:media'];
+        foreach ($dataMedias as $newMedia) {
+            if (empty($newMedia['o:id']) || !in_array($newMedia['o:id'], $currentIds)) {
+                $data['o:media'][] = $newMedia;
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Prepend existing item set to new data.
+     *
+     * @param array $currentData
+     * @param array $data
+     * @return array
+     */
+    protected function keepExistingItemSets(array $currentData, $data)
+    {
+        if (empty($currentData['o:item_set'])) {
+            return $data;
+        }
+        if (empty($data['o:item_set'])) {
+            $data['o:item_set'] = $currentData['o:item_set'];
+            return $data;
+        }
+        $currentIds = array_map(function ($v) {
+            return (int) $v['o:id'];
+        }, $currentData['o:item_set']);
+        $dataItemSets = $data['o:item_set'];
+        $data['o:item_set'] = $currentData['o:item_set'];
+        foreach ($dataItemSets as $newItemSet) {
+            if (empty($newItemSet['o:id']) || !in_array($newItemSet['o:id'], $currentIds)) {
+                $data['o:item_set'][] = $newItemSet;
             }
         }
         return $data;

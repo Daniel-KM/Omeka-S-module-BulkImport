@@ -214,6 +214,40 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         ]);
 
         $this->add([
+            'name' => 'action_media_update',
+            'type' => Element\Radio::class,
+            'options' => [
+                'label' => 'Action on media', // @translate
+                'info' => 'When a "revise" or an "update" is done, the media may be updated, but you may want to keep existing ones.', // @translate
+                'value_options' => [
+                    \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep media', // @translate
+                    \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                ],
+            ],
+            'attributes' => [
+                'id' => 'action_media_update',
+                'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+            ],
+        ]);
+
+        $this->add([
+            'name' => 'action_item_set_update',
+            'type' => Element\Radio::class,
+            'options' => [
+                'label' => 'Action on item set', // @translate
+                'info' => 'When a "revise" or an "update" is done, the item set may be updated, but you may want to keep existing ones.', // @translate
+                'value_options' => [
+                    \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep item sets', // @translate
+                    \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                ],
+            ],
+            'attributes' => [
+                'id' => 'action_item_set_update',
+                'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+            ],
+        ]);
+
+        $this->add([
             'name' => 'allow_duplicate_identifiers',
             'type' => Element\Checkbox::class,
             'options' => [
@@ -333,6 +367,14 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ])
             ->add([
                 'name' => 'action_identifier_update',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'action_media_update',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'action_item_set_update',
                 'required' => false,
             ])
             ->add([
