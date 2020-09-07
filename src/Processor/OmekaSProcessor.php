@@ -1068,15 +1068,15 @@ SQL;
             if ($resourceType === 'assets') {
                 $sql = '';
                 // Save the ids as storage, it should be unique anyway.
-                // FIXME Duplicates are possible when reimporting…
+                // Duplicates are possible when reimporting, so use "ignore".
                 foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-                    $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
+                    $sql .= 'INSERT IGNORE INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
                 }
                 $this->connection->query($sql);
 
                 // Get the mapping of source and destination ids.
                 $sql = <<<SQL
-SELECT `asset`.`storage_id` AS `s`, `asset`.`id `AS `d`
+SELECT `asset`.`storage_id` AS `s`, `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`name` = ""
     AND `asset`.`media_type` = ""
