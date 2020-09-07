@@ -62,7 +62,6 @@ class AutomapFields extends AbstractHelper
      * used.
      * The visibility of each data can be public or private, prefixed by "§".
      *
-     *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
      *
      * @param array $fields

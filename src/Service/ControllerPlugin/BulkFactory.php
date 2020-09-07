@@ -1,4 +1,5 @@
 <?php
+
 namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\Bulk;

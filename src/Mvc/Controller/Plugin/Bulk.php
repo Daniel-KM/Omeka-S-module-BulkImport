@@ -137,10 +137,10 @@ class Bulk extends AbstractPlugin
      */
     public function getPropertyId($termOrId)
     {
-        $propertyIds = $this->getPropertyIds();
+        $ids = $this->getPropertyIds();
         return is_numeric($termOrId)
-            ? (array_search($termOrId, $propertyIds) ? $termOrId : null)
-            : (isset($propertyIds[$termOrId]) ? $propertyIds[$termOrId] : null);
+            ? (array_search($termOrId, $ids) ? $termOrId : null)
+            : ($ids[$termOrId] ?? null);
     }
 
     /**
@@ -151,10 +151,10 @@ class Bulk extends AbstractPlugin
      */
     public function getPropertyTerm($termOrId)
     {
-        $propertyIds = $this->getPropertyIds();
+        $ids = $this->getPropertyIds();
         return is_numeric($termOrId)
-            ? (array_search($termOrId, $propertyIds) ?: null)
-            : (isset($propertyIds[$termOrId]) ? $termOrId : null);
+            ? (array_search($termOrId, $ids) ?: null)
+            : (array_key_exists($termOrId, $ids) ? $termOrId : null);
     }
 
     /**
@@ -168,14 +168,27 @@ class Bulk extends AbstractPlugin
             return $this->properties;
         }
 
-        $this->properties = [];
-        $properties = $this->api()
-            ->search('properties', [], ['responseContent' => 'resource'])->getContent();
-        foreach ($properties as $property) {
-            $term = $property->getVocabulary()->getPrefix() . ':' . $property->getLocalName();
-            $this->properties[$term] = $property->getId();
-        }
-
+        $connection = $this->services->get('Omeka\Connection');
+        $qb = $connection->createQueryBuilder();
+        $qb
+            ->select([
+                'DISTINCT property.id AS id',
+                'CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
+                // Only the two first selects are needed, but some databases
+                // require "order by" or "group by" value to be in the select.
+                'vocabulary.id',
+                'property.id',
+            ])
+            ->from('property', 'property')
+            ->innerJoin('property', 'vocabulary', 'vocabulary', 'property.vocabulary_id = vocabulary.id')
+            ->orderBy('vocabulary.id', 'asc')
+            ->addOrderBy('property.id', 'asc')
+            ->addGroupBy('property.id')
+        ;
+        $stmt = $connection->executeQuery($qb);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $this->properties = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->properties = array_column($this->properties, 'id', 'term');
         return $this->properties;
     }
 
@@ -208,10 +221,24 @@ class Bulk extends AbstractPlugin
      */
     public function getResourceClassId($termOrId)
     {
-        $resourceClassIds = $this->getResourceClassIds();
+        $ids = $this->getResourceClassIds();
         return is_numeric($termOrId)
-            ? (array_search($termOrId, $resourceClassIds) ? $termOrId : null)
-            : (isset($resourceClassIds[$termOrId]) ? $resourceClassIds[$termOrId] : null);
+            ? (array_search($termOrId, $ids) ? $termOrId : null)
+            : ($ids[$termOrId] ?? null);
+    }
+
+    /**
+     * Get a resource class term by term or id.
+     *
+     * @param string|int $termOrId
+     * @return string|null
+     */
+    public function getResourceClassTerm($termOrId)
+    {
+        $ids = $this->getResourceClassIds();
+        return is_numeric($termOrId)
+            ? (array_search($termOrId, $ids ) ?: null)
+            : (array_key_exists($termOrId, $ids) ? $termOrId : null);
     }
 
     /**
@@ -225,15 +252,38 @@ class Bulk extends AbstractPlugin
             return $this->resourceClasses;
         }
 
-        $this->resourceClasses = [];
-        $resourceClasses = $this->api()
-            ->search('resource_classes', [], ['responseContent' => 'resource'])->getContent();
-        foreach ($resourceClasses as $resourceClass) {
-            $term = $resourceClass->getVocabulary()->getPrefix() . ':' . $resourceClass->getLocalName();
-            $this->resourceClasses[$term] = $resourceClass->getId();
-        }
-
+        $connection = $this->services->get('Omeka\Connection');
+        $qb = $connection->createQueryBuilder();
+        $qb
+            ->select([
+                'DISTINCT resource_class.id AS id',
+                "CONCAT(vocabulary.prefix, ':', resource_class.local_name) AS term",
+                // Only the two first selects are needed, but some databases
+                // require "order by" or "group by" value to be in the select.
+                'vocabulary.id',
+                'resource_class.id',
+            ])
+            ->from('resource_class', 'resource_class')
+            ->innerJoin('resource_class', 'vocabulary', 'vocabulary', 'resource_class.vocabulary_id = vocabulary.id')
+            ->orderBy('vocabulary.id', 'asc')
+            ->addOrderBy('resource_class.id', 'asc')
+            ->addGroupBy('resource_class.id')
+        ;
+        $stmt = $connection->executeQuery($qb);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $this->resourceClasses = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->resourceClasses = array_column($this->resourceClasses, 'id', 'term');
         return $this->resourceClasses;
+    }
+
+    /**
+     * Get all resource class terms by id.
+     *
+     * @return array Associative array of terms by id.
+     */
+    public function getResourceClassTerms()
+    {
+        return array_flip($this->getResourceClassIds());
     }
 
     /**
@@ -255,10 +305,24 @@ class Bulk extends AbstractPlugin
      */
     public function getResourceTemplateId($labelOrId)
     {
-        $resourceTemplateIds = $this->getResourceTemplateIds();
+        $ids = $this->getResourceTemplateIds();
         return is_numeric($labelOrId)
-            ? (array_search($labelOrId, $resourceTemplateIds) ? $labelOrId : null)
-            : (isset($resourceTemplateIds[$labelOrId]) ? $resourceTemplateIds[$labelOrId] : null);
+            ? (array_search($labelOrId, $ids) ? $labelOrId : null)
+            : ($ids[$labelOrId] ?? null);
+    }
+
+    /**
+     * Get a resource template label by label or id.
+     *
+     * @param string|int $labelOrId
+     * @return string|null
+     */
+    public function getResourceTemplateLabel($labelOrId)
+    {
+        $ids = $this->getResourceTemplateIds();
+        return is_numeric($labelOrId)
+            ? (array_search($labelOrId, $ids ) ?: null)
+            : (array_key_exists($labelOrId, $ids) ? $labelOrId : null);
     }
 
     /**
@@ -272,29 +336,57 @@ class Bulk extends AbstractPlugin
             return $this->resourceTemplates;
         }
 
-        $this->resourceTemplate = [];
-        $resourceTemplates = $this->api()
-            ->search('resource_templates', [], ['responseContent' => 'resource'])->getContent();
-        foreach ($resourceTemplates as $resourceTemplate) {
-            $this->resourceTemplates[$resourceTemplate->getLabel()] = $resourceTemplate->getId();
-        }
-
+        $connection = $this->services->get('Omeka\Connection');
+        $qb = $connection->createQueryBuilder();
+        $qb
+            ->select([
+                'resource_template.id AS id',
+                'resource_template.label AS label',
+            ])
+            ->from('resource_template', 'resource_template')
+            ->orderBy('resource_template.id', 'asc')
+        ;
+        $stmt = $connection->executeQuery($qb);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $this->resourceTemplates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->resourceTemplates = array_column($this->resourceTemplates, 'id', 'label');
         return $this->resourceTemplates;
     }
 
     /**
-     * @param string $type
-     * @return string|null
+     * Get all resource template labels by id.
+     *
+     * @return array Associative array of labels by id.
      */
-    public function getDataType($type)
+    public function getResourceTemplateLabels()
     {
-        $dataTypes = $this->getDataTypes();
-        return isset($dataTypes[$type])
-            ? $dataTypes[$type]
-            : null;
+        return array_flip($this->getResourceTemplateIds());
     }
 
     /**
+     * Check if a string is a managed data type.
+     *
+     * @param string $dataType
+     * @return bool
+     */
+    public function isDataType($dataType)
+    {
+        return array_key_exists($dataType, $this->getDataTypes());
+    }
+
+    /**
+     * @param string $dataType
+     * @return string|null
+     */
+    public function getDataType($dataType)
+    {
+        $dataTypes = $this->getDataTypes();
+        return $dataTypes[$dataType] ?? null;
+    }
+
+    /**
+     * @todo Remove the short data types.
+     *
      * @return array
      */
     public function getDataTypes()
