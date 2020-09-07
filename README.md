@@ -31,7 +31,7 @@ See general end user documentation for [installing a module].
 
 * From the zip
 
-Download the last release [`BulkImport.zip`] from the list of releases, and
+Download the last release [BulkImport.zip] from the list of releases, and
 uncompress it in the `modules` directory.
 
 * From the source and for development
@@ -150,10 +150,13 @@ Media can be imported with the item. The mapping is automatic with headers `Medi
 TODO
 ----
 
-- Full dry-run.
-- Fix numeric data type (doctrine issue).
-- Distinction between skipped and blank (for spreadsheet).
-- Update for module Mapping.
+- [ ] Full dry-run.
+- [ ] Fix numeric data type (doctrine issue).
+- [ ] Distinction between skipped and blank (for spreadsheet).
+- [ ] Update for module Mapping.
+- [ ] Import of users, in particular for Omeka S import.
+- [ ] Skip import of vocabularies and resource templates for Omeka S import.
+- [ ] Manage import of Custom vocab with items.
 
 
 Warning
@@ -219,7 +222,7 @@ by [BibLibre].
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
 [Generic]: https://github.com/Daniel-KM/Omeka-S-module-Generic
 [Log]: https://github.com/Daniel-KM/Omeka-S-module-Log
-[`BulkImport.zip`]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases
+[BulkImport.zip]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases
 [installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
 [module issues]: https://github.com/Daniel-KM/Omeka-S-module-BulkImport/issues
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
