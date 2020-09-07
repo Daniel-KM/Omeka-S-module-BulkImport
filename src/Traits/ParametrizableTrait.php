@@ -33,9 +33,8 @@ trait ParametrizableTrait
      */
     public function getParam($name, $default = null)
     {
-        if (array_key_exists($name, $this->params)) {
-            return $this->params[$name];
-        }
-        return $default;
+        return array_key_exists($name, $this->params)
+            ? $this->params[$name]
+            : $default;
     }
 }

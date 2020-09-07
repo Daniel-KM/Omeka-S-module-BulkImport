@@ -5,6 +5,7 @@ use ArrayObject;
 use BulkImport\Form\Processor\OmekaSProcessorConfigForm;
 use BulkImport\Form\Processor\OmekaSProcessorParamsForm;
 use BulkImport\Interfaces\Parametrizable;
+use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use finfo;
 use Omeka\Api\Exception\NotFoundException;
@@ -17,6 +18,7 @@ use Log\Stdlib\PsrMessage;
  */
 class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 {
+    use ConfigurableTrait;
     use ParametrizableTrait;
 
     /**
@@ -224,8 +226,21 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->handleFormGeneric($params, $values);
         $defaults = [
             'o:owner' => null,
+            'types' => [
+                'items',
+                'media',
+                'item_sets',
+                'assets',
+                'vocabularies',
+                'resource_templates',
+                'custom_vocabs',
+            ],
         ];
         $params = array_intersect_key($params->getArrayCopy(), $defaults);
+        // TODO Finalize skip import of vocabularies, resource_templates and custom vocabs.
+        $params['types'][] = 'vocabularies';
+        $params['types'][] = 'resource_templates';
+        $params['types'][] = 'custom_vocabs';
         $this->setParams($params);
     }
 
@@ -236,6 +251,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             'key_identity' => null,
             'key_credential' => null,
             'o:owner' => null,
+            'types' => [],
         ];
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
         // TODO Manage check of duplicate identifiers during dry-run.
@@ -260,12 +276,12 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->allowedDataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
 
         // The owner should be reloaded each time the entity manager is flushed.
-        $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
-        if ($ownerId === 'current') {
+        $ownerIdParam = $this->getParam('o:owner', 'current') ?: 'current';
+        if ($ownerIdParam === 'current') {
             $identity = $services->get('ControllerPluginManager')->get('identity');
             $this->owner = $identity();
-        } elseif ($ownerId) {
-            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerId);
+        } elseif ($ownerIdParam) {
+            $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerIdParam);
         }
         $this->ownerId = $this->owner ? $this->owner->getId() : null;
         $this->ownerOId = $this->owner ? ['o:id' => $this->owner->getId()] : null;
@@ -284,7 +300,9 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
         $this->checkAvailableModules();
 
-        $toImport = $this->getParam('resource_types') ?: [];
+        $toImport = $this->getParam('types') ?: [];
+
+        // Pre-process: check the Omeka database for assets aad resources.
 
         // Check database integrity for assets.
         $this->logger->info(
@@ -307,61 +325,70 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         // FIXME  Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
 
         // First step: check and create all vocabularies
-        $this->logger->info(
-            'Check vocabularies.' // @translate
-        );
-        $this->checkVocabularies();
-        if ($this->hasError) {
-            return;
-        }
 
-        $this->logger->info(
-            'Preparation of vocabularies.' // @translate
-        );
-        $this->prepareVocabularies();
-        if ($this->hasError) {
-            return;
-        }
+        if (in_array('vocabularies', $toImport)) {
+            $this->logger->info(
+                'Check vocabularies.' // @translate
+            );
+            $this->checkVocabularies();
+            if ($this->hasError) {
+                return;
+            }
 
-        $this->logger->info(
-            'Preparation of properties.' // @translate
-        );
-        $this->prepareProperties();
-        if ($this->hasError) {
-            return;
-        }
+            $this->logger->info(
+                'Preparation of vocabularies.' // @translate
+            );
+            $this->prepareVocabularies();
+            if ($this->hasError) {
+                return;
+            }
 
-        $this->logger->info(
-            'Preparation of resource classes.' // @translate
-        );
-        $this->prepareResourceClasses();
-        if ($this->hasError) {
-            return;
+            $this->logger->info(
+                'Preparation of properties.' // @translate
+            );
+            $this->prepareProperties();
+            if ($this->hasError) {
+                return;
+            }
+
+            $this->logger->info(
+                'Preparation of resource classes.' // @translate
+            );
+            $this->prepareResourceClasses();
+            if ($this->hasError) {
+                return;
+            }
         }
 
         // TODO Refresh the bulk lists for properties, resource classes and templates.
 
-        $this->logger->info(
-            'Check custom vocabs.' // @translate
-        );
-        $this->prepareCustomVocabs();
-        if ($this->hasError) {
-            return;
+        if (in_array('custom_vocabs', $toImport)) {
+            $this->logger->info(
+                'Check custom vocabs.' // @translate
+            );
+            $this->prepareCustomVocabs();
+            if ($this->hasError) {
+                return;
+            }
         }
 
-        $this->logger->info(
-            'Preparation of resource templates.' // @translate
-        );
-        $this->prepareResourceTemplates();
-        if ($this->hasError) {
-            return;
+        if (in_array('resource_templates', $toImport)) {
+            $this->logger->info(
+                'Preparation of resource templates.' // @translate
+            );
+            $this->prepareResourceTemplates();
+            if ($this->hasError) {
+                return;
+            }
         }
 
-        // The process uses two steps: creation of all resources empty, then
-        // fill all resources. This process is required to manage relations
-        // between resources, while any other user can create new resources at
-        // the same time. This process is required for assets too in order to
-        // get the mapping of ids for thumbnails.
+        // Second step: import the data.
+
+        // The process uses two loops: creation of all resources empty, then
+        // filling them. This process is required to manage relations between
+        // resources, while any other user can create new resources at the same
+        // time. This process is required for assets too in order to get the
+        // mapping of ids for thumbnails.
 
         // First loop: create one resource by resource.
         $this->logger->info(
@@ -966,9 +993,9 @@ SQL;
             'item_sets' => 'item_set',
         ];
 
-        $toImport = $this->getParam('resource_types') ?: [];
+        $toImport = $this->getParam('types') ?: [];
         $resourceTypes = array_intersect_key($resourceTypes, array_flip($toImport));
-        if (isset($resourceTypes['media']) && !isset($resourceTypes['item'])) {
+        if (isset($resourceTypes['media']) && !isset($resourceTypes['items'])) {
             $this->hasError = true;
             $this->logger->err(
                 'Resource "media" cannot be imported without items.' // @translate
@@ -1258,9 +1285,9 @@ SQL;
             'media' => 'fillMedia',
         ];
 
-        $toImport = $this->getParam('resource_types') ?: [];
+        $toImport = $this->getParam('types') ?: [];
         $resourceTypes = array_intersect_key($resourceTypes, array_flip($toImport));
-        if (isset($resourceTypes['media']) && !isset($resourceTypes['item'])) {
+        if (isset($resourceTypes['media']) && !isset($resourceTypes['items'])) {
             unset($resourceTypes['media']);
         }
 
@@ -1414,7 +1441,7 @@ SQL;
                     } else {
                         $datatype = $value['type'] = 'literal';
                         $this->logger->warn(
-                            'Value with datatype {type} for resource #{id} is changed to literal.', // @translate
+                            'Value with datatype "{type}" for resource #{id} is changed to literal.', // @translate
                             ['type' => $value['type'], 'id' => $this->entity->getId()]
                         );
                     }

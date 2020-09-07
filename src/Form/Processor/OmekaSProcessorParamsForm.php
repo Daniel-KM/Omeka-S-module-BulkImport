@@ -60,24 +60,30 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 ],
             ])
             ->add([
-                'name' => 'resources_types',
+                'name' => 'types',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
-                    'label' => 'Resource types to import', // @translate
+                    'label' => 'Types to import', // @translate
                     'value_options' => [
                         'items' => 'Items', // @translate
                         'media' => 'Media', // @translate
                         'item_sets' => 'Item sets', // @translate
                         'assets' => 'Assets', // @translate
+                        // 'vocabularies' => 'Vocabularies', // @translate
+                        // 'resource_templates' => 'Resource templates', // @translate
+                        // 'custom_vocabs' => 'Custom vocabs', // @translate
                     ],
                 ],
                 'attributes' => [
-                    'id' => 'resources_types',
+                    'id' => 'types',
                     'value' => [
                         'items',
                         'media',
                         'item_sets',
                         'assets',
+                        // 'vocabularies',
+                        // 'resource_templates',
+                        // 'custom_vocabs',
                     ],
                     'required' => false,
                 ],
@@ -93,7 +99,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 'required' => false,
             ])
             ->add([
-                'name' => 'resources_types',
+                'name' => 'types',
                 'required' => false,
             ])
         ;
