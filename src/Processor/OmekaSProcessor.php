@@ -1047,14 +1047,26 @@ SQL;
 
         // Prepare the list of all ids.
         $mediaItems = [];
-
+        $assets = [];
         foreach (array_keys($resourceTypes) as $resourceType) {
+            $this->map[$resourceType] = [];
             // Only the ids are needed here, except for media, that require the
             // item id (mapped below).
             if ($resourceType === 'media') {
                 foreach ($this->reader->setObjectType($resourceType) as $resource) {
                     $this->map[$resourceType][(int) $resource['o:id']] = null;
                     $mediaItems[(int) $resource['o:id']] = (int) $resource['o:item']['o:id'];
+                }
+            } elseif ($resourceType === 'assets') {
+                // Get the storage ids.
+                foreach ($this->reader->setObjectType($resourceType) as $resource) {
+                    $this->map[$resourceType][(int) $resource['o:id']] = null;
+                    // Remove extension manually because module ebook uses a
+                    // specific storage id.
+                    $extension = pathinfo($resource['o:filename'], PATHINFO_EXTENSION);
+                    $assets[(int) $resource['o:id']] = mb_strlen($extension)
+                        ? mb_substr($resource['o:filename'], 0, -mb_strlen($extension) - 1)
+                        : $resource['o:filename'];
                 }
             } else {
                 foreach ($this->reader->setObjectType($resourceType) as $resource) {
@@ -1085,16 +1097,30 @@ SQL;
             $resourceClass = $this->connection->quote($class);
 
             if ($resourceType === 'assets') {
-                $sql = '';
-                // Save the ids as storage, it should be unique anyway.
-                // Duplicates are possible when reimporting, so use "ignore".
-                foreach (array_chunk(array_keys($this->map[$resourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-                    $sql .= 'INSERT IGNORE INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
-                }
-                $this->connection->query($sql);
+$this->map[$resourceType];
+                if ($assets) {
+                    $storageIds = implode(',', array_map([$this->connection, 'quote'], $assets));
+                    // Get existing duplicates for reimport.
+$sql = <<<SQL
+SELECT `asset`.`id` AS `d`
+FROM `asset` AS `asset`
+WHERE `asset`.`storage_id` IN ($storageIds);
+SQL;
+                    $existingAssets = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd');
 
-                // Get the mapping of source and destination ids.
-                $sql = <<<SQL
+                    $sql = '';
+                    // Save the ids as storage, it should be unique anyway, except
+                    // in case of reimport.
+                    $toCreate = array_diff_key($this->map[$resourceType], array_flip($existingAssets));
+                    foreach (array_chunk(array_keys($toCreate), self::CHUNK_RECORD_IDS) as $chunk) {
+                        $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
+                    }
+                    if ($sql) {
+                        $this->connection->query($sql);
+                    }
+
+                    // Get the mapping of source and destination ids.
+                    $sql = <<<SQL
 SELECT `asset`.`storage_id` AS `s`, `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`name` = ""
@@ -1102,8 +1128,9 @@ WHERE `asset`.`name` = ""
     AND (`asset`.`extension` IS NULL OR `asset`.`extension` = "")
     AND `asset`.`owner_id` IS NULL;
 SQL;
-                // Fetch by key pair is not supported by doctrine 2.0.
-                $this->map[$resourceType] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
+                    // Fetch by key pair is not supported by doctrine 2.0.
+                    $this->map[$resourceType] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
+                }
                 continue;
             }
 
@@ -1209,12 +1236,11 @@ SQL;
         $skipped = 0;
         foreach ($this->reader->setObjectType('assets') as $resource) {
             ++$index;
-
-            // Some new resources created between first loop.
+            // Some new resources created since first loop.
             if (!isset($this->map['assets'][$resource['o:id']])) {
                 ++$skipped;
                 $this->logger->notice(
-                    'Skipped resource "{type}" #{source_id} added in source.', // @translate
+                    'Skipped resource "{type}" #{source_id} existing or added in source.', // @translate
                     ['type' => 'asset', 'source_id' => $resource['o:id']]
                 );
                 continue;
