@@ -864,11 +864,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function actionRequiresId($action = null)
     {
         $actionsRequireId = [
-            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_DELETE,
+            self::ACTION_APPEND,
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
+            self::ACTION_REPLACE,
+            self::ACTION_DELETE,
         ];
         if (empty($action)) {
             $action = $this->action;
@@ -879,10 +879,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function actionIsUpdate($action = null)
     {
         $actionsUpdate = [
-            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE,
+            self::ACTION_APPEND,
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
+            self::ACTION_REPLACE,
         ];
         if (empty($action)) {
             $action = $this->action;
@@ -894,13 +894,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
-            \BulkImport\Processor\AbstractProcessor::ACTION_CREATE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_DELETE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_SKIP,
+            self::ACTION_CREATE,
+            self::ACTION_APPEND,
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
+            self::ACTION_REPLACE,
+            self::ACTION_DELETE,
+            self::ACTION_SKIP,
         ])) {
             $this->logger->err(
                 'Action "{action}" is not managed.', // @translate
@@ -913,8 +913,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
-            \BulkImport\Processor\AbstractProcessor::ACTION_CREATE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_SKIP,
+            self::ACTION_CREATE,
+            self::ACTION_SKIP,
         ])) {
             $this->logger->err(
                 'Action "{action}" for unidentified resource is not managed.', // @translate
@@ -960,10 +960,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function prepareActionIdentifier()
     {
         if (!in_array($this->action, [
-            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
-            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
         ])) {
-            $this->actionIdentifier = \BulkImport\Processor\AbstractProcessor::ACTION_SKIP;
+            $this->actionIdentifier = self::ACTION_SKIP;
             return;
         }
 
@@ -972,7 +972,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (empty($identifierNames)
             || (count($identifierNames) === 1 && reset($identifierNames) === 'o:id')
         ) {
-            $this->actionIdentifier = \BulkImport\Processor\AbstractProcessor::ACTION_SKIP;
+            $this->actionIdentifier = self::ACTION_SKIP;
             return;
         }
 

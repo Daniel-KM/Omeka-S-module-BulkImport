@@ -1484,11 +1484,11 @@ SQL;
                     if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
                         $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
                     } else {
-                        $datatype = $value['type'] = 'literal';
                         $this->logger->warn(
-                            'Value with datatype "{type}" for resource #{id} is changed to literal.', // @translate
-                            ['type' => $value['type'], 'id' => $this->entity->getId()]
+                            'Value with datatype "{type}" for resource #{id} is changed to "literal".', // @translate
+                            ['type' => $datatype, 'id' => $this->entity->getId()]
                         );
+                        $datatype = $value['type'] = 'literal';
                     }
                 }
 
@@ -1802,7 +1802,7 @@ SQL;
             $this->logger->warn(
                 'The source item #{source_id} is not found for its mapping zone.', // @translate
                 ['source_id' => $resource['o:item']['o:id']]
-                );
+            );
         } else {
             $this->entity->setItem($item);
         }
@@ -1928,7 +1928,7 @@ SQL;
     }
 
     /**
-     * Ferch, check and save a file.
+     * Fetch, check and save a file.
      *
      * @todo Create derivative files (thumbnails) with the tempfile factory.
      *

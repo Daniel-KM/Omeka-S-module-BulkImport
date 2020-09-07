@@ -16,6 +16,24 @@ trait ResourceUpdateTrait
     protected $skippedSourceFields;
 
     /**
+     * @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation
+     */
+    protected $resourceToUpdate;
+
+    /**
+     * @param string $resourceType
+     * @param int $resourceId
+     */
+    protected function prepareResourceToUpdate($resourceType, $resourceId)
+    {
+        if (!$resourceType || !$resourceId) {
+            $this->resourceToUpdate = null;
+        } elseif (!$this->resourceToUpdate || $this->resourceToUpdate->id() != $resourceId) {
+            $this->resourceToUpdate = $this->api()->read($resourceType, $resourceId)->getContent();
+        }
+    }
+
+    /**
      * Update a resource (append, revise or update with a deduplication check).
      *
      * Currently, Omeka S has no method to deduplicate, so a first call is done
@@ -36,19 +54,19 @@ trait ResourceUpdateTrait
      */
     protected function updateData($resourceType, $data)
     {
-        $resource = $this->api()->read($resourceType, $data['o:id'])->getContent();
+        $this->prepareResourceToUpdate($resourceType, $data['o:id']);
 
         // Use arrays to simplify process.
-        $currentData = json_decode(json_encode($resource), true);
-        switch ($action) {
-            case self::ACTION_APPEND:
+        $currentData = json_decode(json_encode($this->resourceToUpdate), true);
+        switch ($this->action) {
+            case \BulkImport\Processor\AbstractProcessor::ACTION_APPEND:
                 $merged = $this->mergeMetadata($currentData, $data, true);
                 $data = array_replace($data, $merged);
                 $newData = array_replace($currentData, $data);
                 break;
-            case self::ACTION_REVISE:
-            case self::ACTION_UPDATE:
-                $data = $action === self::ACTION_REVISE
+            case \BulkImport\Processor\AbstractProcessor::ACTION_REVISE:
+            case \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE:
+                $data = $this->action === \BulkImport\Processor\AbstractProcessor::ACTION_REVISE
                     ? $this->removeEmptyData($data)
                     : $this->fillEmptyData($data);
                 if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
