@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright 2017-2019 Daniel Berthereau
+ * Copyright 2017-2020 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -101,6 +101,7 @@ class Bulk extends AbstractPlugin
         $this->services = $services;
         $this->logger = $services->get('Omeka\Logger');
 
+        // The controller is not yet available here.
         $pluginManager = $services->get('ControllerPluginManager');
         $this->api = $pluginManager->get('api');
         $this->findResourcesFromIdentifiers = $pluginManager
@@ -629,14 +630,24 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Proxy to api() to get the errors even without form.
+     *
      * @param \Zend\Form\Form $form
      * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
     public function api(\Zend\Form\Form $form = null, $throwValidationException = false)
     {
-        $api = $this->api;
-        return $api($form, $throwValidationException);
+        // @see \Omeka\Api\Manager::handleValidationException()
+        try {
+            $result = $this->api->__invoke($form, true);
+        } catch (\Omeka\Api\Exception\ValidationException $e) {
+            if ($throwValidationException) {
+                throw $e;
+            }
+            $this->logger->err($e);
+        }
+        return $result;
     }
 
     /**
