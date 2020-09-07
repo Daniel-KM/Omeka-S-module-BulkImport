@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-29 00:00+0000\n"
+"POT-Creation-Date: 2020-09-07 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,7 +82,7 @@ msgstr ""
 msgid "Imports"
 msgstr ""
 
-#: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/logs.phtml:32
+#: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/logs.phtml:50
 #: view/bulk/admin/import/show.phtml:15
 #: view/bulk/admin/importer/configure-reader.phtml:16
 #: view/bulk/admin/importer/delete.phtml:16
@@ -95,72 +95,68 @@ msgstr ""
 msgid "No imports yet."
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:21
+#: view/bulk/admin/import/logs.phtml:33
 msgid "Emergency"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:22
+#: view/bulk/admin/import/logs.phtml:34
 msgid "Alert"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:23
+#: view/bulk/admin/import/logs.phtml:35
 msgid "Critical"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:26
+#: view/bulk/admin/import/logs.phtml:38
 msgid "Notice"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:27
+#: view/bulk/admin/import/logs.phtml:39
 msgid "Info"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:28
+#: view/bulk/admin/import/logs.phtml:40
 msgid "Debug"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:32 view/bulk/admin/import/show.phtml:15
+#: view/bulk/admin/import/logs.phtml:50 view/bulk/admin/import/show.phtml:15
 #, php-format
 msgid "Import #%d"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:41
+#: view/bulk/admin/import/logs.phtml:59
 msgid "Show only messages whose severity is higher than or equal to"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:49
-msgid "Show"
-msgstr ""
-
-#: view/bulk/admin/import/logs.phtml:58
+#: view/bulk/admin/import/logs.phtml:75
 msgid "Message"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:59
+#: view/bulk/admin/import/logs.phtml:76
 msgid "Severity"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:60
+#: view/bulk/admin/import/logs.phtml:77
 msgid "Time"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:81
+#: view/bulk/admin/import/logs.phtml:98
 msgid "Full log"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:99 view/bulk/admin/import/show.phtml:36
+#: view/bulk/admin/import/logs.phtml:116 view/bulk/admin/import/show.phtml:36
 msgid "Attempt to stop job"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:105
+#: view/bulk/admin/import/logs.phtml:122
 msgid "Manage logs"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:110
+#: view/bulk/admin/import/logs.phtml:127
 msgid "No logs yet."
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:110
+#: view/bulk/admin/import/logs.phtml:127
 msgid "Refresh page"
 msgstr ""
 
@@ -332,25 +328,25 @@ msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:31
 #: src/Form/Processor/ItemSetProcessorParamsForm.php:32
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:273
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:324
 msgid "Resource metadata"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:34
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:182
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:276
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:327
 msgid "Internal id"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:37
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:78
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:278
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:329
 msgid "Resource class"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:39
 #: src/Form/Processor/ResourceProcessorParamsForm.php:64
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:280
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:331
 #: src/Form/Processor/ItemProcessorParamsForm.php:45
 msgid "Visibility public/private"
 msgstr ""
@@ -416,6 +412,14 @@ msgstr ""
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:58
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:109
 msgid "Select a user"
+msgstr ""
+
+#: src/Form/Processor/OmekaSProcessorParamsForm.php:66
+msgid "Types to import"
+msgstr ""
+
+#: src/Form/Processor/OmekaSProcessorParamsForm.php:71
+msgid "Assets"
 msgstr ""
 
 #: src/Form/Processor/ItemProcessorConfigForm.php:23
@@ -518,20 +522,69 @@ msgid "Select an identifier name…"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:203
-msgid "Allow duplicate identifiers"
+msgid "Action on identifier"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:204
+msgid ""
+"When a \"revise\" or an \"update\" is done, the identifier may be updated, "
+"but you may want to keep existing identifiers if all of them are not "
+"provided."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:206
+msgid "Keep and append new identifiers"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:207
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:224
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:241
+msgid "Process as main action above"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:220
+msgid "Action on media"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:221
+msgid ""
+"When a \"revise\" or an \"update\" is done, the media may be updated, but "
+"you may want to keep existing ones."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:223
+msgid "Keep media"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:237
+msgid "Action on item set"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:238
+msgid ""
+"When a \"revise\" or an \"update\" is done, the item set may be updated, but "
+"you may want to keep existing ones."
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:240
+msgid "Keep item sets"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:254
+msgid "Allow duplicate identifiers"
+msgstr ""
+
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:255
 msgid ""
 "Not recommended, but needed to be compliant with old databases. Duplicates "
 "are logged."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:238
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:289
 msgid "Mapping from sources to resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:263
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:314
 msgid "Select one or more targets…"
 msgstr ""
 
@@ -672,282 +725,294 @@ msgstr ""
 msgid "Index #{index} skipped: no item is set for the media"
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:289
+#: src/Processor/OmekaSProcessor.php:309
 msgid "Check integrity of assets."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:298
+#: src/Processor/OmekaSProcessor.php:318
 msgid "Check integrity of resources."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:309
+#: src/Processor/OmekaSProcessor.php:331
 msgid "Check vocabularies."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:317
+#: src/Processor/OmekaSProcessor.php:339
 msgid "Preparation of vocabularies."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:325
+#: src/Processor/OmekaSProcessor.php:347
 msgid "Preparation of properties."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:333
+#: src/Processor/OmekaSProcessor.php:355
 msgid "Preparation of resource classes."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:343
+#: src/Processor/OmekaSProcessor.php:367
 msgid "Check custom vocabs."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:351
+#: src/Processor/OmekaSProcessor.php:377
 msgid "Preparation of resource templates."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:366
+#: src/Processor/OmekaSProcessor.php:395
 msgid "Initialization of all resources and assets."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:375
+#: src/Processor/OmekaSProcessor.php:405
 msgid "Finalization of assets."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:380
+#: src/Processor/OmekaSProcessor.php:411
 msgid "Preparation of metadata of all resources."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:387
+#: src/Processor/OmekaSProcessor.php:418
 msgid "Preparation of metadata of module Mapping."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:393
-#: src/Processor/AbstractResourceProcessor.php:249
+#: src/Processor/OmekaSProcessor.php:424
+#: src/Processor/AbstractResourceProcessor.php:271
 msgid ""
 "End of process: {total_resources} resources to process, {total_skipped} "
 "skipped or blank, {total_processed} processed, {total_errors} errors inside "
 "data. Note: errors can occur separately for each file."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:418
+#: src/Processor/OmekaSProcessor.php:449
 msgid ""
 "{total} empty {type} are present in the database. Here are the first ones: "
 "{first}. Use module BulkCheck to check and fix them."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:446
+#: src/Processor/OmekaSProcessor.php:477
 msgid ""
 "{total} resources are present in the table \"resource\", but missing in the "
 "table \"{type}\" of the database. Here are the first ones: {first}. Use "
 "module BulkCheck to check and fix them."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:483
+#: src/Processor/OmekaSProcessor.php:517
 msgid ""
-"Vocabulary {prefix} exists as vocabulary #{vocabulary_id}, but the prefix is "
-"not the same."
+"Vocabulary \"{prefix}\" exists as vocabulary #{vocabulary_id}, but the "
+"prefix is not the same (\"{prefix_2}\")."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:506
+#: src/Processor/OmekaSProcessor.php:540
 msgid "Vocabulary prefix {prefix} is used so the imported one is renamed."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:544
+#: src/Processor/OmekaSProcessor.php:578
 msgid "The properties are different for the {prefix}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:577
+#: src/Processor/OmekaSProcessor.php:611
 msgid "Vocabulary {prefix} has been created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:597
+#: src/Processor/OmekaSProcessor.php:631
 msgid "{total} vocabulary ready, {created} created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:635
+#: src/Processor/OmekaSProcessor.php:669
 msgid "The vocabulary of the {member} {term} does not exist."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:661
+#: src/Processor/OmekaSProcessor.php:695
 msgid "Unable to find vocabulary for {member} {term}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:681
+#: src/Processor/OmekaSProcessor.php:715
 msgid "Unable to create {member} {term}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:696
+#: src/Processor/OmekaSProcessor.php:730
 msgid ""
 "{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} "
 "skipped."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:702
+#: src/Processor/OmekaSProcessor.php:736
 msgid "Vocabulary {member} {term} has been created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:723
+#: src/Processor/OmekaSProcessor.php:757
 msgid "Unable to find {member} {term}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:772
+#: src/Processor/OmekaSProcessor.php:809
 msgid "Custom vocab \"{old_label}\" has been renamed to \"{label}\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:797
+#: src/Processor/OmekaSProcessor.php:834
 msgid "Unable to create custom vocab \"{label}\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:803
+#: src/Processor/OmekaSProcessor.php:840
 msgid "Custom vocab {label} has been created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:818
+#: src/Processor/OmekaSProcessor.php:855
 msgid "{total} custom vocabs ready, {created} created, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:884
+#: src/Processor/OmekaSProcessor.php:957
+msgid "Resource template \"{label}\" already exists."
+msgstr ""
+
+#: src/Processor/OmekaSProcessor.php:970
 msgid "Resource template \"{old_label}\" has been renamed to \"{label}\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:929
+#: src/Processor/OmekaSProcessor.php:979
 msgid "Unable to create resource template \"{label}\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:936
+#: src/Processor/OmekaSProcessor.php:986
 msgid "Resource template \"{label}\" has been created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:945
+#: src/Processor/OmekaSProcessor.php:995
 msgid "{total} resource templates ready, {created} created, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:973
+#: src/Processor/OmekaSProcessor.php:1020
+msgid "Resource \"media\" cannot be imported without items."
+msgstr ""
+
+#: src/Processor/OmekaSProcessor.php:1033
 msgid "Resource \"{type}\" has too much records ({total})."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:979
+#: src/Processor/OmekaSProcessor.php:1039
 msgid "Preparation of {total} resource \"{type}\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1009
+#: src/Processor/OmekaSProcessor.php:1081
 msgid "No resource \"{type}\" available on the source."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1020
+#: src/Processor/OmekaSProcessor.php:1092
 msgid "Media cannot be imported without items currently."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1134
+#: src/Processor/OmekaSProcessor.php:1222
 msgid "{total} resource \"{type}\" have been created."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1156
-#: src/Processor/OmekaSProcessor.php:1262
-msgid "Skipped resource \"{type}\" #{source_id} added in source."
+#: src/Processor/OmekaSProcessor.php:1243
+msgid "Skipped resource \"{type}\" #{source_id} existing or added in source."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1165
+#: src/Processor/OmekaSProcessor.php:1252
 msgid "Asset {id} has no filename or no extension."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1216
-#: src/Processor/OmekaSProcessor.php:1228
-#: src/Processor/OmekaSProcessor.php:1290
-#: src/Processor/OmekaSProcessor.php:1302
-#: src/Processor/OmekaSProcessor.php:1689
-#: src/Processor/OmekaSProcessor.php:1699
+#: src/Processor/OmekaSProcessor.php:1303
+#: src/Processor/OmekaSProcessor.php:1315
+#: src/Processor/OmekaSProcessor.php:1383
+#: src/Processor/OmekaSProcessor.php:1395
+#: src/Processor/OmekaSProcessor.php:1782
+#: src/Processor/OmekaSProcessor.php:1792
 msgid "{count}/{total} resource \"{type}\" imported, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1311
+#: src/Processor/OmekaSProcessor.php:1355
+msgid "Skipped resource \"{type}\" #{source_id} added in source."
+msgstr ""
+
+#: src/Processor/OmekaSProcessor.php:1404
 msgid ""
 "The total {total} of resources {type} is not the same than the count {count}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1343
+#: src/Processor/OmekaSProcessor.php:1436
 msgid ""
 "Specific thumbnail for resource #{id} (source #{source_id}) is not available."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1396
-msgid "Value with datatype {type} for resource #{id} is changed to literal."
+#: src/Processor/OmekaSProcessor.php:1488
+msgid ""
+"Value with datatype \"{type}\" for resource #{id} is changed to \"literal\"."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1407
-#: src/Processor/OmekaSProcessor.php:1428
-#: src/Processor/OmekaSProcessor.php:1439
-#: src/Processor/OmekaSProcessor.php:1452
+#: src/Processor/OmekaSProcessor.php:1500
+#: src/Processor/OmekaSProcessor.php:1521
+#: src/Processor/OmekaSProcessor.php:1532
+#: src/Processor/OmekaSProcessor.php:1545
 msgid ""
 "Value of resource {type} #{id} with data type {datatype} was changed to "
 "literal."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1411
+#: src/Processor/OmekaSProcessor.php:1504
 msgid "It’s recommended to install module Numeric Data Types."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1432
+#: src/Processor/OmekaSProcessor.php:1525
 msgid "It’s recommended to install module Rdf Datatypes."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1443
+#: src/Processor/OmekaSProcessor.php:1536
 msgid "It’s recommended to install module Data Type Geometry."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1456
+#: src/Processor/OmekaSProcessor.php:1549
 msgid "It’s recommended to install module ValueSuggest."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1463
+#: src/Processor/OmekaSProcessor.php:1556
 msgid ""
 "Value of resource {type} #{id} with data type {datatype} is not managed and "
 "skipped."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1490
+#: src/Processor/OmekaSProcessor.php:1583
 msgid ""
 "Value of resource {type} #{id} with linked resource for term {term} is not "
 "found."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1606
+#: src/Processor/OmekaSProcessor.php:1699
 msgid ""
 "Media type of media #{id} is different from the original one ({media_type})."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1612
+#: src/Processor/OmekaSProcessor.php:1705
 msgid "Hash of media #{id} is different from the original one."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1710
+#: src/Processor/OmekaSProcessor.php:1803
 msgid "The source item #{source_id} is not found for its mapping zone."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1724
+#: src/Processor/OmekaSProcessor.php:1817
 msgid "The source item #{source_id} is not found for its mapping marker."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1735
+#: src/Processor/OmekaSProcessor.php:1828
 msgid "The source media #{source_id} is not found for its mapping marker."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1857
+#: src/Processor/OmekaSProcessor.php:1953
 msgid "File {url} has not an allowed extension."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1881
+#: src/Processor/OmekaSProcessor.php:1977
 msgid "Unable to download asset {url}."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1903
+#: src/Processor/OmekaSProcessor.php:1999
 msgid "Asset {url} is not an image."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1913
+#: src/Processor/OmekaSProcessor.php:2009
 msgid "File {url} is not an allowed file."
 msgstr ""
 
-#: src/Processor/OmekaSProcessor.php:1920
+#: src/Processor/OmekaSProcessor.php:2016
 msgid "."
 msgstr ""
 
@@ -1015,108 +1080,124 @@ msgid ""
 "{resource_type} #{resource_id}."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:177
+#: src/Processor/AbstractResourceProcessor.php:199
 msgid "The first {skip} entries are skipped by user."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:194
+#: src/Processor/AbstractResourceProcessor.php:216
 msgid "Index #{index}: The job \"Import\" was stopped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:209
+#: src/Processor/AbstractResourceProcessor.php:231
 msgid "Index #{index}: Process started"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:269
+#: src/Processor/AbstractResourceProcessor.php:291
 msgid "Index #{index}: the entry is empty and is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:343
+#: src/Processor/AbstractResourceProcessor.php:365
 msgid ""
 "Index #{index}: The source field \"{field}\" is set in the mapping, but not "
 "in the entry. The params may have an issue."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:466
+#: src/Processor/AbstractResourceProcessor.php:488
 msgid ""
 "Index #{index}: Resource id for value \"{value}\" cannot be found. The entry "
 "is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:493
+#: src/Processor/AbstractResourceProcessor.php:515
 msgid ""
 "Index #{index}: Internal id #{id} cannot be found. The entry is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:556
-#: src/Processor/AbstractResourceProcessor.php:572
+#: src/Processor/AbstractResourceProcessor.php:578
+#: src/Processor/AbstractResourceProcessor.php:594
 msgid "Index #{index}: The action \"{action}\" requires a unique identifier."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:567
+#: src/Processor/AbstractResourceProcessor.php:589
 msgid "Index #{index}: The action \"{action}\" requires an identifier."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:644
+#: src/Processor/AbstractResourceProcessor.php:666
 msgid ""
 "Index #{index}: Error during validation of the data before creation:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:651
+#: src/Processor/AbstractResourceProcessor.php:673
 msgid "Index #{index}: Core error during creation: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:660
+#: src/Processor/AbstractResourceProcessor.php:682
 msgid "Index #{index}: Created {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:728
+#: src/Processor/AbstractResourceProcessor.php:750
 msgid "Index #{index}: Updated {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:734
+#: src/Processor/AbstractResourceProcessor.php:756
 msgid ""
 "Index #{index}: Error during validation of the data before update:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:741
+#: src/Processor/AbstractResourceProcessor.php:763
 msgid "Index #{index}: Core error during update: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:749
+#: src/Processor/AbstractResourceProcessor.php:771
 msgid "Index #{index}: Unknown error occured during update."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:799
+#: src/Processor/AbstractResourceProcessor.php:821
 msgid ""
 "Index #{index}: Error during validation of the data before deletion:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:807
+#: src/Processor/AbstractResourceProcessor.php:829
 msgid "Index #{index}: Core error during deletion: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:816
+#: src/Processor/AbstractResourceProcessor.php:838
 msgid "Index #{index}: Deleted {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:884
+#: src/Processor/AbstractResourceProcessor.php:906
 msgid "Action \"{action}\" is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:898
+#: src/Processor/AbstractResourceProcessor.php:920
 msgid "Action \"{action}\" for unidentified resource is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:910
+#: src/Processor/AbstractResourceProcessor.php:932
 msgid "No identifier name was selected."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:932
+#: src/Processor/AbstractResourceProcessor.php:954
 msgid "Invalid identifier names: check your params."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:985
+msgid "Action \"{action}\" for identifier is not managed."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:1002
+msgid "Action \"{action}\" for media (update of item) is not managed."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:1017
+msgid "Action \"{action}\" for item set (update of item) is not managed."
+msgstr ""
+
+#: src/Processor/ResourceUpdateTrait.php:98
+msgid "Index #{index}: Unable to update data with action \"{action}\"."
 msgstr ""
 
 #: src/Controller/Admin/ImportController.php:64
@@ -1211,31 +1292,31 @@ msgstr ""
 msgid "File \"{filepath}\" is not fully utf-8."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:302
+#: src/Reader/OmekaSReader.php:303
 msgid "Content-type \"{content_type}\" is invalid."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:310
+#: src/Reader/OmekaSReader.php:311
 msgid "It is useless to import Omeka S itself. Check your endpoint."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:347
+#: src/Reader/OmekaSReader.php:348
 msgid "Unable to fetch data for the first page."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:367
+#: src/Reader/OmekaSReader.php:368
 msgid "Unable to fetch data for the next page."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:378
+#: src/Reader/OmekaSReader.php:379
 msgid "Header Link not found in response."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:397
+#: src/Reader/OmekaSReader.php:398
 msgid "No links in http header."
 msgstr ""
 
-#: src/Reader/OmekaSReader.php:420
+#: src/Reader/OmekaSReader.php:421
 msgid "First page cannot be greater to last page."
 msgstr ""
 
@@ -1328,51 +1409,51 @@ msgstr ""
 msgid "Processor \"{processor}\" is not available."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:387
+#: src/Mvc/Controller/Plugin/Bulk.php:514
 msgid "resource"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:388
+#: src/Mvc/Controller/Plugin/Bulk.php:515
 msgid "annotation"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:390
+#: src/Mvc/Controller/Plugin/Bulk.php:517
 msgid "property"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:391
+#: src/Mvc/Controller/Plugin/Bulk.php:518
 msgid "resource class"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:412
+#: src/Mvc/Controller/Plugin/Bulk.php:539
 msgid "resources"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:413
+#: src/Mvc/Controller/Plugin/Bulk.php:540
 msgid "annotations"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:414
+#: src/Mvc/Controller/Plugin/Bulk.php:541
 msgid "vocabularies"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:415
+#: src/Mvc/Controller/Plugin/Bulk.php:542
 msgid "properties"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:416
+#: src/Mvc/Controller/Plugin/Bulk.php:543
 msgid "resource classes"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:417
+#: src/Mvc/Controller/Plugin/Bulk.php:544
 msgid "resource templates"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:473
+#: src/Mvc/Controller/Plugin/Bulk.php:600
 msgid "Identifier \"{identifier}\" is not unique ({count} values)."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:484
+#: src/Mvc/Controller/Plugin/Bulk.php:611
 msgid "Duplicate identifiers are not allowed."
 msgstr ""
 
