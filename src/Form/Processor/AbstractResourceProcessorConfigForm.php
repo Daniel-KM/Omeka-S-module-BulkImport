@@ -337,7 +337,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
     protected function baseInputFilter()
     {
         $this->getInputFilter()
-                ->add([
+            ->add([
                 'name' => 'o:resource_template',
                 'required' => false,
             ])

@@ -1097,11 +1097,10 @@ SQL;
             $resourceClass = $this->connection->quote($class);
 
             if ($resourceType === 'assets') {
-$this->map[$resourceType];
                 if ($assets) {
                     $storageIds = implode(',', array_map([$this->connection, 'quote'], $assets));
                     // Get existing duplicates for reimport.
-$sql = <<<SQL
+                    $sql = <<<SQL
 SELECT `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`storage_id` IN ($storageIds);
@@ -1877,7 +1876,7 @@ SQL;
     /**
      * @param \Omeka\Api\Representation\ResourceTemplateRepresentation $rta
      * @param array $rtb
-     * @return boolean
+     * @return bool
      */
     protected function equalResourceTemplates(
         \Omeka\Api\Representation\ResourceTemplateRepresentation $rta,

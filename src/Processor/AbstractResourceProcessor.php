@@ -444,10 +444,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         foreach ($values as $value) {
             $resourceValue = $target['value'];
             switch ($resourceValue['type']) {
+                default:
                 // Currently, most of the datatypes are literal.
                 case 'literal':
                 // case strpos($resourceValue['type'], 'customvocab:') === 0:
-                default:
                     $resourceValue['@value'] = $value;
                     break;
                 case 'uri':
