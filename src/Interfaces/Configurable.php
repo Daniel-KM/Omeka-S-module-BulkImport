@@ -7,6 +7,7 @@ interface Configurable
 {
     /**
      * @param array $config
+     * @return self
      */
     public function setConfig($config);
 
