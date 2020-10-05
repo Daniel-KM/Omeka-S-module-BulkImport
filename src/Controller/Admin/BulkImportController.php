@@ -39,9 +39,9 @@ class BulkImportController extends AbstractActionController
 
         $imports = $response->getContent();
 
-        $view = new ViewModel;
-        $view->setVariable('importers', $importers);
-        $view->setVariable('imports', $imports);
-        return $view;
+        return new ViewModel([
+            'importers' => $importers,
+            'imports' => $imports,
+        ]);
     }
 }

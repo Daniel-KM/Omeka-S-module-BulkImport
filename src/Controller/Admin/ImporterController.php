@@ -75,9 +75,9 @@ class ImporterController extends AbstractActionController
             }
         }
 
-        $view = new ViewModel;
-        $view->setVariable('form', $form);
-        return $view;
+        return new ViewModel([
+            'form' => $form,
+        ]);
     }
 
     public function deleteAction()
@@ -118,10 +118,10 @@ class ImporterController extends AbstractActionController
             }
         }
 
-        $view = new ViewModel;
-        $view->setVariable('entity', $entity);
-        $view->setVariable('form', $form);
-        return $view;
+        return new ViewModel([
+            'entity' => $entity,
+            'form' => $form,
+        ]);
     }
 
     public function configureReaderAction()
@@ -175,10 +175,10 @@ class ImporterController extends AbstractActionController
             }
         }
 
-        $view = new ViewModel;
-        $view->setVariable('reader', $reader);
-        $view->setVariable('form', $form);
-        return $view;
+        return new ViewModel([
+            'reader' => $reader,
+            'form' => $form,
+        ]);
     }
 
     public function configureProcessorAction()
@@ -232,10 +232,10 @@ class ImporterController extends AbstractActionController
             }
         }
 
-        $view = new ViewModel;
-        $view->setVariable('processor', $processor);
-        $view->setVariable('form', $form);
-        return $view;
+        return new ViewModel([
+            'processor' => $processor,
+            'form' => $form,
+        ]);
     }
 
     /**
@@ -388,9 +388,10 @@ class ImporterController extends AbstractActionController
             $form = call_user_func($formCallback);
         }
 
-        $view = new ViewModel;
-        $view->setVariable('importer', $importer);
-        $view->setVariable('form', $form);
+        $view = new ViewModel([
+            'importer' => $importer,
+            'form' => $form,
+        ]);
         if ($next === 'start') {
             $importArgs = [];
             $importArgs['comment'] = $session['comment'];

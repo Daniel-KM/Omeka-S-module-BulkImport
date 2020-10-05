@@ -31,10 +31,10 @@ class ImportController extends AbstractActionController
 
         $imports = $response->getContent();
 
-        $view = new ViewModel;
-        $view->setVariable('imports', $imports);
-        $view->setVariable('resources', $imports);
-        return $view;
+        return new ViewModel([
+            'imports' => $imports,
+            'resources' => $imports,
+        ]);
     }
 
     public function showAction()
@@ -42,10 +42,10 @@ class ImportController extends AbstractActionController
         $id = $this->params()->fromRoute('id');
         $import = $this->api()->read('bulk_imports', $id)->getContent();
 
-        $view = new ViewModel;
-        $view->setVariable('import', $import);
-        $view->setVariable('resource', $import);
-        return $view;
+        return new ViewModel([
+            'import' => $import,
+            'resource' => $import,
+        ]);
     }
 
     public function stopAction()
@@ -90,11 +90,11 @@ class ImportController extends AbstractActionController
 
         $logs = $response->getContent();
 
-        $view = new ViewModel;
-        $view->setVariable('import', $import);
-        $view->setVariable('resource', $import);
-        $view->setVariable('logs', $logs);
-        $view->setVariable('severity', $severity);
-        return $view;
+        return new ViewModel([
+            'import' => $import,
+            'resource' => $import,
+            'logs' => $logs,
+            'severity' => $severity,
+        ]);
     }
 }
