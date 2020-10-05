@@ -66,7 +66,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
             ],
         ];
 
-        if ($this->isModuleActive(\Mapping::class)) {
+        if ($this->isModuleActive('Mapping')) {
             $mapping['item']['options']['o-module-mapping:marker'] = 'Mapping latitude/longitude'; // @translate
             // $mapping['item']['options']['o-module-mapping:lat'] = 'Mapping latitude'; // @translate
             // $mapping['item']['options']['o-module-mapping:lng'] = 'Mapping longitude'; // @translate
@@ -74,7 +74,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
             $mapping['item']['options']['o-module-mapping:bounds'] = 'Mapping bounds'; // @translate
         }
 
-        if (!$this->isModuleActive(\ImageServer::class) && !$this->isModuleActive(\IiifServer::class)) {
+        if (!$this->isModuleActive('ImageServer') && !$this->isModuleActive('IiifServer')) {
             unset($mapping['media']['options']['tile']);
         }
 
