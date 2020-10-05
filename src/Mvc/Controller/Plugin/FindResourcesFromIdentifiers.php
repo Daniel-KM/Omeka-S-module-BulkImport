@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright 2017-2019 Daniel Berthereau
+ * Copyright 2017-2020 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -127,14 +127,23 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'count' => [],
             'has_duplicate' => false,
         ];
+
         foreach ($identifierTypeNames as $identifierType => $identifierName) {
             $result = $this->findResources($identifierType, $identifiers, $identifierName, $resourceType, $itemId);
             if (empty($result['result'])) {
                 continue;
             }
-            $results['result'] = array_filter($results['result']) + $result['result'];
+
+            // Keep the order and the first result.
+            $results['result'] = array_replace(
+                $results['result'],
+                array_filter($results['result']) + array_filter($result['result'])
+            );
             // TODO Count is not manageable with multiple types.
-            $results['count'] = array_filter($results['count']) + (empty($result['count']) ? [] : $result['count']);
+            $results['count'] = array_replace(
+                $results['count'],
+                array_filter($results['count']) + (empty($result['count']) ? [] : array_filter($result['count']))
+            );
             $results['has_duplicate'] = $results['has_duplicate'] || $result['has_duplicate'];
         }
 
@@ -142,22 +151,27 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             return $isSingle ? null : [];
         }
 
-        if ($result['has_duplicate'] && $uniqueOnly) {
+        if ($results['has_duplicate'] && $uniqueOnly) {
             if ($isSingle) {
-                return (object) ['result' => reset($result['result']), 'count' => reset($result['count'])];
+                return (object) ['result' => reset($results['result']), 'count' => reset($results['count'])];
             }
-            unset($result['has_duplicate']);
-            return (object) $result;
+            unset($results['has_duplicate']);
+            return (object) $results;
         }
-        return $isSingle ? reset($result['result']) : $result['result'];
+        return $isSingle ? reset($results['result']) : $results['result'];
     }
 
     protected function findResources($identifierType, array $identifiers, $identifierName, $resourceType, $itemId)
     {
         switch ($identifierType) {
             case 'o:id':
+                $result = $this->findResourcesFromInternalIds($identifiers, $resourceType);
+                $count = array_map(function($v) {
+                    return empty($v) ? 0 : 1;
+                }, $result);
                 return [
-                    'result' => $this->findResourcesFromInternalIds($identifiers, $resourceType),
+                    'result' => $result,
+                    'count' => $count,
                     'has_duplicate' => false,
                 ];
             case 'property':
@@ -170,6 +184,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                     $identifierName = reset($identifierName);
                 }
                 return $this->findResourcesFromMediaSource($identifiers, $identifierName, $itemId);
+            default:
+                return [];
         }
     }
 
