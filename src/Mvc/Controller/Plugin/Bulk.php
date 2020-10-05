@@ -588,8 +588,8 @@ class Bulk extends AbstractPlugin
         if (is_object($result)) {
             $result = (array) $result;
             if ($isSingle) {
-                $result['result'] = [$result['result']];
-                $result['count'] = [$result['count']];
+                $result['result'] = [$identifiers => $result['result']];
+                $result['count'] = [$identifiers => $result['count']];
             }
 
             // Remove empty identifiers.
