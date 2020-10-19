@@ -23,7 +23,7 @@ class ConfigForm extends Form
                 'options' => [
                     'label' => 'Command of the xslt processor', // @translate
                     'info' => 'Needed to import metadata in xml files, when the process uses xslt2 sheets.', // @translate
-                    'documentation' => 'https://github.com/Daniel-KM/Omeka-S-module-BulkImport#Install',
+                    'documentation' => 'https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#Install',
                 ],
             ])
             ->add([
