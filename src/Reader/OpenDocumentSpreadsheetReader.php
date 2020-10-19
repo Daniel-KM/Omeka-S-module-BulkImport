@@ -2,7 +2,7 @@
 namespace BulkImport\Reader;
 
 use Box\Spout\Common\Type;
-use Box\Spout\Reader\ReaderFactory;
+use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Box\Spout\Reader\ReaderInterface;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
@@ -97,7 +97,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->spreadsheetReader->close();
         }
 
-        $this->spreadsheetReader = ReaderFactory::create($this->spreadsheetType);
+        $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
 
         $filepath = $this->getParam('filename');
         try {
@@ -131,15 +131,16 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
     protected function prepareAvailableFields(): void
     {
-        foreach ($this->iterator as $fields) {
+        /** @var \Box\Spout\Common\Entity\Row $row */
+        foreach ($this->iterator as $row) {
             break;
         }
-        if (!is_array($fields)) {
+        if (!$row) {
             $this->lastErrorMessage = 'File has no available fields.'; // @translate
             throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
         }
         // The data should be cleaned, since it's not an entry.
-        $this->availableFields = $this->cleanData($fields);
+        $this->availableFields = $this->cleanData($row->toArray());
         $this->initializeReader();
     }
 }
