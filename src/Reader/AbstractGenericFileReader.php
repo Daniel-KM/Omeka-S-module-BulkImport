@@ -13,7 +13,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
      */
     protected $reader;
 
-    public function isValid()
+    public function isValid(): bool
     {
         $this->lastErrorMessage = null;
         // TODO Currently, the generic reader requires an uploaded file to get the specific reader.
@@ -73,7 +73,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->reader->valid();
     }
 
-    public function count()
+    public function count(): int
     {
         $this->isReady();
         return $this->reader->count();

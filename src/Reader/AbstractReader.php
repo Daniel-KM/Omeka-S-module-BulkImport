@@ -75,7 +75,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this->label;
     }
 
-    public function isValid()
+    public function isValid(): bool
     {
         return true;
     }

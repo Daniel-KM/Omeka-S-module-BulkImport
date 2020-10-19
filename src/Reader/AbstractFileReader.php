@@ -29,7 +29,7 @@ abstract class AbstractFileReader extends AbstractReader
      */
     protected $currentData = [];
 
-    public function isValid()
+    public function isValid(): bool
     {
         $this->lastErrorMessage = null;
         if (array_search('filename', $this->paramsKeys) === false) {
@@ -104,7 +104,7 @@ abstract class AbstractFileReader extends AbstractReader
         return $this->iterator->valid();
     }
 
-    public function count()
+    public function count(): int
     {
         $this->isReady();
         return $this->totalEntries;
@@ -210,7 +210,7 @@ abstract class AbstractFileReader extends AbstractReader
      * are not present, checks may be skipped.
      * @return bool
      */
-    protected function isValidFilepath($filepath, array $file = [])
+    protected function isValidFilepath($filepath, array $file = []): bool
     {
         $file += ['name' => '[unknown]', 'type' => null];
 
@@ -265,7 +265,7 @@ abstract class AbstractFileReader extends AbstractReader
      * @param string $string
      * @return string
      */
-    protected function trimUnicode($string)
+    protected function trimUnicode($string): string
     {
         return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', $string);
     }

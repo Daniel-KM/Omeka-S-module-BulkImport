@@ -28,7 +28,7 @@ interface Reader extends \Iterator, \Countable
      *
      * @return bool
      */
-    public function isValid();
+    public function isValid(): bool;
 
     /**
      * Get the last error message, in particular to know why reader is invalid.
@@ -69,5 +69,5 @@ interface Reader extends \Iterator, \Countable
      * {@inheritDoc}
      * @see \Countable::count()
      */
-    public function count();
+    public function count(): int;
 }

@@ -133,7 +133,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->availableFields = $this->cleanData($fields);
     }
 
-    protected function isValidFilepath($filepath, array $file = [])
+    protected function isValidFilepath($filepath, array $file = []): bool
     {
         if (!parent::isValidFilepath($filepath, $file)) {
             return false;
@@ -155,7 +155,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
      * @param string $filepath
      * @return bool
      */
-    protected function isUtf8($filepath)
+    protected function isUtf8($filepath): bool
     {
         // TODO Use another check when mb is not installed.
         if (!function_exists('mb_detect_encoding')) {

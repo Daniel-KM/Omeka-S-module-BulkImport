@@ -182,7 +182,7 @@ class OmekaSReader extends AbstractReader
         return $this->innerIterator;
     }
 
-    public function count()
+    public function count(): int
     {
         if (is_null($this->totalCount)) {
             if (!$this->firstPage) {
@@ -276,7 +276,7 @@ class OmekaSReader extends AbstractReader
     /**
      * @return bool
      */
-    public function isValid()
+    public function isValid(): bool
     {
         $this->initArgs();
 
