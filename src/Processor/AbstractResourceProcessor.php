@@ -1030,13 +1030,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $mapping = $this->getParam('mapping', []);
 
+        // The automap is only used for language, type and visibility:
+        // the properties are the one that are set by the user.
         $automapFields = $this->getServiceLocator()->get('ViewHelperManager')->get('automapFields');
         $sourceFields = $automapFields(array_keys($mapping), ['output_full_matches' => true]);
+
         $index = -1;
         foreach ($mapping as $sourceField => $targets) {
             ++$index;
             if (empty($targets)) {
                 continue;
+            }
+
+            // The automap didn't find any matching.
+            if (empty($sourceFields[$index])) {
+                foreach ($targets as $target) {
+                    $sourceFields[$index][] = [
+                        'field' => $target,
+                        '@language' => null,
+                        'type' => null,
+                        'is_public' => null,
+                    ];
+                }
             }
 
             // Default metadata (type, language and visibility).
@@ -1047,6 +1062,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $fullTargets = [];
             foreach ($targets as $target) {
                 $result = [];
+                // Field is the property found by automap. Not used, but possible for messages.
                 $result['field'] = $metadata['field'];
 
                 // Manage the property of a target when it is a resource type,
