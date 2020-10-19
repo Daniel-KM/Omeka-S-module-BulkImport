@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
 use Omeka\Form\Element\ResourceSelect;
 
 class MediaProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {
-    protected function addFieldsets()
+    protected function addFieldsets(): void
     {
         parent::addFieldsets();
 
@@ -37,7 +37,7 @@ class MediaProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addInputFilter()
+    protected function addInputFilter(): void
     {
         parent::addInputFilter();
 

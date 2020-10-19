@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\Mock\Media\Ingester;
 
 use Omeka\Api\Request;
@@ -11,12 +11,12 @@ class MockUrl extends Url
 {
     protected $tempFileFactory;
 
-    public function setTempFileFactory(TempFileFactory $tempFileFactory)
+    public function setTempFileFactory(TempFileFactory $tempFileFactory): void
     {
         $this->tempFileFactory = $tempFileFactory;
     }
 
-    public function ingest(Media $media, Request $request, ErrorStore $errorStore)
+    public function ingest(Media $media, Request $request, ErrorStore $errorStore): void
     {
         $data = $request->getContent();
         if (!isset($data['ingest_url'])) {

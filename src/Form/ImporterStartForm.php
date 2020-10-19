@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -10,7 +10,7 @@ class ImporterStartForm extends Form
 {
     use ServiceLocatorAwareTrait;
 
-    public function init()
+    public function init(): void
     {
         $this->add([
             'name' => 'start_submit',

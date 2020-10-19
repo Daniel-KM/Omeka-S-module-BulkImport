@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Entry;
 
 use ArrayIterator;
@@ -28,7 +28,7 @@ class Entry implements EntryInterface
         $this->postInit($fields, $data, $options);
     }
 
-    protected function preInit(array $fields, array $data, array $options)
+    protected function preInit(array $fields, array $data, array $options): void
     {
         // The set fields should be kept set (for array_key_exists).
         $this->data = [];
@@ -37,7 +37,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function init(array $fields, array $data, array $options)
+    protected function init(array $fields, array $data, array $options): void
     {
         // Don't keep data that are not attached to a field.
         // Avoid an issue when the number of data is greater than the number of
@@ -51,7 +51,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function postInit(array $options)
+    protected function postInit(array $options): void
     {
         // Filter duplicated and null values.
         foreach ($this->data as &$data) {
@@ -91,12 +91,12 @@ class Entry implements EntryInterface
         }
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         throw new \Exception('Modification forbidden'); // @translate
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         throw new \Exception('Modification forbidden'); // @translate
     }
@@ -111,12 +111,12 @@ class Entry implements EntryInterface
         return key($this->data);
     }
 
-    public function next()
+    public function next(): void
     {
         $this->valid = next($this->data) !== false;
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         reset($this->data);
         $this->valid = true;

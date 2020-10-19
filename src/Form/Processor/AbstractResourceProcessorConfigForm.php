@@ -1,15 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
 use BulkImport\Form\EntriesToSkipTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Omeka\Form\Element\PropertySelect;
-use Omeka\Form\Element\ResourceClassSelect;
-use Omeka\Form\Element\ResourceSelect;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Form\Form;
+use Omeka\Form\Element\PropertySelect;
+use Omeka\Form\Element\ResourceClassSelect;
+use Omeka\Form\Element\ResourceSelect;
 
 abstract class AbstractResourceProcessorConfigForm extends Form
 {
@@ -17,7 +17,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
     use EntriesByBatchTrait;
     use EntriesToSkipTrait;
 
-    public function init()
+    public function init(): void
     {
         $this->baseFieldset();
         $this->addFieldsets();
@@ -30,7 +30,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $this->addEntriesByBatchInputFilter();
     }
 
-    protected function baseFieldset()
+    protected function baseFieldset(): void
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -260,11 +260,11 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         ]);
     }
 
-    protected function addFieldsets()
+    protected function addFieldsets(): void
     {
     }
 
-    protected function addMapping()
+    protected function addMapping(): void
     {
         /** @var \BulkImport\Interfaces\Processor $processor */
         $processor = $this->getOption('processor');
@@ -334,7 +334,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         ];
     }
 
-    protected function baseInputFilter()
+    protected function baseInputFilter(): void
     {
         $this->getInputFilter()
             ->add([
@@ -383,11 +383,11 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ]);
     }
 
-    protected function addInputFilter()
+    protected function addInputFilter(): void
     {
     }
 
-    protected function addMappingFilter()
+    protected function addMappingFilter(): void
     {
         $inputFilter = $this->getInputFilter();
         if (!$inputFilter->has('mapping')) {

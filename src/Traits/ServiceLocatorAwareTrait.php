@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Traits;
 
 use Laminas\ServiceManager\ServiceLocatorInterface;

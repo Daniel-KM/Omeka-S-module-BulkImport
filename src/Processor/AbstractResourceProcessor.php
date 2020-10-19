@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -7,8 +7,8 @@ use BulkImport\Interfaces\Entry;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
-use Omeka\Api\Exception\ValidationException;
 use Laminas\Form\Form;
+use Omeka\Api\Exception\ValidationException;
 
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
 {
@@ -125,7 +125,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form)
+    public function handleConfigForm(Form $form): void
     {
         $values = $form->getData();
         $config = new ArrayObject;
@@ -134,7 +134,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->setConfig($config);
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): void
     {
         $values = $form->getData();
         $params = new ArrayObject;
@@ -144,7 +144,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->setParams($params);
     }
 
-    protected function handleFormGeneric(ArrayObject $args, array $values)
+    protected function handleFormGeneric(ArrayObject $args, array $values): void
     {
         $defaults = [
             'o:resource_template' => null,
@@ -167,11 +167,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $args->exchangeArray($result);
     }
 
-    protected function handleFormSpecific(ArrayObject $args, array $values)
+    protected function handleFormSpecific(ArrayObject $args, array $values): void
     {
     }
 
-    public function process()
+    public function process(): void
     {
         $this->prepareAction();
         if (empty($this->action)) {
@@ -394,7 +394,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function baseGeneric(ArrayObject $resource)
+    protected function baseGeneric(ArrayObject $resource): void
     {
         $resourceTemplateId = $this->getParam('o:resource_template');
         if ($resourceTemplateId) {
@@ -414,11 +414,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource['o:is_public'] = $this->getParam('o:is_public') !== 'false';
     }
 
-    protected function baseSpecific(ArrayObject $resource)
+    protected function baseSpecific(ArrayObject $resource): void
     {
     }
 
-    protected function fillResource(ArrayObject $resource, array $targets, array $values)
+    protected function fillResource(ArrayObject $resource, array $targets, array $values): void
     {
         foreach ($targets as $target) {
             switch ($target['target']) {
@@ -606,7 +606,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function processEntities(array $data)
+    protected function processEntities(array $data): void
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
@@ -632,7 +632,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function createEntities(array $data)
+    protected function createEntities(array $data): void
     {
         $resourceType = $this->getResourceType();
         $this->createResources($resourceType, $data);
@@ -643,7 +643,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function createResources($resourceType, array $data)
+    protected function createResources($resourceType, array $data): void
     {
         if (!count($data)) {
             return;
@@ -690,7 +690,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function updateEntities(array $data)
+    protected function updateEntities(array $data): void
     {
         $resourceType = $this->getResourceType();
 
@@ -713,7 +713,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function updateResources($resourceType, array $data)
+    protected function updateResources($resourceType, array $data): void
     {
         if (!count($data)) {
             return;
@@ -782,7 +782,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function deleteEntities(array $data)
+    protected function deleteEntities(array $data): void
     {
         $resourceType = $this->getResourceType();
         $this->deleteResources($resourceType, $data);
@@ -793,7 +793,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function deleteResources($resourceType, array $data)
+    protected function deleteResources($resourceType, array $data): void
     {
         if (!count($data)) {
             return;
@@ -846,7 +846,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function skipEntities(array $data)
+    protected function skipEntities(array $data): void
     {
         $resourceType = $this->getResourceType();
         $this->skipResources($resourceType, $data);
@@ -857,7 +857,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @param array $data
      */
-    protected function skipResources($resourceType, array $data)
+    protected function skipResources($resourceType, array $data): void
     {
     }
 
@@ -890,7 +890,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return in_array($action, $actionsUpdate);
     }
 
-    protected function prepareAction()
+    protected function prepareAction(): void
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
@@ -909,7 +909,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
     }
 
-    protected function prepareActionUnidentified()
+    protected function prepareActionUnidentified(): void
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
@@ -923,7 +923,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
     }
 
-    protected function prepareIdentifierNames()
+    protected function prepareIdentifierNames(): void
     {
         $identifierNames = $this->getParam('identifier_name', ['o:id', 'dcterms:identifier']);
         if (empty($identifierNames)) {
@@ -957,7 +957,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->bulk->setIdentifierNames($result);
     }
 
-    protected function prepareActionIdentifier()
+    protected function prepareActionIdentifier(): void
     {
         if (!in_array($this->action, [
             self::ACTION_REVISE,
@@ -991,7 +991,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Prepare the list of identifiers one time (only properties) (see extractIdentifiers())?
     }
 
-    protected function prepareActionMedia()
+    protected function prepareActionMedia(): void
     {
         $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionMedia, [
@@ -1006,7 +1006,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
     }
 
-    protected function prepareActionItemSet()
+    protected function prepareActionItemSet(): void
     {
         $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionItemSet, [
@@ -1026,7 +1026,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Add automapped metadata for properties (language and datatype).
      */
-    protected function prepareMapping()
+    protected function prepareMapping(): void
     {
         $mapping = $this->getParam('mapping', []);
 

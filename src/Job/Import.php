@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Job;
 
 use BulkImport\Api\Representation\ImportRepresentation;
@@ -6,9 +6,9 @@ use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Reader\Manager as ReaderManager;
+use Laminas\Log\Logger;
 use Log\Stdlib\PsrMessage;
 use Omeka\Job\AbstractJob;
-use Laminas\Log\Logger;
 
 class Import extends AbstractJob
 {
@@ -27,7 +27,7 @@ class Import extends AbstractJob
      */
     protected $api;
 
-    public function perform()
+    public function perform(): void
     {
         ini_set('auto_detect_line_endings', true);
 

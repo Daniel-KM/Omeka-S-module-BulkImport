@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use Box\Spout\Common\Type;
@@ -70,14 +70,14 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      * {@inheritDoc}
      * @see \BulkImport\Reader\AbstractReader::rewind()
      */
-    public function rewind()
+    public function rewind(): void
     {
         $this->isReady;
         $this->initializeReader();
         $this->next();
     }
 
-    protected function reset()
+    protected function reset(): void
     {
         parent::reset();
         if ($this->spreadsheetReader) {
@@ -85,13 +85,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
     }
 
-    protected function prepareIterator()
+    protected function prepareIterator(): void
     {
         parent::prepareIterator();
         $this->next();
     }
 
-    protected function initializeReader()
+    protected function initializeReader(): void
     {
         if ($this->spreadsheetReader) {
             $this->spreadsheetReader->close();
@@ -123,13 +123,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
     }
 
-    protected function finalizePrepareIterator()
+    protected function finalizePrepareIterator(): void
     {
         $this->totalEntries = iterator_count($this->iterator) - 1;
         $this->initializeReader();
     }
 
-    protected function prepareAvailableFields()
+    protected function prepareAvailableFields(): void
     {
         foreach ($this->iterator as $fields) {
             break;

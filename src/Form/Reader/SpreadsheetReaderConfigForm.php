@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Reader;
 
 use Laminas\Form\Element;
 
 class SpreadsheetReaderConfigForm extends AbstractReaderConfigForm
 {
-    public function init()
+    public function init(): void
     {
         parent::init();
 

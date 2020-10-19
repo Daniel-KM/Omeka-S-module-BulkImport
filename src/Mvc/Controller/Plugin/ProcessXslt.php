@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /*
  * Copyright 2015-2019 Daniel Berthereau
@@ -31,8 +31,8 @@ namespace BulkImport\Mvc\Controller\Plugin;
 
 use DomDocument;
 use Exception;
-use XsltProcessor;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use XsltProcessor;
 
 /**
  * Process transformation of xml via xsl.

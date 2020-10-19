@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Reader;
 use Iterator;
-use Log\Stdlib\PsrMessage;
 use Laminas\Form\Form;
+use Log\Stdlib\PsrMessage;
 
 abstract class AbstractFileReader extends AbstractReader
 {
@@ -86,13 +86,13 @@ abstract class AbstractFileReader extends AbstractReader
         return $this->iterator->key();
     }
 
-    public function next()
+    public function next(): void
     {
         $this->isReady();
         $this->iterator->next();
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->isReady();
         $this->iterator->rewind();

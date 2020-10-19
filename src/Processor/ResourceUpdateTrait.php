@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Processor;
 
 /**
@@ -24,7 +24,7 @@ trait ResourceUpdateTrait
      * @param string $resourceType
      * @param int $resourceId
      */
-    protected function prepareResourceToUpdate($resourceType, $resourceId)
+    protected function prepareResourceToUpdate($resourceType, $resourceId): void
     {
         if (!$resourceType || !$resourceId) {
             $this->resourceToUpdate = null;

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport;
 
 /**
@@ -13,7 +13,7 @@ namespace BulkImport;
  */
 $services = $serviceLocator;
 $settings = $services->get('Omeka\Settings');
-$config = require dirname(dirname(__DIR__)) . '/config/module.config.php';
+$config = require dirname(__DIR__, 2) . '/config/module.config.php';
 $connection = $services->get('Omeka\Connection');
 $entityManager = $services->get('Omeka\EntityManager');
 $plugins = $services->get('ControllerPluginManager');
@@ -88,8 +88,8 @@ if (version_compare($oldVersion, '3.0.11', '<')) {
     $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
     // The resource "bulk_exporters" is not available during upgrade.
-    require_once dirname(dirname(__DIR__)) . '/src/Entity/Import.php';
-    require_once dirname(dirname(__DIR__)) . '/src/Entity/Importer.php';
+    require_once dirname(__DIR__, 2) . '/src/Entity/Import.php';
+    require_once dirname(__DIR__, 2) . '/src/Entity/Importer.php';
 
     $directory = new \RecursiveDirectoryIterator(dirname(__DIR__) . '/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
     $iterator = new \RecursiveIteratorIterator($directory);

@@ -1,22 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Omeka\Form\Element\ResourceSelect;
 use Laminas\Form\Element;
+use Omeka\Form\Element\ResourceSelect;
 
 class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
 {
     use ServiceLocatorAwareTrait;
 
-    public function init()
+    public function init(): void
     {
         $this->baseFieldset();
 
         $this->baseInputFilter();
     }
 
-    protected function baseFieldset()
+    protected function baseFieldset(): void
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -91,7 +91,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
         ;
     }
 
-    protected function baseInputFilter()
+    protected function baseInputFilter(): void
     {
         $this->getInputFilter()
             ->add([

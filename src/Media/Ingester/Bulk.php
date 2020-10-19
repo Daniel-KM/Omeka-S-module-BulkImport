@@ -1,12 +1,12 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Media\Ingester;
 
+use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Api\Request;
 use Omeka\Entity\Media;
 use Omeka\File\TempFile;
 use Omeka\Media\Ingester\IngesterInterface;
 use Omeka\Stdlib\ErrorStore;
-use Laminas\View\Renderer\PhpRenderer;
 
 class Bulk implements IngesterInterface
 {
@@ -25,7 +25,7 @@ class Bulk implements IngesterInterface
      *
      * {@inheritDoc}
      */
-    public function ingest(Media $media, Request $request, ErrorStore $errorStore)
+    public function ingest(Media $media, Request $request, ErrorStore $errorStore): void
     {
         $data = $request->getContent();
         if (!isset($data['ingest_ingester'])) {

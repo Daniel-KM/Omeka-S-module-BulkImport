@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Entry;
 
 /**
@@ -6,7 +6,7 @@ namespace BulkImport\Entry;
  */
 class SpreadsheetEntry extends Entry
 {
-    protected function init(array $fields, array $data, array $options)
+    protected function init(array $fields, array $data, array $options): void
     {
         // The standard process is used when there is no separator.
         if (!isset($options['separator']) || !strlen($options['separator'])) {

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
@@ -9,7 +9,7 @@ class ItemSetProcessorParamsForm extends ItemSetProcessorConfigForm
     use EntriesByBatchTrait;
     use EntriesToSkipTrait;
 
-    public function init()
+    public function init(): void
     {
         $this->baseFieldset();
         $this->addFieldsets();

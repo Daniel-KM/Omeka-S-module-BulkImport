@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
 use Omeka\Form\Element\ItemSetSelect;
 
 class ItemProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {
-    protected function addFieldsets()
+    protected function addFieldsets(): void
     {
         parent::addFieldsets();
 
@@ -25,7 +25,7 @@ class ItemProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addInputFilter()
+    protected function addInputFilter(): void
     {
         parent::addInputFilter();
 

@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use ArrayIterator;
 use BulkImport\Form\Reader\OmekaSReaderConfigForm;
 use BulkImport\Form\Reader\OmekaSReaderParamsForm;
-use Log\Stdlib\PsrMessage;
 use Laminas\Http\Client as HttpClient;
 use Laminas\Http\Request;
 use Laminas\Http\Response;
+use Log\Stdlib\PsrMessage;
 
 // A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
 // TODO Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
@@ -204,7 +204,7 @@ class OmekaSReader extends AbstractReader
         return $this->totalCount;
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->prepareIterator();
         $this->getInnerIterator()->rewind();
@@ -241,7 +241,7 @@ class OmekaSReader extends AbstractReader
         return $this->currentIndex;
     }
 
-    public function next()
+    public function next(): void
     {
         $inner = $this->getInnerIterator();
         if ($inner->key() + 1 >= $inner->count()) {
@@ -314,7 +314,7 @@ class OmekaSReader extends AbstractReader
         return true;
     }
 
-    protected function initArgs()
+    protected function initArgs(): void
     {
         $this->endpoint = $this->getParam('endpoint');
         $this->queryCredentials = [];
@@ -326,7 +326,7 @@ class OmekaSReader extends AbstractReader
         }
     }
 
-    protected function resetIterator()
+    protected function resetIterator(): void
     {
         $this->perPage = 0;
         $this->firstPage = 0;
@@ -372,7 +372,7 @@ class OmekaSReader extends AbstractReader
         $this->setInnerIterator(new ArrayIterator($json));
     }
 
-    protected function preparePageIterator(Response $response)
+    protected function preparePageIterator(Response $response): void
     {
         $links = $response->getHeaders()->get('Link');
         if (!$links) {

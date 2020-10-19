@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /*
  * Copyright 2017-2020 Daniel Berthereau
@@ -30,8 +30,8 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use Doctrine\DBAL\Connection;
-use Omeka\Mvc\Controller\Plugin\Api;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Omeka\Mvc\Controller\Plugin\Api;
 
 /**
  * Copy of the controller plugin of the module Csv Import
@@ -166,7 +166,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         switch ($identifierType) {
             case 'o:id':
                 $result = $this->findResourcesFromInternalIds($identifiers, $resourceType);
-                $count = array_map(function($v) {
+                $count = array_map(function ($v) {
                     return empty($v) ? 0 : 1;
                 }, $result);
                 return [

@@ -1,14 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Processor;
 
 use ArrayObject;
 use BulkImport\Interfaces\Processor;
 use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Omeka\Api\Exception\ValidationException;
-use Omeka\Job\AbstractJob as Job;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Omeka\Api\Exception\ValidationException;
+use Omeka\Job\AbstractJob as Job;
 
 abstract class AbstractProcessor implements Processor
 {
@@ -546,7 +546,7 @@ abstract class AbstractProcessor implements Processor
                 // Some messages can be nested.
                 if (is_array($message)) {
                     $result = [];
-                    array_walk_recursive($message, function ($v) use (&$result) {
+                    array_walk_recursive($message, function ($v) use (&$result): void {
                         $result[] = $v;
                     });
                     $message = $result;

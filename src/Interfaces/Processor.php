@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Interfaces;
 
-use Omeka\Job\AbstractJob as Job;
 use Laminas\Log\Logger;
+use Omeka\Job\AbstractJob as Job;
 
 interface Processor
 {

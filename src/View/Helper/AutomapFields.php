@@ -1,9 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\View\Helper;
 
-use Omeka\View\Helper\Api;
 use Laminas\I18n\View\Helper\Translate;
 use Laminas\View\Helper\AbstractHelper;
+use Omeka\View\Helper\Api;
 
 class AutomapFields extends AbstractHelper
 {

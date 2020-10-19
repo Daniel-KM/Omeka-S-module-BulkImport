@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form;
 
 use Laminas\Form\Element;
 
 trait EntriesByBatchTrait
 {
-    protected function addEntriesByBatch()
+    protected function addEntriesByBatch(): void
     {
         $this->add([
             'name' => 'entries_by_batch',
@@ -26,7 +26,7 @@ trait EntriesByBatchTrait
         ]);
     }
 
-    protected function addEntriesByBatchInputFilter()
+    protected function addEntriesByBatchInputFilter(): void
     {
         $inputFilter = $this->getInputFilter();
         $inputFilter->add([

@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form\Processor;
 
+use Laminas\Form\Element;
 use Omeka\Form\Element\ItemSetSelect;
 use Omeka\Form\Element\ResourceSelect;
-use Laminas\Form\Element;
 
 class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {
-    protected function addFieldsets()
+    protected function addFieldsets(): void
     {
         parent::addFieldsets();
 
@@ -37,7 +37,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         $this->addFieldsetMedia();
     }
 
-    protected function addFieldsetItem()
+    protected function addFieldsetItem(): void
     {
         $this->add([
             'name' => 'o:item_set',
@@ -55,7 +55,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addFieldsetItemSet()
+    protected function addFieldsetItemSet(): void
     {
         $this->add([
             'name' => 'o:is_open',
@@ -73,7 +73,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addFieldsetMedia()
+    protected function addFieldsetMedia(): void
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -107,7 +107,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addInputFilter()
+    protected function addInputFilter(): void
     {
         parent::addInputFilter();
 
@@ -122,7 +122,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         $this->addInputFilterMedia();
     }
 
-    protected function addInputFilterItem()
+    protected function addInputFilterItem(): void
     {
         $inputFilter = $this->getInputFilter();
         $inputFilter->add([
@@ -131,7 +131,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addInputFilterItemSet()
+    protected function addInputFilterItemSet(): void
     {
         $inputFilter = $this->getInputFilter();
         $inputFilter->add([
@@ -140,7 +140,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
         ]);
     }
 
-    protected function addInputFilterMedia()
+    protected function addInputFilterMedia(): void
     {
         $inputFilter = $this->getInputFilter();
         $inputFilter->add([

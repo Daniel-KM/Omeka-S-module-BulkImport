@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use Box\Spout\Common\Type;
@@ -32,7 +32,7 @@ class TsvReader extends CsvReader
         $this->escape = chr(0);
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): void
     {
         parent::handleParamsForm($form);
         $params = $this->getParams();
@@ -42,7 +42,7 @@ class TsvReader extends CsvReader
         $this->setParams($params);
     }
 
-    protected function reset()
+    protected function reset(): void
     {
         parent::reset();
         $this->delimiter = "\t";

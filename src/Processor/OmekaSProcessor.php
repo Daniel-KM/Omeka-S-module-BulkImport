@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -8,10 +8,10 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use finfo;
+use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\VocabularyRepresentation;
-use Laminas\Form\Form;
 
 /**
  * @todo The processor is only parametrizable currently.
@@ -205,7 +205,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form)
+    public function handleConfigForm(Form $form): void
     {
         $values = $form->getData();
         $config = new ArrayObject;
@@ -219,7 +219,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->setConfig($config);
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): void
     {
         $values = $form->getData();
         $params = new ArrayObject;
@@ -244,7 +244,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->setParams($params);
     }
 
-    protected function handleFormGeneric(ArrayObject $args, array $values)
+    protected function handleFormGeneric(ArrayObject $args, array $values): void
     {
         $defaults = [
             'endpoint' => null,
@@ -259,7 +259,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $args->exchangeArray($result);
     }
 
-    public function process()
+    public function process(): void
     {
         // TODO Add a dry-run.
         // TODO Add an option to use api or not.
@@ -431,7 +431,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         );
     }
 
-    protected function checkAssets()
+    protected function checkAssets(): void
     {
         // Check if there are empty data, for example from an incomplete import.
         $sql = <<<SQL
@@ -452,7 +452,7 @@ SQL;
         }
     }
 
-    protected function checkResources()
+    protected function checkResources(): void
     {
         $resourceTables = [
             'item' => \Omeka\Entity\Item::class,
@@ -481,7 +481,7 @@ SQL;
         }
     }
 
-    protected function checkVocabularies()
+    protected function checkVocabularies(): void
     {
         foreach ($this->reader->setObjectType('vocabularies') as $vocabulary) {
             $result = $this->checkVocabulary($vocabulary);
@@ -587,7 +587,7 @@ SQL;
     /**
      * The vocabularies should be checked before.
      */
-    protected function prepareVocabularies()
+    protected function prepareVocabularies(): void
     {
         $index = 0;
         $created = 0;
@@ -633,19 +633,19 @@ SQL;
         );
     }
 
-    protected function prepareProperties()
+    protected function prepareProperties(): void
     {
         $properties = $this->getPropertyIds();
         $this->prepareVocabularyMembers('properties', $properties, \Omeka\Entity\Property::class);
     }
 
-    protected function prepareResourceClasses()
+    protected function prepareResourceClasses(): void
     {
         $resourceClasses = $this->getResourceClassIds();
         $this->prepareVocabularyMembers('resource_classes', $resourceClasses, \Omeka\Entity\ResourceClass::class);
     }
 
-    protected function prepareVocabularyMembers($resourceType, $memberIdsByTerm, $class)
+    protected function prepareVocabularyMembers($resourceType, $memberIdsByTerm, $class): void
     {
         $this->refreshOwner();
 
@@ -766,7 +766,7 @@ SQL;
         $this->map['by_id'][$resourceType] = array_column($this->map[$resourceType], 'id', 'source');
     }
 
-    protected function prepareCustomVocabs()
+    protected function prepareCustomVocabs(): void
     {
         $this->map['custom_vocabs'] = [];
 
@@ -857,7 +857,7 @@ SQL;
         );
     }
 
-    protected function prepareCustomVocabsFinalize()
+    protected function prepareCustomVocabsFinalize(): void
     {
         if (empty($this->modules['CustomVocab'])) {
             return;
@@ -890,7 +890,7 @@ SQL;
         }
     }
 
-    protected function prepareResourceTemplates()
+    protected function prepareResourceTemplates(): void
     {
         $resourceTemplates = $this->getResourceTemplateIds();
 
@@ -997,7 +997,7 @@ SQL;
         );
     }
 
-    protected function initializeEntities()
+    protected function initializeEntities(): void
     {
         $resourceTypes = [
             'assets' => \Omeka\Entity\Asset::class,
@@ -1224,7 +1224,7 @@ SQL;
         }
     }
 
-    protected function fillAssets()
+    protected function fillAssets(): void
     {
         $this->refreshOwner();
 
@@ -1316,7 +1316,7 @@ SQL;
         );
     }
 
-    protected function fillResources()
+    protected function fillResources(): void
     {
         $resourceTypes = [
             'item_sets' => \Omeka\Entity\ItemSet::class,
@@ -1407,7 +1407,7 @@ SQL;
         }
     }
 
-    protected function fillResource(array $resource)
+    protected function fillResource(array $resource): void
     {
         // Omeka entities are not fluid.
         $this->entity->setOwner($this->owner);
@@ -1459,7 +1459,7 @@ SQL;
         $this->fillValues($resource);
     }
 
-    protected function fillValues(array $resource)
+    protected function fillValues(array $resource): void
     {
         $resourceTypes = [
             'assets' => \Omeka\Entity\Asset::class,
@@ -1644,14 +1644,14 @@ SQL;
         }
     }
 
-    protected function fillItemSet(array $resource)
+    protected function fillItemSet(array $resource): void
     {
         $this->fillResource($resource);
 
         $this->entity->setIsOpen(!empty($resource['o:is_open']));
     }
 
-    protected function fillItem(array $resource)
+    protected function fillItem(array $resource): void
     {
         $this->fillResource($resource);
 
@@ -1672,7 +1672,7 @@ SQL;
         // Media are updated separately in order to manage files.
     }
 
-    protected function fillMedia(array $resource)
+    protected function fillMedia(array $resource): void
     {
         $this->fillResource($resource);
 
@@ -1734,7 +1734,7 @@ SQL;
         }
     }
 
-    protected function fillMapping()
+    protected function fillMapping(): void
     {
         if (empty($this->modules['Mapping'])) {
             return;
@@ -1794,7 +1794,7 @@ SQL;
         }
     }
 
-    protected function fillMappingMappings(array $resource)
+    protected function fillMappingMappings(array $resource): void
     {
         $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
         if (!$item) {
@@ -1808,7 +1808,7 @@ SQL;
         $this->entity->setBounds($resource['o-module-mapping:bounds']);
     }
 
-    protected function fillMappingMarkers(array $resource)
+    protected function fillMappingMarkers(array $resource): void
     {
         $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
         if (!$item) {
@@ -1842,7 +1842,7 @@ SQL;
     /**
      * Check if managed modules are available.
      */
-    protected function checkAvailableModules()
+    protected function checkAvailableModules(): void
     {
         // Modules managed by the module.
         $moduleClasses = [
@@ -1866,7 +1866,7 @@ SQL;
      * The owner should be reloaded each time the entity manager is cleared, so
      * it is saved and reloaded.
      */
-    protected function refreshOwner()
+    protected function refreshOwner(): void
     {
         if ($this->ownerId) {
             $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $this->ownerId);
@@ -2052,7 +2052,7 @@ SQL;
         ];
     }
 
-    protected function logErrors($entity, $errorStore)
+    protected function logErrors($entity, $errorStore): void
     {
         foreach ($errorStore->getErrors() as $messages) {
             if (!i_sarray($messages)) {

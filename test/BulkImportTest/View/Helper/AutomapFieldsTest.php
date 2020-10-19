@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\View\Helper;
 
 use BulkImport\View\Helper\AutomapFields;
@@ -8,7 +8,7 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
 {
     protected $automapFields;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setup();
 
@@ -16,7 +16,7 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
 
         // Copy of the factory of the helper.
         $filepath = '/data/mappings/fields_to_metadata.php';
-        $map = require dirname(dirname(dirname(dirname(__DIR__)))) . $filepath;
+        $map = require dirname(__DIR__, 4) . $filepath;
         $viewHelpers = $services->get('ViewHelperManager');
         $this->automapFields = new AutomapFields(
             $map,
@@ -25,7 +25,7 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
         );
     }
 
-    public function testInvoke()
+    public function testInvoke(): void
     {
         $automapFields = $this->automapFields;
         $fields = [];
@@ -55,7 +55,7 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
     /**
      * @dataProvider sourceProvider
      */
-    public function testInvokes($fieldsToMetadata, $options = [])
+    public function testInvokes($fieldsToMetadata, $options = []): void
     {
         $automapFields = $this->automapFields;
         $fields = array_keys($fieldsToMetadata);
@@ -81,7 +81,7 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
     /**
      * @dataProvider sourceProviderFullMatch
      */
-    public function testInvokesFullMatch($fieldsToMetadata, $options = [])
+    public function testInvokesFullMatch($fieldsToMetadata, $options = []): void
     {
         $automapFields = $this->automapFields;
         $options = ['output_full_matches' => true] + $options;

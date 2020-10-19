@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Mapping between common field name and standard Omeka metadata name from the
  * json-ld representation, or, in some cases, the value used inside the resource

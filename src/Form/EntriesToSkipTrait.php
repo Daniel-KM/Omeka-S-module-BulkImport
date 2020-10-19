@@ -1,11 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form;
 
 use Laminas\Form\Element;
 
 trait EntriesToSkipTrait
 {
-    protected function addEntriesToSkip()
+    protected function addEntriesToSkip(): void
     {
         $this
             ->add([
@@ -28,7 +28,7 @@ trait EntriesToSkipTrait
         ;
     }
 
-    protected function addEntriesToSkipInputFilter()
+    protected function addEntriesToSkipInputFilter(): void
     {
         $inputFilter = $this->getInputFilter();
         $inputFilter->add([

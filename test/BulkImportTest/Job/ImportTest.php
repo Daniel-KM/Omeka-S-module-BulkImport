@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\Mvc\Controller\Plugin;
 
 use BulkImport\Job\Import;
@@ -39,7 +39,7 @@ class ImportTest extends OmekaControllerTestCase
      */
     protected $tempfile;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setup();
 
@@ -57,7 +57,7 @@ class ImportTest extends OmekaControllerTestCase
         $this->tempfile = tempnam(sys_get_temp_dir(), 'omk');
     }
 
-    protected function overrideConfig()
+    protected function overrideConfig(): void
     {
         require_once dirname(__DIR__) . '/Mock/Media/Ingester/MockUrl.php';
 
@@ -77,7 +77,7 @@ class ImportTest extends OmekaControllerTestCase
         $mediaIngesterManager->setAllowOverride(false);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         if (file_exists($this->tempfile)) {
             unlink($this->tempfile);
@@ -87,7 +87,7 @@ class ImportTest extends OmekaControllerTestCase
     /**
      * Reset index of the all resource tables to simplify addition of tests.
      */
-    protected function resetResources()
+    protected function resetResources(): void
     {
         $conn = $this->getServiceLocator()->get('Omeka\Connection');
         $sql = <<<'SQL'
@@ -125,7 +125,7 @@ SQL;
     /**
      * @dataProvider sourceProvider
      */
-    public function testPerformCreate($filepath, $totals, $resetResources = true, $createItem = false)
+    public function testPerformCreate($filepath, $totals, $resetResources = true, $createItem = false): void
     {
         $filepath = $this->basepath . $filepath;
         $filebase = substr($filepath, 0, -4);
@@ -214,7 +214,7 @@ SQL;
      * @dataProvider sourceUpdateProvider
      * @depends testPerformCreateOne
      */
-    public function testPerformUpdate($filepath, $options, $resources)
+    public function testPerformUpdate($filepath, $options, $resources): void
     {
         $filepath = $this->basepath . $filepath;
         $filebase = substr($filepath, 0, -4);
@@ -258,7 +258,7 @@ SQL;
      * @depends testPerformCreateOne
      * @depends testPerformUpdate
      */
-    public function testPerformDelete($filepath, $options, $resources)
+    public function testPerformDelete($filepath, $options, $resources): void
     {
         // TODO Remove dependencies of testPerformDelete()
 

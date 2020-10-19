@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Api\Adapter;
 
 use BulkImport\Api\Representation\ImporterRepresentation;
@@ -34,7 +34,7 @@ class ImporterAdapter extends AbstractEntityAdapter
         return Importer::class;
     }
 
-    public function buildQuery(QueryBuilder $qb, array $query)
+    public function buildQuery(QueryBuilder $qb, array $query): void
     {
         $isOldOmeka = \Omeka\Module::VERSION < 2;
         $alias = $isOldOmeka ? $this->getEntityClass() : 'omeka_root';
@@ -64,7 +64,7 @@ class ImporterAdapter extends AbstractEntityAdapter
         }
     }
 
-    public function hydrate(Request $request, EntityInterface $entity, ErrorStore $errorStore)
+    public function hydrate(Request $request, EntityInterface $entity, ErrorStore $errorStore): void
     {
         $data = $request->getContent();
         foreach ($data as $key => $value) {

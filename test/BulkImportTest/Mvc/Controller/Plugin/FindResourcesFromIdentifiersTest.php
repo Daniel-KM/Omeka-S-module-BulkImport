@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\Mvc\Controller\Plugin;
 
 use BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers;
@@ -12,7 +12,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
 
     protected $resources;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setup();
 
@@ -60,7 +60,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
         ])->getContent();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $map = [
             'o:ItemSet' => 'item_sets',
@@ -77,7 +77,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
         $this->resources = [];
     }
 
-    public function testNoIdentifier()
+    public function testNoIdentifier(): void
     {
         $findResourcesFromIdentifiers = $this->findResourcesFromIdentifiers;
         $this->api->create('items', [])->getContent();
@@ -114,7 +114,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
     /**
      * @dataProvider resourceIdentifierProvider
      */
-    public function testResourceIdentifier($identifier, $identifierProperty, $resourceType, $expected)
+    public function testResourceIdentifier($identifier, $identifierProperty, $resourceType, $expected): void
     {
         $expected = is_null($expected) ? null : $this->resources[$expected]->id();
 
@@ -148,7 +148,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
     /**
      * @dataProvider resourceIdentifiersProvider
      */
-    public function testResourceIdentifiers($identifiers, $identifierProperty, $resourceType, $expecteds)
+    public function testResourceIdentifiers($identifiers, $identifierProperty, $resourceType, $expecteds): void
     {
         foreach ($expecteds as &$expected) {
             $expected = is_null($expected) ? null : $this->resources[$expected]->id();

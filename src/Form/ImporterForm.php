@@ -1,9 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Form;
 
 use BulkImport\Entity\Importer;
-use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Processor\Manager as ProcessorManager;
+use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
@@ -18,7 +18,7 @@ class ImporterForm extends Form
      */
     protected $importer;
 
-    public function init()
+    public function init(): void
     {
         parent::init();
 
@@ -74,7 +74,7 @@ class ImporterForm extends Form
         ]);
     }
 
-    public function setImporter(Importer $importer)
+    public function setImporter(Importer $importer): void
     {
         $this->importer = $importer;
     }

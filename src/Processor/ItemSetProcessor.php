@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -15,12 +15,12 @@ class ItemSetProcessor extends ResourceProcessor
 
     protected $paramsFormClass = ItemSetProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values)
+    protected function handleFormSpecific(ArrayObject $args, array $values): void
     {
         $this->handleFormItemSet($args, $values);
     }
 
-    protected function baseSpecific(ArrayObject $resource)
+    protected function baseSpecific(ArrayObject $resource): void
     {
         $this->baseItemSet($resource);
     }

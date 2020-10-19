@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use BulkImport\Interfaces\Configurable;
@@ -55,13 +55,13 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->reader->key();
     }
 
-    public function next()
+    public function next(): void
     {
         $this->isReady();
         $this->reader->next();
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->isReady();
         $this->reader->rewind();

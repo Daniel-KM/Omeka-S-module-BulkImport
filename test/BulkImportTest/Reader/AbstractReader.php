@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\Reader;
 
 use OmekaTestHelper\Controller\OmekaControllerTestCase;
@@ -12,7 +12,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
 
     protected $source;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setup();
 
@@ -24,7 +24,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
         $this->loginAsAdmin();
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         $this->source->clean();
     }
@@ -37,7 +37,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
     /**
      * @dataProvider sourceProvider
      */
-    public function testIsValid($filepath, $options, $expected)
+    public function testIsValid($filepath, $options, $expected): void
     {
         $source = $this->getSource($filepath, $options);
         $this->assertEquals($expected[0], $source->isValid());
@@ -46,7 +46,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
     /**
      * @dataProvider sourceProvider
      */
-    public function testCountRows($filepath, $options, $expected)
+    public function testCountRows($filepath, $options, $expected): void
     {
         $source = $this->getSource($filepath, $options);
         $this->assertEquals($expected[1], $source->countRows());
@@ -55,7 +55,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
     /**
      * @dataProvider sourceProvider
      */
-    public function testGetHeaders($filepath, $options, $expected)
+    public function testGetHeaders($filepath, $options, $expected): void
     {
         $source = $this->getSource($filepath, $options);
         $this->assertEquals($expected[2], $source->getHeaders());

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Reader;
 
 use Box\Spout\Common\Type;
@@ -78,14 +78,14 @@ class CsvReader extends AbstractSpreadsheetFileReader
      * {@inheritDoc}
      * @see \Iterator::rewind()
      */
-    public function rewind()
+    public function rewind(): void
     {
         $this->isReady();
         $this->iterator->rewind();
         $this->next();
     }
 
-    protected function reset()
+    protected function reset(): void
     {
         parent::reset();
         $this->delimiter = self::DEFAULT_DELIMITER;
@@ -93,13 +93,13 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->escape = self::DEFAULT_ESCAPE;
     }
 
-    protected function prepareIterator()
+    protected function prepareIterator(): void
     {
         parent::prepareIterator();
         $this->next();
     }
 
-    protected function initializeReader()
+    protected function initializeReader(): void
     {
         $filepath = $this->getParam('filename');
         $this->iterator = new SplFileObject($filepath);
@@ -116,12 +116,12 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->iterator->setCsvControl($this->delimiter, $this->enclosure, $this->escape);
     }
 
-    protected function finalizePrepareIterator()
+    protected function finalizePrepareIterator(): void
     {
         $this->totalEntries = iterator_count($this->iterator) - 1;
     }
 
-    protected function prepareAvailableFields()
+    protected function prepareAvailableFields(): void
     {
         $this->iterator->rewind();
         $fields = $this->iterator->current();

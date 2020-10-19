@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport;
 
 if (!class_exists(\Generic\AbstractModule::class)) {
@@ -18,12 +18,12 @@ class Module extends AbstractModule
 
     protected $dependency = 'Log';
 
-    public function init(ModuleManager $moduleManager)
+    public function init(ModuleManager $moduleManager): void
     {
         require_once __DIR__ . '/vendor/autoload.php';
     }
 
-    protected function postInstall()
+    protected function postInstall(): void
     {
         $services = $this->getServiceLocator();
         $entityManager = $services->get('Omeka\EntityManager');
@@ -49,7 +49,7 @@ class Module extends AbstractModule
         $entityManager->flush();
     }
 
-    public function attachListeners(SharedEventManagerInterface $sharedEventManager)
+    public function attachListeners(SharedEventManagerInterface $sharedEventManager): void
     {
         $sharedEventManager->attach(
             \Omeka\Media\Ingester\Manager::class,
@@ -63,7 +63,7 @@ class Module extends AbstractModule
      *
      * @param Event $event
      */
-    public function handleMediaIngesterRegisteredNames(Event $event)
+    public function handleMediaIngesterRegisteredNames(Event $event): void
     {
         $names = $event->getParam('registered_names');
         $key = array_search('bulk', $names);

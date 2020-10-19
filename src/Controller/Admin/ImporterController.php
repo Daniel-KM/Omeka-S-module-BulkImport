@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImport\Controller\Admin;
 
 use BulkImport\Api\Representation\ImporterRepresentation;
@@ -9,13 +9,13 @@ use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Job\Import as JobImport;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Log\Stdlib\PsrMessage;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Session\Container;
 use Laminas\View\Model\ViewModel;
+use Log\Stdlib\PsrMessage;
 
 class ImporterController extends AbstractActionController
 {

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace BulkImportTest\Reader;
 
 use BulkImport\Reader\OpenDocumentSpreadsheetReader;
@@ -29,7 +29,7 @@ class OpenDocumentSpreadsheetReaderTest extends AbstractReader
     /**
      * @dataProvider ReaderProvider
      */
-    public function testCountRows($filepath, $options, $expected)
+    public function testCountRows($filepath, $options, $expected): void
     {
         $this->markTestSkipped('TODO Count empty rows with spreadsheet.');
     }
