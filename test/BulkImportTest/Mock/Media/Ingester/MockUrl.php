@@ -43,9 +43,7 @@ class MockUrl extends Url
         $media->setExtension($tempFile->getExtension());
         $media->setMediaType($tempFile->getMediaType());
         $media->setSha256($tempFile->getSha256());
-        if (version_compare(\Omeka\Module::VERSION, '1.3.0', '>=')) {
-            $media->setSize($tempFile->getSize());
-        }
+        $media->setSize($tempFile->getSize());
         // $hasThumbnails = $tempFile->storeThumbnails();
         $hasThumbnails = false;
         $media->setHasThumbnails($hasThumbnails);

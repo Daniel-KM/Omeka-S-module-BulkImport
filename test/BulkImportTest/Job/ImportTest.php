@@ -378,16 +378,6 @@ SQL;
             unset($resource['o:thumbnail_urls']);
         }
 
-        if (version_compare(\Omeka\Module::VERSION, '1.3.0', '<')) {
-            unset($resource['o:thumbnail']);
-            unset($resource['o:size']);
-            foreach ($resource as &$property) {
-                if (isset($property['property_id'])) {
-                    unset($property['is_public']);
-                }
-            }
-        }
-
         if (!$this->hasModule('Mapping')) {
             unset($resource['o-module-mapping:lat']);
             unset($resource['o-module-mapping:lng']);
