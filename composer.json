@@ -1,7 +1,7 @@
 {
     "require": {
-        "box/spout": "^2.7",
-        "mikehaertl/php-pdftk": "^0.6.1"
+        "box/spout": "^3.1",
+        "mikehaertl/php-pdftk": "^0.9"
     },
     "require-dev": {
         "biblibre/omeka-s-test-helper": "dev-master"
