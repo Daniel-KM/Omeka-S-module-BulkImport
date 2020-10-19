@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Form\Reader;
 
-use Zend\Form\Element;
+use Laminas\Form\Element;
 
 class TsvReaderParamsForm extends SpreadsheetReaderConfigForm
 {

@@ -7,8 +7,8 @@ use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Omeka\Api\Exception\ValidationException;
 use Omeka\Job\AbstractJob as Job;
-use Zend\Log\Logger;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\Log\Logger;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 abstract class AbstractProcessor implements Processor
 {
@@ -333,12 +333,12 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
-     * @param \Zend\Form\Form $form Unused, but kept for compatibility with
+     * @param \Laminas\Form\Form $form Unused, but kept for compatibility with
      * default api.
      * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
-    protected function api(\Zend\Form\Form $form = null, $throwValidationException = false)
+    protected function api(\Laminas\Form\Form $form = null, $throwValidationException = false)
     {
         return $this->bulk->api($form, $throwValidationException);
     }

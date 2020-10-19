@@ -2,7 +2,7 @@
 namespace BulkImport\Interfaces;
 
 use Omeka\Job\AbstractJob as Job;
-use Zend\Log\Logger;
+use Laminas\Log\Logger;
 
 interface Processor
 {

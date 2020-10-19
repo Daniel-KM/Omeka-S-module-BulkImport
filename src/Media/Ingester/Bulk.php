@@ -6,7 +6,7 @@ use Omeka\Entity\Media;
 use Omeka\File\TempFile;
 use Omeka\Media\Ingester\IngesterInterface;
 use Omeka\Stdlib\ErrorStore;
-use Zend\View\Renderer\PhpRenderer;
+use Laminas\View\Renderer\PhpRenderer;
 
 class Bulk implements IngesterInterface
 {

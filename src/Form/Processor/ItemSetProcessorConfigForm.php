@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Form\Processor;
 
-use Zend\Form\Element;
+use Laminas\Form\Element;
 
 class ItemSetProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {

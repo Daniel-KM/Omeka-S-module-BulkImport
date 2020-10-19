@@ -7,8 +7,8 @@ use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Zend\Form\Form;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\Form\Form;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 abstract class AbstractReader implements Reader, Configurable, Parametrizable
 {

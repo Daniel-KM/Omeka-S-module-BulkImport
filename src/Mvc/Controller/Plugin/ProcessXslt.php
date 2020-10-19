@@ -32,7 +32,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 use DomDocument;
 use Exception;
 use XsltProcessor;
-use Zend\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 /**
  * Process transformation of xml via xsl.

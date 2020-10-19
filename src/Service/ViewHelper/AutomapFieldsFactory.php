@@ -3,7 +3,7 @@ namespace BulkImport\Service\ViewHelper;
 
 use BulkImport\View\Helper\AutomapFields;
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class AutomapFieldsFactory implements FactoryInterface
 {

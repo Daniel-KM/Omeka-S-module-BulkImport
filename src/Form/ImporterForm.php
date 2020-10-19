@@ -5,9 +5,9 @@ use BulkImport\Entity\Importer;
 use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Zend\Form\Element;
-use Zend\Form\Fieldset;
-use Zend\Form\Form;
+use Laminas\Form\Element;
+use Laminas\Form\Fieldset;
+use Laminas\Form\Form;
 
 class ImporterForm extends Form
 {

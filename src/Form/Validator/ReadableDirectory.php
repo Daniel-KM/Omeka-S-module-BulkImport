@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Validator;
 
-use Zend\Validator\AbstractValidator;
+use Laminas\Validator\AbstractValidator;
 
 class ReadableDirectory extends AbstractValidator
 {
@@ -47,7 +47,7 @@ class ReadableDirectory extends AbstractValidator
                     return false;
                 }
             }
-        } catch (\Zend\Validator\Exception\InvalidArgumentException $e) {
+        } catch (\Laminas\Validator\Exception\InvalidArgumentException $e) {
         }
 
         if (!file_exists($path)) {

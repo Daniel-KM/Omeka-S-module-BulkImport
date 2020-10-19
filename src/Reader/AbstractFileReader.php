@@ -5,7 +5,7 @@ use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Reader;
 use Iterator;
 use Log\Stdlib\PsrMessage;
-use Zend\Form\Form;
+use Laminas\Form\Form;
 
 abstract class AbstractFileReader extends AbstractReader
 {

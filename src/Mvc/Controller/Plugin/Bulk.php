@@ -29,9 +29,9 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
-use Zend\Log\Logger;
-use Zend\Mvc\Controller\Plugin\AbstractPlugin;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\Log\Logger;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
  * Copy of the controller plugin of the module Csv Import
@@ -656,7 +656,7 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * @return \Zend\Log\Logger
+     * @return \Laminas\Log\Logger
      */
     public function logger()
     {
@@ -666,11 +666,11 @@ class Bulk extends AbstractPlugin
     /**
      * Proxy to api() to get the errors even without form.
      *
-     * @param \Zend\Form\Form $form
+     * @param \Laminas\Form\Form $form
      * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
-    public function api(\Zend\Form\Form $form = null, $throwValidationException = false)
+    public function api(\Laminas\Form\Form $form = null, $throwValidationException = false)
     {
         // @see \Omeka\Api\Manager::handleValidationException()
         try {

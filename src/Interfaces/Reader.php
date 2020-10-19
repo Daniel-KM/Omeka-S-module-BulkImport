@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Interfaces;
 
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
  * A reader returns metadata and files data.

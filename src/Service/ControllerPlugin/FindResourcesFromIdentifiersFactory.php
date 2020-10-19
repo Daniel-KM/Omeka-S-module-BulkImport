@@ -3,7 +3,7 @@ namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers;
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class FindResourcesFromIdentifiersFactory implements FactoryInterface
 {

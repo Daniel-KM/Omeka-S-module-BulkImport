@@ -5,9 +5,9 @@ use ArrayIterator;
 use BulkImport\Form\Reader\OmekaSReaderConfigForm;
 use BulkImport\Form\Reader\OmekaSReaderParamsForm;
 use Log\Stdlib\PsrMessage;
-use Zend\Http\Client as HttpClient;
-use Zend\Http\Request;
-use Zend\Http\Response;
+use Laminas\Http\Client as HttpClient;
+use Laminas\Http\Request;
+use Laminas\Http\Response;
 
 // A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
 // TODO Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
@@ -42,7 +42,7 @@ class OmekaSReader extends AbstractReader
     protected $innerIterator;
 
     /**
-     * @var \Zend\Http\Client
+     * @var \Laminas\Http\Client
      */
     protected $httpClient;
 
@@ -134,7 +134,7 @@ class OmekaSReader extends AbstractReader
     public function getHttpClient()
     {
         if (!$this->httpClient) {
-            $this->httpClient = new \Zend\Http\Client(null, [
+            $this->httpClient = new \Laminas\Http\Client(null, [
                 'timeout' => 30,
             ]);
         }
@@ -284,10 +284,10 @@ class OmekaSReader extends AbstractReader
         $check = ['path' => '-context', 'subpath' => '', 'params' => []];
         try {
             $response = $this->fetch($check['path'], $check['subpath'], $check['params']);
-        } catch (\Zend\Http\Exception\RuntimeException $e) {
+        } catch (\Laminas\Http\Exception\RuntimeException $e) {
             $this->lastErrorMessage = $e->getMessage();
             return false;
-        } catch (\Zend\Http\Client\Exception\RuntimeException $e) {
+        } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
             $this->lastErrorMessage = $e->getMessage();
             return false;
         }
@@ -455,9 +455,9 @@ class OmekaSReader extends AbstractReader
     }
 
     /**
-     * @return \Zend\Http\Response
-     * @throws \Zend\Http\Exception\RuntimeException
-     * @throws \Zend\Http\Client\Exception\RuntimeException
+     * @return \Laminas\Http\Response
+     * @throws \Laminas\Http\Exception\RuntimeException
+     * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
     protected function fetchData($path, $subpath, array $params, $page = 0)
     {
@@ -465,9 +465,9 @@ class OmekaSReader extends AbstractReader
     }
 
     /**
-     * @return \Zend\Http\Response
-     * @throws \Zend\Http\Exception\RuntimeException
-     * @throws \Zend\Http\Client\Exception\RuntimeException
+     * @return \Laminas\Http\Response
+     * @throws \Laminas\Http\Exception\RuntimeException
+     * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
     protected function fetch($path, $subpath, array $params, $page = 0)
     {

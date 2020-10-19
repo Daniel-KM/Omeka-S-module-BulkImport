@@ -10,12 +10,12 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Job\Import as JobImport;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Log\Stdlib\PsrMessage;
-use Zend\Form\Element;
-use Zend\Form\Fieldset;
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\ServiceManager\ServiceLocatorInterface;
-use Zend\Session\Container;
-use Zend\View\Model\ViewModel;
+use Laminas\Form\Element;
+use Laminas\Form\Fieldset;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\ServiceManager\ServiceLocatorInterface;
+use Laminas\Session\Container;
+use Laminas\View\Model\ViewModel;
 
 class ImporterController extends AbstractActionController
 {
@@ -240,7 +240,7 @@ class ImporterController extends AbstractActionController
 
     /**
      * @todo Simplify code of this three steps process.
-     * @return \Zend\Http\Response|\Zend\View\Model\ViewModel
+     * @return \Laminas\Http\Response|\Laminas\View\Model\ViewModel
      */
     public function startAction()
     {
@@ -258,7 +258,7 @@ class ImporterController extends AbstractActionController
         $processor = $importer->processor();
         $processor->setReader($reader);
 
-        /** @var \Zend\Session\SessionManager $sessionManager */
+        /** @var \Laminas\Session\SessionManager $sessionManager */
         $sessionManager = Container::getDefaultManager();
         $session = new Container('ImporterStartForm', $sessionManager);
 
@@ -411,7 +411,7 @@ class ImporterController extends AbstractActionController
 
         $reader = $importer->reader();
         if ($reader instanceof Parametrizable) {
-            /* @return \Zend\Form\Form */
+            /* @return \Laminas\Form\Form */
             $formsCallbacks['reader'] = function () use ($reader, $controller) {
                 $readerForm = $controller->getForm($reader->getParamsFormClass());
                 $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
@@ -443,7 +443,7 @@ class ImporterController extends AbstractActionController
         $processor = $importer->processor();
         $processor->setReader($reader);
         if ($processor instanceof Parametrizable) {
-            /* @return \Zend\Form\Form */
+            /* @return \Laminas\Form\Form */
             $formsCallbacks['processor'] = function () use ($processor, $controller) {
                 $processorForm = $controller->getForm($processor->getParamsFormClass(), [
                     'processor' => $processor,
@@ -474,7 +474,7 @@ class ImporterController extends AbstractActionController
             };
         }
 
-        /* @return \Zend\Form\Form */
+        /* @return \Laminas\Form\Form */
         $formsCallbacks['start'] = function () use ($controller) {
             $startForm = $controller->getForm(ImporterStartForm::class);
             $startForm->add([

@@ -1,6 +1,6 @@
 <?php
 /**
- * @var \Zend\View\Renderer\PhpRenderer $this
+ * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \BulkImport\Api\Representation\ImportRepresentation $import
  * @var \BulkImport\Api\Representation\ImportRepresentation $resource
  * @var \Log\Api\Representation\LogRepresentation[] $logs
@@ -30,14 +30,14 @@ $this->headScript()
     ->appendFile($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
     ->appendFile($this->assetUrl('js/log.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
 $severityNames = [
-    \Zend\Log\Logger::EMERG => $escape($translate('Emergency')),
-    \Zend\Log\Logger::ALERT => $escape($translate('Alert')),
-    \Zend\Log\Logger::CRIT => $escape($translate('Critical')),
-    \Zend\Log\Logger::ERR => $escape($translate('Error')),
-    \Zend\Log\Logger::WARN => $escape($translate('Warning')),
-    \Zend\Log\Logger::NOTICE => $escape($translate('Notice')),
-    \Zend\Log\Logger::INFO => $escape($translate('Info')),
-    \Zend\Log\Logger::DEBUG => $escape($translate('Debug')),
+    \Laminas\Log\Logger::EMERG => $escape($translate('Emergency')),
+    \Laminas\Log\Logger::ALERT => $escape($translate('Alert')),
+    \Laminas\Log\Logger::CRIT => $escape($translate('Critical')),
+    \Laminas\Log\Logger::ERR => $escape($translate('Error')),
+    \Laminas\Log\Logger::WARN => $escape($translate('Warning')),
+    \Laminas\Log\Logger::NOTICE => $escape($translate('Notice')),
+    \Laminas\Log\Logger::INFO => $escape($translate('Info')),
+    \Laminas\Log\Logger::DEBUG => $escape($translate('Debug')),
 ];
 ?>
 
@@ -50,7 +50,7 @@ $('select[name=severity]').on('change', function() {
 <?= $this->pageTitle(sprintf($translate('Import #%d'), $resource->id()), 1, $translate('Bulk import')) ?>
 
 <nav class="section-nav">
-    <?= $this->navigation('Zend\Navigation\BulkImport')->menu() ?>
+    <?= $this->navigation('Laminas\Navigation\BulkImport')->menu() ?>
 </nav>
 
 <div id="content">

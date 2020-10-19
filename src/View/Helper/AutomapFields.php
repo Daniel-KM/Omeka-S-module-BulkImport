@@ -2,8 +2,8 @@
 namespace BulkImport\View\Helper;
 
 use Omeka\View\Helper\Api;
-use Zend\I18n\View\Helper\Translate;
-use Zend\View\Helper\AbstractHelper;
+use Laminas\I18n\View\Helper\Translate;
+use Laminas\View\Helper\AbstractHelper;
 
 class AutomapFields extends AbstractHelper
 {

@@ -149,7 +149,7 @@ return [
             'admin' => [
                 'child_routes' => [
                     'bulk' => [
-                        'type' => \Zend\Router\Http\Literal::class,
+                        'type' => \Laminas\Router\Http\Literal::class,
                         'options' => [
                             'route' => '/bulk',
                             'defaults' => [
@@ -162,7 +162,7 @@ return [
                         'may_terminate' => true,
                         'child_routes' => [
                             'default' => [
-                                'type' => \Zend\Router\Http\Segment::class,
+                                'type' => \Laminas\Router\Http\Segment::class,
                                 'options' => [
                                     'route' => '/:controller[/:action]',
                                     'constraints' => [
@@ -175,7 +175,7 @@ return [
                                 ],
                             ],
                             'id' => [
-                                'type' => \Zend\Router\Http\Segment::class,
+                                'type' => \Laminas\Router\Http\Segment::class,
                                 'options' => [
                                     'route' => '/:controller/:id[/:action]',
                                     'constraints' => [

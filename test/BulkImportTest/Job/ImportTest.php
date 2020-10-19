@@ -15,7 +15,7 @@ class ImportTest extends OmekaControllerTestCase
     protected $entityManager;
 
     /**
-     * @var \Zend\Authentication\AuthenticationService;
+     * @var \Laminas\Authentication\AuthenticationService;
      */
     protected $auth;
 

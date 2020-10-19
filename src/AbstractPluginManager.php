@@ -2,7 +2,7 @@
 namespace BulkImport;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 abstract class AbstractPluginManager
 {

@@ -2,7 +2,7 @@
 namespace BulkImport\Service\Form;
 
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class FormFactory implements FactoryInterface
 {

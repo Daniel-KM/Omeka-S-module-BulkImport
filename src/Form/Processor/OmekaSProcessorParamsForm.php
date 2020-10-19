@@ -3,7 +3,7 @@ namespace BulkImport\Form\Processor;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Omeka\Form\Element\ResourceSelect;
-use Zend\Form\Element;
+use Laminas\Form\Element;
 
 class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
 {

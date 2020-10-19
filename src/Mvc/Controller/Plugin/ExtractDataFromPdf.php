@@ -30,8 +30,8 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use mikehaertl\pdftk\Pdf;
-use Zend\Log\Logger;
-use Zend\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Log\Logger;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 /**
  * Extract metadata from a pdf.

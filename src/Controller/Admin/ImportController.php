@@ -2,10 +2,10 @@
 namespace BulkImport\Controller\Admin;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Zend\Log\Logger;
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\ServiceManager\ServiceLocatorInterface;
-use Zend\View\Model\ViewModel;
+use Laminas\Log\Logger;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\ServiceManager\ServiceLocatorInterface;
+use Laminas\View\Model\ViewModel;
 
 class ImportController extends AbstractActionController
 {

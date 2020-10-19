@@ -3,7 +3,7 @@ namespace BulkImport\Form\Processor;
 
 use Omeka\Form\Element\ItemSetSelect;
 use Omeka\Form\Element\ResourceSelect;
-use Zend\Form\Element;
+use Laminas\Form\Element;
 
 class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {

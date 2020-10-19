@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Interfaces;
 
-use Zend\Form\Form;
+use Laminas\Form\Form;
 
 interface Configurable
 {

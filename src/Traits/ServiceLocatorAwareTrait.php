@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Traits;
 
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 trait ServiceLocatorAwareTrait
 {

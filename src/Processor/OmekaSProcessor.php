@@ -11,7 +11,7 @@ use finfo;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\VocabularyRepresentation;
-use Zend\Form\Form;
+use Laminas\Form\Form;
 
 /**
  * @todo The processor is only parametrizable currently.
@@ -804,7 +804,7 @@ SQL;
                 } else {
                     $label = $customVocab['o:label'];
                     $customVocab['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
-                        . ' ' . substr(bin2hex(\Zend\Math\Rand::getBytes(20)), 0, 5);
+                        . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 5);
                     $this->logger->notice(
                         'Custom vocab "{old_label}" has been renamed to "{label}".', // @translate
                         ['old_label' => $label, 'label' => $customVocab['o:label']]
@@ -965,7 +965,7 @@ SQL;
             if (isset($resourceTemplates[$resourceTemplate['o:label']])) {
                 $sourceLabel = $resourceTemplate['o:label'];
                 $resourceTemplate['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
-                    . ' ' . substr(bin2hex(\Zend\Math\Rand::getBytes(20)), 0, 5);
+                    . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 5);
                 $this->logger->notice(
                     'Resource template "{old_label}" has been renamed to "{label}".', // @translate
                     ['old_label' => $sourceLabel, 'label' => $resourceTemplate['o:label']]
@@ -1262,7 +1262,7 @@ SQL;
             // TODO Keep the original storage id of assets (so check existing one as a whole).
             // $storageId = substr($resource['o:filename'], 0, $pos);
             // @see \Omeka\File\TempFile::getStorageId()
-            $storageId = bin2hex(\Zend\Math\Rand::getBytes(20));
+            $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
             $extension = substr($resource['o:filename'], $pos + 1);
 
             $result = $this->fetchUrl('asset', $resource['o:name'], $resource['o:filename'], $storageId, $extension, $resource['o:asset_url']);
@@ -1685,7 +1685,7 @@ SQL;
         if ($resource['o:filename']
             && ($pos = mb_strrpos($resource['o:filename'], '.')) !== false
         ) {
-            $storageId = bin2hex(\Zend\Math\Rand::getBytes(20));
+            $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
             $extension = substr($resource['o:filename'], $pos + 1);
 
             $result = $this->fetchUrl('original', $resource['o:source'], $resource['o:filename'], $storageId, $extension, $resource['o:original_url']);

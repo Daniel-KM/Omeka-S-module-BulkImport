@@ -1,7 +1,7 @@
 <?php
 namespace BulkImport\Form;
 
-use Zend\Form\Element;
+use Laminas\Form\Element;
 
 trait EntriesByBatchTrait
 {

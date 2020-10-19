@@ -8,7 +8,7 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use Omeka\Api\Exception\ValidationException;
-use Zend\Form\Form;
+use Laminas\Form\Form;
 
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
 {

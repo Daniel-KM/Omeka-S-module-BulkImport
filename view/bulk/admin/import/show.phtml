@@ -1,6 +1,6 @@
 <?php
 /**
- * @var \Zend\View\Renderer\PhpRenderer $this
+ * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \BulkImport\Api\Representation\ImportRepresentation $import
  * @var \BulkImport\Api\Representation\ImportRepresentation $resource
  */
@@ -15,7 +15,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 <?= $this->pageTitle(sprintf($translate('Import #%d'), $resource->id()), 1, $translate('Bulk import')) ?>
 
 <nav class="section-nav">
-    <?= $this->navigation('Zend\Navigation\BulkImport')->menu() ?>
+    <?= $this->navigation('Laminas\Navigation\BulkImport')->menu() ?>
 </nav>
 
 <div id="content">

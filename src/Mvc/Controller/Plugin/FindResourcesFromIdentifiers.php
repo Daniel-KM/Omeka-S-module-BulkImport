@@ -31,7 +31,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 
 use Doctrine\DBAL\Connection;
 use Omeka\Mvc\Controller\Plugin\Api;
-use Zend\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 /**
  * Copy of the controller plugin of the module Csv Import

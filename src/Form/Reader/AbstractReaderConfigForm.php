@@ -2,7 +2,7 @@
 namespace BulkImport\Form\Reader;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Zend\Form\Form;
+use Laminas\Form\Form;
 
 class AbstractReaderConfigForm extends Form
 {

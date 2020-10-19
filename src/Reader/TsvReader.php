@@ -4,8 +4,8 @@ namespace BulkImport\Reader;
 use Box\Spout\Common\Type;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
 use BulkImport\Form\Reader\TsvReaderParamsForm;
-use Zend\Form\Form;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\Form\Form;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 class TsvReader extends CsvReader
 {

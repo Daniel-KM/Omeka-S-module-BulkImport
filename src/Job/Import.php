@@ -8,7 +8,7 @@ use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Reader\Manager as ReaderManager;
 use Log\Stdlib\PsrMessage;
 use Omeka\Job\AbstractJob;
-use Zend\Log\Logger;
+use Laminas\Log\Logger;
 
 class Import extends AbstractJob
 {
@@ -18,7 +18,7 @@ class Import extends AbstractJob
     protected $import;
 
     /**
-     * @var \Zend\Log\Logger
+     * @var \Laminas\Log\Logger
      */
     protected $logger;
 
@@ -51,7 +51,7 @@ class Import extends AbstractJob
     /**
      * Get the logger for the bulk process (the Omeka one, with reference id).
      *
-     * @return \Zend\Log\Logger
+     * @return \Laminas\Log\Logger
      */
     protected function getLogger()
     {
@@ -59,7 +59,7 @@ class Import extends AbstractJob
             return $this->logger;
         }
         $this->logger = $this->getServiceLocator()->get('Omeka\Logger');
-        $referenceIdProcessor = new \Zend\Log\Processor\ReferenceId();
+        $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
         $referenceIdProcessor->setReferenceId('bulk/import/' . $this->getImport()->id());
         $this->logger->addProcessor($referenceIdProcessor);
         return $this->logger;
