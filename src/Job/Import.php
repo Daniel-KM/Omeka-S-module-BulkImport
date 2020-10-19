@@ -29,7 +29,7 @@ class Import extends AbstractJob
 
     public function perform(): void
     {
-        ini_set('auto_detect_line_endings', true);
+        ini_set('auto_detect_line_endings', '1');
 
         $this->getLogger();
         $this->getImport();
