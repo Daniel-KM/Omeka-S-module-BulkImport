@@ -124,12 +124,40 @@ SQL;
     $connection->exec($sql);
 }
 
-if (version_compare($oldVersion, '3.0.19', '<')) {
-    $identity = $services->get('ControllerPluginManager')->get('identity');
-    $ownerId = $identity()->getId();
-    $sql = <<<SQL
-INSERT INTO `bulk_importer` (`owner_id`, `label`, `reader_class`, `reader_config`, `processor_class`, `processor_config`) VALUES
-($ownerId, 'Omeka Classic', 'BulkImport\\\\Reader\\\\OmekaClassicReader', NULL, 'BulkImport\\\\Processor\\\\OmekaClassicProcessor', NULL);
+if (version_compare($oldVersion, '3.3.21.1', '<')) {
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import DROP FOREIGN KEY FK_BD98E8747FCFE58E;
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import DROP FOREIGN KEY FK_BD98E874BE04EA9;
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import
+CHANGE importer_id importer_id INT DEFAULT NULL,
+CHANGE job_id job_id INT DEFAULT NULL,
+CHANGE comment comment VARCHAR(190) DEFAULT NULL,
+CHANGE reader_params reader_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
+CHANGE processor_params processor_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)';
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import ADD CONSTRAINT FK_BD98E8747FCFE58E FOREIGN KEY (importer_id) REFERENCES bulk_importer (id) ON DELETE SET NULL;
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import ADD CONSTRAINT FK_BD98E874BE04EA9 FOREIGN KEY (job_id) REFERENCES job (id) ON DELETE SET NULL;
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_importer
+CHANGE owner_id owner_id INT DEFAULT NULL,
+CHANGE `label` `label` VARCHAR(190) DEFAULT NULL,
+CHANGE reader_class reader_class VARCHAR(190) DEFAULT NULL,
+CHANGE reader_config reader_config LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
+CHANGE processor_class processor_class VARCHAR(190) DEFAULT NULL,
+CHANGE processor_config processor_config LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)';
 SQL;
     $connection->exec($sql);
 }

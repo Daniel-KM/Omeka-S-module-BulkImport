@@ -27,7 +27,8 @@ class Import extends AbstractEntity
      *     fetch="EXTRA_LAZY"
      * )
      * @JoinColumn(
-     *     nullable=true
+     *     nullable=true,
+     *     onDelete="SET NULL"
      * )
      */
     protected $importer;
@@ -48,7 +49,8 @@ class Import extends AbstractEntity
      *     targetEntity=\Omeka\Entity\Job::class
      * )
      * @JoinColumn(
-     *     nullable=true
+     *     nullable=true,
+     *     onDelete="SET NULL"
      * )
      */
     protected $job;
