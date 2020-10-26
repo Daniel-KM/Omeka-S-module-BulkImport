@@ -435,7 +435,7 @@ class OmekaSReader extends AbstractReader
     /**
      * Inverse of parse_url().
      *
-     * @url https://stackoverflow.com/questions/4354904/php-parse-url-reverse-parsed-url/35207936#35207936
+     * @link https://stackoverflow.com/questions/4354904/php-parse-url-reverse-parsed-url/35207936#35207936
      *
      * @param array $parts
      * @return string

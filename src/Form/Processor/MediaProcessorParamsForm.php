@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
@@ -45,7 +46,7 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
             ],
         ]);
 
-        if (!$this->isModuleActive(\ImageServer::class) && !$this->isModuleActive(\IiifServer::class)) {
+        if (!$this->isModuleActive('ImageServer') && !$this->isModuleActive('IiifServer')) {
             unset($mapping['media']['options']['tile']);
         }
 
