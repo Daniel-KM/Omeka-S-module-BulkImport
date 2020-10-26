@@ -316,7 +316,7 @@ class ImporterController extends AbstractActionController
 
                     case 'processor':
                         $processor->handleParamsForm($form);
-                        $session->comment = trim($data['comment']);
+                        $session->comment = trim((string) $data['comment']);
                         $session->processor = $processor->getParams();
                         $next = 'start';
                         $formCallback = $formsCallbacks['start'];
@@ -324,7 +324,7 @@ class ImporterController extends AbstractActionController
 
                     case 'start':
                         $importData = [];
-                        $importData['o-module-bulk:comment'] = trim($session['comment']) ?: null;
+                        $importData['o-module-bulk:comment'] = trim((string) $session['comment']) ?: null;
                         $importData['o-module-bulk:importer'] = $importer->getResource();
                         if ($reader instanceof Parametrizable) {
                             $importData['o-module-bulk:reader_params'] = $reader->getParams();
