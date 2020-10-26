@@ -902,9 +902,6 @@ SQL;
         }
         unset($result);
 
-        $isMultiDatatypes = method_exists(\Omeka\Api\Representation\ResourceTemplatePropertyRepresentation::class, 'dataTypes');
-        $defaultDatatypes = $isMultiDatatypes ? [] : null;
-
         $index = 0;
         $created = 0;
         $skipped = 0;
@@ -933,17 +930,26 @@ SQL;
                     ? ['o:id' => $this->map['by_id']['properties'][$rtProperty['o:property']['o:id']]]
                     : null;
                 // Convert unknown custom vocab into a literal.
-                if (strtok($rtProperty['o:data_type'], ':' === 'customvocab')) {
-                    $rtProperty['o:data_type'] = !empty($this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype'])
-                        ? $this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype']
-                        : $defaultDatatypes;
-                }
-                // Convert datatype idref of deprecated module IdRef into a
-                // literal or a valuesuggest.
-                if ($rtProperty['o:data_type'] === 'idref') {
-                    $rtProperty['o:data_type'] = !empty($this->modules['ValueSuggest'])
-                        ? 'valuesuggest:idref:person'
-                        : $defaultDatatypes;
+                // There is only one datatype in version 2 but multiple in v3.
+                if (empty($rtProperty['o:data_type'])) {
+                    $rtProperty['o:data_type'] = [];
+                } else {
+                    if (!is_array($rtProperty['o:data_type'])) {
+                        $rtProperty['o:data_type'] = [$rtProperty['o:data_type']];
+                    }
+                    foreach ($rtProperty['o:data_type'] as &$dataType) {
+                        if (strtok($dataType, ':') === 'customvocab') {
+                            $dataType = !empty($this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype'])
+                                ? $this->map['custom_vocabs'][$rtProperty['o:data_type']]['datatype']
+                                : 'literal';
+                        }
+                        // Convert datatype idref of deprecated module IdRef into
+                        // valuesuggest.
+                        if ($rtProperty['o:data_type'] === 'idref') {
+                            $dataType = 'valuesuggest:idref:person';
+                        }
+                    }
+                    unset($dataType);
                 }
             }
             unset($rtProperty);
