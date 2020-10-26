@@ -30,6 +30,9 @@ This module requires the module [Log] and optionnaly [Generic]. An external xslt
 processor may be needed if you import xml files that are not importable with
 xlt 1.
 
+**Important**: If you use the module [CSVImport] in parallel, you should apply [this patch]
+of use [this version].
+
 See general end user documentation for [installing a module].
 
 * From the zip
@@ -227,6 +230,9 @@ by [BibLibre].
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
+[CSV Import]: https://github.com/omeka-s-modules/CSVImport
+[this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
+[this version]: https://github.com/Daniel-KM/Omeka-S-module-CSVImport
 [module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
