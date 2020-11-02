@@ -5,6 +5,18 @@ use BulkImport\Entry\SpreadsheetEntry;
 
 abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
 {
+    public function isValid(): bool
+    {
+        // The version of Box/Spout should be >= 3.0, but there is no version
+        // inside the library, so check against a class.
+        // This check is needed, because CSV Import still uses version 2.7.
+        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
+            $this->lastErrorMessage ='The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
+            return false;
+        }
+        return parent::isValid();
+    }
+
     public function current()
     {
         $this->isReady();

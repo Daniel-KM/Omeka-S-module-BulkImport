@@ -23,6 +23,17 @@ class Module extends AbstractModule
         require_once __DIR__ . '/vendor/autoload.php';
     }
 
+    protected function preInstall(): void
+    {
+        // The version of Box/Spout should be >= 3.0, but there is no version
+        // inside the library, so check against a class.
+        // This check is needed, because CSV Import still uses version 2.7.
+        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
+            $message = 'The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException($message);
+        }
+    }
+
     protected function postInstall(): void
     {
         $services = $this->getServiceLocator();
