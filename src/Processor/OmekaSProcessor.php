@@ -421,6 +421,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             $this->fillMapping();
         }
 
+        /*
         $this->logger->notice(
             'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each file.', // @translate
             [
@@ -429,6 +430,10 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
                 'total_processed' => $this->totalProcessed,
                 'total_errors' => $this->totalErrors,
             ]
+        );
+        */
+        $this->logger->notice(
+            'End of process. Note: errors can occur separately for each file.' // @translate
         );
     }
 
@@ -796,12 +801,12 @@ SQL;
                 // TODO Currently, item sets are created after, so vocab is updated later, but resource can be created empty first?
                 if (!empty($customVocab['o:item_set']) && $customVocab['o:item_set'] === $customVocabs[$customVocab['o:label']]->getItemSet()) {
                     // ++$skipped;
-                    // $this->map['custom_vocabs']['custom:' . $customVocab['o:id']]['datatype'] = 'custom:' . $customVocabs[$customVocab['o:label']]->getId();
+                    // $this->map['custom_vocabs']['customvocab:' . $customVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$customVocab['o:label']]->getId();
                     // continue;
                 */
                 if (empty($customVocab['o:item_set']) && !empty($customVocab['o:terms']) && $customVocab['o:terms'] === $customVocabs[$customVocab['o:label']]->getTerms()) {
                     ++$skipped;
-                    $this->map['custom_vocabs']['custom:' . $customVocab['o:id']]['datatype'] = 'custom:' . $customVocabs[$customVocab['o:label']]->getId();
+                    $this->map['custom_vocabs']['customvocab:' . $customVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$customVocab['o:label']]->getId();
                     continue;
                 } else {
                     $label = $customVocab['o:label'];
@@ -844,8 +849,8 @@ SQL;
             );
             ++$created;
 
-            $this->map['custom_vocabs']['custom:' . $sourceId] = [
-                'datatype' => 'custom:' . $response->getContent()->id(),
+            $this->map['custom_vocabs']['customvocab:' . $sourceId] = [
+                'datatype' => 'customvocab:' . $response->getContent()->id(),
                 'source_item_set' => $sourceItemSet,
                 'is_empty' => $isEmpty,
             ];
@@ -1485,9 +1490,8 @@ SQL;
             $property = $this->entityManager->find(\Omeka\Entity\Property::class, $this->map['properties'][$term]['id']);
             foreach ($values as $value) {
                 $datatype = $value['type'];
+                // Convert unknown custom vocab into a literal.
                 if (strtok($datatype, ':') === 'customvocab') {
-                    // Convert unknown custom vocab into a literal.
-                    // TODO Add a log.
                     if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
                         $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
                     } else {
