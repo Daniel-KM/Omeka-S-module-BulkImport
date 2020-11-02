@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\ExtractDataFromPdf;
@@ -11,10 +12,9 @@ class ExtractDataFromPdfFactory implements FactoryInterface
     {
         $settings = $services->get('ControllerPluginManager')->get('settings');
         $config = $services->get('Config');
-        $executeStrategy = isset($config['cli']['execute_strategy']) ? $config['cli']['execute_strategy'] : 'exec';
         return new ExtractDataFromPdf(
             $settings()->get('bulkimport_pdftk'),
-            $executeStrategy,
+            $config['cli']['execute_strategy'] ?? 'exec',
             $services->get('Omeka\Logger')
         );
     }
