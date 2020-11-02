@@ -92,7 +92,8 @@ class ImporterController extends AbstractActionController
         }
 
         // Check if the importer has imports.
-        $total = $this->api()->search('bulk_imports', ['importer_id' => $id])->getTotalResults();
+        // Don't load entities if the only information needed is total results.
+        $total = $this->api()->search('bulk_imports', ['importer_id' => $id, 'limit' => 0])->getTotalResults();
         if ($total) {
             $this->messenger()->addWarning('This importerd cannot be deleted: imports that use it exist.'); // @translate
             return $this->redirect()->toRoute('admin/bulk');
