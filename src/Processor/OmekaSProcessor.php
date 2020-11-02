@@ -817,7 +817,7 @@ SQL;
             $sourceId = $customVocab['o:id'];
             $sourceItemSet = empty($customVocab['o:item_set']) ? null : $customVocab['o:item_set'];
             $customVocab['o:item_set'] = null;
-            $customVocab['o:terms'] = !strlen(trim($customVocab['o:terms'])) ? null : $customVocab['o:terms'];
+            $customVocab['o:terms'] = !strlen(trim((string) $customVocab['o:terms'])) ? null : $customVocab['o:terms'];
 
             // Some custom vocabs from old versions can be empty.
             // They are created with a false term and updated later.
@@ -2091,7 +2091,7 @@ SQL;
     protected function logErrors($entity, $errorStore): void
     {
         foreach ($errorStore->getErrors() as $messages) {
-            if (!i_sarray($messages)) {
+            if (!is_array($messages)) {
                 $messages = [$messages];
             }
             foreach ($messages as $message) {
