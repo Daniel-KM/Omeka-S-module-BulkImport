@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -543,6 +544,7 @@ SQL;
                 }
             }
         } catch (NotFoundException $e) {
+            // Nothing to do.
         }
 
         return [
@@ -1498,71 +1500,99 @@ SQL;
                 }
 
                 if (!in_array($datatype, $this->allowedDataTypes)) {
+                    $mapDataTypes = [
+                        'rdf:HTML' => 'html',
+                        'rdf:XMLLiteral' => 'xml',
+                        'xsd:boolean' => 'boolean',
+                    ];
+                    $toInstall = false;
+
                     // Try to manage some types when matching module is not installed.
                     switch ($datatype) {
+                        // When here, the module NumericDataTypes is not installed.
                         case strtok($datatype, ':') === 'numeric':
-                            $this->logger->warn(
-                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                            );
-                            $this->logger->info(
-                                'It’s recommended to install module Numeric Data Types.' // @translate
-                            );
                             $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Numeric Data Types';
                             break;
-                        case 'rdf:XMLLiteral':
-                        case 'xsd:boolean':
+                        case isset($mapDataTypes[$datatype]):
+                            if (in_array($mapDataTypes[$datatype], $this->allowedDataTypes)) {
+                                $datatype = $value['type'] = $mapDataTypes;
+                                break;
+                            }
+                            $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Data Type Rdf';
+                            break;
+                        // Module RdfDataType.
+                        case 'xsd:integer':
+                            if (!empty($this->modules['NumericDataTypes'])) {
+                                $datatype = $value['type'] = 'numeric:integer';
+                                break;
+                            }
+                            $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Data Type Rdf / Numeric Data Types';
+                            break;
                         case 'xsd:date':
                         case 'xsd:dateTime':
+                        case 'xsd:gYear':
+                        case 'xsd:gYearMonth':
+                            if (!empty($this->modules['NumericDataTypes'])) {
+                                try {
+                                    $value['@value'] = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value['@value']);
+                                    $datatype = $value['type'] = 'numeric:timestamp';
+                                } catch (\Exception $e) {
+                                    $datatype = $value['type'] = 'literal';
+                                    $this->logger->warn(
+                                        'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
+                                        ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                                    );
+                                }
+                                break;
+                            }
+                            $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Data Type Rdf / Numeric Data Types';
+                            break;
                         case 'xsd:decimal':
                         case 'xsd:gDay':
                         case 'xsd:gMonth':
                         case 'xsd:gMonthDay':
-                        case 'xsd:gYear':
-                        case 'xsd:gYearMonth':
-                        case 'xsd:integer':
                         case 'xsd:time':
-                            $this->logger->warn(
-                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                            );
-                            $this->logger->info(
-                                'It’s recommended to install module Rdf Datatypes.' // @translate
-                            );
-                            $datatype = $value['type'] = 'literal';
-                            break;
+                        // Module DataTypeGeometry.
                         case 'geometry:geography':
                         case 'geometry:geometry':
-                            $this->logger->warn(
-                                'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                            );
-                            $this->logger->info(
-                                'It’s recommended to install module Data Type Geometry.' // @translate
-                            );
                             $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Data Type Geometry';
                             break;
+                        // Module IdRef.
                         case 'idref':
                             if (!empty($this->modules['ValueSuggest'])) {
                                 $datatype = $value['type'] = 'valuesuggest:idref:person';
-                            } else {
-                                $this->logger->warn(
-                                    'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                                    ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                                );
-                                $this->logger->info(
-                                    'It’s recommended to install module ValueSuggest.' // @translate
-                                );
-                                $datatype = $value['type'] = 'literal';
+                                break;
                             }
+                            $datatype = $value['type'] = 'literal';
+                            $toInstall = 'Value Suggest';
                             break;
                         default:
-                            $this->logger->warn(
-                                'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
-                                ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
-                            );
-                            continue 2;
+                            $datatype = $value['type'] = 'literal';
+                            $toInstall = $datatype;
+                            break;
                     }
+
+                    if ($toInstall) {
+                        $this->logger->warn(
+                            'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
+                            ['type' => $resourceType, 'id' => $resource['o:id'], 'datatype' => $value['type']]
+                        );
+                        $this->logger->info(
+                            'It’s recommended to install module {module}.', // @translate
+                            ['module' => $toInstall]
+                        );
+                    }
+                }
+
+                // Don't keep undetermined value type, in all cases.
+                if ($datatype === 'literal') {
+                    $value['@id'] = null;
+                    $value['value_resource_id'] = null;
                 }
 
                 $valueValue = $value['@value'];
@@ -1600,17 +1630,17 @@ SQL;
                     $valueValue = isset($value['o:label']) && strlen($value['o:label']) ? $value['o:label'] : null;
                 }
 
-                $entity = new \Omeka\Entity\Value;
-                $entity->setResource($this->entity);
-                $entity->setProperty($property);
-                $entity->setType($datatype);
-                $entity->setValue($valueValue);
-                $entity->setUri($valueUri);
-                $entity->setValueResource($valueResource);
-                $entity->setLang(empty($value['lang']) ? null : $value['lang']);
-                $entity->setIsPublic(!empty($value['is_public']));
+                $entityValue = new \Omeka\Entity\Value;
+                $entityValue->setResource($this->entity);
+                $entityValue->setProperty($property);
+                $entityValue->setType($datatype);
+                $entityValue->setValue($valueValue);
+                $entityValue->setUri($valueUri);
+                $entityValue->setValueResource($valueResource);
+                $entityValue->setLang(empty($value['lang']) ? null : $value['lang']);
+                $entityValue->setIsPublic(!empty($value['is_public']));
 
-                $entityValues->add($entity);
+                $entityValues->add($entityValue);
 
                 // Manage specific datatypes (without validation: it's an Omeka source).
                 switch ($datatype) {
@@ -1623,7 +1653,7 @@ SQL;
                         $dataValue = new $class;
                         $dataValue->setResource($this->entity);
                         $dataValue->setProperty($property);
-                        $datatypeAdapter->setEntityValues($dataValue, $entity);
+                        $datatypeAdapter->setEntityValues($dataValue, $entityValue);
                         $this->entityManager->persist($dataValue);
                         break;
                     case 'geometry:geography':
