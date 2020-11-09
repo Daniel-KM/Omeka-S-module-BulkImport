@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Entry;
 
 use ArrayIterator;
@@ -54,19 +55,20 @@ class Entry implements EntryInterface
     protected function postInit(array $options): void
     {
         // Filter duplicated and null values.
-        foreach ($this->data as &$data) {
-            $data = array_unique(array_filter($data, 'strlen'));
+        foreach ($this->data as &$datas) {
+            $datas = array_unique(array_filter($datas, 'strlen'));
         }
     }
 
     public function isEmpty()
     {
-        $data = array_filter($this->data, function ($v) {
-            return count(array_filter($v, function ($w) {
-                return strlen($w) > 0;
-            }));
-        });
-        return count($data) == 0;
+        return !count(array_filter($this->data, function ($v) {
+            return is_array($v)
+                ? count(array_filter($v, function ($w) {
+                    return strlen((string) $w) > 0;
+                }))
+                : strlen((string) $v);
+        }));
     }
 
     public function getArrayCopy()
