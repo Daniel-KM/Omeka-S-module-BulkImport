@@ -540,7 +540,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
                 return true;
             case 'o:is_public':
-                $value = array_pop($values);
+                $value = (string) array_pop($values);
                 $resource['o:is_public'] = in_array(strtolower($value), ['false', 'no', 'off', 'private'])
                     ? false
                     : (bool) $value;

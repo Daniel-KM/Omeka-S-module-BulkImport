@@ -1451,7 +1451,7 @@ SQL;
             }
         }
 
-        if (array_key_exists('o:title', $resource) && strlen($resource['o:title'])) {
+        if (array_key_exists('o:title', $resource) && strlen((string) $resource['o:title'])) {
             $this->entity->setTitle($resource['o:title']);
         }
 
@@ -1631,7 +1631,7 @@ SQL;
 
                 if (!empty($value['@id'])) {
                     $valueUri = $value['@id'];
-                    $valueValue = isset($value['o:label']) && strlen($value['o:label']) ? $value['o:label'] : null;
+                    $valueValue = isset($value['o:label']) && strlen((string) $value['o:label']) ? $value['o:label'] : null;
                 }
 
                 $entityValue = new \Omeka\Entity\Value;
