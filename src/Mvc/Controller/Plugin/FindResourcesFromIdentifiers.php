@@ -550,7 +550,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         // Prepare the lowercase result one time only.
         $lowerResult = array_map(function ($v) {
-            return ['identifier' => strtolower($v['identifier']), 'id' => $v['id'], 'count' => $v['count']];
+            return ['identifier' => strtolower((string) $v['identifier']), 'id' => $v['id'], 'count' => $v['count']];
         }, $result);
 
         foreach (array_keys($cleanedResult) as $key) {
@@ -563,7 +563,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 }
             }
             // Look for the first case insensitive result.
-            $lowerKey = strtolower($key);
+            $lowerKey = strtolower((string) $key);
             foreach ($lowerResult as $lowerResultValue) {
                 if ($lowerResultValue['identifier'] == $lowerKey) {
                     $cleanedResult[$key] = $lowerResultValue['id'];
@@ -592,6 +592,6 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      */
     protected function trimUnicode($string)
     {
-        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', $string);
+        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
     }
 }

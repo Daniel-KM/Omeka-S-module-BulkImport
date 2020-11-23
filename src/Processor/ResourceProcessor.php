@@ -128,7 +128,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         switch ($target['target']) {
             case 'resource_type':
                 $value = array_pop($values);
-                $resourceType = preg_replace('~[^a-z]~', '', strtolower($value));
+                $resourceType = preg_replace('~[^a-z]~', '', strtolower((string) $value));
                 if (isset($resourceTypes[$resourceType])) {
                     $resource['resource_type'] = $resourceTypes[$resourceType];
                 }
@@ -269,7 +269,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         switch ($target['target']) {
             case 'o:is_open':
                 $value = array_pop($values);
-                $resource['o:is_open'] = in_array(strtolower($value), ['false', 'no', 'off', 'closed'])
+                $resource['o:is_open'] = in_array(strtolower((string) $value), ['false', 'no', 'off', 'closed'])
                     ? false
                     : (bool) $value;
                 return true;
