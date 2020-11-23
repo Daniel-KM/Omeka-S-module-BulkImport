@@ -9,7 +9,7 @@ class SpreadsheetEntry extends Entry
     protected function init(array $fields, array $data, array $options): void
     {
         // The standard process is used when there is no separator.
-        if (!isset($options['separator']) || !strlen($options['separator'])) {
+        if (!isset($options['separator']) || !strlen((string) $options['separator'])) {
             parent::init($fields, $data, $options);
             return;
         }
@@ -25,13 +25,13 @@ class SpreadsheetEntry extends Entry
         }
 
         // Fill each key with multivalued values.
-        $separator = $options['separator'];
+        $separator = (string) $options['separator'];
         foreach ($data as $i => $value) {
             $this->data[$fields[$i]] = array_merge(
                 $this->data[$fields[$i]],
                 array_map(
                     [$this, 'trimUnicode'],
-                    explode($separator, $value)
+                    explode($separator, (string) $value)
                 )
             );
         }
