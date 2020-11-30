@@ -280,6 +280,26 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillMedia(ArrayObject $resource, $target, array $values)
     {
         switch ($target['target']) {
+            case 'o:filename':
+            case 'o:storage_id':
+            case 'o:source':
+            case 'o:sha256':
+                $value = trim((string) array_pop($values));
+                if (!$value) {
+                    return true;
+                }
+                $id = $this->findResourceFromIdentifier($value, $target['target'], 'media');
+                if ($id) {
+                    $resource['o:id'] = $id;
+                    $resource['checked_id'] = true;
+                } else {
+                    $resource['has_error'] = true;
+                    $this->logger->err(
+                        'Index #{index}: Media with metadata "{target}" "{identifier}" cannot be found. The entry is skipped.', // @translate
+                        ['index' => $this->indexResource, 'target' => $target['target'], 'identifier' => $value]
+                    );
+                }
+                return true;
             case 'o:item':
                 // $value = array_pop($values);
                 $identifierName = isset($target["target_data"]) ? $target["target_data"] : $this->getIdentifierNames();
@@ -468,7 +488,15 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        if (empty($resource['o:item']['o:id'])) {
+        if (empty($resource['o:id']) && $this->actionRequiresId()) {
+            $this->logger->err(
+                'Index #{index} skipped: no internal id can be found for the media', // @translate
+                ['index' => $this->indexResource]
+            );
+            return false;
+        }
+
+        if (empty($resource['o:id']) && empty($resource['o:item']['o:id'])) {
             if ($this->action !== self::ACTION_DELETE) {
                 $this->logger->err(
                     'Index #{index} skipped: no item is set for the media', // @translate

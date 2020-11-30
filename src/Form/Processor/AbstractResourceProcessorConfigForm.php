@@ -180,6 +180,15 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'empty_option' => '',
                 'prepend_value_options' => [
                     'o:id' => 'Internal id', // @translate
+                    'media_identifier' => [
+                        'label' => 'Media identifier', // @translate
+                        'options' => [
+                            'o:source' => 'Source', // @translate
+                            'o:filename' => 'File name', // @translate
+                            'o:storage_id' => 'Storage id', // @translate
+                            'o:sha256' => 'Hash', // @translate
+                        ],
+                    ],
                 ],
                 'term_as_value' => true,
             ],
@@ -320,11 +329,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
     protected function prependMappingOptions()
     {
         return [
+            // Id is only for update.
+            'o:id' => 'Internal id', // @translate
+            'media_identifier' => [
+                'label' => 'Media identifier', // @translate
+                'options' => [
+                    'o:source' => 'Source', // @translate
+                    'o:filename' => 'File name', // @translate
+                    'o:storage_id' => 'Storage id', // @translate
+                    'o:sha256' => 'Hash', // @translate],
+                ],
+            ],
             'metadata' => [
                 'label' => 'Resource metadata', // @translate
                 'options' => [
-                    // Id is only for update.
-                    'o:id' => 'Internal id', // @translate
                     'o:resource_template' => 'Resource template', // @translate
                     'o:resource_class' => 'Resource class', // @translate
                     'o:owner' => 'Owner', // @translate

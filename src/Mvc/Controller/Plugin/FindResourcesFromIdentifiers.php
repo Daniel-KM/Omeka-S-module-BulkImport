@@ -179,11 +179,18 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                     $identifierName = [$identifierName];
                 }
                 return $this->findResourcesFromPropertyIds($identifiers, $identifierName, $resourceType);
+            case 'media_metadata':
+                if (is_array($identifierName)) {
+                    $identifierName = reset($identifierName);
+                }
+                return $identifierName === 'o:filename'
+                    ? $this->findResourcesFromMediaFilename($identifiers, $itemId)
+                    : $this->findResourcesFromMediaMetadata($identifiers, $identifierName, null, $itemId);
             case 'media_source':
                 if (is_array($identifierName)) {
                     $identifierName = reset($identifierName);
                 }
-                return $this->findResourcesFromMediaSource($identifiers, $identifierName, $itemId);
+                return $this->findResourcesFromMediaMetadata($identifiers, 'o:source', $identifierName, $itemId);
             default:
                 return [];
         }
@@ -218,6 +225,11 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $identifierType = 'property';
             // No check of the property id for quicker process.
             $identifierTypeName = (int) $identifierName;
+        } elseif (in_array($identifierName, ['o:filename', 'o:storage_id', 'o:source', 'o:sha256'])) {
+            $identifierType = 'media_metadata';
+            $identifierTypeName = $identifierName;
+            $resourceType = 'media';
+            $itemId = null;
         } elseif (in_array($identifierName, ['url', 'file', 'tile'])) {
             $identifierType = 'media_source';
             $identifierTypeName = $identifierName;
@@ -462,45 +474,55 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         return $this->cleanResult($identifiers, $result);
     }
 
-    protected function findResourcesFromMediaSource(array $identifiers, $ingesterName, $itemId = null)
+    protected function findResourcesFromMediaMetadata(array $identifiers, $identifierName, $ingesterName = null, $itemId = null)
     {
         // The api manager doesn't manage this type of search.
         $conn = $this->connection;
 
+        $mapColumns = [
+            'o:sha256' => 'sha256',
+            'o:source' => 'source',
+            'o:storage_id' => 'storage_id',
+        ];
+        $column = $mapColumns[$identifierName];
+
         $qb = $conn->createQueryBuilder();
         $expr = $qb->expr();
+        $parameters = [];
+
         if ($this->supportAnyValue) {
             $qb
                 ->select([
-                    'ANY_VALUE(media.source) AS "identifier"',
+                    'ANY_VALUE(media.' . $column . ') AS "identifier"',
                     'ANY_VALUE(media.id) AS "id"',
-                    'COUNT(media.source) AS "count"',
+                    'COUNT(media.' . $column . ') AS "count"',
                 ])
                 ->from('media', 'media')
-                ->andWhere('media.ingester = :ingester')
                 // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
-                ->addGroupBy('media.source')
+                ->addGroupBy('media.' . $column)
                 ->addOrderBy('"id"', 'ASC');
         } else {
             $qb
                 ->select([
-                    'media.source AS "identifier"',
+                    'media.' . $column . ' AS "identifier"',
                     'media.id AS "id"',
-                    'COUNT(media.source) AS "count"',
+                    'COUNT(media.' . $column . ') AS "count"',
                 ])
                 ->from('media', 'media')
-                ->andWhere('media.ingester = :ingester')
                 // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
-                ->addGroupBy('media.source')
+                ->addGroupBy('media.' . $column)
                 ->addOrderBy('media.id', 'ASC');
         }
 
-        $parameters = [];
-        $parameters['ingester'] = $ingesterName;
+        if ($ingesterName) {
+            $qb
+                ->andWhere('media.ingester = :ingester');
+            $parameters['ingester'] = $ingesterName;
+        }
 
         if (count($identifiers) === 1) {
             $qb
-                ->andWhere($expr->eq('media.source', ':identifier'));
+                ->andWhere($expr->eq('media.' . $mapColumns[$identifierName], ':identifier'));
             $parameters['identifier'] = reset($identifiers);
         } else {
             // Warning: there is a difference between qb / dbal and qb / orm for
@@ -513,7 +535,90 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 $placeholders[] = ':' . $placeholder;
             }
             $qb
-                ->andWhere($expr->in('media.source', $placeholders));
+                ->andWhere($expr->in('media.' . $mapColumns[$identifierName], $placeholders));
+        }
+
+        if ($itemId) {
+            $qb
+                ->andWhere($expr->eq('media.item_id', ':item_id'));
+            $parameters['item_id'] = $itemId;
+        }
+
+        $qb
+            ->setParameters($parameters);
+
+        $stmt = $conn->executeQuery($qb, $qb->getParameters());
+        // $stmt->fetchAll(\PDO::FETCH_KEY_PAIR) cannot be used, because it
+        // replaces the first id by later ids in case of true duplicates.
+        // Anyway, count() is needed now.
+        $result = $stmt->fetchAll();
+
+        return $this->cleanResult($identifiers, $result);
+    }
+
+    protected function findResourcesFromMediaFilename(array $identifiers, $itemId = null)
+    {
+        // The api manager doesn't manage this type of search.
+        $conn = $this->connection;
+
+        $qb = $conn->createQueryBuilder();
+        $expr = $qb->expr();
+        $parameters = [];
+
+        if ($this->supportAnyValue) {
+            $qb
+                ->select([
+                    // TODO There may be no extension.
+                    'CONCAT(ANY_VALUE(media.storage_id), ".", ANY_VALUE(media.extension)) AS "identifier"',
+                    'ANY_VALUE(media.id) AS "id"',
+                    'COUNT(media.source) AS "count"',
+                ])
+                ->from('media', 'media')
+                ->addOrderBy('"id"', 'ASC');
+        } else {
+            $qb
+                ->select([
+                    'CONCAT(media.storage_id, ".", media.extension) AS "identifier"',
+                    'media.id AS "id"',
+                    'COUNT(media.source) AS "count"',
+                ])
+                ->from('media', 'media')
+                ->addOrderBy('media.id', 'ASC');
+        }
+
+        $getStorageIdAndExtension = function ($identifier) {
+            $extension = pathinfo($identifier, PATHINFO_EXTENSION);
+            $storageId = mb_strlen($extension)
+                ? mb_substr($identifier, 0, mb_strlen($identifier) - mb_strlen($extension) - 1)
+                : $identifier;
+            return [$storageId, $extension];
+        };
+
+        if (count($identifiers) === 1) {
+            list($storageId, $extension) = $getStorageIdAndExtension(reset($identifiers));
+            $andWhere = $expr->andX(
+                $expr->eq('media.storage_id', ':storage_id'),
+                $expr->eq('media.extension', ':extension')
+            );
+            $parameters['storage_id'] = $storageId;
+            $parameters['extension'] = $extension;
+            $qb
+                ->andWhere($andWhere);
+        } else {
+            $orX = [];
+            foreach (array_values($identifiers) as $key => $value) {
+                list($storageId, $extension) = $getStorageIdAndExtension($value);
+                $placeholderStorageId = 'value_storageid_' . $key;
+                $parameters[$placeholderStorageId] = $storageId;
+                $placeholderExtension = 'value_extension_' . $key;
+                $parameters[$placeholderExtension] = $extension;
+                $orX[] = $expr->andX(
+                    $expr->eq('media.storage_id', $placeholderStorageId),
+                    $expr->eq('media.extension', $placeholderExtension)
+                );
+            }
+            $qb
+                ->andWhere($expr->orX(...$orX));
         }
 
         if ($itemId) {

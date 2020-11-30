@@ -423,7 +423,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
         /*
         $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each file.', // @translate
+            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_skipped' => $this->totalSkipped,
@@ -433,7 +433,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         );
         */
         $this->logger->notice(
-            'End of process. Note: errors can occur separately for each file.' // @translate
+            'End of process. Note: errors can occur separately for each imported file.' // @translate
         );
     }
 
