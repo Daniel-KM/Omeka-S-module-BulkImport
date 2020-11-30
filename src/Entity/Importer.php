@@ -43,7 +43,7 @@ class Importer extends AbstractEntity
     /**
      * @var array
      * @Column(
-     *     type="json_array",
+     *     type="json",
      *     nullable=true
      * )
      */
@@ -62,7 +62,7 @@ class Importer extends AbstractEntity
     /**
      * @var array
      * @Column(
-     *      type="json_array",
+     *      type="json",
      *      nullable=true
      * )
      */

@@ -3,8 +3,8 @@ CREATE TABLE `bulk_import` (
     `importer_id` INT DEFAULT NULL,
     `job_id` INT DEFAULT NULL,
     `comment` VARCHAR(190) DEFAULT NULL,
-    `reader_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
-    `processor_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
+    `reader_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+    `processor_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_BD98E8747FCFE58E (`importer_id`),
     UNIQUE INDEX UNIQ_BD98E874BE04EA9 (`job_id`),
     PRIMARY KEY(`id`)
@@ -14,9 +14,9 @@ CREATE TABLE `bulk_importer` (
     `owner_id` INT DEFAULT NULL,
     `label` VARCHAR(190) DEFAULT NULL,
     `reader_class` VARCHAR(190) DEFAULT NULL,
-    `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
+    `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     `processor_class` VARCHAR(190) DEFAULT NULL,
-    `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json_array)',
+    `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_2DAF62D7E3C61F9 (`owner_id`),
     PRIMARY KEY(`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB;
