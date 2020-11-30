@@ -185,6 +185,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                         'options' => [
                             'o:source' => 'Source', // @translate
                             'o:filename' => 'File name', // @translate
+                            // When used with module Archive Repertory.
+                            'o:basename' => 'Base file name', // @translate
                             'o:storage_id' => 'Storage id', // @translate
                             'o:sha256' => 'Hash', // @translate
                         ],
@@ -336,6 +338,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'options' => [
                     'o:source' => 'Source', // @translate
                     'o:filename' => 'File name', // @translate
+                    // When used with module Archive Repertory.
+                    'o:basename' => 'Base file name', // @translate
                     'o:storage_id' => 'Storage id', // @translate
                     'o:sha256' => 'Hash', // @translate],
                 ],

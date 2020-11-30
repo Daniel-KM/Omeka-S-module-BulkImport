@@ -183,8 +183,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 if (is_array($identifierName)) {
                     $identifierName = reset($identifierName);
                 }
-                return $identifierName === 'o:filename'
-                    ? $this->findResourcesFromMediaFilename($identifiers, $itemId)
+                return in_array($identifierName, ['o:filename', 'o:basename'])
+                    ? $this->findResourcesFromMediaFilename($identifiers, $identifierName, $itemId)
                     : $this->findResourcesFromMediaMetadata($identifiers, $identifierName, null, $itemId);
             case 'media_source':
                 if (is_array($identifierName)) {
@@ -225,7 +225,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $identifierType = 'property';
             // No check of the property id for quicker process.
             $identifierTypeName = (int) $identifierName;
-        } elseif (in_array($identifierName, ['o:filename', 'o:storage_id', 'o:source', 'o:sha256'])) {
+        } elseif (in_array($identifierName, ['o:filename', 'o:basename', 'o:storage_id', 'o:source', 'o:sha256'])) {
             $identifierType = 'media_metadata';
             $identifierTypeName = $identifierName;
             $resourceType = 'media';
@@ -273,6 +273,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 $identifierType = key($identifierTypeName);
                 switch ($identifierType) {
                     case 'o:id':
+                    case 'media_metadata':
                     case 'media_source':
                         $identifierTypeNames[$identifierType] = $identifierName;
                         break;
@@ -556,7 +557,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         return $this->cleanResult($identifiers, $result);
     }
 
-    protected function findResourcesFromMediaFilename(array $identifiers, $itemId = null)
+    protected function findResourcesFromMediaFilename(array $identifiers, $identifierName, $itemId = null)
     {
         // The api manager doesn't manage this type of search.
         $conn = $this->connection;
@@ -565,11 +566,17 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $expr = $qb->expr();
         $parameters = [];
 
+        // Basename allows to manage the filename with a partial path prepended,
+        // that are used by module Archive Repertory.
+        $isPartial = $identifierName === 'o:basename';
+
         if ($this->supportAnyValue) {
             $qb
                 ->select([
                     // TODO There may be no extension.
-                    'CONCAT(ANY_VALUE(media.storage_id), ".", ANY_VALUE(media.extension)) AS "identifier"',
+                    $isPartial
+                        ? 'CONCAT(SUBSTRING_INDEX(ANY_VALUE(media.storage_id), "/", -1), ".", ANY_VALUE(media.extension)) AS "identifier"'
+                        : 'CONCAT(ANY_VALUE(media.storage_id), ".", ANY_VALUE(media.extension)) AS "identifier"',
                     'ANY_VALUE(media.id) AS "id"',
                     'COUNT(media.source) AS "count"',
                 ])
@@ -578,7 +585,9 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         } else {
             $qb
                 ->select([
-                    'CONCAT(media.storage_id, ".", media.extension) AS "identifier"',
+                    $isPartial
+                        ? 'CONCAT(SUBSTRING_INDEX(media.storage_id, "/", -1), ".", media.extension) AS "identifier"'
+                        : 'CONCAT(media.storage_id, ".", media.extension) AS "identifier"',
                     'media.id AS "id"',
                     'COUNT(media.source) AS "count"',
                 ])
@@ -594,13 +603,16 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             return [$storageId, $extension];
         };
 
+        $prefixLike = $isPartial ? '%' : '';
         if (count($identifiers) === 1) {
             list($storageId, $extension) = $getStorageIdAndExtension(reset($identifiers));
             $andWhere = $expr->andX(
-                $expr->eq('media.storage_id', ':storage_id'),
+                $isPartial
+                    ? $expr->like('media.storage_id', ':storage_id')
+                    : $expr->eq('media.storage_id', ':storage_id'),
                 $expr->eq('media.extension', ':extension')
             );
-            $parameters['storage_id'] = $storageId;
+            $parameters['storage_id'] = $prefixLike . $storageId;
             $parameters['extension'] = $extension;
             $qb
                 ->andWhere($andWhere);
@@ -609,11 +621,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             foreach (array_values($identifiers) as $key => $value) {
                 list($storageId, $extension) = $getStorageIdAndExtension($value);
                 $placeholderStorageId = 'value_storageid_' . $key;
-                $parameters[$placeholderStorageId] = $storageId;
+                $parameters[$placeholderStorageId] = $prefixLike . $storageId;
                 $placeholderExtension = 'value_extension_' . $key;
                 $parameters[$placeholderExtension] = $extension;
                 $orX[] = $expr->andX(
-                    $expr->eq('media.storage_id', $placeholderStorageId),
+                    $isPartial
+                        ? $expr->like('media.storage_id', $placeholderStorageId)
+                        : $expr->eq('media.storage_id', $placeholderStorageId),
                     $expr->eq('media.extension', $placeholderExtension)
                 );
             }

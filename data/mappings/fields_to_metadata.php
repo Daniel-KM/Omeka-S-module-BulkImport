@@ -53,6 +53,7 @@ return [
     'media id' => 'o:media[o:id]',
     'media source' => 'o:source',
     'media filename' => 'o:filename',
+    'media basename' => 'o:basename',
     'media storage' => 'o:storage_id',
     'media storage id' => 'o:storage_id',
     'media hash' => 'o:sha256',
@@ -69,6 +70,7 @@ return [
     'file sha256' => 'o:sha256',
     'storage' => 'o:storage_id',
     'storage id' => 'o:storage_id',
+    'basename' => 'o:basename',
     'hash' => 'o:sha256',
     'sha256' => 'o:sha256',
     'html' => 'html',
@@ -99,6 +101,9 @@ return [
     'upload' => 'file',
     'sideload' => 'file',
     'file sideload' => 'file',
+    // When used with module Archive Repertory.
+    'base file name' => 'o:basename',
+    'base filename' => 'o:basename',
 
     // A tile for image server.
     'tile' => 'tile',

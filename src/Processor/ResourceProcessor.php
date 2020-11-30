@@ -281,6 +281,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:filename':
+            case 'o:basename':
             case 'o:storage_id':
             case 'o:source':
             case 'o:sha256':
