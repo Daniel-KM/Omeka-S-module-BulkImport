@@ -65,6 +65,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 'options' => [
                     'label' => 'Types to import', // @translate
                     'value_options' => [
+                        'users' => 'Users', // @translate
                         'items' => 'Items', // @translate
                         'media' => 'Media', // @translate
                         'item_sets' => 'Item sets', // @translate

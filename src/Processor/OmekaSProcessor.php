@@ -22,6 +22,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     use ConfigurableTrait;
     use InternalIntegrityTrait;
     use ParametrizableTrait;
+    use UserTrait;
 
     /**
      * The max number of entities before a flush/clear.
@@ -229,6 +230,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $defaults = [
             'o:owner' => null,
             'types' => [
+                'users',
                 'items',
                 'media',
                 'item_sets',
@@ -327,6 +329,17 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         // FIXME  Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
 
         // First step: check and create all vocabularies
+
+        // Users are prepared first to include the owner anywhere.
+        if (in_array('users', $toImport)) {
+            $this->logger->info(
+                'Import of users.' // @translate
+            );
+            $this->prepareUsers();
+            if ($this->hasError) {
+                return;
+            }
+        }
 
         if (in_array('vocabularies', $toImport)) {
             $this->logger->info(
@@ -722,6 +735,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
         // Prepare simple maps of source id and destination id.
         $this->map['by_id'][$resourceType] = array_column($this->map[$resourceType], 'id', 'source');
+    }
+
+    protected function prepareUsers(): void
+    {
+        $this->prepareUsersProcess($this->reader->setObjectType('users'));
     }
 
     protected function prepareCustomVocabs(): void
