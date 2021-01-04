@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Entry;
 
 /**
@@ -27,12 +28,19 @@ class SpreadsheetEntry extends Entry
         // Fill each key with multivalued values.
         $separator = (string) $options['separator'];
         foreach ($data as $i => $value) {
+            if (is_object($value) && !method_exists($value, '__toString')) {
+                if (!($value instanceof \DateTime)) {
+                    throw new \Omeka\Mvc\Exception\RuntimeException(
+                        sprintf('Value of class "%s" cannot be converted to string.', get_class($value)) // @translate
+                    );
+                }
+                $value = $value->format('Y-m-d H:i:s');
+            } else {
+                $value = (string) $value;
+            }
             $this->data[$fields[$i]] = array_merge(
                 $this->data[$fields[$i]],
-                array_map(
-                    [$this, 'trimUnicode'],
-                    explode($separator, (string) $value)
-                )
+                array_map([$this, 'trimUnicode'], explode($separator, $value))
             );
         }
     }
