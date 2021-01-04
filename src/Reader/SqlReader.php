@@ -117,11 +117,13 @@ class SqlReader extends AbstractPaginatedReader
             $results = $stmt->execute();
         } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
             $this->lastErrorMessage = $e->getMessage();
+            $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
             return false;
         }
 
         if (empty($results->current())) {
             $this->lastErrorMesage = 'The database seems empty: there is no data in a core table.'; // @translate
+            $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
             return false;
         }
 
@@ -160,6 +162,10 @@ class SqlReader extends AbstractPaginatedReader
                 'Unable to read data for object type "{table}", page: {exception}', // @translate
                 ['table' => $this->objectType, 'exception' => $e]
             );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
             return;
         }
 
@@ -169,6 +175,10 @@ class SqlReader extends AbstractPaginatedReader
             $this->lastErrorMesage = new PsrMessage(
                 'Unable to fetch data for the page {page}.', // @translate
                 ['page' => $this->currentPage]
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
             );
             return;
         }
@@ -194,6 +204,10 @@ class SqlReader extends AbstractPaginatedReader
                 'Unable to read data for object type "{table}": {exception}', // @translate
                 ['table' => $this->objectType, 'exception' => $e]
             );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
             return;
         }
 
@@ -201,6 +215,10 @@ class SqlReader extends AbstractPaginatedReader
             $this->lastErrorMessage = new PsrMessage(
                 'Unable to read data for object type "{table}".', // @translate
                 ['table' => $this->objectType]
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
             );
             return;
         }

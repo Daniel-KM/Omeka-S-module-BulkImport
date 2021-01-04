@@ -166,12 +166,20 @@ class OmekaSReader extends AbstractPaginatedReader
                 'Content-type "{content_type}" is invalid.', // @translate
                 ['content_type' => $contentType->toString()]
             );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
             return false;
         }
         $url = $this->getServiceLocator()->get('ViewHelperManager')->get('url');
         if ($this->endpoint === $url('api', [], ['force_canonical' => true])) {
             $this->lastErrorMessage = new PsrMessage(
                 'It is useless to import Omeka S itself. Check your endpoint.' // @translate
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->warn(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
             );
         }
         return true;
@@ -205,6 +213,10 @@ class OmekaSReader extends AbstractPaginatedReader
                     ['page' => $this->currentPage]
                 );
             }
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
             $this->currentResponse = null;
             $this->setInnerIterator(new ArrayIterator([]));
             return;
@@ -223,6 +235,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $links = $this->currentResponse->getHeaders()->get('Link');
         if (!$links) {
             $this->lastErrorMessage = 'Header Link not found in response.'; // @translate
+            $this->getServiceLocator()->get('Omeka\Logger')->warn($this->lastErrorMessage);
             return;
         }
 
@@ -243,6 +256,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $links = $urls + ['first' => null, 'prev' => null, 'next' => null, 'last' => null];
         if (!$links['first']) {
             $this->lastErrorMessage = 'No links in http header.'; // @translate
+            $this->getServiceLocator()->get('Omeka\Logger')->warn($this->lastErrorMessage);
             return;
         }
 
@@ -266,6 +280,7 @@ class OmekaSReader extends AbstractPaginatedReader
 
         if ($this->firstPage > $this->lastPage) {
             $this->lastErrorMessage = 'First page cannot be greater to last page.'; // @translate
+            $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
             return;
         }
 
