@@ -14,8 +14,11 @@ use Omeka\Api\Representation\VocabularyRepresentation;
  */
 abstract class AbstractFullProcessor extends AbstractProcessor implements Parametrizable
 {
+    use AssetTrait;
     use ConfigurableTrait;
+    use CountEntitiesTrait;
     use CustomVocabTrait;
+    use FetchFileTrait;
     use InternalIntegrityTrait;
     use MappingTrait;
     use ParametrizableTrait;
