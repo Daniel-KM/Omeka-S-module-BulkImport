@@ -53,7 +53,6 @@ trait UserTrait
             // Here, we use the standard api, but the check of the adapter are
             // done here to avoid exceptions.
             /** @see\Omeka\Api\Adapter\UserAdapter::validateEntity */
-
             $sourceName = trim((string) $sourceUser['o:name']);
             if (!strlen($sourceName)) {
                 $sourceUser['o:name'] = $sourceUser['o:email'];
@@ -144,5 +143,53 @@ trait UserTrait
         return empty($this->map['users'][$id])
             ? $this->ownerOId
             : ['o:id' => $this->map['users'][$id]];
+    }
+
+    /**
+     * Users should be created first.
+     *
+     * @param iterable $sourceUsers
+     */
+    protected function appendUsersSettings(iterable $sourceUsers): void
+    {
+        $userSettingRepository = $this->entityManager->getRepository(UserSetting::class);
+        $created = 0;
+        foreach ($sourceUsers as $sourceUser) {
+            $userId = $this->map['users'][$sourceUser['o:id']];
+            $user = $this->entityManager->find(User::class, $userId);
+            foreach ($sourceUser['o:settings'] ?? [] as $name => $value) {
+                if (is_null($value)
+                    || (is_array($value) && !count($value))
+                    || (!is_array($value) && !strlen((string) $value))
+                ) {
+                    continue;
+                }
+                $userSetting = $userSettingRepository->findOneBy(['user' => $user, 'id' => $name]);
+                // Omeka entities are not fluid.
+                if ($userSetting) {
+                    if ($value === $userSetting->getValue()) {
+                        continue;
+                    }
+                } else {
+                    $userSetting = new UserSetting();
+                    $userSetting->setId($name);
+                    $userSetting->setUser($user);
+                }
+                $userSetting->setValue($value);
+                $this->entityManager->persist($userSetting);
+                ++$created;
+
+                if ($created % self::CHUNK_ENTITIES === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                    $this->refreshOwner();
+                }
+            }
+        }
+
+        // Remaining entities.
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshOwner();
     }
 }
