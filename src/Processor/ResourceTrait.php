@@ -46,10 +46,10 @@ trait ResourceTrait
     {
     }
 
-    protected function prepareAssetsProcess(iterable $entities): void
+    protected function prepareAssetsProcess(iterable $sourceAssets): void
     {
         // Check the size of the import.
-        $this->countEntities($entities, 'assets');
+        $this->countEntities($sourceAssets, 'assets');
         if ($this->hasError) {
             return;
         }
@@ -59,26 +59,29 @@ trait ResourceTrait
             ['total' => $this->totals['assets'], 'type' => 'assets']
         );
 
-        // Get the list of ids.
-        $assets = [];
+        // Get the list of ids and prepare fake storage ids.
+        $assetStorages = [];
         $this->map['assets'] = [];
-        // Get the storage ids.
-        foreach ($entities as $resource) {
-            $this->map['assets'][(int) $resource['o:id']] = null;
+        $timestamp = time();
+        foreach ($sourceAssets as $resource) {
+            $resourceId = (int) $resource['o:id'];
+            // To avoid collisions with a failed import, prepend the timestamp.
+            $this->map['assets'][$resourceId] = $timestamp . '-' . $resourceId;
             // Remove extension manually because module Ebook uses a
             // specific storage id.
             $extension = pathinfo($resource['o:filename'], PATHINFO_EXTENSION);
-            $assets[(int) $resource['o:id']] = mb_strlen($extension)
+            $assetStorages[$resourceId] = mb_strlen($extension)
                 ? mb_substr($resource['o:filename'], 0, -mb_strlen($extension) - 1)
                 : $resource['o:filename'];
         }
-        if (!count($assets)) {
+        if (!count($assetStorages)) {
             return;
         }
 
         // Create the ids.
-        $storageIds = implode(',', array_map([$this->connection, 'quote'], $assets));
-        // Get existing duplicates for reimport.
+
+        $storageIds = implode(',', array_map([$this->connection, 'quote'], $assetStorages));
+        // Get existing duplicates for reimport (same storage id).
         $sql = <<<SQL
 SELECT `asset`.`id` AS `d`
 FROM `asset` AS `asset`
@@ -90,8 +93,8 @@ SQL;
         // Save the ids as storage, it should be unique anyway, except
         // in case of reimport.
         $toCreate = array_diff_key($this->map['assets'], array_flip($existingAssets));
-        foreach (array_chunk(array_keys($toCreate), self::CHUNK_RECORD_IDS) as $chunk) {
-            $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","",' . implode('),("","",', $chunk) . ');' . "\n";
+        foreach (array_chunk($toCreate, self::CHUNK_RECORD_IDS) as $chunk) {
+            $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","","' . implode('"),("","","', $chunk) . '");' . "\n";
         }
         if ($sql) {
             $this->connection->query($sql);
@@ -99,12 +102,13 @@ SQL;
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
-SELECT `asset`.`storage_id` AS `s`, `asset`.`id` AS `d`
+SELECT SUBSTRING(`asset`.`storage_id`, 12) AS `s`, `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`name` = ""
     AND `asset`.`media_type` = ""
     AND (`asset`.`extension` IS NULL OR `asset`.`extension` = "")
-    AND `asset`.`owner_id` IS NULL;
+    AND `asset`.`owner_id` IS NULL
+    AND `asset`.`storage_id` LIKE "$timestamp-%";
 SQL;
         // Fetch by key pair is not supported by doctrine 2.0.
         $this->map['assets'] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
