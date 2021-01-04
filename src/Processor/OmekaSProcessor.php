@@ -20,6 +20,7 @@ use Omeka\Api\Representation\VocabularyRepresentation;
 class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 {
     use ConfigurableTrait;
+    use CustomVocabTrait;
     use InternalIntegrityTrait;
     use ParametrizableTrait;
     use ResourceTemplateTrait;
@@ -305,9 +306,17 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
         $this->checkAvailableModules();
 
+        if (!$this->reader->isValid()) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The endpoint is unavailable. Check connection.' // @translate
+            );
+            return;
+        }
+
         $toImport = $this->getParam('types') ?: [];
 
-        // Pre-process: check the Omeka database for assets aad resources.
+        // Pre-process: check the Omeka database for assets and resources.
 
         // Check database integrity for assets.
         $this->logger->info(
@@ -382,7 +391,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             $this->logger->info(
                 'Check custom vocabs.' // @translate
             );
-            $this->prepareCustomVocabs();
+            $this->prepareCustomVocabsInitialize();
             if ($this->hasError) {
                 return;
             }
@@ -743,128 +752,13 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         $this->prepareUsersProcess($this->reader->setObjectType('users'));
     }
 
-    protected function prepareCustomVocabs(): void
+    protected function prepareCustomVocabsInitialize(): void
     {
         $this->map['custom_vocabs'] = [];
-
         if (empty($this->modules['CustomVocab'])) {
             return;
         }
-
-        $result = $this->api()
-            ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
-
-        $customVocabs = [];
-        foreach ($result as $customVocab) {
-            $customVocabs[$customVocab->getLabel()] = $customVocab;
-        }
-        unset($result);
-
-        $index = 0;
-        $created = 0;
-        $skipped = 0;
-        foreach ($this->reader->setObjectType('custom_vocabs') as $customVocab) {
-            ++$index;
-            if (isset($customVocabs[$customVocab['o:label']])) {
-                /*
-                // Item sets are not yet imported, so no mapping for item sets for now…
-                // TODO Currently, item sets are created after, so vocab is updated later, but resource can be created empty first?
-                if (!empty($customVocab['o:item_set']) && $customVocab['o:item_set'] === $customVocabs[$customVocab['o:label']]->getItemSet()) {
-                    // ++$skipped;
-                    // $this->map['custom_vocabs']['customvocab:' . $customVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$customVocab['o:label']]->getId();
-                    // continue;
-                */
-                if (empty($customVocab['o:item_set']) && !empty($customVocab['o:terms']) && $customVocab['o:terms'] === $customVocabs[$customVocab['o:label']]->getTerms()) {
-                    ++$skipped;
-                    $this->map['custom_vocabs']['customvocab:' . $customVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$customVocab['o:label']]->getId();
-                    continue;
-                } else {
-                    $label = $customVocab['o:label'];
-                    $customVocab['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
-                        . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 5);
-                    $this->logger->notice(
-                        'Custom vocab "{old_label}" has been renamed to "{label}".', // @translate
-                        ['old_label' => $label, 'label' => $customVocab['o:label']]
-                    );
-                }
-            }
-
-            $sourceId = $customVocab['o:id'];
-            $sourceItemSet = empty($customVocab['o:item_set']) ? null : $customVocab['o:item_set'];
-            $customVocab['o:item_set'] = null;
-            $customVocab['o:terms'] = !strlen(trim((string) $customVocab['o:terms'])) ? null : $customVocab['o:terms'];
-
-            // Some custom vocabs from old versions can be empty.
-            // They are created with a false term and updated later.
-            $isEmpty = is_null($customVocab['o:item_set']) && is_null($customVocab['o:terms']);
-            if ($isEmpty) {
-                $customVocab['o:terms'] = 'Added by Bulk Import. To be removed.';
-            }
-
-            unset($customVocab['@id'], $customVocab['o:id']);
-            $customVocab['o:owner'] = $this->ownerOId;
-            // TODO Use orm.
-            $response = $this->api()->create('custom_vocabs', $customVocab);
-            if (!$response) {
-                $this->hasError = true;
-                $this->logger->err(
-                    'Unable to create custom vocab "{label}".', // @translate
-                    ['label' => $customVocab['o:label']]
-                );
-                return;
-            }
-            $this->logger->notice(
-                'Custom vocab {label} has been created.', // @translate
-                ['label' => $customVocab['o:label']]
-            );
-            ++$created;
-
-            $this->map['custom_vocabs']['customvocab:' . $sourceId] = [
-                'datatype' => 'customvocab:' . $response->getContent()->id(),
-                'source_item_set' => $sourceItemSet,
-                'is_empty' => $isEmpty,
-            ];
-        }
-
-        $this->allowedDataTypes = $this->getServiceLocator()->get('Omeka\DataTypeManager')->getRegisteredNames();
-
-        $this->logger->notice(
-            '{total} custom vocabs ready, {created} created, {skipped} skipped.', // @translate
-            ['total' => $index, 'created' => $created, 'skipped' => $skipped]
-        );
-    }
-
-    protected function prepareCustomVocabsFinalize(): void
-    {
-        if (empty($this->modules['CustomVocab'])) {
-            return;
-        }
-
-        $api = $this->api();
-        foreach ($this->map['custom_vocabs'] as &$customVocab) {
-            if (empty($customVocab['source_item_set'])) {
-                unset($customVocab['is_empty']);
-                continue;
-            }
-            if (empty($this->map['item_sets'][$customVocab['source_item_set']])) {
-                unset($customVocab['is_empty']);
-                continue;
-            }
-            $id = (int) substr($customVocab['datatype'], 12);
-            /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
-            $customVocabRepr = $api->searchOne('custom_vocabs', $id)->getContent();
-            if (!$customVocabRepr) {
-                unset($customVocab['is_empty']);
-                continue;
-            }
-            $data = json_decode(json_encode($customVocabRepr), true);
-            $data['o:item_set'] = $this->map['item_sets'][$customVocab['source_item_set']];
-            if (!empty($customVocab['is_empty'])) {
-                $data['o:terms'] = null;
-            }
-            unset($customVocab['is_empty']);
-            $api->update('custom_vocabs', $id, $data);
-        }
+        $this->prepareCustomVocabsProcess($this->reader->setObjectType('custom_vocabs'));
     }
 
     protected function prepareResourceTemplates(): void
@@ -1750,9 +1644,9 @@ SQL;
         $moduleClasses = [
             'CustomVocab',
             'DataTypeGeometry',
+            'DataTypeRdf',
             'Mapping',
             'NumericDataTypes',
-            'RdfDatatype',
             'ValueSuggest',
         ];
         /** @var \Omeka\Module\Manager $moduleManager */
