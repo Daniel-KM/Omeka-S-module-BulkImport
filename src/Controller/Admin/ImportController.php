@@ -75,7 +75,7 @@ class ImportController extends AbstractActionController
 
         $this->setBrowseDefaults('created');
 
-        $severity = $this->params()->fromQuery('severity', Logger::NOTICE);
+        $severity = $this->params()->fromQuery('severity', Logger::INFO);
         $severity = (int) preg_replace('/[^0-9]+/', '', $severity);
         $page = $this->params()->fromQuery('page', 1);
         $query = $this->params()->fromQuery();
