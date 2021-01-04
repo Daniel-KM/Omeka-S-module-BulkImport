@@ -115,10 +115,6 @@ trait CustomVocabTrait
      */
     protected function prepareCustomVocabsFinalize(): void
     {
-        if (empty($this->modules['CustomVocab'])) {
-            return;
-        }
-
         $api = $this->api();
         foreach ($this->map['custom_vocabs'] as &$customVocab) {
             if (empty($customVocab['source_item_set'])) {
