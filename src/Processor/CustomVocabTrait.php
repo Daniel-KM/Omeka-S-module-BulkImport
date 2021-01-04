@@ -50,14 +50,17 @@ trait CustomVocabTrait
                  // $this->map['custom_vocabs']['customvocab:' . $sourceCustomVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$sourceCustomVocab['o:label']]->getId();
                  // continue;
                  */
-                if (empty($sourceCustomVocab['o:item_set']) && !empty($sourceCustomVocab['o:terms']) && $sourceCustomVocab['o:terms'] === $customVocabs[$sourceCustomVocab['o:label']]->getTerms()) {
+                if (empty($sourceCustomVocab['o:item_set'])
+                    && !empty($sourceCustomVocab['o:terms'])
+                    && $this->equalCustomVocabsTerms($sourceCustomVocab['o:terms'], $customVocabs[$sourceCustomVocab['o:label']]->getTerms())
+                ) {
                     ++$skipped;
                     $this->map['custom_vocabs']['customvocab:' . $sourceCustomVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$sourceCustomVocab['o:label']]->getId();
                     continue;
                 } else {
                     $label = $sourceCustomVocab['o:label'];
-                    $sourceCustomVocab['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
-                        . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 5);
+                    $sourceCustomVocab['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
+                        . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3) . ']';
                     $this->logger->notice(
                         'Custom vocab "{old_label}" has been renamed to "{label}".', // @translate
                         ['old_label' => $label, 'label' => $sourceCustomVocab['o:label']]
@@ -140,5 +143,26 @@ trait CustomVocabTrait
             unset($customVocab['is_empty']);
             $api->update('custom_vocabs', $id, $data);
         }
+    }
+
+    /**
+     * @param array|mixed $termsA
+     * @param array|mixed $termsB
+     * @return bool
+     */
+    protected function equalCustomVocabsTerms($termsA, $termsB): bool
+    {
+        $terms = [
+            'a' => $termsA,
+            'b' => $termsB,
+        ];
+        foreach ($terms  as &$termsList) {
+            if (!is_array($termsList)) {
+                $termsList = explode("\n", $termsList);
+            }
+            $termsList = array_unique(array_filter(array_map('trim', array_map('strval', $termsList)), 'strlen'));
+            sort($termsList);
+        }
+        return $terms['a'] === $terms['b'];
     }
 }
