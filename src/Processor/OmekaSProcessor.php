@@ -11,7 +11,6 @@ use BulkImport\Traits\ParametrizableTrait;
 use finfo;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
-use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\VocabularyRepresentation;
 
 /**
@@ -25,6 +24,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     use ParametrizableTrait;
     use ResourceTemplateTrait;
     use UserTrait;
+    use VocabularyTrait;
 
     /**
      * The max number of entities before a flush/clear.
@@ -471,281 +471,36 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
         }
     }
 
-    /**
-     * Check if a vocabulary exists and check if different.
-     *
-     * @todo Remove arg $skipLog.
-     *
-     * @param array $vocabulary
-     * @param bool $skipLog
-     * @return array The status and the cleaned vocabulary.
-     */
-    protected function checkVocabulary(array $vocabulary, $skipLog = false)
+    protected function checkVocabularyProperties(array $vocabulary, VocabularyRepresentation $vocabularyRepresentation)
     {
-        // Check existing namespace, but avoid some issues with uri, that may
-        // have a trailing "#" or "/".
-        $vocabularies = $this->bulk->getVocabularyUris(true);
-        $prefix = array_search(rtrim($vocabulary['o:namespace_uri'], '#/'), $vocabularies);
-        if ($prefix) {
-            /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
-            $vocabularyRepresentation = $this->api()
-                // Api "search" uses "namespace_uri", but "read" uses "namespaceUri".
-                ->read('vocabularies', ['prefix' => $prefix])->getContent();
-            if ($vocabularyRepresentation->prefix() !== $vocabulary['o:prefix']) {
-                if (!$skipLog) {
-                    $this->logger->notice(
-                        'Vocabulary "{prefix}" exists as vocabulary #{vocabulary_id}, but the prefix is not the same ("{prefix_2}").', // @translate
-                        ['prefix' => $vocabularyRepresentation->prefix(), 'vocabulary_id' => $vocabularyRepresentation->id(), 'prefix_2' => $vocabulary['o:prefix']]
-                    );
-                }
-                $vocabulary['o:prefix'] = $vocabularyRepresentation->prefix();
-            }
-            return [
-                'status' => 'success',
-                'data' => [
-                    'source' => $vocabulary,
-                    'destination' => $vocabularyRepresentation,
-                ],
-            ];
-        }
-
-        try {
-            /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
-            $vocabularyRepresentation = $this->api()
-                ->read('vocabularies', ['prefix' => $vocabulary['o:prefix']])->getContent();
-            if (rtrim($vocabularyRepresentation->namespaceUri(), '#/') !== rtrim($vocabulary['o:namespace_uri'], '#/')) {
-                $vocabulary['o:prefix'] .= '_' . (new \DateTime())->format('YmdHis');
-                if (!$skipLog) {
-                    $this->logger->notice(
-                        'Vocabulary prefix {prefix} is used so the imported one is renamed.', // @translate
-                        ['prefix' => $vocabulary['o:prefix']]
-                    );
-                }
-            }
-        } catch (NotFoundException $e) {
-            // Nothing to do.
-        }
-
-        return [
-            'status' => 'success',
-            'data' => [
-                'source' => $vocabulary,
-                'destination' => null,
-            ],
-        ];
-    }
-
-    protected function checkProperties(array $vocabulary, VocabularyRepresentation $vocabularyRepresentation)
-    {
-        $vocabularyProperties = [];
-
-        $this->reader->setObjectType('properties');
         // TODO Add a filter to the reader.
-        foreach ($this->reader as $property) {
+        foreach ($this->reader->setObjectType('properties') as $property) {
             if ($property['o:vocabulary']['o:id'] === $vocabulary['o:id']) {
                 $vocabularyProperties[] = $property['o:local_name'];
             }
         }
-        sort($vocabularyProperties);
-
-        $vocabularyRepresentationProperties = [];
-        foreach ($vocabularyRepresentation->properties() as $property) {
-            $vocabularyRepresentationProperties[] = $property->localName();
-        }
-        sort($vocabularyRepresentationProperties);
-
-        if ($vocabularyProperties !== $vocabularyRepresentationProperties) {
-            $this->logger->notice(
-                'The properties are different for the {prefix}.', // @translate
-                ['prefix' => $vocabulary['o:prefix']]
-            );
-        }
-
-        // Whatever the result, the result is always true.
-        return true;
+        return $vocabularyProperties;
     }
 
-    /**
-     * The vocabularies should be checked before.
-     */
     protected function prepareVocabularies(): void
     {
-        $index = 0;
-        $created = 0;
-        foreach ($this->reader->setObjectType('vocabularies') as $vocabulary) {
-            ++$index;
-            $result = $this->checkVocabulary($vocabulary, false);
-            if ($result['status'] !== 'success') {
-                $this->hasError = true;
-                return;
-            }
-
-            if (!$result['data']['destination']) {
-                $vocab = $result['data']['source'];
-                unset($vocab['@id'], $vocab['o:id']);
-                $vocab['o:owner'] = $this->userOIdOrDefaultOwner($vocabulary['o:owner']);
-                $vocab['o:prefix'] = trim($vocab['o:prefix']);
-                // TODO Use orm.
-                $response = $this->api()->create('vocabularies', $vocab);
-                $result['data']['destination'] = $response->getContent();
-                $this->logger->notice(
-                    'Vocabulary {prefix} has been created.', // @translate
-                    ['prefix' => $vocab['o:prefix']]
-                );
-                ++$created;
-            }
-
-            // The prefix may have been changed. Keep only needed data.
-            $this->map['vocabularies'][$vocabulary['o:prefix']] = [
-                'source' => [
-                    'id' => $vocabulary['o:id'],
-                    'prefix' => $vocabulary['o:prefix'],
-                ],
-                'destination' => [
-                    'id' => $result['data']['destination']->id(),
-                    'prefix' => $result['data']['destination']->prefix(),
-                ],
-            ];
-        }
-
-        $this->logger->notice(
-            '{total} vocabulary ready, {created} created.', // @translate
-            ['total' => $index, 'created' => $created]
-        );
+        $this->prepareVocabulariesProcess($this->reader->setObjectType('vocabularies'));
     }
 
     protected function prepareProperties(): void
     {
-        $properties = $this->getPropertyIds();
-        $this->prepareVocabularyMembers('properties', $properties, \Omeka\Entity\Property::class);
+        $this->prepareVocabularyMembers(
+            $this->reader->setObjectType('properties'),
+            'properties'
+        );
     }
 
     protected function prepareResourceClasses(): void
     {
-        $resourceClasses = $this->getResourceClassIds();
-        $this->prepareVocabularyMembers('resource_classes', $resourceClasses, \Omeka\Entity\ResourceClass::class);
-    }
-
-    protected function prepareVocabularyMembers($resourceType, $memberIdsByTerm, $class): void
-    {
-        $this->refreshOwner();
-
-        /** @var \Omeka\Api\Adapter\AssetAdapter $adapter */
-        $adapter = $this->adapterManager->get($resourceType);
-
-        $this->totals[$resourceType] = $this->reader->setObjectType($resourceType)->count();
-        $index = 0;
-        $existing = 0;
-        $created = 0;
-        $skipped = 0;
-        foreach ($this->reader->setObjectType($resourceType) as $member) {
-            ++$index;
-
-            $sourceId = $member['o:id'];
-            $sourceTerm = $member['o:term'];
-            $sourcePrefix = strtok($sourceTerm, ':');
-            if (!isset($this->map['vocabularies'][$sourcePrefix])) {
-                ++$skipped;
-                $this->logger->warn(
-                    'The vocabulary of the {member} {term} does not exist.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $sourceTerm]
-                );
-                continue;
-            }
-
-            $destTerm = $this->map['vocabularies'][$sourcePrefix]['destination']['prefix'] . ':' . $member['o:local_name'];
-
-            $this->map[$resourceType][$sourceTerm] = [
-                'term' => $destTerm,
-                'source' => $sourceId,
-                'id' => null,
-            ];
-
-            if (isset($memberIdsByTerm[$destTerm])) {
-                ++$existing;
-                $this->map[$resourceType][$sourceTerm]['id'] = $memberIdsByTerm[$destTerm];
-                continue;
-            }
-
-            // The entity manager is used, because the api doesn't allow to
-            // create individual vocabulary member (only as a whole with
-            // vocabulary).
-            /** @var \Omeka\Entity\Vocabulary $vocabulary */
-            $vocabulary = $this->entityManager->find(\Omeka\Entity\Vocabulary::class, $this->map['vocabularies'][$sourcePrefix]['destination']['id']);
-            if (!$vocabulary) {
-                $this->logger->err(
-                    'Unable to find vocabulary for {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
-                );
-                $this->hasError = true;
-                return;
-            }
-
-            $this->entity = new $class;
-            $this->entity->setOwner($vocabulary->getOwner());
-            $this->entity->setVocabulary($vocabulary);
-            $this->entity->setLocalName($member['o:local_name']);
-            $this->entity->setLabel($member['o:label']);
-            $this->entity->setComment($member['o:comment']);
-
-            $errorStore = new \Omeka\Stdlib\ErrorStore;
-            $adapter->validateEntity($this->entity, $errorStore);
-            if ($errorStore->hasErrors()) {
-                $this->hasError = true;
-                ++$skipped;
-                $this->logger->err(
-                    'Unable to create {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
-                );
-                $this->logErrors($this->entity, $errorStore);
-                continue;
-            }
-
-            $this->entityManager->persist($this->entity);
-            ++$created;
-
-            if ($created % self::CHUNK_ENTITIES === 0) {
-                $this->entityManager->flush();
-                $this->entityManager->clear();
-                $this->refreshOwner();
-                $this->logger->notice(
-                    '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => $this->totals[$resourceType], 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
-                );
-            }
-
-            $this->logger->notice(
-                'Vocabulary {member} {term} has been created.', // @translate
-                ['member' => $this->label($resourceType), 'term' => $member['o:term']]
-            );
-            ++$created;
-        }
-
-        // Remaining entities.
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-        $this->refreshOwner();
-
-        // Fill the missing new member ids.
-        $api = $this->api();
-        foreach ($this->map[$resourceType] as $sourceTerm => $data) {
-            if ($data['id']) {
-                continue;
-            }
-            $member = $api->searchOne($resourceType, ['term' => $data['term']])->getContent();
-            if (!$member) {
-                $this->hasError = true;
-                $this->logger->err(
-                    'Unable to find {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $data['term']]
-                );
-                continue;
-            }
-            $this->map[$resourceType][$sourceTerm]['id'] = $member->id();
-        }
-
-        // Prepare simple maps of source id and destination id.
-        $this->map['by_id'][$resourceType] = array_column($this->map[$resourceType], 'id', 'source');
+        $this->prepareVocabularyMembers(
+            $this->reader->setObjectType('resource_classes'),
+            'resource_classes'
+        );
     }
 
     protected function prepareUsers(): void
