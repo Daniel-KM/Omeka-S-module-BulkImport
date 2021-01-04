@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport;
 
 return [
@@ -65,6 +66,8 @@ return [
             Form\Reader\OpenDocumentSpreadsheetReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\SpreadsheetReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\SpreadsheetReaderParamsForm::class => Service\Form\FormFactory::class,
+            Form\Reader\SqlReaderConfigForm::class => Service\Form\FormFactory::class,
+            Form\Reader\SqlReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\TsvReaderParamsForm::class => Service\Form\FormFactory::class,
         ],
     ],
@@ -214,6 +217,7 @@ return [
     'bulk_import' => [
         'readers' => [
             Reader\OmekaSReader::class => Reader\OmekaSReader::class,
+            Reader\SqlReader::class => Reader\SqlReader::class,
             Reader\SpreadsheetReader::class => Reader\SpreadsheetReader::class,
             Reader\CsvReader::class => Reader\CsvReader::class,
             Reader\TsvReader::class => Reader\TsvReader::class,
