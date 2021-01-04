@@ -182,9 +182,7 @@ abstract class AbstractFileReader extends AbstractReader
         }
 
         $systemConfig = $this->getServiceLocator()->get('Config');
-        $tempDir = isset($systemConfig['temp_dir'])
-            ? $systemConfig['temp_dir']
-            : null;
+        $tempDir = $systemConfig['temp_dir'] ?? null;
         if (!$tempDir) {
             throw new \Omeka\Service\Exception\RuntimeException(
                 'The "temp_dir" is not configured' // @translate

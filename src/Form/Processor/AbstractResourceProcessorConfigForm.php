@@ -318,7 +318,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                     'prepend_value_options' => $this->prependMappingOptions(),
                 ],
                 'attributes' => [
-                    'value' => isset($fields[$index]) ? $fields[$index] : null,
+                    'value' => $fields[$index] ?? null,
                     'required' => false,
                     'multiple' => true,
                     'class' => 'chosen-select',

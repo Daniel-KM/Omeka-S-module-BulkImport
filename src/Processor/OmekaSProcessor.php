@@ -1759,7 +1759,7 @@ SQL;
         $this->entity->setIngester($resource['o:ingester']);
         $this->entity->setRenderer($resource['o:renderer']);
 
-        $this->entity->setData(isset($resource['data']) ? $resource['data'] : null);
+        $this->entity->setData($resource['data'] ?? null);
         $this->entity->setSource($resource['o:source'] ?: null);
         $this->entity->setLang(!empty($resource['o:lang']) ? $resource['o:lang'] : null);
 

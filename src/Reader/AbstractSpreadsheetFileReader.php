@@ -11,7 +11,7 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
         // inside the library, so check against a class.
         // This check is needed, because CSV Import still uses version 2.7.
         if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
-            $this->lastErrorMessage ='The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
+            $this->lastErrorMessage = 'The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
             return false;
         }
         return parent::isValid();

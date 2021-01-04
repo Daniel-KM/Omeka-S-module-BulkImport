@@ -140,7 +140,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $params = new ArrayObject;
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
-        $params['mapping'] = isset($values['mapping']) ? $values['mapping'] : [];
+        $params['mapping'] = $values['mapping'] ?? [];
         $this->setParams($params);
     }
 
@@ -504,7 +504,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if (!$value) {
                     return true;
                 }
-                $resourceType = isset($resource['resource_type']) ? $resource['resource_type'] : null;
+                $resourceType = $resource['resource_type'] ?? null;
                 $id = $this->findResourceFromIdentifier($value, 'o:id', $resourceType);
                 if ($id) {
                     $resource['o:id'] = $id;

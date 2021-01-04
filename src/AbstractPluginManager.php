@@ -66,6 +66,6 @@ abstract class AbstractPluginManager
     public function get($name)
     {
         $plugins = $this->getPlugins();
-        return isset($plugins[$name]) ? $plugins[$name] : null;
+        return $plugins[$name] ?? null;
     }
 }

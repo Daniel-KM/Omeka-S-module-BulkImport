@@ -328,9 +328,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
         ];
-        return isset($resourceTypes[$resourceType])
-            ? $resourceTypes[$resourceType]
-            : null;
+        return $resourceTypes[$resourceType] ?? null;
     }
 
     protected function findResourcesFromInternalIds(array $ids, $resourceType)
