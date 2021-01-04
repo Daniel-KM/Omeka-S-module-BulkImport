@@ -510,7 +510,10 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
     protected function checkVocabularies(): void
     {
-        foreach ($this->reader->setObjectType('vocabularies') as $vocabulary) {
+        // The clone is needed because the properties use the reader inside
+        // the loop.
+        $reader = clone $this->reader;
+        foreach ($reader->setObjectType('vocabularies') as $vocabulary) {
             $result = $this->checkVocabulary($vocabulary);
             if ($result['status'] !== 'success') {
                 $this->hasError = true;
@@ -521,6 +524,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
     protected function checkVocabularyProperties(array $vocabulary, VocabularyRepresentation $vocabularyRepresentation)
     {
         // TODO Add a filter to the reader.
+        $vocabularyProperties = [];
         foreach ($this->reader->setObjectType('properties') as $property) {
             if ($property['o:vocabulary']['o:id'] === $vocabulary['o:id']) {
                 $vocabularyProperties[] = $property['o:local_name'];
@@ -531,7 +535,11 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
 
     protected function prepareVocabularies(): void
     {
-        $this->prepareVocabulariesProcess($this->reader->setObjectType('vocabularies'));
+        // The clone is needed because the properties use the reader inside
+        // the loop.
+        // TODO Avoid the second check of properties.
+        $reader = clone $this->reader;
+        $this->prepareVocabulariesProcess($reader->setObjectType('vocabularies'));
     }
 
     protected function prepareProperties(): void

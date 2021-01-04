@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Reader;
 
 use ArrayIterator;
@@ -9,9 +10,12 @@ use Laminas\Http\Request;
 use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
-// A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
-// TODO Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
-class OmekaSReader extends AbstractReader
+/**
+ * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
+ * @todo Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
+ * @todo Implement an intermediate (or generic) JsonReader.
+ */
+class OmekaSReader extends AbstractPaginatedReader
 {
     protected $label = 'Omeka S api';
     protected $configFormClass = OmekaSReaderConfigForm::class;
@@ -30,16 +34,6 @@ class OmekaSReader extends AbstractReader
         'key_identity',
         'key_credential',
     ];
-
-    /**
-     * @var array
-     */
-    protected $pageIterator;
-
-    /**
-     * @var \ArrayIterator
-     */
-    protected $innerIterator;
 
     /**
      * @var \Laminas\Http\Client
@@ -77,47 +71,18 @@ class OmekaSReader extends AbstractReader
     protected $baseUrl = '';
 
     /**
-     * The per-page may be different from the Omeka one when there is only one
-     * page of result.
-     *
-     * @var int
+     * @var \Laminas\Http\Response
      */
-    protected $perPage = 0;
-
-    /**
-     * @var int
-     */
-    protected $firstPage = 0;
-
-    /**
-     * @var int
-     */
-    protected $lastPage = 0;
-
-    /**
-     * @var int
-     */
-    protected $currentPage = 0;
-
-    /**
-     * @var int
-     */
-    protected $currentIndex = 0;
-
-    /**
-     * @var int|null Null means not computed.
-     */
-    protected $totalCount = null;
+    protected $currentResponse;
 
     public function setObjectType($objectType)
     {
-        $this->objectType = $objectType;
-        $this->prepareIterator();
-        return $this;
+        $this->path = $objectType;
+        return parent::setObjectType($objectType);
     }
 
     /**
-     * This method is mainly use outside.
+     * This method is mainly used outside.
      *
      * @param HttpClient $httpClient
      * @return self
@@ -169,108 +134,6 @@ class OmekaSReader extends AbstractReader
     {
         $this->queryParams = $queryParams;
         return $this;
-    }
-
-    protected function setInnerIterator($iterator)
-    {
-        $this->innerIterator = $iterator;
-        return $this;
-    }
-
-    public function getInnerIterator()
-    {
-        return $this->innerIterator;
-    }
-
-    public function count(): int
-    {
-        if (is_null($this->totalCount)) {
-            if (!$this->firstPage) {
-                $this->prepareIterator();
-            }
-            if ($this->firstPage === $this->lastPage) {
-                $this->totalCount = $this->perPage;
-            } else {
-                // There are two ways to get the count: read all pages or read
-                // first and last page. The pages may be cached, if they are not
-                // too big.
-                // $this->totalCount = iterator_count($this->getInnerIterator());
-                $perPage = $this->perPage;
-                $response = $this->fetchData($this->path, $this->subpath, $this->queryParams, $this->lastPage);
-                $json = json_decode($response->getBody(), true) ?: [];
-                $this->totalCount = ($this->lastPage - 1) * $perPage + count($json);
-            }
-        }
-        return $this->totalCount;
-    }
-
-    public function rewind(): void
-    {
-        $this->prepareIterator();
-        $this->getInnerIterator()->rewind();
-    }
-
-    /**
-     * Check if the current position is valid.
-     *
-     * This meaning of this method is different in some iterator classes.
-     *
-     * @return bool
-     */
-    public function valid()
-    {
-        if (!$this->isValid) {
-            return false;
-        }
-        $valid = $this->getInnerIterator()->valid();
-        if ($this->currentPage < $this->lastPage) {
-            return true;
-        }
-        return $valid;
-    }
-
-    public function current()
-    {
-        return $this->getInnerIterator()->current();
-    }
-
-    public function key()
-    {
-        // The inner iterator key cannot be used, because it should be a unique
-        // index for all the pages.
-        return $this->currentIndex;
-    }
-
-    public function next(): void
-    {
-        $inner = $this->getInnerIterator();
-        if ($inner->key() + 1 >= $inner->count()) {
-            $this->nextPage();
-        } else {
-            $inner->next();
-        }
-        ++$this->currentIndex;
-    }
-
-    public function hasNext()
-    {
-        $inner = $this->getInnerIterator();
-        return $inner->key() + 1 >= $inner->count()
-            || $this->currentPage < $this->lastPage;
-    }
-
-    public function getArrayCopy()
-    {
-        $array = [];
-        foreach ($this as $value) {
-            $array[] = $value;
-        }
-        return $array;
-    }
-
-    public function jsonSerialize()
-    {
-        return $this->getArrayCopy();
     }
 
     /**
@@ -326,59 +189,43 @@ class OmekaSReader extends AbstractReader
         }
     }
 
-    protected function resetIterator(): void
+    protected function currentPage(): void
     {
-        $this->perPage = 0;
-        $this->firstPage = 0;
-        $this->lastPage = 0;
-        $this->currentPage = 0;
-        $this->currentIndex = 0;
-        $this->isValid = false;
-        $this->totalCount = null;
-        $this->path = $this->objectType;
-    }
-
-    protected function prepareIterator()
-    {
-        $this->initArgs();
-        $this->resetIterator();
-
-        $response = $this->fetchData($this->path, $this->subpath, $this->queryParams, $this->currentPage);
-        if (!$response->isSuccess()) {
-            $this->lastErrorMesage = 'Unable to fetch data for the first page.'; // @translate
-            return false;
-        }
-        $json = json_decode($response->getBody(), true) ?: [];
-        $this->setInnerIterator(new ArrayIterator($json));
-
-        $this->preparePageIterator($response);
-    }
-
-    protected function nextPage()
-    {
-        if ($this->currentPage >= $this->lastPage) {
-            $this->resetIterator();
-            return false;
-        }
-
-        ++$this->currentPage;
-
-        $response = $this->fetchData($this->path, $this->subpath, $this->queryParams, $this->currentPage);
-        if (!$response->isSuccess()) {
-            $this->lastErrorMesage = 'Unable to fetch data for the next page.'; // @translate
-            return false;
-        }
-        $json = json_decode($response->getBody(), true) ?: [];
-        $this->setInnerIterator(new ArrayIterator($json));
-    }
-
-    protected function preparePageIterator(Response $response): void
-    {
-        $links = $response->getHeaders()->get('Link');
-        if (!$links) {
-            $this->lastErrorMesage = 'Header Link not found in response.'; // @translate
+        $this->currentResponse = $this->fetchData($this->path, $this->subpath, array_merge($this->query, $this->queryParams), $this->currentPage);
+        $json = json_decode($this->currentResponse->getBody(), true) ?: [];
+        if (!$this->currentResponse->isSuccess()) {
+            if ($json && isset($json['errors']['error'])) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Unable to fetch data for the page {page}: {error}.', // @translate
+                    ['page' => $this->currentPage, 'error' => $json['errors']['error']]
+                );
+            } else {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Unable to fetch data for the page {page}.', // @translate
+                    ['page' => $this->currentPage]
+                );
+            }
+            $this->currentResponse = null;
+            $this->setInnerIterator(new ArrayIterator([]));
             return;
         }
+
+        $this->setInnerIterator(new ArrayIterator($json));
+    }
+
+    protected function preparePageIterator(): void
+    {
+        $this->currentPage();
+        if (is_null($this->currentResponse)) {
+            return;
+        }
+
+        $links = $this->currentResponse->getHeaders()->get('Link');
+        if (!$links) {
+            $this->lastErrorMessage = 'Header Link not found in response.'; // @translate
+            return;
+        }
+
         $links = array_filter(array_map(function ($v) {
             $matches = [];
             if (preg_match('~<(?<url>[^>]+)>; rel="(?<rel>first|prev|next|last)"$~', trim($v), $matches)) {
@@ -395,11 +242,11 @@ class OmekaSReader extends AbstractReader
         }
         $links = $urls + ['first' => null, 'prev' => null, 'next' => null, 'last' => null];
         if (!$links['first']) {
-            $this->lastErrorMesage = 'No links in http header.'; // @translate
+            $this->lastErrorMessage = 'No links in http header.'; // @translate
             return;
         }
 
-        // Get the per page.
+        // Get the per page. May be small when there is only one page.
         $this->perPage = $this->getInnerIterator()->count();
 
         // The pages start at 1.
@@ -418,8 +265,26 @@ class OmekaSReader extends AbstractReader
         }
 
         if ($this->firstPage > $this->lastPage) {
-            $this->lastErrorMesage = 'First page cannot be greater to last page.'; // @translate
+            $this->lastErrorMessage = 'First page cannot be greater to last page.'; // @translate
             return;
+        }
+
+        if ($this->firstPage === $this->lastPage) {
+            $this->totalCount = $this->perPage;
+        } else {
+            // Omeka 3.0 contains the total results in the headers.
+            $this->totalCount = $this->currentResponse->getHeaders()->get('Omeka-S-Total-Results');
+            if ($this->totalCount) {
+                $this->totalCount = (int) $this->totalCount->getFieldValue();
+            } else {
+                // There are two ways to get the count: read all pages or read
+                // first and last page. The pages may be cached, if they are not
+                // too big.
+                // $this->totalCount = iterator_count($this->getInnerIterator());
+                $response = $this->fetchData($this->path, $this->subpath, array_merge($this->query, $this->queryParams), $this->lastPage);
+                $json = json_decode($response->getBody(), true) ?: [];
+                $this->totalCount = ($this->lastPage - 1) * $this->perPage + count($json);
+            }
         }
 
         // Prepare the base url.
@@ -440,7 +305,7 @@ class OmekaSReader extends AbstractReader
      * @param array $parts
      * @return string
      */
-    protected function unparseUrl(array $parts)
+    protected function unparseUrl(array $parts): string
     {
         return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '')
             . ((isset($parts['user']) || isset($parts['host'])) ? '//' : '')
@@ -458,18 +323,24 @@ class OmekaSReader extends AbstractReader
      * @return \Laminas\Http\Response
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
+     * @return \Laminas\Http\Response
      */
-    protected function fetchData($path, $subpath, array $params, $page = 0)
+    protected function fetchData($path, $subpath, array $params, $page = 0): Response
     {
         return $this->fetch('/' . $path, strlen($subpath) ? '/' . $subpath : '', $params, $page);
     }
 
     /**
+     * @param string $path To append to the endpoint, for example "-context" to
+     * get the api-context in Omeka..
+     * @param string $subpath
+     * @param array $params
+     * @param number $page
      * @return \Laminas\Http\Response
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    protected function fetch($path, $subpath, array $params, $page = 0)
+    protected function fetch($path, $subpath, array $params, $page = 0): Response
     {
         $uri = $this->endpoint . $path . $subpath;
         $args = array_merge(
