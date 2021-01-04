@@ -78,8 +78,7 @@ trait CustomVocabTrait
             }
 
             unset($sourceCustomVocab['@id'], $sourceCustomVocab['o:id']);
-            // TODO Use original owner if present.
-            $sourceCustomVocab['o:owner'] = $this->ownerOId;
+            $sourceCustomVocab['o:owner'] = $this->userOIdOrDefaultOwner($sourceCustomVocab['o:owner']);
             // TODO Use orm.
             $response = $this->api()->create('custom_vocabs', $sourceCustomVocab);
             if (!$response) {

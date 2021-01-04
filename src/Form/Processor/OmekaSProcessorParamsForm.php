@@ -78,6 +78,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 'attributes' => [
                     'id' => 'types',
                     'value' => [
+                        // 'users',
                         'items',
                         'media',
                         'item_sets',

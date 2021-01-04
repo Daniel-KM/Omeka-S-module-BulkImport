@@ -4,6 +4,7 @@ namespace BulkImport\Processor;
 
 use Laminas\Validator\EmailAddress;
 use Omeka\Entity\User;
+use Omeka\Entity\UserSetting;
 
 trait UserTrait
 {
@@ -104,5 +105,44 @@ trait UserTrait
             '{total} users ready, {created} created, {skipped} skipped.', // @translate
             ['total' => $index, 'created' => $created, 'skipped' => $skipped]
         );
+    }
+
+    protected function userOrDefaultOwner($id): ?User
+    {
+        if (empty($id)) {
+            return $this->owner;
+        }
+        if (is_array($id)) {
+            $id = $id['o:id'];
+        }
+        return empty($this->map['users'][$id])
+            ? $this->owner
+            : $this->entityManager->find(User::class, $this->map['users'][$id]);
+    }
+
+    protected function userIdOrDefaultOwner($id): ?int
+    {
+        if (empty($id)) {
+            return $this->ownerId;
+        }
+        if (is_array($id)) {
+            $id = $id['o:id'];
+        }
+        return empty($this->map['users'][$id])
+            ? $this->ownerId
+            : $this->map['users'][$id];
+    }
+
+    protected function userOIdOrDefaultOwner($id): ?array
+    {
+        if (empty($id)) {
+            return $this->ownerOId;
+        }
+        if (is_array($id)) {
+            $id = $id['o:id'];
+        }
+        return empty($this->map['users'][$id])
+            ? $this->ownerOId
+            : ['o:id' => $this->map['users'][$id]];
     }
 }

@@ -583,7 +583,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             if (!$result['data']['destination']) {
                 $vocab = $result['data']['source'];
                 unset($vocab['@id'], $vocab['o:id']);
-                $vocab['o:owner'] = $this->ownerOId;
+                $vocab['o:owner'] = $this->userOIdOrDefaultOwner($vocabulary['o:owner']);
                 $vocab['o:prefix'] = trim($vocab['o:prefix']);
                 // TODO Use orm.
                 $response = $this->api()->create('vocabularies', $vocab);
@@ -670,6 +670,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             // The entity manager is used, because the api doesn't allow to
             // create individual vocabulary member (only as a whole with
             // vocabulary).
+            /** @var \Omeka\Entity\Vocabulary $vocabulary */
             $vocabulary = $this->entityManager->find(\Omeka\Entity\Vocabulary::class, $this->map['vocabularies'][$sourcePrefix]['destination']['id']);
             if (!$vocabulary) {
                 $this->logger->err(
@@ -681,7 +682,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             }
 
             $this->entity = new $class;
-            $this->entity->setOwner($this->owner);
+            $this->entity->setOwner($vocabulary->getOwner());
             $this->entity->setVocabulary($vocabulary);
             $this->entity->setLocalName($member['o:local_name']);
             $this->entity->setLabel($member['o:label']);
@@ -791,7 +792,7 @@ class OmekaSProcessor extends AbstractProcessor implements Parametrizable
             return;
         }
 
-        $ownerIdOrNull = $this->owner ? $this->owner->getId() : 'NULL';
+        $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
 
         // Check the size of the import.
         foreach (array_keys($resourceTypes) as $resourceType) {
@@ -1044,7 +1045,7 @@ SQL;
             $this->entity = $this->entityManager->find(\Omeka\Entity\Asset::class, $this->map['assets'][$resource['o:id']]);
 
             // Omeka entities are not fluid.
-            $this->entity->setOwner($this->owner);
+            $this->entity->setOwner($this->userOrDefaultOwner($resource['o:owner']));
             $this->entity->setName($resource['o:name']);
             $this->entity->setMediaType($result['data']['media_type']);
             $this->entity->setStorageId($storageId);
@@ -1179,7 +1180,7 @@ SQL;
     protected function fillResource(array $resource): void
     {
         // Omeka entities are not fluid.
-        $this->entity->setOwner($this->owner);
+        $this->entity->setOwner($this->userOrDefaultOwner($resource['o:owner']));
 
         if (!empty($resource['@type'][1])
             && !empty($this->map['resource_classes'][$resource['@type'][1]])
@@ -1661,6 +1662,8 @@ SQL;
     /**
      * The owner should be reloaded each time the entity manager is cleared, so
      * it is saved and reloaded.
+     *
+     * @todo Check if the users should always be reloaded.
      */
     protected function refreshOwner(): void
     {

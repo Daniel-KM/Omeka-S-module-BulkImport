@@ -47,7 +47,7 @@ trait ResourceTemplateTrait
             // Clean the metadata to simplify check and import.
             $sourceResourceTemplateId = $sourceResourceTemplate['o:id'];
             unset($sourceResourceTemplate['@id'], $sourceResourceTemplate['o:id']);
-            $sourceResourceTemplate['o:owner'] = $this->ownerOId;
+            $sourceResourceTemplate['o:owner'] = $this->userOIdOrDefaultOwner($sourceResourceTemplate['o:owner']);
 
             $sourceResourceTemplate['o:resource_class'] = !empty($sourceResourceTemplate['o:resource_class']['o:id'])
                 && isset($this->map['by_id']['resource_classes'][$sourceResourceTemplate['o:resource_class']['o:id']])
