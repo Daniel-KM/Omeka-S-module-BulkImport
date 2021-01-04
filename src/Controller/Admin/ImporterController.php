@@ -256,7 +256,19 @@ class ImporterController extends AbstractActionController
         }
 
         $reader = $importer->reader();
+        if (!$reader) {
+            $message = new PsrMessage('Reader "{reader}" does not exist', ['reader' => $importer->readerClass()]); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk');
+        }
+
         $processor = $importer->processor();
+        if (!$processor) {
+            $message = new PsrMessage('Processor "{processor}" does not exist', ['processor' => $importer->processorClass()]); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk');
+        }
+
         $processor->setReader($reader);
 
         /** @var \Laminas\Session\SessionManager $sessionManager */
