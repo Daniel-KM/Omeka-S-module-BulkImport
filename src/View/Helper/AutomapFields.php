@@ -126,21 +126,22 @@ class AutomapFields extends AbstractHelper
             array_keys($propertyLists['names'])
         );
         $lists['lower_names'] = array_map('mb_strtolower', $lists['names']);
-        $lists['labels'] = array_combine(
-            array_keys($propertyLists['names']),
-            array_keys($propertyLists['labels'])
-        );
-        $lists['lower_labels'] = array_map('mb_strtolower', $lists['labels']);
+        // With "dc:", there are more names than labels, so add and filter them.
+        $labelNames = array_keys($propertyLists['names']);
+        $labelLabels = \SplFixedArray::fromArray(array_keys($propertyLists['labels']));
+        $labelLabels->setSize(count($labelNames));
+        $lists['labels'] = array_combine($labelNames, $labelLabels->toArray());
+        $lists['lower_labels'] = array_filter(array_map('mb_strtolower', $lists['labels']));
 
-        // Check names alone, like "Title", for "dcterms:title".
+        // Check names alone, like "Title" for "dcterms:title".
         if ($checkNamesAlone) {
             $lists['local_names'] = array_map(function ($v) {
-                $w = explode(':', $v);
+                $w = explode(':', (string) $v);
                 return end($w);
             }, $lists['names']);
             $lists['lower_local_names'] = array_map('mb_strtolower', $lists['local_names']);
             $lists['local_labels'] = array_map(function ($v) {
-                $w = explode(':', $v);
+                $w = explode(':', (string) $v);
                 return end($w);
             }, $lists['labels']);
             $lists['lower_local_labels'] = array_map('mb_strtolower', $lists['local_labels']);
@@ -149,7 +150,7 @@ class AutomapFields extends AbstractHelper
         // The pattern checks a term or keyword, then an optional @language, then
         // an optional ^^data type, then an optional §visibility.
         $pattern = '~'
-            // Check a term/keyword (dcterms:title).
+            // Check a term/keyword (dcterms:title), required.
             . '^([a-zA-Z][^@§^]*)'
             // Check a language + country (@fr-Fr).
             . '\s*(?:@\s*([a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))?'
