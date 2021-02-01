@@ -232,26 +232,40 @@ class AutomapFields extends AbstractHelper
      * Note: Some terms are badly standardized (in foaf, the label "Given name"
      * matches "foaf:givenName" and "foaf:givenname"), so, in that case, the
      * index is added to the label, except the first property.
+     * Append the vocabulary Dublin Core with prefix "dc" too, for simplicity.
      */
-    protected function listTerms()
+    protected function listTerms(): array
     {
         $result = [];
+
         $vocabularies = $this->api()->search('vocabularies')->getContent();
+        /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabulary */
         foreach ($vocabularies as $vocabulary) {
             $properties = $vocabulary->properties();
             if (empty($properties)) {
                 continue;
             }
             foreach ($properties as $property) {
-                $result['names'][$property->term()] = $property->term();
+                $term = $property->term();
+                $result['names'][$term] = $term;
                 $name = $vocabulary->label() . ':' . $property->label();
                 if (isset($result['labels'][$name])) {
-                    $result['labels'][$vocabulary->label() . ':' . $property->label() . ' (#' . $property->id() . ')'] = $property->term();
+                    $result['labels'][$vocabulary->label() . ':' . $property->label() . ' (#' . $property->id() . ')'] = $term;
                 } else {
-                    $result['labels'][$vocabulary->label() . ':' . $property->label()] = $property->term();
+                    $result['labels'][$vocabulary->label() . ':' . $property->label()] = $term;
                 }
             }
         }
+
+        // Add the special prefix "dc:" for "dcterms:", that is not so uncommon.
+        $vocabulary = $vocabularies[0];
+        $properties = $vocabulary->properties();
+        foreach ($properties as $property) {
+            $term = $property->term();
+            $termDc = 'dc:' . substr($term, 8);
+            $result['names'][$termDc] = $term;
+        }
+
         return $result;
     }
 
