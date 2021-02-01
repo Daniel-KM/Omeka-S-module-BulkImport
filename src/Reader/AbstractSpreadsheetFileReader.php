@@ -5,6 +5,8 @@ use BulkImport\Entry\SpreadsheetEntry;
 
 abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
 {
+    /*
+     * TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
     public function isValid(): bool
     {
         // The version of Box/Spout should be >= 3.0, but there is no version
@@ -16,6 +18,7 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
         }
         return parent::isValid();
     }
+    */
 
     public function current()
     {

@@ -23,6 +23,8 @@ class Module extends AbstractModule
         require_once __DIR__ . '/vendor/autoload.php';
     }
 
+    // TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+    /*
     protected function preInstall(): void
     {
         // The version of Box/Spout should be >= 3.0, but there is no version
@@ -33,6 +35,7 @@ class Module extends AbstractModule
             throw new \Omeka\Module\Exception\ModuleCannotInstallException($message);
         }
     }
+    */
 
     protected function postInstall(): void
     {

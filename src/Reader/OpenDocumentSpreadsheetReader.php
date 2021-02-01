@@ -37,6 +37,11 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $spreadsheetType = Type::ODS;
 
     /**
+     * @var bool
+     */
+    protected $isOldBoxSpout = false;
+
+    /**
      * @var ReaderInterface
      */
     protected $spreadsheetReader;
@@ -97,7 +102,21 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->spreadsheetReader->close();
         }
 
-        $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
+        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+        // Manage compatibility with old version of CSV Import.
+        // For now, it should be first checked.
+        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
+            $this->spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create($this->spreadsheetType);
+            $this->isOldBoxSpout =  true;
+        } elseif (class_exists(ReaderEntityFactory::class)) {
+             $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
+        } else {
+            throw new \Omeka\Service\Exception\RuntimeException(
+                new PsrMessage(
+                    'The library to manage OpenDocument spreadsheet is not available.' // @translate
+                )
+            );
+        }
 
         $filepath = $this->getParam('filename');
         try {
@@ -133,6 +152,11 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
     protected function prepareAvailableFields(): void
     {
+        if ($this->isOldBoxSpout) {
+            $this->prepareAvailableFieldsOld();
+            return;
+        }
+
         /** @var \Box\Spout\Common\Entity\Row $row */
         foreach ($this->iterator as $row) {
             break;
@@ -143,6 +167,24 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($row->toArray());
+        $this->initializeReader();
+    }
+
+    /**
+     * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+     */
+    protected function prepareAvailableFieldsOld(): void
+    {
+        /** @var \Box\Spout\Common\Entity\Row $row */
+        foreach ($this->iterator as $fields) {
+            break;
+        }
+        if (!is_array($fields)) {
+            $this->lastErrorMessage = 'File has no available fields.'; // @translate
+            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+        }
+        // The data should be cleaned, since it's not an entry.
+        $this->availableFields = $this->cleanData($fields);
         $this->initializeReader();
     }
 }
