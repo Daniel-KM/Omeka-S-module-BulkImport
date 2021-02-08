@@ -46,7 +46,6 @@ trait SpipParserTrait
         return;
     }
 
-
     /**
      * @link spip/ecrire/inc/charsets.php
      */
@@ -61,14 +60,6 @@ trait SpipParserTrait
      * @package SPIP\Core\Texte\Charsets
      **/
 
-    // securité
-    if (!defined('_ECRIRE_INC_VERSION')) {
-        return;
-    }
-
-    // se faciliter la lecture du charset
-    include_spip('inc/config');
-
     /**
      * Charge en mémoire la liste des caractères d'un charset
      *
@@ -82,7 +73,8 @@ trait SpipParserTrait
      *     - Nom du charset
      *     - false si le charset n'est pas décrit dans le répertoire charsets/
      **/
-    function load_charset($charset = 'AUTO') {
+    protected function load_charset($charset = 'AUTO')
+    {
         if ($charset == 'AUTO') {
             $charset = $GLOBALS['meta']['charset'];
         }
@@ -92,7 +84,7 @@ trait SpipParserTrait
         }
 
         if ($charset == 'utf-8') {
-            $GLOBALS['CHARSET'][$charset] = array();
+            $GLOBALS['CHARSET'][$charset] = [];
 
             return $charset;
         }
@@ -118,12 +110,11 @@ trait SpipParserTrait
             return $charset;
         } else {
             spip_log("Erreur: pas de fichier de conversion 'charsets/$charset'");
-            $GLOBALS['CHARSET'][$charset] = array();
+            $GLOBALS['CHARSET'][$charset] = [];
 
             return false;
         }
     }
-
 
     /**
      * Vérifier qu'on peut utiliser mb_string
@@ -131,7 +122,8 @@ trait SpipParserTrait
      * @return bool
      *     true si toutes les fonctions mb nécessaires sont présentes
      **/
-    function init_mb_string() {
+    protected function init_mb_string()
+    {
         static $mb;
 
         // verifier que tout est present (fonctions mb_string pour php >= 4.0.6)
@@ -169,7 +161,8 @@ trait SpipParserTrait
      * @return bool
      *     true si iconv fonctionne correctement
      **/
-    function test_iconv() {
+    protected function test_iconv()
+    {
         static $iconv_ok;
 
         if (!$iconv_ok) {
@@ -187,7 +180,6 @@ trait SpipParserTrait
         return ($iconv_ok == 1);
     }
 
-
     /**
      * Test de fonctionnement du support UTF-8 dans PCRE
      *
@@ -196,7 +188,8 @@ trait SpipParserTrait
      * @return bool
      *     true si PCRE supporte l'UTF-8 correctement
      **/
-    function test_pcre_unicode() {
+    protected function test_pcre_unicode()
+    {
         static $pcre_ok = 0;
 
         if (!$pcre_ok) {
@@ -223,7 +216,8 @@ trait SpipParserTrait
      * @return string
      *    Plage de caractères
      **/
-    function pcre_lettres_unicode() {
+    protected function pcre_lettres_unicode()
+    {
         static $plage_unicode;
 
         if (!$plage_unicode) {
@@ -242,7 +236,6 @@ trait SpipParserTrait
         return $plage_unicode;
     }
 
-
     /**
      * Renvoie une plage de caractères de ponctuation unicode de 0x2000 a 0x206F
      *
@@ -256,7 +249,8 @@ trait SpipParserTrait
      * @return string
      *    Plage de caractères
      **/
-    function plage_punct_unicode() {
+    protected function plage_punct_unicode()
+    {
         return '\xE2(\x80[\x80-\xBF]|\x81[\x80-\xAF])';
     }
 
@@ -276,7 +270,8 @@ trait SpipParserTrait
      * @return string|array
      *     Texte corrigé
      **/
-    function corriger_caracteres_windows($texte, $charset = 'AUTO', $charset_cible = 'unicode') {
+    protected function corriger_caracteres_windows($texte, $charset = 'AUTO', $charset_cible = 'unicode')
+    {
         static $trans;
 
         if (is_array($texte)) {
@@ -300,7 +295,7 @@ trait SpipParserTrait
         }
 
         if (!isset($trans[$charset][$charset_cible])) {
-            $trans[$charset][$charset_cible] = array(
+            $trans[$charset][$charset_cible] = [
                 $p . chr(128) => "&#8364;",
                 $p . chr(129) => ' ', # pas affecte
                 $p . chr(130) => "&#8218;",
@@ -333,7 +328,7 @@ trait SpipParserTrait
                 $p . chr(157) => ' ', # pas affecte
                 $p . chr(158) => "&#382;",
                 $p . chr(159) => "&#376;",
-            );
+            ];
             if ($charset_cible != 'unicode') {
                 foreach ($trans[$charset][$charset_cible] as $k => $c) {
                     $trans[$charset][$charset_cible][$k] = unicode2charset($c, $charset_cible);
@@ -344,7 +339,6 @@ trait SpipParserTrait
         return @str_replace(array_keys($trans[$charset][$charset_cible]),
             array_values($trans[$charset][$charset_cible]), $texte);
     }
-
 
     /**
      * Transforme les entités HTML en unicode
@@ -358,11 +352,12 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function html2unicode($texte, $secure = false) {
+    protected function html2unicode($texte, $secure = false)
+    {
         if (strpos($texte, '&') === false) {
             return $texte;
         }
-        static $trans = array();
+        static $trans = [];
         if (!$trans) {
             load_charset('html');
             foreach ($GLOBALS['CHARSET']['html'] as $key => $val) {
@@ -373,12 +368,11 @@ trait SpipParserTrait
         if ($secure) {
             return str_replace(array_keys($trans), array_values($trans), $texte);
         } else {
-            return str_replace(array('&amp;', '&quot;', '&lt;', '&gt;'), array('&', '"', '<', '>'),
+            return str_replace(['&amp;', '&quot;', '&lt;', '&gt;'], ['&', '"', '<', '>'],
                 str_replace(array_keys($trans), array_values($trans), $texte)
                 );
         }
     }
-
 
     /**
      * Transforme les entités mathématiques (MathML) en unicode
@@ -390,7 +384,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function mathml2unicode($texte) {
+    protected function mathml2unicode($texte)
+    {
         static $trans;
         if (!$trans) {
             load_charset('mathml');
@@ -402,7 +397,6 @@ trait SpipParserTrait
 
         return str_replace(array_keys($trans), array_values($trans), $texte);
     }
-
 
     /**
      * Transforme une chaine en entites unicode &#129;
@@ -421,7 +415,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti en unicode
      **/
-    function charset2unicode($texte, $charset = 'AUTO' /* $forcer: obsolete*/) {
+    protected function charset2unicode($texte, $charset = 'AUTO' /* $forcer: obsolete*/)
+    {
         static $trans;
 
         if ($charset == 'AUTO') {
@@ -442,18 +437,19 @@ trait SpipParserTrait
                 $texte = corriger_caracteres_windows($texte, 'iso-8859-1');
                 // pas de break; ici, on suit sur default:
 
+                // no break
             default:
                 // mbstring presente ?
                 if (init_mb_string()) {
                     if ($order = mb_detect_order() # mb_string connait-il $charset?
                         and mb_detect_order($charset)
                         ) {
-                            $s = mb_convert_encoding($texte, 'utf-8', $charset);
-                            if ($s && $s != $texte) {
-                                return utf_8_to_unicode($s);
-                            }
+                        $s = mb_convert_encoding($texte, 'utf-8', $charset);
+                        if ($s && $s != $texte) {
+                            return utf_8_to_unicode($s);
                         }
-                        mb_detect_order($order); # remettre comme precedemment
+                    }
+                    mb_detect_order($order); # remettre comme precedemment
                 }
 
                 // Sinon, peut-etre connaissons-nous ce charset ?
@@ -461,10 +457,10 @@ trait SpipParserTrait
                     if ($cset = load_charset($charset)
                         and is_array($GLOBALS['CHARSET'][$cset])
                         ) {
-                            foreach ($GLOBALS['CHARSET'][$cset] as $key => $val) {
-                                $trans[$charset][chr($key)] = '&#' . $val . ';';
-                            }
+                        foreach ($GLOBALS['CHARSET'][$cset] as $key => $val) {
+                            $trans[$charset][chr($key)] = '&#' . $val . ';';
                         }
+                    }
                 }
                 if (count($trans[$charset])) {
                     return str_replace(array_keys($trans[$charset]), array_values($trans[$charset]), $texte);
@@ -487,7 +483,6 @@ trait SpipParserTrait
         }
     }
 
-
     /**
      * Transforme les entites unicode &#129; dans le charset specifie
      *
@@ -502,9 +497,10 @@ trait SpipParserTrait
      * @return string
      *     Texte transformé dans le charset souhaité
      **/
-    function unicode2charset($texte, $charset = 'AUTO') {
-        static $CHARSET_REVERSE = array();
-        static $trans = array();
+    protected function unicode2charset($texte, $charset = 'AUTO')
+    {
+        static $CHARSET_REVERSE = [];
+        static $trans = [];
 
         if ($charset == 'AUTO') {
             $charset = lire_config('charset', _DEFAULT_CHARSET);
@@ -523,7 +519,7 @@ trait SpipParserTrait
                 }
 
                 if (!isset($trans[$charset])) {
-                    $trans[$charset] = array();
+                    $trans[$charset] = [];
                     $t = &$trans[$charset];
                     for ($e = 128; $e < 255; $e++) {
                         $h = dechex($e);
@@ -543,7 +539,6 @@ trait SpipParserTrait
         }
     }
 
-
     /**
      * Importer un texte depuis un charset externe vers le charset du site
      *
@@ -557,8 +552,9 @@ trait SpipParserTrait
      * @return string
      *     Texte transformé dans le charset site
      **/
-    function importer_charset($texte, $charset = 'AUTO') {
-        static $trans = array();
+    protected function importer_charset($texte, $charset = 'AUTO')
+    {
+        static $trans = [];
         // on traite le cas le plus frequent iso-8859-1 vers utf directement pour aller plus vite !
         if (($charset == 'iso-8859-1') && ($GLOBALS['meta']['charset'] == 'utf-8')) {
             $texte = corriger_caracteres_windows($texte, 'iso-8859-1', $GLOBALS['meta']['charset']);
@@ -566,20 +562,20 @@ trait SpipParserTrait
                 if ($order = mb_detect_order() # mb_string connait-il $charset?
                     and mb_detect_order($charset)
                     ) {
-                        $s = mb_convert_encoding($texte, 'utf-8', $charset);
-                    }
-                    mb_detect_order($order); # remettre comme precedemment
-                    return $s;
+                    $s = mb_convert_encoding($texte, 'utf-8', $charset);
+                }
+                mb_detect_order($order); # remettre comme precedemment
+                return $s;
             }
             // Sinon, peut-etre connaissons-nous ce charset ?
             if (!isset($trans[$charset])) {
                 if ($cset = load_charset($charset)
                     and is_array($GLOBALS['CHARSET'][$cset])
                     ) {
-                        foreach ($GLOBALS['CHARSET'][$cset] as $key => $val) {
-                            $trans[$charset][chr($key)] = unicode2charset('&#' . $val . ';');
-                        }
+                    foreach ($GLOBALS['CHARSET'][$cset] as $key => $val) {
+                        $trans[$charset][chr($key)] = unicode2charset('&#' . $val . ';');
                     }
+                }
             }
             if (count($trans[$charset])) {
                 return str_replace(array_keys($trans[$charset]), array_values($trans[$charset]), $texte);
@@ -591,7 +587,6 @@ trait SpipParserTrait
         return unicode2charset(charset2unicode($texte, $charset));
     }
 
-
     /**
      * Transforme un texte UTF-8 en unicode
      *
@@ -602,11 +597,12 @@ trait SpipParserTrait
      * @return string
      *    Texte transformé en unicode
      **/
-    function utf_8_to_unicode($source) {
+    protected function utf_8_to_unicode($source)
+    {
 
         // mb_string : methode rapide
         if (init_mb_string()) {
-            $convmap = array(0x7F, 0xFFFFFF, 0x0, 0xFFFFFF);
+            $convmap = [0x7F, 0xFFFFFF, 0x0, 0xFFFFFF];
 
             return mb_encode_numericentity($source, $convmap, 'UTF-8');
         }
@@ -706,11 +702,12 @@ trait SpipParserTrait
      * @return string
      *    Texte transformé en unicode
      **/
-    function utf_32_to_unicode($source) {
+    protected function utf_32_to_unicode($source)
+    {
 
         // mb_string : methode rapide
         if (init_mb_string()) {
-            $convmap = array(0x7F, 0xFFFFFF, 0x0, 0xFFFFFF);
+            $convmap = [0x7F, 0xFFFFFF, 0x0, 0xFFFFFF];
             $source = mb_encode_numericentity($source, $convmap, 'UTF-32LE');
 
             return str_replace(chr(0), '', $source);
@@ -734,9 +731,7 @@ trait SpipParserTrait
         }
 
         return $texte;
-
     }
-
 
     /**
      * Transforme un numéro unicode en caractère utf-8
@@ -750,7 +745,8 @@ trait SpipParserTrait
      * @return char
      *    Caractère utf8 si trouvé, '' sinon
      **/
-    function caractere_utf_8($num) {
+    protected function caractere_utf_8($num)
+    {
         $num = intval($num);
         if ($num < 128) {
             return chr($num);
@@ -776,33 +772,33 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function unicode_to_utf_8($texte) {
+    protected function unicode_to_utf_8($texte)
+    {
 
         // 1. Entites &#128; et suivantes
-        $vu = array();
+        $vu = [];
         if (preg_match_all(',&#0*([1-9][0-9][0-9]+);,S',
             $texte, $regs, PREG_SET_ORDER)) {
-                foreach ($regs as $reg) {
-                    if ($reg[1] > 127 and !isset($vu[$reg[0]])) {
-                        $vu[$reg[0]] = caractere_utf_8($reg[1]);
-                    }
+            foreach ($regs as $reg) {
+                if ($reg[1] > 127 and !isset($vu[$reg[0]])) {
+                    $vu[$reg[0]] = caractere_utf_8($reg[1]);
                 }
             }
-            //$texte = str_replace(array_keys($vu), array_values($vu), $texte);
+        }
+        //$texte = str_replace(array_keys($vu), array_values($vu), $texte);
 
-            // 2. Entites > &#xFF;
-            //$vu = array();
-            if (preg_match_all(',&#x0*([1-9a-f][0-9a-f][0-9a-f]+);,iS',
+        // 2. Entites > &#xFF;
+        //$vu = array();
+        if (preg_match_all(',&#x0*([1-9a-f][0-9a-f][0-9a-f]+);,iS',
                 $texte, $regs, PREG_SET_ORDER)) {
-                    foreach ($regs as $reg) {
-                        if (!isset($vu[$reg[0]])) {
-                            $vu[$reg[0]] = caractere_utf_8(hexdec($reg[1]));
-                        }
-                    }
+            foreach ($regs as $reg) {
+                if (!isset($vu[$reg[0]])) {
+                    $vu[$reg[0]] = caractere_utf_8(hexdec($reg[1]));
                 }
+            }
+        }
 
-                return str_replace(array_keys($vu), array_values($vu), $texte);
-
+        return str_replace(array_keys($vu), array_values($vu), $texte);
     }
 
     /**
@@ -813,8 +809,9 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function unicode_to_javascript($texte) {
-        $vu = array();
+    protected function unicode_to_javascript($texte)
+    {
+        $vu = [];
         while (preg_match(',&#0*([0-9]+);,S', $texte, $regs) and !isset($vu[$regs[1]])) {
             $num = $regs[1];
             $vu[$num] = true;
@@ -833,7 +830,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function javascript_to_unicode($texte) {
+    protected function javascript_to_unicode($texte)
+    {
         while (preg_match(",%u([0-9A-F][0-9A-F][0-9A-F][0-9A-F]),", $texte, $regs)) {
             $texte = str_replace($regs[0], "&#" . hexdec($regs[1]) . ";", $texte);
         }
@@ -849,14 +847,14 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function javascript_to_binary($texte) {
+    protected function javascript_to_binary($texte)
+    {
         while (preg_match(",%([0-9A-F][0-9A-F]),", $texte, $regs)) {
             $texte = str_replace($regs[0], chr(hexdec($regs[1])), $texte);
         }
 
         return $texte;
     }
-
 
     /**
      * Substition rapide de chaque graphème selon le charset sélectionné.
@@ -871,7 +869,8 @@ trait SpipParserTrait
      * @param string $complexe
      * @return string
      */
-    function translitteration_rapide($texte, $charset = 'AUTO', $complexe = '') {
+    protected function translitteration_rapide($texte, $charset = 'AUTO', $complexe = '')
+    {
         static $trans = [];
         if ($charset == 'AUTO') {
             $charset = $GLOBALS['meta']['charset'];
@@ -913,7 +912,8 @@ trait SpipParserTrait
      * @param string $complexe
      * @return string
      */
-    function translitteration($texte, $charset = 'AUTO', $complexe = '') {
+    protected function translitteration($texte, $charset = 'AUTO', $complexe = '')
+    {
         // 0. Supprimer les caracteres illegaux
         include_spip('inc/filtres');
         $texte = corriger_caracteres($texte);
@@ -935,13 +935,16 @@ trait SpipParserTrait
      * @param bool $chiffres
      * @return string
      */
-    function translitteration_complexe($texte, $chiffres = false) {
+    protected function translitteration_complexe($texte, $chiffres = false)
+    {
         $texte = translitteration($texte, 'AUTO', 'complexe');
 
         if ($chiffres) {
             $texte = preg_replace_callback(
                 "/[aeiuoyd]['`?~.^+(-]{1,2}/S",
-                function($m) { return translitteration_chiffree($m[0]); },
+                function ($m) {
+                    return translitteration_chiffree($m[0]);
+                },
                 $texte
             );
         }
@@ -957,10 +960,10 @@ trait SpipParserTrait
      * @param string $car
      * @return string
      */
-    function translitteration_chiffree($car) {
+    protected function translitteration_chiffree($car)
+    {
         return strtr($car, "'`?~.^+(-", "123456789");
     }
-
 
     /**
      * Reconnaitre le BOM utf-8 (0xEFBBBF)
@@ -970,7 +973,8 @@ trait SpipParserTrait
      * @return bool
      *    true s'il a un BOM
      **/
-    function bom_utf8($texte) {
+    protected function bom_utf8($texte)
+    {
         return (substr($texte, 0, 3) == chr(0xEF) . chr(0xBB) . chr(0xBF));
     }
 
@@ -987,7 +991,8 @@ trait SpipParserTrait
      * @return bool
      *     true si c'est le cas
      **/
-    function is_utf8($string) {
+    protected function is_utf8($string)
+    {
         return !strlen(
             preg_replace(
                 ',[\x09\x0A\x0D\x20-\x7E]'            # ASCII
@@ -1010,7 +1015,8 @@ trait SpipParserTrait
      * @return bool
      *     true si c'est le cas
      **/
-    function is_ascii($string) {
+    protected function is_ascii($string)
+    {
         return !strlen(
             preg_replace(
                 ',[\x09\x0A\x0D\x20-\x7E],sS',
@@ -1031,7 +1037,8 @@ trait SpipParserTrait
      * @return string
      *     Texte transcodé dans le charset du site
      **/
-    function transcoder_page($texte, $headers = '') {
+    protected function transcoder_page($texte, $headers = '')
+    {
 
         // Si tout est < 128 pas la peine d'aller plus loin
         if (is_ascii($texte)) {
@@ -1087,7 +1094,6 @@ trait SpipParserTrait
         return importer_charset($texte, $charset);
     }
 
-
     //
     // Gerer les outils mb_string
     //
@@ -1107,7 +1113,8 @@ trait SpipParserTrait
      * @return string
      *     Le texte coupé
      **/
-    function spip_substr($c, $start = 0, $length = null) {
+    protected function spip_substr($c, $start = 0, $length = null)
+    {
         // Si ce n'est pas utf-8, utiliser substr
         if ($GLOBALS['meta']['charset'] != 'utf-8') {
             if ($length) {
@@ -1130,7 +1137,6 @@ trait SpipParserTrait
         return spip_substr_manuelle($c, $start, $length);
     }
 
-
     /**
      * Coupe un texte comme mb_substr()
      *
@@ -1144,7 +1150,8 @@ trait SpipParserTrait
      * @return string
      *     Le texte coupé
      **/
-    function spip_substr_manuelle($c, $start, $length = null) {
+    protected function spip_substr_manuelle($c, $start, $length = null)
+    {
 
         // Cas pathologique
         if ($length === 0) {
@@ -1167,7 +1174,6 @@ trait SpipParserTrait
             // (un caractere utf-8 prenant au maximum n bytes)
             $n = 0;
             while (preg_match(',[\x80-\xBF]{' . (++$n) . '},', $c)) {
-                ;
             }
             $c = substr($c, 0, $n * $length);
             // puis, tant qu'on est trop long, on coupe...
@@ -1192,7 +1198,8 @@ trait SpipParserTrait
      * @return string
      *     La chaîne avec une majuscule sur le premier mot
      */
-    function spip_ucfirst($c) {
+    protected function spip_ucfirst($c)
+    {
         // Si on n'a pas mb_* ou si ce n'est pas utf-8, utiliser ucfirst
         if (!init_mb_string() or $GLOBALS['meta']['charset'] != 'utf-8') {
             return ucfirst($c);
@@ -1213,7 +1220,8 @@ trait SpipParserTrait
      * @return string
      *     La chaîne en minuscules
      */
-    function spip_strtolower($c) {
+    protected function spip_strtolower($c)
+    {
         // Si on n'a pas mb_* ou si ce n'est pas utf-8, utiliser strtolower
         if (!init_mb_string() or $GLOBALS['meta']['charset'] != 'utf-8') {
             return strtolower($c);
@@ -1232,7 +1240,8 @@ trait SpipParserTrait
      * @return int
      *     Longueur de la chaîne
      */
-    function spip_strlen($c) {
+    protected function spip_strlen($c)
+    {
         // On transforme les sauts de ligne pour ne pas compter deux caractères
         $c = str_replace("\r\n", "\n", $c);
 
@@ -1252,23 +1261,19 @@ trait SpipParserTrait
         return strlen(preg_replace(',[\x80-\xBF],S', '', $c));
     }
 
-    // Initialisation
-    $GLOBALS['CHARSET'] = array();
-
-    // noter a l'occasion dans la meta pcre_u notre capacite a utiliser le flag /u
-    // dans les preg_replace pour ne pas casser certaines lettres accentuees :
-    // en utf-8 chr(195).chr(160) = a` alors qu'en iso-latin chr(160) = nbsp
-    if (!isset($GLOBALS['meta']['pcre_u'])
-        or (isset($_GET['var_mode']) and !isset($_GET['var_profile']))
-    ) {
-        include_spip('inc/meta');
-        ecrire_meta('pcre_u',
-            $u = (lire_config('charset', _DEFAULT_CHARSET) == 'utf-8'
-                and test_pcre_unicode())
-            ? 'u' : ''
-        );
-    }
-
+    // // noter a l'occasion dans la meta pcre_u notre capacite a utiliser le flag /u
+    // // dans les preg_replace pour ne pas casser certaines lettres accentuees :
+    // // en utf-8 chr(195).chr(160) = a` alors qu'en iso-latin chr(160) = nbsp
+    // if (!isset($GLOBALS['meta']['pcre_u'])
+    //     or (isset($_GET['var_mode']) and !isset($_GET['var_profile']))
+    // ) {
+    //     incltude_spip('inc/meta');
+    //     ecrire_meta('pcre_u',
+    //         $u = (lire_config('charset', _DEFAULT_CHARSET) == 'utf-8'
+    //             and test_pcre_unicode())
+    //         ? 'u' : ''
+    //     );
+    // }
 
     /**
      * Transforme une chaîne utf-8 en utf-8 sans "planes"
@@ -1281,7 +1286,8 @@ trait SpipParserTrait
      *     La chaîne avec les caractères utf8 des hauts "planes" échappée
      *     en unicode : &#128169;
      */
-    function utf8_noplanes($x) {
+    protected function utf8_noplanes($x)
+    {
         $regexp_utf8_4bytes = '/(
       \xF0[\x90-\xBF][\x80-\xBF]{2}     # planes 1-3
    | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
@@ -1316,7 +1322,8 @@ trait SpipParserTrait
      * @param string $default Filtre par défaut
      * @return string Fonction PHP correspondante du filtre
      */
-    function charger_filtre($fonc, $default = 'filtre_identite_dist') {
+    protected function charger_filtre($fonc, $default = 'filtre_identite_dist')
+    {
         include_spip('public/parametrer'); // inclure les fichiers fonctions
         return chercher_filtre($fonc, $default);
     }
@@ -1327,7 +1334,10 @@ trait SpipParserTrait
      * @param string $texte Texte
      * @return string Texte
      **/
-    function filtre_identite_dist($texte) { return $texte; }
+    protected function filtre_identite_dist($texte)
+    {
+        return $texte;
+    }
 
     /**
      * Cherche un filtre
@@ -1361,14 +1371,14 @@ trait SpipParserTrait
 
             return $f;
         }
-        foreach (array('filtre_' . $fonc, 'filtre_' . $fonc . '_dist', $fonc) as $f) {
+        foreach (['filtre_' . $fonc, 'filtre_' . $fonc . '_dist', $fonc] as $f) {
             trouver_filtre_matrice($f); // charge des fichiers spécifiques éventuels
             // fonction ou name\space\fonction
             if (is_callable($f)) {
                 return $f;
             }
             // méthode statique d'une classe Classe::methode ou name\space\Classe::methode
-            elseif (false === strpos($f, '::') and is_callable(array($f))) {
+            elseif (false === strpos($f, '::') and is_callable([$f])) {
                 return $f;
             }
         }
@@ -1396,7 +1406,8 @@ trait SpipParserTrait
      *     Texte d'origine si le filtre est introuvable et si $force à `true`
      *     Chaîne vide sinon (filtre introuvable).
      **/
-    function appliquer_filtre($arg, $filtre, $force = null) {
+    protected function appliquer_filtre($arg, $filtre, $force = null)
+    {
         $f = chercher_filtre($filtre);
         if (!$f) {
             if (!$force) {
@@ -1425,7 +1436,8 @@ trait SpipParserTrait
      * @return string
      *     Version de SPIP
      **/
-    function spip_version() {
+    protected function spip_version()
+    {
         $version = $GLOBALS['spip_version_affichee'];
         if ($vcs_version = version_vcs_courante(_DIR_RACINE)) {
             $version .= " $vcs_version";
@@ -1443,7 +1455,8 @@ trait SpipParserTrait
      *    - array|null si $raw = true,
      *    - string|null si $raw = false
      */
-    function version_vcs_courante($dir, $raw = false) {
+    protected function version_vcs_courante($dir, $raw = false)
+    {
         $desc = decrire_version_git($dir);
         if ($desc === null) {
             $desc = decrire_version_svn($dir);
@@ -1452,7 +1465,7 @@ trait SpipParserTrait
             return $desc;
         }
         // affichage "GIT [master: abcdef]"
-        $commit = isset($desc['commit_short']) ? $desc['commit_short'] : $desc['commit'];
+        $commit = $desc['commit_short'] ?? $desc['commit'];
         if ($desc['branch']) {
             $commit = $desc['branch'] . ': ' . $commit;
         }
@@ -1467,7 +1480,8 @@ trait SpipParserTrait
      *      null si aucune info trouvée
      *      array ['branch' => xx, 'commit' => yy] sinon.
      **/
-    function decrire_version_git($dir) {
+    protected function decrire_version_git($dir)
+    {
         if (!$dir) {
             $dir = '.';
         }
@@ -1488,7 +1502,6 @@ trait SpipParserTrait
         return null;
     }
 
-
     /**
      * Retrouve un numéro de révision Svn d'un répertoire
      *
@@ -1497,7 +1510,8 @@ trait SpipParserTrait
      *      null si aucune info trouvée
      *      array ['commit' => yy, 'date' => xx, 'author' => xx] sinon.
      **/
-    function decrire_version_svn($dir) {
+    protected function decrire_version_svn($dir)
+    {
         if (!$dir) {
             $dir = '.';
         }
@@ -1534,7 +1548,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML retourné par le filtre
      **/
-    function filtrer($filtre) {
+    protected function filtrer($filtre)
+    {
         $tous = func_get_args();
         if (trouver_filtre_matrice($filtre) and substr($filtre, 0, 6) == 'image_') {
             return image_filtrer($tous);
@@ -1543,7 +1558,7 @@ trait SpipParserTrait
             return call_user_func_array($f, $tous);
         } else {
             // le filtre n'existe pas, on provoque une erreur
-            $msg = array('zbug_erreur_filtre', array('filtre' => texte_script($filtre)));
+            $msg = ['zbug_erreur_filtre', ['filtre' => texte_script($filtre)]];
             erreur_squelette($msg);
             return '';
         }
@@ -1608,14 +1623,14 @@ trait SpipParserTrait
      * @param string $filtre
      * @return bool true si on trouve le filtre dans la matrice, false sinon.
      */
-    function trouver_filtre_matrice($filtre) {
+    protected function trouver_filtre_matrice($filtre)
+    {
         if (isset($GLOBALS['spip_matrice'][$filtre]) and is_string($f = $GLOBALS['spip_matrice'][$filtre])) {
             find_in_path($f, '', true);
             $GLOBALS['spip_matrice'][$filtre] = true;
         }
         return !empty($GLOBALS['spip_matrice'][$filtre]);
     }
-
 
     /**
      * Filtre `set` qui sauve la valeur en entrée dans une variable
@@ -1640,7 +1655,8 @@ trait SpipParserTrait
      * @param bool $continue True pour retourner la valeur
      * @return mixed
      */
-    function filtre_set(&$Pile, $val, $key, $continue = null) {
+    protected function filtre_set(&$Pile, $val, $key, $continue = null)
+    {
         $Pile['vars'][$key] = $val;
         return $continue ? $val : '';
     }
@@ -1667,7 +1683,8 @@ trait SpipParserTrait
      * @param null|mixed $continue Si présent, retourne la valeur en sortie
      * @return string|mixed Retourne `$val` si `$continue` présent, sinon ''.
      */
-    function filtre_setenv(&$Pile, $val, $key, $continue = null) {
+    protected function filtre_setenv(&$Pile, $val, $key, $continue = null)
+    {
         $Pile[0][$key] = $val;
         return $continue ? $val : '';
     }
@@ -1677,11 +1694,11 @@ trait SpipParserTrait
      * @param array|string $keys
      * @return string
      */
-    function filtre_sanitize_env(&$Pile, $keys) {
+    protected function filtre_sanitize_env(&$Pile, $keys)
+    {
         $Pile[0] = spip_sanitize_from_request($Pile[0], $keys);
         return '';
     }
-
 
     /**
      * Filtre `debug` qui affiche un debug de la valeur en entrée
@@ -1701,7 +1718,8 @@ trait SpipParserTrait
      * @param mixed|null $key Clé pour s'y retrouver
      * @return mixed Retourne la valeur (sans la modifier).
      */
-    function filtre_debug($val, $key = null) {
+    protected function filtre_debug($val, $key = null)
+    {
         $debug = (
             is_null($key) ? '' : (var_export($key, true) . " = ")
         ) . var_export($val, true);
@@ -1715,7 +1733,6 @@ trait SpipParserTrait
 
         return $val;
     }
-
 
     /**
      * Exécute un filtre image
@@ -1740,7 +1757,8 @@ trait SpipParserTrait
      * @return string
      *     Texte qui a reçu les filtres
      **/
-    function image_filtrer($args) {
+    protected function image_filtrer($args)
+    {
         $filtre = array_shift($args); # enlever $filtre
         $texte = array_shift($args);
         if (!strlen($texte)) {
@@ -1818,9 +1836,9 @@ trait SpipParserTrait
      * @return array
      *     Liste (hauteur, largeur) en pixels
      **/
-    function taille_image($img) {
-
-        static $largeur_img = array(), $hauteur_img = array();
+    protected function taille_image($img)
+    {
+        static $largeur_img = [], $hauteur_img = [];
         $srcWidth = 0;
         $srcHeight = 0;
 
@@ -1852,7 +1870,6 @@ trait SpipParserTrait
             $srcHeight = $hauteur_img[$src];
         }
         if (!$srcWidth or !$srcHeight) {
-
             if (file_exists($src)
                 and $srcsize = spip_getimagesize($src)
             ) {
@@ -1878,9 +1895,8 @@ trait SpipParserTrait
             }
         }
 
-        return array($srcHeight, $srcWidth);
+        return [$srcHeight, $srcWidth];
     }
-
 
     /**
      * Retourne la largeur d'une image
@@ -1895,7 +1911,8 @@ trait SpipParserTrait
      * @return int|null
      *     Largeur en pixels, NULL ou 0 si aucune image.
      **/
-    function largeur($img) {
+    protected function largeur($img)
+    {
         if (!$img) {
             return;
         }
@@ -1917,7 +1934,8 @@ trait SpipParserTrait
      * @return int|null
      *     Hauteur en pixels, NULL ou 0 si aucune image.
      **/
-    function hauteur($img) {
+    protected function hauteur($img)
+    {
         if (!$img) {
             return;
         }
@@ -1926,23 +1944,23 @@ trait SpipParserTrait
         return $h;
     }
 
-
     /**
-     * Échappement des entités HTML avec correction des entités « brutes »
+     * Échappement des entités HTML avec correction des entités « brutes »
      *
      * Ces entités peuvent être générées par les butineurs lorsqu'on rentre des
      * caractères n'appartenant pas au charset de la page [iso-8859-1 par défaut]
      *
-     * Attention on limite cette correction aux caracteres « hauts » (en fait > 99
+     * Attention on limite cette correction aux caracteres « hauts » (en fait > 99
      * pour aller plus vite que le > 127 qui serait logique), de manière à
-     * préserver des eéhappements de caractères « bas » (par exemple `[` ou `"`)
+     * préserver des eéhappements de caractères « bas » (par exemple `[` ou `"`)
      * et au cas particulier de `&amp;` qui devient `&amp;amp;` dans les URL
      *
      * @see corriger_toutes_entites_html()
      * @param string $texte
      * @return string
      **/
-    function corriger_entites_html($texte) {
+    protected function corriger_entites_html($texte)
+    {
         if (strpos($texte, '&amp;') === false) {
             return $texte;
         }
@@ -1951,7 +1969,7 @@ trait SpipParserTrait
     }
 
     /**
-     * Échappement des entités HTML avec correction des entités « brutes » ainsi
+     * Échappement des entités HTML avec correction des entités « brutes » ainsi
      * que les `&amp;eacute;` en `&eacute;`
      *
      * Identique à `corriger_entites_html()` en corrigeant aussi les
@@ -1961,7 +1979,8 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      **/
-    function corriger_toutes_entites_html($texte) {
+    protected function corriger_toutes_entites_html($texte)
+    {
         if (strpos($texte, '&amp;') === false) {
             return $texte;
         }
@@ -1975,10 +1994,10 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      **/
-    function proteger_amp($texte) {
+    protected function proteger_amp($texte)
+    {
         return str_replace('&', '&amp;', $texte);
     }
-
 
     /**
      * Échappe en entités HTML certains caractères d'un texte
@@ -2006,7 +2025,8 @@ trait SpipParserTrait
      *   Échapper aussi les simples quotes en `&#039;`
      * @return mixed|string
      */
-    function entites_html($texte, $tout = false, $quote = true) {
+    protected function entites_html($texte, $tout = false, $quote = true)
+    {
         if (!is_string($texte) or !$texte
             or strpbrk($texte, "&\"'<>") == false
         ) {
@@ -2038,7 +2058,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function filtrer_entites($texte) {
+    protected function filtrer_entites($texte)
+    {
         if (strpos($texte, '&') === false) {
             return $texte;
         }
@@ -2049,12 +2070,11 @@ trait SpipParserTrait
         // cas particulier des " et ' qu'il faut filtrer aussi
         // (on le faisait deja avec un &quot;)
         if (strpos($texte, "&#") !== false) {
-            $texte = str_replace(array("&#039;", "&#39;", "&#034;", "&#34;"), array("'", "'", '"', '"'), $texte);
+            $texte = str_replace(["&#039;", "&#39;", "&#034;", "&#34;"], ["'", "'", '"', '"'], $texte);
         }
 
         return $texte;
     }
-
 
     /**
      * Version sécurisée de filtrer_entites
@@ -2065,11 +2085,11 @@ trait SpipParserTrait
      * @param string $t
      * @return string
      */
-    function filtre_filtrer_entites_dist($t) {
+    protected function filtre_filtrer_entites_dist($t)
+    {
         include_spip('inc/texte');
         return interdire_scripts(filtrer_entites($t));
     }
-
 
     /**
      * Supprime des caractères illégaux
@@ -2081,7 +2101,8 @@ trait SpipParserTrait
      * @param string|array $texte
      * @return string|array
      **/
-    function supprimer_caracteres_illegaux($texte) {
+    protected function supprimer_caracteres_illegaux($texte)
+    {
         static $from = "\x0\x1\x2\x3\x4\x5\x6\x7\x8\xB\xC\xE\xF\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
         static $to = null;
 
@@ -2104,7 +2125,8 @@ trait SpipParserTrait
      * @param string|array $texte
      * @return string|array
      **/
-    function corriger_caracteres($texte) {
+    protected function corriger_caracteres($texte)
+    {
         $texte = corriger_caracteres_windows($texte);
         $texte = supprimer_caracteres_illegaux($texte);
 
@@ -2124,9 +2146,9 @@ trait SpipParserTrait
      * @return string
      *     Texte encodé pour XML
      */
-    function texte_backend($texte) {
-
-        static $apostrophe = array("&#8217;", "'"); # n'allouer qu'une fois
+    protected function texte_backend($texte)
+    {
+        static $apostrophe = ["&#8217;", "'"]; # n'allouer qu'une fois
 
         // si on a des liens ou des images, les passer en absolu
         $texte = liens_absolus($texte);
@@ -2175,10 +2197,10 @@ trait SpipParserTrait
      * @return string
      *     Texte encodé et quote pour XML
      */
-    function texte_backendq($texte) {
+    protected function texte_backendq($texte)
+    {
         return addslashes(texte_backend($texte));
     }
-
 
     /**
      * Enlève un numéro préfixant un texte
@@ -2198,7 +2220,8 @@ trait SpipParserTrait
      * @return int|string
      *     Numéro de titre, sinon chaîne vide
      **/
-    function supprimer_numero($texte) {
+    protected function supprimer_numero($texte)
+    {
         return preg_replace(
             ",^[[:space:]]*([0-9]+)([.)]|" . chr(194) . '?' . chr(176) . ")[[:space:]]+,S",
             "", $texte);
@@ -2223,7 +2246,8 @@ trait SpipParserTrait
      * @return int|string
      *     Numéro de titre, sinon chaîne vide
      **/
-    function recuperer_numero($texte) {
+    protected function recuperer_numero($texte)
+    {
         if (preg_match(
             ",^[[:space:]]*([0-9]+)([.)]|" . chr(194) . '?' . chr(176) . ")[[:space:]]+,S",
         $texte, $regs)) {
@@ -2256,7 +2280,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function supprimer_tags($texte, $rempl = "") {
+    protected function supprimer_tags($texte, $rempl = "")
+    {
         $texte = preg_replace(",<(!--|\w|/|!\[endif|!\[if)[^>]*>,US", $rempl, $texte);
         // ne pas oublier un < final non ferme car coupe
         $texte = preg_replace(",<(!--|\w|/).*$,US", $rempl, $texte);
@@ -2285,7 +2310,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function echapper_tags($texte, $rempl = "") {
+    protected function echapper_tags($texte, $rempl = "")
+    {
         $texte = preg_replace("/<([^>]*)>/", "&lt;\\1&gt;", $texte);
 
         return $texte;
@@ -2308,7 +2334,8 @@ trait SpipParserTrait
      * @return string
      *     Texte converti
      **/
-    function textebrut($texte) {
+    protected function textebrut($texte)
+    {
         $u = $GLOBALS['meta']['pcre_u'];
         $texte = preg_replace('/\s+/S' . $u, " ", $texte);
         $texte = preg_replace("/<(p|br)( [^>]*)?" . ">/iS", "\n\n", $texte);
@@ -2323,7 +2350,6 @@ trait SpipParserTrait
         return $texte;
     }
 
-
     /**
      * Remplace les liens SPIP en liens ouvrant dans une nouvelle fenetre (target=blank)
      *
@@ -2335,7 +2361,8 @@ trait SpipParserTrait
      * @return string
      *     Texte avec liens ouvrants
      **/
-    function liens_ouvrants($texte) {
+    protected function liens_ouvrants($texte)
+    {
         if (preg_match_all(",(<a\s+[^>]*https?://[^>]*class=[\"']spip_(out|url)\b[^>]+>),imsS",
         $texte, $liens, PREG_PATTERN_ORDER)) {
             foreach ($liens[0] as $a) {
@@ -2355,7 +2382,8 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      */
-    function liens_nofollow($texte) {
+    protected function liens_nofollow($texte)
+    {
         if (stripos($texte, "<a") === false) {
             return $texte;
         }
@@ -2389,7 +2417,8 @@ trait SpipParserTrait
      * @return string
      *     Texte sans paraghaphes
      **/
-    function PtoBR($texte) {
+    protected function PtoBR($texte)
+    {
         $u = $GLOBALS['meta']['pcre_u'];
         $texte = preg_replace("@</p>@iS", "\n", $texte);
         $texte = preg_replace("@<p\b.*>@UiS", "<br />", $texte);
@@ -2397,7 +2426,6 @@ trait SpipParserTrait
 
         return $texte;
     }
-
 
     /**
      * Assure qu'un texte ne vas pas déborder d'un bloc
@@ -2418,7 +2446,8 @@ trait SpipParserTrait
      * @param string $texte Texte
      * @return string Texte encadré du style CSS
      */
-    function lignes_longues($texte) {
+    protected function lignes_longues($texte)
+    {
         if (!strlen(trim($texte))) {
             return $texte;
         }
@@ -2444,7 +2473,8 @@ trait SpipParserTrait
      * @param string $texte Texte
      * @return string Texte en majuscule
      */
-    function majuscules($texte) {
+    protected function majuscules($texte)
+    {
         if (!strlen($texte)) {
             return '';
         }
@@ -2485,9 +2515,10 @@ trait SpipParserTrait
      * @param int $taille
      * @return string
      **/
-    function taille_en_octets($taille) {
+    protected function taille_en_octets($taille)
+    {
         if (!defined('_KILOBYTE')) {
-            /**
+            /*
              * Définit le nombre d'octets dans un Kilobyte
              *
              * @var int
@@ -2499,18 +2530,17 @@ trait SpipParserTrait
             return '';
         }
         if ($taille < _KILOBYTE) {
-            $taille = _T('taille_octets', array('taille' => $taille));
+            $taille = _T('taille_octets', ['taille' => $taille]);
         } elseif ($taille < _KILOBYTE * _KILOBYTE) {
-            $taille = _T('taille_ko', array('taille' => round($taille / _KILOBYTE, 1)));
+            $taille = _T('taille_ko', ['taille' => round($taille / _KILOBYTE, 1)]);
         } elseif ($taille < _KILOBYTE * _KILOBYTE * _KILOBYTE) {
-            $taille = _T('taille_mo', array('taille' => round($taille / _KILOBYTE / _KILOBYTE, 1)));
+            $taille = _T('taille_mo', ['taille' => round($taille / _KILOBYTE / _KILOBYTE, 1)]);
         } else {
-            $taille = _T('taille_go', array('taille' => round($taille / _KILOBYTE / _KILOBYTE / _KILOBYTE, 2)));
+            $taille = _T('taille_go', ['taille' => round($taille / _KILOBYTE / _KILOBYTE / _KILOBYTE, 2)]);
         }
 
         return $taille;
     }
-
 
     /**
      * Rend une chaine utilisable sans dommage comme attribut HTML
@@ -2529,7 +2559,8 @@ trait SpipParserTrait
      * @return string
      *     Texte prêt pour être utilisé en attribut HTML
      **/
-    function attribut_html($texte, $textebrut = true) {
+    protected function attribut_html($texte, $textebrut = true)
+    {
         $u = $GLOBALS['meta']['pcre_u'];
         if ($textebrut) {
             $texte = preg_replace(array(",\n,", ",\s(?=\s),msS" . $u), array(" ", ""), textebrut($texte));
@@ -2537,10 +2568,9 @@ trait SpipParserTrait
         $texte = texte_backend($texte);
         $texte = str_replace(array("'", '"'), array('&#039;', '&#034;'), $texte);
 
-        return preg_replace(array("/&(amp;|#38;)/", "/&(?![A-Za-z]{0,4}\w{2,3};|#[0-9]{2,5};)/"), array("&", "&#38;"),
+        return preg_replace(["/&(amp;|#38;)/", "/&(?![A-Za-z]{0,4}\w{2,3};|#[0-9]{2,5};)/"], ["&", "&#38;"],
             $texte);
     }
-
 
     /**
      * Vider les URL nulles
@@ -2557,7 +2587,8 @@ trait SpipParserTrait
      * @return string
      *     URL ou chaîne vide
      **/
-    function vider_url($url, $entites = true) {
+    protected function vider_url($url, $entites = true)
+    {
         # un message pour abs_url
         $GLOBALS['mode_abs_url'] = 'url';
         $url = trim($url);
@@ -2565,7 +2596,6 @@ trait SpipParserTrait
 
         return preg_match($r, $url) ? '' : ($entites ? entites_html($url) : $url);
     }
-
 
     /**
      * Maquiller une adresse e-mail
@@ -2577,7 +2607,8 @@ trait SpipParserTrait
      * @param string $texte Adresse email
      * @return string Adresse email maquillée
      **/
-    function antispam($texte) {
+    protected function antispam($texte)
+    {
         include_spip('inc/acces');
         $masque = creer_pass_aleatoire(3);
 
@@ -2612,7 +2643,8 @@ trait SpipParserTrait
      * @return bool
      *     True si on a le droit d'accès, false sinon.
      **/
-    function securiser_acces($id_auteur, $cle, $dir, $op = '', $args = '') {
+    protected function securiser_acces($id_auteur, $cle, $dir, $op = '', $args = '')
+    {
         include_spip('inc/acces');
         if ($op) {
             $dir .= " $op $args";
@@ -2642,7 +2674,8 @@ trait SpipParserTrait
      * @return mixed
      *     Retourne $texte, sinon $sinon.
      **/
-    function sinon($texte, $sinon = '') {
+    protected function sinon($texte, $sinon = '')
+    {
         if ($texte or (!is_array($texte) and strlen($texte))) {
             return $texte;
         } else {
@@ -2670,7 +2703,8 @@ trait SpipParserTrait
      *     Ce qui est retourné sinon
      * @return mixed
      **/
-    function choixsivide($a, $vide, $pasvide) {
+    protected function choixsivide($a, $vide, $pasvide)
+    {
         return $a ? $pasvide : $vide;
     }
 
@@ -2694,7 +2728,8 @@ trait SpipParserTrait
      *     Ce qui est retourné sinon
      * @return mixed
      **/
-    function choixsiegal($a1, $a2, $v, $f) {
+    protected function choixsiegal($a1, $a2, $v, $f)
+    {
         return ($a1 == $a2) ? $v : $f;
     }
 
@@ -2713,7 +2748,8 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      **/
-    function filtrer_ical($texte) {
+    protected function filtrer_ical($texte)
+    {
         #include_spip('inc/charsets');
         $texte = html2unicode($texte);
         $texte = unicode2charset(charset2unicode($texte, $GLOBALS['meta']['charset'], 1), 'utf-8');
@@ -2722,7 +2758,6 @@ trait SpipParserTrait
 
         return $texte;
     }
-
 
     /**
      * Transforme les sauts de ligne simples en sauts forcés avec `_ `
@@ -2744,7 +2779,8 @@ trait SpipParserTrait
      *      Ce par quoi sont remplacés les sauts
      * @return string
      **/
-    function post_autobr($texte, $delim = "\n_ ") {
+    protected function post_autobr($texte, $delim = "\n_ ")
+    {
         if (!function_exists('echappe_html')) {
             include_spip('inc/texte_mini');
         }
@@ -2794,7 +2830,6 @@ trait SpipParserTrait
         return $texte . $fin;
     }
 
-
     /**
      * Expression régulière pour obtenir le contenu des extraits idiomes `<:module:cle:>`
      *
@@ -2831,7 +2866,8 @@ trait SpipParserTrait
      * }
      * @return string
      **/
-    function extraire_idiome($letexte, $lang = null, $options = array()) {
+    protected function extraire_idiome($letexte, $lang = null, $options = [])
+    {
         static $traduire = false;
         if ($letexte
             and preg_match_all(_EXTRAIRE_IDIOME, $letexte, $regs, PREG_SET_ORDER)
@@ -2845,10 +2881,10 @@ trait SpipParserTrait
             }
             // Compatibilité avec le prototype de fonction précédente qui utilisait un boolean
             if (is_bool($options)) {
-                $options = array('echappe_span' => $options);
+                $options = ['echappe_span' => $options];
             }
             if (!isset($options['echappe_span'])) {
-                $options = array_merge($options, array('echappe_span' => false));
+                $options = array_merge($options, ['echappe_span' => false]);
             }
 
             foreach ($regs as $reg) {
@@ -2921,8 +2957,8 @@ trait SpipParserTrait
      * }
      * @return string
      **/
-    function extraire_multi($letexte, $lang = null, $options = array()) {
-
+    protected function extraire_multi($letexte, $lang = null, $options = [])
+    {
         if ($letexte
             and preg_match_all(_EXTRAIRE_MULTI, $letexte, $regs, PREG_SET_ORDER)
         ) {
@@ -2935,7 +2971,7 @@ trait SpipParserTrait
                 $options = array('echappe_span' => $options, 'lang_defaut' => _LANGUE_PAR_DEFAUT);
             }
             if (!isset($options['echappe_span'])) {
-                $options = array_merge($options, array('echappe_span' => false));
+                $options = array_merge($options, ['echappe_span' => false]);
             }
             if (!isset($options['lang_defaut'])) {
                 $options = array_merge($options, array('lang_defaut' => _LANGUE_PAR_DEFAUT));
@@ -2995,7 +3031,8 @@ trait SpipParserTrait
      * @return array [code de langue => texte]
      *     Peut retourner un code de langue vide, lorsqu'un texte par défaut est indiqué.
      **/
-    function extraire_trads($bloc) {
+    protected function extraire_trads($bloc)
+    {
         $lang = '';
         // ce reg fait planter l'analyse multi s'il y a de l'{italique} dans le champ
         //	while (preg_match("/^(.*?)[{\[]([a-z_]+)[}\]]/siS", $bloc, $regs)) {
@@ -3012,17 +3049,16 @@ trait SpipParserTrait
         return $trads;
     }
 
-
     /**
      * Calculer l'initiale d'un nom
      *
      * @param string $nom
      * @return string L'initiale en majuscule
      */
-    function filtre_initiale($nom) {
+    protected function filtre_initiale($nom)
+    {
         return spip_substr(trim(strtoupper(extraire_multi($nom))), 0, 1);
     }
-
 
     /**
      * Retourne la donnée si c'est la première fois qu'il la voit
@@ -3064,13 +3100,14 @@ trait SpipParserTrait
      *      - array (interne) : si on dépile
      *      - null (interne) : si on empile
      **/
-    function unique($donnee, $famille = '', $cpt = false) {
-        static $mem = array();
+    protected function unique($donnee, $famille = '', $cpt = false)
+    {
+        static $mem = [];
         // permettre de vider la pile et de la restaurer
         // pour le calcul de introduction...
         if ($famille == '_spip_raz_') {
             $tmp = $mem;
-            $mem = array();
+            $mem = [];
 
             return $tmp;
         } elseif ($famille == '_spip_set_') {
@@ -3080,7 +3117,7 @@ trait SpipParserTrait
         }
         // eviter une notice
         if (!isset($mem[$famille])) {
-            $mem[$famille] = array();
+            $mem[$famille] = [];
         }
         if ($cpt) {
             return count($mem[$famille]);
@@ -3093,7 +3130,6 @@ trait SpipParserTrait
             return $donnee;
         }
     }
-
 
     /**
      * Filtre qui alterne des valeurs en fonction d'un compteur
@@ -3118,7 +3154,8 @@ trait SpipParserTrait
      * @return mixed
      *     Une des valeurs en fonction du compteur.
      **/
-    function alterner($i) {
+    protected function alterner($i)
+    {
         // recuperer les arguments (attention fonctions un peu space)
         $num = func_num_args();
         $args = func_get_args();
@@ -3132,7 +3169,6 @@ trait SpipParserTrait
         // renvoyer le i-ieme argument, modulo le nombre d'arguments
         return $args[(intval($i) - 1) % ($num - 1) + 1];
     }
-
 
     /**
      * Récupérer un attribut d'une balise HTML
@@ -3154,7 +3190,8 @@ trait SpipParserTrait
      *       (si 1er argument tableau)
      *     - Tableau complet (si 2e argument)
      **/
-    function extraire_attribut($balise, $attribut, $complet = false) {
+    protected function extraire_attribut($balise, $attribut, $complet = false)
+    {
         if (is_array($balise)) {
             array_walk(
                 $balise,
@@ -3183,7 +3220,7 @@ trait SpipParserTrait
             }
             $att = $r[4];
             if (strpos($att, "&#") !== false) {
-                $att = str_replace(array("&#039;", "&#39;", "&#034;", "&#34;"), array("'", "'", '"', '"'), $att);
+                $att = str_replace(["&#039;", "&#39;", "&#034;", "&#34;"], ["'", "'", '"', '"'], $att);
             }
             $att = filtrer_entites($att);
         } else {
@@ -3191,7 +3228,7 @@ trait SpipParserTrait
         }
 
         if ($complet) {
-            return array($att, $r);
+            return [$att, $r];
         } else {
             return $att;
         }
@@ -3225,7 +3262,8 @@ trait SpipParserTrait
      * @return string
      *     Code html modifié
      **/
-    function inserer_attribut($balise, $attribut, $val, $proteger = true, $vider = false) {
+    protected function inserer_attribut($balise, $attribut, $val, $proteger = true, $vider = false)
+    {
         // preparer l'attribut
         // supprimer les &nbsp; etc mais pas les balises html
         // qui ont un sens dans un attribut value d'un input
@@ -3273,10 +3311,10 @@ trait SpipParserTrait
      * @param string $attribut Nom de l'attribut à enlever
      * @return string Code HTML sans l'attribut
      **/
-    function vider_attribut($balise, $attribut) {
+    protected function vider_attribut($balise, $attribut)
+    {
         return inserer_attribut($balise, $attribut, '', false, true);
     }
-
 
     /**
      * Un filtre pour déterminer le nom du statut des inscrits
@@ -3285,7 +3323,8 @@ trait SpipParserTrait
      * @param string $mode
      * @return string
      */
-    function tester_config($id, $mode = '') {
+    protected function tester_config($id, $mode = '')
+    {
         include_spip('action/inscrire_auteur');
 
         return tester_statut_inscription($mode, $id);
@@ -3294,8 +3333,14 @@ trait SpipParserTrait
     //
     // Quelques fonctions de calcul arithmetique
     //
-    function floatstr($a) { return str_replace(',','.',(string)floatval($a)); }
-    function strize($f, $a, $b) { return floatstr($f(floatstr($a),floatstr($b))); }
+    protected function floatstr($a)
+    {
+        return str_replace(',', '.', (string) floatval($a));
+    }
+    protected function strize($f, $a, $b)
+    {
+        return floatstr($f(floatstr($a), floatstr($b)));
+    }
 
     /**
      * Additionne 2 nombres
@@ -3312,10 +3357,14 @@ trait SpipParserTrait
      * @param int $b
      * @return int $a+$b
      **/
-    function plus($a, $b) {
+    protected function plus($a, $b)
+    {
         return $a + $b;
     }
-    function strplus($a, $b) {return strize('plus', $a, $b);}
+    protected function strplus($a, $b)
+    {
+        return strize('plus', $a, $b);
+    }
     /**
      * Soustrait 2 nombres
      *
@@ -3331,10 +3380,14 @@ trait SpipParserTrait
      * @param int $b
      * @return int $a-$b
      **/
-    function moins($a, $b) {
+    protected function moins($a, $b)
+    {
         return $a - $b;
     }
-    function strmoins($a, $b) {return strize('moins', $a, $b);}
+    protected function strmoins($a, $b)
+    {
+        return strize('moins', $a, $b);
+    }
 
     /**
      * Multiplie 2 nombres
@@ -3352,10 +3405,14 @@ trait SpipParserTrait
      * @param int $b
      * @return int $a*$b
      **/
-    function mult($a, $b) {
+    protected function mult($a, $b)
+    {
         return $a * $b;
     }
-    function strmult($a, $b) {return strize('mult', $a, $b);}
+    protected function strmult($a, $b)
+    {
+        return strize('mult', $a, $b);
+    }
 
     /**
      * Divise 2 nombres
@@ -3373,10 +3430,14 @@ trait SpipParserTrait
      * @param int $b
      * @return int $a/$b (ou 0 si $b est nul)
      **/
-    function div($a, $b) {
+    protected function div($a, $b)
+    {
         return $b ? $a / $b : 0;
     }
-    function strdiv($a, $b) {return strize('div', $a, $b);}
+    protected function strdiv($a, $b)
+    {
+        return strize('div', $a, $b);
+    }
 
     /**
      * Retourne le modulo 2 nombres
@@ -3395,10 +3456,10 @@ trait SpipParserTrait
      * @param int $add
      * @return int ($nb % $mod) + $add
      **/
-    function modulo($nb, $mod, $add = 0) {
+    protected function modulo($nb, $mod, $add = 0)
+    {
         return ($mod ? $nb % $mod : 0) + $add;
     }
-
 
     /**
      * Vérifie qu'un nom (d'auteur) ne comporte pas d'autres tags que <multi>
@@ -3410,7 +3471,8 @@ trait SpipParserTrait
      *      - false si pas conforme,
      *      - true sinon
      **/
-    function nom_acceptable($nom) {
+    protected function nom_acceptable($nom)
+    {
         if (!is_string($nom)) {
             return false;
         }
@@ -3431,7 +3493,6 @@ trait SpipParserTrait
         return str_replace('&lt;', '<', $v_nom) == $nom;
     }
 
-
     /**
      * Vérifier la conformité d'une ou plusieurs adresses email (suivant RFC 822)
      *
@@ -3441,7 +3502,8 @@ trait SpipParserTrait
      *      - false si pas conforme,
      *      - la normalisation de la dernière adresse donnée sinon
      **/
-    function email_valide($adresses) {
+    protected function email_valide($adresses)
+    {
         // eviter d'injecter n'importe quoi dans preg_match
         if (!is_string($adresses)) {
             return false;
@@ -3477,8 +3539,9 @@ trait SpipParserTrait
      * @param string $tags Texte
      * @return string Texte
      **/
-    function afficher_enclosures($tags) {
-        $s = array();
+    protected function afficher_enclosures($tags)
+    {
+        $s = [];
         foreach (extraire_balises($tags, 'a') as $tag) {
             if (extraire_attribut($tag, 'rel') == 'enclosure'
                 and $t = extraire_attribut($tag, 'href')
@@ -3505,8 +3568,9 @@ trait SpipParserTrait
      * @param string $rels Attribut `rel` à capturer (ou plusieurs séparés par des virgules)
      * @return string Liens trouvés
      **/
-    function afficher_tags($tags, $rels = 'tag,directory') {
-        $s = array();
+    protected function afficher_tags($tags, $rels = 'tag,directory')
+    {
+        $s = [];
         foreach (extraire_balises($tags, 'a') as $tag) {
             $rel = extraire_attribut($tag, 'rel');
             if (strstr(",$rels,", ",$rel,")) {
@@ -3516,7 +3580,6 @@ trait SpipParserTrait
 
         return join(', ', $s);
     }
-
 
     /**
      * Convertir les médias fournis par un flux RSS (podcasts)
@@ -3535,7 +3598,8 @@ trait SpipParserTrait
      * @param string $e Tag RSS `<enclosure>`
      * @return string Tag HTML `<a>` avec microformat.
      **/
-    function enclosure2microformat($e) {
+    protected function enclosure2microformat($e)
+    {
         if (!$url = filtrer_entites(extraire_attribut($e, 'url'))) {
             $url = filtrer_entites(extraire_attribut($e, 'href'));
         }
@@ -3567,8 +3631,9 @@ trait SpipParserTrait
      * @param string $tags Texte HTML ayant des tag `<a>` avec microformat
      * @return string Tags RSS `<enclosure>`.
      **/
-    function microformat2enclosure($tags) {
-        $enclosures = array();
+    protected function microformat2enclosure($tags)
+    {
+        $enclosures = [];
         foreach (extraire_balises($tags, 'a') as $e) {
             if (extraire_attribut($e, 'rel') == 'enclosure') {
                 $url = filtrer_entites(extraire_attribut($e, 'href'));
@@ -3588,7 +3653,6 @@ trait SpipParserTrait
         return join("\n", $enclosures);
     }
 
-
     /**
      * Créer les éléments ATOM `<dc:subject>` à partir des tags
      *
@@ -3600,7 +3664,8 @@ trait SpipParserTrait
      * @param string $tags Texte
      * @return string Tags RSS Atom `<dc:subject>`.
      **/
-    function tags2dcsubject($tags) {
+    protected function tags2dcsubject($tags)
+    {
         $subjects = '';
         foreach (extraire_balises($tags, 'a') as $e) {
             if (extraire_attribut($e, rel) == 'tag') {
@@ -3638,11 +3703,12 @@ trait SpipParserTrait
      *     - Code html de la balise, sinon rien
      *     - Tableau de résultats, si tableau en entrée.
      **/
-    function extraire_balise($texte, $tag = 'a') {
+    protected function extraire_balise($texte, $tag = 'a')
+    {
         if (is_array($texte)) {
             array_walk(
                 $texte,
-                function(&$a, $key, $t){
+                function (&$a, $key, $t): void {
                     $a = extraire_balise($a, $t);
                 },
                 $tag
@@ -3682,11 +3748,12 @@ trait SpipParserTrait
      *     - Liste des codes html des occurrences de la balise, sinon tableau vide
      *     - Tableau de résultats, si tableau en entrée.
      **/
-    function extraire_balises($texte, $tag = 'a') {
+    protected function extraire_balises($texte, $tag = 'a')
+    {
         if (is_array($texte)) {
             array_walk(
                 $texte,
-                function(&$a, $key, $t){
+                function (&$a, $key, $t): void {
                     $a = extraire_balises($a, $t);
                 },
                 $tag
@@ -3700,7 +3767,7 @@ trait SpipParserTrait
         $texte, $regs, PREG_PATTERN_ORDER)) {
             return $regs[0];
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -3729,14 +3796,14 @@ trait SpipParserTrait
      *     - '' si la valeur n'est pas dans le tableau
      *     - `$def` si on n'a pas transmis de tableau
      **/
-    function in_any($val, $vals, $def = '') {
+    protected function in_any($val, $vals, $def = '')
+    {
         if (!is_array($vals) and $v = unserialize($vals)) {
             $vals = $v;
         }
 
         return (!is_array($vals) ? $def : (in_array($val, $vals) ? ' ' : ''));
     }
-
 
     /**
      * Retourne le résultat d'une expression mathématique simple
@@ -3754,7 +3821,8 @@ trait SpipParserTrait
      * @return int
      *     Résultat du calcul
      **/
-    function valeur_numerique($expr) {
+    protected function valeur_numerique($expr)
+    {
         $a = 0;
         if (preg_match(',^[0-9]+(\s*[+*-]\s*[0-9]+)*$,S', trim($expr))) {
             eval("\$a = $expr;");
@@ -3778,10 +3846,10 @@ trait SpipParserTrait
      * @return int
      *      Retourne `$a*$b/$c`
      **/
-    function regledetrois($a, $b, $c) {
+    protected function regledetrois($a, $b, $c)
+    {
         return round($a * $b / $c);
     }
-
 
     /**
      * Crée des tags HTML input hidden pour chaque paramètre et valeur d'une URL
@@ -3801,68 +3869,68 @@ trait SpipParserTrait
      * @param string $action URL
      * @return string Suite de champs input hidden
      **/
-    function form_hidden($action) {
-
-        $contexte = array();
+    protected function form_hidden($action)
+    {
+        $contexte = [];
         include_spip('inc/urls');
         if ($p = urls_decoder_url($action, '')
             and reset($p)
             ) {
-                $fond = array_shift($p);
-                if ($fond != '404') {
-                    $contexte = array_shift($p);
-                    $contexte['page'] = $fond;
-                    $action = preg_replace('/([?]' . preg_quote($fond) . '[^&=]*[0-9]+)(&|$)/', '?&', $action);
-                }
+            $fond = array_shift($p);
+            if ($fond != '404') {
+                $contexte = array_shift($p);
+                $contexte['page'] = $fond;
+                $action = preg_replace('/([?]' . preg_quote($fond) . '[^&=]*[0-9]+)(&|$)/', '?&', $action);
             }
-            // defaire ce qu'a injecte urls_decoder_url : a revoir en modifiant la signature de urls_decoder_url
-            if (defined('_DEFINIR_CONTEXTE_TYPE') and _DEFINIR_CONTEXTE_TYPE) {
-                unset($contexte['type']);
-            }
-            if (defined('_DEFINIR_CONTEXTE_TYPE_PAGE') and _DEFINIR_CONTEXTE_TYPE_PAGE) {
-                unset($contexte['type-page']);
-            }
+        }
+        // defaire ce qu'a injecte urls_decoder_url : a revoir en modifiant la signature de urls_decoder_url
+        if (defined('_DEFINIR_CONTEXTE_TYPE') and _DEFINIR_CONTEXTE_TYPE) {
+            unset($contexte['type']);
+        }
+        if (defined('_DEFINIR_CONTEXTE_TYPE_PAGE') and _DEFINIR_CONTEXTE_TYPE_PAGE) {
+            unset($contexte['type-page']);
+        }
 
-            // on va remplir un tableau de valeurs en prenant bien soin de ne pas
-            // ecraser les elements de la forme mots[]=1&mots[]=2
-            $values = array();
+        // on va remplir un tableau de valeurs en prenant bien soin de ne pas
+        // ecraser les elements de la forme mots[]=1&mots[]=2
+        $values = [];
 
-            // d'abord avec celles de l'url
-            if (false !== ($p = strpos($action, '?'))) {
-                foreach (preg_split('/&(amp;)?/S', substr($action, $p + 1)) as $c) {
-                    $c = explode('=', $c, 2);
-                    $var = array_shift($c);
-                    $val = array_shift($c);
-                    if ($var) {
-                        $val = rawurldecode($val);
-                        $var = rawurldecode($var); // decoder les [] eventuels
-                        if (preg_match(',\[\]$,S', $var)) {
-                            $values[] = array($var, $val);
-                        } else {
-                            if (!isset($values[$var])) {
-                                $values[$var] = array($var, $val);
-                            }
+        // d'abord avec celles de l'url
+        if (false !== ($p = strpos($action, '?'))) {
+            foreach (preg_split('/&(amp;)?/S', substr($action, $p + 1)) as $c) {
+                $c = explode('=', $c, 2);
+                $var = array_shift($c);
+                $val = array_shift($c);
+                if ($var) {
+                    $val = rawurldecode($val);
+                    $var = rawurldecode($var); // decoder les [] eventuels
+                    if (preg_match(',\[\]$,S', $var)) {
+                        $values[] = [$var, $val];
+                    } else {
+                        if (!isset($values[$var])) {
+                            $values[$var] = [$var, $val];
                         }
                     }
                 }
             }
+        }
 
-            // ensuite avec celles du contexte, sans doublonner !
-            foreach ($contexte as $var => $val) {
-                if (preg_match(',\[\]$,S', $var)) {
-                    $values[] = array($var, $val);
-                } else {
-                    if (!isset($values[$var])) {
-                        $values[$var] = array($var, $val);
-                    }
+        // ensuite avec celles du contexte, sans doublonner !
+        foreach ($contexte as $var => $val) {
+            if (preg_match(',\[\]$,S', $var)) {
+                $values[] = [$var, $val];
+            } else {
+                if (!isset($values[$var])) {
+                    $values[$var] = [$var, $val];
                 }
             }
+        }
 
-            // puis on rassemble le tout
-            $hidden = array();
-            foreach ($values as $value) {
-                list($var, $val) = $value;
-                $hidden[] = '<input name="'
+        // puis on rassemble le tout
+        $hidden = [];
+        foreach ($values as $value) {
+            list($var, $val) = $value;
+            $hidden[] = '<input name="'
                     . entites_html($var)
                     . '"'
                         . (is_null($val)
@@ -3870,9 +3938,9 @@ trait SpipParserTrait
                             : ' value="' . entites_html($val) . '"'
                             )
                             . ' type="hidden"' . "\n/>";
-            }
+        }
 
-            return join("", $hidden);
+        return join("", $hidden);
     }
 
     /**
@@ -3889,18 +3957,18 @@ trait SpipParserTrait
      * @return int[]
      *     Liste (première page, dernière page).
      **/
-    function filtre_bornes_pagination_dist($courante, $nombre, $max = 10) {
+    protected function filtre_bornes_pagination_dist($courante, $nombre, $max = 10)
+    {
         if ($max <= 0 or $max >= $nombre) {
-            return array(1, $nombre);
+            return [1, $nombre];
         }
 
         $premiere = max(1, $courante - floor(($max - 1) / 2));
         $derniere = min($nombre, $premiere + $max - 2);
         $premiere = $derniere == $nombre ? $derniere - $max + 1 : $premiere;
 
-        return array($premiere, $derniere);
+        return [$premiere, $derniere];
     }
-
 
     /**
      * Retourne la première valeur d'un tableau
@@ -3919,7 +3987,8 @@ trait SpipParserTrait
      *    - false si le tableau est vide
      *    - la première valeur du tableau sinon.
      **/
-    function filtre_reset($array) {
+    protected function filtre_reset($array)
+    {
         return !is_array($array) ? null : reset($array);
     }
 
@@ -3940,7 +4009,8 @@ trait SpipParserTrait
      *    - false si le tableau est vide
      *    - la dernière valeur du tableau sinon.
      **/
-    function filtre_end($array) {
+    protected function filtre_end($array)
+    {
         return !is_array($array) ? null : end($array);
     }
 
@@ -3960,7 +4030,8 @@ trait SpipParserTrait
      *     - le tableau complété de la valeur sinon.
      *
      **/
-    function filtre_push($array, $val) {
+    protected function filtre_push($array, $val)
+    {
         if (!is_array($array) or !array_push($array, $val)) {
             return '';
         }
@@ -3983,10 +4054,10 @@ trait SpipParserTrait
      *     - `false` si `$array` n'est pas un tableau
      *     - `true` si la valeur existe dans le tableau, `false` sinon.
      **/
-    function filtre_find($array, $val) {
+    protected function filtre_find($array, $val)
+    {
         return (is_array($array) and in_array($val, $array));
     }
-
 
     /**
      * Filtre calculant une pagination, utilisé par la balise `#PAGINATION`
@@ -4018,7 +4089,7 @@ trait SpipParserTrait
      * @return string
      *     Code HTML de la pagination
      **/
-    function filtre_pagination_dist(
+    protected function filtre_pagination_dist(
         $total,
         $nom,
         $position,
@@ -4026,28 +4097,28 @@ trait SpipParserTrait
         $liste = true,
         $modele = '',
         $connect = '',
-        $env = array()
+        $env = []
         ) {
-            static $ancres = array();
-            if ($pas < 1) {
-                return '';
-            }
-            $ancre = 'pagination' . $nom; // #pagination_articles
+        static $ancres = [];
+        if ($pas < 1) {
+            return '';
+        }
+        $ancre = 'pagination' . $nom; // #pagination_articles
             $debut = 'debut' . $nom; // 'debut_articles'
 
             // n'afficher l'ancre qu'une fois
-            if (!isset($ancres[$ancre])) {
-                $bloc_ancre = $ancres[$ancre] = "<a name='" . $ancre . "' id='" . $ancre . "'></a>";
-            } else {
-                $bloc_ancre = '';
-            }
-            // liste = false : on ne veut que l'ancre
-            if (!$liste) {
-                return $ancres[$ancre];
-            }
+        if (!isset($ancres[$ancre])) {
+            $bloc_ancre = $ancres[$ancre] = "<a name='" . $ancre . "' id='" . $ancre . "'></a>";
+        } else {
+            $bloc_ancre = '';
+        }
+        // liste = false : on ne veut que l'ancre
+        if (!$liste) {
+            return $ancres[$ancre];
+        }
 
-            $self = (empty($env['self']) ? self() : $env['self']);
-            $pagination = array(
+        $self = (empty($env['self']) ? self() : $env['self']);
+        $pagination = [
                 'debut' => $debut,
                 'url' => parametre_url($self, 'fragment', ''), // nettoyer l'id ahah eventuel
                 'total' => $total,
@@ -4056,24 +4127,23 @@ trait SpipParserTrait
                 'nombre_pages' => floor(($total - 1) / $pas) + 1,
                 'page_courante' => floor(intval($position) / $pas) + 1,
                 'ancre' => $ancre,
-                'bloc_ancre' => $bloc_ancre
-            );
-            if (is_array($env)) {
-                $pagination = array_merge($env, $pagination);
-            }
+                'bloc_ancre' => $bloc_ancre,
+            ];
+        if (is_array($env)) {
+            $pagination = array_merge($env, $pagination);
+        }
 
-            // Pas de pagination
-            if ($pagination['nombre_pages'] <= 1) {
-                return '';
-            }
+        // Pas de pagination
+        if ($pagination['nombre_pages'] <= 1) {
+            return '';
+        }
 
-            if ($modele) {
-                $modele = '_' . $modele;
-            }
+        if ($modele) {
+            $modele = '_' . $modele;
+        }
 
-            return recuperer_fond("modeles/pagination$modele", $pagination, array('trim' => true), $connect);
+        return recuperer_fond("modeles/pagination$modele", $pagination, ['trim' => true], $connect);
     }
-
 
     /**
      * Passer les url relatives à la css d'origine en url absolues
@@ -4087,18 +4157,18 @@ trait SpipParserTrait
      * @return string
      *     Contenu avec urls en absolus
      **/
-    function urls_absolues_css($contenu, $source) {
+    protected function urls_absolues_css($contenu, $source)
+    {
         $path = suivre_lien(url_absolue($source), './');
 
         return preg_replace_callback(
             ",url\s*\(\s*['\"]?([^'\"/#\s][^:]*)['\"]?\s*\),Uims",
-            function($x) use ($path) {
+            function ($x) use ($path) {
                 return "url('" . suivre_lien($path, $x[1]) . "')";
             },
             $contenu
             );
     }
-
 
     /**
      * Inverse le code CSS (left <--> right) d'une feuille de style CSS
@@ -4124,7 +4194,8 @@ trait SpipParserTrait
      * @return string
      *     Chemin du fichier CSS inversé
      **/
-    function direction_css($css, $voulue = '') {
+    protected function direction_css($css, $voulue = '')
+    {
         if (!preg_match(',(_rtl)?\.css$,i', $css, $r)) {
             return $css;
         }
@@ -4192,7 +4263,6 @@ trait SpipParserTrait
             }
         }
 
-
         // Inverser la direction gauche-droite en utilisant CSSTidy qui gere aussi les shorthands
         include_spip("lib/csstidy/class.csstidy");
         $parser = new csstidy();
@@ -4202,12 +4272,11 @@ trait SpipParserTrait
 
         $contenu = $parser->print->plain();
 
-
         // reperer les @import auxquels il faut propager le direction_css
         preg_match_all(",\@import\s*url\s*\(\s*['\"]?([^'\"/][^:]*)['\"]?\s*\),Uims", $contenu, $regs);
-        $src = array();
-        $src_direction_css = array();
-        $src_faux_abs = array();
+        $src = [];
+        $src_direction_css = [];
+        $src_faux_abs = [];
         $d = dirname($css);
         foreach ($regs[1] as $k => $import_css) {
             $css_direction = direction_css("$d/$import_css", $voulue);
@@ -4239,7 +4308,6 @@ trait SpipParserTrait
         return $f;
     }
 
-
     /**
      * Transforme les urls relatives d'un fichier CSS en absolues
      *
@@ -4258,7 +4326,8 @@ trait SpipParserTrait
      *     - Chemin du fichier CSS transformé (si source lisible et mise en cache réussie)
      *     - Chemin ou URL du fichier CSS source sinon.
      **/
-    function url_absolue_css($css) {
+    protected function url_absolue_css($css)
+    {
         if (!preg_match(',\.css$,i', $css, $r)) {
             return $css;
         }
@@ -4298,7 +4367,6 @@ trait SpipParserTrait
         return $f;
     }
 
-
     /**
      * Récupère la valeur d'une clé donnée
      * dans un tableau (ou un objet).
@@ -4328,9 +4396,9 @@ trait SpipParserTrait
      * @return mixed
      *     Valeur trouvée ou valeur par défaut.
      **/
-    function table_valeur($table, $cle, $defaut = '', $conserver_null = false) {
+    protected function table_valeur($table, $cle, $defaut = '', $conserver_null = false)
+    {
         foreach (explode('/', $cle) as $k) {
-
             $table = is_string($table) ? @unserialize($table) : $table;
 
             if (is_object($table)) {
@@ -4339,7 +4407,7 @@ trait SpipParserTrait
                 if ($conserver_null) {
                     $table = array_key_exists($k, $table) ? $table[$k] : $defaut;
                 } else {
-                    $table = isset($table[$k]) ? $table[$k] : $defaut;
+                    $table = $table[$k] ?? $defaut;
                 }
             } else {
                 $table = $defaut;
@@ -4378,7 +4446,8 @@ trait SpipParserTrait
      *     - true : expression trouvée, mais pas la parenthèse capturante
      *     - string : expression trouvée.
      **/
-    function filtre_match_dist($texte, $expression, $modif = "UimsS", $capte = 0) {
+    protected function filtre_match_dist($texte, $expression, $modif = "UimsS", $capte = 0)
+    {
         if (intval($modif) and $capte == 0) {
             $capte = $modif;
             $modif = "UimsS";
@@ -4396,7 +4465,6 @@ trait SpipParserTrait
 
         return false;
     }
-
 
     /**
      * Remplacement de texte à base d'expression régulière
@@ -4420,13 +4488,13 @@ trait SpipParserTrait
      * @return string
      *     Texte
      **/
-    function replace($texte, $expression, $replace = '', $modif = "UimsS") {
+    protected function replace($texte, $expression, $replace = '', $modif = "UimsS")
+    {
         $expression = str_replace("\/", "/", $expression);
         $expression = str_replace("/", "\/", $expression);
 
         return preg_replace('/' . $expression . '/' . $modif, $replace, $texte);
     }
-
 
     /**
      * Cherche les documents numerotés dans un texte traite par `propre()`
@@ -4440,7 +4508,8 @@ trait SpipParserTrait
      * @return string
      *     Le texte
      **/
-    function traiter_doublons_documents(&$doublons, $letexte) {
+    protected function traiter_doublons_documents(&$doublons, $letexte)
+    {
 
         // Verifier dans le texte & les notes (pas beau, helas)
         $t = $letexte . $GLOBALS['les_notes'];
@@ -4469,7 +4538,8 @@ trait SpipParserTrait
      * @param mixed $texte
      * @return string Chaîne vide
      **/
-    function vide($texte) {
+    protected function vide($texte)
+    {
         return "";
     }
 
@@ -4498,9 +4568,10 @@ trait SpipParserTrait
      * @return string
      *      Code HTML résultant
      **/
-    function env_to_params($env, $ignore_params = array()) {
+    protected function env_to_params($env, $ignore_params = [])
+    {
         $ignore_params = array_merge(
-            array('id', 'lang', 'id_document', 'date', 'date_redac', 'align', 'fond', '', 'recurs', 'emb', 'dir_racine'),
+            ['id', 'lang', 'id_document', 'date', 'date_redac', 'align', 'fond', '', 'recurs', 'emb', 'dir_racine'],
             $ignore_params
             );
         if (!is_array($env)) {
@@ -4537,9 +4608,10 @@ trait SpipParserTrait
      * @return string
      *      Code HTML résultant
      **/
-    function env_to_attributs($env, $ignore_params = array()) {
+    protected function env_to_attributs($env, $ignore_params = [])
+    {
         $ignore_params = array_merge(
-            array('id', 'lang', 'id_document', 'date', 'date_redac', 'align', 'fond', '', 'recurs', 'emb', 'dir_racine'),
+            ['id', 'lang', 'id_document', 'date', 'date_redac', 'align', 'fond', '', 'recurs', 'emb', 'dir_racine'],
             $ignore_params
             );
         if (!is_array($env)) {
@@ -4557,7 +4629,6 @@ trait SpipParserTrait
         return $texte;
     }
 
-
     /**
      * Concatène des chaînes
      *
@@ -4570,12 +4641,12 @@ trait SpipParserTrait
      *
      * @return string Chaînes concaténés
      **/
-    function concat() {
+    protected function concat()
+    {
         $args = func_get_args();
 
         return join('', $args);
     }
-
 
     /**
      * Retourne le contenu d'un ou plusieurs fichiers
@@ -4592,7 +4663,8 @@ trait SpipParserTrait
      * @return string
      *     Contenu du ou des fichiers, concaténé
      **/
-    function charge_scripts($files, $script = true) {
+    protected function charge_scripts($files, $script = true)
+    {
         $flux = "";
         foreach (is_array($files) ? $files : explode("|", $files) as $file) {
             if (!is_string($file)) {
@@ -4612,7 +4684,6 @@ trait SpipParserTrait
         return $flux;
     }
 
-
     /**
      * Produit une balise img avec un champ alt d'office si vide
      *
@@ -4629,26 +4700,24 @@ trait SpipParserTrait
      *   variante_svg_si_possible: utiliser l'image -xx.svg au lieu de -32.png par exemple (si la variante svg est disponible)
      * @return string
      */
-    function http_img_pack($img, $alt, $atts = '', $title = '', $options = array()) {
-
+    protected function http_img_pack($img, $alt, $atts = '', $title = '', $options = [])
+    {
         $img_file = $img;
         if ($p = strpos($img_file, '?')) {
-            $img_file = substr($img_file,0, $p);
+            $img_file = substr($img_file, 0, $p);
         }
         if (!isset($options['chemin_image']) or $options['chemin_image'] == true) {
             $img_file = chemin_image($img);
-        }
-        else {
-            if (!isset($options['variante_svg_si_possible']) or $options['variante_svg_si_possible'] == true){
+        } else {
+            if (!isset($options['variante_svg_si_possible']) or $options['variante_svg_si_possible'] == true) {
                 // on peut fournir une icone generique -xx.svg qui fera le job dans toutes les tailles, et qui est prioritaire sur le png
                 // si il y a un .svg a la bonne taille (-16.svg) a cote, on l'utilise en remplacement du -16.png
                 if (preg_match(',-(\d+)[.](png|gif|svg)$,', $img_file, $m)
                     and $variante_svg_generique = substr($img_file, 0, -strlen($m[0])) . "-xx.svg"
                     and file_exists($variante_svg_generique)) {
-                    if ($variante_svg_size = substr($variante_svg_generique,0,-6) . $m[1] . ".svg" and file_exists($variante_svg_size)) {
+                    if ($variante_svg_size = substr($variante_svg_generique, 0, -6) . $m[1] . ".svg" and file_exists($variante_svg_size)) {
                         $img_file = $variante_svg_size;
-                    }
-                    else {
+                    } else {
                         $img_file = $variante_svg_generique;
                     }
                 }
@@ -4690,8 +4759,9 @@ trait SpipParserTrait
      * @param string $size
      * @return string
      */
-    function http_style_background($img, $att = '', $size=null) {
-        if ($size and is_numeric($size)){
+    protected function http_style_background($img, $att = '', $size = null)
+    {
+        if ($size and is_numeric($size)) {
             $size = trim($size) . "px";
         }
         return " style='background" .
@@ -4712,7 +4782,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML de la balise IMG
      */
-    function filtre_balise_img_dist($img, $alt = "", $class = "", $width=null) {
+    protected function filtre_balise_img_dist($img, $alt = "", $class = "", $width = null)
+    {
         $atts = $class ? " class='" . attribut_html($class) . "'" : '';
         // ecriture courte : on donne le width en 2e arg
         if (empty($width) and is_numeric($alt)) {
@@ -4723,9 +4794,8 @@ trait SpipParserTrait
             $atts .= " width='{$width}'";
         }
         return http_img_pack($img, $alt, $atts, '',
-            array('chemin_image' => false, 'utiliser_suffixe_size' => false));
+            ['chemin_image' => false, 'utiliser_suffixe_size' => false]);
     }
-
 
     /**
      * Inserer un svg inline
@@ -4738,10 +4808,11 @@ trait SpipParserTrait
      * @param string $class
      * @return string
      */
-    function filtre_balise_svg_dist($img, $alt = "", $class = "") {
+    protected function filtre_balise_svg_dist($img, $alt = "", $class = "")
+    {
         $img_file = $img;
         if ($p = strpos($img_file, '?')) {
-            $img_file = substr($img_file,0, $p);
+            $img_file = substr($img_file, 0, $p);
         }
 
         if (!$img_file or !$svg = file_get_contents($img_file)) {
@@ -4762,22 +4833,19 @@ trait SpipParserTrait
         if ($class) {
             $balise_svg = inserer_attribut($balise_svg, 'class', $class);
         }
-        if ($alt){
+        if ($alt) {
             $balise_svg = inserer_attribut($balise_svg, 'role', 'img');
-            $id = "img-svg-title-" . substr(md5("$img_file:$svg:$alt"),0,4);
+            $id = "img-svg-title-" . substr(md5("$img_file:$svg:$alt"), 0, 4);
             $balise_svg = inserer_attribut($balise_svg, 'aria-labelledby', $id);
-            $title = "<title id=\"$id\">" . entites_html($alt)."</title>\n";
+            $title = "<title id=\"$id\">" . entites_html($alt) . "</title>\n";
             $balise_svg .= $title;
-        }
-        else {
+        } else {
             $balise_svg = inserer_attribut($balise_svg, 'aria-hidden', 'true');
         }
         $svg = str_replace($balise_svg_source, $balise_svg, $svg);
 
         return $svg;
     }
-
-
 
     /**
      * Affiche chaque valeur d'un tableau associatif en utilisant un modèle
@@ -4796,12 +4864,13 @@ trait SpipParserTrait
      * @return string
      *     Code HTML résultant
      **/
-    function filtre_foreach_dist($tableau, $modele = 'foreach') {
+    protected function filtre_foreach_dist($tableau, $modele = 'foreach')
+    {
         $texte = '';
         if (is_array($tableau)) {
             foreach ($tableau as $k => $v) {
                 $res = recuperer_fond('modeles/' . $modele,
-                    array_merge(array('cle' => $k), (is_array($v) ? $v : array('valeur' => $v)))
+                    array_merge(['cle' => $k], (is_array($v) ? $v : ['valeur' => $v]))
                 );
                 $texte .= $res;
             }
@@ -4809,7 +4878,6 @@ trait SpipParserTrait
 
         return $texte;
     }
-
 
     /**
      * Obtient des informations sur les plugins actifs
@@ -4828,10 +4896,11 @@ trait SpipParserTrait
      *     - Liste sérialisée des préfixes de plugins actifs (si $plugin = '')
      *     - Suivant $type_info, avec $plugin un préfixe
      *         - est_actif : renvoie true s'il est actif, false sinon
-     *         - x : retourne l'information x du plugin si présente (et plugin actif)
+     *         - x : retourne l'information x du plugin si présente (et plugin actif)
      *         - tout : retourne toutes les informations du plugin actif
      **/
-    function filtre_info_plugin_dist($plugin, $type_info, $reload = false) {
+    protected function filtre_info_plugin_dist($plugin, $type_info, $reload = false)
+    {
         include_spip('inc/plugin');
         $plugin = strtoupper($plugin);
         $plugins_actifs = liste_plugin_actifs();
@@ -4865,7 +4934,6 @@ trait SpipParserTrait
         }
     }
 
-
     /**
      * Affiche la puce statut d'un objet, avec un menu rapide pour changer
      * de statut si possibilité de l'avoir
@@ -4888,12 +4956,12 @@ trait SpipParserTrait
      * @return string
      *     Code HTML de l'image de puce de statut à insérer (et du menu de changement si présent)
      */
-    function puce_changement_statut($id_objet, $statut, $id_rubrique, $type, $ajax = false) {
+    protected function puce_changement_statut($id_objet, $statut, $id_rubrique, $type, $ajax = false)
+    {
         $puce_statut = charger_fonction('puce_statut', 'inc');
 
         return $puce_statut($id_objet, $statut, $id_rubrique, $type, $ajax);
     }
-
 
     /**
      * Affiche la puce statut d'un objet, avec un menu rapide pour changer
@@ -4920,7 +4988,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML de l'image de puce de statut à insérer (et du menu de changement si présent)
      */
-    function filtre_puce_statut_dist($statut, $objet, $id_objet = 0, $id_parent = 0) {
+    protected function filtre_puce_statut_dist($statut, $objet, $id_objet = 0, $id_parent = 0)
+    {
         static $puce_statut = null;
         if (!$puce_statut) {
             $puce_statut = charger_fonction('puce_statut', 'inc');
@@ -4929,7 +4998,6 @@ trait SpipParserTrait
         return $puce_statut($id_objet, $statut, $id_parent, $objet, false,
             objet_info($objet, 'editable') ? _ACTIVER_PUCE_RAPIDE : false);
     }
-
 
     /**
      * Encoder un contexte pour l'ajax
@@ -4953,7 +5021,8 @@ trait SpipParserTrait
      * @return string
      *   hash du contexte
      */
-    function encoder_contexte_ajax($c, $form = '', $emboite = null, $ajaxid = '') {
+    protected function encoder_contexte_ajax($c, $form = '', $emboite = null, $ajaxid = '')
+    {
         if (is_string($c)
             and @unserialize($c) !== false
         ) {
@@ -5054,7 +5123,8 @@ trait SpipParserTrait
      *   - array|string : contexte d'environnement, possiblement sérialisé
      *   - false : erreur de décodage
      */
-    function decoder_contexte_ajax($c, $form = '') {
+    protected function decoder_contexte_ajax($c, $form = '')
+    {
         if (!function_exists('calculer_cle_action')) {
             include_spip("inc/securiser_action");
         }
@@ -5074,9 +5144,9 @@ trait SpipParserTrait
         // extraire la signature en debut de contexte
         // et la verifier avant de deserializer
         // format : signature:donneesserializees
-        if ($p = strpos($c,":")){
-            $cle = substr($c,0,$p);
-            $c = substr($c,$p+1);
+        if ($p = strpos($c, ":")) {
+            $cle = substr($c, 0, $p);
+            $c = substr($c, $p + 1);
 
             if ($cle == calculer_cle_action($form . $c)) {
                 $env = @unserialize($c);
@@ -5086,7 +5156,6 @@ trait SpipParserTrait
 
         return false;
     }
-
 
     /**
      * Encrypte ou décrypte un message
@@ -5101,7 +5170,8 @@ trait SpipParserTrait
      * @return string
      *    Message décrypté ou encrypté
      **/
-    function _xor($message, $key = null) {
+    protected function _xor($message, $key = null)
+    {
         if (is_null($key)) {
             if (!function_exists('calculer_cle_action')) {
                 include_spip("inc/securiser_action");
@@ -5128,7 +5198,10 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      */
-    function url_reponse_forum($texte) { return $texte; }
+    protected function url_reponse_forum($texte)
+    {
+        return $texte;
+    }
 
     /**
      * retourne une URL de suivi rss d'un forum (aucune action ici)
@@ -5140,8 +5213,10 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      */
-    function url_rss_forum($texte) { return $texte; }
-
+    protected function url_rss_forum($texte)
+    {
+        return $texte;
+    }
 
     /**
      * Génère des menus avec liens ou `<strong class='on'>` non clicable lorsque
@@ -5172,7 +5247,8 @@ trait SpipParserTrait
      * @return string
      *   Code HTML
      */
-    function lien_ou_expose($url, $libelle = null, $on = false, $class = "", $title = "", $rel = "", $evt = '') {
+    protected function lien_ou_expose($url, $libelle = null, $on = false, $class = "", $title = "", $rel = "", $evt = '')
+    {
         if ($on) {
             $bal = "strong";
             $att = "class='on'";
@@ -5191,7 +5267,6 @@ trait SpipParserTrait
         return "<$bal $att>$libelle</$bal>";
     }
 
-
     /**
      * Afficher un message "un truc"/"N trucs"
      * Les items sont à indiquer comme pour la fonction _T() sous la forme :
@@ -5204,7 +5279,8 @@ trait SpipParserTrait
      * @param array $vars : Les autres variables nécessaires aux chaines de langues (facultatif)
      * @return string : la chaine de langue finale en utilisant la fonction _T()
      */
-    function singulier_ou_pluriel($nb, $chaine_un, $chaine_plusieurs, $var = 'nb', $vars = array()) {
+    protected function singulier_ou_pluriel($nb, $chaine_un, $chaine_plusieurs, $var = 'nb', $vars = [])
+    {
         if (!is_numeric($nb) or $nb == 0) {
             return "";
         }
@@ -5218,7 +5294,6 @@ trait SpipParserTrait
             return _T($chaine_un, $vars);
         }
     }
-
 
     /**
      * Fonction de base pour une icone dans un squelette
@@ -5240,8 +5315,9 @@ trait SpipParserTrait
      *  "onclick='...'" par exemple
      * @return string
      */
-    function prepare_icone_base($type, $lien, $texte, $fond, $fonction = "", $class = "", $javascript = "") {
-        if (in_array($fonction, array("del", "supprimer.gif"))) {
+    protected function prepare_icone_base($type, $lien, $texte, $fond, $fonction = "", $class = "", $javascript = "")
+    {
+        if (in_array($fonction, ["del", "supprimer.gif"])) {
             $class .= ' danger';
         } elseif ($fonction == "rien.gif") {
             $fonction = "";
@@ -5280,7 +5356,7 @@ trait SpipParserTrait
         }
 
         $icone = http_img_pack($fond, $alt, "width='$size' height='$size'");
-        $icone = "<span class=\"icone-image".($fonction ? " icone-fonction icone-fonction-$fonction" : "") . "\">$icone</span>";
+        $icone = "<span class=\"icone-image" . ($fonction ? " icone-fonction icone-fonction-$fonction" : "") . "\">$icone</span>";
 
         if ($type == 'lien') {
             return "<span class='icone s$size $class'>"
@@ -5313,7 +5389,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du lien
      **/
-    function icone_base($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "") {
+    protected function icone_base($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "")
+    {
         return prepare_icone_base('lien', $lien, $texte, $fond, $fonction, $class, $javascript);
     }
 
@@ -5348,7 +5425,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du lien
      **/
-    function filtre_icone_verticale_dist($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "") {
+    protected function filtre_icone_verticale_dist($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "")
+    {
         return icone_base($lien, $texte, $fond, $fonction, "verticale $class", $javascript);
     }
 
@@ -5393,7 +5471,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du lien
      **/
-    function filtre_icone_horizontale_dist($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "") {
+    protected function filtre_icone_horizontale_dist($lien, $texte, $fond, $fonction = "", $class = "", $javascript = "")
+    {
         return icone_base($lien, $texte, $fond, $fonction, "horizontale $class", $javascript);
     }
 
@@ -5424,7 +5503,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du lien
      **/
-    function filtre_bouton_action_horizontal_dist($lien, $texte, $fond, $fonction = "", $class = "", $confirm = "") {
+    protected function filtre_bouton_action_horizontal_dist($lien, $texte, $fond, $fonction = "", $class = "", $confirm = "")
+    {
         return prepare_icone_base('bouton', $lien, $texte, $fond, $fonction, "horizontale $class", $confirm);
     }
 
@@ -5454,10 +5534,10 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du lien
      */
-    function filtre_icone_dist($lien, $texte, $fond, $align = "", $fonction = "", $class = "", $javascript = "") {
+    protected function filtre_icone_dist($lien, $texte, $fond, $align = "", $fonction = "", $class = "", $javascript = "")
+    {
         return icone_base($lien, $texte, $fond, $fonction, "verticale $align $class", $javascript);
     }
-
 
     /**
      * Explose un texte en tableau suivant un séparateur
@@ -5476,7 +5556,10 @@ trait SpipParserTrait
      * @param string $b Séparateur
      * @return array Liste des éléments
      */
-    function filtre_explode_dist($a, $b) { return explode($b, $a); }
+    protected function filtre_explode_dist($a, $b)
+    {
+        return explode($b, $a);
+    }
 
     /**
      * Implose un tableau en chaine en liant avec un séparateur
@@ -5495,14 +5578,18 @@ trait SpipParserTrait
      * @param string $b Séparateur
      * @return string Texte
      */
-    function filtre_implode_dist($a, $b) { return is_array($a) ? implode($b, $a) : $a; }
+    protected function filtre_implode_dist($a, $b)
+    {
+        return is_array($a) ? implode($b, $a) : $a;
+    }
 
     /**
      * Produire les styles privés qui associent item de menu avec icone en background
      *
      * @return string Code CSS
      */
-    function bando_images_background() {
+    protected function bando_images_background()
+    {
         include_spip('inc/bandeau');
         // recuperer tous les boutons et leurs images
         $boutons = definir_barre_boutons(definir_barre_contexte(), true, false);
@@ -5512,7 +5599,7 @@ trait SpipParserTrait
             if ($detail->icone and strlen(trim($detail->icone))) {
                 $res .= "\n.navigation_avec_icones #bando1_$page {background-image:url(" . $detail->icone . ");}";
             }
-            $selecteur = (in_array($page, array('outils_rapides', 'outils_collaboratifs')) ? "" : ".navigation_avec_icones ");
+            $selecteur = (in_array($page, ['outils_rapides', 'outils_collaboratifs']) ? "" : ".navigation_avec_icones ");
             if (is_array($detail->sousmenu)) {
                 foreach ($detail->sousmenu as $souspage => $sousdetail) {
                     if ($sousdetail->icone and strlen(trim($sousdetail->icone))) {
@@ -5540,7 +5627,8 @@ trait SpipParserTrait
      *   et avant execution de l'action. Si la callback renvoie false, elle annule le declenchement de l'action
      * @return string
      */
-    function bouton_action($libelle, $url, $class = "", $confirm = "", $title = "", $callback = "") {
+    protected function bouton_action($libelle, $url, $class = "", $confirm = "", $title = "", $callback = "")
+    {
         if ($confirm) {
             $confirm = "confirm(\"" . attribut_html($confirm) . "\")";
             if ($callback) {
@@ -5573,7 +5661,8 @@ trait SpipParserTrait
      * @param string $etoile
      * @return string
      */
-    function generer_info_entite($id_objet, $type_objet, $info, $etoile = "") {
+    protected function generer_info_entite($id_objet, $type_objet, $info, $etoile = "")
+    {
         static $trouver_table = null;
         static $objets;
 
@@ -5633,7 +5722,7 @@ trait SpipParserTrait
                 $info_generee = $generer($id_objet, $type_objet, $objets[$type_objet][$id_objet]);
             } // Sinon on prend directement le champ SQL tel quel
             else {
-                $info_generee = (isset($objets[$type_objet][$id_objet][$info]) ? $objets[$type_objet][$id_objet][$info] : '');
+                $info_generee = ($objets[$type_objet][$id_objet][$info] ?? '');
             }
         }
 
@@ -5642,7 +5731,7 @@ trait SpipParserTrait
             // FIXME: on fournit un ENV minimum avec id et type et connect=''
             // mais ce fonctionnement est a ameliorer !
             $info_generee = appliquer_traitement_champ($info_generee, $info, table_objet($type_objet),
-                array('id_objet' => $id_objet, 'objet' => $type_objet, ''));
+                ['id_objet' => $id_objet, 'objet' => $type_objet, '']);
         }
 
         return $info_generee;
@@ -5658,7 +5747,8 @@ trait SpipParserTrait
      * @param string $connect
      * @return string
      */
-    function appliquer_traitement_champ($texte, $champ, $table_objet = '', $env = array(), $connect = '') {
+    protected function appliquer_traitement_champ($texte, $champ, $table_objet = '', $env = [], $connect = '')
+    {
         if (!$champ) {
             return $texte;
         }
@@ -5668,7 +5758,7 @@ trait SpipParserTrait
         include_spip('inc/texte');
 
         $champ = strtoupper($champ);
-        $traitements = isset($GLOBALS['table_des_traitements'][$champ]) ? $GLOBALS['table_des_traitements'][$champ] : false;
+        $traitements = $GLOBALS['table_des_traitements'][$champ] ?? false;
         if (!$traitements or !is_array($traitements)) {
             return $texte;
         }
@@ -5693,12 +5783,11 @@ trait SpipParserTrait
         $traitement = str_replace('%s', "'" . texte_script($texte) . "'", $traitement);
 
         // Fournir $connect et $Pile[0] au traitement si besoin
-        $Pile = array(0 => $env);
+        $Pile = [0 => $env];
         eval("\$texte = $traitement;");
 
         return $texte;
     }
-
 
     /**
      * Generer un lien (titre clicable vers url) vers un objet
@@ -5709,7 +5798,8 @@ trait SpipParserTrait
      * @param null|string $connect
      * @return string
      */
-    function generer_lien_entite($id_objet, $objet, $longueur = 80, $connect = null) {
+    protected function generer_lien_entite($id_objet, $objet, $longueur = 80, $connect = null)
+    {
         include_spip('inc/liens');
         $titre = traiter_raccourci_titre($id_objet, $objet, $connect);
         // lorsque l'objet n'est plus declare (plugin desactive par exemple)
@@ -5727,7 +5817,6 @@ trait SpipParserTrait
         return "<a href='$url' class='$objet'>" . couper($titre, $longueur) . "</a>";
     }
 
-
     /**
      * Englobe (Wrap) un texte avec des balises
      *
@@ -5740,7 +5829,8 @@ trait SpipParserTrait
      * @param string $wrap
      * @return string
      */
-    function wrap($texte, $wrap) {
+    protected function wrap($texte, $wrap)
+    {
         $balises = extraire_balises($wrap);
         if (preg_match_all(",<([a-z]\w*)\b[^>]*>,UimsS", $wrap, $regs, PREG_PATTERN_ORDER)) {
             $texte = $wrap . $texte;
@@ -5751,7 +5841,6 @@ trait SpipParserTrait
 
         return $texte;
     }
-
 
     /**
      * afficher proprement n'importe quoi
@@ -5768,7 +5857,8 @@ trait SpipParserTrait
      * @param int $indent
      * @return array|mixed|string
      */
-    function filtre_print_dist($u, $join = "<br />", $indent = 0) {
+    protected function filtre_print_dist($u, $join = "<br />", $indent = 0)
+    {
         if (is_string($u)) {
             $u = typo($u);
 
@@ -5777,7 +5867,7 @@ trait SpipParserTrait
 
         // caster $u en array si besoin
         if (is_object($u)) {
-            $u = (array)$u;
+            $u = (array) $u;
         }
 
         if (is_array($u)) {
@@ -5796,7 +5886,7 @@ trait SpipParserTrait
             }
 
             // sinon on passe a la ligne et on indente
-            $i_str = str_pad("", $indent, " ");
+            $i_str = str_pad("", $indent, "\u{a0}");
             foreach ($u as $k => $v) {
                 $out .= $join . $i_str . "$k: " . filtre_print_dist($v, $join, $indent + 2);
             }
@@ -5808,7 +5898,6 @@ trait SpipParserTrait
         return $u;
     }
 
-
     /**
      * Renvoyer l'info d'un objet
      * telles que definies dans declarer_tables_objets_sql
@@ -5817,11 +5906,12 @@ trait SpipParserTrait
      * @param string $info
      * @return string
      */
-    function objet_info($objet, $info) {
+    protected function objet_info($objet, $info)
+    {
         $table = table_objet_sql($objet);
         $infos = lister_tables_objets_sql($table);
 
-        return (isset($infos[$info]) ? $infos[$info] : '');
+        return ($infos[$info] ?? '');
     }
 
     /**
@@ -5835,11 +5925,12 @@ trait SpipParserTrait
      * @return mixed|string
      *     Texte traduit du comptage, tel que '3 articles'
      */
-    function objet_afficher_nb($nb, $objet) {
+    protected function objet_afficher_nb($nb, $objet)
+    {
         if (!$nb) {
             return _T(objet_info($objet, 'info_aucun_objet'));
         } else {
-            return _T(objet_info($objet, $nb == 1 ? 'info_1_objet' : 'info_nb_objets'), array('nb' => $nb));
+            return _T(objet_info($objet, $nb == 1 ? 'info_1_objet' : 'info_nb_objets'), ['nb' => $nb]);
         }
     }
 
@@ -5851,7 +5942,8 @@ trait SpipParserTrait
      * @param string $class
      * @return string
      */
-    function objet_icone($objet, $taille = 24, $class='') {
+    protected function objet_icone($objet, $taille = 24, $class = '')
+    {
         $icone = objet_info($objet, 'icone_objet') . "-" . $taille . ".png";
         $icone = chemin_image($icone);
         $balise_img = charger_filtre('balise_img');
@@ -5876,12 +5968,13 @@ trait SpipParserTrait
      * @param array $options
      * @return string
      */
-    function objet_T($objet, $chaine, $args = array(), $options = array()){
-        $chaine = explode(':',$chaine);
-        if ($t = _T($objet . ':' . end($chaine), $args, array_merge($options, array('force'=>false)))) {
+    protected function objet_T($objet, $chaine, $args = [], $options = [])
+    {
+        $chaine = explode(':', $chaine);
+        if ($t = _T($objet . ':' . end($chaine), $args, array_merge($options, ['force' => false]))) {
             return $t;
         }
-        $chaine = implode(':',$chaine);
+        $chaine = implode(':', $chaine);
         return _T($chaine, $args, $options);
     }
 
@@ -5895,7 +5988,8 @@ trait SpipParserTrait
      * @param string $flux Code HTML
      * @return string      Code HTML
      */
-    function insert_head_css_conditionnel($flux) {
+    protected function insert_head_css_conditionnel($flux)
+    {
         if (strpos($flux, '<!-- insert_head_css -->') === false
             and $p = strpos($flux, '<!-- insert_head -->')
         ) {
@@ -5926,7 +6020,8 @@ trait SpipParserTrait
      * @param string $connect
      * @return string
      */
-    function produire_fond_statique($fond, $contexte = array(), $options = array(), $connect = '') {
+    protected function produire_fond_statique($fond, $contexte = [], $options = [], $connect = '')
+    {
         if (isset($contexte['format'])) {
             $extension = $contexte['format'];
             unset($contexte['format']);
@@ -5949,9 +6044,8 @@ trait SpipParserTrait
         // mais on peut hasher selon le contenu a la demande, si plusieurs contextes produisent un meme contenu
         // reduit la variabilite du nom et donc le nombre de css concatenees possibles in fine
         if (isset($options['hash_on_content']) and $options['hash_on_content']) {
-            $hash = md5($contexte_implicite['host'] . '::'. $cache);
-        }
-        else {
+            $hash = md5($contexte_implicite['host'] . '::' . $cache);
+        } else {
             unset($contexte_implicite['notes']); // pas pertinent pour signaler un changeemnt de contenu pour des css/js
             ksort($contexte);
             $hash = md5($fond . json_encode($contexte_implicite) . json_encode($contexte) . $connect);
@@ -6001,7 +6095,8 @@ trait SpipParserTrait
      * @return string
      *    $fichier auquel on a ajouté le timestamp
      */
-    function timestamp($fichier) {
+    protected function timestamp($fichier)
+    {
         if (!$fichier
             or !file_exists($fichier)
             or !$m = filemtime($fichier)
@@ -6018,7 +6113,8 @@ trait SpipParserTrait
      * @param string $url
      * @return string
      */
-    function supprimer_timestamp($url) {
+    protected function supprimer_timestamp($url)
+    {
         if (strpos($url, "?") === false) {
             return $url;
         }
@@ -6037,7 +6133,8 @@ trait SpipParserTrait
      * @param string $titre
      * @return string
      */
-    function filtre_nettoyer_titre_email_dist($titre) {
+    protected function filtre_nettoyer_titre_email_dist($titre)
+    {
         include_spip('inc/envoyer_mail');
 
         return nettoyer_titre_email($titre);
@@ -6061,7 +6158,7 @@ trait SpipParserTrait
      * @param bool $retour_sans_cadre
      * @return string
      */
-    function filtre_chercher_rubrique_dist(
+    protected function filtre_chercher_rubrique_dist(
         $titre,
         $id_objet,
         $id_parent,
@@ -6102,7 +6199,8 @@ trait SpipParserTrait
      * @return string|void
      *     Chaîne vide si l'accès est autorisé
      */
-    function sinon_interdire_acces($ok = false, $url = '', $statut = 0, $message = null) {
+    protected function sinon_interdire_acces($ok = false, $url = '', $statut = 0, $message = null)
+    {
         if ($ok) {
             return '';
         }
@@ -6132,7 +6230,7 @@ trait SpipParserTrait
 
         // Si on est dans l'espace privé, on génère du 403 Forbidden par defaut ou du 404
         if (test_espace_prive()) {
-            if (!$statut or !in_array($statut, array(404, 403))) {
+            if (!$statut or !in_array($statut, [404, 403])) {
                 $statut = 403;
             }
             http_status(403);
@@ -6147,10 +6245,9 @@ trait SpipParserTrait
             http_status($statut);
             // Si le statut est une erreur et qu'il n'y a pas de redirection on va chercher le squelette du même nom
             if ($statut >= 400) {
-                echo recuperer_fond("$statut", array('erreur' => $message));
+                echo recuperer_fond("$statut", ['erreur' => $message]);
             }
         }
-
 
         exit;
     }
@@ -6162,7 +6259,8 @@ trait SpipParserTrait
      * @param null|string $format
      * @return string
      */
-    function filtre_compacte_dist($source, $format = null) {
+    protected function filtre_compacte_dist($source, $format = null)
+    {
         if (function_exists('compacte')) {
             return compacte($source, $format);
         }
@@ -6198,7 +6296,8 @@ trait SpipParserTrait
      * @param string $url URL
      * @return string URL nettoyée
      **/
-    function resolve_path($url) {
+    protected function resolve_path($url)
+    {
         list($url, $query) = array_pad(explode('?', $url, 2), 2, null);
         while (preg_match(',/\.?/,', $url, $regs)    # supprime // et /./
             or preg_match(',/[^/]*/\.\./,S', $url, $regs)  # supprime /toto/../
@@ -6213,7 +6312,6 @@ trait SpipParserTrait
 
         return '/' . preg_replace(',^/,S', '', $url);
     }
-
 
     /**
      * Suivre un lien depuis une URL donnée vers une nouvelle URL
@@ -6230,8 +6328,8 @@ trait SpipParserTrait
      * @param string $lien Lien ajouté à l'URL
      * @return string URL complète.
      **/
-    function suivre_lien($url, $lien) {
-
+    protected function suivre_lien($url, $lien)
+    {
         if (preg_match(',^(mailto|javascript|data|tel|callto|file|ftp):,iS', $lien)) {
             return $lien;
         }
@@ -6254,8 +6352,8 @@ trait SpipParserTrait
             $debut = $regs[1];
             $dir = !strlen($regs[2]) ? '/' : $regs[2];
             $mot = $regs[3];
-            $get = isset($regs[4]) ? $regs[4] : '';
-            $hash = isset($regs[5]) ? $regs[5] : '';
+            $get = $regs[4] ?? '';
+            $hash = $regs[5] ?? '';
         }
         switch (substr($lien, 0, 1)) {
             case '/':
@@ -6268,7 +6366,6 @@ trait SpipParserTrait
                 return $debut . resolve_path($dir . $lien);
         }
     }
-
 
     /**
      * Transforme une URL relative en URL absolue
@@ -6288,7 +6385,8 @@ trait SpipParserTrait
      * @param string $base URL de base de destination (par défaut ce sera l'URL de notre site)
      * @return string Texte ou URL (en absolus)
      **/
-    function url_absolue($url, $base = '') {
+    protected function url_absolue($url, $base = '')
+    {
         if (strlen($url = trim($url)) == 0) {
             return '';
         }
@@ -6306,7 +6404,8 @@ trait SpipParserTrait
      * @param string $url_absolue
      * @return string
      */
-    function protocole_implicite($url_absolue) {
+    protected function protocole_implicite($url_absolue)
+    {
         return preg_replace(';^[a-z]{3,7}://;i', '//', $url_absolue);
     }
 
@@ -6316,14 +6415,14 @@ trait SpipParserTrait
      * @param array $protocoles_autorises
      * @return bool
      */
-    function protocole_verifier($url_absolue, $protocoles_autorises = array('http','https')) {
-
+    protected function protocole_verifier($url_absolue, $protocoles_autorises = ['http','https'])
+    {
         if (preg_match(';^([a-z]{3,7})://;i', $url_absolue, $m)) {
             $protocole = $m[1];
             if (in_array($protocole, $protocoles_autorises)
                 or in_array(strtolower($protocole), array_map('strtolower', $protocoles_autorises))) {
-                    return true;
-                }
+                return true;
+            }
         }
         return false;
     }
@@ -6341,7 +6440,8 @@ trait SpipParserTrait
      * @param string $base URL de base de destination (par défaut ce sera l'URL de notre site)
      * @return string Texte avec des URLs absolues
      **/
-    function liens_absolus($texte, $base = '') {
+    protected function liens_absolus($texte, $base = '')
+    {
         if (preg_match_all(',(<(a|link|image|img|script)\s[^<>]*(href|src)=[^<>]*>),imsS', $texte, $liens, PREG_SET_ORDER)) {
             if (!function_exists('extraire_attribut')) {
                 include_spip('inc/filtres');
@@ -6365,7 +6465,6 @@ trait SpipParserTrait
         return $texte;
     }
 
-
     /**
      * Transforme une URL ou des liens en URL ou liens absolus
      *
@@ -6377,7 +6476,8 @@ trait SpipParserTrait
      * @param string $base URL de base de destination (par défaut ce sera l'URL de notre site)
      * @return string Texte ou URL (en absolus)
      **/
-    function abs_url($texte, $base = '') {
+    protected function abs_url($texte, $base = '')
+    {
         if ($GLOBALS['mode_abs_url'] == 'url') {
             return url_absolue($texte, $base);
         } else {
@@ -6394,9 +6494,10 @@ trait SpipParserTrait
      * @param bool $double_encode
      * @return string
      */
-    function spip_htmlspecialchars($string, $flags = null, $encoding = 'UTF-8', $double_encode = true) {
+    protected function spip_htmlspecialchars($string, $flags = null, $encoding = 'UTF-8', $double_encode = true)
+    {
         if (is_null($flags)) {
-            $flags = ENT_COMPAT|ENT_HTML401;
+            $flags = ENT_COMPAT | ENT_HTML401;
         }
 
         return htmlspecialchars($string, $flags, $encoding, $double_encode);
@@ -6411,9 +6512,10 @@ trait SpipParserTrait
      * @param bool $double_encode
      * @return string
      */
-    function spip_htmlentities($string, $flags = null, $encoding = 'UTF-8', $double_encode = true) {
+    protected function spip_htmlentities($string, $flags = null, $encoding = 'UTF-8', $double_encode = true)
+    {
         if (is_null($flags)) {
-            $flags = ENT_COMPAT|ENT_HTML401;
+            $flags = ENT_COMPAT | ENT_HTML401;
         }
 
         return htmlentities($string, $flags, $encoding, $double_encode);
@@ -6432,7 +6534,6 @@ trait SpipParserTrait
         return;
     }
 
-
     /**
      * Changer la langue courante
      *
@@ -6446,10 +6547,10 @@ trait SpipParserTrait
      *     La langue à utiliser
      * @return string|bool
      *     string : La langue qui a été utilisée si trouvée
-     *     false : aucune langue ne correspondait à la demande
+     *     false : aucune langue ne correspondait à la demande
      **/
-    function changer_langue($lang) {
-
+    protected function changer_langue($lang)
+    {
         $liste_langues = ',' . @$GLOBALS['meta']['langues_proposees']
         . ',' . @$GLOBALS['meta']['langues_multilingue'] . ',';
 
@@ -6464,7 +6565,6 @@ trait SpipParserTrait
             or ($lang = preg_replace(',_.*,', '', $lang)
                 and strpos($liste_langues, ",$lang,") !== false)
         ) {
-
             $GLOBALS['spip_lang_rtl'] = lang_dir($lang, '', '_rtl');
             $GLOBALS['spip_lang_right'] = $GLOBALS['spip_lang_rtl'] ? 'left' : 'right';
             $GLOBALS['spip_lang_left'] = $GLOBALS['spip_lang_rtl'] ? 'right' : 'left';
@@ -6484,7 +6584,8 @@ trait SpipParserTrait
     // ou permettre de choisir une langue "plus proche",
     // par exemple le francais pour l'espagnol, l'anglais pour l'allemand, etc.
 
-    function choisir_traduction($trads, $lang = '') {
+    protected function choisir_traduction($trads, $lang = '')
+    {
         $k = approcher_langue($trads, $lang);
 
         return $k ? $trads[$k] : array_shift($trads);
@@ -6493,8 +6594,8 @@ trait SpipParserTrait
     // retourne son 2e argument si c'est un index du premier
     // ou un index approchant sinon et si possible,
     // la langue X etant consideree comme une approche de X_Y
-    function approcher_langue($trads, $lang = '') {
-
+    protected function approcher_langue($trads, $lang = '')
+    {
         if (!$lang) {
             $lang = $GLOBALS['spip_lang'];
         }
@@ -6523,11 +6624,12 @@ trait SpipParserTrait
      * @return string
      *     Nom de la langue, sinon son code.
      **/
-    function traduire_nom_langue($lang) {
+    protected function traduire_nom_langue($lang)
+    {
         include_spip('inc/lang_liste');
         include_spip('inc/charsets');
 
-        return html2unicode(isset($GLOBALS['codes_langues'][$lang]) ? $GLOBALS['codes_langues'][$lang] : $lang);
+        return html2unicode($GLOBALS['codes_langues'][$lang] ?? $lang);
     }
 
     //
@@ -6536,12 +6638,13 @@ trait SpipParserTrait
 
     // Donne la direction d'ecriture a partir de la langue. Retourne 'gaucher' si
     // la langue est arabe, persan, kurde, dari, pachto, ourdou (langues ecrites en
-        // alphabet arabe a priori), hebreu, yiddish (langues ecrites en alphabet
-            // hebreu a priori), 'droitier' sinon.
+    // alphabet arabe a priori), hebreu, yiddish (langues ecrites en alphabet
+    // hebreu a priori), 'droitier' sinon.
     // C'est utilise par #LANG_DIR, #LANG_LEFT, #LANG_RIGHT.
-            // https://code.spip.net/@lang_dir
-    function lang_dir($lang = '', $droitier = 'ltr', $gaucher = 'rtl') {
-        static $lang_rtl = array('ar', 'fa', 'ku', 'prs', 'ps', 'ur', 'he', 'heb', 'hbo', 'yi');
+    // https://code.spip.net/@lang_dir
+    protected function lang_dir($lang = '', $droitier = 'ltr', $gaucher = 'rtl')
+    {
+        static $lang_rtl = ['ar', 'fa', 'ku', 'prs', 'ps', 'ur', 'he', 'heb', 'hbo', 'yi'];
 
         return in_array(($lang ? $lang : $GLOBALS['spip_lang']), $lang_rtl) ?
         $gaucher : $droitier;
@@ -6553,27 +6656,28 @@ trait SpipParserTrait
     // sinon determiner la typo en fonction de la langue courante
 
     // https://code.spip.net/@lang_typo
-    function lang_typo($lang = '') {
+    protected function lang_typo($lang = '')
+    {
         if (!$lang) {
-            $lang = isset($GLOBALS['lang_objet'])
-            ? $GLOBALS['lang_objet']
-            : $GLOBALS['spip_lang'];
+            $lang = $GLOBALS['lang_objet']
+            ?? $GLOBALS['spip_lang'];
         }
         if ($lang == 'eo'
             or $lang == 'fr'
             or strncmp($lang, 'fr_', 3) == 0
             or $lang == 'cpf'
             ) {
-                return 'fr';
-            } else {
-                return 'en';
-            }
+            return 'fr';
+        } else {
+            return 'en';
+        }
     }
 
     // gestion de la globale $lang_objet pour que les textes soient affiches
     // avec les memes typo et direction dans l'espace prive que dans le public
     // https://code.spip.net/@changer_typo
-    function changer_typo($lang = '') {
+    protected function changer_typo($lang = ''): void
+    {
         if ($lang) {
             $GLOBALS['lang_objet'] = $lang;
         } else {
@@ -6588,7 +6692,8 @@ trait SpipParserTrait
     // pour 'changer_lang' (langue de l'article, espace prive), c'est en Ajax
     //
     // https://code.spip.net/@menu_langues
-    function menu_langues($nom_select, $default = '') {
+    protected function menu_langues($nom_select, $default = '')
+    {
         include_spip('inc/actions');
 
         $langues = liste_options_langues($nom_select);
@@ -6622,7 +6727,8 @@ trait SpipParserTrait
     }
 
     // https://code.spip.net/@select_langues
-    function select_langues($nom_select, $change, $options, $label = "") {
+    protected function select_langues($nom_select, $change, $options, $label = "")
+    {
         static $cpt = 0;
         $id = "menu_langues" . $cpt++;
 
@@ -6657,8 +6763,8 @@ trait SpipParserTrait
      * @return array
      *     Liste des langues
      */
-    function liste_options_langues($nom_select) {
-
+    protected function liste_options_langues($nom_select)
+    {
         switch ($nom_select) {
             # #MENU_LANG
             case 'var_lang':
@@ -6682,13 +6788,12 @@ trait SpipParserTrait
                     #			$langues = explode(',', $GLOBALS['all_langs']);
         }
         if (count($langues) <= 1) {
-            return array();
+            return [];
         }
         sort($langues);
 
         return $langues;
     }
-
 
     /**
      * Redirige sur la bonne langue lorsque l'option forcer_lang est active
@@ -6697,9 +6802,9 @@ trait SpipParserTrait
      * la variable de personnalisation $forcer_lang ; elle renvoie le brouteur
      * si necessaire vers l'URL xxxx?lang=ll
      *
-     * @return void
      **/
-    function verifier_lang_url() {
+    protected function verifier_lang_url(): void
+    {
 
         // quelle langue est demandee ?
         $lang_demandee = (test_espace_prive() ? $GLOBALS['spip_lang'] : $GLOBALS['meta']['langue_site']);
@@ -6735,7 +6840,6 @@ trait SpipParserTrait
         $GLOBALS['lang'] = $_GET['lang'] = $GLOBALS['spip_lang'];
     }
 
-
     /**
      * Utilise la langue du site
      *
@@ -6747,7 +6851,8 @@ trait SpipParserTrait
      * @return string
      *     La langue sélectionnée
      **/
-    function utiliser_langue_site() {
+    protected function utiliser_langue_site()
+    {
         // s'il existe une langue du site (en gros tout le temps en théorie)
         if (isset($GLOBALS['meta']['langue_site'])
             // et si spip_langue est pas encore définie (ce que va faire changer_langue())
@@ -6777,8 +6882,8 @@ trait SpipParserTrait
      * @return string
      *     La langue utilisée
      **/
-    function utiliser_langue_visiteur() {
-
+    protected function utiliser_langue_visiteur()
+    {
         $l = (!test_espace_prive() ? 'spip_lang' : 'spip_lang_ecrire');
         if (isset($_COOKIE[$l])) {
             if (changer_langue($l = $_COOKIE[$l])) {
@@ -6805,13 +6910,13 @@ trait SpipParserTrait
         return utiliser_langue_site();
     }
 
-
     /**
      * Verifier qu'une chaine suceptible d'etre un nom de langue a le bon format
      * @param string $chaine
      * @return int
      */
-    function match_langue($chaine) {
+    protected function match_langue($chaine)
+    {
         return preg_match('/^[a-z]{2,3}(_[a-z]{2,3}){0,2}$/', $chaine);
     }
 
@@ -6826,14 +6931,14 @@ trait SpipParserTrait
      * elles sont calculées en obtenant la liste des langues
      * dans les fichiers de lang
      *
-     * @return void
      **/
-    function init_langues() {
+    protected function init_langues(): void
+    {
 
         // liste des langues dans les meta, sauf a l'install
         $all_langs = @$GLOBALS['meta']['langues_proposees'];
 
-        $tout = array();
+        $tout = [];
         if (!$all_langs) {
             // trouver tous les modules lang/spip_xx.php
             $modules = find_all_in_path("lang/", "/spip_([a-z_]+)\.php$");
@@ -6872,13 +6977,13 @@ trait SpipParserTrait
      * @return string
      *     Code html de la balise <html>
      **/
-    function html_lang_attributes() {
+    protected function html_lang_attributes()
+    {
         $lang = $GLOBALS['spip_lang'];
         $dir = ($GLOBALS['spip_lang_rtl'] ? 'rtl' : 'ltr');
 
         return "<html class='$dir $lang no-js' xmlns='http://www.w3.org/1999/xhtml' lang='$lang' dir='$dir'>\n";
     }
-
 
     /**
      * Calcul de la direction du texte et la mise en page selon la langue
@@ -6889,10 +6994,10 @@ trait SpipParserTrait
      * @param string $spip_lang_rtl
      * @return string
      */
-    function aide_lang_dir($spip_lang, $spip_lang_rtl) {
+    protected function aide_lang_dir($spip_lang, $spip_lang_rtl)
+    {
         return ($spip_lang <> 'he') ? $spip_lang_rtl : '';
     }
-
 
     // initialise les globales (liste des langue, langue du site, spip_lang...)
     init_langues();
@@ -6925,10 +7030,10 @@ trait SpipParserTrait
      *
      * @return array Tablea ('','')
      */
-    function definir_raccourcis_alineas() {
-        return array('', '');
+    protected function definir_raccourcis_alineas()
+    {
+        return ['', ''];
     }
-
 
     /**
      * Traitement des raccourcis de tableaux
@@ -6938,10 +7043,10 @@ trait SpipParserTrait
      * @param string $bloc
      * @return string
      */
-    function traiter_tableau($bloc) {
+    protected function traiter_tableau($bloc)
+    {
         return $bloc;
     }
-
 
     /**
      * Traitement des listes
@@ -6952,7 +7057,8 @@ trait SpipParserTrait
      * @param string $texte
      * @return string
      */
-    function traiter_listes($texte) {
+    protected function traiter_listes($texte)
+    {
         return $texte;
     }
 
@@ -6967,7 +7073,8 @@ trait SpipParserTrait
      * @param string $letexte
      * @return string
      */
-    function traiter_raccourcis($letexte) {
+    protected function traiter_raccourcis($letexte)
+    {
 
         // Appeler les fonctions de pre_traitement
         $letexte = pipeline('pre_propre', $letexte);
@@ -6985,7 +7092,6 @@ trait SpipParserTrait
      * Fonctions utilisees en dehors de inc/texte
      */
 
-
     /**
      * Échapper et affichier joliement les `<script` et `<iframe`...
      *
@@ -6993,8 +7099,9 @@ trait SpipParserTrait
      * @param string $class Attributs HTML du conteneur à ajouter
      * @return string
      */
-    function echappe_js($t, $class = ' class = "echappe-js"') {
-        foreach (array('script', 'iframe') as $tag) {
+    protected function echappe_js($t, $class = ' class = "echappe-js"')
+    {
+        foreach (['script', 'iframe'] as $tag) {
             if (stripos($t, "<$tag") !== false
                 and preg_match_all(',<' . $tag . '.*?($|</' . $tag . '.),isS', $t, $r, PREG_SET_ORDER)
             ) {
@@ -7008,7 +7115,6 @@ trait SpipParserTrait
 
         return $t;
     }
-
 
     /**
      * Empêcher l'exécution de code PHP et JS
@@ -7034,16 +7140,17 @@ trait SpipParserTrait
      * @return string
      *     Code protégé
      **/
-    function interdire_scripts($arg, $mode_filtre=null) {
+    protected function interdire_scripts($arg, $mode_filtre = null)
+    {
         // on memorise le resultat sur les arguments non triviaux
-        static $dejavu = array();
+        static $dejavu = [];
 
         // Attention, si ce n'est pas une chaine, laisser intact
         if (!$arg or !is_string($arg) or !strstr($arg, '<')) {
             return $arg;
         }
 
-        if (is_null($mode_filtre) or !in_array($mode_filtre, array(-1, 0, 1))) {
+        if (is_null($mode_filtre) or !in_array($mode_filtre, [-1, 0, 1])) {
             $mode_filtre = $GLOBALS['filtrer_javascript'];
         }
 
@@ -7086,7 +7193,6 @@ trait SpipParserTrait
         return $dejavu[$mode_filtre][$arg] = $t;
     }
 
-
     /**
      * Applique la typographie générale
      *
@@ -7111,7 +7217,8 @@ trait SpipParserTrait
      * @return string $t
      *     Texte transformé
      **/
-    function typo($letexte, $echapper = true, $connect = null, $env = array()) {
+    protected function typo($letexte, $echapper = true, $connect = null, $env = [])
+    {
         // Plus vite !
         if (!$letexte) {
             return $letexte;
@@ -7165,11 +7272,11 @@ trait SpipParserTrait
         // et aussi dans l'espace public si la globale filtrer_javascript = -1
         // https://core.spip.net/issues/4166
         if ($GLOBALS['filtrer_javascript'] == -1
-            or (isset($env['espace_prive']) and $env['espace_prive'] and $GLOBALS['filtrer_javascript']<=0)) {
-                $letexte = echapper_html_suspect($letexte);
-            }
+            or (isset($env['espace_prive']) and $env['espace_prive'] and $GLOBALS['filtrer_javascript'] <= 0)) {
+            $letexte = echapper_html_suspect($letexte);
+        }
 
-            return $letexte;
+        return $letexte;
     }
 
     // Correcteur typographique
@@ -7192,7 +7299,8 @@ trait SpipParserTrait
      * @param string $lang Langue
      * @return string Texte
      */
-    function corriger_typo($letexte, $lang = '') {
+    protected function corriger_typo($letexte, $lang = '')
+    {
 
         // Plus vite !
         if (!$letexte) {
@@ -7247,7 +7355,6 @@ trait SpipParserTrait
         return $letexte;
     }
 
-
     /**
      * Paragrapher seulement
      *
@@ -7259,7 +7366,8 @@ trait SpipParserTrait
      * @param null $forcer
      * @return string
      */
-    function paragrapher($letexte, $forcer = true) {
+    protected function paragrapher($letexte, $forcer = true)
+    {
         return $letexte;
     }
 
@@ -7271,14 +7379,14 @@ trait SpipParserTrait
      * @param string $letexte Texte
      * @return string Texte
      **/
-    function traiter_retours_chariots($letexte) {
+    protected function traiter_retours_chariots($letexte)
+    {
         $letexte = preg_replace(",\r\n?,S", "\n", $letexte);
         $letexte = preg_replace(",<p[>[:space:]],iS", "\n\n\\0", $letexte);
         $letexte = preg_replace(",</p[>[:space:]],iS", "\\0\n\n", $letexte);
 
         return $letexte;
     }
-
 
     /**
      * Transforme les raccourcis SPIP, liens et modèles d'un texte en code HTML
@@ -7301,7 +7409,8 @@ trait SpipParserTrait
      * @return string $t
      *     Texte transformé
      **/
-    function propre($t, $connect = null, $env = array()) {
+    protected function propre($t, $connect = null, $env = [])
+    {
         // les appels directs a cette fonction depuis le php de l'espace
         // prive etant historiquement ecrits sans argment $connect
         // on utilise la presence de celui-ci pour distinguer les cas
@@ -7325,8 +7434,8 @@ trait SpipParserTrait
         // https://core.spip.net/issues/4166
         if ($interdire_script
             or $GLOBALS['filtrer_javascript'] == -1
-            or (isset($env['espace_prive']) and $env['espace_prive'] and $GLOBALS['filtrer_javascript']<=0)
-            or (isset($env['wysiwyg']) and $env['wysiwyg'] and $GLOBALS['filtrer_javascript']<=0)) {
+            or (isset($env['espace_prive']) and $env['espace_prive'] and $GLOBALS['filtrer_javascript'] <= 0)
+            or (isset($env['wysiwyg']) and $env['wysiwyg'] and $GLOBALS['filtrer_javascript'] <= 0)) {
             $t = echapper_html_suspect($t, false);
         }
         $t = echappe_html($t);
@@ -7368,7 +7477,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML de la puce
      **/
-    function definir_puce() {
+    protected function definir_puce()
+    {
 
         // Attention au sens, qui n'est pas defini de la meme facon dans
         // l'espace prive (spip_lang est la langue de l'interface, lang_dir
@@ -7381,24 +7491,10 @@ trait SpipParserTrait
         }
 
         if (!isset($GLOBALS[$p])) {
-            $GLOBALS[$p] = '<span class="spip-puce '.$dir.'"><b>–</b></span>';
+            $GLOBALS[$p] = '<span class="spip-puce ' . $dir . '"><b>–</b></span>';
         }
 
         return $GLOBALS[$p];
-    }
-
-
-    // XHTML - Preserver les balises-bloc : on liste ici tous les elements
-    // dont on souhaite qu'ils provoquent un saut de paragraphe
-
-    if (!defined('_BALISES_BLOCS')) {
-        define('_BALISES_BLOCS',
-            'address|applet|article|aside|blockquote|button|center|d[ltd]|div|fieldset|fig(ure|caption)|footer|form|h[1-6r]|hgroup|head|header|iframe|li|map|marquee|nav|noscript|object|ol|pre|section|t(able|[rdh]|body|foot|extarea)|ul|script|style'
-            );
-    }
-
-    if (!defined('_BALISES_BLOCS_REGEXP')) {
-        define('_BALISES_BLOCS_REGEXP', ',</?(' . _BALISES_BLOCS . ')[>[:space:]],iS');
     }
 
     //
@@ -7409,7 +7505,8 @@ trait SpipParserTrait
     // une $source differente ; le script detecte automagiquement si ce qu'on
     // echappe est un div ou un span
     // https://code.spip.net/@code_echappement
-    function code_echappement($rempl, $source = '', $no_transform = false, $mode = null) {
+    protected function code_echappement($rempl, $source = '', $no_transform = false, $mode = null)
+    {
         if (!strlen($rempl)) {
             return '';
         }
@@ -7430,19 +7527,19 @@ trait SpipParserTrait
         }
 
         return $return;
-
     }
-
 
     // Echapper les <html>...</ html>
     // https://code.spip.net/@traiter_echap_html_dist
-    function traiter_echap_html_dist($regs) {
+    protected function traiter_echap_html_dist($regs)
+    {
         return $regs[3];
     }
 
     // Echapper les <code>...</ code>
     // https://code.spip.net/@traiter_echap_code_dist
-    function traiter_echap_code_dist($regs) {
+    protected function traiter_echap_code_dist($regs)
+    {
         list(, , $att, $corps) = $regs;
         $echap = spip_htmlspecialchars($corps); // il ne faut pas passer dans entites_html, ne pas transformer les &#xxx; du code !
 
@@ -7467,7 +7564,8 @@ trait SpipParserTrait
 
     // Echapper les <cadre>...</ cadre> aka <frame>...</ frame>
     // https://code.spip.net/@traiter_echap_cadre_dist
-    function traiter_echap_cadre_dist($regs) {
+    protected function traiter_echap_cadre_dist($regs)
+    {
         $echap = trim(entites_html($regs[3]));
         // compter les lignes un peu plus finement qu'avec les \n
         $lignes = explode("\n", trim($echap));
@@ -7482,12 +7580,14 @@ trait SpipParserTrait
     }
 
     // https://code.spip.net/@traiter_echap_frame_dist
-    function traiter_echap_frame_dist($regs) {
+    protected function traiter_echap_frame_dist($regs)
+    {
         return traiter_echap_cadre_dist($regs);
     }
 
     // https://code.spip.net/@traiter_echap_script_dist
-    function traiter_echap_script_dist($regs) {
+    protected function traiter_echap_script_dist($regs)
+    {
         // rendre joli (et inactif) si c'est un script language=php
         if (preg_match(',<script\b[^>]+php,ims', $regs[0])) {
             return highlight_string($regs[0], true);
@@ -7502,7 +7602,7 @@ trait SpipParserTrait
     // - pour $source voir commentaire infra (echappe_retour)
     // - pour $no_transform voir le filtre post_autobr dans inc/filtres
     // https://code.spip.net/@echappe_html
-    function echappe_html(
+    protected function echappe_html(
         $letexte,
         $source = '',
         $no_transform = false,
@@ -7575,7 +7675,8 @@ trait SpipParserTrait
     // Rq: $source sert a faire des echappements "a soi" qui ne sont pas nettoyes
     // par propre() : exemple dans multi et dans typo()
     // https://code.spip.net/@echappe_retour
-    function echappe_retour($letexte, $source = '', $filtre = "") {
+    protected function echappe_retour($letexte, $source = '', $filtre = "")
+    {
         if (strpos($letexte, "base64$source")) {
             # spip_log(spip_htmlspecialchars($letexte));  ## pour les curieux
             $max_prof = 5;
@@ -7587,8 +7688,8 @@ trait SpipParserTrait
                 foreach ($regs as $reg) {
                     $rempl = base64_decode(extraire_attribut($reg[0], 'title'));
                     // recherche d'attributs supplementaires
-                    $at = array();
-                    foreach (array('lang', 'dir') as $attr) {
+                    $at = [];
+                    foreach (['lang', 'dir'] as $attr) {
                         if ($a = extraire_attribut($reg[0], $attr)) {
                             $at[$attr] = $a;
                         }
@@ -7613,7 +7714,8 @@ trait SpipParserTrait
     // Reinserer le javascript de confiance (venant des modeles)
 
     // https://code.spip.net/@echappe_retour_modeles
-    function echappe_retour_modeles($letexte, $interdire_scripts = false) {
+    protected function echappe_retour_modeles($letexte, $interdire_scripts = false)
+    {
         $letexte = echappe_retour($letexte);
 
         // Dans les appels directs hors squelette, securiser aussi ici
@@ -7623,7 +7725,6 @@ trait SpipParserTrait
 
         return trim($letexte);
     }
-
 
     /**
      * Coupe un texte à une certaine longueur.
@@ -7648,7 +7749,8 @@ trait SpipParserTrait
      * @return string
      *     Texte coupé
      **/
-    function couper($texte, $taille = 50, $suite = null) {
+    protected function couper($texte, $taille = 50, $suite = null)
+    {
         if (!($length = strlen($texte)) or $taille <= 0) {
             return '';
         }
@@ -7693,7 +7795,6 @@ trait SpipParserTrait
             $taille += $nbcharutf;
         }
 
-
         // couper au mot precedent
         $long = spip_substr($texte, 0, max($taille - 4, 1));
         $u = $GLOBALS['meta']['pcre_u'];
@@ -7716,8 +7817,7 @@ trait SpipParserTrait
             $texte = $court;
         }
 
-        if (strpos($texte, "\n"))  // la fin est encore la : c'est qu'on n'a pas de texte de suite
-        {
+        if (strpos($texte, "\n")) {  // la fin est encore la : c'est qu'on n'a pas de texte de suite
             $points = '';
         }
 
@@ -7730,9 +7830,9 @@ trait SpipParserTrait
         return quote_amp(trim($texte)) . $points;
     }
 
-
     // https://code.spip.net/@protege_js_modeles
-    function protege_js_modeles($t) {
+    protected function protege_js_modeles($t)
+    {
         if (isset($GLOBALS['visiteur_session'])) {
             if (preg_match_all(',<script.*?($|</script.),isS', $t, $r, PREG_SET_ORDER)) {
                 if (!defined('_PROTEGE_JS_MODELES')) {
@@ -7757,8 +7857,8 @@ trait SpipParserTrait
         return $t;
     }
 
-
-    function echapper_faux_tags($letexte) {
+    protected function echapper_faux_tags($letexte)
+    {
         if (strpos($letexte, '<') === false) {
             return $letexte;
         }
@@ -7784,7 +7884,8 @@ trait SpipParserTrait
      * @param bool $strict
      * @return string
      */
-    function echapper_html_suspect($texte, $strict=true) {
+    protected function echapper_html_suspect($texte, $strict = true)
+    {
         static $echapper_html_suspect;
         if (!$texte or !is_string($texte)) {
             return $texte;
@@ -7806,9 +7907,9 @@ trait SpipParserTrait
         // quand c'est du texte qui passe par propre on est plus coulant tant qu'il y a pas d'attribut du type onxxx=
         // car sinon on declenche sur les modeles ou ressources
         if (!$strict and
-            (strpos($texte,'on') === false or !preg_match(",<\w+.*\bon\w+\s*=,UimsS", $texte))
-            ){
-                return $texte;
+            (strpos($texte, 'on') === false or !preg_match(",<\w+.*\bon\w+\s*=,UimsS", $texte))
+            ) {
+            return $texte;
         }
 
         // on teste sur strlen car safehtml supprime le contenu dangereux
@@ -7819,12 +7920,11 @@ trait SpipParserTrait
             if (!function_exists('attribut_html')) {
                 include_spip('inc/filtres');
             }
-            $texte = "<mark class='danger-js' title='".attribut_html(_T('erreur_contenu_suspect'))."'>⚠️</mark> ".$texte;
+            $texte = "<mark class='danger-js' title='" . attribut_html(_T('erreur_contenu_suspect')) . "'>⚠️</mark> " . $texte;
         }
 
         return $texte;
     }
-
 
     /**
      * Sécurise un texte HTML
@@ -7842,7 +7942,8 @@ trait SpipParserTrait
      * @return string
      *      Texte sécurisé
      **/
-    function safehtml($t) {
+    protected function safehtml($t)
+    {
         static $safehtml;
 
         if (!$t or !is_string($t)) {
@@ -7866,7 +7967,6 @@ trait SpipParserTrait
         return interdire_scripts($t); // interdire le php (2 precautions)
     }
 
-
     /**
      * Supprime les modèles d'image d'un texte
      *
@@ -7884,7 +7984,8 @@ trait SpipParserTrait
      * @return string
      *     Texte sans les modèles d'image
      **/
-    function supprime_img($letexte, $message = null) {
+    protected function supprime_img($letexte, $message = null)
+    {
         if ($message === null) {
             $message = '(' . _T('img_indisponible') . ')';
         }
@@ -7934,8 +8035,9 @@ trait SpipParserTrait
      * @return string
      *     Nom de la fonction, ou false.
      */
-    function charger_fonction($nom, $dossier = 'exec', $continue = false) {
-        static $echecs = array();
+    protected function charger_fonction($nom, $dossier = 'exec', $continue = false)
+    {
+        static $echecs = [];
 
         if (strlen($dossier) and substr($dossier, -1) != '/') {
             $dossier .= '/';
@@ -7989,8 +8091,8 @@ trait SpipParserTrait
 
         include_spip('inc/minipres');
         echo minipres(_T('forum_titre_erreur'),
-            _T('fichier_introuvable', array('fichier' => '<b>' . spip_htmlentities($d) . '</b>')),
-            array('all_inline'=>true,'status'=>404));
+            _T('fichier_introuvable', ['fichier' => '<b>' . spip_htmlentities($d) . '</b>']),
+            ['all_inline' => true,'status' => 404]);
         exit;
     }
 
@@ -8000,20 +8102,20 @@ trait SpipParserTrait
      * @param string $file
      * @return bool
      */
-    function include_once_check($file) {
+    protected function include_once_check($file)
+    {
         if (file_exists($file)) {
             include_once $file;
 
             return true;
         }
         $crash = (isset($GLOBALS['meta']['message_crash_plugins']) ? unserialize($GLOBALS['meta']['message_crash_plugins']) : '');
-        $crash = ($crash ? $crash : array());
+        $crash = ($crash ? $crash : []);
         $crash[$file] = true;
         ecrire_meta('message_crash_plugins', serialize($crash));
 
         return false;
     }
-
 
     /**
      * Inclut un fichier PHP (en le cherchant dans les chemins)
@@ -8034,7 +8136,8 @@ trait SpipParserTrait
      *     - false : fichier introuvable
      *     - string : chemin du fichier trouvé
      **/
-    function include_spip($f, $include = true) {
+    protected function include_spip($f, $include = true)
+    {
         return find_in_path($f . '.php', '', $include);
     }
 
@@ -8054,7 +8157,8 @@ trait SpipParserTrait
      *     - false : fichier introuvable
      *     - string : chemin du fichier trouvé
      **/
-    function require_spip($f) {
+    protected function require_spip($f)
+    {
         return find_in_path($f . '.php', '', 'required');
     }
 
@@ -8080,14 +8184,15 @@ trait SpipParserTrait
      * @return string|array $val
      *     Les paramètres du pipeline modifiés
      **/
-    function minipipe($fonc, &$val) {
+    protected function minipipe($fonc, &$val)
+    {
         // fonction
         if (function_exists($fonc)) {
             $val = call_user_func($fonc, $val);
         } // Class::Methode
         else {
             if (preg_match("/^(\w*)::(\w*)$/S", $fonc, $regs)
-                and $methode = array($regs[1], $regs[2])
+                and $methode = [$regs[1], $regs[2]]
                 and is_callable($methode)
             ) {
                 $val = call_user_func($methode, $val);
@@ -8126,7 +8231,8 @@ trait SpipParserTrait
      * @return mixed|null
      *     Résultat
      */
-    function pipeline($action, $val = null) {
+    protected function pipeline($action, $val = null)
+    {
         static $charger;
 
         // chargement initial des fonctions mises en cache, ou generation du cache
@@ -8162,10 +8268,10 @@ trait SpipParserTrait
             and count($val) == 2
             and (array_key_exists('data', $val))
             ) {
-                $val = $val['data'];
-            }
+            $val = $val['data'];
+        }
 
-            return $val;
+        return $val;
     }
 
     /**
@@ -8208,10 +8314,11 @@ trait SpipParserTrait
      *     Cette dernière notation est controversée mais le 3ème
      *     paramètre est planté pour cause de compatibilité ascendante.
      */
-    function spip_log($message = null, $name = null) {
-        static $pre = array();
+    protected function spip_log($message = null, $name = null): void
+    {
+        static $pre = [];
         static $log;
-        preg_match('/^([a-z_]*)\.?(\d)?$/iS', (string)$name, $regs);
+        preg_match('/^([a-z_]*)\.?(\d)?$/iS', (string) $name, $regs);
         if (!isset($regs[1]) or !$logname = $regs[1]) {
             $logname = null;
         }
@@ -8221,7 +8328,7 @@ trait SpipParserTrait
 
         if ($niveau <= (defined('_LOG_FILTRE_GRAVITE') ? _LOG_FILTRE_GRAVITE : _LOG_INFO_IMPORTANTE)) {
             if (!$pre) {
-                $pre = array(
+                $pre = [
                     _LOG_HS => 'HS:',
                     _LOG_ALERTE_ROUGE => 'ALERTE:',
                     _LOG_CRITIQUE => 'CRITIQUE:',
@@ -8229,8 +8336,8 @@ trait SpipParserTrait
                     _LOG_AVERTISSEMENT => 'WARNING:',
                     _LOG_INFO_IMPORTANTE => '!INFO:',
                     _LOG_INFO => 'info:',
-                    _LOG_DEBUG => 'debug:'
-                );
+                    _LOG_DEBUG => 'debug:',
+                ];
                 $log = charger_fonction('log', 'inc');
             }
             if (!is_string($message)) {
@@ -8247,11 +8354,11 @@ trait SpipParserTrait
      * @param string $phrase Texte du journal
      * @param array $opt Tableau d'options
      **/
-    function journal($phrase, $opt = array()) {
+    protected function journal($phrase, $opt = []): void
+    {
         $journal = charger_fonction('journal', 'inc');
         $journal($phrase, $opt);
     }
-
 
     /**
      * Renvoie le `$_GET` ou le `$_POST` émis par l'utilisateur
@@ -8266,10 +8373,10 @@ trait SpipParserTrait
      *     - null si la clé n'a pas été trouvée
      *     - la valeur de la clé sinon.
      **/
-    function _request($var, $c = false) {
-
+    protected function _request($var, $c = false)
+    {
         if (is_array($c)) {
-            return isset($c[$var]) ? $c[$var] : null;
+            return $c[$var] ?? null;
         }
 
         if (isset($_GET[$var])) {
@@ -8300,7 +8407,6 @@ trait SpipParserTrait
         return $a;
     }
 
-
     /**
      * Affecte une valeur à une clé (pour usage avec `_request()`)
      *
@@ -8314,7 +8420,8 @@ trait SpipParserTrait
      *     - array $c complété si un $c est transmis,
      *     - false sinon
      **/
-    function set_request($var, $val = null, $c = false) {
+    protected function set_request($var, $val = null, $c = false)
+    {
         if (is_array($c)) {
             unset($c[$var]);
             if ($val !== null) {
@@ -8349,9 +8456,10 @@ trait SpipParserTrait
      * @param string $sanitize_function
      * @return array|mixed|string
      */
-    function spip_sanitize_from_request($value, $key, $sanitize_function='entites_html') {
+    protected function spip_sanitize_from_request($value, $key, $sanitize_function = 'entites_html')
+    {
         if (is_array($value)) {
-            if ($key=='*') {
+            if ($key == '*') {
                 $key = array_keys($value);
             }
             if (!is_array($key)) {
@@ -8380,13 +8488,14 @@ trait SpipParserTrait
      * @param string $url
      * @return bool
      */
-    function tester_url_absolue($url) {
+    protected function tester_url_absolue($url)
+    {
         $url = trim($url);
         if (preg_match(";^([a-z]{3,7}:)?//;Uims", $url, $m)) {
             if (
                 isset($m[1])
                 and $p = strtolower(rtrim($m[1], ':'))
-                and in_array($p, array('file', 'php', 'zlib', 'glob', 'phar', 'ssh2', 'rar', 'ogg', 'expect', 'zip'))
+                and in_array($p, ['file', 'php', 'zlib', 'glob', 'phar', 'ssh2', 'rar', 'ogg', 'expect', 'zip'])
             ) {
                 return false;
             }
@@ -8413,7 +8522,8 @@ trait SpipParserTrait
      * @param string $sep Séparateur entre les paramètres
      * @return string URL
      */
-    function parametre_url($url, $c, $v = null, $sep = '&amp;') {
+    protected function parametre_url($url, $c, $v = null, $sep = '&amp;')
+    {
         // requete erronnee : plusieurs variable dans $c et aucun $v
         if (strpos($c, "|") !== false and is_null($v)) {
             return null;
@@ -8449,7 +8559,7 @@ trait SpipParserTrait
                     // c'est un tableau, on memorise les valeurs
                     if (substr($r[1], -2) == "[]") {
                         if (!$v_read) {
-                            $v_read = array();
+                            $v_read = [];
                         }
                         $v_read[] = $r[2] ? substr($r[2], 1) : '';
                     } // c'est un scalaire, on retourne direct
@@ -8518,7 +8628,8 @@ trait SpipParserTrait
      * @param string $ancre
      * @return string
      */
-    function ancre_url($url, $ancre) {
+    protected function ancre_url($url, $ancre)
+    {
         // lever l'#ancre
         if (preg_match(',^([^#]*)(#.*)$,', $url, $r)) {
             $url = $r[1];
@@ -8528,8 +8639,8 @@ trait SpipParserTrait
                 include_spip('inc/charsets');
             }
             $ancre = preg_replace(
-                array('/^[^-_a-zA-Z0-9]+/', '/[^-_a-zA-Z0-9]/'),
-                array('', '-'),
+                ['/^[^-_a-zA-Z0-9]+/', '/[^-_a-zA-Z0-9]/'],
+                ['', '-'],
                 translitteration($ancre)
             );
         }
@@ -8542,7 +8653,8 @@ trait SpipParserTrait
      * @param string|null $reset
      * @return string
      */
-    function nettoyer_uri($reset = null) {
+    protected function nettoyer_uri($reset = null)
+    {
         static $done = false;
         static $propre = '';
         if (!is_null($reset)) {
@@ -8563,7 +8675,8 @@ trait SpipParserTrait
      * @param $request_uri
      * @return string
      */
-    function nettoyer_uri_var($request_uri) {
+    protected function nettoyer_uri_var($request_uri)
+    {
         $uri1 = $request_uri;
         do {
             $uri = $uri1;
@@ -8572,7 +8685,6 @@ trait SpipParserTrait
         } while ($uri <> $uri1);
         return preg_replace(',[?&]$,', '', $uri1);
     }
-
 
     /**
      * Donner l'URL de base d'un lien vers "soi-meme", modulo les trucs inutiles
@@ -8583,7 +8695,8 @@ trait SpipParserTrait
      * @return string
      *    URL vers soi-même
      **/
-    function self($amp = '&amp;', $root = false) {
+    protected function self($amp = '&amp;', $root = false)
+    {
         $url = nettoyer_uri();
         if (!$root
             and (
@@ -8614,7 +8727,7 @@ trait SpipParserTrait
         include_spip('inc/filtres_mini');
         $url = spip_htmlspecialchars($url);
 
-        $url = str_replace(array("'", '"', '<', '[', ']', ':'), array('%27', '%22', '%3C', '%5B', '%5D', '%3A'), $url);
+        $url = str_replace(["'", '"', '<', '[', ']', ':'], ['%27', '%22', '%3C', '%5B', '%5D', '%3A'], $url);
 
         // &amp; ?
         if ($amp != '&amp;') {
@@ -8627,14 +8740,14 @@ trait SpipParserTrait
         return $url;
     }
 
-
     /**
      * Indique si on est dans l'espace prive
      *
      * @return bool
      *     true si c'est le cas, false sinon.
      */
-    function test_espace_prive() {
+    protected function test_espace_prive()
+    {
         return defined('_ESPACE_PRIVE') ? _ESPACE_PRIVE : false;
     }
 
@@ -8644,7 +8757,8 @@ trait SpipParserTrait
      * @param string $plugin
      * @return bool
      */
-    function test_plugin_actif($plugin) {
+    protected function test_plugin_actif($plugin)
+    {
         return ($plugin and defined('_DIR_PLUGIN_' . strtoupper($plugin))) ? true : false;
     }
 
@@ -8675,13 +8789,14 @@ trait SpipParserTrait
      * @return string
      *     Texte
      */
-    function _T($texte, $args = array(), $options = array()) {
+    protected function _T($texte, $args = [], $options = [])
+    {
         static $traduire = false;
-        $o = array('class' => '', 'force' => true, 'sanitize' => true);
+        $o = ['class' => '', 'force' => true, 'sanitize' => true];
         if ($options) {
             // support de l'ancien argument $class
             if (is_string($options)) {
-                $options = array('class' => $options);
+                $options = ['class' => $options];
             }
             $o = array_merge($o, $options);
         }
@@ -8717,13 +8832,10 @@ trait SpipParserTrait
                         substr($texte, $n + 1)));
             }
             $o['class'] = null;
-
         }
 
         return _L($text, $args, $o);
-
     }
-
 
     /**
      * Remplace les variables `@...@` par leur valeur dans une chaîne de langue.
@@ -8747,15 +8859,16 @@ trait SpipParserTrait
      * @return string
      *     Texte
      */
-    function _L($text, $args = array(), $options = array()) {
+    protected function _L($text, $args = [], $options = [])
+    {
         $f = $text;
-        $defaut_options = array(
+        $defaut_options = [
             'class' => null,
             'sanitize' => true,
-        );
+        ];
         // support de l'ancien argument $class
         if ($options and is_string($options)) {
-            $options = array('class' => $options);
+            $options = ['class' => $options];
         }
         if (is_array($options)) {
             $options += $defaut_options;
@@ -8777,7 +8890,7 @@ trait SpipParserTrait
                         $value = interdire_scripts($value, -1);
                     }
                     if (!empty($options['class'])) {
-                        $value = "<span class='".$options['class']."'>$value</span>";
+                        $value = "<span class='" . $options['class'] . "'>$value</span>";
                     }
                     $text = str_replace("@$name@", $value, $text);
                     unset($args[$name]);
@@ -8797,17 +8910,17 @@ trait SpipParserTrait
         }
     }
 
-
     /**
      * Retourne un joli chemin de répertoire
      *
      * Pour afficher `ecrire/action/` au lieu de `action/` dans les messages
      * ou `tmp/` au lieu de `../tmp/`
      *
-     * @param stirng $rep Chemin d’un répertoire
+     * @param string $rep Chemin d’un répertoire
      * @return string
      */
-    function joli_repertoire($rep) {
+    protected function joli_repertoire($rep)
+    {
         $a = substr($rep, 0, 1);
         if ($a <> '.' and $a <> '/') {
             $rep = (_DIR_RESTREINT ? '' : _DIR_RESTREINT_ABS) . $rep;
@@ -8816,7 +8929,6 @@ trait SpipParserTrait
 
         return $rep;
     }
-
 
     /**
      * Débute ou arrête un chronomètre et retourne sa valeur
@@ -8838,7 +8950,8 @@ trait SpipParserTrait
      *     - true : retour en millisecondes
      * @return float|int|string|void
      */
-    function spip_timer($t = 'rien', $raw = false) {
+    protected function spip_timer($t = 'rien', $raw = false)
+    {
         static $time;
         $a = time();
         $b = microtime();
@@ -8868,11 +8981,11 @@ trait SpipParserTrait
         }
     }
 
-
     // Renvoie False si un fichier n'est pas plus vieux que $duree secondes,
     // sinon renvoie True et le date sauf si ca n'est pas souhaite
     // https://code.spip.net/@spip_touch
-    function spip_touch($fichier, $duree = 0, $touch = true) {
+    protected function spip_touch($fichier, $duree = 0, $touch = true)
+    {
         if ($duree) {
             clearstatcache();
             if ((@$f = filemtime($fichier)) and ($f >= time() - $duree)) {
@@ -8883,13 +8996,12 @@ trait SpipParserTrait
             if (!@touch($fichier)) {
                 spip_unlink($fichier);
                 @touch($fichier);
-            };
+            }
             @chmod($fichier, _SPIP_CHMOD & ~0111);
         }
 
         return true;
     }
-
 
     /**
      * Action qui déclenche une tache de fond
@@ -8898,7 +9010,8 @@ trait SpipParserTrait
      * @see  action_super_cron_dist()
      * @uses cron()
      **/
-    function action_cron() {
+    protected function action_cron(): void
+    {
         include_spip('inc/headers');
         http_status(204); // No Content
         header("Connection: close");
@@ -8918,7 +9031,8 @@ trait SpipParserTrait
      * @return bool
      *     True si la tache a pu être effectuée
      */
-    function cron($taches = array(), $taches_old = array()) {
+    protected function cron($taches = [], $taches_old = [])
+    {
         // si pas en mode cron force, laisser tomber.
         if (!defined('_DIRECT_CRON_FORCE')) {
             return false;
@@ -8969,10 +9083,10 @@ trait SpipParserTrait
      * @return int
      *     Le numéro de travail ajouté ou `0` si aucun travail n’a été ajouté.
      */
-    function job_queue_add(
+    protected function job_queue_add(
         $function,
         $description,
-        $arguments = array(),
+        $arguments = [],
         $file = '',
         $no_duplicate = false,
         $time = 0,
@@ -8990,7 +9104,8 @@ trait SpipParserTrait
      *  id of jonb to delete
      * @return bool
      */
-    function job_queue_remove($id_job) {
+    protected function job_queue_remove($id_job)
+    {
         include_spip('inc/queue');
 
         return queue_remove_job($id_job);
@@ -9005,12 +9120,12 @@ trait SpipParserTrait
      *     can be a simple array('objet'=>'article', 'id_objet'=>23)
      *     or an array of simple array to link multiples objet in one time
      */
-    function job_queue_link($id_job, $objets) {
+    protected function job_queue_link($id_job, $objets)
+    {
         include_spip('inc/queue');
 
         return queue_link_job($id_job, $objets);
     }
-
 
     /**
      * Renvoyer le temps de repos restant jusqu'au prochain job
@@ -9027,7 +9142,8 @@ trait SpipParserTrait
      *  - `0` si un job est à traiter
      *  - `null` si la queue n'est pas encore initialisée
      */
-    function queue_sleep_time_to_next_job($force = null) {
+    protected function queue_sleep_time_to_next_job($force = null)
+    {
         static $queue_next_job_time = -1;
         if ($force === true) {
             $queue_next_job_time = -1;
@@ -9060,7 +9176,6 @@ trait SpipParserTrait
         return $queue_next_job_time - $_SERVER['REQUEST_TIME'];
     }
 
-
     /**
      * Transformation XML des `&` en `&amp;`
      *
@@ -9068,12 +9183,12 @@ trait SpipParserTrait
      * @param string $u
      * @return string
      */
-    function quote_amp($u) {
+    protected function quote_amp($u)
+    {
         return preg_replace(
             "/&(?![a-z]{0,4}\w{2,3};|#x?[0-9a-f]{2,6};)/i",
             "&amp;", $u);
     }
-
 
     /**
      * Produit une balise `<script>` valide
@@ -9093,8 +9208,9 @@ trait SpipParserTrait
      * @return string
      *     Balise HTML `<script>` et son contenu
      **/
-    function http_script($script, $src = '', $noscript = '') {
-        static $done = array();
+    protected function http_script($script, $src = '', $noscript = '')
+    {
+        static $done = [];
 
         if ($src && !isset($done[$src])) {
             $done[$src] = true;
@@ -9116,7 +9232,6 @@ trait SpipParserTrait
             ? "<script type='text/javascript'$src>$script</script>$noscript"
             : '';
     }
-
 
     /**
      * Sécurise du texte à écrire dans du PHP ou du Javascript.
@@ -9148,10 +9263,10 @@ trait SpipParserTrait
      * @return string
      *     Texte échappé
      **/
-    function texte_script($texte) {
+    protected function texte_script($texte)
+    {
         return str_replace('\'', '\\\'', str_replace('\\', '\\\\', $texte));
     }
-
 
     /**
      * Gestion des chemins (ou path) de recherche de fichiers par SPIP
@@ -9185,7 +9300,8 @@ trait SpipParserTrait
      * @return array
      *     Liste des chemins, par ordre de priorité.
      **/
-    function _chemin($dir_path = null) {
+    protected function _chemin($dir_path = null)
+    {
         static $path_base = null;
         static $path_full = null;
         if ($path_base == null) {
@@ -9260,7 +9376,8 @@ trait SpipParserTrait
      *
      * @return array Liste de chemins
      **/
-    function creer_chemin() {
+    protected function creer_chemin()
+    {
         $path_a = _chemin();
         static $c = '';
 
@@ -9274,20 +9391,20 @@ trait SpipParserTrait
         return $path_a;
     }
 
-
-    function lister_themes_prives() {
+    protected function lister_themes_prives()
+    {
         static $themes = null;
         if (is_null($themes)) {
             // si pas encore definie
             if (!defined('_SPIP_THEME_PRIVE')) {
                 define('_SPIP_THEME_PRIVE', 'spip');
             }
-            $themes = array(_SPIP_THEME_PRIVE);
+            $themes = [_SPIP_THEME_PRIVE];
             // lors d'une installation neuve, prefs n'est pas definie.
             if (isset($GLOBALS['visiteur_session']['prefs'])) {
                 $prefs = $GLOBALS['visiteur_session']['prefs'];
             } else {
-                $prefs = array();
+                $prefs = [];
             }
             if (is_string($prefs)) {
                 $prefs = unserialize($GLOBALS['visiteur_session']['prefs']);
@@ -9304,21 +9421,21 @@ trait SpipParserTrait
         return $themes;
     }
 
-    function find_in_theme($file, $subdir = '', $include = false) {
-        static $themefiles = array();
+    protected function find_in_theme($file, $subdir = '', $include = false)
+    {
+        static $themefiles = [];
         if (isset($themefiles["$subdir$file"])) {
             return $themefiles["$subdir$file"];
         }
         // on peut fournir une icone generique -xx.svg qui fera le job dans toutes les tailles, et qui est prioritaire sur le png
         // si il y a un .svg a la bonne taille (-16.svg) a cote, on l'utilise en remplacement du -16.png
         if (preg_match(',-(\d+)[.](png|gif|svg)$,', $file, $m)
-            and $file_svg_generique = substr($file,0, -strlen($m[0])) . "-xx.svg"
+            and $file_svg_generique = substr($file, 0, -strlen($m[0])) . "-xx.svg"
             and $f = find_in_theme("$file_svg_generique")) {
-            if ($fsize = substr($f,0,-6) . $m[1] . ".svg" and file_exists($fsize)) {
+            if ($fsize = substr($f, 0, -6) . $m[1] . ".svg" and file_exists($fsize)) {
                 return $themefiles["$subdir$file"] = $fsize;
-            }
-            else {
-                return $themefiles["$subdir$file"] = "$f?".$m[1]."px";
+            } else {
+                return $themefiles["$subdir$file"] = "$f?" . $m[1] . "px";
             }
         }
 
@@ -9332,7 +9449,6 @@ trait SpipParserTrait
 
         return $themefiles["$subdir$file"] = "";
     }
-
 
     /**
      * Cherche une image dans les dossiers d'images
@@ -9353,10 +9469,11 @@ trait SpipParserTrait
      *     Chemin complet de l'icone depuis la racine si l'icone est trouée,
      *     sinon chaîne vide.
      **/
-    function chemin_image($icone) {
+    protected function chemin_image($icone)
+    {
         static $icone_renommer;
         if ($p = strpos($icone, '?')) {
-            $icone = substr($icone,0, $p);
+            $icone = substr($icone, 0, $p);
         }
         // gerer le cas d'un double appel en evitant de refaire le travail inutilement
         if (strpos($icone, "/") !== false and file_exists($icone)) {
@@ -9415,9 +9532,10 @@ trait SpipParserTrait
      *     - string : chemin du fichier trouvé
      *     - false : fichier introuvable
      **/
-    function find_in_path($file, $dirname = '', $include = false) {
-        static $dirs = array();
-        static $inc = array(); # cf https://git.spip.net/spip/spip/commit/42e4e028e38c839121efaee84308d08aee307eec
+    protected function find_in_path($file, $dirname = '', $include = false)
+    {
+        static $dirs = [];
+        static $inc = []; # cf https://git.spip.net/spip/spip/commit/42e4e028e38c839121efaee84308d08aee307eec
         static $c = '';
 
         if (!$file and !strlen($file)) {
@@ -9496,17 +9614,19 @@ trait SpipParserTrait
         return $GLOBALS['path_files'][$GLOBALS['path_sig']][$dirname][$file] = $GLOBALS['path_files'][$GLOBALS['path_sig']][''][$dirname . $file] = false;
     }
 
-    function clear_path_cache() {
-        $GLOBALS['path_files'] = array();
+    protected function clear_path_cache(): void
+    {
+        $GLOBALS['path_files'] = [];
         spip_unlink(_CACHE_CHEMIN);
     }
 
-    function load_path_cache() {
+    protected function load_path_cache(): void
+    {
         // charger le path des plugins
         if (@is_readable(_CACHE_PLUGINS_PATH)) {
-            include_once(_CACHE_PLUGINS_PATH);
+            include_once _CACHE_PLUGINS_PATH;
         }
-        $GLOBALS['path_files'] = array();
+        $GLOBALS['path_files'] = [];
         // si le visiteur est admin,
         // on ne recharge pas le cache pour forcer sa mise a jour
         if (
@@ -9524,21 +9644,21 @@ trait SpipParserTrait
                 if (!$GLOBALS['path_files'] = unserialize($contenu)) {
                     lire_fichier(_CACHE_CHEMIN, $contenu);
                     if (!$GLOBALS['path_files'] = unserialize($contenu)) {
-                        $GLOBALS['path_files'] = array();
+                        $GLOBALS['path_files'] = [];
                     }
                 }
             }
         }
     }
 
-    function save_path_cache() {
+    protected function save_path_cache(): void
+    {
         if (defined('_SAUVER_CHEMIN')
             and _SAUVER_CHEMIN
         ) {
             ecrire_fichier(_CACHE_CHEMIN, serialize($GLOBALS['path_files']));
         }
     }
-
 
     /**
      * Trouve tous les fichiers du path correspondants à un pattern
@@ -9555,8 +9675,9 @@ trait SpipParserTrait
      * @param bool $recurs
      * @return array
      */
-    function find_all_in_path($dir, $pattern, $recurs = false) {
-        $liste_fichiers = array();
+    protected function find_all_in_path($dir, $pattern, $recurs = false)
+    {
+        $liste_fichiers = [];
         $maxfiles = 10000;
 
         // cas borderline si dans mes_options on appelle redirige_par_entete qui utilise _T et charge un fichier de langue
@@ -9569,7 +9690,7 @@ trait SpipParserTrait
         foreach (creer_chemin() as $d) {
             $f = $d . $dir;
             if (@is_dir($f)) {
-                $liste = preg_files($f, $pattern, $maxfiles - count($liste_fichiers), $recurs === true ? array() : $recurs);
+                $liste = preg_files($f, $pattern, $maxfiles - count($liste_fichiers), $recurs === true ? [] : $recurs);
                 foreach ($liste as $chemin) {
                     $nom = basename($chemin);
                     // ne prendre que les fichiers pas deja trouves
@@ -9593,13 +9714,14 @@ trait SpipParserTrait
      * @param bool $strict
      * @return bool
      */
-    function autoriser_sans_cookie($nom, $strict = false) {
-        static $autsanscookie = array('install', 'base_repair');
+    protected function autoriser_sans_cookie($nom, $strict = false)
+    {
+        static $autsanscookie = ['install', 'base_repair'];
 
         if (in_array($nom, $autsanscookie)) {
-            if (test_espace_prive()){
+            if (test_espace_prive()) {
                 include_spip('base/connect_sql');
-                if (!$strict or !spip_connect()){
+                if (!$strict or !spip_connect()) {
                     return true;
                 }
             }
@@ -9629,7 +9751,8 @@ trait SpipParserTrait
      *   array : derogatoire, la fonction d'url retourne (objet,id_objet) utilises par nettoyer_raccourcis_typo() pour generer un lien titre
      *           (cas des raccourcis personalises [->spip20] : il faut implementer une fonction generer_url_spip et une fonction generer_url_ecrire_spip)
      */
-    function generer_url_entite($id = '', $entite = '', $args = '', $ancre = '', $public = null, $type = null) {
+    protected function generer_url_entite($id = '', $entite = '', $args = '', $ancre = '', $public = null, $type = null)
+    {
         if ($public === null) {
             $public = !test_espace_prive();
         }
@@ -9672,7 +9795,6 @@ trait SpipParserTrait
             }
 
             $res = $f(intval($id), $entite, $args, $ancre, $public);
-
         }
         if ($res) {
             return $res;
@@ -9699,7 +9821,8 @@ trait SpipParserTrait
         return '';
     }
 
-    function generer_url_ecrire_entite_edit($id, $entite, $args = '', $ancre = '') {
+    protected function generer_url_ecrire_entite_edit($id, $entite, $args = '', $ancre = '')
+    {
         $exec = objet_info($entite, 'url_edit');
         $url = generer_url_ecrire($exec, $args);
         if (intval($id)) {
@@ -9715,7 +9838,8 @@ trait SpipParserTrait
     }
 
     // https://code.spip.net/@urls_connect_dist
-    function urls_connect_dist($i, &$entite, $args = '', $ancre = '', $public = null) {
+    protected function urls_connect_dist($i, &$entite, $args = '', $ancre = '', $public = null)
+    {
         include_spip('base/connect_sql');
         $id_type = id_table_objet($entite, $public);
 
@@ -9725,14 +9849,14 @@ trait SpipParserTrait
         . (!$ancre ? '' : "#$ancre");
     }
 
-
     /**
      * Transformer les caractères utf8 d'une URL (farsi par exemple) selon la RFC 1738
      *
      * @param string $url
      * @return string
      */
-    function urlencode_1738($url) {
+    protected function urlencode_1738($url)
+    {
         if (preg_match(',[^\x00-\x7E],sS', $url)) {
             $uri = '';
             for ($i = 0; $i < strlen($url); $i++) {
@@ -9748,7 +9872,8 @@ trait SpipParserTrait
     }
 
     // https://code.spip.net/@generer_url_entite_absolue
-    function generer_url_entite_absolue($id = '', $entite = '', $args = '', $ancre = '', $connect = null) {
+    protected function generer_url_entite_absolue($id = '', $entite = '', $args = '', $ancre = '', $connect = null)
+    {
         if (!$connect) {
             $connect = true;
         }
@@ -9761,7 +9886,6 @@ trait SpipParserTrait
         return $h;
     }
 
-
     /**
      * Tester qu'une variable d'environnement est active
      *
@@ -9773,7 +9897,8 @@ trait SpipParserTrait
      * @return bool
      *     true si la valeur est considérée active ; false sinon.
      **/
-    function test_valeur_serveur($truc) {
+    protected function test_valeur_serveur($truc)
+    {
         if (!$truc) {
             return false;
         }
@@ -9797,16 +9922,16 @@ trait SpipParserTrait
      *     racine de SPIP : par exemple, sur ecrire/ elle vaut 1, sur sedna/ 1, et à
      *     la racine 0. Sur url/perso/ elle vaut 2
      *
-     * @param int|boo|array $profondeur
+     * @param int|bool|array $profondeur
      *    - si non renseignée : retourne l'url pour la profondeur $GLOBALS['profondeur_url']
      *    - si int : indique que l'on veut l'url pour la profondeur indiquée
      *    - si bool : retourne le tableau static complet
      *    - si array : réinitialise le tableau static complet avec la valeur fournie
      * @return string|array
      */
-    function url_de_base($profondeur = null) {
-
-        static $url = array();
+    protected function url_de_base($profondeur = null)
+    {
+        static $url = [];
         if (is_array($profondeur)) {
             return $url = $profondeur;
         }
@@ -9833,11 +9958,11 @@ trait SpipParserTrait
             isset($_SERVER['HTTPS'])
             and test_valeur_serveur($_SERVER['HTTPS'])
             ) {
-                $http = 'https';
+            $http = 'https';
         }
 
         // note : HTTP_HOST contient le :port si necessaire
-        $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : null;
+        $host = $_SERVER['HTTP_HOST'] ?? null;
         // si on n'a pas trouvé d'hôte du tout, en dernier recours on utilise adresse_site comme fallback
         if (is_null($host) and isset($GLOBALS['meta']['adresse_site'])) {
             $host = $GLOBALS['meta']['adresse_site'];
@@ -9872,8 +9997,8 @@ trait SpipParserTrait
                 if (!empty($_SERVER['QUERY_STRING'])
                     and !strpos($_SERVER['REQUEST_URI'], '?')
                     ) {
-                        $GLOBALS['REQUEST_URI'] .= '?' . $_SERVER['QUERY_STRING'];
-                    }
+                    $GLOBALS['REQUEST_URI'] .= '?' . $_SERVER['QUERY_STRING'];
+                }
             }
         }
 
@@ -9891,7 +10016,8 @@ trait SpipParserTrait
      * @param int $prof
      * @return string
      */
-    function url_de_($http, $host, $request, $prof = 0) {
+    protected function url_de_($http, $host, $request, $prof = 0)
+    {
         $prof = max($prof, 0);
 
         $myself = ltrim($request, '/');
@@ -9899,13 +10025,13 @@ trait SpipParserTrait
         list($myself) = explode('?', $myself);
         // vieux mode HTTP qui envoie après le nom de la methode l'URL compléte
         // protocole, "://", nom du serveur avant le path dans _SERVER["REQUEST_URI"]
-        if (strpos($myself,'://') !== false) {
-            $myself = explode('://',$myself);
+        if (strpos($myself, '://') !== false) {
+            $myself = explode('://', $myself);
             array_shift($myself);
-            $myself = implode('://',$myself);
-            $myself = explode('/',$myself);
+            $myself = implode('://', $myself);
+            $myself = explode('/', $myself);
             array_shift($myself);
-            $myself = implode('/',$myself);
+            $myself = implode('/', $myself);
         }
         $url = join('/', array_slice(explode('/', $myself), 0, -1 - $prof)) . '/';
 
@@ -9913,7 +10039,6 @@ trait SpipParserTrait
 
         return $url;
     }
-
 
     // Pour une redirection, la liste des arguments doit etre separee par "&"
     // Pour du code XHTML, ca doit etre &amp;
@@ -9945,7 +10070,8 @@ trait SpipParserTrait
      *     - string : on transmet l'url à la fonction
      * @return string URL
      **/
-    function generer_url_ecrire($script = '', $args = "", $no_entities = false, $rel = false) {
+    protected function generer_url_ecrire($script = '', $args = "", $no_entities = false, $rel = false)
+    {
         if (!$rel) {
             $rel = url_de_base() . _DIR_RESTREINT_ABS . _SPIP_ECRIRE_SCRIPT;
         } else {
@@ -9972,7 +10098,6 @@ trait SpipParserTrait
     // Adresse des scripts publics (a passer dans inc-urls...)
     //
 
-
     /**
      * Retourne le nom du fichier d'exécution de SPIP
      *
@@ -9986,7 +10111,8 @@ trait SpipParserTrait
      * @return string
      *     Nom du fichier (constante _SPIP_SCRIPT), sinon nom par défaut
      **/
-    function get_spip_script($default = '') {
+    protected function get_spip_script($default = '')
+    {
         # cas define('_SPIP_SCRIPT', '');
         if (_SPIP_SCRIPT) {
             return _SPIP_SCRIPT;
@@ -10020,7 +10146,8 @@ trait SpipParserTrait
      *     - Fichier d'exécution public (spip.php par défaut)
      * @return string URL
      **/
-    function generer_url_public($script = '', $args = "", $no_entities = false, $rel = true, $action = '') {
+    protected function generer_url_public($script = '', $args = "", $no_entities = false, $rel = true, $action = '')
+    {
         // si le script est une action (spip_pass, spip_inscription),
         // standardiser vers la nouvelle API
 
@@ -10051,8 +10178,8 @@ trait SpipParserTrait
     }
 
     // https://code.spip.net/@generer_url_prive
-    function generer_url_prive($script, $args = "", $no_entities = false) {
-
+    protected function generer_url_prive($script, $args = "", $no_entities = false)
+    {
         return generer_url_public($script, $args, $no_entities, false, _DIR_RESTREINT_ABS . 'prive.php');
     }
 
@@ -10076,8 +10203,8 @@ trait SpipParserTrait
      * @return string
      *     Code HTML du formulaire
      **/
-    function generer_form_ecrire($script, $corps, $atts = '', $submit = '') {
-
+    protected function generer_form_ecrire($script, $corps, $atts = '', $submit = '')
+    {
         $script1 = explode('&', $script);
         $script1 = reset($script1);
 
@@ -10106,7 +10233,8 @@ trait SpipParserTrait
      * @param bool $public
      * @return string
      */
-    function generer_form_action($script, $corps, $atts = '', $public = false) {
+    protected function generer_form_action($script, $corps, $atts = '', $public = false)
+    {
         // si l'on est dans l'espace prive, on garde dans l'url
         // l'exec a l'origine de l'action, qui permet de savoir si il est necessaire
         // ou non de proceder a l'authentification (cas typique de l'install par exemple)
@@ -10134,13 +10262,14 @@ trait SpipParserTrait
      *     Arguments à transmettre a l'URL sous la forme `arg1=yy&arg2=zz`
      * @param bool $no_entities
      *     Si false : transforme les & en &amp;
-     * @param boolean $public
+     * @param bool $public
      *     URL relative ? false : l’URL sera complète et contiendra l’URL du site.
      *     true : l’URL sera relative.
      * @return string
      *     URL
      */
-    function generer_url_action($script, $args = "", $no_entities = false, $public = false) {
+    protected function generer_url_action($script, $args = "", $no_entities = false, $public = false)
+    {
         // si l'on est dans l'espace prive, on garde dans l'url
         // l'exec a l'origine de l'action, qui permet de savoir si il est necessaire
         // ou non de proceder a l'authentification (cas typique de l'install par exemple)
@@ -10159,7 +10288,6 @@ trait SpipParserTrait
         return $url;
     }
 
-
     /**
      * Fonction d'initialisation groupée pour compatibilité ascendante
      *
@@ -10168,7 +10296,8 @@ trait SpipParserTrait
      * @param string $ti Répertoire temporaire inaccessible
      * @param string $ta Répertoire temporaire accessible
      */
-    function spip_initialisation($pi = null, $pa = null, $ti = null, $ta = null) {
+    protected function spip_initialisation($pi = null, $pa = null, $ti = null, $ta = null): void
+    {
         spip_initialisation_core($pi, $pa, $ti, $ta);
         spip_initialisation_suite();
     }
@@ -10189,7 +10318,8 @@ trait SpipParserTrait
      * @param string $ti Répertoire temporaire inaccessible
      * @param string $ta Répertoire temporaire accessible
      */
-    function spip_initialisation_core($pi = null, $pa = null, $ti = null, $ta = null) {
+    protected function spip_initialisation_core($pi = null, $pa = null, $ti = null, $ta = null): void
+    {
         static $too_late = 0;
         if ($too_late++) {
             return;
@@ -10261,11 +10391,10 @@ trait SpipParserTrait
             define('_DIR_CHMOD', $pi);
         }
 
-        if (!isset($GLOBALS['test_dirs']))
-        // Pas $pi car il est bon de le mettre hors ecriture apres intstall
-        // il sera rajoute automatiquement si besoin a l'etape 2 de l'install
-        {
-            $GLOBALS['test_dirs'] = array($pa, $ti, $ta);
+        if (!isset($GLOBALS['test_dirs'])) {
+            // Pas $pi car il est bon de le mettre hors ecriture apres intstall
+            // il sera rajoute automatiquement si besoin a l'etape 2 de l'install
+            $GLOBALS['test_dirs'] = [$pa, $ti, $ta];
         }
 
         // Declaration des fichiers
@@ -10347,7 +10476,7 @@ trait SpipParserTrait
         }
 
         if (!defined('_DEFAULT_CHARSET')) {
-            /** Le charset par défaut lors de l'installation */
+            /* Le charset par défaut lors de l'installation */
             define('_DEFAULT_CHARSET', 'utf-8');
         }
         if (!defined('_ROOT_PLUGINS')) {
@@ -10432,7 +10561,6 @@ trait SpipParserTrait
         $GLOBALS['flag_upload'] = (!$GLOBALS['flag_get_cfg_var'] ||
             (get_cfg_var('upload_max_filesize') > 0));
 
-
         // Compatibilite avec serveurs ne fournissant pas $REQUEST_URI
         if (isset($_SERVER['REQUEST_URI'])) {
             $GLOBALS['REQUEST_URI'] = $_SERVER['REQUEST_URI'];
@@ -10474,10 +10602,9 @@ trait SpipParserTrait
                 // s'en remettre a l'adresse du site. alea jacta est.
                 or $ti !== _NOM_TEMPORAIRES_INACCESSIBLES
             ) {
-
                 if (isset($GLOBALS['meta']['adresse_site'])) {
                     $uri_ref = parse_url($GLOBALS['meta']['adresse_site']);
-                    $uri_ref = (isset($uri_ref['path']) ? $uri_ref['path'] : '') . '/';
+                    $uri_ref = ($uri_ref['path'] ?? '') . '/';
                 } else {
                     $uri_ref = "";
                 }
@@ -10499,15 +10626,14 @@ trait SpipParserTrait
                 clear_path_cache();
             }
         }
-
     }
 
     /**
      * Complements d'initialisation non critiques pouvant etre realises
      * par les plugins
-     *
      */
-    function spip_initialisation_suite() {
+    protected function spip_initialisation_suite(): void
+    {
         static $too_late = 0;
         if ($too_late++) {
             return;
@@ -10532,7 +10658,6 @@ trait SpipParserTrait
         if (!defined('_PASS_LONGUEUR_MINI')) {
             define('_PASS_LONGUEUR_MINI', 6);
         }
-
 
         // Qualite des images calculees automatiquement. C'est un nombre entre 0 et 100, meme pour imagick (on ramene a 0..1 par la suite)
         if (!defined('_IMG_QUALITE')) {
@@ -10564,11 +10689,11 @@ trait SpipParserTrait
             define('_SPIP_DUMP', 'dump@nom_site@@stamp@.xml');
         }
         if (!defined('_CACHE_RUBRIQUES')) {
-            /** Fichier cache pour le navigateur de rubrique du bandeau */
+            /* Fichier cache pour le navigateur de rubrique du bandeau */
             define('_CACHE_RUBRIQUES', _DIR_TMP . 'menu-rubriques-cache.txt');
         }
         if (!defined('_CACHE_RUBRIQUES_MAX')) {
-            /** Nombre maxi de rubriques enfants affichées pour chaque rubrique du navigateur de rubrique du bandeau */
+            /* Nombre maxi de rubriques enfants affichées pour chaque rubrique du navigateur de rubrique du bandeau */
             define('_CACHE_RUBRIQUES_MAX', 500);
         }
 
@@ -10577,22 +10702,22 @@ trait SpipParserTrait
         }
 
         if (!defined('_DOCTYPE_ECRIRE')) {
-            /** Définit le doctype de l’espace privé */
+            /* Définit le doctype de l’espace privé */
             define('_DOCTYPE_ECRIRE', "<!DOCTYPE html>\n");
         }
         if (!defined('_DOCTYPE_AIDE')) {
-            /** Définit le doctype de l’aide en ligne */
+            /* Définit le doctype de l’aide en ligne */
             define('_DOCTYPE_AIDE',
                 "<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01 Frameset//EN' 'http://www.w3.org/TR/1999/REC-html401-19991224/frameset.dtd'>");
         }
 
         if (!defined('_SPIP_SCRIPT')) {
-            /** L'adresse de base du site ; on peut mettre '' si la racine est gerée par
+            /* L'adresse de base du site ; on peut mettre '' si la racine est gerée par
              * le script de l'espace public, alias index.php */
             define('_SPIP_SCRIPT', 'spip.php');
         }
         if (!defined('_SPIP_PAGE')) {
-            /** Argument page, personalisable en cas de conflit avec un autre script */
+            /* Argument page, personalisable en cas de conflit avec un autre script */
             define('_SPIP_PAGE', 'page');
         }
 
@@ -10607,7 +10732,6 @@ trait SpipParserTrait
                 define('_SPIP_ECRIRE_SCRIPT', '');
             }
         }
-
 
         if (!defined('_SPIP_AJAX')) {
             define('_SPIP_AJAX', ((!isset($_COOKIE['spip_accepte_ajax']))
@@ -10651,8 +10775,10 @@ trait SpipParserTrait
                     // Le modifieur 'G' est disponible depuis PHP 5.1.0
                     case 'g':
                         $memory *= 1024;
+                        // no break
                     case 'm':
                         $memory *= 1024;
+                        // no break
                     case 'k':
                         $memory *= 1024;
                 }
@@ -10698,7 +10824,7 @@ trait SpipParserTrait
      * - `debug` :  modifie l'affichage activant le mode "debug"
      * - `preview` : modifie l'affichage en ajoutant aux boucles les éléments prévisualisables
      * - `traduction` : modifie l'affichage en affichant des informations sur les chaînes de langues utilisées
-     * - `urls` : permet de recalculer les URLs des objets appelés dans la page par les balises `#URL_xx`
+     * - `urls` : permet de recalculer les URLs des objets appelés dans la page par les balises `#URL_xx`
      * - `images` : permet de recalculer les filtres d'images utilisés dans la page
      *
      * En dehors des modes `calcul` et `recalcul`, une autorisation 'previsualiser' ou 'debug' est testée.
@@ -10708,10 +10834,10 @@ trait SpipParserTrait
      *     le nombre de requêtes SQL utilisées dans la page, qui peut se compléter avec le paramètre
      * `   var_mode` (calcul ou recalcul).
      */
-    function init_var_mode() {
+    protected function init_var_mode(): void
+    {
         static $done = false;
         if (!$done) {
-
             if (isset($_GET['var_mode'])) {
                 $var_mode = explode(',', $_GET['var_mode']);
                 // tout le monde peut calcul/recalcul
@@ -10722,7 +10848,7 @@ trait SpipParserTrait
                         define('_VAR_MODE', 'calcul');
                     }
                 }
-                $var_mode = array_diff($var_mode, array('calcul', 'recalcul'));
+                $var_mode = array_diff($var_mode, ['calcul', 'recalcul']);
                 if ($var_mode) {
                     include_spip('inc/autoriser');
                     // autoriser preview si preview seulement, et sinon autoriser debug
@@ -10740,7 +10866,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_NOCACHE')) {
                                 define('_VAR_NOCACHE', true);
                             }
-                            $var_mode = array_diff($var_mode, array('traduction'));
+                            $var_mode = array_diff($var_mode, ['traduction']);
                         }
                         if (in_array('preview', $var_mode)) {
                             // basculer sur les criteres de preview dans les boucles
@@ -10755,7 +10881,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_NOCACHE')) {
                                 define('_VAR_NOCACHE', true);
                             }
-                            $var_mode = array_diff($var_mode, array('preview'));
+                            $var_mode = array_diff($var_mode, ['preview']);
                         }
                         if (in_array('inclure', $var_mode)) {
                             // forcer le compilo et ignorer les caches existants
@@ -10769,7 +10895,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_NOCACHE')) {
                                 define('_VAR_NOCACHE', true);
                             }
-                            $var_mode = array_diff($var_mode, array('inclure'));
+                            $var_mode = array_diff($var_mode, ['inclure']);
                         }
                         if (in_array('urls', $var_mode)) {
                             // forcer le compilo et ignorer les caches existants
@@ -10779,7 +10905,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_URLS')) {
                                 define('_VAR_URLS', true);
                             }
-                            $var_mode = array_diff($var_mode, array('urls'));
+                            $var_mode = array_diff($var_mode, ['urls']);
                         }
                         if (in_array('images', $var_mode)) {
                             // forcer le compilo et ignorer les caches existants
@@ -10790,7 +10916,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_IMAGES')) {
                                 define('_VAR_IMAGES', true);
                             }
-                            $var_mode = array_diff($var_mode, array('images'));
+                            $var_mode = array_diff($var_mode, ['images']);
                         }
                         if (in_array('debug', $var_mode)) {
                             if (!defined('_VAR_MODE')) {
@@ -10800,7 +10926,7 @@ trait SpipParserTrait
                             if (!defined('_VAR_NOCACHE')) {
                                 define('_VAR_NOCACHE', true);
                             }
-                            $var_mode = array_diff($var_mode, array('debug'));
+                            $var_mode = array_diff($var_mode, ['debug']);
                         }
                         if (count($var_mode) and !defined('_VAR_MODE')) {
                             define('_VAR_MODE', reset($var_mode));
@@ -10824,7 +10950,7 @@ trait SpipParserTrait
                 }
             }
             if (!defined('_VAR_MODE')) {
-                /**
+                /*
                  * Indique le mode de calcul ou d'affichage de la page.
                  * @see init_var_mode()
                  */
@@ -10838,7 +10964,8 @@ trait SpipParserTrait
     // supprimer aussi les eventuels caracteres nuls %00, qui peuvent tromper
     // la commande is_readable('chemin/vers/fichier/interdit%00truc_normal')
     // https://code.spip.net/@spip_desinfecte
-    function spip_desinfecte(&$t, $deep = true) {
+    protected function spip_desinfecte(&$t, $deep = true): void
+    {
         foreach ($t as $key => $val) {
             if (is_string($t[$key])) {
                 $t[$key] = str_replace(chr(0), '-', $t[$key]);
@@ -10854,7 +10981,8 @@ trait SpipParserTrait
     //  retourne le statut du visiteur s'il s'annonce
 
     // https://code.spip.net/@verifier_visiteur
-    function verifier_visiteur() {
+    protected function verifier_visiteur()
+    {
         // Rq: pour que cette fonction marche depuis mes_options
         // il faut forcer l'init si ce n'est fait
         // mais on risque de perturber des plugins en initialisant trop tot
@@ -10870,7 +10998,7 @@ trait SpipParserTrait
         // dans un formulaire sans login (ex: #FORMULAIRE_FORUM)
         // Attention on separe bien session_nom et nom, pour eviter
         // les melanges entre donnees SQL et variables plus aleatoires
-        $variables_session = array('session_nom', 'session_email');
+        $variables_session = ['session_nom', 'session_email'];
         foreach ($variables_session as $var) {
             if (_request($var) !== null) {
                 $init = true;
@@ -10897,7 +11025,6 @@ trait SpipParserTrait
 
         $h = (isset($_SERVER['PHP_AUTH_USER']) and !$GLOBALS['ignore_auth_http']);
         if ($h or isset($_COOKIE['spip_session']) or isset($_COOKIE[$GLOBALS['cookie_prefix'] . '_session'])) {
-
             $session = charger_fonction('session', 'inc');
             if ($session()) {
                 return $GLOBALS['visiteur_session']['statut'];
@@ -10920,7 +11047,6 @@ trait SpipParserTrait
         return false;
     }
 
-
     /**
      * Sélectionne la langue donnée en argument et mémorise la courante
      *
@@ -10939,8 +11065,9 @@ trait SpipParserTrait
      * @return string
      *     - string Langue utilisée.
      **/
-    function lang_select($lang = null) {
-        static $pile_langues = array();
+    protected function lang_select($lang = null)
+    {
+        static $pile_langues = [];
         if (!function_exists('changer_langue')) {
             include_spip('inc/lang');
         }
@@ -10970,7 +11097,8 @@ trait SpipParserTrait
      * @return string
      *     Identifiant de la session
      **/
-    function spip_session($force = false) {
+    protected function spip_session($force = false)
+    {
         static $session;
         if ($force or !isset($session)) {
             $s = pipeline('definir_session',
@@ -10986,7 +11114,6 @@ trait SpipParserTrait
         return $session;
     }
 
-
     /**
      * Retourne un lien vers une aide
      *
@@ -11001,10 +11128,11 @@ trait SpipParserTrait
      * @return
      *    Lien sur une icone d'aide
      **/
-    function aider($aide = '', $distante = false) {
+    protected function aider($aide = '', $distante = false)
+    {
         $aider = charger_fonction('aide', 'inc', true);
 
-        return $aider ? $aider($aide, '', array(), $distante) : '';
+        return $aider ? $aider($aide, '', [], $distante) : '';
     }
 
     /**
@@ -11012,8 +11140,8 @@ trait SpipParserTrait
      *
      * Si l’utiliseur est un webmestre.
      */
-    function exec_info_dist() {
-
+    protected function exec_info_dist(): void
+    {
         include_spip('inc/autoriser');
         if (autoriser('phpinfos')) {
             $cookies_masques = ['spip_session', 'PHPSESSID'];
@@ -11050,7 +11178,8 @@ trait SpipParserTrait
      *     - Rien dans la plupart des cas
      *     - string si $message à false.
      **/
-    function erreur_squelette($message = '', $lieu = '') {
+    protected function erreur_squelette($message = '', $lieu = '')
+    {
         $debusquer = charger_fonction('debusquer', 'public');
         if (is_array($lieu)) {
             include_spip('public/compiler');
@@ -11093,14 +11222,15 @@ trait SpipParserTrait
      *     - Contenu du squelette calculé
      *     - ou tableau d'information sur le squelette.
      */
-    function recuperer_fond($fond, $contexte = array(), $options = array(), $connect = '') {
+    protected function recuperer_fond($fond, $contexte = [], $options = [], $connect = '')
+    {
         if (!function_exists('evaluer_fond')) {
             include_spip('public/assembler');
         }
         // assurer la compat avec l'ancienne syntaxe
         // (trim etait le 3eme argument, par defaut a true)
         if (!is_array($options)) {
-            $options = array('trim' => $options);
+            $options = ['trim' => $options];
         }
         if (!isset($options['trim'])) {
             $options['trim'] = true;
@@ -11112,7 +11242,7 @@ trait SpipParserTrait
         }
 
         $texte = "";
-        $pages = array();
+        $pages = [];
         $lang_select = '';
         if (!isset($options['etoile']) or !$options['etoile']) {
             // Si on a inclus sans fixer le critere de lang, on prend la langue courante
@@ -11132,27 +11262,25 @@ trait SpipParserTrait
         $GLOBALS['_INC_PUBLIC']++;
 
         // fix #4235
-        $cache_utilise_session_appelant	= (isset($GLOBALS['cache_utilise_session']) ? $GLOBALS['cache_utilise_session'] : null);
+        $cache_utilise_session_appelant = ($GLOBALS['cache_utilise_session'] ?? null);
 
-
-        foreach (is_array($fond) ? $fond : array($fond) as $f) {
-
+        foreach (is_array($fond) ? $fond : [$fond] as $f) {
             unset($GLOBALS['cache_utilise_session']);	// fix #4235
 
             $page = evaluer_fond($f, $contexte, $connect);
             if ($page === '') {
-                $c = isset($options['compil']) ? $options['compil'] : '';
-                $a = array('fichier' => $f);
+                $c = $options['compil'] ?? '';
+                $a = ['fichier' => $f];
                 $erreur = _T('info_erreur_squelette2', $a); // squelette introuvable
                 erreur_squelette($erreur, $c);
                 // eviter des erreurs strictes ensuite sur $page['cle'] en PHP >= 5.4
-                $page = array('texte' => '', 'erreur' => $erreur);
+                $page = ['texte' => '', 'erreur' => $erreur];
             }
 
-            $page = pipeline('recuperer_fond', array(
-                'args' => array('fond' => $f, 'contexte' => $contexte, 'options' => $options, 'connect' => $connect),
-                'data' => $page
-            ));
+            $page = pipeline('recuperer_fond', [
+                'args' => ['fond' => $f, 'contexte' => $contexte, 'options' => $options, 'connect' => $connect],
+                'data' => $page,
+            ]);
             if (isset($options['ajax']) and $options['ajax']) {
                 if (!function_exists('encoder_contexte_ajax')) {
                     include_spip('inc/filtres');
@@ -11160,8 +11288,8 @@ trait SpipParserTrait
                 $page['texte'] = encoder_contexte_ajax(
                     array_merge(
                         $contexte,
-                        array('fond' => $f),
-                        ($connect ? array('connect' => $connect) : array())
+                        ['fond' => $f],
+                        ($connect ? ['connect' => $connect] : [])
                     ),
                     '',
                     $page['texte'],
@@ -11176,7 +11304,7 @@ trait SpipParserTrait
             }
 
             // contamination de la session appelante, pour les inclusions statiques
-            if (isset($page['invalideurs']['session'])){
+            if (isset($page['invalideurs']['session'])) {
                 $cache_utilise_session_appelant = $page['invalideurs']['session'];
             }
         }
@@ -11205,7 +11333,8 @@ trait SpipParserTrait
      * @param  $nom
      * @return string
      */
-    function trouve_modele($nom) {
+    protected function trouve_modele($nom)
+    {
         return trouver_fond($nom, 'modeles/');
     }
 
@@ -11221,7 +11350,8 @@ trait SpipParserTrait
      * @param bool $pathinfo
      * @return array|string
      */
-    function trouver_fond($nom, $dir = '', $pathinfo = false) {
+    protected function trouver_fond($nom, $dir = '', $pathinfo = false)
+    {
         $f = find_in_path($nom . '.' . _EXTENSION_SQUELETTES, $dir ? rtrim($dir, '/') . '/' : '');
         if (!$pathinfo) {
             return $f;
@@ -11256,8 +11386,9 @@ trait SpipParserTrait
      * @return string
      *     Nom de l'exec, sinon chaîne vide.
      **/
-    function tester_url_ecrire($nom) {
-        static $exec = array();
+    protected function tester_url_ecrire($nom)
+    {
+        static $exec = [];
         if (isset($exec[$nom])) {
             return $exec[$nom];
         }
@@ -11277,7 +11408,6 @@ trait SpipParserTrait
         return $exec[$nom] = ((find_in_path("{$nom}.php", 'exec/') or charger_fonction($nom, 'exec', true)) ? $nom : '');
     }
 
-
     /**
      * Teste la présence d’une extension PHP
      *
@@ -11289,13 +11419,13 @@ trait SpipParserTrait
      * @param string $module Nom du module à charger
      * @return bool true si le module est chargé
      **/
-    function charger_php_extension($module) {
+    protected function charger_php_extension($module)
+    {
         if (extension_loaded($module)) {
             return true;
         }
         return false;
     }
-
 
     /**
      * Indique si le code HTML5 est permis sur le site public
@@ -11303,7 +11433,8 @@ trait SpipParserTrait
      * @return bool
      *     true si et seulement si la configuration autorise le code HTML5 sur le site public
      **/
-    function html5_permis() {
+    protected function html5_permis()
+    {
         return (isset($GLOBALS['meta']['version_html_max'])
             and ('html5' == $GLOBALS['meta']['version_html_max']));
     }
@@ -11314,9 +11445,10 @@ trait SpipParserTrait
      * @param bool $svg_allowed
      * @return array
      */
-    function formats_image_acceptables($gd = false, $svg_allowed = true) {
+    protected function formats_image_acceptables($gd = false, $svg_allowed = true)
+    {
         $config = ($gd ? "gd_formats" : "formats_graphiques");
-        $formats = (isset($GLOBALS['meta'][$config]) ? $GLOBALS['meta'][$config] : 'png,gif,jpg');
+        $formats = ($GLOBALS['meta'][$config] ?? 'png,gif,jpg');
         $formats = explode(',', $formats);
         $formats = array_filter($formats);
         $formats = array_map('trim', $formats);
@@ -11333,9 +11465,9 @@ trait SpipParserTrait
      * @param string $fichier
      * @return array|bool
      */
-    function spip_getimagesize($fichier) {
+    protected function spip_getimagesize($fichier)
+    {
         if (!$imagesize = @getimagesize($fichier)) {
-
             include_spip("inc/svg");
             if ($attrs = svg_lire_attributs($fichier)) {
                 list($width, $height, $viewbox) = svg_getimagesize_from_attr($attrs);
@@ -11344,14 +11476,12 @@ trait SpipParserTrait
                     $height,
                     IMAGETYPE_SVG,
                     "width=\"{$width}\" height=\"{$height}\"",
-                    "mime" => "image/svg+xml"
+                    "mime" => "image/svg+xml",
                 ];
             }
         }
         return $imagesize;
     }
-
-
 
     /*
      * Bloc de compatibilite : quasiment tous les plugins utilisent ces fonctions
@@ -11367,17 +11497,19 @@ trait SpipParserTrait
      * @param string $nom Clé de meta à lire
      * @return mixed Valeur de la meta.
      **/
-    function lire_meta($nom) {
-        return isset($GLOBALS['meta'][$nom]) ? $GLOBALS['meta'][$nom] : null;
+    protected function lire_meta($nom)
+    {
+        return $GLOBALS['meta'][$nom] ?? null;
     }
-
 
     /**
      * ecrire_metas : fonction dépréciée
      *
      * @deprecated
      **/
-    function ecrire_metas() { }
+    protected function ecrire_metas(): void
+    {
+    }
 
     /**
      * Poser une alerte qui sera affiche aux auteurs de bon statut ('' = tous)
@@ -11389,131 +11521,20 @@ trait SpipParserTrait
      * @param string $message
      * @param string $statut
      */
-    function avertir_auteurs($nom, $message, $statut = '') {
+    protected function avertir_auteurs($nom, $message, $statut = ''): void
+    {
         $alertes = $GLOBALS['meta']['message_alertes_auteurs'];
         if (!$alertes
             or !is_array($alertes = unserialize($alertes))
         ) {
-            $alertes = array();
+            $alertes = [];
         }
 
         if (!isset($alertes[$statut])) {
-            $alertes[$statut] = array();
+            $alertes[$statut] = [];
         }
         $alertes[$statut][$nom] = $message;
         ecrire_meta("message_alertes_auteurs", serialize($alertes));
-    }
-
-    if (PHP_VERSION_ID < 50500) {
-        if (!function_exists('array_column')) {
-            /**
-             * Returns the values from a single column of the input array, identified by
-             * the $columnKey.
-             *
-             * Optionally, you may provide an $indexKey to index the values in the returned
-             * array by the values from the $indexKey column in the input array.
-             *
-             * @link http://php.net/manual/fr/function.array-column.php
-             * @link https://github.com/ramsey/array_column/blob/master/src/array_column.php
-             * @copyright Copyright (c) Ben Ramsey (http://benramsey.com)
-             * @license http://opensource.org/licenses/MIT MIT
-             *
-             * @param array $input A multi-dimensional array (record set) from which to pull
-             *                     a column of values.
-             * @param mixed $columnKey The column of values to return. This value may be the
-             *                         integer key of the column you wish to retrieve, or it
-             *                         may be the string key name for an associative array.
-             * @param mixed $indexKey (Optional.) The column to use as the index/keys for
-             *                        the returned array. This value may be the integer key
-             *                        of the column, or it may be the string key name.
-             * @return array
-             */
-            function array_column($input = null, $columnKey = null, $indexKey = null)
-            {
-                // Using func_get_args() in order to check for proper number of
-                // parameters and trigger errors exactly as the built-in array_column()
-                // does in PHP 5.5.
-                $argc = func_num_args();
-                $params = func_get_args();
-
-                if ($argc < 2) {
-                    trigger_error("array_column() expects at least 2 parameters, {$argc} given", E_USER_WARNING);
-                    return null;
-                }
-
-                if (!is_array($params[0])) {
-                    trigger_error(
-                        'array_column() expects parameter 1 to be array, ' . gettype($params[0]) . ' given',
-                        E_USER_WARNING
-                    );
-                    return null;
-                }
-
-                if (!is_int($params[1])
-                    && !is_float($params[1])
-                    && !is_string($params[1])
-                    && $params[1] !== null
-                    && !(is_object($params[1]) && method_exists($params[1], '__toString'))
-                ) {
-                    trigger_error('array_column(): The column key should be either a string or an integer', E_USER_WARNING);
-                    return false;
-                }
-
-                if (isset($params[2])
-                    && !is_int($params[2])
-                    && !is_float($params[2])
-                    && !is_string($params[2])
-                    && !(is_object($params[2]) && method_exists($params[2], '__toString'))
-                ) {
-                    trigger_error('array_column(): The index key should be either a string or an integer', E_USER_WARNING);
-                    return false;
-                }
-
-                $paramsInput = $params[0];
-                $paramsColumnKey = ($params[1] !== null) ? (string) $params[1] : null;
-
-                $paramsIndexKey = null;
-                if (isset($params[2])) {
-                    if (is_float($params[2]) || is_int($params[2])) {
-                        $paramsIndexKey = (int) $params[2];
-                    } else {
-                        $paramsIndexKey = (string) $params[2];
-                    }
-                }
-
-                $resultArray = array();
-
-                foreach ($paramsInput as $row) {
-                    $key = $value = null;
-                    $keySet = $valueSet = false;
-
-                    if ($paramsIndexKey !== null && array_key_exists($paramsIndexKey, $row)) {
-                        $keySet = true;
-                        $key = (string) $row[$paramsIndexKey];
-                    }
-
-                    if ($paramsColumnKey === null) {
-                        $valueSet = true;
-                        $value = $row;
-                    } elseif (is_array($row) && array_key_exists($paramsColumnKey, $row)) {
-                        $valueSet = true;
-                        $value = $row[$paramsColumnKey];
-                    }
-
-                    if ($valueSet) {
-                        if ($keySet) {
-                            $resultArray[$key] = $value;
-                        } else {
-                            $resultArray[] = $value;
-                        }
-                    }
-
-                }
-
-                return $resultArray;
-            }
-
-        }
     }
 
     /**
@@ -11526,7 +11547,8 @@ trait SpipParserTrait
      * @param string|string[] $classes
      * @return string|string[]
      */
-    function spip_sanitize_classname($classes) {
+    protected function spip_sanitize_classname($classes)
+    {
         if (is_array($classes)) {
             return array_map('spip_sanitize_classname', $classes);
         }
