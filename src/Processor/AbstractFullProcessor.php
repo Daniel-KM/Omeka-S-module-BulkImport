@@ -586,9 +586,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-        $dispatcher()->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+        $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
         if (!empty($this->modules['Thesaurus'])) {
-            $dispatcher()->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
+            $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
         }
 
         $this->logger->notice(
@@ -736,39 +736,41 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
 
-        $this->logger->info(
-            'Initialization of all resources.' // @translate
-        );
-        if (in_array('items', $toImport)
-            && $this->prepareImport('items')
-        ) {
-            $this->prepareItems();
-            if ($this->hasError) {
-                return;
+        if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
+            $this->logger->info(
+                'Initialization of all resources.' // @translate
+            );
+            if (in_array('items', $toImport)
+                && $this->prepareImport('items')
+            ) {
+                $this->prepareItems();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('media', $toImport)
-            && $this->prepareImport('medias')
-        ) {
-            $this->prepareMedias();
-            if ($this->hasError) {
-                return;
+            if (in_array('media', $toImport)
+                && $this->prepareImport('medias')
+            ) {
+                $this->prepareMedias();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('media_items', $toImport)
-            && $this->prepareImport('media_items')
-        ) {
-            $this->prepareMediaItems();
-            if ($this->hasError) {
-                return;
+            if (in_array('media_items', $toImport)
+                && $this->prepareImport('media_items')
+            ) {
+                $this->prepareMediaItems();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('item_sets', $toImport)
-            && $this->prepareImport('item_sets')
-        ) {
-            $this->prepareItemSets();
-            if ($this->hasError) {
-                return;
+            if (in_array('item_sets', $toImport)
+                && $this->prepareImport('item_sets')
+            ) {
+                $this->prepareItemSets();
+                if ($this->hasError) {
+                    return;
+                }
             }
         }
 
@@ -787,39 +789,41 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             );
             $this->fillAssets();
         }
-        $this->logger->info(
-            'Preparation of metadata of all resources.' // @translate
-        );
-        if (in_array('items', $toImport)
-            && $this->prepareImport('items')
-        ) {
-            $this->fillItems();
-            if ($this->hasError) {
-                return;
+        if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
+            $this->logger->info(
+                'Preparation of metadata of all resources.' // @translate
+            );
+            if (in_array('items', $toImport)
+                && $this->prepareImport('items')
+            ) {
+                $this->fillItems();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('media', $toImport)
-            && $this->prepareImport('medias')
-        ) {
-            $this->fillMedias();
-            if ($this->hasError) {
-                return;
+            if (in_array('media', $toImport)
+                && $this->prepareImport('medias')
+            ) {
+                $this->fillMedias();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('media_items', $toImport)
-            && $this->prepareImport('media_items')
-        ) {
-            $this->fillMediaItems();
-            if ($this->hasError) {
-                return;
+            if (in_array('media_items', $toImport)
+                && $this->prepareImport('media_items')
+            ) {
+                $this->fillMediaItems();
+                if ($this->hasError) {
+                    return;
+                }
             }
-        }
-        if (in_array('item_sets', $toImport)
-            && $this->prepareImport('item_sets')
-        ) {
-            $this->fillItemSets();
-            if ($this->hasError) {
-                return;
+            if (in_array('item_sets', $toImport)
+                && $this->prepareImport('item_sets')
+            ) {
+                $this->fillItemSets();
+                if ($this->hasError) {
+                    return;
+                }
             }
         }
 

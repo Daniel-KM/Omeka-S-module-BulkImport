@@ -278,6 +278,14 @@ SQL;
             }
 
             $entity = $this->entityManager->find($class, $this->map[$sourceType][$sourceId]);
+            if (!$entity) {
+                ++$skipped;
+                $this->logger->notice(
+                    'Unknown resource "{type}" #{source_id}. Probably removed during by another user.', // @translate
+                    ['type' => $sourceType, 'source_id' => $sourceId]
+                );
+                continue;
+            }
             $this->entity = $entity;
 
             // Fill anything for this entity.
@@ -407,7 +415,7 @@ SQL;
             foreach ($values as $value) {
                 $datatype = $value['type'];
                 // Convert unknown custom vocab into a literal.
-                if (strtok($datatype, ':') === 'customvocab') {
+                if (substr($datatype, 0, 12) === 'customvocab:') {
                     if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
                         $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
                     } else {
@@ -430,25 +438,30 @@ SQL;
                     // Try to manage some types when matching module is not installed.
                     switch ($datatype) {
                         // When here, the module NumericDataTypes is not installed.
-                        case strtok($datatype, ':') === 'numeric':
-                            $datatype = $value['type'] = 'literal';
+                        case substr($datatype, 0, 8) === 'numeric:':
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Numeric Data Types';
                             break;
                         case isset($mapDataTypes[$datatype]):
                             if (in_array($mapDataTypes[$datatype], $this->allowedDataTypes)) {
-                                $datatype = $value['type'] = $mapDataTypes;
+                                $datatype = $mapDataTypes[$datatype];
+                                $value['type'] = $mapDataTypes[$datatype];
                                 break;
                             }
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Data Type Rdf';
                             break;
                         // Module RdfDataType.
                         case 'xsd:integer':
                             if (!empty($this->modules['NumericDataTypes'])) {
-                                $datatype = $value['type'] = 'numeric:integer';
+                                $datatype = 'numeric:integer';
+                                $value['type'] = 'numeric:integer';
                                 break;
                             }
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Data Type Rdf / Numeric Data Types';
                             break;
                         case 'xsd:date':
@@ -458,9 +471,11 @@ SQL;
                             if (!empty($this->modules['NumericDataTypes'])) {
                                 try {
                                     $value['@value'] = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value['@value']);
-                                    $datatype = $value['type'] = 'numeric:timestamp';
+                                    $datatype = 'numeric:timestamp';
+                                    $value['type'] = 'numeric:timestamp';
                                 } catch (\Exception $e) {
-                                    $datatype = $value['type'] = 'literal';
+                                    $datatype = 'literal';
+                                    $value['type'] = 'literal';
                                     $this->logger->warn(
                                         'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
                                         ['type' => $resourceType, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
@@ -468,7 +483,8 @@ SQL;
                                 }
                                 break;
                             }
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Data Type Rdf / Numeric Data Types';
                             break;
                         case 'xsd:decimal':
@@ -479,20 +495,24 @@ SQL;
                         // Module DataTypeGeometry.
                         case 'geometry:geography':
                         case 'geometry:geometry':
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Data Type Geometry';
                             break;
                         // Module IdRef.
                         case 'idref':
                             if (!empty($this->modules['ValueSuggest'])) {
-                                $datatype = $value['type'] = 'valuesuggest:idref:person';
+                                $datatype = 'valuesuggest:idref:person';
+                                $value['type'] = 'valuesuggest:idref:person';
                                 break;
                             }
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = 'Value Suggest';
                             break;
                         default:
-                            $datatype = $value['type'] = 'literal';
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
                             $toInstall = $datatype;
                             break;
                     }
@@ -649,7 +669,7 @@ SQL;
         ];
 
         $term = $value['term'];
-        if (!$term) {
+        if (!$term || empty($this->map['properties'][$term]['id'])) {
             return;
         }
 
@@ -695,6 +715,7 @@ SQL;
         if (!count($orderOfProperties)) {
             return $values;
         }
+        $orderOfProperties = array_fill_keys($orderOfProperties, []);
 
         $result = [];
         foreach ($values as $value) {
@@ -721,6 +742,7 @@ SQL;
 
         if (is_null($orderOfProperties)) {
             $orderOfProperties = $this->orderedListTemplatePropertyTerms($source);
+            $orderOfProperties = array_fill_keys($orderOfProperties, []);
         }
 
         if (!count($orderOfProperties)) {
@@ -751,6 +773,9 @@ SQL;
         }
     }
 
+    /**
+     * Get the list of used terms of the template of a resource.
+     */
     protected function orderedListTemplatePropertyTerms(?Resource $source = null): array
     {
         static $templateOrders = [];

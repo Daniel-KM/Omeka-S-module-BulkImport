@@ -76,6 +76,8 @@ class SqlReaderParamsForm extends SqlReaderConfigForm
                     'id' => 'charset',
                     'required' => false,
                     'placeholder' => 'utf8',
+                    // The default value is utf8 in most of the cases.
+                    'value' => 'utf8',
                 ],
             ])
             ->add([

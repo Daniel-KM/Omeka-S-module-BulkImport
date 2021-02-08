@@ -36,7 +36,7 @@ class SpipProcessor extends AbstractFullProcessor
         'endpoint' => null,
     ];
 
-    protected $modulesRequired = [
+    protected $requiredModules = [
         'AdvancedResourceTemplate',
         'Article',
         // 'Comment',
@@ -439,7 +439,8 @@ class SpipProcessor extends AbstractFullProcessor
         if (!mb_strlen($source['titre'])) {
             $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_article']); // @translate
         }
-        $title = $this->polyglotte($source['titre'])[0];
+        $titles = $this->polyglotte($source['titre']);
+        $title = reset($titles);
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
@@ -634,7 +635,8 @@ class SpipProcessor extends AbstractFullProcessor
         if (!mb_strlen($source['titre'])) {
             $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_document']); // @translate
         }
-        $title = $this->polyglotte($source['titre'])[0];
+        $titles = $this->polyglotte($source['titre']);
+        $title = reset($titles);
 
         $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source['id_document']]);
 
@@ -809,7 +811,8 @@ class SpipProcessor extends AbstractFullProcessor
         if (!mb_strlen($source['titre'])) {
             $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_album']); // @translate
         }
-        $title = $this->polyglotte($source['titre'])[0];
+        $titles = $this->polyglotte($source['titre']);
+        $title = reset($titles);
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
@@ -912,6 +915,10 @@ class SpipProcessor extends AbstractFullProcessor
 
         parent::fillConceptProcess($source);
 
+        // Au cas où le titre est traduit, il faut choisir le premier.
+        $title = $this->polyglotte($source['titre'] ?: sprintf($this->translator->translate('[Untitled concept #%s]'), $source['id_rubrique'])); // @translate;
+        $this->entity->setTitle(reset($title));
+
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         if ($status) {
             $this->appendValue([
@@ -974,8 +981,15 @@ class SpipProcessor extends AbstractFullProcessor
         return null;
     }
 
+    protected function toArrayValue($value): array
+    {
+        return $this->polyglotte($value);
+    }
+
     /**
      * Extrait la valeur dans toutes les langues.
+     *
+     * En l'absence de langue multiple, la chaine est renvoyée dans un tableau.
      *
      * @link https://code.spip.net/autodoc/tree/ecrire/inc/filtres.php.html#function_extraire_trads
      * @link https://git.spip.net/SPIP/spip/src/branch/master/ecrire/inc/filtres.php#L1610-L1746
@@ -988,11 +1002,10 @@ class SpipProcessor extends AbstractFullProcessor
     {
         $value = trim((string) $value);
 
-        if (!strlen($value)) {
-            return [];
-        }
-
-        if (strpos($value, '<multi>') === false || strpos($value, '</multi>') === false) {
+        if (!strlen($value)
+            || strpos($value, '<multi>') === false
+            || strpos($value, '</multi>') === false
+        ) {
             return [$value];
         }
 
@@ -1002,7 +1015,7 @@ class SpipProcessor extends AbstractFullProcessor
         $matches = [];
         $extraireMulti = '@<multi>(.*?)</multi>@sS';
         if (!preg_match_all($extraireMulti, $value, $matches, PREG_SET_ORDER)) {
-            return [];
+            return [$value];
         }
 
         $result = [];
@@ -1026,8 +1039,8 @@ class SpipProcessor extends AbstractFullProcessor
      * @see spip/ecrire/inc/filtres.php
      *
      * Exemple de blocs.
-     * - `texte par défaut [fr] en français [en] en anglais`
-     * - `[fr] en français [en] en anglais`
+     * - `texte par défaut [fr] en français [en] in English`
+     * - `en français [en] in English`
      *
      * @param string $bloc
      *     Le contenu intérieur d'un bloc multi

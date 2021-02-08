@@ -54,7 +54,7 @@ trait ThesaurusTrait
     {
         // See prepareAssets() or prepareResources().
 
-        // The concepts  are not mixed with items.
+        // The concepts are not mixed with items.
         $this->map['concepts'] = [];
 
         $keyId = $this->mapping['concepts']['key_id'];
@@ -268,11 +268,14 @@ SQL;
         foreach ($fromTo as $sourceName => $term) {
             $value = $source[$sourceName] ?? '';
             if (strlen($value)) {
-                $values[] = [
-                    'term' => $term,
-                    'lang' => $this->params['language'] ?? null,
-                    'value' => $value,
-                ];
+                // The texts may be stored in multiple languages in one string.
+                foreach ($this->toArrayValue($value) as $lang => $value) {
+                    $values[] = [
+                        'term' => $term,
+                        'lang' => empty($lang) ? $this->params['language'] ?? null : $lang,
+                        'value' => $value,
+                    ];
+                }
             }
         }
 
@@ -336,5 +339,10 @@ SQL;
         }
 
         $this->orderAndAppendValues($values);
+    }
+
+    protected function toArrayValue($value): array
+    {
+        return [$value];
     }
 }
