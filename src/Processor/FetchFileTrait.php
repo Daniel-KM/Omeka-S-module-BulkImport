@@ -37,7 +37,29 @@ trait FetchFileTrait
             ];
         }
 
+        $destFile = $type . '/' . $storageId . '.' . $extension;
+        $destPath = $this->basePath . '/' . $destFile;
+
+        if ($this->getParam('fake_files')) {
+            $fakeFile = OMEKA_PATH . '/application/asset/thumbnails/image.png';
+            $this->store->put($fakeFile, 'original/' . $destFile);
+            $this->store->put($fakeFile, 'large/' . $destFile);
+            $this->store->put($fakeFile, 'medium/' . $destFile);
+            $this->store->put($fakeFile, 'square/' . $destFile);
+            return [
+                'status' => 'success',
+                'data' => [
+                    'fullpath' => $destPath,
+                    'media_type' => 'image/png',
+                    'sha256' => 'd053318edd230ff2757869c4d79172fd924913343edd06a30c2110af28d4ad13',
+                    'has_thumbnails' => true,
+                    'size' => 894,
+                ],
+            ];
+        }
+
         $tempname = tempnam($this->tempPath, 'omkbulk_');
+
         // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
         // Curl is faster than copy or file_get_contents/file_put_contents.
         // $result = copy($url, $tempname);
@@ -93,8 +115,6 @@ trait FetchFileTrait
                 ];
             }
         }
-
-        $destPath = $this->basePath . '/' . $type . '/' . $storageId . '.' . $extension;
 
         /** @var \Omeka\File\TempFile $tempFile */
         $tempFile = $this->tempFileFactory->build();

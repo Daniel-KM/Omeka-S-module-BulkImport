@@ -140,6 +140,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $tempFileFactory;
 
     /**
+     * @var \Omeka\File\Store\StoreInterface
+     */
+    protected $store;
+
+    /**
      * List of allowed datatypes (except dynamic ones, like valuesuggest), for
      * quick check.
      *
@@ -482,6 +487,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->datatypeManager = $services->get('Omeka\DataTypeManager');
 
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
+        $this->store = $services->get('Omeka\File\Store');
         $this->allowedDataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
 
         // The owner should be reloaded each time the entity manager is flushed.

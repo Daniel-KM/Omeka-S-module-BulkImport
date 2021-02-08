@@ -97,6 +97,17 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 ],
             ])
             ->add([
+                'name' => 'fake_files',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Fake files', // @translate
+                    'info' => 'This option avoids fetching and processing files.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'fake_files',
+                ],
+            ])
+            ->add([
                 'name' => 'language',
                 'type' => Element\Text::class,
                 'options' => [

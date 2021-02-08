@@ -31,6 +31,7 @@ class SpipProcessor extends AbstractFullProcessor
     protected $paramsDefault = [
         'o:owner' => null,
         'types' => [],
+        'fake_files' => false,
         'language' => null,
         'endpoint' => null,
     ];
@@ -188,6 +189,8 @@ class SpipProcessor extends AbstractFullProcessor
             $args['types'][] = 'media_items';
         }
         $args['types'] = array_unique($args['types']);
+
+        $args['fake_files'] = !empty($args['fake_files']);
 
         $endpoint = rtrim(trim($args['endpoint'] ?? ''), ' /');
         $args['endpoint'] = $endpoint ? $endpoint . '/' : '';
