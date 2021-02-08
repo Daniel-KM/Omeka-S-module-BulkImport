@@ -130,7 +130,7 @@ abstract class AbstractFileReader extends AbstractReader
     {
         $this->reset();
         if (!$this->isValid()) {
-            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
 
         $this->initializeReader();
@@ -192,7 +192,7 @@ abstract class AbstractFileReader extends AbstractReader
         $filename = tempnam($tempDir, 'omk_');
         if (!move_uploaded_file($file['tmp_name'], $filename)) {
             throw new \Omeka\Service\Exception\RuntimeException(
-                new PsrMessage(
+                (string) new PsrMessage(
                     'Unable to move uploaded file to {filename}', // @translate
                     ['filename' => $filename]
                 )
@@ -265,6 +265,6 @@ abstract class AbstractFileReader extends AbstractReader
      */
     protected function trimUnicode($string): string
     {
-        return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', $string);
+        return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', (string) $string);
     }
 }

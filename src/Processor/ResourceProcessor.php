@@ -198,7 +198,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 return true;
             case 'o:media':
-                if (isset($target["target_data"])) {
+                if (isset($target['target_data'])) {
                     if (isset($target['target_data_value'])) {
                         foreach ($values as $value) {
                             $resourceProperty = $target['target_data_value'];
@@ -303,7 +303,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return true;
             case 'o:item':
                 // $value = array_pop($values);
-                $identifierName = $target["target_data"] ?? $this->getIdentifierNames();
+                $identifierName = $target['target_data'] ?? $this->getIdentifierNames();
                 $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'items');
                 $id = $ids ? array_pop($ids) : null;
                 $resource['o:item'] = [

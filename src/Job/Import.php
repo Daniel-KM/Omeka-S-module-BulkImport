@@ -117,7 +117,7 @@ class Import extends AbstractJob
         $readerManager = $services->get(ReaderManager::class);
         if (!$readerManager->has($readerClass)) {
             throw new \Omeka\Job\Exception\InvalidArgumentException(
-                new PsrMessage(
+                (string) new PsrMessage(
                     'Reader "{reader}" is not available.', // @translate
                     ['reader' => $readerClass]
                 )
@@ -147,7 +147,7 @@ class Import extends AbstractJob
         $processorManager = $services->get(ProcessorManager::class);
         if (!$processorManager->has($processorClass)) {
             throw new \Omeka\Job\Exception\InvalidArgumentException(
-                new PsrMessage(
+                (string) new PsrMessage(
                     'Processor "{processor}" is not available.', // @translate
                     ['processor' => $processorClass]
                 )

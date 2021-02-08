@@ -93,7 +93,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
     {
         $this->reset();
         if (!$this->isValid()) {
-            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
         $this->initializeReader();
         $this->isReady = true;

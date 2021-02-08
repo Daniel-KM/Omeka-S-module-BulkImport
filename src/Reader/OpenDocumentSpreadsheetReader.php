@@ -107,12 +107,12 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // For now, it should be first checked.
         if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
             $this->spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create($this->spreadsheetType);
-            $this->isOldBoxSpout =  true;
+            $this->isOldBoxSpout = true;
         } elseif (class_exists(ReaderEntityFactory::class)) {
-             $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
+            $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
         } else {
             throw new \Omeka\Service\Exception\RuntimeException(
-                new PsrMessage(
+                (string) new PsrMessage(
                     'The library to manage OpenDocument spreadsheet is not available.' // @translate
                 )
             );
@@ -123,9 +123,9 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->spreadsheetReader->open($filepath);
         } catch (\Box\Spout\Common\Exception\IOException $e) {
             throw new \Omeka\Service\Exception\RuntimeException(
-                new PsrMessage(
-                    'File "{filepath}" cannot be open.', // @translate
-                    ['filepath' => $filepath]
+                (string) new PsrMessage(
+                    'File "{filename}" cannot be open.', // @translate
+                    ['filename' => $filepath]
                 )
             );
         }
@@ -163,7 +163,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
         if (!$row) {
             $this->lastErrorMessage = 'File has no available fields.'; // @translate
-            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($row->toArray());
@@ -181,7 +181,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
         if (!is_array($fields)) {
             $this->lastErrorMessage = 'File has no available fields.'; // @translate
-            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($fields);

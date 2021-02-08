@@ -127,7 +127,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $fields = $this->iterator->current();
         if (!is_array($fields)) {
             $this->lastErrorMessage = 'File has no available fields.'; // @translate
-            throw new \Omeka\Service\Exception\RuntimeException($this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($fields);
@@ -141,7 +141,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
 
         if (!$this->isUtf8($filepath)) {
             $this->lastErrorMessage = new PsrMessage(
-                'File "{filepath}" is not fully utf-8.', // @translate
+                'File "{filename}" is not fully utf-8.', // @translate
                 ['filename' => $file['name']]
             );
             return false;

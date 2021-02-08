@@ -163,6 +163,7 @@ SQL;
 
         $name = sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate
         $this->main['scheme']['item']->setTitle($name);
+        $this->main['scheme']['item']->isPublic(true);
         $this->appendValue([
             'term' => 'skos:prefLabel',
             'value' => $name,
