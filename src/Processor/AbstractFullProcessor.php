@@ -9,6 +9,7 @@ use BulkImport\Traits\ParametrizableTrait;
 use DateTime;
 use Laminas\Form\Form;
 use Omeka\Api\Representation\VocabularyRepresentation;
+use Omeka\Entity\ItemSet;
 
 /**
  * @todo The processor is only parametrizable currently.
@@ -233,6 +234,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * List of importables Omeka resources for generic purposes.
      *
      * The default is derived from Omeka database, different from api endpoint.
+     * A specific processor can override this property or use $moreImportables.
      *
      * The keys to use for automatic management are:
      * - name: api resource name
@@ -329,7 +331,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'class' => \Omeka\Entity\Item::class,
             'table' => 'item',
             'fill' => 'fillConcept',
+            'is_resource' => true,
         ],
+    ];
+
+    /**
+     * To be overridden by specific processor. Merged with importables.
+     *
+     * @var array
+     */
+    protected $moreImportables = [
     ];
 
     /**
@@ -552,6 +563,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $args['types'][] = 'custom_vocabs';
         $args['types'] = array_unique($args['types']);
         $this->setParams($args);
+
+        $this->importables = array_replace($this->importables, $this->moreImportables);
 
         $this->preImport();
         if ($this->isErrorOrStop()) {
@@ -1106,6 +1119,27 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
+    protected function findOrCreateItemSet(string $name): ItemSet
+    {
+        $itemSet = $this->entityManager->getRepository(\Omeka\Entity\ItemSet::class)->findOneBy(['title' => $name]);
+        if ($itemSet) {
+            return $itemSet;
+        }
+
+        $itemSet = new \Omeka\Entity\ItemSet;
+        $itemSet->setOwner($this->owner);
+        $itemSet->setTitle($name);
+        $itemSet->setCreated($this->currentDateTime);
+        $itemSet->setIsOpen(true);
+        $this->appendValue([
+            'term' => 'dcterms:title',
+            'value' => $name,
+        ], $itemSet);
+        $this->entityManager->persist($itemSet);
+        $this->entityManager->flush();
+        return $this->entityManager->getRepository(\Omeka\Entity\ItemSet::class)->findOneBy(['title' => $name]);
+    }
+
     protected function completionJobs(): void
     {
         $this->logger->info(
@@ -1117,7 +1151,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
 
-        $ids = array_values(array_unique(array_filter(array_merge(
+        $ids = array_merge(
             $this->map['items'] ?? [],
             $this->map['media'] ?? [],
             $this->map['item_sets'] ?? [],
@@ -1125,7 +1159,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $this->map['concepts'] ?? [],
             $this->map['media_items'] ?? [],
             $this->map['media_items_sub'] ?? []
-        ))));
+        );
+        // Add other resources.
+        foreach ($this->importables as $name => $importable) {
+            if (!empty($importable['is_resource']) && !empty($this->map[$name])) {
+                $ids = array_merge($ids, $this->map[$name]);
+            }
+        }
+        $ids = array_values(array_unique(array_filter($ids)));
         if (count($ids)) {
             $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
         }

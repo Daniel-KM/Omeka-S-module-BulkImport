@@ -69,7 +69,7 @@ trait ThesaurusTrait
         }
 
         $this->logger->notice(
-            'Preparation of a thesaurus scheme with {total} concepts).', // @translate
+            'Preparation of a thesaurus scheme with {total} concepts.', // @translate
             ['total' => $this->totals['concepts']]
         );
 
@@ -92,6 +92,8 @@ trait ThesaurusTrait
                 $this->thesaurus['parents'][$id] = $parentId;
                 $this->thesaurus['narrowers'][$parentId][$label] = $id;
             } else {
+                // Warning: all concepts without a parent are not top concepts,
+                // but unstructured ones.
                 $this->thesaurus['tops'][] = $id;
             }
         }

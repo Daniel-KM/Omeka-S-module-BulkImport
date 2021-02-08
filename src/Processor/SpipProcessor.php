@@ -49,6 +49,23 @@ class SpipProcessor extends AbstractFullProcessor
         'UserProfile',
     ];
 
+    protected $moreImportables = [
+        'breves' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillBreve',
+            'is_resource' => true,
+        ],
+        'auteurs' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillAuteur',
+            'is_resource' => true,
+        ],
+    ];
+
     protected $mapping = [
         'users' => [
             'source' => 'auteurs',
@@ -97,7 +114,7 @@ class SpipProcessor extends AbstractFullProcessor
             'source' => null,
             'key_id' => 'id',
         ],
-        // Modules
+        // Modules.
         'custom_vocabs' => [
             'source' => 'groupe_mots',
             'key_id' => 'id_groupe',
@@ -121,6 +138,30 @@ class SpipProcessor extends AbstractFullProcessor
             'key_modified' => 'maj',
             'narrowers_sort' => 'alpha',
         ],
+        // Module non géré actuellement.
+        'comments' => [
+            'source' => 'messages',
+            'key_id' => 'id_message',
+        ],
+        // Données spécifiques de Spip (relations).
+        // Brèves (items).
+        'breves' => [
+            'source' => 'breves',
+            'key_id' => 'id_breve',
+            // Filled later.
+            // fabio:Micropost
+            'resource_class_id' => null,
+            'resource_template_id' => null,
+        ],
+        // Fiches auteurs (items) et relations avec les contenus.
+        'auteurs' => [
+            'source' => 'auteurs',
+            'key_id' => 'id_auteur',
+            // foaf:Person
+            'resource_class_id' => 94,
+            // Filled later.
+            'resource_template_id' => null,
+        ],
     ];
 
     protected $main = [
@@ -134,6 +175,7 @@ class SpipProcessor extends AbstractFullProcessor
             'template' => 'Thesaurus Concept',
             'class' => 'skos:Concept',
             'item_set' => null,
+            'item_set_id' => null,
         ],
         'scheme' => [
             'template' => 'Thesaurus Scheme',
@@ -141,7 +183,24 @@ class SpipProcessor extends AbstractFullProcessor
             'item' => null,
             'custom_vocab' => null,
         ],
+        'breve' => [
+            'template' => 'Brève',
+            'class' => 'fabio:Micropost',
+            'item_set' => null,
+            'item_set_id' => null,
+        ],
+        'auteur' => [
+            'template' => 'Auteur',
+            'class' => 'foaf:Person',
+            'item_set' => null,
+            'item_set_id' => null,
+            'custom_vocab' => 'Auteur - Statuts',
+        ],
         'templates' => [
+            'Auteur' => null,
+            'Article' => null,
+            // 'Actualité' => null,
+            'Brève' => null,
             'Fichier' => null,
         ],
         'classes' => [
@@ -150,6 +209,9 @@ class SpipProcessor extends AbstractFullProcessor
             'dctype:Sound' => null,
             'dctype:StillImage' => null,
             'dctype:Text' => null,
+            'foaf:Person' => null,
+            // 'fabio:NewsItem' => null,
+            'fabio:Micropost' => null,
         ],
     ];
 
@@ -210,6 +272,13 @@ class SpipProcessor extends AbstractFullProcessor
             'poubelle' => 'à la poubelle',
         ];
 
+        $this->map['statuts_auteur'] = [
+            '0minirezo' => 'Mini réseau',
+            '1comite' => 'Comité',
+            '5poubelle' => 'Poubelle',
+            '6forum' => 'Forum',
+        ];
+
         $this->prepareInternalVocabularies();
     }
 
@@ -247,9 +316,7 @@ class SpipProcessor extends AbstractFullProcessor
 
             $isActive = !empty($auteur['en_ligne']) && $auteur['en_ligne'] !== '0000-00-00 00:00:00';
             $role = $auteur['webmestre'] === 'non' ? ($isActive ? 'author' : 'guest') : 'editor';
-            if ($auteur['maj']) {
-                $userCreated = DateTime::createFromFormat('Y-m-d H:i:s', $auteur['maj']);
-            }
+            $userCreated = empty($auteur['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $auteur['maj']);
             if ($userCreated) {
                 $userCreated = $userCreated->format('Y-m-d H:i:s');
                 $userModified = $userCreated;
@@ -355,6 +422,7 @@ class SpipProcessor extends AbstractFullProcessor
 
     protected function prepareMedias(): void
     {
+        // N'utilise pas les médias, mais les média items.
     }
 
     protected function prepareMediaItems(): void
@@ -369,15 +437,47 @@ class SpipProcessor extends AbstractFullProcessor
 
     protected function prepareOthers(): void
     {
+        $toImport = $this->getParam('types') ?: [];
+
         if (!empty($this->modules['Thesaurus'])
             && in_array('concepts', $this->getParam('types') ?: [])
         ) {
             $this->logger->info(
                 'Preparation of metadata of module Thesaurus.' // @translate
-                );
+            );
             if ($this->prepareImport('concepts')) {
                 $this->prepareConcepts($this->reader->setOrder('id_rubrique')->setObjectType('rubriques'));
             }
+        }
+
+        if (in_array('breves', $toImport)
+            && $this->prepareImport('breves')
+        ) {
+            // TODO La colonne rang_lien n'est pas gérée actuellement (toujours 0 dans la base actuelle). La colonne vu non plus, mais inutile.
+            $this->mapping['breves']['resource_class_id'] = $this->main['classes']['fabio:Micropost']->getId();
+            $this->mapping['breves']['resource_template_id'] = $this->main['templates']['Brève']->getId();
+            $this->prepareResources($this->reader->setOrder('id_breve')->setObjectType('breves'), 'breves');
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $itemSet = $this->findOrCreateItemSet('Brèves');
+            $this->main['breve']['item_set'] = $itemSet;
+            $this->main['breve']['item_set_id'] = $itemSet->getId();
+        }
+
+        if (in_array('auteurs', $toImport)
+            && $this->prepareImport('auteurs')
+        ) {
+            $this->mapping['auteurs']['resource_template_id'] = $this->main['templates']['Auteur']->getId();
+            $this->prepareResources($this->reader->setOrder('id_auteur')->setObjectType('auteurs'), 'auteurs');
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $itemSet = $this->findOrCreateItemSet('Auteurs');
+            $this->main['auteur']['item_set'] = $itemSet;
+            $this->main['auteur']['item_set_id'] = $itemSet->getId();
         }
     }
 
@@ -388,6 +488,7 @@ class SpipProcessor extends AbstractFullProcessor
 
     protected function fillMedias(): void
     {
+        // N'utilise pas les médias, mais les média items.
     }
 
     protected function fillMediaItems(): void
@@ -418,9 +519,8 @@ class SpipProcessor extends AbstractFullProcessor
     protected function fillArticle(array $source): void
     {
         /*
-        // Not managed currently.
+        // Non géré actuellement.
         [
-            'id_secteur', // ?
             'export', // ?
             // Module statistique.
             'visites',
@@ -437,7 +537,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Le titre est obligatoire pour le modèle, mais peut être vide dans Spip.
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_article']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled article #%s]'), $source['id_article']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
@@ -478,6 +578,9 @@ class SpipProcessor extends AbstractFullProcessor
             // 'lang' => 'dcterms:language',
         ];
         foreach ($fromTo as $sourceName => $term) {
+            if (!strlen($source[$sourceName])) {
+                continue;
+            }
             foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
                 $values[] = [
                     'term' => $term,
@@ -487,22 +590,28 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
-        $value = (int) $source['id_rubrique'];
-        if ($value) {
-            // Le concept est conservé même si vide.
+        // Le secteur est la rubrique de tête.
+        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
+        foreach (['id_secteur', 'id_rubrique'] as $keyId) {
+            $value = (int) $source[$keyId];
+            if (!$value) {
+                continue;
+            }
+            // Le concept (numéro) est conservé même si vide, mais en privé.
             if (empty($this->map['concepts'][$value])) {
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'literal',
-                    'lang' => $this->params['language'],
+                    'lang' => null,
                     'value' => $value,
+                    'is_public' => false,
                 ];
             } else {
-                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'resource:item',
-                    'value_resource' => $linked,
+                    'value_resource' => $linkedResource,
                 ];
             }
         }
@@ -512,6 +621,7 @@ class SpipProcessor extends AbstractFullProcessor
                 'term' => 'bibo:status',
                 'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                 'value' => $status,
+                'is_public' => false,
             ];
         }
 
@@ -544,12 +654,18 @@ class SpipProcessor extends AbstractFullProcessor
             ];
         }
 
-        if ($source['url_site'] || $source['nom_site']) {
+        if ($source['url_site']) {
             $values[] = [
                 'term' => 'dcterms:references',
                 'type' => 'uri',
                 '@id' => $source['url_site'],
                 '@label' => $source['nom_site'],
+            ];
+        } elseif ($source['nom_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'literal',
+                'value' => $source['nom_site'],
             ];
         }
 
@@ -572,8 +688,8 @@ class SpipProcessor extends AbstractFullProcessor
                     ];
                 } else {
                     $this->logger->warn(
-                        'The virtuel resource #{identifier} of item #{item_id} (source {source}) was not found.', // @translate
-                        ['identifier' => $source['virtuel'], 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
+                        'The virtuel resource #{identifier} of item #{item_id} (source #{source_id}) was not found.', // @translate
+                        ['identifier' => $source['virtuel'], 'item_id' => $this->entity->getId(), 'source_id' => $source['id_article']]
                     );
                 }
             }
@@ -587,17 +703,15 @@ class SpipProcessor extends AbstractFullProcessor
                     ['id_trad' => $value, 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
                 );
             } else {
-                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
+                $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
                 $values[] = [
                     // Impossible de déterminer laquelle est la traduction de l'autre.
                     'term' => 'bibo:translationOf',
                     'type' => 'resource:item',
-                    'value_resource' => $linked,
+                    'value_resource' => $linkedResource,
                 ];
             }
         }
-
-        // TODO Auteurs liens, documents liens.
 
         $this->orderAndAppendValues($values);
     }
@@ -610,9 +724,9 @@ class SpipProcessor extends AbstractFullProcessor
      * La ressource Spip Document est convertie en item + media.
      *
      * Au cas où la ressource est attachée à un article, le media y est attaché
-     * directement à l'item correspondant. S'il est ajouté en tant qu'illustration
-     * les assets d'Omeka ne sont pas utilisés afin de conerver quelques
-     * les trois métadonnées (titre, descriptif, droits).
+     * directement (à l'item correspondant). S'il est ajouté en tant qu'illustration,
+     * les assets d'Omeka ne sont pas utilisés afin de conserver les quelques
+     * trois métadonnées (titre, descriptif, droits).
      *
      * @link https://www.spip.net/fr_article5632.html
      *
@@ -622,18 +736,21 @@ class SpipProcessor extends AbstractFullProcessor
     {
         $source = array_map('trim', array_map('strval', $source));
 
-        // FIXME Déplacer les médias en tant que fichier attachés aux articles.
+        // L'item et le media contiennent les mêmes métadonnées.
+
+        // Attention: les médias sont déplacés dans un second temps via la table documents_liens.
+        // TODO Le document attaché à un album est un asset, mais avec quelques métadonnées.
 
         /*
-         media	// file / image / video / audio ==> inutile
-         mode	// document / image / vignette => vignette supprimés ; inutile
-         distant	// oui/non // Inutile car url présente
-         brise	// lien brisé ?
+         media   // file / image / video / audio ==> inutile
+         mode   // document / image / vignette => vignette supprimée ; inutile
+         distant    // oui/non // Inutile car url présente
+         brise  // lien brisé
          */
 
         // Le titre est obligatoire pour le modèle, mais peut être vide dans Spip.
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_document']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled document #%s]'), $source['id_document']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
@@ -641,7 +758,10 @@ class SpipProcessor extends AbstractFullProcessor
         $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source['id_document']]);
 
         if ('mode' === 'vignette') {
+            $this->entityManager->remove($media->getItem());
             $this->entityManager->remove($media);
+            $this->map['media_items'][$source['id_document']] = null;
+            $this->map['media_items_sub'][$source['id_document']] = null;
             $this->entity = null;
             $this->logger->warn(
                 'The document #{identifier} is a simple thumbnail and was excluded.', // @translate
@@ -761,6 +881,9 @@ class SpipProcessor extends AbstractFullProcessor
                 'credits' => 'dcterms:rights',
             ];
             foreach ($fromTo as $sourceName => $term) {
+                if (!strlen($source[$sourceName])) {
+                    continue;
+                }
                 foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
                     $values[] = [
                         'term' => $term,
@@ -775,6 +898,7 @@ class SpipProcessor extends AbstractFullProcessor
                     'term' => 'bibo:status',
                     'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                     'value' => $status,
+                    'is_public' => false,
                 ];
             }
 
@@ -809,7 +933,7 @@ class SpipProcessor extends AbstractFullProcessor
         // FIXME Convertir les albums en item avec relation ?
         $source = array_map('trim', array_map('strval', $source));
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_album']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled album #%s]'), $source['id_album']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
@@ -840,6 +964,9 @@ class SpipProcessor extends AbstractFullProcessor
             'lang' => 'dcterms:language',
         ];
         foreach ($fromTo as $sourceName => $term) {
+            if (!strlen($source[$sourceName])) {
+                continue;
+            }
             foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
                 $values[] = [
                     'term' => $term,
@@ -854,6 +981,7 @@ class SpipProcessor extends AbstractFullProcessor
                 'term' => 'bibo:status',
                 'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                 'value' => $status,
+                'is_public' => false,
             ];
         }
 
@@ -878,11 +1006,11 @@ class SpipProcessor extends AbstractFullProcessor
                     ['id_trad' => $value, 'item_set_id' => $this->entity->getId(), 'source' => $source['id_article']]
                 );
             } else {
-                $linked = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['items'][$value]);
+                $linkedResource = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['items'][$value]);
                 $values[] = [
                     'term' => 'bibo:translationOf',
                     'type' => 'resource:item',
-                    'value_resource' => $linked,
+                    'value_resource' => $linkedResource,
                 ];
             }
         }
@@ -898,7 +1026,7 @@ class SpipProcessor extends AbstractFullProcessor
     /**
      * La resource spip "rubrique" est convertie en item Concept.
      *
-     * @todo Move main part of this in ThesaurusTrait.
+     * @todo Déplacer dans ThesaurusTrait.
      * @param array $source
      */
     protected function fillConcept(array $source): void
@@ -925,60 +1053,548 @@ class SpipProcessor extends AbstractFullProcessor
                 'term' => 'bibo:status',
                 'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                 'value' => $status,
+                'is_public' => false,
             ]);
         }
         $isPublic = $source['statut'] === 'publie';
         $this->entity->setIsPublic($isPublic);
     }
 
+    protected function fillOthers(): void
+    {
+        parent::fillOthers();
+
+        $toImport = $this->getParam('types') ?: [];
+
+        // Les relations sont importées séparément, car elles se trouvent dans
+        // des tables séparées et que le lecteur sql ne permet pas de gérer
+        // plusieurs requêtes en parallèle.
+        // TODO Faire en sorte que le lecteur sql gère plusieurs requêtes en parallèle.
+
+        $this->logger->info(
+            'Import des autres données et des relations.' // @translate
+        );
+
+        if (in_array('breves', $toImport)
+            && $this->prepareImport('breves')
+        ) {
+            $this->fillResources($this->reader->setOrder('id_breve')->setObjectType('breves'), 'breves');
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+        }
+
+        if (in_array('item_sets', $toImport)
+            && $this->prepareImport('albums_liens')
+        ) {
+            foreach ($this->reader->setOrder('id_album')->setObjectType('albums_liens') as $source) {
+                $this->fillAlbumLien($source);
+            }
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+        }
+
+        if (in_array('media_items', $toImport)
+            && $this->prepareImport('documents_liens')
+        ) {
+            // TODO La colonne rang_lien n'est pas gérée actuellement (toujours 0 dans la base actuelle). La colonne vu non plus, mais inutile.
+            foreach ($this->reader->setOrder('id_document')->setObjectType('documents_liens') as $source) {
+                $this->fillDocumentLien($source);
+            }
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+        }
+
+        if (in_array('auteurs', $toImport)
+            && $this->prepareImport('auteurs')
+        ) {
+            $this->fillResources($this->reader->setOrder('id_auteur')->setObjectType('auteurs'), 'auteurs');
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            // Ajout des relations.
+            if ($this->prepareImport('auteurs_liens')) {
+                foreach ($this->reader->setOrder('id_auteur')->setObjectType('auteurs_liens') as $source) {
+                    $this->fillAuteurLien($source);
+                }
+                if ($this->isErrorOrStop()) {
+                    return;
+                }
+            }
+        }
+    }
+
+    protected function fillBreve(array $source): void
+    {
+        /*
+        // Non géré actuellement.
+        [
+            // Inutile.
+            langue_choisie
+        ];
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // Le titre est obligatoire pour le modèle, mais peut être vide dans Spip.
+        if (!mb_strlen($source['titre'])) {
+            $source['titre'] = sprintf($this->translator->translate('[Untitled post #%s]'), $source['id_breve']); // @translate
+        }
+        $titles = $this->polyglotte($source['titre']);
+        $title = reset($titles);
+
+        $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
+        $isPublic = $source['statut'] === 'publie';
+        $createdDate = $this->getSqlDateTime($source['date_heure']) ?? $this->currentDateTime;
+        $majDate = $this->getSqlDateTime($source['maj']);
+
+        $language = empty($source['lang'])
+            ? $this->params['language']
+            : $this->isoCode3letters($source['lang']);
+
+        $values = [];
+
+        // Omeka entities are not fluid.
+        /* @var \Omeka\Entity\Item */
+        $this->entity->setOwner($this->owner);
+        $this->entity->setResourceClass($this->main['breve']['class']);
+        $this->entity->setResourceTemplate($this->main['breve']['template']);
+        $this->entity->setTitle($title);
+        $this->entity->setIsPublic($isPublic);
+        $this->entity->setCreated($createdDate);
+        if ($majDate) {
+            $this->entity->setModified($majDate);
+        }
+
+        // Cf. module Article.
+        $fromTo = [
+            'titre' => 'dcterms:title',
+            'texte' => 'bibo:content',
+            // La langue est utilisée directement dans les valeurs.
+            // 'lang' => 'dcterms:language',
+        ];
+        foreach ($fromTo as $sourceName => $term) {
+            if (!strlen($source[$sourceName])) {
+                continue;
+            }
+            foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
+                $values[] = [
+                    'term' => $term,
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $language,
+                    'value' => $value,
+                ];
+            }
+        }
+
+        // Le secteur est la rubrique de tête.
+        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
+        $value = (int) $source['id_rubrique'];
+        if ($value) {
+            // Le concept (numéro) est conservé même si vide, mais en privé.
+            if (empty($this->map['concepts'][$value])) {
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => 'literal',
+                    'lang' => null,
+                    'value' => $value,
+                    'is_public' => false,
+                ];
+            } else {
+                $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => 'resource:item',
+                    'value_resource' => $linkedResource,
+                ];
+            }
+        }
+
+        if ($status) {
+            $values[] = [
+                'term' => 'bibo:status',
+                'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
+                'value' => $status,
+                'is_public' => false,
+            ];
+        }
+
+        // TODO Conserver toutes les dates en valeur ?
+        if ($createdDate) {
+            $values[] = [
+                'term' => 'dcterms:created',
+                'value' => $createdDate->format('Y-m-d H:i:s'),
+            ];
+        }
+        $modifiedDate = $this->getSqlDateTime($source['maj']);
+        if ($modifiedDate) {
+            $values[] = [
+                'term' => 'dcterms:modified',
+                'value' => $modifiedDate->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        if ($source['lien_url']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'uri',
+                '@id' => $source['lien_url'],
+                '@label' => $source['lien_titre'],
+            ];
+        } elseif ($source['lien_titre']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'literal',
+                'value' => $source['lien_titre'],
+            ];
+        }
+
+        $this->orderAndAppendValues($values);
+    }
+
+    protected function fillAlbumLien(array $source): void
+    {
+        $data = $this->mapSourceLienObjet($source, 'item_sets', 'id_album', \Omeka\Entity\ItemSet::class);
+        if (!$data) {
+            return;
+        }
+        // L'objet lié est un contenu de la collection (album).
+        $itemSets = $data['linked_resource']->getItemSets();
+        $itemSets->add($data['resource']);
+        // TODO Persist() est sans doute inutile ici.
+        $this->entityManager->persist($data['linked_resource']);
+    }
+
+    protected function fillAuteurLien(array $source): void
+    {
+        $data = $this->mapSourceLienObjet($source, 'auteurs', 'id_auteur', \Omeka\Entity\Item::class);
+        if (!$data) {
+            return;
+        }
+        // L'auteur de la ressource liée est le propriétaire et l'auteur.
+        $data['linked_resource']->setOwner($data['resource']);
+        $this->appendValue([
+            'term' => 'dcterms:creator',
+            'type' => 'resource:item',
+            'value_resource' => $data['resource'],
+        ], $data['linked_resource']);
+        $this->entityManager->persist($data['linked_resource']);
+    }
+
+    protected function fillDocumentLien(array $source): void
+    {
+        // Un document est un item dans media_items et media_items_sub.
+        // Par construction, l'item et le media sont quasi-identiques pour les
+        // documents. L'item original du document est donc inutile quand on peut
+        // rattacher le media à un autre item.
+        $sourceId = $source['id_document'];
+        $data = $this->mapSourceLienObjet($source, 'media_items_sub', 'id_document', \Omeka\Entity\Item::class);
+        if (!$data) {
+            return;
+        }
+        // Le document (fichier) lié est un media ou un item de la collection
+        // (album) ou du contenu (article, article...).
+        $media = $data['resource'];
+        $item = $media->getItem();
+        if ($data['linked_resource'] instanceof \Omeka\Entity\ItemSet) {
+            // TODO Le document attaché à un album pourrait être un asset, mais avec quelques métadonnées.
+            $itemSets = $item->getItemSets();
+            $itemSets->add($data['linked_resource']);
+            $this->entityManager->persist($data['resource']);
+        } else {
+            $media->setItem($data['linked_resource']);
+            $this->entityManager->persist($media);
+            $this->entityManager->remove($item);
+            $this->map['media_items'][$sourceId] = $data['linked_resource']->getId();
+        }
+    }
+
+    protected function fillAuteur(array $source): void
+    {
+        // Il est plus simple de remplir l'item auteur directement.
+        $source = array_map('trim', array_map('strval', $source));
+
+        $title = $source['nom'];
+        $isPublic = !empty($source['statut']) && $source['statut'] !== '5poubelle';
+        $createdDate = empty($source['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $source['maj']);
+
+        // Récupére le propriétaire de sa propre notice.
+        if (!empty($this->map['users'][$source['id_auteur']])) {
+            $ownerAuteur = $this->entityManager->find(\Omeka\Entity\User::class, $this->map['users'][$source['id_auteur']]);
+        }
+
+        $values = [];
+
+        // Omeka entities are not fluid.
+        /* @var \Omeka\Entity\Item */
+        $this->entity->setOwner($ownerAuteur ?? $this->owner);
+        $this->entity->setResourceClass($this->main['classes']['foaf:Person']);
+        $this->entity->setResourceTemplate($this->main['templates']['Auteur']);
+        $this->entity->setTitle($title);
+        $this->entity->setIsPublic($isPublic);
+        $this->entity->setCreated($createdDate) ?: $this->currentDateTime;
+        if ($createdDate) {
+            $this->entity->setModified($createdDate);
+        }
+
+        $itemSets = $this->entity->getItemSets();
+        $itemSets->add($this->main['auteur']['item_set']);
+
+        // Essai de distinguer le prénom et le nom.
+        // Le nom est toujours en majuscule dans la version importée.
+        $matches = [];
+        $nom = $source['nom'];
+        if (mb_strpos($nom, ' ') !== false && preg_match('~^(.*?)([A-ZÉ]{2}[\w -]*)$~mu', $nom, $matches)) {
+            $last = $matches[2];
+            $first = $matches[1];
+        } else {
+            $last = $source['nom'];
+            $first = '';
+        }
+
+        if (empty($last)) {
+            $last = $source['login'] ?: '[Inconnu]';
+            $this->logger->warn(
+                'The user #"{source_id}" has no name, so the login is used.', // @translate
+                ['source_id' => $source['id_auteur']]
+            );
+        }
+        $values[] = [
+            'term' => 'foaf:name',
+            'value' => $nom,
+        ];
+        $values[] = [
+            'term' => 'foaf:familyName',
+            'value' => $last,
+        ];
+        if ($first) {
+            $values[] = [
+                'term' => 'foaf:givenName',
+                'value' => $first,
+            ];
+        }
+
+        $fromTo = [
+            'email' => 'foaf:mbox',
+            'lang' => 'dcterms:language',
+        ];
+        foreach ($fromTo as $sourceName => $term) {
+            if (strlen($source[$sourceName])) {
+                $values[] = [
+                    'term' => $term,
+                    'value' => $source[$sourceName],
+                ];
+            }
+        }
+
+        if (strlen($source['bio'])) {
+            foreach ($this->polyglotte($source['bio']) as $lang => $value) {
+                $values[] = [
+                    'term' => 'bio:biography',
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $this->params['language'],
+                    'value' => $value,
+                ];
+            }
+        }
+
+        // dcterms:references ou foaf:homepage ?
+        if ($source['url_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'uri',
+                '@id' => $source['url_site'],
+                '@label' => $source['nom_site'],
+            ];
+        } elseif ($source['nom_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'literal',
+                'value' => $source['nom_site'],
+            ];
+        }
+
+        $status = $this->map['statuts_auteur'][$source['statut']] ?? $source['statut'];
+        if ($status) {
+            $values[] = [
+                'term' => ' foaf:membershipClass',
+                'type' => 'customvocab:' . $this->main['auteur']['custom_vocab_id'],
+                'value' => $status,
+                'is_public' => false,
+            ];
+        }
+
+        $this->orderAndAppendValues($values);
+    }
+
+    /**
+     * Récupère le sujet et l'objet d'une table de liens spip.
+     * L'objet (ressource liée) est soit une collection, soit un contenu.
+     */
+    protected function mapSourceLienObjet(
+        array $source,
+        string $sourceMapType,
+        string $sourceIdKey,
+        string $sourceClass
+    ): ?array {
+        // Pas de log spécifique : une table incomplète ne peut être récupérée.
+
+        if (empty($source['id_objet'])
+            || empty($source['objet'])
+            || empty($source[$sourceIdKey])
+            || empty($this->map[$sourceMapType][$source[$sourceIdKey]])
+        ) {
+            return null;
+        }
+
+        switch ($source['objet']) {
+            default:
+            case 'message':
+                // TODO Gérer les messages (commentaires internes).
+                return null;
+            case 'album':
+                $linkedResourceMapType = 'item_sets';
+                $linkedResourceClass = \Omeka\Entity\ItemSet::class;
+                break;
+            case 'article':
+                $linkedResourceMapType = 'items';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+            case 'rubrique':
+                $linkedResourceMapType = 'concepts';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+        }
+
+        if (empty($this->map[$linkedResourceMapType][$source['id_objet']])) {
+            return null;
+        }
+
+        $linkedResourceId = $this->map[$linkedResourceMapType][$source['id_objet']];
+        $linkedResource = $this->entityManager->find($linkedResourceClass, $linkedResourceId);
+        if (!$linkedResource) {
+            return null;
+        }
+
+        $resourceId = $this->map[$sourceMapType][$source[$sourceIdKey]];
+        $resource = $this->entityManager->find($sourceClass, $resourceId);
+        if (!$resource) {
+            return null;
+        }
+
+        return [
+            'resource' => $resource,
+            'linked_resource' => $linkedResource,
+        ];
+    }
+
     /**
      * @link https://www.spip.net/aide/fr-aide.html
+     * @see spip/ecrire/inc/lien.php, fonction typer_raccourci().
      *
-     * @param string $value
+     * @param string $value Uniquement la partie url du lien.
      * @return array|null
      */
     protected function relatedLink($value): ?array
     {
-        if (mb_substr($value, 0, 3) === 'art') {
-            $value = (int) mb_substr($value, 3);
-            if (empty($this->map['items'][$value])) {
-                return null;
-            }
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
-            return [
-                'type' => 'resource:item',
-                'id' => $this->map['items'][$value],
-                'value_resource' => $linked,
-            ];
+        $matches = [];
+        $regex = '/^\s*(\w*?)\s*(\d+)(\?(.*?))?(#([^\s]*))?\s*$/u';
+        if (!preg_match($regex, (string) $value, $matches)) {
+            return null;
         }
 
-        if (mb_substr($value, 0, 3) === 'doc') {
-            $value = (int) mb_substr($value, 3);
-            if (empty($this->map['media'][$value])) {
-                return null;
-            }
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['media'][$value]);
-            return [
-                'type' => 'resource:media',
-                'id' => $this->map['media'][$value],
-                'value_resource' => $linked,
-            ];
+        $sourceId = $matches[2];
+        if (empty($sourceId)) {
+            return null;
         }
 
-        if (mb_substr($value, 0, 2) === 'br') {
-            $value = (int) mb_substr($value, 2);
-            if (empty($this->map['items'][$value])) {
-                return null;
-            }
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
-            return [
-                'type' => 'resource:item',
-                'id' => $this->map['items'][$value],
-                'value_resource' => $linked,
-            ];
+        $types = [
+            '' => 'article',
+            'article' => 'article',
+            'art' => 'art',
+            'breve' => 'breve',
+            'brève' => 'breve',
+            'br' => 'breve',
+            'rubrique' => 'rubrique',
+            'rub' => 'rubrique',
+            'auteur' => 'auteur',
+            'aut' => 'auteur',
+            'document' => 'document',
+            'doc' => 'document',
+            'im' => 'document',
+            'img' => 'document',
+            'emb' => 'document',
+        ];
+        $type = (string) $matches[1];
+        if (!isset($types[$type])) {
+            return null;
         }
 
-        return null;
+        $sourceType = $types[$type];
+        switch ($sourceType) {
+            case 'article':
+                $mapType = 'items';
+                $linkedResourceType = 'resource:item';
+                break;
+            case 'breve':
+                $mapType = 'news';
+                $linkedResourceType = 'resource:item';
+                break;
+            case 'rubrique':
+                $mapType = 'concepts';
+                $linkedResourceType = 'resource:item';
+                break;
+            case 'auteur':
+                $mapType = 'auteurs';
+                $linkedResourceType = 'resource:item';
+                break;
+            case 'document':
+                // Le document peut être un item ou un media (media_items ou
+                // media_items_sub) et dans certains cas (simple vignette), il
+                // est supprimé. De plus, le media peut avoir été déplacé en
+                // item/media.
+                if (!empty($this->map['media_items'][$sourceId])) {
+                    $mapType = 'media_items';
+                    $linkedResourceType = 'resource:item';
+                } elseif (!empty($this->map['items'][$sourceId])) {
+                    $mapType = 'items';
+                    $linkedResourceType = 'resource:item';
+                } elseif (!empty($this->map['media_items_sub'][$sourceId])) {
+                    $mapType = 'media_items_sub';
+                    $linkedResourceType = 'resource:media';
+                } elseif (!empty($this->map['media'][$sourceId])) {
+                    $mapType = 'media';
+                    $linkedResourceType = 'resource:media';
+                } else {
+                    return null;
+                }
+                break;
+            default:
+                return null;
+        }
+
+        if (empty($this->map[$mapType][$sourceId])) {
+            return null;
+        }
+
+        $class = $linkedResourceType === 'resource:media'
+            ? \Omeka\Entity\Media::class
+            : \Omeka\Entity\Item::class;
+
+        $linkedResourceId = $this->map[$mapType][$sourceId];
+        $linkedResource = $this->entityManager->find($class, $linkedResourceId);
+        if (empty($linkedResource)) {
+            return null;
+        }
+
+        return [
+            'source_type' => $sourceType,
+            'source_id' => $sourceId,
+            'type' => $linkedResourceType,
+            'value_resource_id' => $linkedResourceId,
+            'value_resource' => $linkedResource,
+        ];
     }
 
     protected function toArrayValue($value): array

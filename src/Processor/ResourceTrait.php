@@ -57,6 +57,8 @@ trait ResourceTrait
 
         $keyId = $this->mapping[$sourceType]['key_id'];
         $this->sourceKeyId = $keyId;
+        $classId = $this->mapping[$sourceType]['resource_class_id'] ?? null;
+        $templateId = $this->mapping[$sourceType]['resource_template_id'] ?? null;
 
         // Check the size of the import.
         $this->countEntities($sources, $sourceType);
@@ -113,7 +115,7 @@ trait ResourceTrait
             $this->map[$sourceTypeSub] = $this->map[$sourceType];
         }
 
-        $this->createEmptyResources($sourceType);
+        $this->createEmptyResources($sourceType, $classId, $templateId);
         $this->createEmptyResourcesSpecific($sourceType, $mediaItems);
 
         if ($hasSub) {

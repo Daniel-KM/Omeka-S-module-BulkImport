@@ -77,7 +77,9 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         // 'vocabularies' => 'Vocabularies', // @translate
                         // 'resource_templates' => 'Resource templates', // @translate
                         // 'custom_vocabs' => 'Custom vocabs', // @translate
-                        'concepts' => 'Concepts (rubriques)', // @translate
+                        'concepts' => 'Rubriques (thésaurus)', // @translate
+                        'breves' => 'Brèves', // @translate
+                        'auteurs' => 'Fiches auteurs', // @translate
                     ],
                 ],
                 'attributes' => [
@@ -92,6 +94,8 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         // 'resource_templates',
                         // 'custom_vocabs',
                         'concepts',
+                        'breves',
+                        'auteurs',
                     ],
                     'required' => false,
                 ],
