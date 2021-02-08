@@ -3,33 +3,33 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-12-14 00:00+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2020-12-14 00:00+0000\n"
+"Last-Translator: Daniel Berthereau <Daniel.fr@Berthereau.net>\n"
+"Language-Team: \n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.4.2\n"
 
 #: src/Generic/AbstractModule.php:66
 #, php-format
 msgid "This module requires the module \"%s\"."
-msgstr ""
+msgstr "Ce module requiert le module \"%s\"."
 
 #: src/Generic/AbstractModule.php:73
 #, php-format
 msgid "This module requires modules \"%s\"."
-msgstr ""
+msgstr "Ce module requiert les modules \"%s\"."
 
 #: src/Generic/AbstractModule.php:80
 msgid "This module has resources that connot be installed."
-msgstr ""
+msgstr "Ce module a des ressources qui ne peuvent pas être installées."
 
 #: src/Generic/AbstractModule.php:710
 #, php-format
@@ -37,6 +37,8 @@ msgid ""
 "The module \"%s\" was automatically deactivated because the dependencies are "
 "unavailable."
 msgstr ""
+"Le module %s\" a été automatiquement désactivé car ses dépendances ne sont "
+"plus disponibles."
 
 #: src/Media/Ingester/Bulk.php:60
 msgid "Used only for internal bulk process."
@@ -52,15 +54,15 @@ msgstr ""
 
 #: src/Processor/ResourceProcessor.php:113
 msgid "medias"
-msgstr ""
+msgstr "médias"
 
 #: src/Processor/ResourceProcessor.php:114
 msgid "collection"
-msgstr ""
+msgstr "collection"
 
 #: src/Processor/ResourceProcessor.php:115
 msgid "collections"
-msgstr ""
+msgstr "collections"
 
 #: src/Processor/ResourceProcessor.php:116
 msgid "file"
@@ -68,24 +70,24 @@ msgstr ""
 
 #: src/Processor/ResourceProcessor.php:117
 msgid "files"
-msgstr ""
+msgstr "fichiers"
 
 #: src/Processor/ThesaurusTrait.php:241
 #, php-format
 msgid "[Untitled concept #%s]"
-msgstr ""
+msgstr "[Concept sans titre #%s]"
 
 #: view/bulk/admin/import/import-table.phtml:37
 msgid "Stop"
-msgstr ""
+msgstr "Arrêter"
 
 #: view/bulk/admin/import/import-table.phtml:42
 msgid "See params"
-msgstr ""
+msgstr "Voir les paramêtres"
 
 #: view/bulk/admin/import/import-table.phtml:46
 msgid "See logs"
-msgstr ""
+msgstr "Voir les journaux"
 
 #: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/index.phtml:17
 msgid "Imports"
@@ -98,7 +100,7 @@ msgstr ""
 #: view/bulk/admin/importer/edit.phtml:16
 #: view/bulk/admin/importer/start.phtml:17 view/bulk/admin/index/index.phtml:18
 msgid "Bulk import"
-msgstr ""
+msgstr "Import en lot"
 
 #: view/bulk/admin/import/index.phtml:23
 msgid "No imports yet."
@@ -106,23 +108,23 @@ msgstr ""
 
 #: view/bulk/admin/import/logs.phtml:33
 msgid "Emergency"
-msgstr ""
+msgstr "Urgence"
 
 #: view/bulk/admin/import/logs.phtml:34
 msgid "Alert"
-msgstr ""
+msgstr "Alerte"
 
 #: view/bulk/admin/import/logs.phtml:35
 msgid "Critical"
-msgstr ""
+msgstr "Critique"
 
 #: view/bulk/admin/import/logs.phtml:38
 msgid "Notice"
-msgstr ""
+msgstr "Avis"
 
 #: view/bulk/admin/import/logs.phtml:40
 msgid "Debug"
-msgstr ""
+msgstr "Débogage"
 
 #: view/bulk/admin/import/logs.phtml:50 view/bulk/admin/import/show.phtml:15
 #, php-format
@@ -132,22 +134,23 @@ msgstr ""
 #: view/bulk/admin/import/logs.phtml:59
 msgid "Show only messages whose severity is higher than or equal to"
 msgstr ""
+"Afficher seulement les messages dont la gravité est supérieure ou égale à"
 
 #: view/bulk/admin/import/logs.phtml:75
 msgid "Message"
-msgstr ""
+msgstr "Message"
 
 #: view/bulk/admin/import/logs.phtml:76
 msgid "Severity"
-msgstr ""
+msgstr "Gravité"
 
 #: view/bulk/admin/import/logs.phtml:77
 msgid "Time"
-msgstr ""
+msgstr "Heure"
 
 #: view/bulk/admin/import/logs.phtml:98
 msgid "Full log"
-msgstr ""
+msgstr "Message complet"
 
 #: view/bulk/admin/import/logs.phtml:116 view/bulk/admin/import/show.phtml:36
 msgid "Attempt to stop job"
@@ -155,15 +158,15 @@ msgstr ""
 
 #: view/bulk/admin/import/logs.phtml:122
 msgid "Manage logs"
-msgstr ""
+msgstr "Gérer les journaux"
 
 #: view/bulk/admin/import/logs.phtml:127
 msgid "No logs yet."
-msgstr ""
+msgstr "Pas encore de journaux."
 
 #: view/bulk/admin/import/logs.phtml:127
 msgid "Refresh page"
-msgstr ""
+msgstr "Rafraîchir la page"
 
 #: view/bulk/admin/import/show.phtml:24 view/bulk/admin/importer/start.phtml:21
 #, php-format
@@ -173,21 +176,21 @@ msgstr ""
 #: view/bulk/admin/import/show.phtml:25 view/bulk/admin/importer/start.phtml:25
 #, php-format
 msgid "Comment: %s"
-msgstr ""
+msgstr "Commentaire : %s"
 
 #: view/bulk/admin/import/show.phtml:28
 #, php-format
 msgid "Started: %s"
-msgstr ""
+msgstr "Démarrage : %s"
 
 #: view/bulk/admin/import/show.phtml:31
 #, php-format
 msgid "Ended: %s"
-msgstr ""
+msgstr "Terminé : %s"
 
 #: view/bulk/admin/import/show.phtml:40 view/bulk/admin/importer/start.phtml:26
 msgid "Parameters"
-msgstr ""
+msgstr "Paramètres"
 
 #: view/bulk/admin/import/show.phtml:41 view/bulk/admin/importer/start.phtml:27
 #: view/bulk/admin/index/index.phtml:28
@@ -206,7 +209,7 @@ msgstr ""
 #: view/bulk/admin/importer/add.phtml:15
 #: view/bulk/admin/importer/configure-processor.phtml:16
 msgid "Bulk Import"
-msgstr ""
+msgstr "Import en lot"
 
 #: view/bulk/admin/importer/configure-processor.phtml:16
 #: view/bulk/admin/importer/configure-processor.phtml:19
@@ -322,6 +325,7 @@ msgstr ""
 #: Module.php:32 src/Reader/AbstractSpreadsheetFileReader.php:14
 msgid "The dependency Box/Spout version should be >= 3.0. See readme."
 msgstr ""
+"La dépendance Box/Spout doit avoir une version >= 3.0. Consultez le readme."
 
 #: src/Form/EntriesByBatchTrait.php:14 src/Form/EntriesByBatchTrait.php:23
 msgid "Entries by batch"
@@ -339,26 +343,26 @@ msgstr ""
 #: src/Form/Processor/ItemSetProcessorParamsForm.php:32
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:348
 msgid "Resource metadata"
-msgstr ""
+msgstr "Métadonnées des ressources"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:34
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:182
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:335
 msgid "Internal id"
-msgstr ""
+msgstr "Id interne"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:37
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:78
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:351
 msgid "Resource class"
-msgstr ""
+msgstr "Classe de ressource"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:39
 #: src/Form/Processor/ResourceProcessorParamsForm.php:64
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:353
 #: src/Form/Processor/ItemProcessorParamsForm.php:46
 msgid "Visibility public/private"
-msgstr ""
+msgstr "Visibilité public/privé"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:45
 #: src/Form/Processor/ResourceProcessorParamsForm.php:51
@@ -373,13 +377,13 @@ msgstr ""
 #: src/Form/Processor/ResourceProcessorConfigForm.php:64
 #: src/Form/Processor/ItemSetProcessorConfigForm.php:16
 msgid "Openness"
-msgstr ""
+msgstr "Ouverture"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:59
 #: src/Form/Processor/MediaProcessorParamsForm.php:41
 #: src/Form/Processor/ItemProcessorParamsForm.php:41
 msgid "Url"
-msgstr ""
+msgstr "Url"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:61
 #: src/Form/Processor/MediaProcessorParamsForm.php:43
@@ -391,7 +395,7 @@ msgstr ""
 #: src/Form/Processor/MediaProcessorParamsForm.php:44
 #: src/Form/Processor/ItemProcessorParamsForm.php:44
 msgid "Html"
-msgstr ""
+msgstr "Html"
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:70
 #: src/Form/Processor/ItemProcessorParamsForm.php:52
@@ -408,12 +412,14 @@ msgstr ""
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:43
 msgid "This optional comment will help admins for future reference."
 msgstr ""
+"Ce commentaire facultatif pourra aider les admins dans les références "
+"futures."
 
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:36
 #: src/Form/Processor/SpipProcessorParamsForm.php:39
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:48
 msgid "Optional comment for future reference."
-msgstr ""
+msgstr "Commentaire facultatif pour référence future."
 
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:45
 #: src/Form/Processor/SpipProcessorParamsForm.php:48
@@ -425,7 +431,7 @@ msgstr ""
 #: src/Form/Processor/SpipProcessorParamsForm.php:62
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:109
 msgid "Select a user"
-msgstr ""
+msgstr "Choisir un utilisateur"
 
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:67
 #: src/Form/Processor/SpipProcessorParamsForm.php:70
@@ -435,7 +441,7 @@ msgstr ""
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:73
 #: src/Form/Processor/SpipProcessorParamsForm.php:76
 msgid "Assets"
-msgstr ""
+msgstr "Fichiers"
 
 #: src/Form/Processor/OmekaSProcessorParamsForm.php:77
 msgid "Mappings"
@@ -456,7 +462,7 @@ msgstr ""
 #: src/Form/Processor/ItemProcessorConfigForm.php:23
 #: src/Form/Processor/ResourceProcessorConfigForm.php:53
 msgid "Select one or more item sets…"
-msgstr ""
+msgstr "Choisir une ou plusieurs collections…"
 
 #: src/Form/Processor/ResourceProcessorConfigForm.php:31
 msgid "Select the resource type…"
@@ -470,7 +476,7 @@ msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:69
 msgid "Select a template…"
-msgstr ""
+msgstr "Choisir un modèle de ressource…"
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:85
 msgid "Select a class…"
@@ -478,7 +484,7 @@ msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:133
 msgid "Action"
-msgstr ""
+msgstr "Action"
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:134
 msgid ""
@@ -551,7 +557,7 @@ msgstr ""
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:184
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:337
 msgid "Media identifier"
-msgstr ""
+msgstr "Identifiant du média"
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:187
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:340
@@ -571,7 +577,7 @@ msgstr ""
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:191
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:344
 msgid "Hash"
-msgstr ""
+msgstr "Dièse"
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:206
 msgid "Select an identifier name…"
@@ -654,11 +660,11 @@ msgstr ""
 
 #: src/Form/Validator/ReadableDirectory.php:22
 msgid "The path is not a directory"
-msgstr ""
+msgstr "Le chemin n’est pas un dossier"
 
 #: src/Form/Validator/ReadableDirectory.php:23
 msgid "The path is not readable"
-msgstr ""
+msgstr "Le fichier source n’est pas lisible"
 
 #: src/Form/Validator/ReadableDirectory.php:24
 msgid "The path is not inside the restricted path"
@@ -714,15 +720,15 @@ msgstr ""
 
 #: src/Form/Reader/CsvReaderConfigForm.php:14
 msgid "Delimiter"
-msgstr ""
+msgstr "Délimiteur"
 
 #: src/Form/Reader/CsvReaderConfigForm.php:25
 msgid "Enclosure"
-msgstr ""
+msgstr "Séparateur"
 
 #: src/Form/Reader/CsvReaderConfigForm.php:36
 msgid "Escape"
-msgstr ""
+msgstr "Échapper"
 
 #: src/Form/Reader/OmekaSReaderParamsForm.php:15
 msgid "Omeka S api endpoint"
@@ -738,7 +744,7 @@ msgstr ""
 
 #: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:17
 msgid "OpenDocument Spreadsheet (ods)"
-msgstr ""
+msgstr "Tableur OpenDocument (ods)"
 
 #: src/Form/Reader/CsvReaderParamsForm.php:17
 msgid "CSV file"
@@ -746,7 +752,7 @@ msgstr ""
 
 #: src/Form/Reader/SpreadsheetReaderConfigForm.php:16
 msgid "Multi-value separator"
-msgstr ""
+msgstr "Séparateur multi-valeur"
 
 #: src/Form/Reader/SpreadsheetReaderConfigForm.php:17
 msgid ""
@@ -765,7 +771,7 @@ msgstr ""
 
 #: src/Form/ConfigForm.php:24
 msgid "Command of the xslt processor"
-msgstr ""
+msgstr "Commande pour le processeur xslt"
 
 #: src/Form/ConfigForm.php:25
 msgid ""
@@ -809,7 +815,7 @@ msgstr ""
 #: src/Processor/AssetTrait.php:183 src/Processor/MappingTrait.php:55
 #: src/Processor/MappingTrait.php:65
 msgid "{count}/{total} resource \"{type}\" imported, {skipped} skipped."
-msgstr ""
+msgstr "{count}/{total} ressources \"{type}\" importées, {skipped} ignorées."
 
 #: src/Processor/UserTrait.php:172
 msgid "{total} users ready, {created} created, {skipped} skipped."
@@ -858,6 +864,8 @@ msgid ""
 "{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} "
 "skipped."
 msgstr ""
+"{count}/{total} vocabulaires {member} importées, {existing} existants, "
+"{skipped} ignorés."
 
 #: src/Processor/VocabularyTrait.php:288
 msgid "Vocabulary {member} {term} has been created."
@@ -890,6 +898,7 @@ msgstr ""
 #: src/Processor/ResourceTemplateTrait.php:138
 msgid "{total} resource templates ready, {created} created, {skipped} skipped."
 msgstr ""
+"{total} modèles de ressources prêts, {created} créés, {skipped} ignorés."
 
 #: src/Processor/ResourceProcessor.php:12
 msgid "Mixed resources"
@@ -939,7 +948,7 @@ msgstr ""
 
 #: src/Processor/AbstractFullProcessor.php:543
 msgid "types"
-msgstr ""
+msgstr "types"
 
 #: src/Processor/AbstractFullProcessor.php:589
 msgid ""
@@ -1122,6 +1131,8 @@ msgid ""
 "{count}/{total} resource \"{type}\" imported, {skipped} skipped, {excluded} "
 "excluded."
 msgstr ""
+"{count}/{total} ressources \"{type}\" importées, {skipped} ignorées, "
+"{excluded} exclues."
 
 #: src/Processor/ResourceTrait.php:334
 msgid ""
@@ -1179,11 +1190,11 @@ msgstr ""
 
 #: src/Processor/AbstractProcessor.php:38
 msgid "create"
-msgstr ""
+msgstr "créer"
 
 #: src/Processor/AbstractProcessor.php:39
 msgid "append"
-msgstr ""
+msgstr "ajouter"
 
 #: src/Processor/AbstractProcessor.php:40
 msgid "revise"
@@ -1191,19 +1202,19 @@ msgstr ""
 
 #: src/Processor/AbstractProcessor.php:41
 msgid "update"
-msgstr ""
+msgstr "mettre à jour"
 
 #: src/Processor/AbstractProcessor.php:42
 msgid "replace"
-msgstr ""
+msgstr "remplacer"
 
 #: src/Processor/AbstractProcessor.php:43
 msgid "delete"
-msgstr ""
+msgstr "supprimer"
 
 #: src/Processor/AbstractProcessor.php:44
 msgid "skip"
-msgstr ""
+msgstr "ignorer"
 
 #: src/Processor/AbstractProcessor.php:416
 msgid ""
@@ -1260,6 +1271,7 @@ msgstr ""
 #: src/Processor/CustomVocabTrait.php:111
 msgid "{total} custom vocabs ready, {created} created, {skipped} skipped."
 msgstr ""
+"{total} vocabulaires personnalisés prêts, {created} créés, {skipped} ignorés."
 
 #: src/Processor/AbstractResourceProcessor.php:199
 msgid "The first {skip} entries are skipped by user."
@@ -1402,7 +1414,7 @@ msgstr ""
 
 #: src/Processor/FetchFileTrait.php:97
 msgid "."
-msgstr ""
+msgstr "."
 
 #: src/Processor/MappingTrait.php:76
 msgid "The source item #{source_id} is not found for its mapping zone."
@@ -1421,6 +1433,9 @@ msgid ""
 "{total} empty {type} are present in the database. Here are the first ones: "
 "{first}. Use module BulkCheck to check and fix them."
 msgstr ""
+"{total} {type} vides sont présents dans la base de données. Voici les "
+"premiers : {first}. Utiliser le module Bulk Check pour les vérifier et les "
+"réparer."
 
 #: src/Processor/InternalIntegrityTrait.php:50
 msgid ""
@@ -1514,19 +1529,19 @@ msgstr ""
 #: src/Controller/Admin/ImporterController.php:448
 #: src/Controller/Admin/ImporterController.php:482
 msgid "Continue"
-msgstr ""
+msgstr "Continuer"
 
 #: src/Api/Representation/ImportRepresentation.php:86
 msgid "ready"
-msgstr ""
+msgstr "prêt"
 
 #: src/Api/Representation/ImportRepresentation.php:95
 msgid "Ready"
-msgstr ""
+msgstr "Prêt"
 
 #: src/Reader/CsvReader.php:21
 msgid "CSV"
-msgstr ""
+msgstr "CSV"
 
 #: src/Reader/CsvReader.php:129
 #: src/Reader/OpenDocumentSpreadsheetReader.php:141
@@ -1567,11 +1582,11 @@ msgstr ""
 
 #: src/Reader/TsvReader.php:12
 msgid "TSV (tab-separated values)"
-msgstr ""
+msgstr "TSV (valeurs séparées per des tabulations)"
 
 #: src/Reader/SpreadsheetReader.php:9
 msgid "Spreadsheet"
-msgstr ""
+msgstr "Tableur"
 
 #: src/Reader/SqlReader.php:125
 msgid "The database seems empty: there is no data in a core table."
@@ -1626,7 +1641,7 @@ msgstr ""
 
 #: src/Reader/OpenDocumentSpreadsheetReader.php:13
 msgid "OpenDocument Spreadsheet"
-msgstr ""
+msgstr "Tableur OpenDocument"
 
 #: src/Reader/OpenDocumentSpreadsheetReader.php:48
 msgid ""
@@ -1672,43 +1687,43 @@ msgstr ""
 
 #: src/Mvc/Controller/Plugin/Bulk.php:514
 msgid "resource"
-msgstr ""
+msgstr "ressource"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:515
 msgid "annotation"
-msgstr ""
+msgstr "annotation"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:517
 msgid "property"
-msgstr ""
+msgstr "propriété"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:518
 msgid "resource class"
-msgstr ""
+msgstr "classe de ressource"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:537
 msgid "resources"
-msgstr ""
+msgstr "ressources"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:538
 msgid "annotations"
-msgstr ""
+msgstr "annotations"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:539
 msgid "vocabularies"
-msgstr ""
+msgstr "vocabulaires"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:540
 msgid "properties"
-msgstr ""
+msgstr "propriétés"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:541
 msgid "resource classes"
-msgstr ""
+msgstr "classes de ressource"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:542
 msgid "resource templates"
-msgstr ""
+msgstr "modèles de ressource"
 
 #: src/Mvc/Controller/Plugin/Bulk.php:596
 msgid "Identifier \"{identifier}\" is not unique ({count} values)."
@@ -1726,12 +1741,12 @@ msgstr ""
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:76
 #, php-format
 msgid "The remote file \"%s\" is not readable or empty."
-msgstr ""
+msgstr "Le fichier distant \"%s\" n’est pas lisible ou vide."
 
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:80
 #, php-format
 msgid "The input file \"%s\" is not readable."
-msgstr ""
+msgstr "Le fichier d’entrée \"%s\" n'est pas lisible."
 
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:129
 #, php-format
@@ -1739,6 +1754,8 @@ msgid ""
 "An error occurs during the xsl transformation of the file \"%s\" with the "
 "sheet \"%s\"."
 msgstr ""
+"Une erreur est survenue durant la transformation xsl du fichier \"%s\" avec "
+"la feuille \"%s\"."
 
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:154
 #, php-format
@@ -1746,11 +1763,13 @@ msgid ""
 "Could not load \"%s\". Verify that you have rights to access this folder and "
 "subfolders."
 msgstr ""
+"Impossible de charger \"%s\". Vérifiez que vous disposez des droits d’accès "
+"au dossier et aux sous-dossiers."
 
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:157
 #, php-format
 msgid "The file \"%s\" is empty. Process is aborted."
-msgstr ""
+msgstr "Le fichier \"%s\" est vide. Le traitement est abandonné."
 
 #: src/Mvc/Controller/Plugin/ProcessXslt.php:198
 #, php-format
@@ -1758,6 +1777,8 @@ msgid ""
 "An error occurs during the xsl transformation of the file \"%s\" with the "
 "sheet \"%s\" : %s"
 msgstr ""
+"Une erreur est survenue durant la transformation xsl du fichier \"%s\" avec "
+"la feuille \"%s\" : %s"
 
 #: src/Entry/SpreadsheetEntry.php:34
 #, php-format
@@ -1770,21 +1791,21 @@ msgstr ""
 
 #: config/module.config.php:107
 msgid "Dashboard"
-msgstr ""
+msgstr "Tableau de bord"
 
 #: config/module.config.php:120
 msgid "Past Imports"
-msgstr ""
+msgstr "Précédents imports"
 
 #: config/module.config.php:137
 msgid "Params"
-msgstr ""
+msgstr "Paramètres"
 
 #: config/module.config.php:144
 msgid "Logs"
-msgstr ""
+msgstr "Journaux"
 
 #: test/BulkImportTest/Job/ImportTest.php:305
 #, php-format
 msgid "No argument files (%s)."
-msgstr ""
+msgstr "Fichiers d’arguments manquants (%s)."
