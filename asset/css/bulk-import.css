@@ -19,4 +19,9 @@
     .bulk-label-sub:before {
         content: '  ';
     }
+
+    .bulk-imports.log.browse td:first-child,
+    .bulk-imports.log.browse th:first-child {
+        width: 67%;
+    }
 }

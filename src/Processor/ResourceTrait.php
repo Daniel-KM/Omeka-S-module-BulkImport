@@ -179,7 +179,7 @@ WHERE `spec`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
         // Fetch by key pair is not supported by doctrine 2.0.
-        $this->map[$sourceType] = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's');
+        $this->map[$sourceType] = array_map('intval', array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's'));
 
         // Create the resource in the specific resource table.
         switch ($resourceType) {

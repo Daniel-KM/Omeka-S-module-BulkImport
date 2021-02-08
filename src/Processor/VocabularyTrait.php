@@ -315,6 +315,6 @@ trait VocabularyTrait
         }
 
         // Prepare simple maps of source id and destination id.
-        $this->map['by_id'][$resourceType] = array_column($this->map[$resourceType], 'id', 'source');
+        $this->map['by_id'][$resourceType] = array_map('intval', array_column($this->map[$resourceType], 'id', 'source'));
     }
 }

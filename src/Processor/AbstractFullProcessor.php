@@ -518,10 +518,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $requireds = array_intersect_key(array_filter($this->modules), array_flip($this->requiredModules));
         if (count($this->requiredModules) && count($requireds) !== count($this->requiredModules)) {
+            $missings = array_diff($this->requiredModules, array_keys($requireds));
             $this->hasError = true;
             $this->logger->err(
-                'The process requires the following modules currently: {modules}', // @translate
-                ['modules' => '"' . implode('", "', $this->requiredModules) . '"']
+                'The process requires the missing modules {modules}. The following modules are already enabled: {enabled}.', // @translate
+                [
+                    'modules' => '"' . implode('", "', $missings) . '"',
+                    'enabled' => '"' . implode('", "', array_intersect($this->requiredModules, array_keys($requireds))) . '"',
+                ]
             );
             return;
         }
@@ -559,12 +563,29 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
-        $this->import();
+        $this->importMetadata();
+        if ($this->hasError) {
+            return;
+        }
+
+        $this->importData();
         if ($this->hasError) {
             return;
         }
 
         $this->postImport();
+        if ($this->hasError) {
+            return;
+        }
+
+        $counts = array_combine(array_keys($this->map), array_map('count', $this->map));
+        $counts = array_intersect_key($counts, array_flip($this->getParam('types', [])));
+        $this->logger->notice(
+            'Totals of data existing and imported: {json}.', // @translate
+            ['json' => json_encode($counts)]
+        );
+
+        $this->completionJobs();
         if ($this->hasError) {
             return;
         }
@@ -580,17 +601,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             ]
         );
          */
-
-        // TODO Derivative, check of resource title.
-
-        /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
-        $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
-        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-        $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
-        if (!empty($this->modules['Thesaurus'])) {
-            $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
-        }
-
         $this->logger->notice(
             'End of process. Note: errors can occur separately for each imported file.' // @translate
         );
@@ -629,13 +639,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->checkResources();
     }
 
-    protected function import(): void
+    protected function importMetadata(): void
     {
         $toImport = $this->getParam('types') ?: [];
 
         // FIXME  Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
-
-        // First step: check and create all vocabularies
 
         // Users are prepared first to include the owner anywhere.
         if (in_array('users', $toImport)
@@ -714,8 +722,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 return;
             }
         }
+    }
 
-        // Second step: import the data.
+    protected function importData(): void
+    {
+        $toImport = $this->getParam('types') ?: [];
 
         // The process uses two loops: creation of all resources empty, then
         // filling them. This process is required to manage relations between
@@ -916,7 +927,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'id' => $id,
             ];
         }
-        $this->map['by_id']['properties'] = array_column($this->map['properties'], 'id', 'source');
+        $this->map['by_id']['properties'] = array_map('intval', array_column($this->map['properties'], 'id', 'source'));
 
         foreach ($this->getResourceClassIds() as $term => $id) {
             $this->map['resource_classes'][$term] = [
@@ -925,7 +936,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'id' => $id,
             ];
         }
-        $this->map['by_id']['resource_classes'] = array_column($this->map['resource_classes'], 'id', 'source');
+        $this->map['by_id']['resource_classes'] = array_map('intval', array_column($this->map['resource_classes'], 'id', 'source'));
     }
 
     protected function checkVocabularies(): void
@@ -1076,6 +1087,42 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             );
             // Not prepare: there are mappings and mapping markers.
             $this->fillMapping();
+        }
+    }
+
+    protected function completionJobs(): void
+    {
+        $this->logger->info(
+            'Running jobs for reindexation and finalization. Check next jobs in admin interface.' // @translate
+        );
+
+        /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
+        $services = $this->getServiceLocator();
+        $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+
+        $ids = array_values(array_unique(array_filter(array_merge(
+            $this->map['items'] ?? [],
+            $this->map['media'] ?? [],
+            $this->map['item_sets'] ?? [],
+            $this->map['annotations'] ?? [],
+            $this->map['concepts'] ?? [],
+            $this->map['media_items'] ?? [],
+            $this->map['media_items_sub'] ?? []
+        ))));
+        if (count($ids)) {
+            $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
+        }
+        $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+        if (!empty($this->modules['Thesaurus'])) {
+            $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
+        }
+
+        // TODO Run derivative files job.
+        if (count($this->map['media'])) {
+            $this->logger->warning(
+                'Derivative files should be recreated with module Bulk Check.' // @translate
+            );
         }
     }
 
