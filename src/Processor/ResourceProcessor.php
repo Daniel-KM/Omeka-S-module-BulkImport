@@ -455,7 +455,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         // The check is needed to avoid a notice because it's an ArrayObject.
-        if (array_key_exists('o:item', $resource)) {
+        if (property_exists($resource, 'o:item')) {
             unset($resource['o:item']);
         }
 
@@ -465,13 +465,13 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function checkItemSet(ArrayObject $resource)
     {
         // The check is needed to avoid a notice because it's an ArrayObject.
-        if (array_key_exists('o:item', $resource)) {
+        if (property_exists($resource, 'o:item')) {
             unset($resource['o:item']);
         }
-        if (array_key_exists('o:item_set', $resource)) {
+        if (property_exists($resource, 'o:item_set')) {
             unset($resource['o:item_set']);
         }
-        if (array_key_exists('o:media', $resource)) {
+        if (property_exists($resource, 'o:media')) {
             unset($resource['o:media']);
         }
         return true;
@@ -508,10 +508,10 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         // The check is needed to avoid a notice because it's an ArrayObject.
-        if (array_key_exists('o:item_set', $resource)) {
+        if (property_exists($resource, 'o:item_set')) {
             unset($resource['o:item_set']);
         }
-        if (array_key_exists('o:media', $resource)) {
+        if (property_exists($resource, 'o:media')) {
             unset($resource['o:media']);
         }
         return true;

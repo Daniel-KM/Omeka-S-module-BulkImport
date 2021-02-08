@@ -340,7 +340,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 continue;
             } elseif (array_key_exists($key, $singleKeys)) {
                 $resource[$key] = $values;
-            } elseif (array_key_exists($key, $resource) && is_array($resource[$key])) {
+            } elseif (property_exists($resource, $key) && is_array($resource[$key])) {
                 $resource[$key] = array_merge($resource[$key], $values);
             } else {
                 $resource[$key] = $values;
