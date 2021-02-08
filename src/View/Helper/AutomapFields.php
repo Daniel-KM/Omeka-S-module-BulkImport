@@ -147,19 +147,24 @@ class AutomapFields extends AbstractHelper
             $lists['lower_local_labels'] = array_map('mb_strtolower', $lists['local_labels']);
         }
 
-        // The pattern checks a term or keyword, then an optional @language, then
-        // an optional ^^data type, then an optional §visibility.
+        // The pattern checks a term or keyword, then, in any order, a @language,
+        // a ^^data type, and a §visibility.
         $pattern = '~'
-            // Check a term/keyword (dcterms:title), required.
-            . '^([a-zA-Z][^@§^]*)'
+            // Check a term/keyword ("dcterms:title" or "Rights holder" or
+            // "Resource class"), required.
+            . '^(?<term>[a-zA-Z][^@§^|]*?)'
+            // In any order:
+            . '(?:'
             // Check a language + country (@fr-Fr).
-            . '\s*(?:@\s*([a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))?'
+            . '(\s*@\s*(?<language>[a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))'
             // Check a data type (^^resource:item).
-            . '\s*(?:\^\^\s*([a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][\w-]*|[a-zA-Z][\w-]*|))?'
+            . '|(\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][\w:-]*|[a-zA-Z][\w-]*|))'
             // Check visibility (§private).
-            . '\s*(?:§\s*(public|private|))?'
-            . '$'
+            . '|(?:\s*§\s*(?<visibility>public|private|))'
+            // Max three options, but no check for duplicates.
+            . '|){0,3}$'
             . '~';
+
         $matches = [];
 
         foreach ($fields as $index => $fieldsMulti) {
@@ -172,7 +177,7 @@ class AutomapFields extends AbstractHelper
 
                 // TODO Add a check of the type with the list of data types.
 
-                $field = trim($matches[1]);
+                $field = trim($matches['term']);
                 $lowerField = strtolower($field);
 
                 // Check first with the specific auto-mapping list.
@@ -184,9 +189,9 @@ class AutomapFields extends AbstractHelper
                         if ($outputFullMatches) {
                             $result = [];
                             $result['field'] = $automapList[$found];
-                            $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
-                            $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
-                            $result['is_public'] = empty($matches[4]) ? null : trim($matches[4]);
+                            $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                            $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                            $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $automaps[$index][] = $result;
                         } else {
                             $automaps[$index][] = $automapList[$found];
@@ -207,9 +212,9 @@ class AutomapFields extends AbstractHelper
                         if ($outputFullMatches) {
                             $result = [];
                             $result['field'] = $propertyLists['names'][$found];
-                            $result['@language'] = empty($matches[2]) ? null : trim($matches[2]);
-                            $result['type'] = empty($matches[3]) ? null : trim($matches[3]);
-                            $result['is_public'] = empty($matches[4]) ? null : trim($matches[4]);
+                            $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                            $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                            $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $automaps[$index][] = $result;
                         } else {
                             $property = $propertyLists['names'][$found];
