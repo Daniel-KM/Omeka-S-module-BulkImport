@@ -17,11 +17,11 @@ Because multiple importers can be prepared with the same readers and processors,
 it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
-Default readers are Omeka S reader (via the api json endpoint) and spreadsheet
-reader. The spreadsheet uses a processor that creates resources based on a
-user-defined mapping. Note: if your only need is to import a CSV file into
-Omeka, you should probably use [CSV Import module], which does a perfect job for
-that.
+Default readers are Omeka S reader (via the api json endpoint), [Spip] reader (via
+a dump of the database), and spreadsheet reader. The spreadsheet uses a
+processor that creates resources based on a user-defined mapping. Note: if your
+only need is to import a CSV file into Omeka, you should probably use
+[CSV Import module], which does a perfect job for that.
 
 
 Installation
@@ -29,10 +29,10 @@ Installation
 
 This module requires the module [Log] and optionnaly [Generic]. An external xslt 2
 processor may be needed if you import xml files that are not importable with
-xlt 1.
+xlt 1. Some specific readers or processors may need some other modules.
 
-**Important**: If you use the module [CSVImport] in parallel, you should apply [this patch]
-of use [this version].
+**Important**: If you use the module [CSVImport] in parallel, you should apply
+[this patch] or use [this version].
 
 See general end user documentation for [installing a module].
 
@@ -124,6 +124,14 @@ Numeric Data Types, Rdf Data Types, Data Type Geometry).
 Specific metadata of other modules are currently not managed.
 
 
+Spip
+-------
+
+Simply set the database credentials and  the endpoint and go on. You need to
+install some more modules: [Advanced Resource Template], [Article], [Custom Vocab],
+[Data Type Rdf], [Numeric Data Types], [Spip ], [Thesaurus], [User Profile].
+
+
 Spreadsheet
 -----------
 
@@ -164,6 +172,8 @@ TODO
 - [ ] Import of users, in particular for Omeka S import.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
 - [ ] Manage import of Custom vocab with items.
+- [ ] Why are there 752 missing ids with direct sql creation in Spip?
+- [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
 
 
 Warning
@@ -217,6 +227,7 @@ Copyright
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
 * Copyright Daniel Berthereau, 2017-2020 (see [Daniel-KM] on GitLab)
+* Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code from Spip)
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
 by [BibLibre].
@@ -234,6 +245,15 @@ by [BibLibre].
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
 [this version]: https://github.com/Daniel-KM/Omeka-S-module-CSVImport
+[Spip]: https://spip.net
+[Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
+[Article]: https://gitlab.com/Daniel-KM/Omeka-S-module-Article
+[Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
+[Data Type Rdf]: https://gitlab.com/Daniel-KM/Omeka-S-module-DataTypeRdf
+[Numeric Data Types]: https://github.com/Omeka-S-modules/NumericDataTypes
+[Spip ]: https://gitlab.com/Daniel-KM/Omeka-S-module-Spip
+[Thesaurus]: https://gitlab.com/Daniel-KM/Omeka-S-module-Thesaurus
+[User Profile]: https://gitlab.com/Daniel-KM/Omeka-S-module-UserProfile
 [module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
