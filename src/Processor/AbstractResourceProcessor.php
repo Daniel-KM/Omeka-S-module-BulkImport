@@ -677,11 +677,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return;
         }
 
+        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation[] $resources */
         foreach ($resources as $resource) {
-            $this->logger->notice(
-                'Index #{index}: Created {resource_type} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $resource->id()]
-            );
+            if ($resource->resourceName() === 'media') {
+                $this->logger->info(
+                    'Index #{index}: Created media #{media_id} (item #{item_id}', // @translate
+                    ['index' => $this->indexResource, 'media_id' => $resource->id(), 'item_id' => $resource->item()->id()]
+                );
+            } else {
+                $this->logger->info(
+                    'Index #{index}: Created {resource_type} #{resource_id}', // @translate
+                    ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $resource->id()]
+                );
+            }
         }
     }
 
