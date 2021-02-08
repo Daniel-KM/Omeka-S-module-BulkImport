@@ -6,6 +6,10 @@ trait MappingTrait
 {
     protected function fillMapping(): void
     {
+        $this->fillMappingProcess([
+            'mappings' => $this->reader->setObjectType($this->mapping['mappings']['source']),
+            'mapping_markers' => $this->reader->setObjectType($this->mapping['mapping_markers']['source']),
+        ]);
     }
 
     protected function fillMappingProcess(array $mappingsAndMarkers): void
@@ -13,17 +17,9 @@ trait MappingTrait
         $this->map['mappings'] = [];
         $this->map['mapping_markers'] = [];
 
-        $classes = [
-            'mappings' => \Mapping\Entity\Mapping::class,
-            'mapping_markers' => \Mapping\Entity\MappingMarker::class,
-        ];
-        $methods = [
-            'mappings' => 'fillMappingMapping',
-            'mapping_markers' => 'fillMappingMarker',
-        ];
-
         foreach ($mappingsAndMarkers as $resourceType => $iterable) {
-            $class = $classes[$resourceType];
+            $this->prepareImport($resourceType);
+            $class = $this->importables[$resourceType]['class'];
 
             $this->map[$resourceType] = [];
             $this->totals[$resourceType] = $iterable->count();
@@ -33,13 +29,13 @@ trait MappingTrait
             $index = 0;
             $created = 0;
             $skipped = 0;
-            $method = $methods[$resourceType];
-            foreach ($iterable as $resource) {
+            $method = $this->importables[$resourceType]['fill'];
+            foreach ($iterable as $source) {
                 ++$index;
 
                 $this->entity = new $class;
 
-                $this->$method($resource);
+                $this->$method($source);
 
                 $errorStore = new \Omeka\Stdlib\ErrorStore;
                 $adapter->validateEntity($this->entity, $errorStore);
@@ -72,48 +68,48 @@ trait MappingTrait
         }
     }
 
-    protected function fillMappingMapping(array $resource): void
+    protected function fillMappingMapping(array $source): void
     {
-        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$source['o:item']['o:id']]);
         if (!$item) {
             $this->logger->warn(
                 'The source item #{source_id} is not found for its mapping zone.', // @translate
-                ['source_id' => $resource['o:item']['o:id']]
+                ['source_id' => $source['o:item']['o:id']]
             );
         } else {
             $this->entity->setItem($item);
         }
-        $this->entity->setBounds($resource['o-module-mapping:bounds']);
+        $this->entity->setBounds($source['o-module-mapping:bounds']);
     }
 
-    protected function fillMappingMarker(array $resource): void
+    protected function fillMappingMarker(array $source): void
     {
-        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$resource['o:item']['o:id']]);
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$source['o:item']['o:id']]);
         if (!$item) {
             $this->logger->warn(
                 'The source item #{source_id} is not found for its mapping marker.', // @translate
-                ['source_id' => $resource['o:item']['o:id']]
+                ['source_id' => $source['o:item']['o:id']]
             );
         } else {
             $this->entity->setItem($item);
         }
 
-        if (!empty($resource['o:item']['o:id'])) {
-            $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media'][$resource['o:media']['o:id']] ?? '0');
+        if (!empty($source['o:item']['o:id'])) {
+            $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media'][$source['o:media']['o:id']] ?? '0');
             if (!$media) {
                 $this->logger->warn(
                     'The source media #{source_id} is not found for its mapping marker.', // @translate
-                    ['source_id' => $resource['o:media']['o:id']]
+                    ['source_id' => $source['o:media']['o:id']]
                 );
             } else {
                 $this->entity->setMedia($media);
             }
         }
 
-        $this->entity->setLat($resource['o-module-mapping:lat']);
-        $this->entity->setLng($resource['o-module-mapping:lng']);
-        if (array_key_exists('o-module-mapping:label', $resource)) {
-            $this->entity->setLabel($resource['o-module-mapping:label']);
+        $this->entity->setLat($source['o-module-mapping:lat']);
+        $this->entity->setLng($source['o-module-mapping:lng']);
+        if (array_key_exists('o-module-mapping:label', $source)) {
+            $this->entity->setLabel($source['o-module-mapping:label']);
         }
     }
 }

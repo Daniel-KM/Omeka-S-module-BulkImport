@@ -59,6 +59,8 @@ return [
             Form\Processor\OmekaSProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ResourceProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\ResourceProcessorParamsForm::class => Service\Form\FormFactory::class,
+            Form\Processor\SpipProcessorConfigForm::class => Service\Form\FormFactory::class,
+            Form\Processor\SpipProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\OmekaSReaderConfigForm::class => Service\Form\FormFactory::class,
@@ -225,6 +227,7 @@ return [
         ],
         'processors' => [
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
+            Processor\SpipProcessor::class => Processor\SpipProcessor::class,
             Processor\ResourceProcessor::class => Processor\ResourceProcessor::class,
             Processor\ItemProcessor::class => Processor\ItemProcessor::class,
             Processor\ItemSetProcessor::class => Processor\ItemSetProcessor::class,

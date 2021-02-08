@@ -6,6 +6,7 @@ use ArrayObject;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
+use DateTime;
 use Laminas\Form\Form;
 use Omeka\Api\Representation\VocabularyRepresentation;
 
@@ -24,6 +25,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use ParametrizableTrait;
     use ResourceTemplateTrait;
     use ResourceTrait;
+    use ThesaurusTrait;
     use UserTrait;
     use VocabularyTrait;
 
@@ -55,6 +57,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * @var string
      */
     protected $paramsFormClass;
+
+    /**
+     * @var array
+     */
+    protected $configDefault = [];
+
+    /**
+     * @var array
+     */
+    protected $paramsDefault = [];
 
     /**
      * @var int
@@ -150,9 +162,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $ownerOId;
 
     /**
+     * @var \DateTime
+     */
+    protected $currentDateTime;
+
+    /**
      * @var string
      */
-    protected $defaultDate;
+    protected $currentDateTimeFormatted;
 
     /**
      * @var string
@@ -190,11 +207,232 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $modules = [];
 
     /**
+     * @var array
+     */
+    protected $optionalModules = [
+        'CustomVocab',
+        'DataTypeGeometry',
+        'DataTypeRdf',
+        'Mapping',
+        'NumericDataTypes',
+        'ValueSuggest',
+    ];
+
+    /**
+     * @var array
+     */
+    protected $requiredModules = [];
+
+    /**
+     * List of importables Omeka resources for generic purposes.
+     *
+     * The default is derived from Omeka database, different from api endpoint.
+     *
+     * The keys to use for automatic management are:
+     * - name: api resource name
+     * - class: the Omeka class for the entity manager
+     * - dest:  table
+     * - key_id: name of the key to get the id of a record
+     *
+     * @var array
+     */
+    protected $importables = [
+        'users' => [
+            'name' => 'users',
+            'class' => \Omeka\Entity\User::class,
+            'table' => 'user',
+        ],
+        'assets' => [
+            'name' => 'assets',
+            'class' => \Omeka\Entity\Asset::class,
+            'table' => 'asset',
+        ],
+        'items' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillItem',
+        ],
+        'media' => [
+            'name' => 'media',
+            'class' => \Omeka\Entity\Media::class,
+            'table' => 'media',
+            'fill' => 'fillMedia',
+            'parent' => 'items',
+        ],
+        'item_sets' => [
+            'name' => 'item_sets',
+            'class' => \Omeka\Entity\ItemSet::class,
+            'table' => 'item_set',
+            'fill' => 'fillItemSet',
+        ],
+        'vocabularies' => [
+            'name' => 'vocabularies',
+            'class' => \Omeka\Entity\Vocabulary::class,
+            'table' => 'vocabulary',
+        ],
+        'properties' => [
+            'name' => 'properties',
+            'class' => \Omeka\Entity\Property::class,
+            'table' => 'property',
+        ],
+        'resource_classes' => [
+            'name' => 'resource_classes',
+            'class' => \Omeka\Entity\ResourceClass::class,
+            'table' => 'resource_class',
+        ],
+        'resource_templates' => [
+            'name' => 'resource_templates',
+            'class' => \Omeka\Entity\ResourceTemplate::class,
+            'table' => 'resource_template',
+        ],
+        // Allow to import the source as item + media, not separately.
+        'media_items' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillMediaItem',
+            'sub' => 'media_items_sub',
+        ],
+        'media_items_sub' => [
+            'name' => 'media',
+            'class' => \Omeka\Entity\Media::class,
+            'table' => 'media',
+            'parent' => 'media_items',
+        ],
+        // Modules.
+        'custom_vocabs' => [
+            'name' => 'custom_vocabs',
+            'class' => \CustomVocab\Entity\CustomVocab::class,
+            'table' => 'custom_vocab',
+        ],
+        'mappings' => [
+            'name' => 'mappings',
+            'class' => \Mapping\Entity\Mapping::class,
+            'table' => 'mapping',
+            'fill' => 'fillMappingMapping',
+        ],
+        'mapping_markers' => [
+            'name' => 'mapping_markers',
+            'class' => \Mapping\Entity\MappingMarker::class,
+            'table' => 'mapping_marker',
+            'fill' => 'fillMappingMarker',
+        ],
+        'concepts' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillConcept',
+        ],
+    ];
+
+    /**
+     * Mapping of Omeka resources according to the reader.
+     *
+     * The default is derived from Omeka database, different from api endpoint.
+     *
+     * The keys to use for automatic management are:
+     * - source:  table or path. If null, not importable.
+     * - key_id: the id of the key in the source output.
+     *
+     * @var array
+     */
+    protected $mapping = [
+        'users' => [
+            'source' => 'user',
+            'key_id' => 'id',
+        ],
+        'assets' => [
+            'source' => 'asset',
+            'key_id' => 'id',
+        ],
+        'items' => [
+            'source' => 'item',
+            'key_id' => 'id',
+        ],
+        'media' => [
+            'source' => 'media',
+            'key_id' => 'id',
+        ],
+        'media_items' => [
+            'source' => null,
+            'key_id' => null,
+        ],
+        'item_sets' => [
+            'source' => 'item_set',
+            'key_id' => 'id',
+        ],
+        'vocabularies' => [
+            'source' => 'vocabulary',
+            'key_id' => 'id',
+        ],
+        'properties' => [
+            'source' => 'property',
+            'key_id' => 'id',
+        ],
+        'resource_classes' => [
+            'source' => 'resource_class',
+            'key_id' => 'id',
+        ],
+        'resource_templates' => [
+            'source' => 'resource_template',
+            'key_id' => 'id',
+        ],
+        // Modules.
+        'custom_vocabs' => [
+            'source' => 'custom_vocab',
+            'key_id' => 'id',
+        ],
+        'mappings' => [
+            'source' => 'mapping',
+            'key_id' => 'id',
+        ],
+        'mapping_markers' => [
+            'source' => 'mapping_marker',
+            'key_id' => 'id',
+        ],
+        'concepts' => [
+            'source' => null,
+        ],
+    ];
+
+    /**
+     * A list of specific resources to reload when the entity manager is cleared.
+     *
+     * @see SpipProcessor
+     *
+     * @var array
+     */
+    protected $main = [
+        'templates' => [],
+        'classes' => [],
+    ];
+
+    /**
      * The entity being inserted.
      *
      * @var \Omeka\Entity\EntityInterface
      */
     protected $entity;
+
+    /**
+     * The current resource type (Omeka api name).
+     *
+     * @var string
+     */
+    protected $resourceName;
+
+    /**
+     * The current object type (source name).
+     *
+     * @var string|null
+     */
+    protected $objectType;
+
+    /**
+     * @var array
+     */
+    protected $storageIds = [];
 
     public function getLabel()
     {
@@ -211,42 +449,20 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         return $this->paramsFormClass;
     }
 
+    public function handleConfigForm(Form $form): void
+    {
+        $values = $form->getData();
+        $result = array_intersect_key($values, $this->configDefault) + $this->configDefault;
+        $args = new ArrayObject($result);
+        $this->setConfig($args);
+    }
+
     public function handleParamsForm(Form $form): void
     {
         $values = $form->getData();
-        $params = new ArrayObject;
-        $this->handleFormGeneric($params, $values);
-        $defaults = [
-            'o:owner' => null,
-            'types' => [
-                'users',
-                'items',
-                'media',
-                'item_sets',
-                'assets',
-                'vocabularies',
-                'resource_templates',
-                'custom_vocabs',
-            ],
-        ];
-        $params = array_intersect_key($params->getArrayCopy(), $defaults);
-        // TODO Finalize skip import of vocabularies, resource templates and custom vocabs.
-        $params['types'][] = 'vocabularies';
-        $params['types'][] = 'resource_templates';
-        $params['types'][] = 'custom_vocabs';
-        $this->setParams($params);
-    }
-
-    protected function handleFormGeneric(ArrayObject $args, array $values): void
-    {
-        $defaults = [
-            'o:owner' => null,
-            'types' => [],
-        ];
-        $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
-        // TODO Manage check of duplicate identifiers during dry-run.
-        // $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
-        $args->exchangeArray($result);
+        $result = array_intersect_key($values, $this->paramsDefault) + $this->paramsDefault;
+        $args = new ArrayObject($result);
+        $this->setParams($args);
     }
 
     public function process(): void
@@ -254,6 +470,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // TODO Add a dry-run.
         // TODO Add an option to use api or not.
         // TODO Add an option to stop/continue on error.
+        // TODO Manage check of duplicate identifiers during dry-run.
+        // $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
 
         $services = $this->getServiceLocator();
         $this->entityManager = $services->get('Omeka\EntityManager');
@@ -279,16 +497,27 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
         $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
-        $this->defaultDate = (new \DateTime())->format('Y-m-d H:i:s');
+        $this->currentDateTime = new \DateTime();
+        $this->currentDateTimeFormatted = $this->currentDateTime->format('Y-m-d H:i:s');
 
         $settings = $services->get('Omeka\Settings');
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist', []);
         $this->allowedExtensions = $settings->get('extension_whitelist', []);
 
-        $this->srid = $services->get('Omeka\Settings')->get('datatypegeometry_locate_srid', 4326);
+        $this->srid = $settings->get('datatypegeometry_locate_srid', 4326);
 
         $this->checkAvailableModules();
+
+        $requireds = array_intersect_key(array_filter($this->modules), array_flip($this->requiredModules));
+        if (count($this->requiredModules) && count($requireds) !== count($this->requiredModules)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The process requires the following modules currently: {modules}', // @translate
+                ['modules' => '"' . implode('", "', $this->requiredModules) . '"']
+            );
+            return;
+        }
 
         if (!$this->reader->isValid()) {
             $this->hasError = true;
@@ -298,15 +527,86 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
+        foreach (array_keys($this->main) as $name) {
+            $this->prepareMainResource($name);
+        }
+        if ($this->hasError) {
+            return;
+        }
+
+        // TODO Finalize skip import of vocabularies, resource templates and custom vocabs.
+        $args = $this->getParams();
+        $args['types'][] = 'vocabularies';
+        $args['types'][] = 'resource_templates';
+        $args['types'][] = 'custom_vocabs';
+        $args['types'] = array_unique($args['types']);
+        $this->setParams($args);
+
+        $this->preImport();
+        if ($this->hasError) {
+            return;
+        }
+
+        $this->check();
+        if ($this->hasError) {
+            return;
+        }
+
+        $this->import();
+        if ($this->hasError) {
+            return;
+        }
+
+        $this->postImport();
+        if ($this->hasError) {
+            return;
+        }
+
+        /*
+        $this->logger->notice(
+            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+            [
+                'total_resources' => $this->totalIndexResources,
+                'total_skipped' => $this->totalSkipped,
+                'total_processed' => $this->totalProcessed,
+                'total_errors' => $this->totalErrors,
+            ]
+        );
+         */
+
+        // TODO Derivative, check of resource title.
+
+        /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
+        $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher()->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+        if (!empty($this->modules['Thesaurus'])) {
+            $dispatcher()->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
+        }
+
+        $this->logger->notice(
+            'End of process. Note: errors can occur separately for each imported file.' // @translate
+        );
+    }
+
+    /**
+     * A call to simplify sub-classes.
+     */
+    protected function preImport(): void
+    {
+    }
+
+    protected function check(): void
+    {
         $toImport = $this->getParam('types') ?: [];
 
         // Pre-process: check the Omeka database for assets and resources.
+        // Use "media_items" if needed.
         if (in_array('media', $toImport) && !in_array('items', $toImport)) {
             $this->hasError = true;
             $this->logger->err(
                 'Resource "media" cannot be imported without items.' // @translate
             );
-            return;
         }
 
         // Check database integrity for assets.
@@ -314,25 +614,26 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'Check integrity of assets.' // @translate
         );
         $this->checkAssets();
-        if ($this->hasError) {
-            return;
-        }
 
         // Check database integrity for resources.
         $this->logger->info(
             'Check integrity of resources.' // @translate
         );
         $this->checkResources();
-        if ($this->hasError) {
-            return;
-        }
+    }
+
+    protected function import(): void
+    {
+        $toImport = $this->getParam('types') ?: [];
 
         // FIXME  Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
 
         // First step: check and create all vocabularies
 
         // Users are prepared first to include the owner anywhere.
-        if (in_array('users', $toImport)) {
+        if (in_array('users', $toImport)
+            && $this->prepareImport('users')
+        ) {
             $this->logger->info(
                 'Import of users.' // @translate
             );
@@ -342,7 +643,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
 
-        if (in_array('vocabularies', $toImport)) {
+        if (in_array('vocabularies', $toImport)
+            && $this->prepareImport('vocabularies')
+        ) {
             $this->logger->info(
                 'Check vocabularies.' // @translate
             );
@@ -351,28 +654,30 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 return;
             }
 
-            $this->logger->info(
-                'Preparation of vocabularies.' // @translate
-            );
+            $this->prepareImport('vocabularies');
             $this->prepareVocabularies();
             if ($this->hasError) {
                 return;
             }
 
-            $this->logger->info(
-                'Preparation of properties.' // @translate
-            );
-            $this->prepareProperties();
-            if ($this->hasError) {
-                return;
+            if ($this->prepareImport('properties')) {
+                $this->logger->info(
+                    'Preparation of properties.' // @translate
+                );
+                $this->prepareProperties();
+                if ($this->hasError) {
+                    return;
+                }
             }
 
-            $this->logger->info(
-                'Preparation of resource classes.' // @translate
-            );
-            $this->prepareResourceClasses();
-            if ($this->hasError) {
-                return;
+            if ($this->prepareImport('resource_classes')) {
+                $this->logger->info(
+                    'Preparation of resource classes.' // @translate
+                );
+                $this->prepareResourceClasses();
+                if ($this->hasError) {
+                    return;
+                }
             }
         }
 
@@ -380,6 +685,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         if (in_array('custom_vocabs', $toImport)
             && !empty($this->modules['CustomVocab'])
+            && $this->prepareImport('custom_vocabs')
         ) {
             $this->logger->info(
                 'Check custom vocabs.' // @translate
@@ -390,7 +696,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
 
-        if (in_array('resource_templates', $toImport)) {
+        if (in_array('resource_templates', $toImport)
+            && $this->prepareImport('resource_templates')
+        ) {
             $this->logger->info(
                 'Preparation of resource templates.' // @translate
             );
@@ -409,10 +717,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // mapping of ids for thumbnails.
 
         // First loop: create one resource by resource.
-        $this->logger->info(
-            'Initialization of all assets.' // @translate
-        );
-        if (in_array('assets', $toImport)) {
+        if (in_array('assets', $toImport)
+            && $this->prepareImport('assets')
+        ) {
+            $this->logger->info(
+                'Initialization of all assets.' // @translate
+            );
             $this->prepareAssets();
             if ($this->hasError) {
                 return;
@@ -422,27 +732,49 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->logger->info(
             'Initialization of all resources.' // @translate
         );
-        if (in_array('items', $toImport)) {
+        if (in_array('items', $toImport)
+            && $this->prepareImport('items')
+        ) {
             $this->prepareItems();
             if ($this->hasError) {
                 return;
             }
         }
-        if (in_array('media', $toImport)) {
+        if (in_array('media', $toImport)
+            && $this->prepareImport('medias')
+        ) {
             $this->prepareMedias();
             if ($this->hasError) {
                 return;
             }
         }
-        if (in_array('item_sets', $toImport)) {
+        if (in_array('media_items', $toImport)
+            && $this->prepareImport('media_items')
+        ) {
+            $this->prepareMediaItems();
+            if ($this->hasError) {
+                return;
+            }
+        }
+        if (in_array('item_sets', $toImport)
+            && $this->prepareImport('item_sets')
+        ) {
             $this->prepareItemSets();
             if ($this->hasError) {
                 return;
             }
         }
 
+        // For child processors.
+        $this->prepareOthers();
+        if ($this->hasError) {
+            return;
+        }
+
         // Second loop.
-        if (in_array('assets', $toImport)) {
+        if (in_array('assets', $toImport)
+            && $this->prepareImport('assets')
+        ) {
             $this->logger->info(
                 'Finalization of assets.' // @translate
             );
@@ -451,55 +783,150 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->logger->info(
             'Preparation of metadata of all resources.' // @translate
         );
-        if (in_array('items', $toImport)) {
+        if (in_array('items', $toImport)
+            && $this->prepareImport('items')
+        ) {
             $this->fillItems();
             if ($this->hasError) {
                 return;
             }
         }
-        if (in_array('media', $toImport)) {
+        if (in_array('media', $toImport)
+            && $this->prepareImport('medias')
+        ) {
             $this->fillMedias();
             if ($this->hasError) {
                 return;
             }
         }
-        if (in_array('item_sets', $toImport)) {
+        if (in_array('media_items', $toImport)
+            && $this->prepareImport('media_items')
+        ) {
+            $this->fillMediaItems();
+            if ($this->hasError) {
+                return;
+            }
+        }
+        if (in_array('item_sets', $toImport)
+            && $this->prepareImport('item_sets')
+        ) {
             $this->fillItemSets();
             if ($this->hasError) {
                 return;
             }
         }
 
-        // Additional metadata from modules (available only by reference).
-        if (!empty($this->modules['Mapping'])) {
-            $this->logger->info(
-                'Preparation of metadata of module Mapping.' // @translate
-            );
-            $this->fillMapping();
+        // For child processors.
+        $this->fillOthers();
+        /*
+        if ($this->hasError) {
+            return;
+        }
+        */
+    }
+
+    /**
+     * A call to simplify sub-classes.
+     */
+    protected function postImport(): void
+    {
+    }
+
+    /**
+     * Prepare main resources that should be available along the loops.
+     *
+     * @param string $name
+     * @param array $data
+     */
+    protected function prepareMainResource(string $name): void
+    {
+        if (!empty($this->main[$name]['template'])) {
+            $entity = $this->api()->searchOne('resource_templates', ['label' => $this->main[$name]['template']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            if (!$entity) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The resource template "{label}" is required to import {name}.', // @translate
+                    ['label' => $this->main[$name]['template'], 'name' => $this->resourceLabel]
+                );
+                return;
+            }
+            $this->main[$name]['template'] = $entity;
+            $this->main[$name]['template_id'] = $entity->getId();
         }
 
-        /*
-        $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
-        */
-        $this->logger->notice(
-            'End of process. Note: errors can occur separately for each imported file.' // @translate
-        );
+        if (!empty($this->main[$name]['class'])) {
+            $entity = $this->api()->searchOne('resource_classes', ['term' => $this->main[$name]['class']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            if (!$entity) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The resource class "{label}" is required to import {name}.', // @translate
+                    ['label' => $this->main[$name]['class'], 'name' => $this->resourceLabel]
+                );
+                return;
+            }
+            $this->main[$name]['class'] = $entity;
+            $this->main[$name]['class_id'] = $entity->getId();
+        }
+
+        if (!empty($this->main[$name]['custom_vocab'])) {
+            $entity = $this->api()->searchOne('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            if (!$entity) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The custom vocab"{label}" is required to import {name}.', // @translate
+                    ['label' => $this->main[$name]['custom_vocab'], 'name' => $this->resourceLabel]
+                );
+                return;
+            }
+            $this->main[$name]['custom_vocab'] = $entity;
+            $this->main[$name]['custom_vocab_id'] = $entity->getId();
+        }
+    }
+
+    protected function prepareImport(string $resourceName): bool
+    {
+        $this->resourceName = $resourceName;
+        $this->objectType = $this->mapping[$resourceName]['source'] ?? null;
+        return !empty($this->objectType);
+    }
+
+    /**
+     * When no vocabulary is imported, the mapping should be filled for
+     * properties and resource classes to simplify resource filling.
+     *
+     * @see \BulkImport\Processor\VocabularyTrait::prepareVocabularyMembers()
+     */
+    protected function prepareInternalVocabularies(): void
+    {
+        foreach ($this->getPropertyIds() as $term => $id) {
+            $this->map['properties'][$term] = [
+                'term' => $term,
+                'source' => $id,
+                'id' => $id,
+            ];
+        }
+        $this->map['by_id']['properties'] = array_column($this->map['properties'], 'id', 'source');
+
+        foreach ($this->getResourceClassIds() as $term => $id) {
+            $this->map['resource_classes'][$term] = [
+                'term' => $term,
+                'source' => $id,
+                'id' => $id,
+            ];
+        }
+        $this->map['by_id']['resource_classes'] = array_column($this->map['resource_classes'], 'id', 'source');
     }
 
     protected function checkVocabularies(): void
     {
+        if (empty($this->mapping['vocabularies']['source'])) {
+            return;
+        }
+
         // The clone is needed because the properties use the reader inside
         // the loop.
         $reader = clone $this->reader;
-        foreach ($reader->setObjectType('vocabularies') as $vocabulary) {
+        foreach ($reader->setObjectType($this->objectType) as $vocabulary) {
             $result = $this->checkVocabulary($vocabulary);
             if ($result['status'] !== 'success') {
                 $this->hasError = true;
@@ -511,7 +938,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         // TODO Add a filter to the reader.
         $vocabularyProperties = [];
-        foreach ($this->reader->setObjectType('properties') as $property) {
+        $sourceName = $this->mapping['properties']['source'];
+        foreach ($this->reader->setObjectType($sourceName) as $property) {
             if ($property['o:vocabulary']['o:id'] === $vocabulary['o:id']) {
                 $vocabularyProperties[] = $property['o:local_name'];
             }
@@ -525,86 +953,119 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // the loop.
         // TODO Avoid the second check of properties.
         $reader = clone $this->reader;
-        $this->prepareVocabulariesProcess($reader->setObjectType('vocabularies'));
+        $this->prepareVocabulariesProcess($reader->setObjectType($this->objectType));
     }
 
     protected function prepareProperties(): void
     {
-        $this->prepareVocabularyMembers(
-            $this->reader->setObjectType('properties'),
-            'properties'
-        );
+        $sourceName = $this->mapping['properties']['source'];
+        $this->prepareVocabularyMembers($this->reader->setObjectType($sourceName), 'properties');
     }
 
     protected function prepareResourceClasses(): void
     {
-        $this->prepareVocabularyMembers(
-            $this->reader->setObjectType('resource_classes'),
-            'resource_classes'
-        );
+        $sourceName = $this->mapping['resource_classes']['source'];
+        $this->prepareVocabularyMembers($this->reader->setObjectType($sourceName), 'resource_classes');
     }
 
     protected function prepareUsers(): void
     {
-        $this->prepareUsersProcess($this->reader->setObjectType('users'));
+        $this->prepareUsersProcess($this->reader->setObjectType($this->objectType));
     }
 
     protected function prepareCustomVocabsInitialize(): void
     {
-        $this->prepareCustomVocabsProcess($this->reader->setObjectType('custom_vocabs'));
+        $this->prepareCustomVocabsProcess($this->reader->setObjectType($this->objectType));
     }
 
     protected function prepareResourceTemplates(): void
     {
-        $this->prepareResourceTemplatesProcess($this->reader->setObjectType('resource_templates'));
+        $this->prepareResourceTemplatesProcess($this->reader->setObjectType($this->objectType));
     }
 
     protected function prepareAssets(): void
     {
-        $this->prepareAssetsProcess($this->reader->setObjectType('assets'));
+        $this->prepareAssetsProcess($this->reader->setObjectType($this->objectType));
     }
 
     protected function prepareItems(): void
     {
-        $this->prepareResources($this->reader->setObjectType('items'), 'items');
+        $this->prepareResources($this->reader->setObjectType($this->objectType), 'items');
     }
 
     protected function prepareMedias(): void
     {
-        $this->prepareResources($this->reader->setObjectType('media'), 'media');
+        $this->prepareResources($this->reader->setObjectType($this->objectType), 'media');
+    }
+
+    protected function prepareMediaItems(): void
+    {
+        $this->prepareResources($this->reader->setObjectType($this->objectType), 'media_items');
     }
 
     protected function prepareItemSets(): void
     {
-        $this->prepareResources($this->reader->setObjectType('item_sets'), 'item_sets');
+        $this->prepareResources($this->reader->setObjectType($this->objectType), 'item_sets');
+    }
+
+    protected function prepareOthers(): void
+    {
+        if (!empty($this->modules['Thesaurus'])
+            && in_array('concepts', $this->getParam('types') ?: [])
+        ) {
+            $this->logger->info(
+                'Preparation of metadata of module Thesaurus.' // @translate
+            );
+            if ($this->prepareImport('concepts')) {
+                $this->prepareConcepts($this->reader->setObjectType($this->objectType));
+            }
+        }
     }
 
     protected function fillAssets(): void
     {
-        $this->fillAssetsProcess($this->reader->setObjectType('assets'));
+        $this->fillAssetsProcess($this->reader->setObjectType($this->objectType));
     }
 
     protected function fillItems(): void
     {
-        $this->fillResources($this->reader->setObjectType('items'), 'items');
+        $this->fillResources($this->reader->setObjectType($this->objectType), 'items');
     }
 
     protected function fillMedias(): void
     {
-        $this->fillResources($this->reader->setObjectType('media'), 'media');
+        $this->fillResources($this->reader->setObjectType($this->objectType), 'media');
+    }
+
+    protected function fillMediaItems(): void
+    {
+        $this->fillResources($this->reader->setObjectType($this->objectType), 'media_items');
     }
 
     protected function fillItemSets(): void
     {
-        $this->fillResources($this->reader->setObjectType('item_sets'), 'item_sets');
+        $this->fillResources($this->reader->setObjectType($this->objectType), 'item_sets');
     }
 
-    protected function fillMapping(): void
+    protected function fillOthers(): void
     {
-        $this->fillMappingProcess([
-            'mappings' => $this->reader->setObjectType('mappings'),
-            'mapping_markers' => $this->reader->setObjectType('mapping_markers'),
-        ]);
+        if (!empty($this->modules['Thesaurus'])
+            && in_array('concepts', $this->getParam('types') ?: [])
+        ) {
+            if ($this->prepareImport('concepts')) {
+                $this->fillConcepts();
+            }
+        }
+
+        if (!empty($this->modules['Mapping'])
+            && in_array('mappings', $this->getParam('types') ?: [])
+        ) {
+            $this->logger->info(
+                'Preparation of metadata of module Mapping.' // @translate
+            );
+            // Not prepare: there are mappings and mapping markers.
+            $this->fillMapping();
+        }
     }
 
     /**
@@ -612,35 +1073,108 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function checkAvailableModules(): void
     {
-        // Modules managed by the module.
-        $moduleClasses = [
-            'CustomVocab',
-            'DataTypeGeometry',
-            'DataTypeRdf',
-            'Mapping',
-            'NumericDataTypes',
-            'ValueSuggest',
-        ];
         /** @var \Omeka\Module\Manager $moduleManager */
         $moduleManager = $this->getServiceLocator()->get('Omeka\ModuleManager');
-        foreach ($moduleClasses as $moduleClass) {
-            $module = $moduleManager->getModule($moduleClass);
-            $this->modules[$moduleClass] = $module
-                && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
+        foreach ([$this->optionalModules, $this->requiredModules] as $moduleClasses) {
+            foreach ($moduleClasses as $moduleClass) {
+                $module = $moduleManager->getModule($moduleClass);
+                $this->modules[$moduleClass] = $module
+                    && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
+            }
         }
     }
 
     /**
-     * The owner should be reloaded each time the entity manager is cleared, so
-     * it is saved and reloaded.
-     *
-     * @todo Check if the users should always be reloaded.
+     * Static resources should be reloaded each time the entity manager is
+     * cleared, so it is saved and reloaded.
      */
-    protected function refreshOwner(): void
+    protected function refreshMainResources(): void
     {
         if ($this->ownerId) {
             $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $this->ownerId);
         }
+        foreach ($this->main as $name => $data) {
+            if (empty($data) || !is_array($data)) {
+                continue;
+            }
+            if (!empty($data['template_id'])) {
+                $this->main[$name]['template'] = $this->entityManager->find(\Omeka\Entity\ResourceTemplate::class, $data['template_id']);
+            }
+            if (!empty($data['class_id'])) {
+                $this->main[$name]['class'] = $this->entityManager->find(\Omeka\Entity\ResourceClass::class, $data['class_id']);
+            }
+            if (!empty($data['item_set_id'])) {
+                $this->main[$name]['item_set'] = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $data['item_set_id']);
+            }
+            if (!empty($data['item_id'])) {
+                $this->main[$name]['item'] = $this->entityManager->find(\Omeka\Entity\Item::class, $data['item_id']);
+            }
+            if (!empty($data['custom_vocab_id'])) {
+                $this->main[$name]['custom_vocab'] = $this->entityManager->find(\Omeka\Entity\Item::class, $data['custom_vocab_id']);
+            }
+        }
+        if (!empty($this->main['templates'])) {
+            foreach (array_keys($data['templates']) as $name) {
+                $this->main['templates'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => $name]);
+            }
+        }
+        if (!empty($this->main['classes'])) {
+            foreach (array_keys($data['classes']) as $name) {
+                [$prefix, $localName] = explode(':', $name);
+                $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => $prefix]);
+                $this->main['classes'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => $localName]);
+            }
+        }
+    }
+
+    /**
+     * Strangely, the "timestamp" may have date time data.
+     *
+     * Furthermore, a check is done because mysql allows only 1000-9999, but
+     * there may be bad dates.
+     *
+     * @link https://dev.mysql.com/doc/refman/8.0/en/datetime.html
+     *
+     * @param string $date
+     * @return \DateTime
+     */
+    protected function getSqlDateTime($date): ?DateTime
+    {
+        if (empty($date)) {
+            return null;
+        }
+
+        try {
+            $date = (string) $date;
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        if (in_array(substr($date, 0, 10), [
+            '0000-00-00',
+            '2038-01-01',
+        ])) {
+            return null;
+        }
+
+        if (substr($date, 0, 10) === '1970-01-01'
+            && substr($date, 13, 6) === ':00:00'
+        ) {
+            return null;
+        }
+
+        try {
+            $dateTime = strpos($date, ':', 1) || strpos($date, '-', 1)
+                ? new \DateTime(substr(str_replace('T', ' ', $date), 0, 19))
+                : new \DateTime(date('Y-m-d H:i:s', $date));
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        $formatted = $dateTime->format('Y-m-d H:i:s');
+        return $formatted < '1000-01-01 00:00:00' || $formatted > '9999-12-31 23:59:59'
+            ? null
+            : $dateTime;
     }
 
     protected function logErrors($entity, $errorStore): void

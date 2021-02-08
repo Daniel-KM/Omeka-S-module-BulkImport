@@ -12,14 +12,14 @@ trait CustomVocabTrait
     }
 
     /**
-     * @param iterable $sourceCustomVocabs Should be countable too.
+     * @param iterable $sources Should be countable too.
      */
-    protected function prepareCustomVocabsProcess(iterable $sourceCustomVocabs): void
+    protected function prepareCustomVocabsProcess(iterable $sources): void
     {
         $this->map['custom_vocabs'] = [];
 
-        if ((is_array($sourceCustomVocabs) && !count($sourceCustomVocabs))
-            || (!is_array($sourceCustomVocabs) && !$sourceCustomVocabs->count())
+        if ((is_array($sources) && !count($sources))
+            || (!is_array($sources) && !$sources->count())
         ) {
             $this->logger->notice(
                 'No custom vocabs importable from source.' // @translate
@@ -39,62 +39,62 @@ trait CustomVocabTrait
         $index = 0;
         $created = 0;
         $skipped = 0;
-        foreach ($sourceCustomVocabs as $sourceCustomVocab) {
+        foreach ($sources as $source) {
             ++$index;
-            if (isset($customVocabs[$sourceCustomVocab['o:label']])) {
+            if (isset($customVocabs[$source['o:label']])) {
                 /*
                  // Item sets are not yet imported, so no mapping for item sets for now…
                  // TODO Currently, item sets are created after, so vocab is updated later, but resource can be created empty first?
-                 if (!empty($sourceCustomVocab['o:item_set']) && $sourceCustomVocab['o:item_set'] === $customVocabs[$sourceCustomVocab['o:label']]->getItemSet()) {
+                 if (!empty($source['o:item_set']) && $source['o:item_set'] === $customVocabs[$source['o:label']]->getItemSet()) {
                  // ++$skipped;
-                 // $this->map['custom_vocabs']['customvocab:' . $sourceCustomVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$sourceCustomVocab['o:label']]->getId();
+                 // $this->map['custom_vocabs']['customvocab:' . $source['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$source['o:label']]->getId();
                  // continue;
                  */
-                if (empty($sourceCustomVocab['o:item_set'])
-                    && !empty($sourceCustomVocab['o:terms'])
-                    && $this->equalCustomVocabsTerms($sourceCustomVocab['o:terms'], $customVocabs[$sourceCustomVocab['o:label']]->getTerms())
+                if (empty($source['o:item_set'])
+                    && !empty($source['o:terms'])
+                    && $this->equalCustomVocabsTerms($source['o:terms'], $customVocabs[$source['o:label']]->getTerms())
                 ) {
                     ++$skipped;
-                    $this->map['custom_vocabs']['customvocab:' . $sourceCustomVocab['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$sourceCustomVocab['o:label']]->getId();
+                    $this->map['custom_vocabs']['customvocab:' . $source['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$source['o:label']]->getId();
                     continue;
                 } else {
-                    $label = $sourceCustomVocab['o:label'];
-                    $sourceCustomVocab['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
+                    $label = $source['o:label'];
+                    $source['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
                         . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3) . ']';
                     $this->logger->notice(
                         'Custom vocab "{old_label}" has been renamed to "{label}".', // @translate
-                        ['old_label' => $label, 'label' => $sourceCustomVocab['o:label']]
+                        ['old_label' => $label, 'label' => $source['o:label']]
                     );
                 }
             }
 
-            $sourceId = $sourceCustomVocab['o:id'];
-            $sourceItemSet = empty($sourceCustomVocab['o:item_set']) ? null : $sourceCustomVocab['o:item_set'];
-            $sourceCustomVocab['o:item_set'] = null;
-            $sourceCustomVocab['o:terms'] = !strlen(trim((string) $sourceCustomVocab['o:terms'])) ? null : $sourceCustomVocab['o:terms'];
+            $sourceId = $source['o:id'];
+            $sourceItemSet = empty($source['o:item_set']) ? null : $source['o:item_set'];
+            $source['o:item_set'] = null;
+            $source['o:terms'] = !strlen(trim((string) $source['o:terms'])) ? null : $source['o:terms'];
 
             // Some custom vocabs from old versions can be empty.
             // They are created with a false term and updated later.
-            $isEmpty = is_null($sourceCustomVocab['o:item_set']) && is_null($sourceCustomVocab['o:terms']);
+            $isEmpty = is_null($source['o:item_set']) && is_null($source['o:terms']);
             if ($isEmpty) {
-                $sourceCustomVocab['o:terms'] = 'Added by Bulk Import. To be removed.';
+                $source['o:terms'] = 'Added by Bulk Import. To be removed.';
             }
 
-            unset($sourceCustomVocab['@id'], $sourceCustomVocab['o:id']);
-            $sourceCustomVocab['o:owner'] = $this->userOIdOrDefaultOwner($sourceCustomVocab['o:owner']);
+            unset($source['@id'], $source['o:id']);
+            $source['o:owner'] = $this->userOIdOrDefaultOwner($source['o:owner']);
             // TODO Use orm.
-            $response = $this->api()->create('custom_vocabs', $sourceCustomVocab);
+            $response = $this->api()->create('custom_vocabs', $source);
             if (!$response) {
                 $this->hasError = true;
                 $this->logger->err(
                     'Unable to create custom vocab "{label}".', // @translate
-                    ['label' => $sourceCustomVocab['o:label']]
+                    ['label' => $source['o:label']]
                 );
                 return;
             }
             $this->logger->notice(
                 'Custom vocab {label} has been created.', // @translate
-                ['label' => $sourceCustomVocab['o:label']]
+                ['label' => $source['o:label']]
             );
             ++$created;
 

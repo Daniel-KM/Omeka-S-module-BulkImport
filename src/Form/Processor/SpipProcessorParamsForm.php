@@ -6,7 +6,10 @@ use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element\ResourceSelect;
 
-class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
+/**
+ * @todo Factorize with Omeka S processor.
+ */
+class SpipProcessorParamsForm extends SpipProcessorConfigForm
 {
     use ServiceLocatorAwareTrait;
 
@@ -74,13 +77,13 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                         // 'vocabularies' => 'Vocabularies', // @translate
                         // 'resource_templates' => 'Resource templates', // @translate
                         // 'custom_vocabs' => 'Custom vocabs', // @translate
-                        'mappings' => 'Mappings', // @translate
+                        'concepts' => 'Concepts (rubriques)', // @translate
                     ],
                 ],
                 'attributes' => [
                     'id' => 'types',
                     'value' => [
-                        // 'users',
+                        'users',
                         'items',
                         'media',
                         'item_sets',
@@ -88,8 +91,30 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                         // 'vocabularies',
                         // 'resource_templates',
                         // 'custom_vocabs',
+                        'concepts',
                     ],
                     'required' => false,
+                ],
+            ])
+            ->add([
+                'name' => 'language',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Code of the default language', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'language',
+                    'placeholder' => 'fra',
+                ],
+            ])
+            ->add([
+                'name' => 'endpoint',
+                'type' => Element\Url::class,
+                'options' => [
+                    'label' => 'Url of original site to fetch files', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'endpoint',
                 ],
             ])
         ;
@@ -104,6 +129,10 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
             ])
             ->add([
                 'name' => 'types',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'base_url',
                 'required' => false,
             ])
         ;

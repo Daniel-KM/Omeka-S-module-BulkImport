@@ -14,14 +14,14 @@ trait ResourceTemplateTrait
     }
 
     /**
-     * @param iterable $sourceResourceTemplates Should be countable too.
+     * @param iterable $sources Should be countable too.
      */
-    protected function prepareResourceTemplatesProcess($sourceResourceTemplates): void
+    protected function prepareResourceTemplatesProcess($sources): void
     {
         $this->map['resource_templates'] = [];
 
-        if ((is_array($sourceResourceTemplates) && !count($sourceResourceTemplates))
-            || (!is_array($sourceResourceTemplates) && !$sourceResourceTemplates->count())
+        if ((is_array($sources) && !count($sources))
+            || (!is_array($sources) && !$sources->count())
         ) {
             $this->logger->notice(
                 'No resource templates importable from source.' // @translate
@@ -42,26 +42,26 @@ trait ResourceTemplateTrait
         $index = 0;
         $created = 0;
         $skipped = 0;
-        foreach ($sourceResourceTemplates as $sourceResourceTemplate) {
+        foreach ($sources as $source) {
             ++$index;
             // Clean the metadata to simplify check and import.
-            $sourceResourceTemplateId = $sourceResourceTemplate['o:id'];
-            unset($sourceResourceTemplate['@id'], $sourceResourceTemplate['o:id']);
-            $sourceResourceTemplate['o:owner'] = $this->userOIdOrDefaultOwner($sourceResourceTemplate['o:owner']);
+            $sourceId = $source['o:id'];
+            unset($source['@id'], $source['o:id']);
+            $source['o:owner'] = $this->userOIdOrDefaultOwner($source['o:owner']);
 
-            $sourceResourceTemplate['o:resource_class'] = !empty($sourceResourceTemplate['o:resource_class']['o:id'])
-                && isset($this->map['by_id']['resource_classes'][$sourceResourceTemplate['o:resource_class']['o:id']])
-                ? ['o:id' => $this->map['by_id']['resource_classes'][$sourceResourceTemplate['o:resource_class']['o:id']]]
+            $source['o:resource_class'] = !empty($source['o:resource_class']['o:id'])
+                && isset($this->map['by_id']['resource_classes'][$source['o:resource_class']['o:id']])
+                ? ['o:id' => $this->map['by_id']['resource_classes'][$source['o:resource_class']['o:id']]]
                 : null;
-            $sourceResourceTemplate['o:title_property'] = !empty($sourceResourceTemplate['o:title_property']['o:id'])
-                && !empty($this->map['by_id']['properties'][$sourceResourceTemplate['o:title_property']['o:id']])
-                ? ['o:id' => $this->map['by_id']['properties'][$sourceResourceTemplate['o:title_property']['o:id']]]
+            $source['o:title_property'] = !empty($source['o:title_property']['o:id'])
+                && !empty($this->map['by_id']['properties'][$source['o:title_property']['o:id']])
+                ? ['o:id' => $this->map['by_id']['properties'][$source['o:title_property']['o:id']]]
                 : null;
-            $sourceResourceTemplate['o:description_property'] = !empty($sourceResourceTemplate['o:description_property']['o:id'])
-                && !empty($this->map['by_id']['properties'][$sourceResourceTemplate['o:description_property']['o:id']])
-                ? ['o:id' => $this->map['by_id']['properties'][$sourceResourceTemplate['o:description_property']['o:id']]]
+            $source['o:description_property'] = !empty($source['o:description_property']['o:id'])
+                && !empty($this->map['by_id']['properties'][$source['o:description_property']['o:id']])
+                ? ['o:id' => $this->map['by_id']['properties'][$source['o:description_property']['o:id']]]
                 : null;
-            foreach ($sourceResourceTemplate['o:resource_template_property'] as &$rtProperty) {
+            foreach ($source['o:resource_template_property'] as &$rtProperty) {
                 $rtProperty['o:property'] = !empty($rtProperty['o:property']['o:id'])
                     && !empty($this->map['by_id']['properties'][$rtProperty['o:property']['o:id']])
                     ? ['o:id' => $this->map['by_id']['properties'][$rtProperty['o:property']['o:id']]]
@@ -93,45 +93,45 @@ trait ResourceTemplateTrait
 
             // Loop all resource templates to know if label was renamed.
             foreach ($rts as $rt) {
-                if ($this->equalResourceTemplates($rt, $sourceResourceTemplate)) {
+                if ($this->equalResourceTemplates($rt, $source)) {
                     ++$skipped;
-                    $this->map['resource_templates'][$sourceResourceTemplateId] = $rt->id();
+                    $this->map['resource_templates'][$sourceId] = $rt->id();
                     $this->logger->notice(
                         'Resource template "{label}" already exists.', // @translate
-                        ['label' => $sourceResourceTemplate['o:label']]
+                        ['label' => $source['o:label']]
                     );
                     continue 2;
                 }
             }
 
             // Rename the label if it already exists.
-            if (isset($resourceTemplates[$sourceResourceTemplate['o:label']])) {
-                $sourceLabel = $sourceResourceTemplate['o:label'];
-                $sourceResourceTemplate['o:label'] .= ' ' . (new \DateTime())->format('Ymd-His')
-                    . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 5);
+            if (isset($resourceTemplates[$source['o:label']])) {
+                $sourceLabel = $source['o:label'];
+                $source['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
+                    . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3) . ']';
                 $this->logger->notice(
                     'Resource template "{old_label}" has been renamed to "{label}".', // @translate
-                    ['old_label' => $sourceLabel, 'label' => $sourceResourceTemplate['o:label']]
+                    ['old_label' => $sourceLabel, 'label' => $source['o:label']]
                 );
             }
 
             // TODO Use orm.
-            $response = $this->api()->create('resource_templates', $sourceResourceTemplate);
+            $response = $this->api()->create('resource_templates', $source);
             if (!$response) {
                 $this->logger->err(
                     'Unable to create resource template "{label}".', // @translate
-                    ['label' => $sourceResourceTemplate['o:label']]
+                    ['label' => $source['o:label']]
                 );
                 $this->hasError = true;
                 return;
             }
             $this->logger->notice(
                 'Resource template "{label}" has been created.', // @translate
-                ['label' => $sourceResourceTemplate['o:label']]
+                ['label' => $source['o:label']]
             );
             ++$created;
 
-            $this->map['resource_templates'][$sourceResourceTemplateId] = $response->getContent()->id();
+            $this->map['resource_templates'][$sourceId] = $response->getContent()->id();
         }
 
         $this->logger->notice(

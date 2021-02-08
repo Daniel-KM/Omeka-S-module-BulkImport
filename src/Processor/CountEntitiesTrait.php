@@ -5,12 +5,12 @@ namespace BulkImport\Processor;
 trait CountEntitiesTrait
 {
     /**
-     * @param iterable $entities
+     * @param iterable $sources
      * @param string $resourceType
      */
-    protected function countEntities(iterable $entities, string $resourceType): void
+    protected function countEntities(iterable $sources, string $resourceType): void
     {
-        $this->totals[$resourceType] = is_array($entities) ? count($entities) : $entities->count();
+        $this->totals[$resourceType] = is_array($sources) ? count($sources) : $sources->count();
         if ($this->totals[$resourceType] > 10000000) {
             $this->hasError = true;
             $this->logger->err(

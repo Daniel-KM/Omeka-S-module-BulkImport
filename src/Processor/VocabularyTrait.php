@@ -71,7 +71,7 @@ trait VocabularyTrait
             $vocabularyRepresentation = $this->api()
                 ->read('vocabularies', ['prefix' => $vocabulary['o:prefix']])->getContent();
             if (rtrim($vocabularyRepresentation->namespaceUri(), '#/') !== rtrim($vocabulary['o:namespace_uri'], '#/')) {
-                $vocabulary['o:prefix'] .= '_' . (new \DateTime())->format('YmdHis');
+                $vocabulary['o:prefix'] .= '_' . $this->currentDateTime->format('Ymd-His');
                 if (!$skipLog) {
                     $this->logger->notice(
                         'Vocabulary prefix {prefix} is used so the imported one is renamed.', // @translate
@@ -183,7 +183,7 @@ trait VocabularyTrait
 
     protected function prepareVocabularyMembers(iterable $sourceMembers, string $resourceType): void
     {
-        $this->refreshOwner();
+        $this->refreshMainResources();
 
         switch ($resourceType) {
             case 'properties':
@@ -277,7 +277,7 @@ trait VocabularyTrait
             if ($created % self::CHUNK_ENTITIES === 0) {
                 $this->entityManager->flush();
                 $this->entityManager->clear();
-                $this->refreshOwner();
+                $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
                     ['count' => $created, 'total' => $this->totals[$resourceType], 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
@@ -294,7 +294,7 @@ trait VocabularyTrait
         // Remaining entities.
         $this->entityManager->flush();
         $this->entityManager->clear();
-        $this->refreshOwner();
+        $this->refreshMainResources();
 
         // Fill the missing new member ids.
         $api = $this->api();

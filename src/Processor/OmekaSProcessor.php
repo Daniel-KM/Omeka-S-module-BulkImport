@@ -2,10 +2,8 @@
 
 namespace BulkImport\Processor;
 
-use ArrayObject;
 use BulkImport\Form\Processor\OmekaSProcessorConfigForm;
 use BulkImport\Form\Processor\OmekaSProcessorParamsForm;
-use Laminas\Form\Form;
 
 class OmekaSProcessor extends AbstractFullProcessor
 {
@@ -13,32 +11,74 @@ class OmekaSProcessor extends AbstractFullProcessor
     protected $configFormClass = OmekaSProcessorConfigForm::class;
     protected $paramsFormClass = OmekaSProcessorParamsForm::class;
 
-    public function handleConfigForm(Form $form): void
-    {
-        $values = $form->getData();
-        $config = new ArrayObject;
-        $this->handleFormGeneric($config, $values);
-        $defaults = [
-            'endpoint' => null,
-            'key_identity' => null,
-            'key_credential' => null,
-        ];
-        $config = array_intersect_key($config->getArrayCopy(), $defaults);
-        $this->setConfig($config);
-    }
+    protected $configDefault = [
+        'endpoint' => null,
+        'key_identity' => null,
+        'key_credential' => null,
+    ];
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): void
-    {
-        $defaults = [
-            'endpoint' => null,
-            'key_identity' => null,
-            'key_credential' => null,
-            'o:owner' => null,
-            'types' => [],
-        ];
-        $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
-        // TODO Manage check of duplicate identifiers during dry-run.
-        // $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
-        $args->exchangeArray($result);
-    }
+    protected $paramsDefault = [
+        'o:owner' => null,
+        'types' => [
+            'users',
+            'items',
+            'media',
+            'item_sets',
+            'assets',
+            'vocabularies',
+            'resource_templates',
+            'custom_vocabs',
+        ],
+    ];
+
+    protected $mapping = [
+        'users' => [
+            'source' => 'users',
+            'key_id' => 'o:id',
+        ],
+        'assets' => [
+            'source' => 'assets',
+            'key_id' => 'o:id',
+        ],
+        'items' => [
+            'source' => 'items',
+            'key_id' => 'o:id',
+        ],
+        'media' => [
+            'source' => 'media',
+            'key_id' => 'o:id',
+        ],
+        'item_sets' => [
+            'source' => 'item_sets',
+            'key_id' => 'o:id',
+        ],
+        'vocabularies' => [
+            'source' => 'vocabularies',
+            'key_id' => 'o:id',
+        ],
+        'properties' => [
+            'source' => 'properties',
+            'key_id' => 'o:id',
+        ],
+        'resource_classes' => [
+            'source' => 'resource_classes',
+            'key_id' => 'o:id',
+        ],
+        'resource_templates' => [
+            'source' => 'resource_templates',
+            'key_id' => 'o:id',
+        ],
+        'custom_vocabs' => [
+            'source' => 'custom_vocabs',
+            'key_id' => 'o:id',
+        ],
+        'mappings' => [
+            'source' => 'mappings',
+            'key_id' => 'o:id',
+        ],
+        'mapping_markers' => [
+            'source' => 'mapping_markers',
+            'key_id' => 'o:id',
+        ],
+    ];
 }

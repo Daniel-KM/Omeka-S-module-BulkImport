@@ -15,10 +15,12 @@ trait AssetTrait
     {
     }
 
-    protected function prepareAssetsProcess(iterable $sourceAssets): void
+    protected function prepareAssetsProcess(iterable $sources): void
     {
+        $keyId = $this->mapping['assets']['key_id'];
+
         // Check the size of the import.
-        $this->countEntities($sourceAssets, 'assets');
+        $this->countEntities($sources, 'assets');
         if ($this->hasError) {
             return;
         }
@@ -32,16 +34,16 @@ trait AssetTrait
         $assetStorages = [];
         $this->map['assets'] = [];
         $timestamp = time();
-        foreach ($sourceAssets as $resource) {
-            $resourceId = (int) $resource['o:id'];
+        foreach ($sources as $source) {
+            $sourceId = (int) $source[$keyId];
             // To avoid collisions with a failed import, prepend the timestamp.
-            $this->map['assets'][$resourceId] = $timestamp . '-' . $resourceId;
+            $this->map['assets'][$sourceId] = $timestamp . '-' . $sourceId;
             // Remove extension manually because module Ebook uses a
             // specific storage id.
-            $extension = pathinfo($resource['o:filename'], PATHINFO_EXTENSION);
-            $assetStorages[$resourceId] = mb_strlen($extension)
-                ? mb_substr($resource['o:filename'], 0, -mb_strlen($extension) - 1)
-                : $resource['o:filename'];
+            $extension = pathinfo($source['o:filename'], PATHINFO_EXTENSION);
+            $assetStorages[$sourceId] = mb_strlen($extension)
+                ? mb_substr($source['o:filename'], 0, -mb_strlen($extension) - 1)
+                : $source['o:filename'];
         }
         if (!count($assetStorages)) {
             return;
@@ -88,59 +90,62 @@ SQL;
         );
     }
 
-    protected function fillAssetsProcess(iterable $sourceAssets): void
+    protected function fillAssetsProcess(iterable $sources): void
     {
-        $this->refreshOwner();
+        $this->refreshMainResources();
+
+        $keyId = $this->mapping['assets']['key_id'];
 
         /** @var \Omeka\Api\Adapter\AssetAdapter $adapter */
         $adapter = $this->adapterManager->get('assets');
+
         $index = 0;
         $created = 0;
         $skipped = 0;
-        foreach ($sourceAssets as $resource) {
+        foreach ($sources as $source) {
             ++$index;
-            $resourceId = $resource['o:id'];
+            $sourceId = $source[$keyId];
             // Some new resources created since first loop.
-            if (!isset($this->map['assets'][$resourceId])) {
+            if (!isset($this->map['assets'][$sourceId])) {
                 ++$skipped;
                 $this->logger->notice(
                     'Skipped resource "{type}" #{source_id} existing or added in source.', // @translate
-                    ['type' => 'asset', 'source_id' => $resourceId]
+                    ['type' => 'asset', 'source_id' => $sourceId]
                 );
                 continue;
             }
 
-            if (($pos = mb_strrpos($resource['o:filename'], '.')) === false) {
+            if (($pos = mb_strrpos($source['o:filename'], '.')) === false) {
                 ++$skipped;
                 $this->logger->warn(
                     'Asset {id} has no filename or no extension.', // @translate
-                    ['id' => $resourceId]
+                    ['id' => $sourceId]
                 );
                 continue;
             }
 
             // Api can't be used because the asset should be downloaded locally.
-            // unset($resource['@id'], $resource['o:id']);
-            // $response = $this->api()->create('assets', $resource);
+            // unset($source['@id'], $source[$keyId]);
+            // $response = $this->api()->create('assets', $source);
 
             // TODO Keep the original storage id of assets (so check existing one as a whole).
-            // $storageId = substr($resource['o:filename'], 0, $pos);
+            // $storageId = substr($source['o:filename'], 0, $pos);
             // @see \Omeka\File\TempFile::getStorageId()
             $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
-            $extension = substr($resource['o:filename'], $pos + 1);
+            $extension = substr($source['o:filename'], $pos + 1);
 
-            $result = $this->fetchUrl('asset', $resource['o:name'], $resource['o:filename'], $storageId, $extension, $resource['o:asset_url']);
+            $result = $this->fetchUrl('asset', $source['o:name'], $source['o:filename'], $storageId, $extension, $source['o:asset_url']);
             if ($result['status'] !== 'success') {
                 ++$skipped;
                 $this->logger->err($result['message']);
                 continue;
             }
 
-            $this->entity = $this->entityManager->find(\Omeka\Entity\Asset::class, $this->map['assets'][$resourceId]);
+            $this->entity = $this->entityManager->find(\Omeka\Entity\Asset::class, $this->map['assets'][$sourceId]);
 
             // Omeka entities are not fluid.
-            $this->entity->setOwner($this->userOrDefaultOwner($resource['o:owner']));
-            $this->entity->setName($resource['o:name']);
+            $this->entity->setOwner($this->userOrDefaultOwner($source['o:owner']));
+            $this->entity->setName($source['o:name']);
             $this->entity->setMediaType($result['data']['media_type']);
             $this->entity->setStorageId($storageId);
             $this->entity->setExtension($extension);
@@ -161,7 +166,7 @@ SQL;
             if ($created % self::CHUNK_ENTITIES === 0) {
                 $this->entityManager->flush();
                 $this->entityManager->clear();
-                $this->refreshOwner();
+                $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
                     ['count' => $created, 'total' => count($this->map['assets']), 'type' => 'asset', 'skipped' => $skipped]
@@ -172,7 +177,7 @@ SQL;
         // Remaining entities.
         $this->entityManager->flush();
         $this->entityManager->clear();
-        $this->refreshOwner();
+        $this->refreshMainResources();
 
         $this->logger->notice(
             '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate

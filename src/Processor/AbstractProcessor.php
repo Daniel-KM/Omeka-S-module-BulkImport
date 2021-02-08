@@ -65,6 +65,11 @@ abstract class AbstractProcessor implements Processor
     protected $bulk;
 
     /**
+     * @var \Laminas\Mvc\I18n\Translator
+     */
+    protected $translator;
+
+    /**
      * Processor constructor.
      *
      * @param ServiceLocatorInterface $services
@@ -73,6 +78,7 @@ abstract class AbstractProcessor implements Processor
     {
         $this->setServiceLocator($services);
         $this->bulk = $services->get('ControllerPluginManager')->get('bulk');
+        $this->translator = $services->get('MvcTranslator');
     }
 
     public function setReader(Reader $reader)

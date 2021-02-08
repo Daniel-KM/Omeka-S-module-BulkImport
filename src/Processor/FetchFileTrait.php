@@ -69,7 +69,7 @@ trait FetchFileTrait
             $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType];
         }
 
-        // Check the mime type for security.
+        // Check the media type for security.
         if (!$this->disableFileValidation) {
             if ($type === 'asset') {
                 if (!in_array($mediaType, \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES)) {

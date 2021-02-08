@@ -92,8 +92,8 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * option is false, when there are true duplicates, it returns the first and
      * when there are case insensitive duplicates, it returns the first too.
      * This option is useless when identifiers are ids and not recommended when
-     * there are multiple type of fields (doesnfor example, it doesn't work
-     * totally with o:id and properties).
+     * there are multiple type of fields (for example, it doesn't work totally
+     * with o:id and properties).
      * @return array|int|null|Object Associative array with the identifiers as key
      * and the ids or null as value. Order is kept, but duplicate identifiers
      * are removed. If $identifiers is a string, return directly the resource
@@ -707,7 +707,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * @param string $string
      * @return string
      */
-    protected function trimUnicode($string)
+    protected function trimUnicode($string): string
     {
         return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
     }
