@@ -258,6 +258,8 @@ SQL;
         $itemSets = $this->entity->getItemSets();
         $itemSets->add($this->main['concept']['item_set']);
 
+        $values = [];
+
         $fromTo = [
             $keyLabel => 'skos:prefLabel',
             $keyDefinition => 'skos:definition',
@@ -266,28 +268,28 @@ SQL;
         foreach ($fromTo as $sourceName => $term) {
             $value = $source[$sourceName] ?? '';
             if (strlen($value)) {
-                $this->appendValue([
+                $values[] = [
                     'term' => $term,
                     'lang' => $this->params['language'] ?? null,
                     'value' => $value,
-                ]);
+                ];
             }
         }
 
-        $this->appendValue([
+        $values[] = [
             'term' => 'skos:inScheme',
             'type' => 'resource:item',
             'value_resource' => $this->main['scheme']['item'],
-        ]);
+        ];
 
         if ($keyParentId && $source['id_parent']) {
             $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$source[$keyParentId]]);
             if ($linked) {
-                $this->appendValue([
+                $values[] = [
                     'term' => 'skos:broader',
                     'type' => 'resource:item',
                     'value_resource' => $linked,
-                ]);
+                ];
             } else {
                 $this->logger->warn(
                     'The broader concept #{identifier} of items #{item_id} (source {source}) was not found.', // @translate
@@ -295,42 +297,44 @@ SQL;
                 );
             }
         } else {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'skos:topConceptOf',
                 'type' => 'resource:item',
                 'value_resource' => $this->main['scheme']['item'],
-            ]);
+            ];
         }
 
         if (!empty($this->thesaurus['narrowers'][$source[$keyId]])) {
             foreach ($this->thesaurus['narrowers'][$source[$keyId]] as $value) {
                 if (empty($this->map['concepts'][$value])) {
-                    $this->appendValue([
+                    $values[] = [
                         'term' => 'skos:narrower',
                         'value' => $value,
-                    ]);
+                    ];
                 } else {
                     $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
-                    $this->appendValue([
+                    $values[] = [
                         'term' => 'skos:narrower',
                         'type' => 'resource:item',
                         'value_resource' => $linked,
-                    ]);
+                    ];
                 }
             }
         }
 
         if ($keyCreated && $createdDate) {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'dcterms:created',
                 'value' => $createdDate->format('Y-m-d H:i:s'),
-            ]);
+            ];
         }
         if ($keyModified && $modifiedDate) {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'dcterms:modified',
                 'value' => $modifiedDate->format('Y-m-d H:i:s'),
-            ]);
+            ];
         }
+
+        $this->orderAndAppendValues($values);
     }
 }

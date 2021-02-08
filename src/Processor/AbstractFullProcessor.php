@@ -21,6 +21,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use CustomVocabTrait;
     use FetchFileTrait;
     use InternalIntegrityTrait;
+    use LanguageTrait;
     use MappingTrait;
     use ParametrizableTrait;
     use ResourceTemplateTrait;
@@ -1114,12 +1115,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
         if (!empty($this->main['templates'])) {
-            foreach (array_keys($data['templates']) as $name) {
+            foreach (array_keys($this->main['templates']) as $name) {
                 $this->main['templates'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => $name]);
             }
         }
         if (!empty($this->main['classes'])) {
-            foreach (array_keys($data['classes']) as $name) {
+            foreach (array_keys($this->main['classes']) as $name) {
                 [$prefix, $localName] = explode(':', $name);
                 $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => $prefix]);
                 $this->main['classes'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => $localName]);

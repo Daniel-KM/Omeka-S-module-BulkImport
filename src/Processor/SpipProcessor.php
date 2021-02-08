@@ -192,6 +192,11 @@ class SpipProcessor extends AbstractFullProcessor
         $endpoint = rtrim(trim($args['endpoint'] ?? ''), ' /');
         $args['endpoint'] = $endpoint ? $endpoint . '/' : '';
 
+        $args['language'] = trim($args['language']);
+        $args['language'] = empty($args['language'])
+            ? null
+            : $this->isoCode3letters($args['language']);
+
         $this->setParams($args);
 
         $this->map['statuts'] = [
@@ -400,22 +405,25 @@ class SpipProcessor extends AbstractFullProcessor
     }
 
     /**
-     * La ressource Spip Article est convertie en item + media.
+     * La ressource Spip Article est convertie en item.
+     *
+     * La précédente version utilisiait les médias data html/article pour les
+     * champs sur-titre, sous-titre, chapeau, texte et post-scriptum.
      *
      * @param array $source
      */
     protected function fillArticle(array $source): void
     {
-        // FIXME En cours. Actuellement, item et média sont entièrement remplis et mélangés.
         /*
         // Not managed currently.
         [
             'id_secteur', // ?
             'export', // ?
-            // Module statistic.
+            // Module statistique.
             'visites',
             'referers',
             'popularite',
+            // Inutile : Module comment
             'accepter_forum',
             // Inutile.
             'langue_choisie',
@@ -426,183 +434,168 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Le titre est obligatoire pour le modèle, mais peut être vide dans Spip.
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf('[Untitled #]', $source['id_article']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_article']); // @translate
         }
+        $title = $this->polyglotte($source['titre'])[0];
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
         $createdDate = $this->getSqlDateTime($source['date']) ?? $this->currentDateTime;
         $majDate = $this->getSqlDateTime($source['maj']);
 
+        $language = empty($source['lang'])
+            ? $this->params['language']
+            : $this->isoCode3letters($source['lang']);
+
+        $values = [];
+
         // Omeka entities are not fluid.
         /* @var \Omeka\Entity\Item */
         $this->entity->setOwner($this->owner);
         $this->entity->setResourceClass($this->main['article']['class']);
         $this->entity->setResourceTemplate($this->main['article']['template']);
-        $this->entity->setTitle($source['titre']);
+        $this->entity->setTitle($title);
         $this->entity->setIsPublic($isPublic);
         $this->entity->setCreated($createdDate);
         if ($majDate) {
             $this->entity->setModified($majDate);
         }
 
-        $mediaData = [
-            'heading' => $source['surtitre'],
-            'subhead' => $source['soustitre'],
-            'lead' => $source['chapo'],
-            'html' => $source['texte'],
-            'complement' => $source['ps'],
+        // Cf. module Article.
+        $fromTo = [
+            'surtitre' => 'dcterms:coverage',
+            'titre' => 'dcterms:title',
+            'soustitre' => 'dcterms:alternative',
+            'descriptif' => 'bibo:shortDescription',
+            'chapo' => 'article:prescript',
+            'texte' => 'bibo:content',
+            'ps' => 'article:postscript',
+            // La langue est utilisée directement dans les valeurs.
+            // 'lang' => 'dcterms:language',
         ];
-
-        $media = new \Omeka\Entity\Media();
-        $media->setOwner($this->entity->getOwner());
-        $media->setItem($this->entity);
-        $media->setResourceClass($this->main['article']['class']);
-        $media->setResourceTemplate($this->main['article']['template']);
-        $media->setTitle($source['titre']);
-        $media->setIngester('article');
-        $media->setRenderer('article');
-        $media->setData($mediaData);
-        $media->setPosition(1);
-        $media->setCreated($createdDate);
-        if ($majDate) {
-            $media->setModified($majDate);
-        }
-        if ($source['lang']) {
-            $media->setLang($source['lang']);
+        foreach ($fromTo as $sourceName => $term) {
+            foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
+                $values[] = [
+                    'term' => $term,
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $language,
+                    'value' => $value,
+                ];
+            }
         }
 
-        foreach ([$this->entity, $media] as $article) {
-            $fromTo = [
-                'titre' => 'dcterms:title',
-                'descriptif' => 'bibo:shortDescription',
-                'lang' => 'dcterms:language',
+        $value = (int) $source['id_rubrique'];
+        if ($value) {
+            // Le concept est conservé même si vide.
+            if (empty($this->map['concepts'][$value])) {
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => 'literal',
+                    'lang' => $this->params['language'],
+                    'value' => $value,
+                ];
+            } else {
+                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            }
+        }
+
+        if ($status) {
+            $values[] = [
+                'term' => 'bibo:status',
+                'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
+                'value' => $status,
             ];
-            foreach ($fromTo as $sourceName => $term) {
-                $value = $source[$sourceName];
-                if (strlen($value)) {
-                    $this->appendValue([
-                        'term' => $term,
-                        'lang' => $sourceName === 'lang' ? null : $this->params['language'],
-                        'value' => $value,
-                    ], $article);
-                }
-            }
+        }
 
-            $value = (int) $source['id_rubrique'];
-            if ($value) {
-                // Le concept est conservé même si vide.
-                if (empty($this->map['concepts'][$value])) {
-                    $this->appendValue([
-                        'term' => 'dcterms:subject',
-                        'type' => 'literal',
-                        'lang' => $this->params['language'],
-                        'value' => $value,
-                    ], $article);
-                } else {
-                    $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
-                    $this->appendValue([
-                        'term' => 'dcterms:subject',
-                        'type' => 'resource:item',
-                        'value_resource' => $linked,
-                    ], $article);
-                }
-            }
+        // TODO Conserver toutes les dates en valeur ?
+        // Généralement vide. Utilisé pour les articles préalablement migrés dans Spip.
+        $redacDate = $this->getSqlDateTime($source['date_redac']);
+        if ($redacDate) {
+            $values[] = [
+                'term' => 'dcterms:dateSubmitted',
+                'value' => $redacDate->format('Y-m-d H:i:s'),
+            ];
+        }
+        if ($createdDate) {
+            $values[] = [
+                'term' => 'dcterms:created',
+                'value' => $createdDate->format('Y-m-d H:i:s'),
+            ];
+        }
+        $modifiedDate = $this->getSqlDateTime($source['date_modif']);
+        if ($modifiedDate) {
+            $values[] = [
+                'term' => 'dcterms:modified',
+                'value' => $modifiedDate->format('Y-m-d H:i:s'),
+            ];
+        }
+        if ($majDate) {
+            $values[] = [
+                'term' => 'dcterms:dateAccepted',
+                'value' => $majDate->format('Y-m-d H:i:s'),
+            ];
+        }
 
-            if ($status) {
-                $this->appendValue([
-                    'term' => 'bibo:status',
-                    'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
-                    'value' => $status,
-                ], $article);
-            }
+        if ($source['url_site'] || $source['nom_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'uri',
+                '@id' => $source['url_site'],
+                '@label' => $source['nom_site'],
+            ];
+        }
 
-            // TODO Conserver toutes les dates en valeur ?
-            // Généralement vide. Utilisé pour les articles préalablement migrés dans Spip.
-            $redacDate = $this->getSqlDateTime($source['date_redac']);
-            if ($redacDate) {
-                $this->appendValue([
-                    'term' => 'dcterms:dateSubmitted',
-                    'value' => $redacDate->format('Y-m-d H:i:s'),
-                ], $article);
-            }
-            if ($createdDate) {
-                $this->appendValue([
-                    'term' => 'dcterms:created',
-                    'value' => $createdDate->format('Y-m-d H:i:s'),
-                ], $article);
-            }
-            $modifiedDate = $this->getSqlDateTime($source['date_modif']);
-            if ($modifiedDate) {
-                $this->appendValue([
-                    'term' => 'dcterms:modified',
-                    'value' => $modifiedDate->format('Y-m-d H:i:s'),
-                ], $article);
-            }
-            if ($majDate) {
-                $this->appendValue([
-                    'term' => 'dcterms:dateAccepted',
-                    'value' => $majDate->format('Y-m-d H:i:s'),
-                ], $article);
-            }
-
-            if ($source['url_site'] || $source['nom_site']) {
-                $this->appendValue([
-                    'term' => 'dcterms:references',
+        // Un article virtuel peut être un article externe ou interne.
+        if ($source['virtuel']) {
+            if ($this->bulk->isUrl($source['virtuel'])) {
+                $values[] = [
+                    'term' => 'bibo:uri',
                     'type' => 'uri',
-                    '@id' => $source['url_site'],
-                    '@label' => $source['nom_site'],
-                ], $article);
-            }
-
-            // Un article virtuel peut être un article externe ou interne.
-            if ($source['virtuel']) {
-                if ($this->bulk->isUrl($source['virtuel'])) {
-                    $this->appendValue([
+                    '@id' => $source['virtuel'],
+                    '@label' => '',
+                ];
+            } else {
+                $mapped = $this->relatedLink($source['virtuel']);
+                if ($mapped) {
+                    $values[] = [
                         'term' => 'bibo:uri',
-                        'type' => 'uri',
-                        '@id' => $source['virtuel'],
-                        '@label' => '',
-                    ], $article);
+                        'type' => $mapped['type'],
+                        'value_resource' => $mapped['value_resource'],
+                    ];
                 } else {
-                    $mapped = $this->relatedLink($source['virtuel']);
-                    if ($mapped) {
-                        $this->appendValue([
-                            'term' => 'bibo:uri',
-                            'type' => $mapped['type'],
-                            'value_resource' => $mapped['value_resource'],
-                        ], $article);
-                    } else {
-                        $this->logger->warn(
-                            'The virtuel resource #{identifier} of item #{item_id} (source {source}) was not found.', // @translate
-                            ['identifier' => $source['virtuel'], 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
-                        );
-                    }
-                }
-            }
-
-            $value = (int) $source['id_trad'];
-            if ($value) {
-                if (empty($this->map['items'][$value])) {
                     $this->logger->warn(
-                        'The translation #{id_trad} of item #{item_id} (source {source}) was not found.', // @translate
-                        ['id_trad' => $value, 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
+                        'The virtuel resource #{identifier} of item #{item_id} (source {source}) was not found.', // @translate
+                        ['identifier' => $source['virtuel'], 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
                     );
-                } else {
-                    $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
-                    $this->appendValue([
-                        // Impossible de déterminer laquelle est la traduction de l'autre.
-                        'term' => 'bibo:translationOf',
-                        'type' => 'resource:item',
-                        'value_resource' => $linked,
-                    ], $article);
                 }
             }
+        }
 
-            $this->entityManager->persist($article);
+        $value = (int) $source['id_trad'];
+        if ($value) {
+            if (empty($this->map['items'][$value])) {
+                $this->logger->warn(
+                    'The translation #{id_trad} of item #{item_id} (source {source}) was not found.', // @translate
+                    ['id_trad' => $value, 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
+                );
+            } else {
+                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
+                $values[] = [
+                    // Impossible de déterminer laquelle est la traduction de l'autre.
+                    'term' => 'bibo:translationOf',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            }
         }
 
         // TODO Auteurs liens, documents liens.
+
+        $this->orderAndAppendValues($values);
     }
 
     protected function fillMedia(array $source): void
@@ -636,8 +629,9 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Le titre est obligatoire pour le modèle, mais peut être vide dans Spip.
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf('[Untitled #]', $source['id_document']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_document']); // @translate
         }
+        $title = $this->polyglotte($source['titre'])[0];
 
         $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source['id_document']]);
 
@@ -665,7 +659,7 @@ class SpipProcessor extends AbstractFullProcessor
         $this->entity->setOwner($this->owner);
         $this->entity->setResourceClass($this->main['classes'][$class]);
         $this->entity->setResourceTemplate($this->main['templates']['Fichier']);
-        $this->entity->setTitle($source['titre']);
+        $this->entity->setTitle($title);
         $this->entity->setIsPublic($isPublic);
         $this->entity->setCreated($createdDate);
         if ($majDate) {
@@ -687,7 +681,7 @@ class SpipProcessor extends AbstractFullProcessor
         $media->setItem($this->entity);
         $media->setResourceClass($this->main['classes'][$class]);
         $media->setResourceTemplate($this->main['templates']['Fichier']);
-        $media->setTitle($source['titre']);
+        $media->setTitle($title);
         $media->setIsPublic($isPublic);
         $media->setIngester($isUrl ? 'url' : 'upload');
         $media->setRenderer('file');
@@ -751,50 +745,55 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
+        $language = $this->params['language'];
+
         foreach ([$this->entity, $media] as $document) {
+            $values = [];
+
             $fromTo = [
                 'titre' => 'dcterms:title',
                 'descriptif' => 'bibo:shortDescription',
                 'credits' => 'dcterms:rights',
             ];
             foreach ($fromTo as $sourceName => $term) {
-                $value = $source[$sourceName];
-                if (strlen($value)) {
-                    $this->appendValue([
+                foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
+                    $values[] = [
                         'term' => $term,
-                        'lang' => $this->params['language'] ?? null,
+                        'lang' => $lang ? $this->isoCode3letters($lang) : $language,
                         'value' => $value,
-                    ], $document);
+                    ];
                 }
             }
 
             if ($status) {
-                $this->appendValue([
+                $values[] = [
                     'term' => 'bibo:status',
                     'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                     'value' => $status,
-                ]);
+                ];
             }
 
             if ($createdDate) {
-                $this->appendValue([
+                $values[] = [
                     'term' => 'dcterms:created',
                     'value' => $createdDate->format('Y-m-d H:i:s'),
-                ], $document);
+                ];
             }
             if ($majDate) {
-                $this->appendValue([
+                $values[] = [
                     'term' => 'dcterms:dateAccepted',
                     'value' => $majDate->format('Y-m-d H:i:s'),
-                ], $document);
+                ];
             }
             $publicationDate = $this->getSqlDateTime($source['date_publication']);
             if ($publicationDate) {
-                $this->appendValue([
+                $values[] = [
                     'term' => 'dcterms:issued',
                     'value' => $publicationDate->format('Y-m-d H:i:s'),
-                ], $document);
+                ];
             }
+
+            $this->orderAndAppendValues($values, $document);
 
             $this->entityManager->persist($document);
         }
@@ -805,8 +804,9 @@ class SpipProcessor extends AbstractFullProcessor
         // FIXME Convertir les albums en item avec relation ?
         $source = array_map('trim', array_map('strval', $source));
         if (!mb_strlen($source['titre'])) {
-            $source['titre'] = sprintf('[Untitled #]', $source['id_album']); // @translate
+            $source['titre'] = sprintf($this->translator->translate('[Untitled #]'), $source['id_album']); // @translate
         }
+        $title = $this->polyglotte($source['titre'])[0];
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
@@ -816,7 +816,7 @@ class SpipProcessor extends AbstractFullProcessor
         // Omeka entities are not fluid.
         /* @var \Omeka\Entity\ItemSet */
         $this->entity->setOwner($this->owner);
-        $this->entity->setTitle($source['titre']);
+        $this->entity->setTitle($title);
         $this->entity->setIsPublic($isPublic);
         $this->entity->setCreated($createdDate);
         if ($majDate) {
@@ -824,41 +824,44 @@ class SpipProcessor extends AbstractFullProcessor
         }
         $this->entity->setIsOpen(true);
 
+        $values = [];
+
+        $language = $this->params['language'];
+
         $fromTo = [
             'titre' => 'dcterms:title',
             'descriptif' => 'bibo:shortDescription',
             'lang' => 'dcterms:language',
         ];
         foreach ($fromTo as $sourceName => $term) {
-            $value = $source[$sourceName];
-            if (strlen($value)) {
-                $this->appendValue([
+            foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
+                $values[] = [
                     'term' => $term,
-                    'lang' => $sourceName === 'lang' ? null : $this->params['language'],
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $language,
                     'value' => $value,
-                ]);
+                ];
             }
         }
 
         if ($status) {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'bibo:status',
                 'type' => 'customvocab:' . $this->main['article']['custom_vocab_id'],
                 'value' => $status,
-            ]);
+            ];
         }
 
         if ($createdDate) {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'dcterms:created',
                 'value' => $createdDate->format('Y-m-d H:i:s'),
-            ]);
+            ];
         }
         if ($majDate) {
-            $this->appendValue([
+            $values[] = [
                 'term' => 'dcterms:dateAccepted',
                 'value' => $majDate->format('Y-m-d H:i:s'),
-            ]);
+            ];
         }
 
         $value = (int) $source['id_trad'];
@@ -870,13 +873,15 @@ class SpipProcessor extends AbstractFullProcessor
                 );
             } else {
                 $linked = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['items'][$value]);
-                $this->appendValue([
+                $values[] = [
                     'term' => 'bibo:translationOf',
                     'type' => 'resource:item',
                     'value_resource' => $linked,
-                ]);
+                ];
             }
         }
+
+        $this->orderAndAppendValues($values);
     }
 
     protected function fillConcepts(): void
@@ -964,5 +969,84 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         return null;
+    }
+
+    /**
+     * Extrait la valeur dans toutes les langues.
+     *
+     * @link https://code.spip.net/autodoc/tree/ecrire/inc/filtres.php.html#function_extraire_trads
+     * @link https://git.spip.net/SPIP/spip/src/branch/master/ecrire/inc/filtres.php#L1610-L1746
+     * @link https://git.spip.net/SPIP/spip/src/branch/master/ecrire/base/abstract_sql.php#L1358-L1390
+     *
+     * @param string $value
+     * @return array
+     */
+    protected function polyglotte($value): array
+    {
+        $value = trim((string) $value);
+
+        if (!strlen($value)) {
+            return [];
+        }
+
+        if (strpos($value, '<multi>') === false || strpos($value, '</multi>') === false) {
+            return [$value];
+        }
+
+        // Prendre la chaîne générale et insérer la partie de chaque bloc
+        // par la traduction.
+        // Adaptation de la fonction extraire_multi() de Spip.
+        $matches = [];
+        $extraireMulti = '@<multi>(.*?)</multi>@sS';
+        if (!preg_match_all($extraireMulti, $value, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $result = [];
+        $strReplaces = [];
+        foreach ($matches as $match) {
+            $trads = $this->extraire_trads($match[1]);
+            foreach ($trads as $lang => $trad) {
+                $strReplaces[$lang][$match[0]] = $trad;
+            }
+        }
+        foreach ($strReplaces as $lang => $strReplace) {
+            $result[$lang] = str_replace(array_keys($strReplace), array_values($strReplace), $value);
+        }
+        return $result;
+    }
+
+    /**
+     * Convertit le contenu d'une balise `<multi>` en un tableau
+     *
+     * @link https://git.spip.net/spip/spip
+     * @see spip/ecrire/inc/filtres.php
+     *
+     * Exemple de blocs.
+     * - `texte par défaut [fr] en français [en] en anglais`
+     * - `[fr] en français [en] en anglais`
+     *
+     * @param string $bloc
+     *     Le contenu intérieur d'un bloc multi
+     * @return array [code de langue => texte]
+     *     Peut retourner un code de langue vide, lorsqu'un texte par défaut est indiqué.
+     **/
+    protected function extraire_trads($bloc)
+    {
+        $lang = '';
+        $regs = [];
+        // ce reg fait planter l'analyse multi s'il y a de l'{italique} dans le champ
+        //	while (preg_match("/^(.*?)[{\[]([a-z_]+)[}\]]/siS", $bloc, $regs)) {
+        while (preg_match("/^(.*?)[\[]([a-z_]+)[\]]/siS", $bloc, $regs)) {
+            $texte = trim($regs[1]);
+            if ($texte or $lang) {
+                $trads[$lang] = $texte;
+            }
+            $bloc = substr($bloc, strlen($regs[0]));
+            $lang = $regs[2];
+        }
+        $trads[$lang] = $bloc;
+
+        return $trads;
     }
 }

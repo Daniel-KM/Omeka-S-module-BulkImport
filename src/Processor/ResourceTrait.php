@@ -3,6 +3,7 @@
 namespace BulkImport\Processor;
 
 use Log\Stdlib\PsrMessage;
+use Omeka\Entity\Resource;
 
 trait ResourceTrait
 {
@@ -599,19 +600,63 @@ SQL;
         }
     }
 
-    protected function appendValue(array $metadata, $source = null): void
+    /**
+     * Append a list of value to a resource, ordered according the template.
+     *
+     * The existing values of the resource are not reordered.
+     * Use `fillValues()` if the values are already ordered.
+     *
+     * @param array $values A list of values. Value is not a representation, but
+     *   a simple mapping with the database table.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function orderAndAppendValues(array $values, ?Resource $source = null): void
     {
-        $metadata += [
+        if (!count($values)) {
+            return;
+        }
+
+        if (!$source) {
+            $source = $this->entity;
+        }
+
+        $values = $this->reorderListOfValues($values, $source);
+        foreach ($values as $value) {
+            $this->appendValue($value, $source);
+        }
+    }
+
+    /**
+     * Add a value to a resource.
+     *
+     * This method is not recommended to be used alone when there is a template,
+     * because the order won't be kept.
+     *
+     * @param array $value A single value. This is not the representation, but a
+     *   simple mapping with the database table.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function appendValue(array $value, ?Resource $source = null): void
+    {
+        $value += [
+            'term' => null,
             'type' => 'literal',
+            'lang' => null,
             'value' => null,
             'uri' => null,
             'value_resource' => null,
-            'lang' => null,
             'is_public' => true,
         ];
 
-        $term = $metadata['term'];
+        $term = $value['term'];
+        if (!$term) {
+            return;
+        }
+
         $property = $this->entityManager->find(\Omeka\Entity\Property::class, $this->map['properties'][$term]['id']);
+        if (!$property) {
+            return;
+        }
 
         if (!$source) {
             $source = $this->entity;
@@ -620,15 +665,121 @@ SQL;
         $entityValue = new \Omeka\Entity\Value;
         $entityValue->setResource($source);
         $entityValue->setProperty($property);
-        $entityValue->setType($metadata['type']);
-        $entityValue->setValue($metadata['value']);
-        $entityValue->setUri($metadata['uri']);
-        $entityValue->setValueResource($metadata['value_resource']);
-        $entityValue->setLang(empty($metadata['lang']) ? null : $metadata['lang']);
-        $entityValue->setIsPublic(!empty($metadata['is_public']));
+        $entityValue->setType($value['type']);
+        $entityValue->setValue($value['value']);
+        $entityValue->setUri($value['uri']);
+        $entityValue->setValueResource($value['value_resource']);
+        $entityValue->setLang(empty($value['lang']) ? null : $value['lang']);
+        $entityValue->setIsPublic(!empty($value['is_public']));
 
         $entityValues = $source->getValues();
         $entityValues->add($entityValue);
+    }
+
+    /**
+     * Sort a list of values according to a template.
+     *
+     * The existing values of the resource are not reordered.
+     *
+     * @param array $values A list of values. Value is not a representation, but
+     *   a simple mapping with the database table.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function reorderListOfValues(array $values, ?Resource $source = null): array
+    {
+        if (!count($values)) {
+            return $values;
+        }
+
+        $orderOfProperties = $this->orderedListTemplatePropertyTerms($source);
+        if (!count($orderOfProperties)) {
+            return $values;
+        }
+
+        $result = [];
+        foreach ($values as $value) {
+            $result[$value['term']][] = $value;
+        }
+
+        $values = array_filter(array_replace($orderOfProperties, $result));
+        return array_merge(...array_values($values));
+    }
+
+    /**
+     * Reorder all values of a resource according to template or specific order.
+     *
+     * The values must not have been saved (it sorts by id).
+     *
+     * @param array $orderOfProperties If null, the template of the resource is used.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function reorderValues(?array $orderOfProperties = null, ?Resource $source = null): void
+    {
+        if (!$source) {
+            $source = $this->entity;
+        }
+
+        if (is_null($orderOfProperties)) {
+            $orderOfProperties = $this->orderedListTemplatePropertyTerms($source);
+        }
+
+        if (!count($orderOfProperties)) {
+            return;
+        }
+
+        $entityValues = $source->getValues();
+        if (!$entityValues->count()) {
+            return;
+        }
+
+        // Extract by property.
+        $result = [];
+        /** @var \Omeka\Entity\Value $value */
+        foreach ($entityValues as $value) {
+            $property = $value->getProperty();
+            $term = $property->getVocabulary()->getPrefix()
+                . ':'
+                . $property->getLocalName();
+            $result[$term][] = $value;
+        }
+
+        $result = array_filter(array_replace($orderOfProperties, $result));
+
+        $entityValues->clear();
+        foreach (array_merge(...array_values($result)) as $value) {
+            $entityValues->add($value);
+        }
+    }
+
+    protected function orderedListTemplatePropertyTerms(?Resource $source = null): array
+    {
+        static $templateOrders = [];
+
+        if (!$source) {
+            $source = $this->entity;
+        }
+
+        /** @var \Omeka\Entity\ResourceTemplate $template */
+        $template = $source->getResourceTemplate();
+        if (!$template) {
+            return [];
+        }
+
+        $templateId = $template->getId();
+        if (!isset($templateOrders[$templateId])) {
+            $orderOfProperties = [];
+            /** @var \Omeka\Entity\ResourceTemplateProperty $rtp */
+            foreach ($template->getResourceTemplateProperties() as $rtp) {
+                $property = $rtp->getProperty();
+                $term = $property->getVocabulary()->getPrefix()
+                    . ':'
+                    . $property->getLocalName();
+                $orderOfProperties[$term] = $term;
+            }
+            $templateOrders[$templateId] = array_values($orderOfProperties);
+        }
+
+        return $templateOrders[$templateId];
     }
 
     protected function fillItem(array $source): void
