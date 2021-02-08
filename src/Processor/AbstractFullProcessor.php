@@ -554,27 +554,27 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->setParams($args);
 
         $this->preImport();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
         $this->check();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
         $this->importMetadata();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
         $this->importData();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
         $this->postImport();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
@@ -586,7 +586,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         );
 
         $this->completionJobs();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
@@ -604,6 +604,20 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->logger->notice(
             'End of process. Note: errors can occur separately for each imported file.' // @translate
         );
+    }
+
+    protected function isErrorOrStop(): bool
+    {
+        if ($this->hasError) {
+            return true;
+        }
+        if ($this->job->shouldStop()) {
+            $this->logger->warn(
+                'The job was stopped.' // @translate
+            );
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -653,9 +667,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'Import of users.' // @translate
             );
             $this->prepareUsers();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
+        }
+
+        if ($this->isErrorOrStop()) {
+            return;
         }
 
         if (in_array('vocabularies', $toImport)
@@ -665,13 +683,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'Check vocabularies.' // @translate
             );
             $this->checkVocabularies();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
 
             $this->prepareImport('vocabularies');
             $this->prepareVocabularies();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
 
@@ -680,7 +698,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                     'Preparation of properties.' // @translate
                 );
                 $this->prepareProperties();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -690,7 +708,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                     'Preparation of resource classes.' // @translate
                 );
                 $this->prepareResourceClasses();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -706,7 +724,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'Check custom vocabs.' // @translate
             );
             $this->prepareCustomVocabsInitialize();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
         }
@@ -718,7 +736,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'Preparation of resource templates.' // @translate
             );
             $this->prepareResourceTemplates();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
         }
@@ -742,7 +760,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 'Initialization of all assets.' // @translate
             );
             $this->prepareAssets();
-            if ($this->hasError) {
+            if ($this->isErrorOrStop()) {
                 return;
             }
         }
@@ -755,7 +773,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('items')
             ) {
                 $this->prepareItems();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -763,7 +781,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('medias')
             ) {
                 $this->prepareMedias();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -771,7 +789,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('media_items')
             ) {
                 $this->prepareMediaItems();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -779,7 +797,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('item_sets')
             ) {
                 $this->prepareItemSets();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -787,7 +805,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // For child processors.
         $this->prepareOthers();
-        if ($this->hasError) {
+        if ($this->isErrorOrStop()) {
             return;
         }
 
@@ -808,7 +826,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('items')
             ) {
                 $this->fillItems();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -816,7 +834,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('medias')
             ) {
                 $this->fillMedias();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -824,7 +842,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('media_items')
             ) {
                 $this->fillMediaItems();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -832,7 +850,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('item_sets')
             ) {
                 $this->fillItemSets();
-                if ($this->hasError) {
+                if ($this->isErrorOrStop()) {
                     return;
                 }
             }
@@ -840,11 +858,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // For child processors.
         $this->fillOthers();
-        /*
-        if ($this->hasError) {
-            return;
-        }
-        */
+        // if ($this->isErrorOrStop()) {
+        //     return;
+        // }
     }
 
     /**
