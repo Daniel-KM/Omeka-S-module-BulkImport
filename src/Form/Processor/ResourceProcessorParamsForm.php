@@ -58,8 +58,9 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                     'o:media' => 'Identifier / Internal id', // @translate
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
-                    'tile' => 'Tile', // @translate
                     'html' => 'Html', // @translate
+                    'iiif' => 'IIIF Image', // @translate
+                    'tile' => 'Tile', // @translate
                     'o:media {dcterms:title}' => 'Title', // @translate
                     'o:media {o:is_public}' => 'Visibility public/private', // @translate
                 ],

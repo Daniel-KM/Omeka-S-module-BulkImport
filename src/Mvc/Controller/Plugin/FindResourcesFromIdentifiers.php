@@ -230,7 +230,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $identifierTypeName = $identifierName;
             $resourceType = 'media';
             $itemId = null;
-        } elseif (in_array($identifierName, ['url', 'file', 'tile'])) {
+        } elseif (in_array($identifierName, ['url', 'file', 'tile', 'iiif'])) {
             $identifierType = 'media_source';
             $identifierTypeName = $identifierName;
             $resourceType = 'media';

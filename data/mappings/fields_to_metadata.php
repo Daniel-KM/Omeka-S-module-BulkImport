@@ -101,6 +101,8 @@ return [
     'upload' => 'file',
     'sideload' => 'file',
     'file sideload' => 'file',
+    'iiif' => 'iiif',
+    'file iiif' => 'iiif',
     // When used with module Archive Repertory.
     'base file name' => 'o:basename',
     'base filename' => 'o:basename',

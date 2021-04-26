@@ -180,20 +180,29 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            case 'html':
+                foreach ($values as $value) {
+                    $media = [];
+                    $media['o:ingester'] = 'html';
+                    $media['html'] = $value;
+                    $this->appendRelated($resource, $media);
+                }
+                return true;
+            case 'iiif':
+                foreach ($values as $value) {
+                    $media = [];
+                    $media['o:ingester'] = 'iiif';
+                    $media['ingest_url'] = null;
+                    $media['o:source'] = $value;
+                    $this->appendRelated($resource, $media);
+                }
+                return true;
             case 'tile':
                 foreach ($values as $value) {
                     $media = [];
                     $media['o:ingester'] = 'tile';
                     $media['ingest_url'] = $value;
                     $media['o:source'] = $value;
-                    $this->appendRelated($resource, $media);
-                }
-                return true;
-            case 'html':
-                foreach ($values as $value) {
-                    $media = [];
-                    $media['o:ingester'] = 'html';
-                    $media['html'] = $value;
                     $this->appendRelated($resource, $media);
                 }
                 return true;
@@ -328,16 +337,22 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 $resource['o:source'] = $value;
                 return true;
+            case 'html':
+                $value = array_pop($values);
+                $resource['o:ingester'] = 'html';
+                $resource['html'] = $value;
+                return true;
+            case 'iiif':
+                $value = array_pop($values);
+                $resource['o:ingester'] = 'iiif';
+                $resource['ingest_url'] = null;
+                $resource['o:source'] = $value;
+                return true;
             case 'tile':
                 $value = array_pop($values);
                 $resource['o:ingester'] = 'tile';
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
-                return true;
-            case 'html':
-                $value = array_pop($values);
-                $resource['o:ingester'] = 'html';
-                $resource['html'] = $value;
                 return true;
         }
     }
