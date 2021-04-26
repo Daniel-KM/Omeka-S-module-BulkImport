@@ -5,23 +5,22 @@ Bulk Import (module for Omeka S)
 > are available on [GitLab], which seems to respect users and privacy better
 > than the previous repository.__
 
-[Bulk Import] is yet another import module for [Omeka S]. This one intends to be
-easily extensible by other modules. It allows to manage importers and to process
-bulk import of resources.
+[Bulk Import] is a module for [Omeka S] that allows to import any type of source
+and is built to be extensible. It allows to manage importers and to process bulk
+import of resources.
 
-The two main concepts are readers and processors. Readers read data from a
-source (file, url…) and make it accessible for processors which turn these data
-into Omeka objects (items, item sets, media, annotations…) via a mapping.
+It manages readers of a source (xml, sql, spreadsheet, url…) and uses processors
+to import them as Omeka resources and other data (users, templates…) via a
+mapping.
 
 Because multiple importers can be prepared with the same readers and processors,
 it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
 Default readers are Omeka S reader (via the api json endpoint), [Spip] reader (via
-a dump of the database), and spreadsheet reader. The spreadsheet uses a
-processor that creates resources based on a user-defined mapping. Note: if your
-only need is to import a CSV file into Omeka, you should probably use
-[CSV Import module], which does a perfect job for that.
+a dump of the database), and spreadsheet reader (via ods, tsv or csv). The
+spreadsheet uses a processor that creates resources based on a user-defined
+based on a specific header format, unlike the module [CSV Import].
 
 
 Installation
@@ -170,11 +169,11 @@ TODO
 - [ ] Distinction between skipped and blank (for spreadsheet).
 - [ ] Update for module Mapping.
 - [ ] Import of users, in particular for Omeka S import.
+- [ ] Import of uri with label in spreadsheet.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
 - [ ] Manage import of Custom vocab with items.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
-
 
 Warning
 -------
@@ -235,7 +234,7 @@ by [BibLibre].
 
 [Bulk Import]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport
 [Omeka S]: https://omeka.org/s
-[CSV Import module]: https://omeka.org/s/modules/CSVImport
+[CSV Import]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
 [Generic]: https://gitlab.com/Daniel-KM/Omeka-S-module-Generic
