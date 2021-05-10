@@ -7,6 +7,8 @@ use BulkImport\Interfaces\Entry as EntryInterface;
 
 class Entry implements EntryInterface
 {
+    const SIMPLE_DATA = false;
+
     /**
      * @var array|\Traversable
      */

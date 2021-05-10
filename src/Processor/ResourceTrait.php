@@ -543,6 +543,12 @@ SQL;
                             $value['type'] = 'literal';
                             $toInstall = 'Value Suggest';
                             break;
+                        // This is useless here, and same as below.
+                        case (substr($datatype, 0, 12) === 'valuesuggest'):
+                            $datatype = 'literal';
+                            $value['type'] = 'literal';
+                            $toInstall = 'Value Suggest';
+                            break;
                         default:
                             $datatype = 'literal';
                             $value['type'] = 'literal';

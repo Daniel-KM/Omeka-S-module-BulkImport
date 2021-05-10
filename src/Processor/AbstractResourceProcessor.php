@@ -298,7 +298,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         return $this->hasMapping
             ? $this->processEntryWithMapping($entry)
-            :  $this->processEntryDirectly($entry);
+            : $this->processEntryDirectly($entry);
     }
 
     protected function processEntryDirectly(Entry $entry): ArrayObject
@@ -345,6 +345,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $resource[$key] = array_merge($resource[$key], $values);
             } else {
                 $resource[$key] = $values;
+            }
+        }
+
+        // Clean the property id in all cases.
+        $properties = $this->getPropertyIds();
+        foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
+            foreach (array_keys($values) as $key) {
+                $resource[$term][$key]['property_id'] = $properties[$term];
             }
         }
 

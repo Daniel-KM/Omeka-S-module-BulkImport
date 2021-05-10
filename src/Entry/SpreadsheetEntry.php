@@ -4,9 +4,13 @@ namespace BulkImport\Entry;
 
 /**
  * Like Entry, but allows to manage multi-valued cells.
+ *
+ * @todo Make Entry and SpreadsheetEntry output only Omeka array data, like XmlEntry (so move some processor process into reader).
  */
 class SpreadsheetEntry extends Entry
 {
+    const SIMPLE_DATA = true;
+
     protected function init($data, array $fields, array $options): void
     {
         // The standard process is used when there is no separator.
