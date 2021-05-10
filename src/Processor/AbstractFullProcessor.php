@@ -791,7 +791,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 }
             }
             if (in_array('media', $toImport)
-                && $this->prepareImport('medias')
+                && $this->prepareImport('media')
             ) {
                 $this->prepareMedias();
                 if ($this->isErrorOrStop()) {
