@@ -958,7 +958,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     protected function prepareIdentifierNames(): \BulkImport\Interfaces\Processor
     {
-        $identifierNames = $this->getParam('identifier_name', ['o:id', 'dcterms:identifier']);
+        $identifierNames = $this->getParam('identifier_name', ['dcterms:identifier']);
         if (empty($identifierNames)) {
             $this->bulk->setIdentifierNames([]);
             $this->logger->warn(

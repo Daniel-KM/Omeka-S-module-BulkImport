@@ -199,7 +199,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'multiple' => true,
                 'required' => false,
                 'value' => [
-                    'o:id',
                     'dcterms:identifier',
                 ],
                 'class' => 'chosen-select',

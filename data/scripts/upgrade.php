@@ -176,6 +176,24 @@ SQL;
 }
 
 if (version_compare($oldVersion, '3.3.22.0', '<')) {
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `bulk_importer`.`processor_config` = REPLACE(
+        REPLACE(
+            `bulk_importer`.`processor_config`,
+            '"identifier_name":["o:id","dcterms:identifier"]',
+            '"identifier_name":["dcterms:identifier"]'
+        ),
+        '"identifier_name":["dcterms:identifier","o:id"]',
+        '"identifier_name":["dcterms:identifier"]'
+    )
+WHERE
+    `bulk_importer`.`processor_config` LIKE '%"identifier\_name":["o:id","dcterms:identifier"]%'
+    OR `bulk_importer`.`processor_config` LIKE '%"identifier\_name":["dcterms:identifier","o:id"]%';
+SQL;
+    $connection->executeUpdate($sql);
+
     $identity = $services->get('ControllerPluginManager')->get('identity');
     $ownerId = $identity()->getId();
     $sql = <<<SQL
