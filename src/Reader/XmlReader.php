@@ -59,14 +59,6 @@ class XmlReader extends AbstractFileReader
 
     public function isValid(): bool
     {
-        if (!extension_loaded('xml')) {
-            $this->lastErrorMessage = new PsrMessage(
-                'To process import of "{label}", the php extensions "xml" is required.', // @translate
-                ['label' => $this->getLabel()]
-            );
-            return false;
-        }
-
         // Check if the xsl file is ok, if any.
         // It may be empty if the input is a flat xml file.
         $xslpath = $this->getParam('xsl_sheet');
