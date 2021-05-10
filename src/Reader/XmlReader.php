@@ -76,10 +76,18 @@ class XmlReader extends AbstractFileReader
                 if (!$this->isValidFilepath($filepath, ['file' => basename($filepath)])) {
                     return false;
                 }
+
+                if (!$this->checkWellFormedXml($filepath)) {
+                    return false;
+                }
             }
         }
 
-        return parent::isValid();
+        if (!parent::isValid()) {
+            return false;
+        }
+
+        return $this->checkWellFormedXml($this->getParam('filename'));
     }
 
     public function current()
@@ -160,6 +168,44 @@ class XmlReader extends AbstractFileReader
         // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
         $this->iterator->rewind();
         return $this;
+    }
+
+    /**
+     * @link https://stackoverflow.com/questions/13858074/validating-a-large-xml-file-400mb-in-php#answer-13858478
+     * @param string $filepath
+     * @return bool
+     */
+    protected function checkWellFormedXml($filepath): bool
+    {
+        // Use xmlReader.
+        $xml_parser = xml_parser_create();
+        if (!($fp = fopen($filepath, 'r'))) {
+            $this->lastErrorMessage = new PsrMessage(
+                'File "{filename}" is not readable.', // @translate
+                ['filename' => basename($filepath)]
+            );
+            return false;
+        }
+
+        $errors = [];
+        while ($data = fread($fp, 4096)) {
+            if (!xml_parse($xml_parser, $data, feof($fp))) {
+                $errors[] = [
+                    'error' => xml_error_string(xml_get_error_code($xml_parser)),
+                    'line' => xml_get_current_line_number($xml_parser),
+                ];
+            }
+        }
+        xml_parser_free($xml_parser);
+
+        if ($errors) {
+            $this->lastErrorMessage = new PsrMessage(
+                'The file to import is not well formed: {message} (line #{line}).', // @translate
+                ['message' => $errors[0]['error'], 'line' => $errors[0]['line']]
+            );
+            return false;
+        }
+        return true;
     }
 
     protected function basePath(): string
