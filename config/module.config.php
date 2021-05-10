@@ -231,6 +231,7 @@ return [
             Reader\TsvReader::class => Reader\TsvReader::class,
             Reader\OpenDocumentSpreadsheetReader::class => Reader\OpenDocumentSpreadsheetReader::class,
             Reader\XmlReader::class => Reader\XmlReader::class,
+            Reader\FakeReader::class => Reader\FakeReader::class,
         ],
         'processors' => [
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
