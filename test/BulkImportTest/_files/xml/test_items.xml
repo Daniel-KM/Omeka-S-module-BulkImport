@@ -40,8 +40,8 @@
             <dcterms:description o:type="html"><![CDATA[<p>This description is <strong><em>html</em>, with cdata</strong>.</p>]]></dcterms:description>
             <dcterms:format>text/html</dcterms:format>
         </o:media>
-        <o:media>
-            <o:media o:ingester="html"><p>This is a second <strong><em>html</em> content</strong>.</p></o:media>
+        <o:media o:is_public="false">
+            <o:media o:ingester="html"><p>This is a second <strong><em>html</em> content</strong> (private).</p></o:media>
             <dcterms:title>Test of second html content</dcterms:title>
             <dcterms:format>text/html</dcterms:format>
         </o:media>
