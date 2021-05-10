@@ -56,7 +56,7 @@ $('select[name=severity]').on('change', function() {
 <div id="content">
     <form>
         <label>
-            <?= $escape($translate('Show only messages whose severity is higher than or equal to')) ?>
+            <?= $escape($translate('Show only messages whose importance is higher than or equal to')) ?>
             <select name="severity">
                 <?php foreach ($severityNames as $i => $name): ?>
                     <?php $selected = ($i === $severity) ? 'selected' : ''; ?>
@@ -65,6 +65,7 @@ $('select[name=severity]').on('change', function() {
             </select>
         </label>
     </form>
+    <br/>
 
 <?php if (count($logs)): ?>
     <?= $pagination = $this->pagination() ?>

@@ -53,6 +53,14 @@ class ImportRepresentation extends AbstractEntityRepresentation
             : null;
     }
 
+    public function undoJob(): ?JobRepresentation
+    {
+        $job = $this->resource->getUndoJob();
+        return $job
+            ? $this->getAdapter('jobs')->getRepresentation($job)
+            : null;
+    }
+
     public function readerParams(): ?array
     {
         return $this->resource->getReaderParams();
@@ -96,6 +104,70 @@ class ImportRepresentation extends AbstractEntityRepresentation
     public function isCompleted(): bool
     {
         $job = $this->job();
+        return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
+    }
+
+    /**
+     * Check if an import is undoable.
+     *
+     * An import is undoable only if the job process is not running and if it is
+     * not a creation process.
+     */
+    public function isUndoable(): bool
+    {
+        $job = $this->undoJob();
+        if ($job) {
+            return false;
+        }
+        $job = $this->job();
+        if (!$job) {
+            return false;
+        }
+        if (!in_array($job->status(), [
+            \Omeka\Entity\Job::STATUS_COMPLETED,
+            \Omeka\Entity\Job::STATUS_STOPPED,
+            \Omeka\Entity\Job::STATUS_ERROR,
+        ])) {
+            return false;
+        }
+        $params = $this->processorParams();
+        return !empty($params['action'])
+            && $params['action'] === 'create';
+    }
+
+    public function undoStatus(): string
+    {
+        $job = $this->undoJob();
+        return $job ? $job->status() : 'ready'; // @translate
+    }
+
+    public function undoStatusLabel(): string
+    {
+        $job = $this->undoJob();
+        return $job ? $job->statusLabel() : 'Ready'; // @translate
+    }
+
+    public function undoStarted(): ?\DateTime
+    {
+        $job = $this->undoJob();
+        return $job ? $job->started() : null;
+    }
+
+    public function undoEnded(): ?\DateTime
+    {
+        $job = $this->undoJob();
+        return $job ? $job->ended() : null;
+    }
+
+    public function isUndoInProgress(): bool
+    {
+        $job = $this->undoJob();
+        return $job && $job->status() === \Omeka\Entity\Job::STATUS_IN_PROGRESS;
+    }
+
+    public function isUndoCompleted(): bool
+    {
+        $job = $this->undoJob();
         return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
     }
 

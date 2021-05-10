@@ -31,25 +31,45 @@ $url = $this->plugin('url');
                     <?= $import->importer()->label() ?>
                     <?php endif; ?>
                     <ul class="actions">
-                        <?php if ($import->isInProgress()): ?>
+                        <?php if ($import->isInProgress() || $import->isUndoInProgress()): ?>
                         <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()]), [
                             'class' => 'fas fa-times-circle',
                             'title' => $translate('Stop'), // @translate
                         ]) ?></li>
                         <?php endif; ?>
+                        <?php if ($import->isUndoable()): ?>
+                        <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'undo', 'id' => $import->id()]), [
+                            'class' => 'fas fa-undo',
+                            'title' => $translate('Remove imported data'), // @translate
+                        ]) ?></li>
+                        <?php endif; ?>
                         <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
                             'class' => 'fas fa-cogs',
-                            'title' => $translate('See params'),
+                            'title' => $translate('See params'), // @translate
                         ]) ?></li>
                         <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
                             'class' => 'fas fa-list',
-                            'title' => $translate('See logs'),
+                            'title' => $translate('See logs'), // @translate
                         ]) ?></li>
                     </ul>
                 </td>
+                <?php if ($import->undoJob()): ?>
+                <td><?= $translate($import->undoStatusLabel()) ?></td>
+                <td>
+                    <?php if ($import->started()) echo sprintf($translate('Import: %s'), $import->started()->format('Y-m-d H:i:s')); ?>
+                    <br/>
+                    <?php if ($import->undoStarted()) echo sprintf($translate('Undo: %s'), $import->undoStarted()->format('Y-m-d H:i:s')); ?>
+                </td>
+                <td>
+                    <?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?>
+                    <br/>
+                    <?php if ($import->undoEnded()) echo $import->undoEnded()->format('Y-m-d H:i:s'); ?>
+                </td>
+                <?php else: ?>
                 <td><?= $translate($import->statusLabel()) ?></td>
                 <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
                 <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>
+                <?php endif; ?>
             </tr>
         <?php endforeach; ?>
     </tbody>
