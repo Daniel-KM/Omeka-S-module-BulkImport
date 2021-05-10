@@ -53,18 +53,33 @@ class ImportController extends AbstractActionController
     public function stopAction()
     {
         $id = $this->params()->fromRoute('id');
-        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
-        $import = $this->api()->read('bulk_imports', $id)->getContent();
 
-        $job = $import->job();
-        if ($job) {
-            $status = $job->status();
-            if (in_array($status, [\Omeka\Entity\Job::STATUS_STARTING, \Omeka\Entity\Job::STATUS_STOPPING, \Omeka\Entity\Job::STATUS_IN_PROGRESS])) {
-                $this->jobDispatcher()->stop($job->id());
-                $this->messenger()->addSuccess('Attempting to stop the job.'); // @translate
-            } else {
-                $this->messenger()->addWarning('The job is not running.'); // @translate
-            }
+        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
+        $import = $this->api()->searchOne('bulk_imports', ['id' => $id])->getContent();
+        if (!$import) {
+            $this->messenger()->addWarning(new PsrMessage(
+                'The import process #{import} does not exists.', // @translate
+                ['import' => $id]
+            ));
+        } elseif ($import->isStoppable()) {
+            $job = $import->job();
+            $this->jobDispatcher()->stop($job->id());
+            $this->messenger()->addSuccess(
+                'Attempting to stop the import process #{import}.', // @translate
+                ['import' => $id]
+            );
+        } elseif ($import->isUndoStoppable()) {
+            $job = $import->undoJob();
+            $this->jobDispatcher()->stop($job->id());
+            $this->messenger()->addSuccess(
+                'Attempting to stop the undo process #{import}.', // @translate
+                ['import' => $id]
+            );
+        } else {
+            $this->messenger()->addWarning(
+                'The process #{import} cannot be stopped.', // @translate
+                ['import' => $id]
+            );
         }
 
         return $this->redirect()->toRoute(null, ['action' => 'logs'], true);

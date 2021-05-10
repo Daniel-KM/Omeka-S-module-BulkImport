@@ -107,6 +107,16 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
     }
 
+    public function isStoppable(): bool
+    {
+        $job = $this->job();
+        return $job && in_array($job->status(), [
+            \Omeka\Entity\Job::STATUS_STARTING,
+            // \Omeka\Entity\Job::STATUS_STOPPING,
+            \Omeka\Entity\Job::STATUS_IN_PROGRESS,
+        ]);
+    }
+
     /**
      * Check if an import is undoable.
      *
@@ -169,6 +179,24 @@ class ImportRepresentation extends AbstractEntityRepresentation
     {
         $job = $this->undoJob();
         return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
+    }
+
+    public function isUndoStoppable(): bool
+    {
+        $job = $this->undoJob();
+        return $job && in_array($job->status(), [
+            \Omeka\Entity\Job::STATUS_STARTING,
+            // \Omeka\Entity\Job::STATUS_STOPPING,
+            \Omeka\Entity\Job::STATUS_IN_PROGRESS,
+        ]);
+    }
+
+    /**
+     * Check if an import or an undo is stoppable.
+     */
+    public function isProcessStoppable(): bool
+    {
+        return $this->isStoppable() || $this->isUndoStoppable();
     }
 
     public function logCount(): int

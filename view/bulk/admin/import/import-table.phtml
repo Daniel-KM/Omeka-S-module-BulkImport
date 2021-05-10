@@ -31,7 +31,7 @@ $url = $this->plugin('url');
                     <?= $import->importer()->label() ?>
                     <?php endif; ?>
                     <ul class="actions">
-                        <?php if ($import->isInProgress() || $import->isUndoInProgress()): ?>
+                        <?php if ($import->isProcessStoppable()): ?>
                         <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()]), [
                             'class' => 'fas fa-times-circle',
                             'title' => $translate('Stop'), // @translate
