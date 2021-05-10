@@ -356,6 +356,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
+        $fillProperties = function (array $resourceArray) use ($properties): array {
+            foreach (array_intersect_key($resourceArray, $properties) as $term => $values) {
+                foreach (array_keys($values) as $key) {
+                    $resourceArray[$term][$key]['property_id'] = $properties[$term];
+                }
+            }
+            return $resourceArray;
+        };
+
+        // Do the same for sub-resources.
+        foreach (['o:media', 'o:item_set'] as $key) {
+            if (!empty($resource[$key])) {
+                foreach ($resource[$key] as &$resourceData) {
+                    $resourceData = $fillProperties($resourceData);
+                }
+            }
+        }
+
         return $resource;
     }
 
