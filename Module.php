@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport;
 
 if (!class_exists(\Generic\AbstractModule::class)) {
@@ -11,6 +12,8 @@ use Generic\AbstractModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
+use Log\Stdlib\PsrMessage;
+use Omeka\Module\Exception\ModuleCannotInstallException;
 
 class Module extends AbstractModule
 {
@@ -23,10 +26,20 @@ class Module extends AbstractModule
         require_once __DIR__ . '/vendor/autoload.php';
     }
 
-    // TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
-    /*
     protected function preInstall(): void
     {
+        $config = $this->getServiceLocator()->get('Config');
+        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        if (!$this->checkDestinationDir($basePath . '/xsl')) {
+            $message = new PsrMessage(
+                'The directory "{path}" is not writeable.', // @translate
+                ['path' => $basePath . '/xsl']
+            );
+            throw new ModuleCannotInstallException((string) $message);
+        }
+
+        // TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+        /*
         // The version of Box/Spout should be >= 3.0, but there is no version
         // inside the library, so check against a class.
         // This check is needed, because CSV Import still uses version 2.7.
@@ -34,8 +47,8 @@ class Module extends AbstractModule
             $message = 'The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
             throw new \Omeka\Module\Exception\ModuleCannotInstallException($message);
         }
+        */
     }
-    */
 
     protected function postInstall(): void
     {
@@ -83,5 +96,35 @@ class Module extends AbstractModule
         $key = array_search('bulk', $names);
         unset($names[$key]);
         $event->setParam('registered_names', $names);
+    }
+
+    /**
+     * Check or create the destination folder.
+     *
+     * @param string $dirPath Absolute path.
+     * @return string|null
+     */
+    protected function checkDestinationDir(string $dirPath): ?string
+    {
+        if (file_exists($dirPath)) {
+            if (!is_dir($dirPath) || !is_readable($dirPath) || !is_writable($dirPath)) {
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    'The directory "{path}" is not writeable.', // @translate
+                    ['path' => $dirPath]
+                );
+                return null;
+            }
+            return $dirPath;
+        }
+
+        $result = @mkdir($dirPath, 0775, true);
+        if (!$result) {
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                'The directory "{path}" is not writeable: {error}.', // @translate
+                ['path' => $dirPath, 'error' => error_get_last()['message']]
+            );
+            return null;
+        }
+        return $dirPath;
     }
 }

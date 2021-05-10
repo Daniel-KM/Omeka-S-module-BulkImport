@@ -44,6 +44,9 @@ return [
         ],
     ],
     'form_elements' => [
+        'invokables' => [
+            Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
+        ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
             Form\ImporterDeleteForm::class => Service\Form\FormFactory::class,

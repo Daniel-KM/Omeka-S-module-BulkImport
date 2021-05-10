@@ -64,11 +64,19 @@ class XmlReader extends AbstractFileReader
         $xslpath = $this->getParam('xsl_sheet');
         if ($xslpath) {
             // Check if the basepath is inside Omeka path for security.
-            $basePath = $this->basePath();
             $filepath = $this->xslpath();
-            if (strpos($filepath, $basePath) !== 0) {
+            if (!$filepath) {
                 $this->lastErrorMessage = new PsrMessage(
-                    'Xslt filepath "{filepath}" is invalid: it should be a relative path from Omeka root.', // @translate
+                    'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
+                    ['filename' => $xslpath]
+                );
+                return false;
+            }
+            $moduleXslPath = dirname(__DIR__, 2) . '/data/xsl/';
+            $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+            if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
                     ['filename' => $xslpath]
                 );
                 return false;
@@ -208,16 +216,18 @@ class XmlReader extends AbstractFileReader
         return true;
     }
 
-    protected function basePath(): string
-    {
-        return dirname(__DIR__, 4);
-    }
-
     protected function xslpath(): ?string
     {
         $filepath = ltrim($this->getParam('xsl_sheet'), '/\\');
-        return $filepath
-            ? realpath($this->basePath() . '/' . $filepath)
-            : null;
+        if (!$filepath) {
+            return null;
+        }
+        if (mb_substr($filepath, 0, 6) === 'user: ') {
+            $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+            $filepath = $basePath . '/xsl/' . mb_substr($filepath, 6);
+        } else {
+            $filepath = dirname(__DIR__, 2) . '/data/xsl/' . $filepath;
+        }
+        return realpath($filepath) ?: null;
     }
 }
