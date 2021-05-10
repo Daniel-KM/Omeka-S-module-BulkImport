@@ -174,3 +174,13 @@ CHANGE `processor_config` `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2
 SQL;
     $connection->exec($sql);
 }
+
+if (version_compare($oldVersion, '3.3.22.0', '<')) {
+    $identity = $services->get('ControllerPluginManager')->get('identity');
+    $ownerId = $identity()->getId();
+    $sql = <<<SQL
+INSERT INTO `bulk_importer` (`owner_id`, `label`, `reader_class`, `reader_config`, `processor_class`, `processor_config`) VALUES
+($ownerId, 'Xml Items', 'BulkImport\\\\Reader\\\\XmlReader', '{"xsl_sheet":"modules/BulkImport/data/xsl/identity.xslt1.xsl"}', 'BulkImport\\\\Processor\\\\OmekaSProcessor', '{"o:resource_template":"","o:resource_class":"","o:owner":"current","o:is_public":null,"action":"create","action_unidentified":"skip","identifier_name":["o:id","dcterms:identifier"],"allow_duplicate_identifiers":false,"entries_to_skip":0,"entries_by_batch":"","resource_type":""}');
+SQL;
+    $connection->exec($sql);
+}

@@ -2,15 +2,12 @@
 
 return [
     'owner' => null,
-    'label' => 'CSV - Mixed resources', // @translate
-    'readerClass' => \BulkImport\Reader\CsvReader::class,
+    'label' => 'Xml - Items', // @translate
+    'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
-        'delimiter' => ',',
-        'enclosure' => '"',
-        'escape' => '\\',
-        'separator' => '|',
+        'xsl_sheet' => 'modules/BulkImport/data/xsl/identity.xslt1.xsl',
     ],
-    'processorClass' => \BulkImport\Processor\ResourceProcessor::class,
+    'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [
         'o:resource_template' => '',
         'o:resource_class' => '',
