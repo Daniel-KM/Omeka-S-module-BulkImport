@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Reader;
 
+use BulkImport\Form\Element\OptionalUrl;
 use Laminas\Form\Element;
 
 class XmlReaderParamsForm extends XmlReaderConfigForm
@@ -20,7 +21,18 @@ class XmlReaderParamsForm extends XmlReaderConfigForm
                 ],
                 'attributes' => [
                     'id' => 'file',
-                    'required' => true,
+                    'required' => false,
+                ],
+            ])
+            ->add([
+                'name' => 'url',
+                'type' => OptionalUrl::class,
+                'options' => [
+                    'label' => 'XML url', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url',
+                    'required' => false,
                 ],
             ])
             ->add([

@@ -29,6 +29,7 @@ class XmlReader extends AbstractFileReader
     protected $paramsKeys = [
         'xsl_sheet',
         'filename',
+        'url',
     ];
 
     /**
@@ -60,7 +61,7 @@ class XmlReader extends AbstractFileReader
     public function isValid(): bool
     {
         // Check if the xsl file is ok, if any.
-        // It may be empty if the input is a flat xml file.
+        // It may be empty if the input is a flat xml file with resources.
         $xslpath = $this->getParam('xsl_sheet');
         if ($xslpath) {
             // Check if the basepath is inside Omeka path for security.

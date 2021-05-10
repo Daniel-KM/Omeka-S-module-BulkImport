@@ -47,6 +47,7 @@ return [
     'form_elements' => [
         'invokables' => [
             Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
+            Form\Element\OptionalUrl::class => Form\Element\OptionalUrl::class,
         ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
