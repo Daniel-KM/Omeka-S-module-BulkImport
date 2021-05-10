@@ -221,7 +221,7 @@ SQL;
 
     protected function fillConcepts(): void
     {
-        $this->fillResources($this->reader->setObjectType($this->objectType), 'concepts');
+        $this->fillResources($this->prepareReader('concepts'), 'concepts');
     }
 
     protected function fillConcept(array $source): void

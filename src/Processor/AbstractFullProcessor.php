@@ -2,8 +2,8 @@
 
 namespace BulkImport\Processor;
 
-use ArrayObject;
 use BulkImport\Interfaces\Parametrizable;
+use BulkImport\Reader\FakeReader;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use DateTime;
@@ -239,7 +239,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * The keys to use for automatic management are:
      * - name: api resource name
      * - class: the Omeka class for the entity manager
-     * - dest:  table
+     * - dest: table
      * - key_id: name of the key to get the id of a record
      *
      * @var array
@@ -349,8 +349,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * The default is derived from Omeka database, different from api endpoint.
      *
      * The keys to use for automatic management are:
-     * - source:  table or path. If null, not importable.
+     * - source: table or path. If null, not importable.
      * - key_id: the id of the key in the source output.
+     * - sort_by: the name of the sort value (key_id by default).
+     * - sort_dir: "asc" (default) or "desc".
      *
      * @var array
      */
@@ -399,6 +401,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'custom_vocabs' => [
             'source' => 'custom_vocab',
             'key_id' => 'id',
+        ],
+        'custom_vocab_keywords' => [
+            'source' => null,
         ],
         'mappings' => [
             'source' => 'mapping',
@@ -543,9 +548,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         if (!$this->reader->isValid()) {
             $this->hasError = true;
-            $this->logger->err(
-                'The source is unavailable. Check params, rights or connection.' // @translate
-            );
+            $this->logger->err('The source is unavailable. Check params, rights or connection.'); // @translate
             return;
         }
 
@@ -593,8 +596,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $counts = array_combine(array_keys($this->map), array_map('count', $this->map));
         $counts = array_intersect_key($counts, array_flip($this->getParam('types', [])));
-        $this->logger->notice(
-            'Totals of data existing and imported: {json}.', // @translate
+        $this->logger->notice('Totals of data existing and imported: {json}.', // @translate
             ['json' => json_encode($counts)]
         );
 
@@ -943,14 +945,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function checkVocabularies(): void
     {
-        if (empty($this->mapping['vocabularies']['source'])) {
-            return;
-        }
-
-        // The clone is needed because the properties use the reader inside
-        // the loop.
-        $reader = clone $this->reader;
-        foreach ($reader->setObjectType($this->objectType) as $vocabulary) {
+        // The clone is needed because the properties use the reader inside the
+        // loop.
+        foreach ($this->prepareReader('vocabularies', true) as $vocabulary) {
             $result = $this->checkVocabulary($vocabulary);
             if ($result['status'] !== 'success') {
                 $this->hasError = true;
@@ -958,12 +955,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
-    protected function checkVocabularyProperties(array $vocabulary, VocabularyRepresentation $vocabularyRepresentation)
+    protected function checkVocabularyProperties(array $vocabulary, VocabularyRepresentation $vocabularyRepresentation): array
     {
         // TODO Add a filter to the reader.
         $vocabularyProperties = [];
-        $sourceName = $this->mapping['properties']['source'];
-        foreach ($this->reader->setObjectType($sourceName) as $property) {
+        foreach ($this->prepareReader('properties') as $property) {
             if ($property['o:vocabulary']['o:id'] === $vocabulary['o:id']) {
                 $vocabularyProperties[] = $property['o:local_name'];
             }
@@ -973,112 +969,113 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function prepareVocabularies(): void
     {
-        // The clone is needed because the properties use the reader inside
-        // the loop.
+        // The clone is needed because the properties use the reader inside the
+        // loop.
         // TODO Avoid the second check of properties.
-        $reader = clone $this->reader;
-        $this->prepareVocabulariesProcess($reader->setObjectType($this->objectType));
+        $this->prepareVocabulariesProcess($this->prepareReader('vocabularies', true));
     }
 
     protected function prepareProperties(): void
     {
-        $sourceName = $this->mapping['properties']['source'];
-        $this->prepareVocabularyMembers($this->reader->setObjectType($sourceName), 'properties');
+        $this->prepareVocabularyMembers($this->prepareReader('properties'), 'properties');
     }
 
     protected function prepareResourceClasses(): void
     {
-        $sourceName = $this->mapping['resource_classes']['source'];
-        $this->prepareVocabularyMembers($this->reader->setObjectType($sourceName), 'resource_classes');
+        $this->prepareVocabularyMembers($this->prepareReader('resource_classes'), 'resource_classes');
     }
 
     protected function prepareUsers(): void
     {
-        $this->prepareUsersProcess($this->reader->setObjectType($this->objectType));
+        $this->prepareUsersProcess($this->prepareReader('users'));
     }
 
     protected function prepareCustomVocabsInitialize(): void
     {
-        $this->prepareCustomVocabsProcess($this->reader->setObjectType($this->objectType));
+        $this->prepareCustomVocabsProcess($this->prepareReader('custom_vocabs'));
     }
 
     protected function prepareResourceTemplates(): void
     {
-        $this->prepareResourceTemplatesProcess($this->reader->setObjectType($this->objectType));
+        $this->prepareResourceTemplatesProcess($this->prepareReader('resource_templates'));
     }
 
     protected function prepareAssets(): void
     {
-        $this->prepareAssetsProcess($this->reader->setObjectType($this->objectType));
+        $this->prepareAssetsProcess($this->prepareReader('assets'));
     }
 
     protected function prepareItems(): void
     {
-        $this->prepareResources($this->reader->setObjectType($this->objectType), 'items');
+        $this->prepareResources($this->prepareReader('items'), 'items');
     }
 
     protected function prepareMedias(): void
     {
-        $this->prepareResources($this->reader->setObjectType($this->objectType), 'media');
+        $this->prepareResources($this->prepareReader('media'), 'media');
     }
 
     protected function prepareMediaItems(): void
     {
-        $this->prepareResources($this->reader->setObjectType($this->objectType), 'media_items');
+        $this->prepareResources($this->prepareReader('media_items'), 'media_items');
     }
 
     protected function prepareItemSets(): void
     {
-        $this->prepareResources($this->reader->setObjectType($this->objectType), 'item_sets');
+        $this->prepareResources($this->prepareReader('item_sets'), 'item_sets');
     }
 
     protected function prepareOthers(): void
     {
+        $toImport = $this->getParam('types') ?: [];
+
         if (!empty($this->modules['Thesaurus'])
-            && in_array('concepts', $this->getParam('types') ?: [])
+            && in_array('concepts', $toImport)
+            && $this->prepareImport('concepts')
         ) {
             $this->logger->info('Preparation of metadata of module Thesaurus.'); // @translate
-            $this->prepareConcepts($this->reader->setObjectType($this->objectType));
+            $this->prepareConcepts($this->prepareReader('concepts'));
         }
     }
 
     protected function fillAssets(): void
     {
-        $this->fillAssetsProcess($this->reader->setObjectType($this->objectType));
+        $this->fillAssetsProcess($this->prepareReader('assets'));
     }
 
     protected function fillItems(): void
     {
-        $this->fillResources($this->reader->setObjectType($this->objectType), 'items');
+        $this->fillResources($this->prepareReader('items'), 'items');
     }
 
     protected function fillMedias(): void
     {
-        $this->fillResources($this->reader->setObjectType($this->objectType), 'media');
+        $this->fillResources($this->prepareReader('media'), 'media');
     }
 
     protected function fillMediaItems(): void
     {
-        $this->fillResources($this->reader->setObjectType($this->objectType), 'media_items');
+        $this->fillResources($this->prepareReader('media_items'), 'media_items');
     }
 
     protected function fillItemSets(): void
     {
-        $this->fillResources($this->reader->setObjectType($this->objectType), 'item_sets');
+        $this->fillResources($this->prepareReader('item_sets'), 'item_sets');
     }
 
     protected function fillOthers(): void
     {
+        $toImport = $this->getParam('types') ?: [];
+
         if (!empty($this->modules['Thesaurus'])
-            && in_array('concepts', $this->getParam('types') ?: [])
+            && in_array('concepts', $toImport)
+            && $this->prepareImport('concepts')
         ) {
-            if ($this->prepareImport('concepts')) {
-                $this->fillConcepts();
-            }
+            $this->fillConcepts();
         }
 
         if (!empty($this->modules['Mapping'])
-            && in_array('mappings', $this->getParam('types') ?: [])
+            && in_array('mappings', $toImport)
         ) {
             $this->logger->info('Preparation of metadata of module Mapping.'); // @translate
             // Not prepare: there are mappings and mapping markers.
@@ -1154,6 +1151,25 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (count($this->map['media'])) {
             $this->logger->warning('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
+    }
+
+    protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Interfaces\Reader
+    {
+        if (empty($this->mapping[$resourceName]['source'])) {
+            $this->logger->debug(
+                'No source set for {resource_name}.', // @translate
+                ['resource_name' => $resourceName]
+            );
+            return new FakeReader($this->getServiceLocator());
+        }
+        $reader = $clone ? clone $this->reader : $this->reader;
+        return $reader
+            // TODO Fixme: AbstractPaginatedReader requires the order be set before object type.
+            ->setOrder(
+                $this->mapping[$resourceName]['sort_by'] ?? $this->mapping[$resourceName]['key_id'],
+                $this->mapping[$resourceName]['sort_dir'] ?? 'ASC'
+            )
+            ->setObjectType($this->mapping[$resourceName]['source']);
     }
 
     /**

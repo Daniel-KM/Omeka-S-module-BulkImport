@@ -119,6 +119,10 @@ class SpipProcessor extends AbstractFullProcessor
             'source' => 'groupe_mots',
             'key_id' => 'id_groupe',
         ],
+        'custom_vocab_keywords' => [
+            'source' => 'mots',
+            'key_id' => 'id_mot',
+        ],
         'mappings' => [
             'source' => null,
             'key_id' => 'id',
@@ -161,6 +165,18 @@ class SpipProcessor extends AbstractFullProcessor
             'resource_class_id' => 94,
             // Filled later.
             'resource_template_id' => null,
+        ],
+        'album_liens' => [
+            'source' => 'album_liens',
+            'key_id' => 'id_album',
+        ],
+        'documents_liens' => [
+            'source' => 'documents_liens',
+            'key_id' => 'id_document',
+        ],
+        'auteurs_liens' => [
+            'source' => 'auteurs_liens',
+            'key_id' => 'id_auteur',
         ],
     ];
 
@@ -289,7 +305,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $sourceUsers = [];
         $emails = [];
-        foreach ($this->reader->setOrder('id_auteur')->setObjectType('auteurs') as $auteur) {
+        foreach ($this->prepareReader('users') as $auteur) {
             $auteur = array_map('trim', array_map('strval', $auteur));
 
             // Check email, since it should be well formatted and unique.
@@ -373,7 +389,7 @@ class SpipProcessor extends AbstractFullProcessor
         // table est inutile actuellement, sauf pour avoir les vocabulaires
         // vides.
         // TODO Les descriptions ne sont pas importés actuellement.
-        foreach ($this->reader->setOrder('id_groupe')->setObjectType('groupes_mots') as $groupeMots) {
+        foreach ($this->prepareReader('custom_vocabs') as $groupeMots) {
             $label = trim((string) $groupeMots['titre']);
             if (!strlen($label)) {
                 $label = 'Groupe de mots #' . $groupeMots['id_groupe'];
@@ -388,7 +404,7 @@ class SpipProcessor extends AbstractFullProcessor
             ];
         }
 
-        foreach ($this->reader->setOrder('id_mot')->setObjectType('mots') as $mot) {
+        foreach ($this->prepareReader('custom_vocab_keywords') as $mot) {
             $keyword = trim((string) $mot['titre']);
             if (!strlen($keyword)) {
                 continue;
@@ -415,40 +431,16 @@ class SpipProcessor extends AbstractFullProcessor
         $this->prepareCustomVocabsProcess($sourceCustomVocabs);
     }
 
-    protected function prepareItems(): void
-    {
-        $this->prepareResources($this->reader->setOrder('id_article')->setObjectType('articles'), 'items');
-    }
-
     protected function prepareMedias(): void
     {
         // N'utilise pas les médias, mais les média items.
     }
 
-    protected function prepareMediaItems(): void
-    {
-        $this->prepareResources($this->reader->setOrder('id_document')->setObjectType('documents'), 'media_items');
-    }
-
-    protected function prepareItemSets(): void
-    {
-        $this->prepareResources($this->reader->setOrder('id_album')->setObjectType('albums'), 'item_sets');
-    }
-
     protected function prepareOthers(): void
     {
-        $toImport = $this->getParam('types') ?: [];
+        parent::prepareOthers();
 
-        if (!empty($this->modules['Thesaurus'])
-            && in_array('concepts', $this->getParam('types') ?: [])
-        ) {
-            $this->logger->info(
-                'Preparation of metadata of module Thesaurus.' // @translate
-            );
-            if ($this->prepareImport('concepts')) {
-                $this->prepareConcepts($this->reader->setOrder('id_rubrique')->setObjectType('rubriques'));
-            }
-        }
+        $toImport = $this->getParam('types') ?: [];
 
         if (in_array('breves', $toImport)
             && $this->prepareImport('breves')
@@ -456,7 +448,7 @@ class SpipProcessor extends AbstractFullProcessor
             // TODO La colonne rang_lien n'est pas gérée actuellement (toujours 0 dans la base actuelle). La colonne vu non plus, mais inutile.
             $this->mapping['breves']['resource_class_id'] = $this->main['classes']['fabio:Micropost']->getId();
             $this->mapping['breves']['resource_template_id'] = $this->main['templates']['Brève']->getId();
-            $this->prepareResources($this->reader->setOrder('id_breve')->setObjectType('breves'), 'breves');
+            $this->prepareResources($this->prepareReader('breves'), 'breves');
             if ($this->isErrorOrStop()) {
                 return;
             }
@@ -470,7 +462,7 @@ class SpipProcessor extends AbstractFullProcessor
             && $this->prepareImport('auteurs')
         ) {
             $this->mapping['auteurs']['resource_template_id'] = $this->main['templates']['Auteur']->getId();
-            $this->prepareResources($this->reader->setOrder('id_auteur')->setObjectType('auteurs'), 'auteurs');
+            $this->prepareResources($this->prepareReader('auteurs'), 'auteurs');
             if ($this->isErrorOrStop()) {
                 return;
             }
@@ -481,24 +473,9 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
-    protected function fillItems(): void
-    {
-        $this->fillResources($this->reader->setOrder('id_article')->setObjectType('articles'), 'items');
-    }
-
     protected function fillMedias(): void
     {
         // N'utilise pas les médias, mais les média items.
-    }
-
-    protected function fillMediaItems(): void
-    {
-        $this->fillResources($this->reader->setOrder('id_document')->setObjectType('documents'), 'media_items');
-    }
-
-    protected function fillItemSets(): void
-    {
-        $this->fillResources($this->reader->setOrder('id_album')->setObjectType('albums'), 'item_sets');
     }
 
     protected function fillItem(array $source): void
@@ -1018,11 +995,6 @@ class SpipProcessor extends AbstractFullProcessor
         $this->orderAndAppendValues($values);
     }
 
-    protected function fillConcepts(): void
-    {
-        $this->fillResources($this->reader->setOrder('id_rubrique')->setObjectType('rubriques'), 'concepts');
-    }
-
     /**
      * La resource spip "rubrique" est convertie en item Concept.
      *
@@ -1078,7 +1050,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (in_array('breves', $toImport)
             && $this->prepareImport('breves')
         ) {
-            $this->fillResources($this->reader->setOrder('id_breve')->setObjectType('breves'), 'breves');
+            $this->fillResources($this->prepareReader('breves'), 'breves');
             if ($this->isErrorOrStop()) {
                 return;
             }
@@ -1087,7 +1059,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (in_array('item_sets', $toImport)
             && $this->prepareImport('albums_liens')
         ) {
-            foreach ($this->reader->setOrder('id_album')->setObjectType('albums_liens') as $source) {
+            foreach ($this->prepareReader('albums_liens') as $source) {
                 $this->fillAlbumLien($source);
             }
             if ($this->isErrorOrStop()) {
@@ -1099,7 +1071,7 @@ class SpipProcessor extends AbstractFullProcessor
             && $this->prepareImport('documents_liens')
         ) {
             // TODO La colonne rang_lien n'est pas gérée actuellement (toujours 0 dans la base actuelle). La colonne vu non plus, mais inutile.
-            foreach ($this->reader->setOrder('id_document')->setObjectType('documents_liens') as $source) {
+            foreach ($this->prepareReader('documents_liens') as $source) {
                 $this->fillDocumentLien($source);
             }
             if ($this->isErrorOrStop()) {
@@ -1110,14 +1082,14 @@ class SpipProcessor extends AbstractFullProcessor
         if (in_array('auteurs', $toImport)
             && $this->prepareImport('auteurs')
         ) {
-            $this->fillResources($this->reader->setOrder('id_auteur')->setObjectType('auteurs'), 'auteurs');
+            $this->fillResources($this->prepareReader('auteurs'), 'auteurs');
             if ($this->isErrorOrStop()) {
                 return;
             }
 
             // Ajout des relations.
             if ($this->prepareImport('auteurs_liens')) {
-                foreach ($this->reader->setOrder('id_auteur')->setObjectType('auteurs_liens') as $source) {
+                foreach ($this->prepareReader('auteurs_liens') as $source) {
                     $this->fillAuteurLien($source);
                 }
                 if ($this->isErrorOrStop()) {

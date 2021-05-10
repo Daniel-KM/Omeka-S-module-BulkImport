@@ -150,7 +150,7 @@ class SqlReader extends AbstractPaginatedReader
             $stmt = $this->dbAdapter->query(sprintf(
                 'SELECT * FROM `%s`%s LIMIT %d OFFSET %d;',
                 $this->prefix . $this->objectType,
-                $this->sortBy ? ' ORDER BY ' . $this->sortBy . ' ' . $this->sortDir : '',
+                empty($this->order['by']) ? '' : (' ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
                 self::PAGE_LIMIT,
                 ($this->currentPage - 1) * self::PAGE_LIMIT
             ));

@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Reader;
 
 use BulkImport\Interfaces\Configurable;
@@ -29,6 +30,14 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
      * @var string
      */
     protected $objectType;
+
+    /**
+     * @var array
+     */
+    protected $order = [
+        'by' => null,
+        'dir' => 'ASC',
+    ];
 
     /**
      * @var string|null
@@ -122,6 +131,15 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     public function setObjectType($objectType): \BulkImport\Interfaces\Reader
     {
         $this->objectType = $objectType;
+        return $this;
+    }
+
+    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Interfaces\Reader
+    {
+        $this->order = [
+            'by' => $by,
+            'dir' => strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC',
+        ];
         return $this;
     }
 

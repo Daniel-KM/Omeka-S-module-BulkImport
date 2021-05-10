@@ -37,9 +37,14 @@ interface Reader extends \Iterator, \Countable
     public function getLastErrorMessage();
 
     /**
-     * @param string$objectType An Omeka api key like "items", "vocabularies"…
+     * @param string $objectType An Omeka api key like "items", "vocabularies"…
      */
     public function setObjectType($objectType): \BulkImport\Interfaces\Reader;
+
+    /**
+     * Prepare the order of  the result, for example a column for sql.
+     */
+    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Interfaces\Reader;
 
     /**
      * List of fields used in the input, for example the first spreadsheet row.

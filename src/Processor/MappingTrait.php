@@ -7,8 +7,8 @@ trait MappingTrait
     protected function fillMapping(): void
     {
         $this->fillMappingProcess([
-            'mappings' => $this->reader->setObjectType($this->mapping['mappings']['source']),
-            'mapping_markers' => $this->reader->setObjectType($this->mapping['mapping_markers']['source']),
+            'mappings' => $this->prepareReader('mappings'),
+            'mapping_markers' => $this->prepareReader('mapping_markers'),
         ]);
     }
 

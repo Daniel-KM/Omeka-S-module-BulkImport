@@ -36,14 +36,9 @@ abstract class AbstractPaginatedReader extends AbstractReader
     protected $isValid = false;
 
     /**
-     * @var string
+     * @var array
      */
-    protected $sortBy;
-
-    /**
-     * @var string
-     */
-    protected $sortDir = 'ASC';
+    protected $query = [];
 
     /**
      * The per-page may be different from the Omeka one when there is only one
@@ -93,16 +88,16 @@ abstract class AbstractPaginatedReader extends AbstractReader
     }
 
     /**
-     * @fixme The order should not be set after object type.
+     * @fixme The query should not be set after object type.
      *
-     * @param string $sortBy
-     * @param string $sortDir
+     * Only basic queries are supported.
+     *
+     * @param string $query
      * @return \BulkImport\Reader\AbstractPaginatedReader
      */
-    public function setOrder($sortBy, $sortDir = 'ASC')
+    public function setQuery(array $query)
     {
-        $this->sortBy = $sortBy;
-        $this->sortDir = strtoupper($sortDir) === 'DESC' ? 'DESC' : 'ASC';
+        $this->query = $query;
         return $this;
     }
 
