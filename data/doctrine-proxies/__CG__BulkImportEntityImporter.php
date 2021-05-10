@@ -194,7 +194,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setLabel($label)
+    public function setLabel(?string $label): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setLabel', [$label]);
@@ -205,7 +205,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getLabel()
+    public function getLabel(): ?string
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getLabel', []);
@@ -216,7 +216,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setReaderClass($readerClass)
+    public function setReaderClass(?string $readerClass): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setReaderClass', [$readerClass]);
@@ -227,7 +227,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getReaderClass()
+    public function getReaderClass(): ?string
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReaderClass', []);
@@ -238,7 +238,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setReaderConfig($readerConfig)
+    public function setReaderConfig(?array $readerConfig): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setReaderConfig', [$readerConfig]);
@@ -249,7 +249,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getReaderConfig()
+    public function getReaderConfig(): ?array
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReaderConfig', []);
@@ -260,7 +260,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setProcessorClass($processorClass)
+    public function setProcessorClass(?string $processorClass): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setProcessorClass', [$processorClass]);
@@ -271,7 +271,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getProcessorClass()
+    public function getProcessorClass(): string
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getProcessorClass', []);
@@ -282,7 +282,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setProcessorConfig($processorConfig)
+    public function setProcessorConfig(?array $processorConfig): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setProcessorConfig', [$processorConfig]);
@@ -293,7 +293,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getProcessorConfig()
+    public function getProcessorConfig(): ?array
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getProcessorConfig', []);
@@ -304,7 +304,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setOwner(\Omeka\Entity\User $owner = NULL)
+    public function setOwner(\Omeka\Entity\User $owner = NULL): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setOwner', [$owner]);
@@ -315,7 +315,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getOwner()
+    public function getOwner(): ?\Omeka\Entity\User
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getOwner', []);
@@ -326,7 +326,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getImports()
+    public function getImports(): \Doctrine\Common\Collections\ArrayCollection
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getImports', []);

@@ -19,6 +19,7 @@ return [
     ],
     'api_adapters' => [
         'invokables' => [
+            'bulk_importeds' => Api\Adapter\ImportedAdapter::class,
             'bulk_importers' => Api\Adapter\ImporterAdapter::class,
             'bulk_imports' => Api\Adapter\ImportAdapter::class,
         ],

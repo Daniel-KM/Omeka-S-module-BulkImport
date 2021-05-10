@@ -53,69 +53,46 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return 'o-module-bulk:Importer';
     }
 
-    /**
-     * @return \BulkImport\Entity\Importer
-     */
-    public function getResource()
+    public function getResource(): \BulkImport\Entity\Importer
     {
         return $this->resource;
     }
 
-    /**
-     * @return string
-     */
-    public function label()
+    public function label(): ?string
     {
         return $this->resource->getLabel();
     }
 
-    /**
-     * @return string
-     */
-    public function readerClass()
+    public function readerClass(): string
     {
         return $this->resource->getReaderClass();
     }
 
-    /**
-     * @return array
-     */
-    public function readerConfig()
+    public function readerConfig(): array
     {
         return $this->resource->getReaderConfig() ?: [];
     }
 
-    /**
-     * @return string
-     */
-    public function processorClass()
+    public function processorClass(): string
     {
         return $this->resource->getProcessorClass();
     }
 
-    /**
-     * @return array
-     */
-    public function processorConfig()
+    public function processorConfig(): array
     {
         return $this->resource->getProcessorConfig() ?: [];
     }
 
     /**
      * Get the owner of this importer.
-     *
-     * @return \Omeka\Api\Representation\UserRepresentation|null
      */
-    public function owner()
+    public function owner(): ?\Omeka\Api\Representation\UserRepresentation
     {
         return $this->getAdapter('users')
             ->getRepresentation($this->resource->getOwner());
     }
 
-    /**
-     * @return \BulkImport\Interfaces\Reader|null
-     */
-    public function reader()
+    public function reader(): ?\BulkImport\Interfaces\Reader
     {
         if ($this->reader) {
             return $this->reader;
@@ -134,10 +111,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->reader;
     }
 
-    /**
-     * @return \BulkImport\Interfaces\Processor|null
-     */
-    public function processor()
+    public function processor(): ?\BulkImport\Interfaces\Processor
     {
         if ($this->processor) {
             return $this->processor;
@@ -156,10 +130,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->processor;
     }
 
-    /**
-     * @return ReaderManager
-     */
-    protected function getReaderManager()
+    protected function getReaderManager(): ?ReaderManager
     {
         if (!$this->readerManager) {
             $this->readerManager = $this->getServiceLocator()->get(ReaderManager::class);
@@ -167,10 +138,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->readerManager;
     }
 
-    /**
-     * @return ProcessorManager
-     */
-    protected function getProcessorManager()
+    protected function getProcessorManager(): ?ProcessorManager
     {
         if (!$this->processorManager) {
             $this->processorManager = $this->getServiceLocator()->get(ProcessorManager::class);

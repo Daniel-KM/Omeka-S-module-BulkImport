@@ -183,4 +183,39 @@ INSERT INTO `bulk_importer` (`owner_id`, `label`, `reader_class`, `reader_config
 ($ownerId, 'Xml Items', 'BulkImport\\\\Reader\\\\XmlReader', '{"xsl_sheet":"modules/BulkImport/data/xsl/identity.xslt1.xsl"}', 'BulkImport\\\\Processor\\\\OmekaSProcessor', '{"o:resource_template":"","o:resource_class":"","o:owner":"current","o:is_public":null,"action":"create","action_unidentified":"skip","identifier_name":["o:id","dcterms:identifier"],"allow_duplicate_identifiers":false,"entries_to_skip":0,"entries_by_batch":"","resource_type":""}');
 SQL;
     $connection->exec($sql);
+
+    $sql = <<<'SQL'
+ALTER TABLE bulk_import
+CHANGE importer_id importer_id INT DEFAULT NULL,
+CHANGE job_id job_id INT DEFAULT NULL,
+CHANGE comment comment VARCHAR(190) DEFAULT NULL,
+CHANGE reader_params reader_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+CHANGE processor_params processor_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+ADD undo_job_id INT DEFAULT NULL AFTER job_id,
+ADD CONSTRAINT FK_BD98E8744C276F75 FOREIGN KEY (undo_job_id) REFERENCES job (id) ON DELETE SET NULL;
+SQL;
+    $connection->exec($sql);
+    $sql = <<<'SQL'
+ALTER TABLE bulk_importer
+CHANGE owner_id owner_id INT DEFAULT NULL,
+CHANGE `label` `label` VARCHAR(190) DEFAULT NULL,
+CHANGE reader_class reader_class VARCHAR(190) DEFAULT NULL,
+CHANGE reader_config reader_config LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+CHANGE processor_class processor_class VARCHAR(190) DEFAULT NULL,
+CHANGE processor_config processor_config LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)';
+SQL;
+    $connection->exec($sql);
+
+    $sql = <<<'SQL'
+CREATE TABLE `bulk_imported` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `job_id` int(11) NOT NULL,
+    `entity_id` int(11) NOT NULL,
+    `resource_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `IDX_F60E437CB6A263D9` (`job_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE bulk_imported ADD CONSTRAINT FK_F60E437CB6A263D9 FOREIGN KEY (job_id) REFERENCES job (id);
+SQL;
+    $connection->exec($sql);
 }

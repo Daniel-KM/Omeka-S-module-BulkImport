@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Entity;
 
 use Omeka\Entity\AbstractEntity;
@@ -15,13 +16,16 @@ class Import extends AbstractEntity
     /**
      * @var int
      * @Id
-     * @Column(type="integer")
+     * @Column(
+     *     type="integer"
+     * )
      * @GeneratedValue
      */
     protected $id;
 
     /**
      * @var Importer
+     *
      * @ManyToOne(
      *     targetEntity=Importer::class,
      *     inversedBy="imports",
@@ -36,6 +40,7 @@ class Import extends AbstractEntity
 
     /**
      * @var string
+     *
      * @Column(
      *     type="string",
      *     nullable=true,
@@ -46,6 +51,7 @@ class Import extends AbstractEntity
 
     /**
      * @var Job
+     *
      * @OneToOne(
      *     targetEntity=\Omeka\Entity\Job::class
      * )
@@ -57,7 +63,21 @@ class Import extends AbstractEntity
     protected $job;
 
     /**
+     * @var Job
+     *
+     * @OneToOne(
+     *     targetEntity=\Omeka\Entity\Job::class
+     * )
+     * @JoinColumn(
+     *     nullable=true,
+     *     onDelete="SET NULL"
+     * )
+     */
+    protected $undoJob;
+
+    /**
      * @var array
+     *
      * @Column(
      *     type="json",
      *     nullable=true
@@ -67,6 +87,7 @@ class Import extends AbstractEntity
 
     /**
      * @var array
+     *
      * @Column(
      *     type="json",
      *     nullable=true
@@ -79,92 +100,68 @@ class Import extends AbstractEntity
         return $this->id;
     }
 
-    /**
-     * @param Importer $importer
-     * @return self
-     */
-    public function setImporter(Importer $importer)
+    public function setImporter(Importer $importer): self
     {
         $this->importer = $importer;
         return $this;
     }
 
-    /**
-     * @return \BulkImport\Entity\Importer
-     */
-    public function getImporter()
+    public function getImporter(): ?Importer
     {
         return $this->importer;
     }
 
-    /**
-     * @param string $comment
-     * @return self
-     */
-    public function setComment($comment)
+    public function setComment($comment): self
     {
         $this->comment = $comment;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getComment()
+    public function getComment(): ?string
     {
         return $this->comment;
     }
 
-    /**
-     * @param Job $job
-     * @return self
-     */
-    public function setJob(Job $job)
+    public function setJob(?Job $job): self
     {
         $this->job = $job;
         return $this;
     }
 
-    /**
-     * @return \Omeka\Entity\Job
-     */
-    public function getJob()
+    public function getJob(): ?Job
     {
         return $this->job;
     }
 
-    /**
-     * @param array|\Traversable $readerParams
-     * @return self
-     */
-    public function setReaderParams($readerParams)
+    public function setUndoJob(?Job $undoJob): self
+    {
+        $this->undoJob = $undoJob;
+        return $this;
+    }
+
+    public function getUndoJob(): ?Job
+    {
+        return $this->undoJob;
+    }
+
+    public function setReaderParams($readerParams): self
     {
         $this->readerParams = $readerParams;
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getReaderParams()
+    public function getReaderParams(): ?array
     {
         return $this->readerParams;
     }
 
-    /**
-     * @param array|\Traversable $processorParams
-     * @return self
-     */
-    public function setProcessorParams($processorParams)
+    public function setProcessorParams(array $processorParams): self
     {
         $this->processorParams = $processorParams;
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getProcessorParams()
+    public function getProcessorParams(): ?array
     {
         return $this->processorParams;
     }

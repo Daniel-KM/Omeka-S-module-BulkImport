@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
@@ -14,6 +15,8 @@ use Omeka\Entity\User;
 class Importer extends AbstractEntity
 {
     /**
+     * @var int
+     *
      * @Id
      * @Column(type="integer")
      * @GeneratedValue
@@ -22,6 +25,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var string
+     *
      * @Column(
      *     type="string",
      *     nullable=true,
@@ -32,6 +36,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var string
+     *
      * @Column(
      *     type="string",
      *     nullable=true,
@@ -42,6 +47,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var array
+     *
      * @Column(
      *     type="json",
      *     nullable=true
@@ -51,6 +57,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var string
+     *
      * @Column(
      *     type="string",
      *     nullable=true,
@@ -61,6 +68,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var array
+     *
      * @Column(
      *      type="json",
      *      nullable=true
@@ -70,6 +78,7 @@ class Importer extends AbstractEntity
 
     /**
      * @var User
+     *
      * @ManyToOne(
      *     targetEntity=\Omeka\Entity\User::class
      * )
@@ -81,6 +90,8 @@ class Importer extends AbstractEntity
     protected $owner;
 
     /**
+     * @var Import[]|ArrayCollection
+     *
      * @OneToMany(
      *     targetEntity=Import::class,
      *     mappedBy="importer",
@@ -101,110 +112,68 @@ class Importer extends AbstractEntity
         return $this->id;
     }
 
-    /**
-     * @param string $label
-     * @return self
-     */
-    public function setLabel($label)
+    public function setLabel(?string $label): self
     {
         $this->label = $label;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getLabel()
+    public function getLabel(): ?string
     {
         return $this->label;
     }
 
-    /**
-     * @param string $readerClass
-     * @return self
-     */
-    public function setReaderClass($readerClass)
+    public function setReaderClass(?string $readerClass): self
     {
         $this->readerClass = $readerClass;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getReaderClass()
+    public function getReaderClass(): ?string
     {
         return $this->readerClass;
     }
 
-    /**
-     * @param array $readerConfig
-     * @return self
-     */
-    public function setReaderConfig($readerConfig)
+    public function setReaderConfig(?array $readerConfig): self
     {
         $this->readerConfig = $readerConfig;
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getReaderConfig()
+    public function getReaderConfig(): ?array
     {
         return $this->readerConfig;
     }
 
-    /**
-     * @param string $processorClass
-     * @return self
-     */
-    public function setProcessorClass($processorClass)
+    public function setProcessorClass(?string $processorClass): self
     {
         $this->processorClass = $processorClass;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getProcessorClass()
+    public function getProcessorClass(): string
     {
         return $this->processorClass;
     }
 
-    /**
-     * @param array $processorConfig
-     * @return self
-     */
-    public function setProcessorConfig($processorConfig)
+    public function setProcessorConfig(?array $processorConfig): self
     {
         $this->processorConfig = $processorConfig;
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getProcessorConfig()
+    public function getProcessorConfig(): ?array
     {
         return $this->processorConfig;
     }
 
-    /**
-     * @param User $owner
-     * @return self
-     */
-    public function setOwner(User $owner = null)
+    public function setOwner(?User $owner = null): self
     {
         $this->owner = $owner;
         return $this;
     }
 
-    /**
-     * @return \Omeka\Entity\User
-     */
-    public function getOwner()
+    public function getOwner(): ?User
     {
         return $this->owner;
     }
@@ -212,8 +181,8 @@ class Importer extends AbstractEntity
     /**
      * @return Import[]
      */
-    public function getImports()
+    public function getImports(): ArrayCollection
     {
-        return $this->imports();
+        return $this->imports;
     }
 }

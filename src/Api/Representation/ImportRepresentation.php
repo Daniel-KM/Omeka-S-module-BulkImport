@@ -13,6 +13,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
             'o-module-bulk:importer' => $this->importer()->getReference(),
             'o-module-bulk:comment' => $this->comment(),
             'o:job' => $this->job(),
+            'o:undo_job' => $this->undoJob(),
             'o:status' => $this->status(),
             'o:started' => $this->started(),
             'o:ended' => $this->ended(),
@@ -31,10 +32,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return 'o-module-bulk:Import';
     }
 
-    /**
-     * @return ImporterRepresentation|null
-     */
-    public function importer()
+    public function importer(): ?ImporterRepresentation
     {
         $importer = $this->resource->getImporter();
         return $importer
@@ -42,18 +40,12 @@ class ImportRepresentation extends AbstractEntityRepresentation
             : null;
     }
 
-    /**
-     * @return string
-     */
-    public function comment()
+    public function comment(): ?string
     {
         return $this->resource->getComment();
     }
 
-    /**
-     * @return JobRepresentation|null
-     */
-    public function job()
+    public function job(): ?JobRepresentation
     {
         $job = $this->resource->getJob();
         return $job
@@ -61,80 +53,53 @@ class ImportRepresentation extends AbstractEntityRepresentation
             : null;
     }
 
-    /**
-     * @return array
-     */
-    public function readerParams()
+    public function readerParams(): ?array
     {
         return $this->resource->getReaderParams();
     }
 
-    /**
-     * @return array
-     */
-    public function processorParams()
+    public function processorParams(): ?array
     {
         return $this->resource->getProcessorParams();
     }
 
-    /**
-     * @return string
-     */
-    public function status()
+    public function status(): string
     {
         $job = $this->job();
         return $job ? $job->status() : 'ready'; // @translate
     }
 
-    /**
-     * @return string
-     */
-    public function statusLabel()
+    public function statusLabel(): string
     {
         $job = $this->job();
         return $job ? $job->statusLabel() : 'Ready'; // @translate
     }
 
-    /**
-     * @return \DateTime|null
-     */
-    public function started()
+    public function started(): ?\DateTime
     {
         $job = $this->job();
         return $job ? $job->started() : null;
     }
 
-    /**
-     * @return \DateTime|null
-     */
-    public function ended()
+    public function ended(): ?\DateTime
     {
         $job = $this->job();
         return $job ? $job->ended() : null;
     }
 
-    /**
-     * @return bool
-     */
-    public function isInProgress()
+    public function isInProgress(): bool
     {
         $job = $this->job();
         return $job && $job->status() === \Omeka\Entity\Job::STATUS_IN_PROGRESS;
     }
 
-    /**
-     * @return bool
-     */
-    public function isCompleted()
+    public function isCompleted(): bool
     {
         $job = $this->job();
         return $job && $job->status() === \Omeka\Entity\Job::STATUS_COMPLETED;
     }
 
-    /**
-     * @return int
-     */
-    public function logCount()
+    public function logCount(): int
     {
         $job = $this->job();
         if (!$job) {
