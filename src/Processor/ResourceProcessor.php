@@ -15,7 +15,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected $paramsFormClass = ResourceProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): void
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         if (isset($values['resource_type'])) {
             $args['resource_type'] = $values['resource_type'];
@@ -23,9 +23,10 @@ class ResourceProcessor extends AbstractResourceProcessor
         $this->handleFormItem($args, $values);
         $this->handleFormItemSet($args, $values);
         $this->handleFormMedia($args, $values);
+        return $this;
     }
 
-    protected function handleFormItem(ArrayObject $args, array $values): void
+    protected function handleFormItem(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         if (isset($values['o:item_set'])) {
             $ids = $this->findResourcesFromIdentifiers($values['o:item_set'], 'o:id', 'item_sets');
@@ -33,16 +34,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $args['o:item_set'][] = ['o:id' => $id];
             }
         }
+        return $this;
     }
 
-    protected function handleFormItemSet(ArrayObject $args, array $values): void
+    protected function handleFormItemSet(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         if (isset($values['o:is_open'])) {
             $args['o:is_open'] = $values['o:is_open'] !== 'false';
         }
+        return $this;
     }
 
-    protected function handleFormMedia(ArrayObject $args, array $values): void
+    protected function handleFormMedia(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         if (!empty($values['o:item'])) {
             $id = $this->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
@@ -50,9 +53,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $args['o:item'] = ['o:id' => $id];
             }
         }
+        return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): void
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         // Determined by the entry, but prepare all possible types in the case
         // there is a mapping.
@@ -60,29 +64,33 @@ class ResourceProcessor extends AbstractResourceProcessor
         $this->baseItemSet($resource);
         $this->baseMedia($resource);
         $resource['resource_type'] = $this->getParam('resource_type');
+        return $this;
     }
 
-    protected function baseItem(ArrayObject $resource): void
+    protected function baseItem(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         $resource['resource_type'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
         $resource['o:media'] = [];
+        return $this;
     }
 
-    protected function baseItemSet(ArrayObject $resource): void
+    protected function baseItemSet(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         $resource['resource_type'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
         $resource['o:is_open'] = $isOpen;
+        return $this;
     }
 
-    protected function baseMedia(ArrayObject $resource): void
+    protected function baseMedia(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         $resource['resource_type'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
+        return $this;
     }
 
-    protected function fillSpecific(ArrayObject $resource, $target, array $values)
+    protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
         static $resourceTypes;
 
@@ -142,9 +150,10 @@ class ResourceProcessor extends AbstractResourceProcessor
             default:
                 return false;
         }
+        return false;
     }
 
-    protected function fillItem(ArrayObject $resource, $target, array $values)
+    protected function fillItem(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {
             case 'o:item_set':
@@ -273,7 +282,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return false;
     }
 
-    protected function fillItemSet(ArrayObject $resource, $target, array $values)
+    protected function fillItemSet(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {
             case 'o:is_open':
@@ -286,7 +295,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return false;
     }
 
-    protected function fillMedia(ArrayObject $resource, $target, array $values)
+    protected function fillMedia(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {
             case 'o:filename':
@@ -375,20 +384,21 @@ class ResourceProcessor extends AbstractResourceProcessor
         array $related,
         $metadata = 'o:media',
         $check = 'o:ingester'
-    ): void {
+    ): \BulkImport\Interfaces\Processor {
         if (!empty($resource[$metadata])) {
             foreach ($resource[$metadata] as $key => $values) {
                 if (!array_key_exists($check, $values)) {
                     // Use the last data set.
                     $resource[$metadata][$key] = $related + $resource[$metadata][$key];
-                    return;
+                    return $this;
                 }
             }
         }
         $resource[$metadata][] = $related;
+        return $this;
     }
 
-    protected function checkEntity(ArrayObject $resource)
+    protected function checkEntity(ArrayObject $resource): bool
     {
         if (empty($resource['resource_type'])) {
             $this->logger->err(
@@ -435,7 +445,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return !$resource['has_error'];
     }
 
-    protected function checkItem(ArrayObject $resource)
+    protected function checkItem(ArrayObject $resource): bool
     {
         // Media of an item are public by default.
         foreach ($resource['o:media'] as $key => $media) {
@@ -477,7 +487,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return true;
     }
 
-    protected function checkItemSet(ArrayObject $resource)
+    protected function checkItemSet(ArrayObject $resource): bool
     {
         // The check is needed to avoid a notice because it's an ArrayObject.
         if (property_exists($resource, 'o:item')) {
@@ -492,7 +502,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return true;
     }
 
-    protected function checkMedia(ArrayObject $resource)
+    protected function checkMedia(ArrayObject $resource): bool
     {
         // When a resource type is unknown before the end of the filling of an
         // entry, fillItem() is called for item first, and there are some common
@@ -532,16 +542,16 @@ class ResourceProcessor extends AbstractResourceProcessor
         return true;
     }
 
-    protected function processEntities(array $data): void
+    protected function processEntities(array $data): \BulkImport\Interfaces\Processor
     {
         $resourceType = $this->getResourceType();
         if ($resourceType !== 'resources') {
             parent::processEntities($data);
-            return;
+            return $this;
         }
 
         if (!count($data)) {
-            return;
+            return $this;
         }
 
         // Process all resources, but keep order, so process them by type.
@@ -564,5 +574,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             parent::processEntities($datas);
             $this->resourceType = 'resources';
         }
+        return $this;
     }
 }

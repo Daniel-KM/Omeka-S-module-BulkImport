@@ -37,7 +37,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return parent::getLastErrorMessage();
     }
 
-    public function getAvailableFields()
+    public function getAvailableFields(): array
     {
         $this->isReady();
         return $this->reader->getAvailableFields();
@@ -67,7 +67,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         $this->reader->rewind();
     }
 
-    public function valid()
+    public function valid(): bool
     {
         $this->isReady();
         return $this->reader->valid();
@@ -79,7 +79,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->reader->count();
     }
 
-    protected function isReady()
+    protected function isReady(): bool
     {
         if ($this->isReady) {
             return true;
@@ -89,7 +89,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->isReady;
     }
 
-    protected function prepareIterator()
+    protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -100,7 +100,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this;
     }
 
-    protected function initializeReader()
+    protected function initializeReader(): \BulkImport\Interfaces\Reader
     {
         $file = $this->getParam('file');
         $readerClass = $this->mediaTypeReaders[$file['type']];

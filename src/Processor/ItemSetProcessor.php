@@ -15,17 +15,19 @@ class ItemSetProcessor extends ResourceProcessor
 
     protected $paramsFormClass = ItemSetProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): void
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         $this->handleFormItemSet($args, $values);
+        return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): void
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         $this->baseItemSet($resource);
+        return $this;
     }
 
-    protected function fillSpecific(ArrayObject $resource, $target, array $values)
+    protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {
             case $this->fillItemSet($resource, $target, $values):
@@ -33,9 +35,10 @@ class ItemSetProcessor extends ResourceProcessor
             default:
                 return false;
         }
+        return false;
     }
 
-    protected function checkEntity(ArrayObject $resource)
+    protected function checkEntity(ArrayObject $resource): bool
     {
         parent::checkEntity($resource);
         $this->checkItemSet($resource);

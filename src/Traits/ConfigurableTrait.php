@@ -1,27 +1,24 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Traits;
 
 trait ConfigurableTrait
 {
     /**
-     * @var array|\ArrayObject
+     * @var array
      */
     protected $config = [];
 
     /**
-     * @param array|\ArrayObject $config
      * @return self
      */
-    public function setConfig($config)
+    public function setConfig(array $config)
     {
         $this->config = $config;
         return $this;
     }
 
-    /**
-     * @return array|\ArrayObject
-     */
-    public function getConfig()
+    public function getConfig(): array
     {
         return $this->config;
     }

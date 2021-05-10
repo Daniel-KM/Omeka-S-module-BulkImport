@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Interfaces;
 
 use Laminas\ServiceManager\ServiceLocatorInterface;
@@ -13,15 +14,13 @@ interface Reader extends \Iterator, \Countable
 {
     /**
      * Reader constructor.
-     *
-     * @param ServiceLocatorInterface $serviceLocator
      */
     public function __construct(ServiceLocatorInterface $services);
 
     /**
-     * @return string
+     * Label of the reader.
      */
-    public function getLabel();
+    public function getLabel(): string;
 
     /**
      * Check if the params of the reader are valid, for example the filepath.
@@ -33,15 +32,14 @@ interface Reader extends \Iterator, \Countable
     /**
      * Get the last error message, in particular to know why reader is invalid.
      *
-     * @return string
+     * @return string|null
      */
     public function getLastErrorMessage();
 
     /**
      * @param string$objectType An Omeka api key like "items", "vocabularies"…
-     * @return self
      */
-    public function setObjectType($objectType);
+    public function setObjectType($objectType): \BulkImport\Interfaces\Reader;
 
     /**
      * List of fields used in the input, for example the first spreadsheet row.
@@ -50,10 +48,8 @@ interface Reader extends \Iterator, \Countable
      *
      * Note that these available fields should not be the first output when
      * `rewind()` is called.
-     *
-     * @return array
      */
-    public function getAvailableFields();
+    public function getAvailableFields(): array;
 
     /**
      * {@inheritDoc}
@@ -69,5 +65,5 @@ interface Reader extends \Iterator, \Countable
      * {@inheritDoc}
      * @see \Countable::count()
      */
-    public function count(): int;
+    public function count();
 }

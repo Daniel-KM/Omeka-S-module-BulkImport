@@ -284,7 +284,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
         // Add all columns from file as inputs.
         $availableFields = $reader->getAvailableFields();
-
         if (!count($availableFields)) {
             return;
         }

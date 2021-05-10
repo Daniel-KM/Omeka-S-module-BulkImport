@@ -75,7 +75,7 @@ class OmekaSReader extends AbstractPaginatedReader
      */
     protected $currentResponse;
 
-    public function setObjectType($objectType)
+    public function setObjectType($objectType): \BulkImport\Interfaces\Reader
     {
         $this->path = $objectType;
         return parent::setObjectType($objectType);
@@ -87,7 +87,7 @@ class OmekaSReader extends AbstractPaginatedReader
      * @param HttpClient $httpClient
      * @return self
      */
-    public function setHttpClient(HttpClient $httpClient)
+    public function setHttpClient(HttpClient $httpClient): \BulkImport\Interfaces\Reader
     {
         $this->httpClient = $httpClient;
         return $this;
@@ -96,7 +96,7 @@ class OmekaSReader extends AbstractPaginatedReader
     /**
      * @return HttpClient
      */
-    public function getHttpClient()
+    public function getHttpClient(): \Laminas\Http\Client
     {
         if (!$this->httpClient) {
             $this->httpClient = new \Laminas\Http\Client(null, [
@@ -106,31 +106,31 @@ class OmekaSReader extends AbstractPaginatedReader
         return $this->httpClient;
     }
 
-    public function setEndpoint($endpoint)
+    public function setEndpoint($endpoint): \BulkImport\Interfaces\Reader
     {
         $this->endpoint = $endpoint;
         return $this;
     }
 
-    public function setQueryCredentials(array $credentials)
+    public function setQueryCredentials(array $credentials): \BulkImport\Interfaces\Reader
     {
         $this->queryCredentials = $credentials;
         return $this;
     }
 
-    public function setPath($path)
+    public function setPath($path): \BulkImport\Interfaces\Reader
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath($subpath)
+    public function setSubPath($subpath): \BulkImport\Interfaces\Reader
     {
         $this->subpath = $subpath;
         return $this;
     }
 
-    public function setQueryParams(array $queryParams)
+    public function setQueryParams(array $queryParams): \BulkImport\Interfaces\Reader
     {
         $this->queryParams = $queryParams;
         return $this;

@@ -81,27 +81,24 @@ abstract class AbstractProcessor implements Processor
         $this->translator = $services->get('MvcTranslator');
     }
 
-    public function setReader(Reader $reader)
+    public function setReader(Reader $reader): \BulkImport\Interfaces\Processor
     {
         $this->reader = $reader;
         return $this;
     }
 
-    /**
-     * @return \BulkImport\Interfaces\Reader
-     */
-    public function getReader()
+    public function getReader(): \BulkImport\Interfaces\Reader
     {
         return $this->reader;
     }
 
-    public function setLogger(Logger $logger)
+    public function setLogger(Logger $logger): \BulkImport\Interfaces\Processor
     {
         $this->logger = $logger;
         return $this;
     }
 
-    public function setJob(Job $job)
+    public function setJob(Job $job): \BulkImport\Interfaces\Processor
     {
         $this->job = $job;
         return $this;
@@ -113,7 +110,7 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $termOrId
      * @return bool
      */
-    protected function isPropertyTerm($termOrId)
+    protected function isPropertyTerm($termOrId): bool
     {
         return $this->bulk->isPropertyTerm($termOrId);
     }
@@ -124,7 +121,7 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $termOrId
      * @return int|null
      */
-    protected function getPropertyId($termOrId)
+    protected function getPropertyId($termOrId): ?int
     {
         return $this->bulk->getPropertyId($termOrId);
     }
@@ -135,17 +132,15 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $termOrId
      * @return string|null
      */
-    protected function getPropertyTerm($termOrId)
+    protected function getPropertyTerm($termOrId): ?string
     {
         return $this->bulk->getPropertyTerm($termOrId);
     }
 
     /**
      * Get all property ids by term.
-     *
-     * @return array Associative array of ids by term.
      */
-    protected function getPropertyIds()
+    protected function getPropertyIds(): array
     {
         return $this->bulk->getPropertyIds();
     }
@@ -156,7 +151,7 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $termOrId
      * @return bool
      */
-    protected function isResourceClass($termOrId)
+    protected function isResourceClass($termOrId): bool
     {
         return $this->bulk->isResourceClass($termOrId);
     }
@@ -167,17 +162,15 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $termOrId
      * @return int|null
      */
-    protected function getResourceClassId($termOrId)
+    protected function getResourceClassId($termOrId): ?int
     {
         return $this->bulk->getResourceClassId($termOrId);
     }
 
     /**
-     * Get all resource classes by term.
-     *
-     * @return array Associative array of ids by term.
+     * Get all resource classes ids by term.
      */
-    protected function getResourceClassIds()
+    protected function getResourceClassIds(): array
     {
         return $this->bulk->getResourceClassIds();
     }
@@ -188,7 +181,7 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $labelOrId
      * @return bool
      */
-    protected function isResourceTemplate($labelOrId)
+    protected function isResourceTemplate($labelOrId): bool
     {
         return $this->bulk->isResourceTemplate($labelOrId);
     }
@@ -199,34 +192,28 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $labelOrId
      * @return int|null
      */
-    protected function getResourceTemplateId($labelOrId)
+    protected function getResourceTemplateId($labelOrId): ?int
     {
         return $this->bulk->getResourceTemplateId($labelOrId);
     }
 
     /**
-     * Get all resource templates by label.
-     *
-     * @return array Associative array of ids by label.
+     * Get all resource templates ids by label.
      */
-    protected function getResourceTemplateIds()
+    protected function getResourceTemplateIds(): array
     {
         return $this->bulk->getResourceTemplateIds();
     }
 
-    /**
-     * @param string $type
-     * @return string|null
-     */
-    protected function getDataType($type)
+    protected function getDataType($type): ?string
     {
-        return $this->bulk->getDataType($type);
+        return $this->bulk->getDataType((string) $type);
     }
 
     /**
      * @return array
      */
-    protected function getDataTypes()
+    protected function getDataTypes(): array
     {
         return $this->bulk->getDataTypes();
     }
@@ -237,57 +224,45 @@ abstract class AbstractProcessor implements Processor
      * @param string|int $emailOrIdOrName
      * @return int|null
      */
-    protected function getUserId($emailOrIdOrName)
+    protected function getUserId($emailOrIdOrName): ?int
     {
         return $this->bulk->getUserId($emailOrIdOrName);
     }
 
     /**
      * Trim all whitespaces.
-     *
-     * @param string $string
-     * @return string
      */
-    protected function trimUnicode($string)
+    protected function trimUnicode($string): string
     {
-        return $this->bulk->trimUnicode($string);
+        return $this->bulk->trimUnicode((string) $string);
     }
 
     /**
      * Check if a string seems to be an url.
      *
      * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.
-     *
-     * @param string $string
-     * @return bool
      */
-    protected function isUrl($string)
+    protected function isUrl($string): bool
     {
-        return $this->bulk->isUrl($string);
+        return $this->bulk->isUrl((string) $string);
     }
 
     /**
      * Allows to log resources with a singular name from the resource type, that
      * is plural in Omeka.
-     *
-     * @param string $resourceType
-     * @return string
      */
-    protected function label($resourceType)
+    protected function label($resourceType): string
     {
-        return $this->bulk->label($resourceType);
+        return $this->bulk->label((string) $resourceType);
     }
 
     /**
      * Allows to log resources with a singular name from the resource type, that
      * is plural in Omeka.
-     *
-     * @param string $resourceType
-     * @return string
      */
-    protected function labelPlural($resourceType)
+    protected function labelPlural($resourceType): string
     {
-        return $this->bulk->labelPlural($resourceType);
+        return $this->bulk->labelPlural((string) $resourceType);
     }
 
     /**
@@ -344,7 +319,7 @@ abstract class AbstractProcessor implements Processor
      * @param bool $throwValidationException
      * @return \Omeka\Mvc\Controller\Plugin\Api
      */
-    protected function api(\Laminas\Form\Form $form = null, $throwValidationException = false)
+    protected function api(\Laminas\Form\Form $form = null, $throwValidationException = false): \Omeka\Mvc\Controller\Plugin\Api
     {
         return $this->bulk->api($form, $throwValidationException);
     }
@@ -355,7 +330,7 @@ abstract class AbstractProcessor implements Processor
      * @param bool $allowDuplicateIdentifiers
      * @return self
      */
-    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): \BulkImport\Interfaces\Processor
     {
         $this->bulk->setAllowDuplicateIdentifiers($allowDuplicateIdentifiers);
         return $this;
@@ -366,7 +341,7 @@ abstract class AbstractProcessor implements Processor
      *
      * @return bool
      */
-    protected function getAllowDuplicateIdentifiers()
+    protected function getAllowDuplicateIdentifiers(): bool
     {
         return $this->bulk->getAllowDuplicateIdentifiers();
     }
@@ -377,7 +352,7 @@ abstract class AbstractProcessor implements Processor
      * @param array|string $identifierNames
      * @return self
      */
-    public function setIdentifierNames($identifierNames)
+    public function setIdentifierNames($identifierNames): \BulkImport\Interfaces\Processor
     {
         $this->bulk->setIdentifierNames($identifierNames);
         return $this;
@@ -396,11 +371,10 @@ abstract class AbstractProcessor implements Processor
     /**
      * Check the id of a resource.
      *
-     * @param ArrayObject $resource
-     * @return bool The action should be checked separately, else the result
-     * may have no meaning.
+     * The action should be checked separately, else the result may have no
+     * meaning.
      */
-    protected function checkId(ArrayObject $resource)
+    protected function checkId(ArrayObject $resource): bool
     {
         if (!empty($resource['checked_id'])) {
             return !empty($resource['o:id']);
@@ -438,11 +412,8 @@ abstract class AbstractProcessor implements Processor
      *
      * The resource type is required, so this method should be used in the end
      * of the process.
-     *
-     * @param ArrayObject $resource
-     * @return bool
      */
-    protected function fillId(ArrayObject $resource)
+    protected function fillId(ArrayObject $resource): bool
     {
         if (is_numeric($resource['o:id'])) {
             return true;
@@ -540,11 +511,7 @@ abstract class AbstractProcessor implements Processor
         return false;
     }
 
-    /**
-     * @param ValidationException $e
-     * @return array
-     */
-    protected function listValidationMessages(ValidationException $e)
+    protected function listValidationMessages(ValidationException $e): array
     {
         $messages = [];
         foreach ($e->getErrorStore()->getErrors() as $error) {

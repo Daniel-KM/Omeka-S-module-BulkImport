@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Interfaces;
 
 use Laminas\Log\Logger;
@@ -7,30 +8,27 @@ use Omeka\Job\AbstractJob as Job;
 interface Processor
 {
     /**
-     * @return string
+     * Name of the processor
      */
-    public function getLabel();
+    public function getLabel(): string;
 
     /**
-     * @param Reader $reader
      * @return self
      */
-    public function setReader(Reader $reader);
+    public function setReader(Reader $reader): \BulkImport\Interfaces\Processor;
 
     /**
-     * @param Logger $logger
      * @return self
      */
-    public function setLogger(Logger $logger);
+    public function setLogger(Logger $logger): \BulkImport\Interfaces\Processor;
 
     /**
-     * @param Job $job
      * @return self
      */
-    public function setJob(Job $job);
+    public function setJob(Job $job): \BulkImport\Interfaces\Processor;
 
     /**
      * Perform the process.
      */
-    public function process();
+    public function process(): void;
 }

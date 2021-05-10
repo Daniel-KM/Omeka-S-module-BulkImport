@@ -85,21 +85,23 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->next();
     }
 
-    protected function reset(): void
+    protected function reset(): \BulkImport\Interfaces\Reader
     {
         parent::reset();
         $this->delimiter = self::DEFAULT_DELIMITER;
         $this->enclosure = self::DEFAULT_ENCLOSURE;
         $this->escape = self::DEFAULT_ESCAPE;
+        return $this;
     }
 
-    protected function prepareIterator(): void
+    protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         parent::prepareIterator();
         $this->next();
+        return $this;
     }
 
-    protected function initializeReader(): void
+    protected function initializeReader(): \BulkImport\Interfaces\Reader
     {
         $filepath = $this->getParam('filename');
         $this->iterator = new SplFileObject($filepath);
@@ -114,14 +116,16 @@ class CsvReader extends AbstractSpreadsheetFileReader
             | SplFileObject::DROP_NEW_LINE
         );
         $this->iterator->setCsvControl($this->delimiter, $this->enclosure, $this->escape);
+        return $this;
     }
 
-    protected function finalizePrepareIterator(): void
+    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->totalEntries = iterator_count($this->iterator) - 1;
+        return $this;
     }
 
-    protected function prepareAvailableFields(): void
+    protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
     {
         $this->iterator->rewind();
         $fields = $this->iterator->current();
@@ -131,6 +135,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($fields);
+        return $this;
     }
 
     protected function isValidFilepath($filepath, array $file = []): bool

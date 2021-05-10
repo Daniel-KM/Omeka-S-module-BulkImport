@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Interfaces;
 
 use Laminas\Form\Form;
@@ -9,20 +10,21 @@ interface Configurable
      * @param array $config
      * @return self
      */
-    public function setConfig($config);
+    public function setConfig(array $config);
 
     /**
      * @return array
      */
-    public function getConfig();
+    public function getConfig(): array;
 
     /**
      * @return string
      */
-    public function getConfigFormClass();
+    public function getConfigFormClass(): string;
 
     /**
      * @param Form $form
+     * @return self
      */
     public function handleConfigForm(Form $form);
 }

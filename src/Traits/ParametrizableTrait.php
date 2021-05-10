@@ -1,27 +1,27 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Traits;
 
 trait ParametrizableTrait
 {
     /**
-     * @var array|\ArrayObject
+     * @var array
      */
     protected $params = [];
 
     /**
-     * @param array|\ArrayObject $params
      * @return self
      */
-    public function setParams($params)
+    public function setParams(array $params)
     {
         $this->params = $params;
         return $this;
     }
 
     /**
-     * @return array|\ArrayObject
+     * @return array
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }

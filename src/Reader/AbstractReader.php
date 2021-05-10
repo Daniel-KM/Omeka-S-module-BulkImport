@@ -70,7 +70,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->setServiceLocator($services);
     }
 
-    public function getLabel()
+    public function getLabel(): string
     {
         return $this->label;
     }
@@ -85,13 +85,13 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this->lastErrorMessage;
     }
 
-    public function getAvailableFields()
+    public function getAvailableFields(): array
     {
         $this->isReady();
         return $this->availableFields;
     }
 
-    public function getConfigFormClass()
+    public function getConfigFormClass(): string
     {
         return $this->configFormClass;
     }
@@ -105,7 +105,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function getParamsFormClass()
+    public function getParamsFormClass(): string
     {
         return $this->paramsFormClass;
     }
@@ -119,7 +119,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function setObjectType($objectType)
+    public function setObjectType($objectType): \BulkImport\Interfaces\Reader
     {
         $this->objectType = $objectType;
         return $this;
@@ -127,10 +127,8 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 
     /**
      * Check if the reader is ready, or prepare it.
-     *
-     * @return bool
      */
-    protected function isReady()
+    protected function isReady(): bool
     {
         if ($this->isReady) {
             return true;
@@ -143,7 +141,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Reset the iterator to allow to use it with different params.
      */
-    protected function reset()
+    protected function reset(): \BulkImport\Interfaces\Reader
     {
         $this->availableFields = [];
         $this->objectType = null;
@@ -151,10 +149,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->isReady = false;
         return $this;
     }
+
     /**
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function prepareIterator()
+    protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->reset();
         if (!$this->isValid()) {

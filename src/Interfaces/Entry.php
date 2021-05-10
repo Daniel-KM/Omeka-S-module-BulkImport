@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Interfaces;
 
 /**
@@ -18,7 +19,7 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      *
      * @return bool
      */
-    public function isEmpty();
+    public function isEmpty(): bool;
 
     /**
      * Get the full entry as an array, instead of value by value.
@@ -27,7 +28,7 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      *
      * @return array
      */
-    public function getArrayCopy();
+    public function getArrayCopy(): array;
 
     /**
      * {@inheritDoc}

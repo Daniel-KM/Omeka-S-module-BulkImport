@@ -105,46 +105,48 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected $totalErrors = 0;
 
-    public function getResourceType()
+    public function getResourceType(): ?string
     {
         return $this->resourceType;
     }
 
-    public function getLabel()
+    public function getLabel(): string
     {
         return $this->resourceLabel;
     }
 
-    public function getConfigFormClass()
+    public function getConfigFormClass(): string
     {
         return $this->configFormClass;
     }
 
-    public function getParamsFormClass()
+    public function getParamsFormClass(): string
     {
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form): void
+    public function handleConfigForm(Form $form)
     {
         $values = $form->getData();
         $config = new ArrayObject;
         $this->handleFormGeneric($config, $values);
         $this->handleFormSpecific($config, $values);
-        $this->setConfig($config);
+        $this->setConfig($config->getArrayCopy());
+        return $this;
     }
 
-    public function handleParamsForm(Form $form): void
+    public function handleParamsForm(Form $form)
     {
         $values = $form->getData();
         $params = new ArrayObject;
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
         $params['mapping'] = $values['mapping'] ?? [];
-        $this->setParams($params);
+        $this->setParams($params->getArrayCopy());
+        return $this;
     }
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): void
+    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
         $defaults = [
             'o:resource_template' => null,
@@ -165,10 +167,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
         $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
         $args->exchangeArray($result);
+        return $this;
     }
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): void
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
     {
+        return $this;
     }
 
     public function process(): void
@@ -280,11 +284,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     /**
      * Process one entry to create one resource (and eventually attached ones).
-     *
-     * @param Entry $entry
-     * @return ArrayObject|null
      */
-    protected function processEntry(Entry $entry)
+    protected function processEntry(Entry $entry): ?ArrayObject
     {
         if ($entry->isEmpty()) {
             $this->logger->warn(
@@ -300,7 +301,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             :  $this->processEntryDirectly($entry);
     }
 
-    protected function processEntryDirectly(Entry $entry)
+    protected function processEntryDirectly(Entry $entry): ArrayObject
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
@@ -350,7 +351,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function processEntryWithMapping(Entry $entry)
+    protected function processEntryWithMapping(Entry $entry): ArrayObject
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
@@ -382,7 +383,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function baseEntity()
+    protected function baseEntity(): ArrayObject
     {
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
@@ -394,7 +395,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function baseGeneric(ArrayObject $resource): void
+    protected function baseGeneric(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
         $resourceTemplateId = $this->getParam('o:resource_template');
         if ($resourceTemplateId) {
@@ -412,13 +413,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
         $resource['o:owner'] = ['o:id' => $ownerId];
         $resource['o:is_public'] = $this->getParam('o:is_public') !== 'false';
+        return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): void
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
     {
+        return $this;
     }
 
-    protected function fillResource(ArrayObject $resource, array $targets, array $values): void
+    protected function fillResource(ArrayObject $resource, array $targets, array $values): \BulkImport\Interfaces\Processor
     {
         foreach ($targets as $target) {
             switch ($target['target']) {
@@ -433,9 +436,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     break;
             }
         }
+        return $this;
     }
 
-    protected function fillProperty(ArrayObject $resource, $target, array $values)
+    protected function fillProperty(ArrayObject $resource, $target, array $values): bool
     {
         if (!isset($target['value']['property_id'])) {
             return false;
@@ -496,7 +500,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return true;
     }
 
-    protected function fillGeneric(ArrayObject $resource, $target, array $values)
+    protected function fillGeneric(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {
             case 'o:id':
@@ -549,18 +553,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return false;
     }
 
-    protected function fillSpecific(ArrayObject $resource, $target, array $values)
+    protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
         return false;
     }
 
     /**
      * Check if a resource is well-formed.
-     *
-     * @param ArrayObject $resource
-     * @return bool
      */
-    protected function checkEntity(ArrayObject $resource)
+    protected function checkEntity(ArrayObject $resource): bool
     {
         if (!$this->checkId($resource)) {
             $this->fillId($resource);
@@ -603,10 +604,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     /**
      * Process entities.
-     *
-     * @param array $data
      */
-    protected function processEntities(array $data): void
+    protected function processEntities(array $data): \BulkImport\Interfaces\Processor
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
@@ -625,28 +624,26 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->deleteEntities($data);
                 break;
         }
+        return $this;
     }
 
     /**
      * Process creation of entities.
-     *
-     * @param array $data
      */
-    protected function createEntities(array $data): void
+    protected function createEntities(array $data): \BulkImport\Interfaces\Processor
     {
         $resourceType = $this->getResourceType();
         $this->createResources($resourceType, $data);
+        return $this;
     }
 
     /**
      * Process creation of resources.
-     *
-     * @param array $data
      */
-    protected function createResources($resourceType, array $data): void
+    protected function createResources($resourceType, array $data): \BulkImport\Interfaces\Processor
     {
         if (!count($data)) {
-            return;
+            return $this;
         }
 
         try {
@@ -667,14 +664,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
             );
             ++$this->totalErrors;
-            return;
+            return $this;
         } catch (\Exception $e) {
             $this->logger->err(
                 'Index #{index}: Core error during creation: {exception}', // @translate
                 ['index' => $this->indexResource, 'exception' => $e]
             );
             ++$this->totalErrors;
-            return;
+            return $this;
         }
 
         /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation[] $resources */
@@ -691,14 +688,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 );
             }
         }
+        return $this;
     }
 
     /**
      * Process update of entities.
-     *
-     * @param array $data
      */
-    protected function updateEntities(array $data): void
+    protected function updateEntities(array $data): \BulkImport\Interfaces\Processor
     {
         $resourceType = $this->getResourceType();
 
@@ -714,17 +710,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->updateResources($resourceType, $data);
+        return $this;
     }
 
     /**
      * Process update of resources.
-     *
-     * @param array $data
      */
-    protected function updateResources($resourceType, array $data): void
+    protected function updateResources($resourceType, array $data): \BulkImport\Interfaces\Processor
     {
         if (!count($data)) {
-            return;
+            return $this;
         }
 
         // In the api manager, batchUpdate() allows to update a set of resources
@@ -748,7 +743,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $options['collectionAction'] = 'replace';
                     break;
                 default:
-                    return;
+                    return $this;
             }
             $dataResource = $this->updateData($resourceType, $dataResource);
 
@@ -765,14 +760,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
                 );
                 ++$this->totalErrors;
-                return;
+                return $this;
             } catch (\Exception $e) {
                 $this->logger->err(
                     'Index #{index}: Core error during update: {exception}', // @translate
                     ['index' => $this->indexResource, 'exception' => $e]
                 );
                 ++$this->totalErrors;
-                return;
+                return $this;
             }
             if (!$response) {
                 $this->logger->err(
@@ -780,31 +775,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource]
                 );
                 ++$this->totalErrors;
-                return;
+                return $this;
             }
         }
     }
 
     /**
      * Process deletion of entities.
-     *
-     * @param array $data
      */
-    protected function deleteEntities(array $data): void
+    protected function deleteEntities(array $data): \BulkImport\Interfaces\Processor
     {
         $resourceType = $this->getResourceType();
         $this->deleteResources($resourceType, $data);
+        return $this;
     }
 
     /**
      * Process deletion of resources.
-     *
-     * @param array $data
      */
-    protected function deleteResources($resourceType, array $data): void
+    protected function deleteResources($resourceType, array $data): \BulkImport\Interfaces\Processor
     {
         if (!count($data)) {
-            return;
+            return $this;
         }
 
         // Get ids (already checked normally).
@@ -830,7 +822,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
             );
             ++$this->totalErrors;
-            return;
+            return $this;
         } catch (\Exception $e) {
             // There is no error, only ids already deleted, so continue.
             $this->logger->err(
@@ -838,7 +830,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource, 'exception' => $e]
             );
             ++$this->totalErrors;
-            return;
+            return $this;
         }
 
         foreach ($ids as $id) {
@@ -847,29 +839,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource, 'resource_type' => $this->label($resourceType), 'resource_id' => $id]
             );
         }
+        return $this;
     }
 
     /**
      * Process skipping of entities.
-     *
-     * @param array $data
      */
-    protected function skipEntities(array $data): void
+    protected function skipEntities(array $data): \BulkImport\Interfaces\Processor
     {
         $resourceType = $this->getResourceType();
         $this->skipResources($resourceType, $data);
+        return $this;
     }
 
     /**
      * Process skipping of resources.
-     *
-     * @param array $data
      */
-    protected function skipResources($resourceType, array $data): void
+    protected function skipResources($resourceType, array $data): \BulkImport\Interfaces\Processor
     {
+        return $this;
     }
 
-    protected function actionRequiresId($action = null)
+    protected function actionRequiresId($action = null): bool
     {
         $actionsRequireId = [
             self::ACTION_APPEND,
@@ -884,7 +875,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return in_array($action, $actionsRequireId);
     }
 
-    protected function actionIsUpdate($action = null)
+    protected function actionIsUpdate($action = null): bool
     {
         $actionsUpdate = [
             self::ACTION_APPEND,
@@ -898,7 +889,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return in_array($action, $actionsUpdate);
     }
 
-    protected function prepareAction(): void
+    protected function prepareAction(): \BulkImport\Interfaces\Processor
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
@@ -915,9 +906,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['action' => $this->action]
             );
         }
+        return $this;
     }
 
-    protected function prepareActionUnidentified(): void
+    protected function prepareActionUnidentified(): \BulkImport\Interfaces\Processor
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
@@ -929,9 +921,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['action' => $this->actionUnidentified]
             );
         }
+        return $this;
     }
 
-    protected function prepareIdentifierNames(): void
+    protected function prepareIdentifierNames(): \BulkImport\Interfaces\Processor
     {
         $identifierNames = $this->getParam('identifier_name', ['o:id', 'dcterms:identifier']);
         if (empty($identifierNames)) {
@@ -939,7 +932,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->logger->warn(
                 'No identifier name was selected.' // @translate
             );
-            return;
+            return $this;
         }
 
         if (!is_array($identifierNames)) {
@@ -963,16 +956,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
         $this->bulk->setIdentifierNames($result);
+        return $this;
     }
 
-    protected function prepareActionIdentifier(): void
+    protected function prepareActionIdentifier(): \BulkImport\Interfaces\Processor
     {
         if (!in_array($this->action, [
             self::ACTION_REVISE,
             self::ACTION_UPDATE,
         ])) {
             $this->actionIdentifier = self::ACTION_SKIP;
-            return;
+            return $this;
         }
 
         // This option doesn't apply when "o:id" is the only one identifier.
@@ -981,7 +975,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             || (count($identifierNames) === 1 && reset($identifierNames) === 'o:id')
         ) {
             $this->actionIdentifier = self::ACTION_SKIP;
-            return;
+            return $this;
         }
 
         $this->actionIdentifier = $this->getParam('action_identifier_update') ?: self::ACTION_APPEND;
@@ -997,9 +991,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // TODO Prepare the list of identifiers one time (only properties) (see extractIdentifiers())?
+        return $this;
     }
 
-    protected function prepareActionMedia(): void
+    protected function prepareActionMedia(): \BulkImport\Interfaces\Processor
     {
         $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionMedia, [
@@ -1012,9 +1007,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
             $this->actionMedia = self::ACTION_APPEND;
         }
+        return $this;
     }
 
-    protected function prepareActionItemSet(): void
+    protected function prepareActionItemSet(): \BulkImport\Interfaces\Processor
     {
         $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionItemSet, [
@@ -1027,6 +1023,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
             $this->actionItemSet = self::ACTION_APPEND;
         }
+        return $this;
     }
 
     /**
@@ -1034,7 +1031,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Add automapped metadata for properties (language and datatype).
      */
-    protected function prepareMapping(): void
+    protected function prepareMapping(): \BulkImport\Interfaces\Processor
     {
         $mapping = $this->getParam('mapping', []);
 
@@ -1130,5 +1127,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->mapping = array_filter($mapping);
         // Some readers don't need a mapping (xml reader do the process itself).
         $this->hasMapping = (bool) $this->mapping;
+        return $this;
     }
 }

@@ -2,7 +2,6 @@
 namespace BulkImport\Reader;
 
 use BulkImport\Entry\Entry;
-use BulkImport\Interfaces\Reader;
 use Iterator;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
@@ -35,7 +34,9 @@ abstract class AbstractFileReader extends AbstractReader
         if (array_search('filename', $this->paramsKeys) === false) {
             return true;
         }
-        $file = $this->getParam('file');
+
+        // The file mau not be uploaded (or return false directly).
+        $file = $this->getParam('file') ?: [];
         $filepath = $this->getParam('filename');
         return $this->isValidFilepath($filepath, $file);
     }
@@ -62,10 +63,9 @@ abstract class AbstractFileReader extends AbstractReader
     {
         $this->isReady();
         $this->currentData = $this->iterator->current();
-        if (!is_array($this->currentData)) {
-            return null;
-        }
-        return $this->currentEntry();
+        return is_array($this->currentData)
+            ? $this->currentEntry()
+            : null;
     }
 
     /**
@@ -98,7 +98,7 @@ abstract class AbstractFileReader extends AbstractReader
         $this->iterator->rewind();
     }
 
-    public function valid()
+    public function valid(): bool
     {
         $this->isReady();
         return $this->iterator->valid();
@@ -113,20 +113,19 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * Reset the iterator to allow to use it with different params.
      */
-    protected function reset()
+    protected function reset(): \BulkImport\Interfaces\Reader
     {
         parent::reset();
         $this->iterator = null;
         $this->totalEntries = null;
         $this->currentData = [];
-        $this->isReady = false;
         return $this;
     }
 
     /**
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function prepareIterator()
+    protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -145,12 +144,12 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * Initialize the reader iterator.
      */
-    abstract protected function initializeReader();
+    abstract protected function initializeReader(): \BulkImport\Interfaces\Reader;
 
     /**
      * Called only by prepareIterator() after opening reader.
      */
-    protected function finalizePrepareIterator()
+    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->totalEntries = iterator_count($this->iterator);
         $this->iterator->rewind();
@@ -160,7 +159,7 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * The fields are an array.
      */
-    protected function prepareAvailableFields()
+    protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
     {
         return $this;
     }
@@ -172,7 +171,7 @@ abstract class AbstractFileReader extends AbstractReader
      * @throws \Omeka\Service\Exception\RuntimeException
      * @return array The file array with the temp filename.
      */
-    protected function getUploadedFile(Form $form)
+    protected function getUploadedFile(Form $form): array
     {
         $file = $form->get('file')->getValue();
         if (empty($file)) {
@@ -233,26 +232,26 @@ abstract class AbstractFileReader extends AbstractReader
             );
             return false;
         }
-        $mediaType = $this->getParam('file')['type'];
+
         if (is_array($this->mediaType)) {
-            if (!in_array($mediaType, $this->mediaType)) {
+            if (!in_array($file['type'], $this->mediaType)) {
                 $this->lastErrorMessage = new PsrMessage(
                     'File "{filename}" has media type "{file_media_type}" and is not managed.', // @translate
-                    ['filename' => $file['name'], 'file_media_type' => $mediaType]
+                    ['filename' => $file['name'], 'file_media_type' => $file['type']]
                 );
                 return false;
             }
-        } elseif ($mediaType && $mediaType !== $this->mediaType) {
+        } elseif ($file['type'] && $file['type'] !== $this->mediaType) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" has media type "{file_media_type}", not "{media_type}".', // @translate
-                ['filename' => $file['name'], 'file_media_type' => $mediaType, 'media_type' => $this->mediaType]
+                ['filename' => $file['name'], 'file_media_type' => $file['type'], 'media_type' => $this->mediaType]
             );
             return false;
         }
         return true;
     }
 
-    protected function cleanData(array $data)
+    protected function cleanData(array $data): array
     {
         return array_map([$this, 'trimUnicode'], $data);
     }

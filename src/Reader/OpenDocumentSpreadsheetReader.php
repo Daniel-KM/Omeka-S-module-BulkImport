@@ -82,21 +82,23 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->next();
     }
 
-    protected function reset(): void
+    protected function reset(): \BulkImport\Interfaces\Reader
     {
         parent::reset();
         if ($this->spreadsheetReader) {
             $this->spreadsheetReader->close();
         }
+        return $this;
     }
 
-    protected function prepareIterator(): void
+    protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         parent::prepareIterator();
         $this->next();
+        return $this;
     }
 
-    protected function initializeReader(): void
+    protected function initializeReader(): \BulkImport\Interfaces\Reader
     {
         if ($this->spreadsheetReader) {
             $this->spreadsheetReader->close();
@@ -142,19 +144,21 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->iterator = $sheet->getRowIterator();
             break;
         }
+        return $this;
     }
 
-    protected function finalizePrepareIterator(): void
+    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
         $this->totalEntries = iterator_count($this->iterator) - 1;
         $this->initializeReader();
+        return $this;
     }
 
-    protected function prepareAvailableFields(): void
+    protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
     {
         if ($this->isOldBoxSpout) {
             $this->prepareAvailableFieldsOld();
-            return;
+            return $this;
         }
 
         /** @var \Box\Spout\Common\Entity\Row $row */
@@ -168,12 +172,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($row->toArray());
         $this->initializeReader();
+        return $this;
     }
 
     /**
      * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
      */
-    protected function prepareAvailableFieldsOld(): void
+    protected function prepareAvailableFieldsOld(): \BulkImport\Interfaces\Reader
     {
         /** @var \Box\Spout\Common\Entity\Row $row */
         foreach ($this->iterator as $fields) {
@@ -186,5 +191,6 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($fields);
         $this->initializeReader();
+        return $this;
     }
 }

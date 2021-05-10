@@ -17,19 +17,14 @@ class Entry implements EntryInterface
      */
     protected $valid;
 
-    /**
-     * @param array $fields
-     * @param array $data
-     * @param array $options
-     */
-    public function __construct(array $fields, array $data, array $options = [])
+    public function __construct(array $fields, $data, array $options = [])
     {
         $this->preInit($fields, $data, $options);
         $this->init($fields, $data, $options);
         $this->postInit($fields, $data, $options);
     }
 
-    protected function preInit(array $fields, array $data, array $options): void
+    protected function preInit(array $fields, $data, array $options): void
     {
         // The set fields should be kept set (for array_key_exists).
         $this->data = [];
@@ -38,7 +33,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function init(array $fields, array $data, array $options): void
+    protected function init(array $fields, $data, array $options): void
     {
         // Don't keep data that are not attached to a field.
         // Avoid an issue when the number of data is greater than the number of
@@ -52,7 +47,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function postInit(array $options): void
+    protected function postInit(array $fields, $data, array $options): void
     {
         // Filter duplicated and null values.
         foreach ($this->data as &$datas) {
@@ -60,7 +55,7 @@ class Entry implements EntryInterface
         }
     }
 
-    public function isEmpty()
+    public function isEmpty(): bool
     {
         return !count(array_filter($this->data, function ($v) {
             return is_array($v)
@@ -71,7 +66,7 @@ class Entry implements EntryInterface
         }));
     }
 
-    public function getArrayCopy()
+    public function getArrayCopy(): array
     {
         return $this->data;
     }

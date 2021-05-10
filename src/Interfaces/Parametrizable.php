@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Interfaces;
 
 use Laminas\Form\Form;
@@ -6,20 +7,20 @@ use Laminas\Form\Form;
 interface Parametrizable
 {
     /**
-     * @param array|\Traversable $config
+     * @param array $params
      * @return self
      */
-    public function setParams($params);
+    public function setParams(array $params);
 
     /**
-     * @return array|\Traversable
+     * @return array
      */
-    public function getParams();
+    public function getParams(): array;
 
     /**
      * @return string
      */
-    public function getParamsFormClass();
+    public function getParamsFormClass(): string;
 
     /**
      * @param Form $form

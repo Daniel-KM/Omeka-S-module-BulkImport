@@ -451,35 +451,35 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected $storageIds = [];
 
-    public function getLabel()
+    public function getLabel(): string
     {
         return $this->resourceLabel;
     }
 
-    public function getConfigFormClass()
+    public function getConfigFormClass(): string
     {
         return $this->configFormClass;
     }
 
-    public function getParamsFormClass()
+    public function getParamsFormClass(): string
     {
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form): void
+    public function handleConfigForm(Form $form)
     {
         $values = $form->getData();
         $result = array_intersect_key($values, $this->configDefault) + $this->configDefault;
-        $args = new ArrayObject($result);
-        $this->setConfig($args);
+        $this->setConfig($result);
+        return $this;
     }
 
-    public function handleParamsForm(Form $form): void
+    public function handleParamsForm(Form $form)
     {
         $values = $form->getData();
         $result = array_intersect_key($values, $this->paramsDefault) + $this->paramsDefault;
-        $args = new ArrayObject($result);
-        $this->setParams($args);
+        $this->setParams($result);
+        return $this;
     }
 
     public function process(): void
