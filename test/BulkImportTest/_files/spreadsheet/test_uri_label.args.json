@@ -1,0 +1,70 @@
+{
+  "importer": {
+    "label": "Tsv mixed",
+    "reader_class": "BulkImport\\Reader\\TsvReader",
+    "reader_config": {
+      "separator": "|"
+    },
+    "processor_class": "BulkImport\\Processor\\ResourceProcessor",
+    "processor_config": {
+      "o:resource_template": "1",
+      "o:resource_class": "",
+      "o:is_public": "true",
+      "action": "create",
+      "action_unidentified": "skip",
+      "identifier_name": [
+        "o:id",
+        "dcterms:identifier"
+      ],
+      "allow_duplicate_identifiers": false,
+      "resource_type": "items",
+      "o:item_set": [],
+      "o:item": ""
+    }
+  },
+  "import": {
+    "reader_params": {
+      "filename": "/tmp/omk_a",
+      "file": {
+        "name": "test_uri_label.tsv",
+        "type": "text/tab-separated-values",
+        "error": 0,
+        "size": 887
+      },
+      "delimiter": "\t",
+      "enclosure": "\u0000",
+      "escape": "\u0000",
+      "separator": "|"
+    },
+    "processor_params": {
+      "o:resource_template": "",
+      "o:resource_class": "",
+      "o:is_public": "true",
+      "resource_type": "items",
+      "o:item_set": [],
+      "o:item": "",
+      "identifier_name": [
+        "o:id",
+        "dcterms:identifier"
+      ],
+      "mapping": {
+        "Dublin Core:Title": [
+          "dcterms:title"
+        ],
+        "Dublin Core:Creator": [
+          "dcterms:creator"
+        ],
+        "Dublin Core:Description": [
+          "dcterms:description"
+        ],
+        "Relation ^^uri-label": [
+          "dcterms:relation^^uri-label"
+        ],
+        "tags": null,
+        "Filenames": [
+          "file"
+        ]
+      }
+    }
+  }
+}

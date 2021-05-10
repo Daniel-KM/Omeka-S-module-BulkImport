@@ -1,0 +1,70 @@
+{
+  "@context": "https://localhost/api-context",
+  "@id": "https://localhost/api/items/1",
+  "@type": "o:Item",
+  "o:id": 1,
+  "o:is_public": true,
+  "o:owner": {
+    "@id": "https://localhost/api/users/1",
+    "o:id": 1
+  },
+  "o:resource_class": null,
+  "o:resource_template": null,
+  "o:thumbnail": null,
+  "o:created": {
+    "@value": "2000-01-01T00:00:00+00:00",
+    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+  },
+  "o:modified": {
+    "@value": "2000-01-01T00:00:00+00:00",
+    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+  },
+  "o:media": [
+    {
+      "@id": "https://localhost/api/media/2",
+      "o:id": 2
+    },
+    {
+      "@id": "https://localhost/api/media/3",
+      "o:id": 3
+    }
+  ],
+  "o:item_set": [],
+  "dcterms:title": [
+    {
+      "type": "literal",
+      "property_id": 1,
+      "property_label": "Title",
+      "@value": "Walden",
+      "is_public": true
+    }
+  ],
+  "dcterms:description": [
+    {
+      "type": "literal",
+      "property_id": 4,
+      "property_label": "Description",
+      "@value": "A man seeks simplicity.",
+      "is_public": true
+    }
+  ],
+  "dcterms:creator": [
+    {
+      "type": "literal",
+      "property_id": 2,
+      "property_label": "Creator",
+      "@value": "Henry David Thoreau",
+      "is_public": true
+    }
+  ],
+  "dcterms:relation": [
+    {
+      "type": "uri",
+      "property_id": 2,
+      "property_label": "Relation",
+      "@id": "https://en.wikipedia.org/wiki/Walden",
+      "o:label": "Wikipedia",
+      "is_public": true
+    }
+  ]
+}

@@ -109,16 +109,17 @@ SQL;
     public function sourceProvider()
     {
         return [
-            ['test.csv', ['items' => 3, 'media' => 4]],
-            ['test_empty_rows.csv', ['items' => 3]],
-            ['test_many_rows_html.tsv', ['items' => 30]],
-            ['test_many_rows_url.tsv', ['items' => 30]],
-            ['test_media_order.tsv', ['media' => 3], false, true],
-            ['test_media_order_add.tsv', ['media' => 4], false],
-            ['test_media_order_add_no_item.tsv', ['media' => 4]],
-            ['test_resources.tsv', ['item_sets' => 1, 'items' => 3, 'media' => 3], false],
-            ['test_resources_update.tsv', ['item_sets' => 1, 'items' => 3, 'media' => 4]],
-            ['test_resources_heritage.ods', ['item_sets' => 2, 'items' => 15, 'media' => 23]],
+            ['spreadsheet/test.csv', ['items' => 3, 'media' => 4]],
+            ['spreadsheet/test_empty_rows.csv', ['items' => 3]],
+            ['spreadsheet/test_many_rows_html.tsv', ['items' => 30]],
+            ['spreadsheet/test_many_rows_url.tsv', ['items' => 30]],
+            ['spreadsheet/test_media_order.tsv', ['media' => 3], false, true],
+            ['spreadsheet/test_media_order_add.tsv', ['media' => 4], false],
+            ['spreadsheet/test_media_order_add_no_item.tsv', ['media' => 4]],
+            ['spreadsheet/test_resources.tsv', ['item_sets' => 1, 'items' => 3, 'media' => 3], false],
+            ['spreadsheet/test_resources_update.tsv', ['item_sets' => 1, 'items' => 3, 'media' => 4]],
+            ['spreadsheet/test_resources_heritage.ods', ['item_sets' => 2, 'items' => 15, 'media' => 23]],
+            ['spreadsheet/test_uri_label.tsv', ['items' => 3, 'media' => 4]],
         ];
     }
 
@@ -166,12 +167,12 @@ SQL;
     public function testPerformCreateOne()
     {
         // Create items and media.
-        $filepath = 'test.csv';
+        $filepath = 'spreadsheet/test.csv';
         $filepath = $this->basepath . $filepath;
         $this->performProcessForFile($filepath);
 
         // Create item sets.
-        $filepath = 'test_update_g_replace.tsv';
+        $filepath = 'spreadsheet/test_update_g_replace.tsv';
         $filepath = $this->basepath . $filepath;
         $this->performProcessForFile($filepath);
 
@@ -191,20 +192,20 @@ SQL;
     public function sourceUpdateProvider()
     {
         return [
-            ['test_skip.tsv', ['items', 1]],
-            ['test_update_a_append.tsv', ['items', 1]],
-            ['test_update_b_revise.tsv', ['items', 1]],
-            ['test_update_c_revise.tsv', ['items', 1]],
-            ['test_update_d_update.tsv', ['items', 1]],
-            ['test_update_e_replace.tsv', ['items', 1]],
-            ['test_update_f_replace.tsv', ['items', 1]],
-            ['test_update_g_replace.tsv', ['item_sets', 1]],
-            ['test_update_h_replace.tsv', ['items', 1]],
-            ['test_update_i_append.tsv', ['items', 1]],
-            ['test_update_j_revise.tsv', ['items', 1]],
-            ['test_update_k_revise.tsv', ['items', 1]],
-            ['test_update_l_update.tsv', ['items', 1]],
-            ['test_update_m_update.tsv', ['items', 1]],
+            ['spreadsheet/test_skip.tsv', ['items', 1]],
+            ['spreadsheet/test_update_a_append.tsv', ['items', 1]],
+            ['spreadsheet/test_update_b_revise.tsv', ['items', 1]],
+            ['spreadsheet/test_update_c_revise.tsv', ['items', 1]],
+            ['spreadsheet/test_update_d_update.tsv', ['items', 1]],
+            ['spreadsheet/test_update_e_replace.tsv', ['items', 1]],
+            ['spreadsheet/test_update_f_replace.tsv', ['items', 1]],
+            ['spreadsheet/test_update_g_replace.tsv', ['item_sets', 1]],
+            ['spreadsheet/test_update_h_replace.tsv', ['items', 1]],
+            ['spreadsheet/test_update_i_append.tsv', ['items', 1]],
+            ['spreadsheet/test_update_j_revise.tsv', ['items', 1]],
+            ['spreadsheet/test_update_k_revise.tsv', ['items', 1]],
+            ['spreadsheet/test_update_l_update.tsv', ['items', 1]],
+            ['spreadsheet/test_update_m_update.tsv', ['items', 1]],
         ];
     }
 
@@ -246,8 +247,8 @@ SQL;
     public function sourceDeleteProvider()
     {
         return [
-            ['test_delete_items.tsv', ['items', 2]],
-            ['test_delete_media.tsv', ['media', 4]],
+            ['spreadsheet/test_delete_items.tsv', ['items', 2]],
+            ['spreadsheet/test_delete_media.tsv', ['media', 4]],
         ];
     }
 
