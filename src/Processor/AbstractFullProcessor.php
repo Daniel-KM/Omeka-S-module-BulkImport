@@ -625,9 +625,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return true;
         }
         if ($this->job->shouldStop()) {
-            $this->logger->warn(
-                'The job was stopped.' // @translate
-            );
+            $this->logger->warn('The job was stopped.'); // @translate
             return true;
         }
         return false;
@@ -648,21 +646,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // Use "media_items" if needed.
         if (in_array('media', $toImport) && !in_array('items', $toImport)) {
             $this->hasError = true;
-            $this->logger->err(
-                'Resource "media" cannot be imported without items.' // @translate
-            );
+            $this->logger->err('Resource "media" cannot be imported without items.'); // @translate
         }
 
         // Check database integrity for assets.
-        $this->logger->info(
-            'Check integrity of assets.' // @translate
+        $this->logger->info('Check integrity of assets.' // @translate
         );
         $this->checkAssets();
 
         // Check database integrity for resources.
-        $this->logger->info(
-            'Check integrity of resources.' // @translate
-        );
+        $this->logger->info('Check integrity of resources.'); // @translate
         $this->checkResources();
     }
 
@@ -670,15 +663,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         $toImport = $this->getParam('types') ?: [];
 
-        // FIXME  Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
+        // FIXME Check for missing modules for datatypes (value suggest, custom vocab, numeric datatype, rdf datatype, geometry datatype).
 
         // Users are prepared first to include the owner anywhere.
         if (in_array('users', $toImport)
             && $this->prepareImport('users')
         ) {
-            $this->logger->info(
-                'Import of users.' // @translate
-            );
+            $this->logger->info('Import of users.'); // @translate
             $this->prepareUsers();
             if ($this->isErrorOrStop()) {
                 return;
@@ -692,9 +683,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (in_array('vocabularies', $toImport)
             && $this->prepareImport('vocabularies')
         ) {
-            $this->logger->info(
-                'Check vocabularies.' // @translate
-            );
+            $this->logger->info('Check vocabularies.'); // @translate
             $this->checkVocabularies();
             if ($this->isErrorOrStop()) {
                 return;
@@ -707,9 +696,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
 
             if ($this->prepareImport('properties')) {
-                $this->logger->info(
-                    'Preparation of properties.' // @translate
-                );
+                $this->logger->info('Preparation of properties.'); // @translate
                 $this->prepareProperties();
                 if ($this->isErrorOrStop()) {
                     return;
@@ -717,9 +704,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
 
             if ($this->prepareImport('resource_classes')) {
-                $this->logger->info(
-                    'Preparation of resource classes.' // @translate
-                );
+                $this->logger->info('Preparation of resource classes.'); // @translate
                 $this->prepareResourceClasses();
                 if ($this->isErrorOrStop()) {
                     return;
@@ -733,9 +718,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             && !empty($this->modules['CustomVocab'])
             && $this->prepareImport('custom_vocabs')
         ) {
-            $this->logger->info(
-                'Check custom vocabs.' // @translate
-            );
+            $this->logger->info('Check custom vocabs.'); // @translate
             $this->prepareCustomVocabsInitialize();
             if ($this->isErrorOrStop()) {
                 return;
@@ -745,9 +728,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (in_array('resource_templates', $toImport)
             && $this->prepareImport('resource_templates')
         ) {
-            $this->logger->info(
-                'Preparation of resource templates.' // @translate
-            );
+            $this->logger->info('Preparation of resource templates.'); // @translate
             $this->prepareResourceTemplates();
             if ($this->isErrorOrStop()) {
                 return;
@@ -769,9 +750,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (in_array('assets', $toImport)
             && $this->prepareImport('assets')
         ) {
-            $this->logger->info(
-                'Initialization of all assets.' // @translate
-            );
+            $this->logger->info('Initialization of all assets.'); // @translate
             $this->prepareAssets();
             if ($this->isErrorOrStop()) {
                 return;
@@ -779,9 +758,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
-            $this->logger->info(
-                'Initialization of all resources.' // @translate
-            );
+            $this->logger->info('Initialization of all resources.'); // @translate
             if (in_array('items', $toImport)
                 && $this->prepareImport('items')
             ) {
@@ -826,15 +803,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (in_array('assets', $toImport)
             && $this->prepareImport('assets')
         ) {
-            $this->logger->info(
-                'Finalization of assets.' // @translate
-            );
+            $this->logger->info('Finalization of assets.'); // @translate
             $this->fillAssets();
         }
         if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
-            $this->logger->info(
-                'Preparation of metadata of all resources.' // @translate
-            );
+            $this->logger->info('Preparation of metadata of all resources.'); // @translate
             if (in_array('items', $toImport)
                 && $this->prepareImport('items')
             ) {
@@ -1064,12 +1037,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!empty($this->modules['Thesaurus'])
             && in_array('concepts', $this->getParam('types') ?: [])
         ) {
-            $this->logger->info(
-                'Preparation of metadata of module Thesaurus.' // @translate
-            );
-            if ($this->prepareImport('concepts')) {
-                $this->prepareConcepts($this->reader->setObjectType($this->objectType));
-            }
+            $this->logger->info('Preparation of metadata of module Thesaurus.'); // @translate
+            $this->prepareConcepts($this->reader->setObjectType($this->objectType));
         }
     }
 
@@ -1111,9 +1080,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!empty($this->modules['Mapping'])
             && in_array('mappings', $this->getParam('types') ?: [])
         ) {
-            $this->logger->info(
-                'Preparation of metadata of module Mapping.' // @translate
-            );
+            $this->logger->info('Preparation of metadata of module Mapping.'); // @translate
             // Not prepare: there are mappings and mapping markers.
             $this->fillMapping();
         }
@@ -1126,7 +1093,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return $itemSet;
         }
 
-        $itemSet = new \Omeka\Entity\ItemSet;
+        $itemSet = new \Omeka\Entity\ItemSet();
         $itemSet->setOwner($this->owner);
         $itemSet->setTitle($name);
         $itemSet->setCreated($this->currentDateTime);
@@ -1152,9 +1119,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             ['filepath' => mb_substr($filepath, strlen($basePath))]
         );
 
-        $this->logger->info(
-            'Running jobs for reindexation and finalization. Check next jobs in admin interface.' // @translate
-        );
+        $this->logger->info('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
 
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();
@@ -1187,9 +1152,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // TODO Run derivative files job.
         if (count($this->map['media'])) {
-            $this->logger->warning(
-                'Derivative files should be recreated with module Bulk Check.' // @translate
-            );
+            $this->logger->warning('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
     }
 
@@ -1200,10 +1163,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         /** @var \Omeka\Module\Manager $moduleManager */
         $moduleManager = $this->getServiceLocator()->get('Omeka\ModuleManager');
-        foreach ([$this->optionalModules, $this->requiredModules] as $moduleClasses) {
-            foreach ($moduleClasses as $moduleClass) {
-                $module = $moduleManager->getModule($moduleClass);
-                $this->modules[$moduleClass] = $module
+        foreach ([$this->optionalModules, $this->requiredModules] as $moduleNames) {
+            foreach ($moduleNames as $moduleName) {
+                $module = $moduleManager->getModule($moduleName);
+                $this->modules[$moduleName] = $module
                     && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
             }
         }

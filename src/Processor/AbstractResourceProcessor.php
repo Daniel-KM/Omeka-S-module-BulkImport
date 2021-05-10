@@ -704,7 +704,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         foreach ($resources as $resource) {
             if ($resource->resourceName() === 'media') {
                 $this->logger->info(
-                    'Index #{index}: Created media #{media_id} (item #{item_id}', // @translate
+                    'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
                     ['index' => $this->indexResource, 'media_id' => $resource->id(), 'item_id' => $resource->item()->id()]
                 );
             } else {
