@@ -805,6 +805,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return $this;
             }
         }
+
+        return $this;
     }
 
     /**

@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -468,7 +469,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // It cannot be done during mapping, because the id of the item is not
         // known from the media source. In particular, it avoids false positives
         // in case of multiple files with the same name for different items.
-        if ($resource['o:id'] && $resource['o:media'] && $this->actionIsUpdate()) {
+        if (!empty($resource['o:id']) && !empty($resource['o:media']) && $this->actionIsUpdate()) {
             foreach ($resource['o:media'] as $key => $media) {
                 if (!empty($media['o:id'])) {
                     continue;
