@@ -39,10 +39,12 @@ class Import extends AbstractJob
 
         $this->api()->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
         $reader = $this->getReader();
-        $processor = $this->getProcessor();
-        $processor->setReader($reader);
-        $processor->setLogger($this->logger);
-        $processor->setJob($this);
+        $processor = $this->getProcessor()
+            ->setReader($reader)
+            ->setLogger($this->logger)
+            // This is not the job entity, but the job itself, so it has no id.
+            // TODO Clarify name of job for job id/import id.
+            ->setJob($this);
 
         $this->prepareDefaultSite();
 
@@ -51,6 +53,11 @@ class Import extends AbstractJob
         $processor->process();
 
         $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
+    }
+
+    public function getJobId()
+    {
+        return $this->job->getId();
     }
 
     /**

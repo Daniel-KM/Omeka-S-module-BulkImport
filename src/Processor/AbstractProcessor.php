@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -531,5 +532,33 @@ abstract class AbstractProcessor implements Processor
             }
         }
         return $messages;
+    }
+
+    protected function recordCreatedResources(array $resources): void
+    {
+        /** @var \Omeka\Api\Adapter\Manager $adapterManager */
+        $adapterManager = $this->getServiceLocator()->get('Omeka\ApiAdapterManager');
+        $jobId = $this->job->getJobId();
+        $classes = [];
+
+        $importeds = [];
+        /** @var \Omeka\Api\Representation\AbstractRepresentation $resource */
+        foreach ($resources as $resource) {
+            // The simplest way to get the adapter from any representation, when
+            // the api name is unavailable.
+            $class = get_class($resource);
+            if (empty($classes[$class])) {
+                $classes[$class] = $adapterManager
+                    ->get(substr_replace(str_replace('\\Representation\\', '\\Adapter\\', get_class($resource)), 'Adapter', -14))
+                    ->getResourceName();
+            }
+            $importeds[] = [
+                'o:job' => ['o:id' => $jobId],
+                'entity_id' => $resource->id(),
+                'resource_type' => $classes[$class],
+            ];
+        }
+
+        $this->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
     }
 }

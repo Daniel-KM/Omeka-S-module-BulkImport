@@ -714,6 +714,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 );
             }
         }
+
+        $this->recordCreatedResources($resources);
+
         return $this;
     }
 
