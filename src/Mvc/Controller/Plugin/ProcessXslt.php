@@ -32,6 +32,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 use DomDocument;
 use Exception;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Omeka\Service\Exception\RuntimeException;
 use XsltProcessor;
 
 /**
@@ -74,11 +75,11 @@ class ProcessXslt extends AbstractPlugin
             $result = file_put_contents($filepath, file_get_contents($uri));
             if (empty($result)) {
                 $message = sprintf('The remote file "%s" is not readable or empty.', $uri); // @translate
-                throw new \Exception($message);
+                throw new RuntimeException($message);
             }
         } elseif (!is_file($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             $message = sprintf('The input file "%s" is not readable.', $filepath); // @translate
-            throw new \Exception($message);
+            throw new RuntimeException($message);
         }
 
         // Default is the internal xslt processor of php.
@@ -114,7 +115,7 @@ class ProcessXslt extends AbstractPlugin
             $domXml = $this->domXmlLoad($uri);
             $domXsl = $this->domXmlLoad($stylesheet);
         } catch (Exception $e) {
-            throw new \Exception($e->getMessage());
+            throw $e;
         }
 
         $proc = new XSLTProcessor;
@@ -130,7 +131,7 @@ class ProcessXslt extends AbstractPlugin
                 $uri,
                 $stylesheet
             );
-            throw new \Exception($message);
+            throw new RuntimeException($message);
         }
 
         return $output;
@@ -152,10 +153,10 @@ class ProcessXslt extends AbstractPlugin
             $xmlContent = file_get_contents($filepath);
             if ($xmlContent === false) {
                 $message = sprintf('Could not load "%s". Verify that you have rights to access this folder and subfolders.', $filepath); // @translate
-                throw new \Exception($message);
+                throw new RuntimeException($message);
             } elseif (empty($xmlContent)) {
                 $message = sprintf('The file "%s" is empty. Process is aborted.', $filepath); // @translate
-                throw new \Exception($message);
+                throw new RuntimeException($message);
             }
             $domDocument->loadXML($xmlContent);
         }
@@ -200,7 +201,7 @@ class ProcessXslt extends AbstractPlugin
                 $stylesheet,
                 $result
             );
-            throw new \Exception($message);
+            throw new RuntimeException($message);
         }
 
         return $output;

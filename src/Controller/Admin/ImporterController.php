@@ -410,6 +410,10 @@ class ImporterController extends AbstractActionController
             $form = call_user_func($formCallback);
         }
 
+        if ($form instanceof \Laminas\Http\PhpEnvironment\Response) {
+            return $form;
+        }
+
         $view = new ViewModel([
             'importer' => $importer,
             'form' => $form,
@@ -426,6 +430,9 @@ class ImporterController extends AbstractActionController
         return $view;
     }
 
+    /**
+     * @todo Replace by a standard multi-steps form without callback.
+     */
     protected function getStartFormsCallbacks(ImporterRepresentation $importer)
     {
         $controller = $this;
@@ -434,8 +441,16 @@ class ImporterController extends AbstractActionController
         $reader = $importer->reader();
         if ($reader instanceof Parametrizable) {
             /* @return \Laminas\Form\Form */
-            $formsCallbacks['reader'] = function () use ($reader, $controller) {
-                $readerForm = $controller->getForm($reader->getParamsFormClass());
+            $formsCallbacks['reader'] = function () use ($reader, $importer, $controller) {
+                try {
+                    $readerForm = $controller->getForm($reader->getParamsFormClass());
+                } catch (\Omeka\Service\Exception\RuntimeException $e) {
+                    $message = new PsrMessage('Importer #{importer} has error: {error}', // @translate
+                        ['importer' => $importer->label(), 'error' => $e->getMessage()]
+                    );
+                    $this->messenger()->addError($message);
+                    return $this->redirect()->toRoute('admin/bulk');
+                }
                 $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
                 $readerForm->setData($readerConfig);
 
@@ -466,10 +481,18 @@ class ImporterController extends AbstractActionController
         $processor->setReader($reader);
         if ($processor instanceof Parametrizable) {
             /* @return \Laminas\Form\Form */
-            $formsCallbacks['processor'] = function () use ($processor, $controller) {
-                $processorForm = $controller->getForm($processor->getParamsFormClass(), [
-                    'processor' => $processor,
-                ]);
+            $formsCallbacks['processor'] = function () use ($processor, $importer, $controller) {
+                try {
+                    $processorForm = $controller->getForm($processor->getParamsFormClass(), [
+                        'processor' => $processor,
+                    ]);
+                } catch (\Omeka\Service\Exception\RuntimeException $e) {
+                    $message = new PsrMessage('Importer #{importer} has error: {error}', // @translate
+                        ['importer' => $importer->label(), 'error' => $e->getMessage()]
+                    );
+                    $this->messenger()->addError($message);
+                    return $this->redirect()->toRoute('admin/bulk');
+                }
                 $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
                 $processorForm->setData($processorConfig);
 
