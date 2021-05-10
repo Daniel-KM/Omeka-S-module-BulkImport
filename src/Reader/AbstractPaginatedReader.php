@@ -36,11 +36,6 @@ abstract class AbstractPaginatedReader extends AbstractReader
     protected $isValid = false;
 
     /**
-     * @var array
-     */
-    protected $query = [];
-
-    /**
      * The per-page may be different from the Omeka one when there is only one
      * page of result.
      *
@@ -84,20 +79,6 @@ abstract class AbstractPaginatedReader extends AbstractReader
         $this->initArgs();
         $this->resetIterator();
         $this->preparePageIterator();
-        return $this;
-    }
-
-    /**
-     * @fixme The query should not be set after object type.
-     *
-     * Only basic queries are supported.
-     *
-     * @param string $query
-     * @return \BulkImport\Reader\AbstractPaginatedReader
-     */
-    public function setQuery(array $query)
-    {
-        $this->query = $query;
         return $this;
     }
 

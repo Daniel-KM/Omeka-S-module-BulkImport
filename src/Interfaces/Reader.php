@@ -42,6 +42,11 @@ interface Reader extends \Iterator, \Countable
     public function setObjectType($objectType): \BulkImport\Interfaces\Reader;
 
     /**
+     * Allow to limit results.
+     */
+    public function setFilters(?array $filters): \BulkImport\Interfaces\Reader;
+
+    /**
      * Prepare the order of  the result, for example a column for sql.
      */
     public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Interfaces\Reader;

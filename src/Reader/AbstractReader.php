@@ -34,6 +34,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @var array
      */
+    protected $filters = [];
+
+    /**
+     * @var array
+     */
     protected $order = [
         'by' => null,
         'dir' => 'ASC',
@@ -131,6 +136,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     public function setObjectType($objectType): \BulkImport\Interfaces\Reader
     {
         $this->objectType = $objectType;
+        return $this;
+    }
+
+    public function setFilters(?array $filters): \BulkImport\Interfaces\Reader
+    {
+        $this->filters = $filters ?? [];
         return $this;
     }
 

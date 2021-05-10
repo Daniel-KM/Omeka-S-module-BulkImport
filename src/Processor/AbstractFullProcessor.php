@@ -1164,7 +1164,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
         $reader = $clone ? clone $this->reader : $this->reader;
         return $reader
-            // TODO Fixme: AbstractPaginatedReader requires the order be set before object type.
+            // TODO Fixme: AbstractPaginatedReader requires the query be set before object type (get first current page).
+            ->setFilters($this->mapping[$resourceName]['filters'] ?? [])
+            // TODO Fixme: AbstractPaginatedReader requires the order be set before object type (get first current page).
             ->setOrder(
                 $this->mapping[$resourceName]['sort_by'] ?? $this->mapping[$resourceName]['key_id'],
                 $this->mapping[$resourceName]['sort_dir'] ?? 'ASC'

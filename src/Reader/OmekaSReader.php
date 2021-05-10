@@ -199,7 +199,7 @@ class OmekaSReader extends AbstractPaginatedReader
 
     protected function currentPage(): void
     {
-        $this->currentResponse = $this->fetchData($this->path, $this->subpath, array_merge($this->query, $this->queryParams), $this->currentPage);
+        $this->currentResponse = $this->fetchData($this->path, $this->subpath, array_merge($this->filters, $this->queryParams), $this->currentPage);
         $json = json_decode($this->currentResponse->getBody(), true) ?: [];
         if (!$this->currentResponse->isSuccess()) {
             if ($json && isset($json['errors']['error'])) {
@@ -296,7 +296,7 @@ class OmekaSReader extends AbstractPaginatedReader
                 // first and last page. The pages may be cached, if they are not
                 // too big.
                 // $this->totalCount = iterator_count($this->getInnerIterator());
-                $response = $this->fetchData($this->path, $this->subpath, array_merge($this->query, $this->queryParams), $this->lastPage);
+                $response = $this->fetchData($this->path, $this->subpath, array_merge($this->filters, $this->queryParams), $this->lastPage);
                 $json = json_decode($response->getBody(), true) ?: [];
                 $this->totalCount = ($this->lastPage - 1) * $this->perPage + count($json);
             }
