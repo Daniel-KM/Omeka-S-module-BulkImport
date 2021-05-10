@@ -601,9 +601,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         unset($resource['o:id']);
                     }
                 } else {
+                    $identifier = $this->extractIdentifierOrTitle($resource);
                     $this->logger->err(
-                        'Index #{index}: The action "{action}" requires a unique identifier.', // @translate
-                        ['index' => $this->indexResource, 'action' => $this->action]
+                        'Index #{index}: The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
+                        ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
                     );
                     $resource['has_error'] = true;
                 }
@@ -611,15 +612,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
         // No resource id, so it is an error, so add message if choice is skip.
         elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
+            $identifier = $this->extractIdentifierOrTitle($resource);
             if ($this->getAllowDuplicateIdentifiers()) {
                 $this->logger->err(
-                    'Index #{index}: The action "{action}" requires an identifier.', // @translate
-                    ['index' => $this->indexResource, 'action' => $this->action]
+                    'Index #{index}: The action "{action}" requires an identifier ({identifier}).', // @translate
+                    ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier]
                 );
             } else {
                 $this->logger->err(
-                    'Index #{index}: The action "{action}" requires a unique identifier.', // @translate
-                    ['index' => $this->indexResource, 'action' => $this->action]
+                    'Index #{index}: The action "{action}" requires a unique identifier ({identifier}).', // @translate
+                    ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier]
                 );
             }
             $resource['has_error'] = true;
@@ -890,6 +892,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function skipResources($resourceType, array $data): \BulkImport\Interfaces\Processor
     {
         return $this;
+    }
+
+    protected function extractIdentifierOrTitle(ArrayObject $resource): ?string
+    {
+        if (!empty($resource['dcterms:identifier'][0]['@value'])) {
+            return (string) $resource['dcterms:identifier'][0]['@value'];
+        }
+        if (!empty($resource['o:display_title'])) {
+            return (string) $resource['o:display_title'];
+        }
+        if (!empty($resource['dcterms:title'][0]['@value'])) {
+            return (string) $resource['dcterms:title'][0]['@value'];
+        }
+        return null;
     }
 
     protected function actionRequiresId($action = null): bool
