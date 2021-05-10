@@ -176,6 +176,35 @@ SQL;
 }
 
 if (version_compare($oldVersion, '3.3.22.0', '<')) {
+    /** @var \Omeka\Module\Manager $moduleManager */
+    $moduleManager = $services->get('Omeka\ModuleManager');
+    $module = $moduleManager->getModule('Log');
+    $version = $module->getDb('version');
+    if (version_compare($version, '3.3.12.7', '<')) {
+        $message = new \Omeka\Stdlib\Message(
+            'This module requires the module "%s", version %s or above.', // @translate
+            'Log', '3.3.12.7'
+        );
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+    }
+
+    $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+    if (!$this->checkDestinationDir($basePath . '/xsl')) {
+        $message = new \Omeka\Stdlib\Message(
+            'The directory "%s" is not writeable.', // @translate
+            $basePath . '/xsl'
+        );
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+    }
+
+    if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
+        $message = new \Omeka\Stdlib\Message(
+            'The directory "%s" is not writeable.', // @translate
+            $basePath . '/bulk_import'
+        );
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+    }
+
     $sql = <<<'SQL'
 UPDATE `bulk_importer`
 SET
