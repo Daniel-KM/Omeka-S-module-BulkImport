@@ -449,6 +449,14 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         // Media of an item are public by default.
         foreach ($resource['o:media'] as $key => $media) {
+            if (is_string($media)) {
+                $resource['o:media'][$key] = [
+                    'o:ingester' => 'url',
+                    'o:source' => $media,
+                    'o:is_public' => true,
+                ];
+                $media = $resource['o:media'][$key];
+            }
             if (!array_key_exists('o:is_public', $media) || is_null($media['o:is_public'])) {
                 $resource['o:media'][$key]['o:is_public'] = true;
             }

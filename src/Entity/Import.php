@@ -13,6 +13,7 @@ use Omeka\Entity\Job;
 class Import extends AbstractEntity
 {
     /**
+     * @var int
      * @Id
      * @Column(type="integer")
      * @GeneratedValue

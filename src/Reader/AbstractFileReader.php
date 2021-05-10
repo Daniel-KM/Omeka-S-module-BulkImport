@@ -77,7 +77,7 @@ abstract class AbstractFileReader extends AbstractReader
      */
     protected function currentEntry()
     {
-        return new Entry($this->availableFields, $this->currentData, $this->getParams());
+        return new Entry($this->currentData, $this->availableFields, $this->getParams());
     }
 
     public function key()

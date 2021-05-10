@@ -5,8 +5,10 @@
         }
     },
     "require": {
+        "ext-xml": "*",
         "box/spout": "^3.1",
-        "mikehaertl/php-pdftk": "^0.9"
+        "mikehaertl/php-pdftk": "^0.9",
+        "hakre/xmlreaderiterator": "^0.1.10"
     },
     "require-dev": {
         "biblibre/omeka-s-test-helper": "dev-master"

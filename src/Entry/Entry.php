@@ -17,14 +17,14 @@ class Entry implements EntryInterface
      */
     protected $valid;
 
-    public function __construct(array $fields, $data, array $options = [])
+    public function __construct($data, array $fields, array $options = [])
     {
-        $this->preInit($fields, $data, $options);
-        $this->init($fields, $data, $options);
-        $this->postInit($fields, $data, $options);
+        $this->preInit($data, $fields, $options);
+        $this->init($data, $fields, $options);
+        $this->postInit($data, $fields, $options);
     }
 
-    protected function preInit(array $fields, $data, array $options): void
+    protected function preInit($data, array $fields, array $options): void
     {
         // The set fields should be kept set (for array_key_exists).
         $this->data = [];
@@ -33,7 +33,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function init(array $fields, $data, array $options): void
+    protected function init($data, array $fields, array $options): void
     {
         // Don't keep data that are not attached to a field.
         // Avoid an issue when the number of data is greater than the number of
@@ -47,7 +47,7 @@ class Entry implements EntryInterface
         }
     }
 
-    protected function postInit(array $fields, $data, array $options): void
+    protected function postInit($data, array $fields, array $options): void
     {
         // Filter duplicated and null values.
         foreach ($this->data as &$datas) {

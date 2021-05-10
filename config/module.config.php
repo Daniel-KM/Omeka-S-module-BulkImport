@@ -71,6 +71,8 @@ return [
             Form\Reader\SqlReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\SqlReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\TsvReaderParamsForm::class => Service\Form\FormFactory::class,
+            Form\Reader\XmlReaderConfigForm::class => Service\Form\FormFactory::class,
+            Form\Reader\XmlReaderParamsForm::class => Service\Form\FormFactory::class,
         ],
     ],
     'controllers' => [
@@ -224,6 +226,7 @@ return [
             Reader\CsvReader::class => Reader\CsvReader::class,
             Reader\TsvReader::class => Reader\TsvReader::class,
             Reader\OpenDocumentSpreadsheetReader::class => Reader\OpenDocumentSpreadsheetReader::class,
+            Reader\XmlReader::class => Reader\XmlReader::class,
         ],
         'processors' => [
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,

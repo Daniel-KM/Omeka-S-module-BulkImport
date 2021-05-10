@@ -732,6 +732,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         foreach ($data as $dataResource) {
             $options = [];
             $fileData = [];
+
             switch ($this->action) {
                 case self::ACTION_APPEND:
                 case self::ACTION_REPLACE:
