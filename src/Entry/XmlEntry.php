@@ -133,21 +133,30 @@ class XmlEntry extends Entry
                 }
                 break;
 
-            case 'tile':
-                $resource = [
-                    'resource_type' => 'media',
-                    'o:ingester' => 'tile',
-                    'ingest_url' => $value,
-                    'o:source' => $value,
-                ];
-                break;
-
             case 'html':
                 $resource = [
                     'resource_type' => 'media',
                     'o:ingester' => 'html',
                     'html' => $value,
                     'o:source' => null,
+                ];
+                break;
+
+            case 'iiif':
+                $resource = [
+                    'resource_type' => 'media',
+                    'o:ingester' => 'iiif',
+                    'ingest_url' => $value,
+                    'o:source' => $value,
+                ];
+                return true;
+
+            case 'tile':
+                $resource = [
+                    'resource_type' => 'media',
+                    'o:ingester' => 'tile',
+                    'ingest_url' => $value,
+                    'o:source' => $value,
                 ];
                 break;
         }
