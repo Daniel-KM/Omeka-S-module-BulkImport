@@ -23,6 +23,14 @@ class XmlReaderParamsForm extends XmlReaderConfigForm
                     'required' => true,
                 ],
             ])
+            ->add([
+                'name' => 'mapping_automatic',
+                'type' => Element\Hidden::class,
+                'attributes' => [
+                    'id' => 'mapping_automatic',
+                    'value' => '1',
+                ],
+            ])
         ;
 
         parent::init();
