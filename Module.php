@@ -38,6 +38,14 @@ class Module extends AbstractModule
             throw new ModuleCannotInstallException((string) $message);
         }
 
+        if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
+            $message = new PsrMessage(
+                'The directory "{path}" is not writeable.', // @translate
+                ['path' => $basePath . '/bulk_import']
+            );
+            throw new ModuleCannotInstallException((string) $message);
+        }
+
         // TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
         /*
         // The version of Box/Spout should be >= 3.0, but there is no version

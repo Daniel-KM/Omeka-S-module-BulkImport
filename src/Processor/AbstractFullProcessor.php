@@ -1142,6 +1142,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function completionJobs(): void
     {
+        // Save the map as a php array for future purpose (cf. lien rubrique spip).
+        $config = $this->getServiceLocator()->get('Config');
+        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getJobId() . '.json';
+        file_put_contents($filepath, json_encode($this->map, 448));
+        $this->logger->notice(
+            'Mapping saved in {filepath} inside directory "files/".', // @translate
+            ['filepath' => mb_substr($filepath, strlen($basePath))]
+        );
+
         $this->logger->info(
             'Running jobs for reindexation and finalization. Check next jobs in admin interface.' // @translate
         );
