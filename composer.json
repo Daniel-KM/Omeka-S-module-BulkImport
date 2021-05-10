@@ -1,4 +1,9 @@
 {
+    "config": {
+        "platform": {
+            "php": "7.1"
+        }
+    },
     "require": {
         "box/spout": "^3.1",
         "mikehaertl/php-pdftk": "^0.9"
