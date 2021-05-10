@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources
+    xmlns:o="http://omeka.org/s/vocabs/o#"
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    >
+    <resource>
+        <dcterms:title>Title of the first record</dcterms:title>
+        <dcterms:subject>Subject 1</dcterms:subject>
+        <dcterms:subject>Subject 2</dcterms:subject>
+        <dcterms:description>The description for the first record</dcterms:description>
+        <dcterms:date>2011</dcterms:date>
+        <dcterms:type>dctype:Text</dcterms:type>
+    </resource>
+    <resource>
+        <dcterms:title>Title of the second record</dcterms:title>
+        <dcterms:subject>Subject 2</dcterms:subject>
+        <dcterms:abstract>The abstract (Qualified Dublin Core)</dcterms:abstract>
+        <dcterms:type>dctype:StillImage</dcterms:type>
+        <o:media o:ingester="url">https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2.png</o:media>
+    </resource>
+    <resource>
+        <dcterms:title>Logo de Wikidata</dcterms:title>
+        <dcterms:subject>Subject 2</dcterms:subject>
+        <dcterms:subject>Subject 3</dcterms:subject>
+        <dcterms:description>A logo of Wikidata.</dcterms:description>
+        <dcterms:date>2013</dcterms:date>
+        <dcterms:type>dctype:StillImage</dcterms:type>
+        <!-- "tag" is currently unmanaged. -->
+        <tag>Europe</tag>
+        <tag>Switzerland</tag>
+        <o:media>
+            <o:media o:ingester="url">https://www.wikidata.org/static/images/project-logos/wikidatawiki.png</o:media>
+            <dcterms:title>Logo of Wikidata</dcterms:title>
+            <dcterms:format>image/png</dcterms:format>
+        </o:media>
+        <o:media>
+            <o:media o:ingester="html"><![CDATA[<p>This is <strong><em>html</em> content</strong>.</p>]]></o:media>
+            <dcterms:title>Test of html content</dcterms:title>
+            <dcterms:description o:type="html"><p>This description is <strong><em>html</em></strong>.</p></dcterms:description>
+            <dcterms:description o:type="html"><![CDATA[<p>This description is <strong><em>html</em>, with cdata</strong>.</p>]]></dcterms:description>
+            <dcterms:format>text/html</dcterms:format>
+        </o:media>
+        <o:media>
+            <o:media o:ingester="html"><p>This is a second <strong><em>html</em> content</strong>.</p></o:media>
+            <dcterms:title>Test of second html content</dcterms:title>
+            <dcterms:format>text/html</dcterms:format>
+        </o:media>
+    </resource>
+</resources>

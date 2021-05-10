@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources
+    xmlns:o="http://omeka.org/s/vocabs/o#"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    xmlns:bibo="http://purl.org/ontology/bibo/"
+    >
+    <resource>
+        <dcterms:title>Omeka</dcterms:title>
+        <dcterms:description>This web site presents Omeka.</dcterms:description>
+        <dcterms:date o:type="literal">2006</dcterms:date>
+        <dcterms:subject>Digital library</dcterms:subject>
+        <dcterms:subject o:type="literal">Cultural heritage collections</dcterms:subject>
+        <dcterms:subject xml:lang="fra">Bibliothèque numérique</dcterms:subject>
+        <dcterms:subject o:type="literal" xml:lang="fra">Collections du patrimoine culturel</dcterms:subject>
+        <bibo:uri xsi:type="dcterms:URI">https://omeka.org</bibo:uri>
+        <dcterms:relation xsi:type="dcterms:URI" o:label="Digital Scholar">https://digitalscholar.org/</dcterms:relation>
+        <dcterms:type>bibo:Website</dcterms:type>
+        <dcterms:creator o:is_public="0">[to be filled private]</dcterms:creator>
+        <dcterms:creator o:is_public="1">[to be filled public]</dcterms:creator>
+        <dcterms:creator o:is_public="false">[to be filled false]</dcterms:creator>
+        <dcterms:creator o:is_public="true">[to be filled true]</dcterms:creator>
+    </resource>
+</resources>
