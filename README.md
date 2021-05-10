@@ -17,10 +17,11 @@ Because multiple importers can be prepared with the same readers and processors,
 it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
-Default readers are Omeka S reader (via the api json endpoint), [Spip] reader (via
-a dump of the database), and spreadsheet reader (via ods, tsv or csv). The
-spreadsheet uses a processor that creates resources based on a user-defined
-based on a specific header format, unlike the module [CSV Import].
+Default readers are Omeka S reader (via the api json endpoint), xml (via
+transformation with xsl), [Spip] reader (via a dump of the database), and
+spreadsheet reader (via ods, tsv or csv). The spreadsheet uses a processor that
+creates resources based on a user-defined based on a specific header format,
+unlike the module [CSV Import].
 
 
 Installation
@@ -45,7 +46,7 @@ uncompress it in the `modules` directory.
 If the module was installed from the source, rename the name of the folder of
 the module to `BulkImport`, go to the root of the module, and run:
 
-```
+```sh
 composer install --no-dev
 ```
 
@@ -58,6 +59,9 @@ if you import specific files, in particular XML metadata files and json ones,
 they should be allowed in the page `/admin/setting`.
 
 * XSLT processor
+
+The xslt processor is only needed to import xml files that are not formatted as
+flat ressources.
 
 Xslt has two main versions:  xslt 1.0 and xslt 2.0. The first is often installed
 with php via the extension `php-xsl` or the package `php5-xsl`, depending on
@@ -90,8 +94,8 @@ saxon -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
 ```
 
 Note: Only saxon is currently supported as xslt 2 processor. Because Saxon is a
-Java tool, a JRE should be installed, for example `openjdk-8-jre-headless` or
-upper.
+Java tool, a JRE should be installed, for example `openjdk-11-jre-headless` or
+upper (or use `default-jre`).
 
 Note: Warnings are processed as errors. That’s why the parameter "-warnings:silent"
 is important to be able to process an import with a bad xsl sheet. It can be
@@ -169,11 +173,13 @@ TODO
 - [ ] Distinction between skipped and blank (for spreadsheet).
 - [ ] Update for module Mapping.
 - [ ] Import of users, in particular for Omeka S import.
-- [ ] Import of uri with label in spreadsheet.
+- [x] Import of uri with label in spreadsheet.
+- [ ] Import of uri with label in value suggest.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
 - [ ] Manage import of Custom vocab with items.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
+
 
 Warning
 -------
@@ -243,7 +249,7 @@ by [BibLibre].
 [installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
-[this version]: https://github.com/Daniel-KM/Omeka-S-module-CSVImport
+[this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
 [Spip]: https://spip.net
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
 [Article]: https://gitlab.com/Daniel-KM/Omeka-S-module-Article
