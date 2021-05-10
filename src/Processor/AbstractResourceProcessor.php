@@ -575,6 +575,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ? false
                     : (bool) $value;
                 return true;
+            case 'o:created':
+            case 'o:modified':
+                $value = array_pop($values);
+                $resource[$target['target']] = ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
+                return true;
+            default:
+                return false;
         }
         return false;
     }
