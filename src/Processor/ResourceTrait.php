@@ -145,15 +145,33 @@ trait ResourceTrait
         // order to create a generator of enough consecutive rows.
         // Don't use "primary key", but "unique key" in order to allow the key
         // "0" as key, used in some cases (the scheme of the thesaurus).
+        // The temporary table is not used any more in order to be able to check
+        // quickly if source ids are all available for main items.
         $sql = <<<SQL
 DROP TABLE IF EXISTS `temporary_source_resource`;
-CREATE TEMPORARY TABLE `temporary_source_resource` (`id` INT unsigned NOT NULL, UNIQUE (`id`));
+CREATE TABLE `temporary_source_resource` (
+    `id` INT unsigned NOT NULL,
+    UNIQUE (`id`)
+);
 
 SQL;
         foreach (array_chunk(array_keys($this->map[$sourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
             $sql .= 'INSERT INTO `temporary_source_resource` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
         }
-        $sql .= <<<SQL
+
+        // Try to keep original source ids for items.
+        if ($this->keepSourceIds($sourceType)) {
+            $sql .= <<<SQL
+INSERT INTO `resource`
+    (`id`, `owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
+SELECT
+    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceTypeClass, NULL, id
+FROM `temporary_source_resource`;
+
+DROP TABLE IF EXISTS `temporary_source_resource`;
+SQL;
+        } else {
+            $sql .= <<<SQL
 INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
@@ -162,6 +180,7 @@ FROM `temporary_source_resource`;
 
 DROP TABLE IF EXISTS `temporary_source_resource`;
 SQL;
+        }
         $this->connection->query($sql);
     }
 
@@ -246,6 +265,18 @@ SQL;
                 $this->connection->executeUpdate($sql, $bind);
             }
         }
+    }
+
+    protected function keepSourceIds(string $sourceType): bool
+    {
+        if (!in_array($sourceType, ['items', 'media', 'item_sets', 'annotations'])) {
+            return false;
+        }
+
+        $resourceIds = $this->connection
+            ->query('SELECT `id` FROM `resource` ORDER BY `id`;')
+            ->fetchAll(\PDO::FETCH_COLUMN);
+        return empty(array_intersect_key($this->map[$sourceType], array_flip($resourceIds)));
     }
 
     protected function fillResources(iterable $sources, string $sourceType): void
