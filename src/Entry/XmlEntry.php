@@ -6,6 +6,8 @@ use SimpleXMLElement;
 
 class XmlEntry extends Entry
 {
+    private $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed'];
+
     protected function init($data, array $fields, array $options): void
     {
         /** @var \XMLReaderNode $data */
@@ -16,7 +18,8 @@ class XmlEntry extends Entry
         $simpleData = new \SimpleXMLElement($simpleData->asXML(), LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS
                 | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
 
-        $array = [];
+        $array = $this->attributes($simpleData);
+
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
                 ? $simpleData->children($namespace)
@@ -24,6 +27,9 @@ class XmlEntry extends Entry
             foreach ($nsElements as $element) {
                 $term = ($prefix ? $prefix . ':' : '') . $element->getName();
                 switch ($term) {
+                    case 'o:item_set':
+                        $value = $this->initItemSet($element);
+                        break;
                     case 'o:media':
                         $value = $this->initMedia($element);
                         break;
@@ -41,17 +47,48 @@ class XmlEntry extends Entry
         $this->data = $array;
     }
 
+    protected function initItemSet(SimpleXMLElement $element): ?array
+    {
+        $resource = $this->attributes($element);
+
+        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
+        $resource['o:is_open'] = !array_key_exists('o:is_open', $resource) || !in_array($resource['o:is_open'], $this->false, true);
+
+        $mainElement = $element;
+        unset($element);
+        /** @var \XMLReaderNode $data */
+        $namespaces = [null] + $mainElement->getNamespaces(true);
+
+        foreach ($namespaces as $prefix => $namespace) {
+            $nsElements = $namespace
+                ? $mainElement->children($namespace)
+                : $mainElement->children();
+            foreach ($nsElements as $element) {
+                $term = ($prefix ? $prefix . ':' : '') . $element->getName();
+                $value = $this->initPropertyValue($element, $prefix);
+                if ($value) {
+                    $resource[$term][] = $value;
+                }
+            }
+        }
+
+        return $resource;
+    }
+
     protected function initMedia(SimpleXMLElement $element): ?array
     {
         // A media can be a single media or a full resource.
         // In all cases, it is returned as a full resource.
         if (!$element->count()) {
-            return $this->initMediaBase($element);
+            $resource = $this->initMediaBase($element);
+            // Only visibility is checked to get a public value by default.
+            $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
+            return $resource;
         }
 
         // TODO Factorize with init(), but not recursive.
 
-        $resource = [];
+        $resource = $this->attributes($element);
 
         $mainElement = $element;
         unset($element);
@@ -79,7 +116,7 @@ class XmlEntry extends Entry
                             $value = null;
                         }
                         break;
-                        // Properties.
+                    // Properties.
                     default:
                         $value = $this->initPropertyValue($element, $prefix);
                         break;
@@ -90,6 +127,8 @@ class XmlEntry extends Entry
             }
         }
 
+        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
+
         return empty($resource['o:ingester'])
             ? null
             : $resource;
@@ -97,17 +136,20 @@ class XmlEntry extends Entry
 
     protected function initMediaBase(SimpleXMLElement $element): ?array
     {
+        $resource = $this->attributes($element);
+
         $value = $this->innerXml($element);
         if (!strlen($value)) {
-            return null;
+            return empty($resource['o:ingester'])
+                ? null
+                : $resource;
         }
 
-        $attributes = $this->attributes($element);
-        $ingester = $attributes['o:ingester'] ?? 'url';
+        $ingester = $resource['o:ingester'] ?? 'url';
         switch ($ingester) {
             default:
             case 'url':
-                $resource = [
+                $resource += [
                     'resource_type' => 'media',
                     'o:ingester' => 'url',
                     'ingest_url' => $value,
@@ -117,14 +159,14 @@ class XmlEntry extends Entry
 
             case 'file':
                 if ($this->isUrl($value)) {
-                    $resource = [
+                    $resource += [
                         'resource_type' => 'media',
                         'o:ingester' => 'url',
                         'ingest_url' => $value,
                         'o:source' => $value,
                     ];
                 } else {
-                    $resource = [
+                    $resource += [
                         'resource_type' => 'media',
                         'o:ingester' => 'sideload',
                         'ingest_filename' => $value,
@@ -134,7 +176,7 @@ class XmlEntry extends Entry
                 break;
 
             case 'html':
-                $resource = [
+                $resource += [
                     'resource_type' => 'media',
                     'o:ingester' => 'html',
                     'html' => $value,
@@ -143,7 +185,7 @@ class XmlEntry extends Entry
                 break;
 
             case 'iiif':
-                $resource = [
+                $resource += [
                     'resource_type' => 'media',
                     'o:ingester' => 'iiif',
                     'ingest_url' => $value,
@@ -152,7 +194,7 @@ class XmlEntry extends Entry
                 return true;
 
             case 'tile':
-                $resource = [
+                $resource += [
                     'resource_type' => 'media',
                     'o:ingester' => 'tile',
                     'ingest_url' => $value,
@@ -197,11 +239,10 @@ class XmlEntry extends Entry
                 // Module Custom Vocab.
 
             case substr($type, 0, 12) === 'customvocab:':
-                // TODO Manage items by type.
+                // TODO Manage items by type "customvocab.
                 $value = [
                     'type' => $type,
                     '@value' => $string,
-                    '@language' => null,
                 ];
                 break;
 
@@ -210,7 +251,8 @@ class XmlEntry extends Entry
             case substr($type, 0, 12) === 'valuesuggest':
                 $value = [
                     'type' => $type,
-                    '@value' => $string,
+                    '@id' => $string,
+                    'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label']) ? $attributes['o:label'] : null,
                 ];
                 break;
 
@@ -261,7 +303,7 @@ class XmlEntry extends Entry
             case 'xsd:integer':
             case 'http://www.w3.org/2001/XMLSchema#integer':
                 $value = [
-                    '@type' => 'numeric:integer',
+                    'type' => 'numeric:integer',
                     '@value' => (int) $string,
                     '@language' => null,
                 ];
@@ -269,7 +311,7 @@ class XmlEntry extends Entry
 
             case 'numeric:timestamp':
                 $value = [
-                    '@type' => 'numeric:timestamp',
+                    'type' => 'numeric:timestamp',
                     '@value' => $string,
                     '@language' => null,
                 ];
@@ -277,7 +319,7 @@ class XmlEntry extends Entry
 
             case 'numeric:interval':
                 $value = [
-                    '@type' => 'numeric:interval',
+                    'type' => 'numeric:interval',
                     '@value' => $string,
                     '@language' => null,
                 ];
@@ -286,7 +328,7 @@ class XmlEntry extends Entry
             case 'numeric:duration':
             case 'http://www.w3.org/2001/XMLSchema#duration':
                 $value = [
-                    '@type' => 'numeric:duration',
+                    'type' => 'numeric:duration',
                     '@value' => $string,
                     '@language' => null,
                 ];
@@ -342,8 +384,8 @@ class XmlEntry extends Entry
                 break;
         }
 
-        $value['is_public'] = !array_key_exists('o:is_public', $attributes)
-            || (!empty($attributes['o:is_public']) && $attributes['o:is_public'] !== 'false');
+        $value['is_public'] = !array_key_exists('o:is_public', $attributes) || !in_array($attributes['o:is_public'], $this->false, true);
+
         if (!array_key_exists('@language', $value)) {
             $value['@language'] = empty($attributes['xml:lang']) ? null : $attributes['xml:lang'];
         }
@@ -395,16 +437,17 @@ class XmlEntry extends Entry
     protected function attributes(SimpleXMLElement $element): array
     {
         $namespaces = [
-            'o' => 'http://omeka.org/s/vocabs/o#',
-            'xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
-            'xml' => 'http://www.w3.org/XML/1998/namespace',
+            '' => null,
+            'o:' => 'http://omeka.org/s/vocabs/o#',
+            'xsi:' => 'http://www.w3.org/2001/XMLSchema-instance',
+            'xml:' => 'http://www.w3.org/XML/1998/namespace',
         ];
 
         $attributes = [];
         foreach ($namespaces as $prefix => $namespace) {
             $attrs = (array) $element->attributes($namespace);
             foreach ($attrs['@attributes'] ?? [] as $name => $value) {
-                $attributes[$prefix . ':' . $name] = $value;
+                $attributes[$prefix . $name] = $value;
             }
         }
         return $attributes;

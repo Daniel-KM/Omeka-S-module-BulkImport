@@ -5,7 +5,7 @@
     xmlns:dcterms="http://purl.org/dc/terms/"
     xmlns:bibo="http://purl.org/ontology/bibo/"
     >
-    <resource>
+    <resource o:resource_template="Base Resource" o:resource_class="bibo:Website">
         <dcterms:title>Omeka</dcterms:title>
         <dcterms:description>This web site presents Omeka.</dcterms:description>
         <dcterms:date o:type="literal">2006</dcterms:date>

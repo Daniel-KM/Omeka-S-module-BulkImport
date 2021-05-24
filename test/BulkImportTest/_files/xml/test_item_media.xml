@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources
+    xmlns:o="http://omeka.org/s/vocabs/o#"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    >
+    <resource o:resource_template="Base Resource">
+        <dcterms:title>Test image xml</dcterms:title>
+        <o:media o:resource_class="dctype:StillImage" o:is_public="false">
+            <o:media o:ingester="url">https://www.wikidata.org/static/images/project-logos/wikidatawiki.png</o:media>
+            <dcterms:title>Logo of Wikidata</dcterms:title>
+        </o:media>
+    </resource>
+</resources>

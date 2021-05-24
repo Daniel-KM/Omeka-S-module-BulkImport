@@ -288,7 +288,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         switch ($target['target']) {
             case 'o:is_open':
                 $value = array_pop($values);
-                $resource['o:is_open'] = in_array(strtolower((string) $value), ['false', 'no', 'off', 'closed'])
+                $resource['o:is_open'] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'closed'], true)
                     ? false
                     : (bool) $value;
                 return true;

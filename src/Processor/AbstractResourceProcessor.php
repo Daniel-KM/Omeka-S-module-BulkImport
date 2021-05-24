@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -301,6 +302,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             : $this->processEntryDirectly($entry);
     }
 
+    /**
+     * Convert a prepared entry into a resource, setting ids for each key.
+     *
+     * So fill owner id, resource template id, resource class id, property ids.
+     * Check boolean values too for is public and is open.
+     */
     protected function processEntryDirectly(Entry $entry): ArrayObject
     {
         /** @var \ArrayObject $resource */
@@ -314,36 +321,46 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // List of keys that can have only one value.
         // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
-        $singleKeys = [
+        $booleanKeys = [
+            'o:is_public' => true,
+            'o:is_open' => true,
+        ];
+
+        $singleDataKeys = [
             // Generic.
             'o:id' => null,
-            'o:resource_template' => null,
-            'o:resource_class' => null,
-            'o:owner' => null,
-            'o:is_public' => null,
             // Resource.
             'resource_type' => null,
-            // Item.
-            // 'o:item_set' => null,
-            // 'o:media' => null,
-            // Item set.
-            'o:is_open' => null,
             // Media.
-            'o:item' => null,
             'o:ingester' => null,
             'o:source' => null,
             'ingest_filename' => null,
             'html' => null,
         ];
 
+        // Keys that can have only one value that is an entity with an id.
+        $singleEntityKeys = [
+            // Generic.
+            'o:resource_template' => null,
+            'o:resource_class' => null,
+            'o:owner' => null,
+            // Media.
+            'o:item' => null,
+        ];
+
         foreach ($entry as $key => $values) {
             if (array_key_exists($key, $skipKeys)) {
-                continue;
-            } elseif (array_key_exists($key, $singleKeys)) {
+                // Nothing to do.
+            } elseif (array_key_exists($key, $booleanKeys)) {
+                $this->fillBoolean($resource, $key, $values);
+            } elseif (array_key_exists($key, $singleDataKeys)) {
                 $resource[$key] = $values;
-            } elseif (property_exists($resource, $key) && is_array($resource[$key])) {
+            } elseif (array_key_exists($key, $singleEntityKeys)) {
+                $this->fillSingleEntity($resource, $key, $values);
+            } elseif ($resource->offsetExists($key) && is_array($resource[$key])) {
                 $resource[$key] = array_merge($resource[$key], $values);
             } else {
+                // Keep multiple entity keys (below) and extra data for modules.
                 $resource[$key] = $values;
             }
         }
@@ -356,20 +373,34 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        $fillProperties = function (array $resourceArray) use ($properties): array {
+        $fillPropertiesAndResourceData = function (array $resourceArray) use ($properties, $booleanKeys, $singleEntityKeys): array {
+            // Fill the properties.
             foreach (array_intersect_key($resourceArray, $properties) as $term => $values) {
                 foreach (array_keys($values) as $key) {
                     $resourceArray[$term][$key]['property_id'] = $properties[$term];
                 }
             }
-            return $resourceArray;
+            // Fill other metadata (for media and item set).
+            $resourceObject = new ArrayObject($resourceArray);
+            foreach (array_keys($booleanKeys) as $key) {
+                if (array_key_exists($key, $resourceArray)) {
+                    $this->fillBoolean($resourceObject, $key, $resourceObject[$key]);
+                }
+            }
+            foreach (array_keys($singleEntityKeys) as $key) {
+                if (array_key_exists($key, $resourceArray)) {
+                    $this->fillSingleEntity($resourceObject, $key, $resourceObject[$key]);
+                }
+            }
+            return $resourceObject->getArrayCopy();
         };
 
-        // Do the same for sub-resources.
-        foreach (['o:media', 'o:item_set'] as $key) {
+        // Do the same for sub-resources (multiple entity keys: ''o:media" and
+        // "o:item_set" for items).
+        foreach (['o:item_set', 'o:media'] as $key) {
             if (!empty($resource[$key])) {
                 foreach ($resource[$key] as &$resourceData) {
-                    $resourceData = $fillProperties($resourceData);
+                    $resourceData = $fillPropertiesAndResourceData($resourceData);
                 }
             }
         }
@@ -481,7 +512,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resourceValue['@value'] = $value;
                     break;
                 case 'uri':
-                case strpos($resourceValue['type'], 'valuesuggest:') === 0 || strpos($resourceValue['type'], 'valuesuggestall:') === 0:
+                case substr($resourceValue['type'], 0, 13) === 'valuesuggest:'
+                    || substr($resourceValue['type'], 0, 16) === 'valuesuggestall:':
                     if (!empty($target['extra'])) {
                         switch ($target['extra']) {
                             case 'uri-label':
@@ -547,39 +579,107 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     );
                 }
                 return true;
+
             case 'o:resource_template':
                 $value = array_pop($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $label = empty($value['o:label']) ? null : $value['o:label'];
+                    $value = $id ?? $label ?? reset($value);
+                }
                 $id = $this->getResourceTemplateId($value);
                 if ($id) {
-                    $resource['o:resource_template'] = ['o:id' => $id];
+                    $resource['o:resource_template'] = empty($label)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:label' => $label];
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: The resource template "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
                 }
                 return true;
+
             case 'o:resource_class':
                 $value = array_pop($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $term = empty($value['o:term']) ? null : $value['o:term'];
+                    $value = $id ?? $term ?? reset($value);
+                }
                 $id = $this->getResourceClassId($value);
                 if ($id) {
-                    $resource['o:resource_class'] = ['o:id' => $id];
+                    $resource['o:resource_class'] = empty($term)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:term' => $term];
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: The resource class "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
                 }
                 return true;
+
             case 'o:owner':
-            case 'o:email':
                 $value = array_pop($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $email = empty($value['o:email']) ? null : $value['o:email'];
+                    $value = $id ?? $email ?? reset($value);
+                }
                 $id = $this->getUserId($value);
                 if ($id) {
-                    $resource['o:owner'] = ['o:id' => $id];
+                    $resource['o:owner'] = empty($email)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:email' => $email];
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: The user "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
                 }
                 return true;
+
+            case 'o:email':
+                $value = array_pop($values);
+                if (!$value) {
+                    return true;
+                }
+                $id = $this->getUserId($value);
+                if ($id) {
+                    $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: The user "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
+                }
+                return true;
+
             case 'o:is_public':
                 $value = (string) array_pop($values);
-                $resource['o:is_public'] = in_array(strtolower((string) $value), ['false', 'no', 'off', 'private'])
+                $resource['o:is_public'] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private'], true)
                     ? false
                     : (bool) $value;
                 return true;
+
             case 'o:created':
             case 'o:modified':
                 $value = array_pop($values);
-                $resource[$target['target']] = ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
+                $resource[$target['target']] = is_array($value)
+                    ? $value
+                    : ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
                 return true;
+
             default:
                 return false;
         }
@@ -589,6 +689,105 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
         return false;
+    }
+
+    protected function fillBoolean(ArrayObject $resource, $key, $value): void
+    {
+        $resource[$key] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private', 'closed'], true)
+            ? false
+            : (bool) $value;
+    }
+
+    protected function fillSingleEntity(ArrayObject $resource, $key, $value): void
+    {
+        if (empty($value)) {
+            $resource[$key] = null;
+            return;
+        }
+
+        // Get the entity id.
+        switch ($key) {
+            case 'o:resource_template':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $label = empty($value['o:label']) ? null : $value['o:label'];
+                    $value = $id ?? $label ?? reset($value);
+                }
+                $id = $this->getResourceTemplateId($value);
+                if ($id) {
+                    $resource['o:resource_template'] = empty($label)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:label' => $label];
+                } else {
+                    $resource['o:resource_template'] = null;
+                    $this->logger->warn(
+                        'Index #{index}: The resource template "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
+                }
+                return;
+
+            case 'o:resource_class':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $term = empty($value['o:term']) ? null : $value['o:term'];
+                    $value = $id ?? $term ?? reset($value);
+                }
+                $id = $this->getResourceClassId($value);
+                if ($id) {
+                    $resource['o:resource_class'] = empty($term)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:term' => $term];
+                } else {
+                    $resource['o:resource_class'] = null;
+                    $this->logger->warn(
+                        'Index #{index}: The resource class "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
+                }
+                return;
+
+            case 'o:owner':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $email = empty($value['o:email']) ? null : $value['o:email'];
+                    $value = $id ?? $email ?? reset($value);
+                }
+                $id = $this->getUserId($value);
+                if ($id) {
+                    $resource['o:owner'] = empty($email)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:email' => $email];
+                } else {
+                    $resource['o:owner'] = null;
+                    $this->logger->warn(
+                        'Index #{index}: The user "{source}" does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
+                }
+                return;
+
+            case 'o:item':
+                // For media.
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $value = $id ?? reset($value);
+                }
+                $id = $this->findResourceFromIdentifier($value);
+                if ($id) {
+                    $resource['o:item'] = ['o:id' => $id];
+                } else {
+                    $resource['o:item'] = null;
+                    $this->logger->warn(
+                        'Index #{index}: The item "{source}" for media does not exist.', // @translate
+                        ['index' => $this->indexResource, 'source' => $value]
+                    );
+                }
+                return;
+
+            default:
+                return;
+        }
     }
 
     /**

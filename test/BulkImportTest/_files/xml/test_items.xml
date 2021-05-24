@@ -11,14 +11,14 @@
         <dcterms:date>2011</dcterms:date>
         <dcterms:type>dctype:Text</dcterms:type>
     </resource>
-    <resource>
+    <resource o:is_public="false">
         <dcterms:title>Title of the second record</dcterms:title>
         <dcterms:subject>Subject 2</dcterms:subject>
         <dcterms:abstract>The abstract (Qualified Dublin Core)</dcterms:abstract>
         <dcterms:type>dctype:StillImage</dcterms:type>
-        <o:media o:ingester="url">https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2.png</o:media>
+        <o:media o:ingester="url" o:resource_class="dctype:StillImage">https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2.png</o:media>
     </resource>
-    <resource>
+    <resource o:resource_template="Base Resource" o:resource_class="dctype:StillImage">
         <dcterms:title>Logo de Wikidata</dcterms:title>
         <dcterms:subject>Subject 2</dcterms:subject>
         <dcterms:subject>Subject 3</dcterms:subject>
@@ -28,12 +28,12 @@
         <!-- "tag" is currently unmanaged. -->
         <tag>Europe</tag>
         <tag>Switzerland</tag>
-        <o:media>
+        <o:media o:resource_class="dctype:StillImage">
             <o:media o:ingester="url">https://www.wikidata.org/static/images/project-logos/wikidatawiki.png</o:media>
             <dcterms:title>Logo of Wikidata</dcterms:title>
             <dcterms:format>image/png</dcterms:format>
         </o:media>
-        <o:media>
+        <o:media o:resource_template="Base Resource">
             <o:media o:ingester="html"><![CDATA[<p>This is <strong><em>html</em> content</strong>.</p>]]></o:media>
             <dcterms:title>Test of html content</dcterms:title>
             <dcterms:description o:type="html"><p>This description is <strong><em>html</em></strong>.</p></dcterms:description>

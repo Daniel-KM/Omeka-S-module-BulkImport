@@ -180,7 +180,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      */
     protected function prepareAvailableFieldsOld(): \BulkImport\Interfaces\Reader
     {
-        /** @var \Box\Spout\Common\Entity\Row $row */
+        /** @var \Box\Spout\Common\Entity\Row $fields */
         foreach ($this->iterator as $fields) {
             break;
         }
