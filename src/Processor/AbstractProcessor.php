@@ -413,6 +413,8 @@ abstract class AbstractProcessor implements Processor
      *
      * The resource type is required, so this method should be used in the end
      * of the process.
+     *
+     * @return bool True if id is set.
      */
     protected function fillId(ArrayObject $resource): bool
     {
@@ -438,11 +440,19 @@ abstract class AbstractProcessor implements Processor
             unset($identifierNames[$key]);
         }
         if (empty($identifierNames)) {
-            $this->logger->err(
-                'Index #{index}: The resource id cannot be filled: no metadata defined as identifier.', // @translate
-                ['index' => $this->indexResource]
-            );
-            $resource['has_error'] = true;
+            if ($this->getAllowDuplicateIdentifiers()) {
+                $this->logger->notice(
+                    'Index #{index}: The resource has no identifier.', // @translate
+                    ['index' => $this->indexResource]
+                );
+            } else {
+                $this->logger->err(
+                    'Index #{index}: The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.', // @translate
+                    ['index' => $this->indexResource]
+                );
+                $resource['has_error'] = true;
+            }
+            return false;
         }
 
         // Don't try to fill id of a resource that has an error.
