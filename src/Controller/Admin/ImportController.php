@@ -64,22 +64,22 @@ class ImportController extends AbstractActionController
         } elseif ($import->isStoppable()) {
             $job = $import->job();
             $this->jobDispatcher()->stop($job->id());
-            $this->messenger()->addSuccess(
+            $this->messenger()->addSuccess(new PsrMessage(
                 'Attempting to stop the import process #{import}.', // @translate
                 ['import' => $id]
-            );
+            ));
         } elseif ($import->isUndoStoppable()) {
             $job = $import->undoJob();
             $this->jobDispatcher()->stop($job->id());
-            $this->messenger()->addSuccess(
+            $this->messenger()->addSuccess(new PsrMessage(
                 'Attempting to stop the undo process #{import}.', // @translate
                 ['import' => $id]
-            );
+            ));
         } else {
-            $this->messenger()->addWarning(
+            $this->messenger()->addWarning(new PsrMessage(
                 'The process #{import} cannot be stopped.', // @translate
                 ['import' => $id]
-            );
+            ));
         }
 
         return $this->redirect()->toRoute(null, ['action' => 'logs'], true);
