@@ -217,6 +217,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * @var array
      */
     protected $optionalModules = [
+        'BulkCheck',
+        'BulkEdit',
         'CustomVocab',
         'DataTypeGeometry',
         'DataTypeRdf',
