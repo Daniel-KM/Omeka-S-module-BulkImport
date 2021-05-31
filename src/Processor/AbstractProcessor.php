@@ -349,11 +349,8 @@ abstract class AbstractProcessor implements Processor
 
     /**
      * Set the default identifier names.
-     *
-     * @param array|string $identifierNames
-     * @return self
      */
-    public function setIdentifierNames($identifierNames): \BulkImport\Interfaces\Processor
+    public function setIdentifierNames(array $identifierNames): \BulkImport\Interfaces\Processor
     {
         $this->bulk->setIdentifierNames($identifierNames);
         return $this;
@@ -361,10 +358,8 @@ abstract class AbstractProcessor implements Processor
 
     /**
      * Get the default identifier names.
-     *
-     * @return array|string|int
      */
-    public function getIdentifierNames()
+    public function getIdentifierNames(): array
     {
         return $this->bulk->getIdentifierNames();
     }

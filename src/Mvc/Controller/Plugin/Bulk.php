@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2020 Daniel Berthereau
+ * Copyright 2017-2021 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -66,7 +66,7 @@ class Bulk extends AbstractPlugin
     protected $allowDuplicateIdentifiers = false;
 
     /**
-     * @var array|string
+     * @var array
      */
     protected $identifierNames = [
         'o:id',
@@ -111,32 +111,24 @@ class Bulk extends AbstractPlugin
 
     /**
      * Manage various methods to manage bulk import.
-     *
-     * @return self
      */
-    public function __invoke()
+    public function __invoke(): self
     {
         return $this;
     }
 
     /**
      * Check if a string or a id is a managed term.
-     *
-     * @param string|int $termOrId
-     * @return bool
      */
-    public function isPropertyTerm($termOrId)
+    public function isPropertyTerm($termOrId): bool
     {
         return $this->getPropertyId($termOrId) !== null;
     }
 
     /**
      * Get a property id by term or id.
-     *
-     * @param string|int $termOrId
-     * @return int|null
      */
-    public function getPropertyId($termOrId)
+    public function getPropertyId($termOrId): ?int
     {
         $ids = $this->getPropertyIds();
         return is_numeric($termOrId)
@@ -146,11 +138,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get a property term by term or id.
-     *
-     * @param string|int $termOrId
-     * @return string|null
      */
-    public function getPropertyTerm($termOrId)
+    public function getPropertyTerm($termOrId): ?string
     {
         $ids = $this->getPropertyIds();
         return is_numeric($termOrId)
@@ -163,7 +152,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by term.
      */
-    public function getPropertyIds()
+    public function getPropertyIds(): array
     {
         if (isset($this->properties)) {
             return $this->properties;
@@ -198,29 +187,23 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of terms by id.
      */
-    public function getPropertyTerms()
+    public function getPropertyTerms(): array
     {
         return array_flip($this->getPropertyIds());
     }
 
     /**
      * Check if a string or a id is a resource class.
-     *
-     * @param string|int $termOrId
-     * @return bool
      */
-    public function isResourceClass($termOrId)
+    public function isResourceClass($termOrId): bool
     {
         return $this->getResourceClassId($termOrId) !== null;
     }
 
     /**
      * Get a resource class by term or by id.
-     *
-     * @param string|int $termOrId
-     * @return int|null
      */
-    public function getResourceClassId($termOrId)
+    public function getResourceClassId($termOrId): ?int
     {
         $ids = $this->getResourceClassIds();
         return is_numeric($termOrId)
@@ -230,11 +213,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get a resource class term by term or id.
-     *
-     * @param string|int $termOrId
-     * @return string|null
      */
-    public function getResourceClassTerm($termOrId)
+    public function getResourceClassTerm($termOrId): ?string
     {
         $ids = $this->getResourceClassIds();
         return is_numeric($termOrId)
@@ -247,7 +227,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by term.
      */
-    public function getResourceClassIds()
+    public function getResourceClassIds(): array
     {
         if (isset($this->resourceClasses)) {
             return $this->resourceClasses;
@@ -282,29 +262,23 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of terms by id.
      */
-    public function getResourceClassTerms()
+    public function getResourceClassTerms(): array
     {
         return array_flip($this->getResourceClassIds());
     }
 
     /**
      * Check if a string or a id is a resource template.
-     *
-     * @param string|int $labelOrId
-     * @return bool
      */
-    public function isResourceTemplate($labelOrId)
+    public function isResourceTemplate($labelOrId): bool
     {
         return $this->getResourceTemplateId($labelOrId) !== null;
     }
 
     /**
      * Get a resource template by label or by id.
-     *
-     * @param string|int $labelOrId
-     * @return int|null
      */
-    public function getResourceTemplateId($labelOrId)
+    public function getResourceTemplateId($labelOrId): ?int
     {
         $ids = $this->getResourceTemplateIds();
         return is_numeric($labelOrId)
@@ -314,11 +288,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get a resource template label by label or id.
-     *
-     * @param string|int $labelOrId
-     * @return string|null
      */
-    public function getResourceTemplateLabel($labelOrId)
+    public function getResourceTemplateLabel($labelOrId): string
     {
         $ids = $this->getResourceTemplateIds();
         return is_numeric($labelOrId)
@@ -331,7 +302,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by label.
      */
-    public function getResourceTemplateIds()
+    public function getResourceTemplateIds(): array
     {
         if (isset($this->resourceTemplates)) {
             return $this->resourceTemplates;
@@ -359,7 +330,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of labels by id.
      */
-    public function getResourceTemplateLabels()
+    public function getResourceTemplateLabels(): array
     {
         return array_flip($this->getResourceTemplateIds());
     }
@@ -370,7 +341,7 @@ class Bulk extends AbstractPlugin
      * @param bool $fixed If fixed, the uri are returned without final "#" and "/".
      * @return array
      */
-    public function getVocabularyUris($fixed = false)
+    public function getVocabularyUris($fixed = false): array
     {
         static $vocabularies;
         static $fixedVocabularies;
@@ -400,20 +371,13 @@ class Bulk extends AbstractPlugin
 
     /**
      * Check if a string is a managed data type.
-     *
-     * @param string $dataType
-     * @return bool
      */
-    public function isDataType($dataType)
+    public function isDataType($dataType): bool
     {
         return array_key_exists($dataType, $this->getDataTypes());
     }
 
-    /**
-     * @param string $dataType
-     * @return string|null
-     */
-    public function getDataType($dataType)
+    public function getDataType($dataType): ?string
     {
         $dataTypes = $this->getDataTypes();
         return $dataTypes[$dataType] ?? null;
@@ -421,10 +385,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * @todo Remove the short data types.
-     *
-     * @return array
      */
-    public function getDataTypes()
+    public function getDataTypes(): array
     {
         if (isset($this->dataTypes)) {
             return $this->dataTypes;
@@ -451,11 +413,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get a user id by email or id or name.
-     *
-     * @param string|int $emailOrIdOrName
-     * @return int|null
      */
-    public function getUserId($emailOrIdOrName)
+    public function getUserId($emailOrIdOrName): ?int
     {
         if (is_numeric($emailOrIdOrName)) {
             $data = ['id' => $emailOrIdOrName];
@@ -517,24 +476,18 @@ class Bulk extends AbstractPlugin
 
     /**
      * Trim all whitespaces.
-     *
-     * @param string $string
-     * @return string
      */
-    public function trimUnicode($string)
+    public function trimUnicode($string): string
     {
-        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', $string);
+        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
     }
 
     /**
      * Check if a string seems to be an url.
      *
      * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.
-     *
-     * @param string $string
-     * @return bool
      */
-    public function isUrl($string)
+    public function isUrl($string): bool
     {
         return strpos($string, 'https:') === 0
             || strpos($string, 'http:') === 0
@@ -545,11 +498,8 @@ class Bulk extends AbstractPlugin
     /**
      * Allows to log resources with a singular name from the resource type, that
      * is plural in Omeka.
-     *
-     * @param string $resourceType
-     * @return string
      */
-    public function label($resourceType)
+    public function label($resourceType): ?string
     {
         $labels = [
             'items' => 'item', // @translate
@@ -568,11 +518,8 @@ class Bulk extends AbstractPlugin
     /**
      * Allows to log resources with a singular name from the resource type, that
      * is plural in Omeka.
-     *
-     * @param string $resourceType
-     * @return string
      */
-    public function labelPlural($resourceType)
+    public function labelPlural($resourceType): ?string
     {
         $labels = [
             'items' => 'items', // @translate
@@ -683,34 +630,24 @@ class Bulk extends AbstractPlugin
      * Escape a value for use in XML.
      *
      * From Omeka Classic application/libraries/globals.php
-     *
-     * @param string $value
-     * @return string
      */
-    public function xml_escape($value)
+    public function xml_escape($value): string
     {
         return htmlspecialchars(
-            preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', $value),
+            preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', (string) $value),
             ENT_QUOTES
         );
     }
 
-    /**
-     * @return \Laminas\Log\Logger
-     */
-    public function logger()
+    public function logger(): \Laminas\Log\Logger
     {
         return $this->logger;
     }
 
     /**
      * Proxy to api() to get the errors even without form.
-     *
-     * @param \Laminas\Form\Form $form
-     * @param bool $throwValidationException
-     * @return \Omeka\Mvc\Controller\Plugin\Api
      */
-    public function api(\Laminas\Form\Form $form = null, $throwValidationException = false)
+    public function api(\Laminas\Form\Form $form = null, $throwValidationException = false): \Omeka\Mvc\Controller\Plugin\Api
     {
         // @see \Omeka\Api\Manager::handleValidationException()
         try {
@@ -726,11 +663,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Set the default param to allow duplicate identifiers.
-     *
-     * @param bool $allowDuplicateIdentifiers
-     * @return self
      */
-    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false)
+    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): self
     {
         $this->allowDuplicateIdentifiers = (bool) $allowDuplicateIdentifiers;
         return $this;
@@ -738,21 +672,16 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get the default param to allow duplicate identifiers.
-     *
-     * @return bool
      */
-    public function getAllowDuplicateIdentifiers()
+    public function getAllowDuplicateIdentifiers(): bool
     {
         return $this->allowDuplicateIdentifiers;
     }
 
     /**
      * Set the default identifier names.
-     *
-     * @param array|string|int $identifierNames
-     * @return self
      */
-    public function setIdentifierNames($identifierNames)
+    public function setIdentifierNames(array $identifierNames): self
     {
         $this->identifierNames = $identifierNames;
         return $this;
@@ -760,10 +689,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get the default identifier names.
-     *
-     * @return array|string
      */
-    public function getIdentifierNames()
+    public function getIdentifierNames(): array
     {
         return $this->identifierNames;
     }
