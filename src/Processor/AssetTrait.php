@@ -164,6 +164,9 @@ SQL;
             ++$created;
 
             if ($created % self::CHUNK_ENTITIES === 0) {
+                if ($this->isErrorOrStop()) {
+                    break;
+                }
                 $this->entityManager->flush();
                 $this->entityManager->clear();
                 $this->refreshMainResources();

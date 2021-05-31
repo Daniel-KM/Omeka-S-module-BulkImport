@@ -106,6 +106,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $hasError = false;
 
     /**
+     * @var bool
+     */
+    protected $isStopping = false;
+
+    /**
      * @var array
      */
     protected $map = [];
@@ -628,10 +633,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function isErrorOrStop(): bool
     {
-        if ($this->hasError) {
+        if ($this->hasError || $this->isStopping) {
             return true;
         }
         if ($this->job->shouldStop()) {
+            $this->isStopping = true;
             $this->logger->warn('The job was stopped.'); // @translate
             return true;
         }
