@@ -34,7 +34,7 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
- * Copy of the controller plugin of the module Csv Import
+ * Adapted from the controller plugin of the module Csv Import
  *
  * @see \CSVImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
  */
@@ -87,6 +87,11 @@ class Bulk extends AbstractPlugin
      * @var array
      */
     protected $resourceTemplates;
+
+    /**
+     * @var array
+     */
+    protected $resourceTemplateClassIds;
 
     /**
      * @var array
@@ -298,6 +303,19 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get a resource template class by label or id.
+     */
+    public function getResourceTemplateClassId($labelOrId): ?int
+    {
+        $label = $this->getResourceTemplateLabel($labelOrId);
+        if (!$label) {
+            return null;
+        }
+        $classIds = $this->getResourceTemplateClassIds();
+        return $classIds[$label] ?? null;
+    }
+
+    /**
      * Get all resource templates by label.
      *
      * @return array Associative array of ids by label.
@@ -333,6 +351,36 @@ class Bulk extends AbstractPlugin
     public function getResourceTemplateLabels(): array
     {
         return array_flip($this->getResourceTemplateIds());
+    }
+
+    /**
+     * Get all resource class ids for templates by label.
+     *
+     * @return array Associative array of resource class ids by label.
+     */
+    public function getResourceTemplateClassIds(): array
+    {
+        if (isset($this->resourceTemplateClassIds)) {
+            return $this->resourceTemplateClassIds;
+        }
+
+        $connection = $this->services->get('Omeka\Connection');
+        $qb = $connection->createQueryBuilder();
+        $qb
+            ->select([
+                'resource_template.label AS label',
+                'resource_template.resource_class_id AS class_id',
+            ])
+            ->from('resource_template', 'resource_template')
+            ->orderBy('resource_template.label', 'asc')
+        ;
+        $stmt = $connection->executeQuery($qb);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $this->resourceTemplateClassIds = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->resourceTemplateClassIds = array_map(function ($v) {
+            return empty($v) ? null : (int) $v;
+        }, array_column($this->resourceTemplateClassIds, 'class_id', 'label'));
+        return $this->resourceTemplateClassIds;
     }
 
     /**
