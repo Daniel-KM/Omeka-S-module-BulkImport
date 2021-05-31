@@ -203,6 +203,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $media = [];
                     $media['o:ingester'] = 'iiif';
                     $media['ingest_url'] = null;
+                    if (!$this->isUrl($value)) {
+                        $value = $this->internalParams['iiifserver_image_server'] . $value;
+                    }
                     $media['o:source'] = $value;
                     $this->appendRelated($resource, $media);
                 }
@@ -356,6 +359,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $value = array_pop($values);
                 $resource['o:ingester'] = 'iiif';
                 $resource['ingest_url'] = null;
+                if (!$this->isUrl($value)) {
+                    $value = $this->internalParams['iiifserver_image_server'] . $value;
+                }
                 $resource['o:source'] = $value;
                 return true;
             case 'tile':

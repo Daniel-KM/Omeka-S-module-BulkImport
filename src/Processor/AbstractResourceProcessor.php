@@ -67,6 +67,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionItemSet;
 
     /**
+     * @var array
+     */
+    protected $internalParams = [];
+
+    /**
      * @var bool
      */
     protected $hasMapping = false;
@@ -193,6 +198,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->prepareActionIdentifier();
         $this->prepareActionMedia();
         $this->prepareActionItemSet();
+
+        $this->prepareInternalParams();
 
         $this->prepareMapping();
 
@@ -1381,6 +1388,21 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->mapping = array_filter($mapping);
         // Some readers don't need a mapping (xml reader do the process itself).
         $this->hasMapping = (bool) $this->mapping;
+        return $this;
+    }
+
+    /**
+     * Prepare other internal data..
+     */
+    protected function prepareInternalParams(): \BulkImport\Interfaces\Processor
+    {
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $this->internalParams['iiifserver_image_server'] = $settings->get('iiifserver_image_server', '');
+        if ($this->internalParams['iiifserver_image_server']
+            && mb_substr($this->internalParams['iiifserver_image_server'], -1) !== '/'
+        ) {
+            $this->internalParams['iiifserver_image_server'] .= '/';
+        }
         return $this;
     }
 }
