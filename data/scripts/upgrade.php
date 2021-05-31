@@ -15,6 +15,7 @@ $services = $serviceLocator;
 $connection = $services->get('Omeka\Connection');
 $entityManager = $services->get('Omeka\EntityManager');
 $plugins = $services->get('ControllerPluginManager');
+$config = $services->get('Config');
 $api = $plugins->get('api');
 
 if (version_compare($oldVersion, '3.0.1', '<')) {
@@ -241,7 +242,11 @@ CHANGE processor_params processor_params LONGTEXT DEFAULT NULL COMMENT '(DC2Type
 ADD undo_job_id INT DEFAULT NULL AFTER job_id,
 ADD CONSTRAINT FK_BD98E8744C276F75 FOREIGN KEY (undo_job_id) REFERENCES job (id) ON DELETE SET NULL;
 SQL;
-    $connection->exec($sql);
+    try {
+        $connection->exec($sql);
+    } catch (\Exception $e) {
+        // The upgrade failed in previous step, but ok this time.
+    }
     $sql = <<<'SQL'
 ALTER TABLE bulk_importer
 CHANGE owner_id owner_id INT DEFAULT NULL,
@@ -264,5 +269,9 @@ CREATE TABLE `bulk_imported` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ALTER TABLE bulk_imported ADD CONSTRAINT FK_F60E437CB6A263D9 FOREIGN KEY (job_id) REFERENCES job (id);
 SQL;
-    $connection->exec($sql);
+    try {
+        $connection->exec($sql);
+    } catch (\Exception $e) {
+        // The upgrade failed in previous step, but ok this time.
+    }
 }
