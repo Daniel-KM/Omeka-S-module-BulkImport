@@ -471,6 +471,50 @@ class Bulk extends AbstractPlugin
         return $users ? (reset($users))->getId() : null;
     }
 
+    public function normalizeResourceType($resourceType): ?string
+    {
+        $resourceTypes = [
+            'items' => \Omeka\Entity\Item::class,
+            'item_sets' => \Omeka\Entity\ItemSet::class,
+            'media' => \Omeka\Entity\Media::class,
+            'resources' => '',
+            'resource' => '',
+            'resource:item' => \Omeka\Entity\Item::class,
+            'resource:itemset' => \Omeka\Entity\ItemSet::class,
+            'resource:media' => \Omeka\Entity\Media::class,
+            // Avoid a check and make the plugin more flexible.
+            \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
+            \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
+            \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
+            \Omeka\Entity\Resource::class => '',
+            'o:item' => \Omeka\Entity\Item::class,
+            'o:item_set' => \Omeka\Entity\ItemSet::class,
+            'o:media' => \Omeka\Entity\Media::class,
+            // Other resource types.
+            'item' => \Omeka\Entity\Item::class,
+            'item_set' => \Omeka\Entity\ItemSet::class,
+            'item-set' => \Omeka\Entity\ItemSet::class,
+            'itemset' => \Omeka\Entity\ItemSet::class,
+            'resource:item_set' => \Omeka\Entity\ItemSet::class,
+            'resource:item-set' => \Omeka\Entity\ItemSet::class,
+        ];
+        return $resourceTypes[$resourceType] ?? null;
+    }
+
+    public function tableResource($resourceType): ?string
+    {
+        $resourceType = $this->normalizeResourceType($resourceType);
+        if (empty($resourceType)) {
+            return null;
+        }
+        $tableResources = [
+            \Omeka\Entity\Item::class => 'item',
+            \Omeka\Entity\ItemSet::class => 'item_set',
+            \Omeka\Entity\Media::class => 'media',
+        ];
+        return $tableResources[$resourceType];
+    }
+
     /**
      * Trim all whitespaces.
      *
