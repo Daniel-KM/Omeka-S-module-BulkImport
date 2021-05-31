@@ -53,7 +53,7 @@ class Entry implements EntryInterface
     {
         // Filter duplicated and null values.
         foreach ($this->data as &$datas) {
-            $datas = array_unique(array_filter($datas, 'strlen'));
+            $datas = is_null($datas) ? [] : array_unique(array_filter(array_map('strval', $datas), 'strlen'));
         }
     }
 
