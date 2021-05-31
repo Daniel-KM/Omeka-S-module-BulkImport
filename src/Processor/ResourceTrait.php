@@ -448,15 +448,20 @@ SQL;
             foreach ($values as $value) {
                 $datatype = $value['type'];
                 // Convert unknown custom vocab into a literal.
-                if (substr($datatype, 0, 12) === 'customvocab:') {
+                if (mb_substr($datatype, 0, 12) === 'customvocab:') {
                     if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
                         $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
                     } else {
-                        $this->logger->warn(
-                            'Value with datatype "{type}" for resource #{id} is changed to "literal".', // @translate
-                            ['type' => $datatype, 'id' => $this->entity->getId()]
-                        );
-                        $datatype = $value['type'] = 'literal';
+                        $datatypeResult = $this->getCustomVocabDataType($datatype);
+                        if ($datatypeResult) {
+                            $datatype = $value['type'] = $datatypeResult;
+                        } else {
+                            $this->logger->warn(
+                                'Value with datatype "{type}" for resource #{id} is changed to "literal".', // @translate
+                                ['type' => $datatype, 'id' => $this->entity->getId()]
+                            );
+                            $datatype = $value['type'] = 'literal';
+                        }
                     }
                 }
 

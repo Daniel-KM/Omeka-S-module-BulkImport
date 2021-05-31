@@ -586,6 +586,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
+        // Simplify next steps
+        $this->prepareCustomVocabCleanIds();
+
         $this->importData();
         if ($this->isErrorOrStop()) {
             return;

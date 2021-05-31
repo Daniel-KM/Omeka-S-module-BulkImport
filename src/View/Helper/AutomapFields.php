@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\View\Helper;
 
 use Laminas\I18n\View\Helper\Translate;
@@ -51,12 +52,17 @@ class AutomapFields extends AbstractHelper
      * geometry:geometry.
      * The prefixes can be omitted, so item, itemset, media, timestamp, integer,
      * duration, geography, geometry.
-     * Datatype for modules CustomVocab and ValueSuggest are supported too:
-     * customvocab:xxx and valuesuggest:xxx, as well as rdf datatypes managed by
-     * module DataTypeRdf: xsd:string (literal), rdf:XMLLiteral, xsd:boolean,
-     * xsd:date, xsd:dateTime, xsd:decimal, xsd:gDay, xsd:gMonth, xsd:gMonthDay,
-     * xsd:gYear, xsd:gYearMonth, xsd:integer, xsd:time, rdf:HTML, with or
-     * without prefix. The datatypes are checked by the processor.
+     * Datatypes of other modules are supported too (Custom Vocab,
+     * Value Suggest, DataTypeRdf, Numeric Data Types):
+     * - customvocab:xxx (where xxx is the id, or the label without spaces),
+     * - valuesuggest:xxx,
+     * - rdf:HTML,
+     * - rdf:XMLLiteral
+     * - xsd:boolean,
+     * - numeric:timestamp,
+     * - numeric:integer,
+     * - etc.
+     * with or without prefix, etc. The datatypes are checked by the processor.
      * Multiple targets can be mapped with the separator "|". Note that if there
      * may be multiple properties, only the first language and type will be
      * used.
@@ -203,8 +209,8 @@ class AutomapFields extends AbstractHelper
                 // Check strict term name, like "dcterms:title", sensitively then
                 // insensitively, then term label like "Dublin Core : Title"
                 // sensitively then insensitively too. Because all the lists contain
-                // the same keys in the same order, the process can be done in one
-                // step.
+                // the same keys in the same order, the process can be done in
+                // one step.
                 foreach ($lists as $listName => $list) {
                     $toSearch = strpos($listName, 'lower_') === 0 ? $lowerField : $field;
                     $found = array_search($toSearch, $list, true);

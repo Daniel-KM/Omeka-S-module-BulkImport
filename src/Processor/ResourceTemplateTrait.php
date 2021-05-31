@@ -75,10 +75,12 @@ trait ResourceTemplateTrait
                         $rtProperty['o:data_type'] = [$rtProperty['o:data_type']];
                     }
                     foreach ($rtProperty['o:data_type'] as &$dataType) {
-                        if (strtok($dataType, ':') === 'customvocab') {
-                            $dataType = !empty($this->map['custom_vocabs'][$dataType]['datatype'])
-                                ? $this->map['custom_vocabs'][$dataType]['datatype']
-                                : 'literal';
+                        if (mb_substr($dataType, 0, 12) === 'customvocab:') {
+                            if (empty($this->map['custom_vocabs'][$dataType]['datatype'])) {
+                                $dataType = $this->getCustomVocabDataType($dataType) ?? 'literal';
+                            } else {
+                                $dataType = $this->map['custom_vocabs'][$dataType]['datatype'];
+                            }
                         }
                         // Convert datatype idref of deprecated module IdRef
                         // into valuesuggest.

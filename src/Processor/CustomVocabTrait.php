@@ -5,10 +5,25 @@ namespace BulkImport\Processor;
 trait CustomVocabTrait
 {
     /**
+     * List of custom vocab ids with the cleaned label as key.
+     */
+    protected $customVocabCleanIds = [];
+
+    /**
      * Create custom vocabs from a source.
      */
     protected function prepareCustomVocabsInitialize(): void
     {
+    }
+
+    protected function prepareCustomVocabCleanIds(): void
+    {
+        $result = $this->api()
+            ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
+        foreach ($result as $customVocab) {
+            $cleanLabel = preg_replace('/[\W]/u', '', mb_strtolower($customVocab->getLabel()));
+            $this->customVocabCleanIds[$cleanLabel] = $customVocab->getId();
+        }
     }
 
     /**
@@ -32,7 +47,9 @@ trait CustomVocabTrait
 
         $customVocabs = [];
         foreach ($result as $customVocab) {
-            $customVocabs[$customVocab->getLabel()] = $customVocab;
+            $label = $customVocab->getLabel();
+            $customVocabs[$label] = $customVocab;
+            $customVocabs[preg_replace('/[\W]/u', '', mb_strtolower($label))] = $customVocab;
         }
         unset($result);
 
@@ -41,7 +58,9 @@ trait CustomVocabTrait
         $skipped = 0;
         foreach ($sources as $source) {
             ++$index;
-            if (isset($customVocabs[$source['o:label']])) {
+            $cleanLabel = preg_replace('/[\W]/u', '', mb_strtolower($source['o:label']));
+            $customVocab = $customVocabs[$source['o:label']] ?? $customVocabs[$cleanLabel] ?? null;
+            if ($customVocab) {
                 /*
                  // Item sets are not yet imported, so no mapping for item sets for now…
                  // TODO Currently, item sets are created after, so vocab is updated later, but resource can be created empty first?
@@ -52,10 +71,10 @@ trait CustomVocabTrait
                  */
                 if (empty($source['o:item_set'])
                     && !empty($source['o:terms'])
-                    && $this->equalCustomVocabsTerms($source['o:terms'], $customVocabs[$source['o:label']]->getTerms())
+                    && $this->equalCustomVocabsTerms($source['o:terms'], $customVocab->getTerms())
                 ) {
                     ++$skipped;
-                    $this->map['custom_vocabs']['customvocab:' . $source['o:id']]['datatype'] = 'customvocab:' . $customVocabs[$source['o:label']]->getId();
+                    $this->map['custom_vocabs']['customvocab:' . $source['o:id']]['datatype'] = 'customvocab:' . $customVocab->getId();
                     continue;
                 } else {
                     $label = $source['o:label'];
@@ -103,6 +122,7 @@ trait CustomVocabTrait
                 'source_item_set' => $sourceItemSet,
                 'is_empty' => $isEmpty,
             ];
+            $this->customVocabCleanIds[preg_replace('/[\W]/u', '', mb_strtolower($source['o:label']))] = $response->getContent()->id();
         }
 
         $this->allowedDataTypes = $this->getServiceLocator()->get('Omeka\DataTypeManager')->getRegisteredNames();
@@ -164,5 +184,27 @@ trait CustomVocabTrait
             sort($termsList);
         }
         return $terms['a'] === $terms['b'];
+    }
+
+    /**
+     * Normalize custom vocab data type from a "customvocab:label".
+     *
+     *  The check is done against the destination data types.
+     */
+    protected function getCustomVocabDataType(?string $dataType): ?string
+    {
+        if (empty($dataType) || mb_substr($dataType, 0, 12) !== 'customvocab:') {
+            return null;
+        }
+
+        // This is the destination id or label.
+        $cleanDataType = preg_replace('/[\W]/u', '', mb_strtolower(mb_substr($dataType, 12)));
+        if (in_array($cleanDataType, $this->customVocabCleanIds)) {
+            return 'customvocab:' . $cleanDataType;
+        }
+        if (isset($this->customVocabCleanIds[$cleanDataType])) {
+            return 'customvocab:' . $this->customVocabCleanIds[$cleanDataType];
+        }
+        return null;
     }
 }
