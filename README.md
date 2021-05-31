@@ -146,7 +146,7 @@ The header can have a language (with `@language`), a datatype (with `^^datatype`
 and a visibility (with `§private`).
 For example to import a French title, use header `Title @fr` or `dcterms:title @fr`.
 To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation ^^uri`.
-To import an uri with its label, if any, use header `Relation ^^uri-label`.
+To import an uri with a label, the value should be the uri, a space and the label.
 To import a value as an Omeka resource, use header `Relation ^^resource`. The
 value should be the internal id or a resource identifier (generally dcterms:identifier).
 To import multiple targets for a column, use the separator "|" in the header.

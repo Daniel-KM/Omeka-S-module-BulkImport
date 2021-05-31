@@ -518,26 +518,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // case strpos($resourceValue['type'], 'customvocab:') === 0:
                     $resourceValue['@value'] = $value;
                     break;
+                case 'uri-label':
+                    // Deprecated.
                 case 'uri':
-                case substr($resourceValue['type'], 0, 13) === 'valuesuggest:'
-                    || substr($resourceValue['type'], 0, 16) === 'valuesuggestall:':
-                    if (!empty($target['extra'])) {
-                        switch ($target['extra']) {
-                            case 'uri-label':
-                                if (strpos($value, ' ')) {
-                                    list($uri, $label) = explode(' ', $value, 2);
-                                    $label = trim($label);
-                                    if (!strlen($label)) {
-                                        $label = null;
-                                    }
-                                } else {
-                                    $uri = $value;
-                                    $label = null;
-                                }
-                                $resourceValue['@id'] = $uri;
-                                $resourceValue['o:label'] = $label;
-                                break;
+                case substr($resourceValue['type'], 0, 12) === 'valuesuggest':
+                    if (strpos($value, ' ')) {
+                        list($uri, $label) = explode(' ', $value, 2);
+                        $label = trim($label);
+                        if (!strlen($label)) {
+                            $label = null;
                         }
+                        $resourceValue['@id'] = $uri;
+                        $resourceValue['o:label'] = $label;
                     } else {
                         $resourceValue['@id'] = $value;
                         // $resourceValue['o:label'] = null;
@@ -1358,16 +1350,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $propertyId = $this->getPropertyId($target);
                 if ($propertyId) {
                     $result['value']['property_id'] = $propertyId;
-                    // Manage data type exceptions.
-                    switch ($metadata['type']) {
-                        case 'uri-label':
-                            $result['value']['type'] = 'uri';
-                            $result['extra'] = 'uri-label';
-                            break;
-                        default:
-                            $result['value']['type'] = $this->getDataType($metadata['type']) ?: 'literal';
-                            break;
-                    }
+                    $result['value']['type'] = $this->getDataType($metadata['type']) ?: 'literal';
                     $result['value']['@language'] = $metadata['@language'];
                     $result['value']['is_public'] = $metadata['is_public'] !== 'private';
                 }
