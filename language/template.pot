@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-14 00:00+0000\n"
+"POT-Creation-Date: 2021-05-31 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -28,10 +28,10 @@ msgid "This module requires modules \"%s\"."
 msgstr ""
 
 #: src/Generic/AbstractModule.php:80
-msgid "This module has resources that connot be installed."
+msgid "This module has resources that cannot be installed."
 msgstr ""
 
-#: src/Generic/AbstractModule.php:710
+#: src/Generic/AbstractModule.php:707
 #, php-format
 msgid ""
 "The module \"%s\" was automatically deactivated because the dependencies are "
@@ -42,49 +42,83 @@ msgstr ""
 msgid "Used only for internal bulk process."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:109
+#: src/Processor/ResourceProcessor.php:118
 msgid "itemset"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:112
+#: src/Processor/ResourceProcessor.php:121
 msgid "itemsets"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:113
+#: src/Processor/ResourceProcessor.php:122
 msgid "medias"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:114
+#: src/Processor/ResourceProcessor.php:123
 msgid "collection"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:115
+#: src/Processor/ResourceProcessor.php:124
 msgid "collections"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:116
+#: src/Processor/ResourceProcessor.php:125
 msgid "file"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:117
+#: src/Processor/ResourceProcessor.php:126
 msgid "files"
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:241
+#: src/Processor/SpipProcessor.php:517
+#, php-format
+msgid "[Untitled article #%s]"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:730
+#, php-format
+msgid "[Untitled document #%s]"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:913
+#, php-format
+msgid "[Untitled album #%s]"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:1019 src/Processor/ThesaurusTrait.php:244
 #, php-format
 msgid "[Untitled concept #%s]"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:1116
+#, php-format
+msgid "[Untitled post #%s]"
 msgstr ""
 
 #: view/bulk/admin/import/import-table.phtml:37
 msgid "Stop"
 msgstr ""
 
-#: view/bulk/admin/import/import-table.phtml:42
+#: view/bulk/admin/import/import-table.phtml:43
+msgid "Remove imported data"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:48
 msgid "See params"
 msgstr ""
 
-#: view/bulk/admin/import/import-table.phtml:46
+#: view/bulk/admin/import/import-table.phtml:52
 msgid "See logs"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:59
+#, php-format
+msgid "Import: %s"
+msgstr ""
+
+#: view/bulk/admin/import/import-table.phtml:61
+#, php-format
+msgid "Undo: %s"
 msgstr ""
 
 #: view/bulk/admin/import/index.phtml:14 view/bulk/admin/import/index.phtml:17
@@ -130,38 +164,38 @@ msgid "Import #%d"
 msgstr ""
 
 #: view/bulk/admin/import/logs.phtml:59
-msgid "Show only messages whose severity is higher than or equal to"
-msgstr ""
-
-#: view/bulk/admin/import/logs.phtml:75
-msgid "Message"
+msgid "Show only messages whose importance is higher than or equal to"
 msgstr ""
 
 #: view/bulk/admin/import/logs.phtml:76
-msgid "Severity"
+msgid "Message"
 msgstr ""
 
 #: view/bulk/admin/import/logs.phtml:77
+msgid "Severity"
+msgstr ""
+
+#: view/bulk/admin/import/logs.phtml:78
 msgid "Time"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:98
+#: view/bulk/admin/import/logs.phtml:99
 msgid "Full log"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:116 view/bulk/admin/import/show.phtml:36
+#: view/bulk/admin/import/logs.phtml:117 view/bulk/admin/import/show.phtml:36
 msgid "Attempt to stop job"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:122
+#: view/bulk/admin/import/logs.phtml:123
 msgid "Manage logs"
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:127
+#: view/bulk/admin/import/logs.phtml:128
 msgid "No logs yet."
 msgstr ""
 
-#: view/bulk/admin/import/logs.phtml:127
+#: view/bulk/admin/import/logs.phtml:128
 msgid "Refresh page"
 msgstr ""
 
@@ -170,7 +204,7 @@ msgstr ""
 msgid "Importer: %s"
 msgstr ""
 
-#: view/bulk/admin/import/show.phtml:25 view/bulk/admin/importer/start.phtml:25
+#: view/bulk/admin/import/show.phtml:25 view/bulk/admin/importer/start.phtml:28
 #, php-format
 msgid "Comment: %s"
 msgstr ""
@@ -185,16 +219,16 @@ msgstr ""
 msgid "Ended: %s"
 msgstr ""
 
-#: view/bulk/admin/import/show.phtml:40 view/bulk/admin/importer/start.phtml:26
+#: view/bulk/admin/import/show.phtml:40 view/bulk/admin/importer/start.phtml:29
 msgid "Parameters"
 msgstr ""
 
-#: view/bulk/admin/import/show.phtml:41 view/bulk/admin/importer/start.phtml:27
+#: view/bulk/admin/import/show.phtml:41 view/bulk/admin/importer/start.phtml:30
 #: view/bulk/admin/index/index.phtml:28
 msgid "Reader"
 msgstr ""
 
-#: view/bulk/admin/import/show.phtml:50 view/bulk/admin/importer/start.phtml:31
+#: view/bulk/admin/import/show.phtml:50 view/bulk/admin/importer/start.phtml:34
 #: view/bulk/admin/index/index.phtml:29
 msgid "Processor"
 msgstr ""
@@ -259,6 +293,13 @@ msgstr ""
 msgid "Start import"
 msgstr ""
 
+#: view/bulk/admin/importer/start.phtml:23
+#, php-format
+msgid ""
+"See the %sread me%s to learn how to write spreadsheets headers for a quick "
+"mapping, with data type and language."
+msgstr ""
+
 #: view/bulk/admin/index/index.phtml:20
 msgid "Available importers"
 msgstr ""
@@ -267,60 +308,86 @@ msgstr ""
 msgid "Last imports"
 msgstr ""
 
-#: data/scripts/upgrade.php:29
+#: view/bulk/admin/importer/start.phtml:23
+msgid "</a>"
+msgstr ""
+
+#: data/scripts/upgrade.php:30
 msgid "BulkImport requires module Log version 3.2.2 or higher."
 msgstr ""
 
-#: data/importers/csv - item_sets.php:4
+#: data/scripts/upgrade.php:186
+#, php-format
+msgid "This module requires the module \"%s\", version %s or above."
+msgstr ""
+
+#: data/scripts/upgrade.php:195 data/scripts/upgrade.php:203
+#, php-format
+msgid "The directory \"%s\" is not writeable."
+msgstr ""
+
+#: data/importers/csv - item_sets.php:5
 msgid "CSV - Item sets"
 msgstr ""
 
-#: data/importers/tsv - Medias.php:4
+#: data/importers/tsv - Medias.php:5
 msgid "TSV (tab-separated values) - Medias"
 msgstr ""
 
-#: data/importers/tsv - items.php:4
+#: data/importers/tsv - items.php:5
 msgid "TSV (tab-separated values) - Items"
 msgstr ""
 
-#: data/importers/csv - items.php:4
+#: data/importers/csv - items.php:5
 msgid "CSV - Items"
 msgstr ""
 
-#: data/importers/csv - resources.php:4
+#: data/importers/csv - resources.php:5
 msgid "CSV - Mixed resources"
 msgstr ""
 
-#: data/importers/ods - resources.php:4
+#: data/importers/ods - resources.php:5
 msgid "OpenDocument spreadsheet (ods) - Mixed resources"
 msgstr ""
 
-#: data/importers/ods - item_sets.php:4
+#: data/importers/ods - item_sets.php:5
 msgid "OpenDocument spreadsheet (ods) - Item sets"
 msgstr ""
 
-#: data/importers/ods - Medias.php:4
+#: data/importers/ods - Medias.php:5
 msgid "OpenDocument spreadsheet (ods) - Medias"
 msgstr ""
 
-#: data/importers/tsv - item_sets.php:4
+#: data/importers/tsv - item_sets.php:5
 msgid "TSV (tab-separated values) - Item sets"
 msgstr ""
 
-#: data/importers/tsv - resources.php:4
+#: data/importers/xml - items.php:5
+msgid "Xml - Items"
+msgstr ""
+
+#: data/importers/tsv - resources.php:5
 msgid "TSV (tab-separated values) - Mixed resources"
 msgstr ""
 
-#: data/importers/csv - Medias.php:4
+#: data/importers/csv - Medias.php:5
 msgid "CSV - Medias"
 msgstr ""
 
-#: data/importers/ods - items.php:4
+#: data/importers/ods - items.php:5
 msgid "OpenDocument spreadsheet (ods) - Items"
 msgstr ""
 
-#: Module.php:32 src/Reader/AbstractSpreadsheetFileReader.php:14
-msgid "The dependency Box/Spout version should be >= 3.0. See readme."
+#: Module.php:35 Module.php:43 Module.php:120
+msgid "The directory \"{path}\" is not writeable."
+msgstr ""
+
+#: Module.php:44
+msgid "/bulk_import"
+msgstr ""
+
+#: Module.php:131
+msgid "The directory \"{path}\" is not writeable: {error}."
 msgstr ""
 
 #: src/Form/EntriesByBatchTrait.php:14 src/Form/EntriesByBatchTrait.php:23
@@ -337,26 +404,26 @@ msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:31
 #: src/Form/Processor/ItemSetProcessorParamsForm.php:32
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:348
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:346
 msgid "Resource metadata"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:34
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:182
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:335
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:333
 msgid "Internal id"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:37
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:78
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:351
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:349
 msgid "Resource class"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:39
-#: src/Form/Processor/ResourceProcessorParamsForm.php:64
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:353
-#: src/Form/Processor/ItemProcessorParamsForm.php:46
+#: src/Form/Processor/ResourceProcessorParamsForm.php:65
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:351
+#: src/Form/Processor/ItemProcessorParamsForm.php:47
 msgid "Visibility public/private"
 msgstr ""
 
@@ -384,22 +451,28 @@ msgstr ""
 #: src/Form/Processor/ResourceProcessorParamsForm.php:61
 #: src/Form/Processor/MediaProcessorParamsForm.php:43
 #: src/Form/Processor/ItemProcessorParamsForm.php:43
-msgid "Tile"
+msgid "Html"
 msgstr ""
 
 #: src/Form/Processor/ResourceProcessorParamsForm.php:62
 #: src/Form/Processor/MediaProcessorParamsForm.php:44
 #: src/Form/Processor/ItemProcessorParamsForm.php:44
-msgid "Html"
+msgid "IIIF Image"
 msgstr ""
 
-#: src/Form/Processor/ResourceProcessorParamsForm.php:70
-#: src/Form/Processor/ItemProcessorParamsForm.php:52
+#: src/Form/Processor/ResourceProcessorParamsForm.php:63
+#: src/Form/Processor/MediaProcessorParamsForm.php:45
+#: src/Form/Processor/ItemProcessorParamsForm.php:45
+msgid "Tile"
+msgstr ""
+
+#: src/Form/Processor/ResourceProcessorParamsForm.php:71
+#: src/Form/Processor/ItemProcessorParamsForm.php:53
 msgid "Mapping latitude/longitude"
 msgstr ""
 
-#: src/Form/Processor/ResourceProcessorParamsForm.php:74
-#: src/Form/Processor/ItemProcessorParamsForm.php:56
+#: src/Form/Processor/ResourceProcessorParamsForm.php:75
+#: src/Form/Processor/ItemProcessorParamsForm.php:57
 msgid "Mapping bounds"
 msgstr ""
 
@@ -442,14 +515,30 @@ msgid "Mappings"
 msgstr ""
 
 #: src/Form/Processor/SpipProcessorParamsForm.php:80
-msgid "Concepts (rubriques)"
+msgid "Rubriques (thésaurus)"
 msgstr ""
 
-#: src/Form/Processor/SpipProcessorParamsForm.php:103
+#: src/Form/Processor/SpipProcessorParamsForm.php:81
+msgid "Brèves"
+msgstr ""
+
+#: src/Form/Processor/SpipProcessorParamsForm.php:82
+msgid "Fiches auteurs"
+msgstr ""
+
+#: src/Form/Processor/SpipProcessorParamsForm.php:107
+msgid "Fake files"
+msgstr ""
+
+#: src/Form/Processor/SpipProcessorParamsForm.php:108
+msgid "This option avoids fetching and processing files."
+msgstr ""
+
+#: src/Form/Processor/SpipProcessorParamsForm.php:118
 msgid "Code of the default language"
 msgstr ""
 
-#: src/Form/Processor/SpipProcessorParamsForm.php:115
+#: src/Form/Processor/SpipProcessorParamsForm.php:129
 msgid "Url of original site to fetch files"
 msgstr ""
 
@@ -549,98 +638,98 @@ msgid ""
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:184
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:337
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:335
 msgid "Media identifier"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:187
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:340
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:338
 msgid "File name"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:189
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:342
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:340
 msgid "Base file name"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:190
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:343
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:341
 msgid "Storage id"
 msgstr ""
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:191
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:344
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:342
 msgid "Hash"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:206
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:205
 msgid "Select an identifier name…"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:214
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:213
 msgid "Action on identifier"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:215
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:214
 msgid ""
 "When a \"revise\" or an \"update\" is done, the identifier may be updated, "
 "but you may want to keep existing identifiers if all of them are not "
 "provided."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:217
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:216
 msgid "Keep and append new identifiers"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:218
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:235
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:252
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:217
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:234
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:251
 msgid "Process as main action above"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:231
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:230
 msgid "Action on media"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:232
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:231
 msgid ""
 "When a \"revise\" or an \"update\" is done, the media may be updated, but "
 "you may want to keep existing ones."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:234
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:233
 msgid "Keep media"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:248
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:247
 msgid "Action on item set"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:249
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:248
 msgid ""
 "When a \"revise\" or an \"update\" is done, the item set may be updated, but "
 "you may want to keep existing ones."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:251
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:250
 msgid "Keep item sets"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:265
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:264
 msgid "Allow duplicate identifiers"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:266
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:265
 msgid ""
 "Not recommended, but needed to be compliant with old databases. Duplicates "
 "are logged."
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:300
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:298
 msgid "Mapping from sources to resources"
 msgstr ""
 
-#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:325
+#: src/Form/Processor/AbstractResourceProcessorConfigForm.php:323
 msgid "Select one or more targets…"
 msgstr ""
 
@@ -668,39 +757,39 @@ msgstr ""
 msgid "Database name"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:28
+#: src/Form/Reader/SqlReaderParamsForm.php:27
 msgid "Database username"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:29
+#: src/Form/Reader/SqlReaderParamsForm.php:28
 msgid ""
 "Even if the module does not write in the database, it is recommended to use "
 "a read-only user, in particular when the source is a living database."
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:41
+#: src/Form/Reader/SqlReaderParamsForm.php:39
 msgid "Database user password"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:42
+#: src/Form/Reader/SqlReaderParamsForm.php:40
 msgid ""
 "The password will be saved some seconds in the database, until the job "
 "starts."
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:54
+#: src/Form/Reader/SqlReaderParamsForm.php:51
 msgid "Database host name"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:65
+#: src/Form/Reader/SqlReaderParamsForm.php:62
 msgid "Database port"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:76
+#: src/Form/Reader/SqlReaderParamsForm.php:73
 msgid "Character set"
 msgstr ""
 
-#: src/Form/Reader/SqlReaderParamsForm.php:89
+#: src/Form/Reader/SqlReaderParamsForm.php:87
 msgid "Table prefix"
 msgstr ""
 
@@ -736,8 +825,16 @@ msgstr ""
 msgid "Omeka S api credential key"
 msgstr ""
 
-#: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:17
+#: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:20
 msgid "OpenDocument Spreadsheet (ods)"
+msgstr ""
+
+#: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:31
+msgid "Sheets"
+msgstr ""
+
+#: src/Form/Reader/OpenDocumentSpreadsheetReaderParamsForm.php:34
+msgid "First"
 msgstr ""
 
 #: src/Form/Reader/CsvReaderParamsForm.php:17
@@ -754,29 +851,59 @@ msgid ""
 "used, like \"|\" or a random string."
 msgstr ""
 
-#: src/Form/ConfigForm.php:16
-msgid "Folder for local files"
+#: src/Form/Reader/XmlReaderConfigForm.php:20
+msgid "XSLT file used to convert source"
+msgstr ""
+
+#: src/Form/Reader/XmlReaderConfigForm.php:21
+msgid ""
+"Default sheets are located in \"modules/BulkImport/data/xsl\" and user ones "
+"in \"files/xsl\"."
+msgstr ""
+
+#: src/Form/Reader/XmlReaderConfigForm.php:29
+msgid "Select the xsl for conversion…"
+msgstr ""
+
+#: src/Form/Reader/XmlReaderConfigForm.php:42
+msgid "Module sheets"
+msgstr ""
+
+#: src/Form/Reader/XmlReaderConfigForm.php:46
+msgid "User sheets"
+msgstr ""
+
+#: src/Form/Reader/XmlReaderParamsForm.php:20
+msgid "XML file"
+msgstr ""
+
+#: src/Form/Reader/XmlReaderParamsForm.php:31
+msgid "XML url"
 msgstr ""
 
 #: src/Form/ConfigForm.php:17
+msgid "Folder for local files"
+msgstr ""
+
+#: src/Form/ConfigForm.php:18
 msgid ""
 "For security reasons, local files to import should be inside this folder."
 msgstr ""
 
-#: src/Form/ConfigForm.php:24
+#: src/Form/ConfigForm.php:25
 msgid "Command of the xslt processor"
 msgstr ""
 
-#: src/Form/ConfigForm.php:25
+#: src/Form/ConfigForm.php:26
 msgid ""
 "Needed to import metadata in xml files, when the process uses xslt2 sheets."
 msgstr ""
 
-#: src/Form/ConfigForm.php:33
+#: src/Form/ConfigForm.php:34
 msgid "PdfTk path"
 msgstr ""
 
-#: src/Form/ConfigForm.php:34
+#: src/Form/ConfigForm.php:35
 msgid ""
 "Set the path if it is not automatically detected. PdfTk is the library used "
 "to extract metadata from pdf files."
@@ -805,13 +932,13 @@ msgstr ""
 msgid "User {email} has been created with name {name}."
 msgstr ""
 
-#: src/Processor/UserTrait.php:140 src/Processor/AssetTrait.php:171
-#: src/Processor/AssetTrait.php:183 src/Processor/MappingTrait.php:55
+#: src/Processor/UserTrait.php:143 src/Processor/AssetTrait.php:174
+#: src/Processor/AssetTrait.php:186 src/Processor/MappingTrait.php:55
 #: src/Processor/MappingTrait.php:65
 msgid "{count}/{total} resource \"{type}\" imported, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/UserTrait.php:172
+#: src/Processor/UserTrait.php:175
 msgid "{total} users ready, {created} created, {skipped} skipped."
 msgstr ""
 
@@ -871,178 +998,205 @@ msgstr ""
 msgid "No resource templates importable from source."
 msgstr ""
 
-#: src/Processor/ResourceTemplateTrait.php:100
+#: src/Processor/ResourceTemplateTrait.php:102
 msgid "Resource template \"{label}\" already exists."
 msgstr ""
 
-#: src/Processor/ResourceTemplateTrait.php:113
+#: src/Processor/ResourceTemplateTrait.php:115
 msgid "Resource template \"{old_label}\" has been renamed to \"{label}\"."
 msgstr ""
 
-#: src/Processor/ResourceTemplateTrait.php:122
+#: src/Processor/ResourceTemplateTrait.php:124
 msgid "Unable to create resource template \"{label}\"."
 msgstr ""
 
-#: src/Processor/ResourceTemplateTrait.php:129
+#: src/Processor/ResourceTemplateTrait.php:131
 msgid "Resource template \"{label}\" has been created."
 msgstr ""
 
-#: src/Processor/ResourceTemplateTrait.php:138
+#: src/Processor/ResourceTemplateTrait.php:140
 msgid "{total} resource templates ready, {created} created, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:12
+#: src/Processor/ResourceProcessor.php:13
 msgid "Mixed resources"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:231
+#: src/Processor/ResourceProcessor.php:253
 msgid ""
 "Index #{index} skipped: the mapping bounds requires four numeric values "
 "separated by a comma."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:249
+#: src/Processor/ResourceProcessor.php:271
 msgid ""
 "Index #{index} skipped: the mapping marker requires a latitude and a "
 "longitude separated by a \"/\"."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:299
+#: src/Processor/ResourceProcessor.php:321
 msgid ""
 "Index #{index}: Media with metadata \"{target}\" \"{identifier}\" cannot be "
 "found. The entry is skipped."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:380
+#: src/Processor/ResourceProcessor.php:412
 msgid "Index #{index} skipped: no resource type set"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:388
+#: src/Processor/ResourceProcessor.php:420
 msgid "Index #{index} skipped: resource type \"{resource_type}\" not managed"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:494
+#: src/Processor/ResourceProcessor.php:534
 msgid "Index #{index} skipped: no internal id can be found for the media"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:503
+#: src/Processor/ResourceProcessor.php:543
 msgid "Index #{index} skipped: no item is set for the media"
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:517
-msgid "The process requires the following modules currently: {modules}"
+#: src/Processor/AbstractFullProcessor.php:547
+msgid ""
+"The process requires the missing modules {modules}. The following modules "
+"are already enabled: {enabled}."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:526
+#: src/Processor/AbstractFullProcessor.php:558
 msgid "The source is unavailable. Check params, rights or connection."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:543
-msgid "types"
+#: src/Processor/AbstractFullProcessor.php:609
+msgid "Totals of data existing and imported: {json}."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:589
+#: src/Processor/AbstractFullProcessor.php:610
+msgid "json"
+msgstr ""
+
+#: src/Processor/AbstractFullProcessor.php:630
 msgid ""
 "End of process. Note: errors can occur separately for each imported file."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:609
+#: src/Processor/AbstractFullProcessor.php:641
+msgid "The job was stopped."
+msgstr ""
+
+#: src/Processor/AbstractFullProcessor.php:662
 msgid "Resource \"media\" cannot be imported without items."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:615
+#: src/Processor/AbstractFullProcessor.php:666
 msgid "Check integrity of assets."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:621
+#: src/Processor/AbstractFullProcessor.php:671
 msgid "Check integrity of resources."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:639
+#: src/Processor/AbstractFullProcessor.php:685
 msgid "Import of users."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:651
+#: src/Processor/AbstractFullProcessor.php:699
 msgid "Check vocabularies."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:666
+#: src/Processor/AbstractFullProcessor.php:712
 msgid "Preparation of properties."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:676
+#: src/Processor/AbstractFullProcessor.php:720
 msgid "Preparation of resource classes."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:692
+#: src/Processor/AbstractFullProcessor.php:734
 msgid "Check custom vocabs."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:704
+#: src/Processor/AbstractFullProcessor.php:744
 msgid "Preparation of resource templates."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:725
+#: src/Processor/AbstractFullProcessor.php:766
 msgid "Initialization of all assets."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:734
+#: src/Processor/AbstractFullProcessor.php:774
 msgid "Initialization of all resources."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:780
+#: src/Processor/AbstractFullProcessor.php:819
 msgid "Finalization of assets."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:785
+#: src/Processor/AbstractFullProcessor.php:823
 msgid "Preparation of metadata of all resources."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:849
+#: src/Processor/AbstractFullProcessor.php:885
 msgid "The resource template \"{label}\" is required to import {name}."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:863
+#: src/Processor/AbstractFullProcessor.php:899
 msgid "The resource class \"{label}\" is required to import {name}."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:877
+#: src/Processor/AbstractFullProcessor.php:913
 msgid "The custom vocab\"{label}\" is required to import {name}."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:1018
-#: src/Processor/SpipProcessor.php:373
+#: src/Processor/AbstractFullProcessor.php:1047
 msgid "Preparation of metadata of module Thesaurus."
 msgstr ""
 
-#: src/Processor/AbstractFullProcessor.php:1065
+#: src/Processor/AbstractFullProcessor.php:1091
 msgid "Preparation of metadata of module Mapping."
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:72
-msgid "Preparation of a thesaurus scheme with {total} concepts)."
+#: src/Processor/AbstractFullProcessor.php:1126
+msgid "Mapping saved in {filepath} inside directory \"files/\"."
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:101 src/Processor/ResourceTrait.php:93
+#: src/Processor/AbstractFullProcessor.php:1130
+msgid ""
+"Running jobs for reindexation and finalization. Check next jobs in admin "
+"interface."
+msgstr ""
+
+#: src/Processor/AbstractFullProcessor.php:1163
+msgid "Derivative files should be recreated with module Bulk Check."
+msgstr ""
+
+#: src/Processor/AbstractFullProcessor.php:1171
+msgid "No source set for {resource_name}."
+msgstr ""
+
+#: src/Processor/ThesaurusTrait.php:72
+msgid "Preparation of a thesaurus scheme with {total} concepts."
+msgstr ""
+
+#: src/Processor/ThesaurusTrait.php:103 src/Processor/ResourceTrait.php:95
 msgid "No resource \"{type}\" available on the source."
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:139
+#: src/Processor/ThesaurusTrait.php:141
 msgid "Unable to set the class and template of the concept scheme."
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:162 src/Processor/ThesaurusTrait.php:188
+#: src/Processor/ThesaurusTrait.php:164 src/Processor/ThesaurusTrait.php:191
 #, php-format
 msgid "Thesaurus %s (%s)"
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:180
+#: src/Processor/ThesaurusTrait.php:183
 msgid ""
 "{total} resources \"{type}\" have been created inside concept scheme "
 "#{item_id}."
 msgstr ""
 
-#: src/Processor/ThesaurusTrait.php:295
+#: src/Processor/ThesaurusTrait.php:301
 msgid ""
 "The broader concept #{identifier} of items #{item_id} (source {source}) was "
 "not found."
@@ -1052,120 +1206,142 @@ msgstr ""
 msgid "Spip"
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:174
+#: src/Processor/SpipProcessor.php:253
 msgid "The job cannot be restarted. Restart import from the beginning."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:231
+#: src/Processor/SpipProcessor.php:319
 msgid ""
 "The user \"{name}\" has no email or an invalid email, so \"{email}\" was "
 "attribued for login."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:239
+#: src/Processor/SpipProcessor.php:327
 msgid ""
 "The email \"{email}\" is not unique, so it was renamed too \"{email2}\"."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:437
+#: src/Processor/SpipProcessor.php:517
 msgid "id_article"
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:571
+#: src/Processor/SpipProcessor.php:668
 msgid ""
-"The virtuel resource #{identifier} of item #{item_id} (source {source}) was "
-"not found."
+"The virtuel resource #{identifier} of item #{item_id} (source #{source_id}) "
+"was not found."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:582
+#: src/Processor/SpipProcessor.php:679
 msgid ""
 "The translation #{id_trad} of item #{item_id} (source {source}) was not "
 "found."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:632
+#: src/Processor/SpipProcessor.php:730
 msgid "id_document"
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:641
+#: src/Processor/SpipProcessor.php:744
 msgid "The document #{identifier} is a simple thumbnail and was excluded."
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:805
+#: src/Processor/SpipProcessor.php:913
 msgid "id_album"
 msgstr ""
 
-#: src/Processor/SpipProcessor.php:867
+#: src/Processor/SpipProcessor.php:982
 msgid ""
 "The translation #{id_trad} of item set #{item_set_id} (source {source}) was "
 "not found."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:68 src/Processor/AssetTrait.php:29
+#: src/Processor/SpipProcessor.php:1019
+msgid "id_rubrique"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:1047
+msgid "Import des autres données et des relations."
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:1116
+msgid "id_breve"
+msgstr ""
+
+#: src/Processor/SpipProcessor.php:1332
+msgid "The user #\"{source_id}\" has no name, so the login is used."
+msgstr ""
+
+#: src/Processor/ResourceTrait.php:70 src/Processor/AssetTrait.php:29
 msgid "Preparation of {total} resources \"{type}\"."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:105
+#: src/Processor/ResourceTrait.php:107
 msgid "Media cannot be imported without items currently."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:125 src/Processor/AssetTrait.php:88
+#: src/Processor/ResourceTrait.php:127 src/Processor/AssetTrait.php:88
 msgid "{total} resources \"{type}\" have been created."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:274
+#: src/Processor/ResourceTrait.php:307
 msgid "Skipped resource \"{type}\" #{source_id} added in source."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:313 src/Processor/ResourceTrait.php:325
+#: src/Processor/ResourceTrait.php:317
+msgid ""
+"Unknown resource \"{type}\" #{source_id}. Probably removed during by another "
+"user."
+msgstr ""
+
+#: src/Processor/ResourceTrait.php:357 src/Processor/ResourceTrait.php:369
 msgid ""
 "{count}/{total} resource \"{type}\" imported, {skipped} skipped, {excluded} "
 "excluded."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:334
+#: src/Processor/ResourceTrait.php:378
 msgid ""
 "The total {total} of resources {type} is not the same than the count {count}."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:365
+#: src/Processor/ResourceTrait.php:409
 msgid ""
 "Specific thumbnail for resource #{id} (source #{source_id}) is not available."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:415
+#: src/Processor/ResourceTrait.php:463
 msgid ""
 "Value with datatype \"{type}\" for resource #{id} is changed to \"literal\"."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:465
+#: src/Processor/ResourceTrait.php:521
 msgid ""
 "Value of resource {type} #{id} with data type {datatype} is not managed and "
 "skipped."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:502
+#: src/Processor/ResourceTrait.php:569
 msgid ""
 "Value of resource {type} #{id} with data type {datatype} was changed to "
 "literal."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:506
+#: src/Processor/ResourceTrait.php:573
 msgid "It’s recommended to install module {module}."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:538
+#: src/Processor/ResourceTrait.php:605
 msgid ""
 "Value of resource {type} #{id} with linked resource for term {term} is not "
 "found."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:830
+#: src/Processor/ResourceTrait.php:902
 msgid ""
 "Media type of media #{id} is different from the original one ({media_type})."
 msgstr ""
 
-#: src/Processor/ResourceTrait.php:836
+#: src/Processor/ResourceTrait.php:908
 msgid "Hash of media #{id} is different from the original one."
 msgstr ""
 
@@ -1177,210 +1353,245 @@ msgstr ""
 msgid "Asset {id} has no filename or no extension."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:38
+#: src/Processor/AbstractProcessor.php:39
 msgid "create"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:39
+#: src/Processor/AbstractProcessor.php:40
 msgid "append"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:40
+#: src/Processor/AbstractProcessor.php:41
 msgid "revise"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:41
+#: src/Processor/AbstractProcessor.php:42
 msgid "update"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:42
+#: src/Processor/AbstractProcessor.php:43
 msgid "replace"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:43
+#: src/Processor/AbstractProcessor.php:44
 msgid "delete"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:44
+#: src/Processor/AbstractProcessor.php:45
 msgid "skip"
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:416
+#: src/Processor/AbstractProcessor.php:386
 msgid ""
 "Index #{index}: The resource id cannot be checked: the resource type is "
 "undefined."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:424
+#: src/Processor/AbstractProcessor.php:394
 msgid "Index #{index}: The id of this resource doesn’t exist."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:457
+#: src/Processor/AbstractProcessor.php:426
 msgid ""
 "Index #{index}: The resource id cannot be filled: the resource type is "
 "undefined."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:470
-msgid ""
-"Index #{index}: The resource id cannot be filled: no metadata defined as "
-"identifier."
+#: src/Processor/AbstractProcessor.php:440
+msgid "Index #{index}: The resource has no identifier."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:515
+#: src/Processor/AbstractProcessor.php:445
+msgid ""
+"Index #{index}: The resource id cannot be filled: no metadata defined as "
+"identifier and duplicate identifiers are not allowed."
+msgstr ""
+
+#: src/Processor/AbstractProcessor.php:492
 msgid "Index #{index}: Resource doesn’t have a unique identifier."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:520
+#: src/Processor/AbstractProcessor.php:497
 msgid "Index #{index}: Duplicate identifiers are not allowed."
 msgstr ""
 
-#: src/Processor/AbstractProcessor.php:528
+#: src/Processor/AbstractProcessor.php:505
 msgid ""
 "Index #{index}: Identifier \"{identifier}\" ({metadata}) matches "
 "{resource_type} #{resource_id}."
 msgstr ""
 
-#: src/Processor/CustomVocabTrait.php:25
+#: src/Processor/CustomVocabTrait.php:40
 msgid "No custom vocabs importable from source."
 msgstr ""
 
-#: src/Processor/CustomVocabTrait.php:65
+#: src/Processor/CustomVocabTrait.php:84
 msgid "Custom vocab \"{old_label}\" has been renamed to \"{label}\"."
 msgstr ""
 
-#: src/Processor/CustomVocabTrait.php:90
+#: src/Processor/CustomVocabTrait.php:109
 msgid "Unable to create custom vocab \"{label}\"."
 msgstr ""
 
-#: src/Processor/CustomVocabTrait.php:96
+#: src/Processor/CustomVocabTrait.php:115
 msgid "Custom vocab {label} has been created."
 msgstr ""
 
-#: src/Processor/CustomVocabTrait.php:111
+#: src/Processor/CustomVocabTrait.php:131
 msgid "{total} custom vocabs ready, {created} created, {skipped} skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:199
+#: src/Processor/AbstractResourceProcessor.php:206
 msgid "The first {skip} entries are skipped by user."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:216
+#: src/Processor/AbstractResourceProcessor.php:223
 msgid "Index #{index}: The job \"Import\" was stopped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:231
+#: src/Processor/AbstractResourceProcessor.php:238
 msgid "Index #{index}: Process started"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:271
+#: src/Processor/AbstractResourceProcessor.php:278
 msgid ""
 "End of process: {total_resources} resources to process, {total_skipped} "
 "skipped or blank, {total_processed} processed, {total_errors} errors inside "
 "data. Note: errors can occur separately for each imported file."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:291
+#: src/Processor/AbstractResourceProcessor.php:295
 msgid "Index #{index}: the entry is empty and is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:365
-msgid ""
-"Index #{index}: The source field \"{field}\" is set in the mapping, but not "
-"in the entry. The params may have an issue."
+#: src/Processor/AbstractResourceProcessor.php:402
+msgid "o:media"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:488
+#: src/Processor/AbstractResourceProcessor.php:547
 msgid ""
 "Index #{index}: Resource id for value \"{value}\" cannot be found. The entry "
 "is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:515
+#: src/Processor/AbstractResourceProcessor.php:574
 msgid ""
 "Index #{index}: Internal id #{id} cannot be found. The entry is skipped."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:578
-#: src/Processor/AbstractResourceProcessor.php:594
-msgid "Index #{index}: The action \"{action}\" requires a unique identifier."
+#: src/Processor/AbstractResourceProcessor.php:597
+#: src/Processor/AbstractResourceProcessor.php:721
+msgid "Index #{index}: The resource template \"{source}\" does not exist."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:589
-msgid "Index #{index}: The action \"{action}\" requires an identifier."
+#: src/Processor/AbstractResourceProcessor.php:620
+#: src/Processor/AbstractResourceProcessor.php:741
+msgid "Index #{index}: The resource class \"{source}\" does not exist."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:666
+#: src/Processor/AbstractResourceProcessor.php:643
+#: src/Processor/AbstractResourceProcessor.php:659
+#: src/Processor/AbstractResourceProcessor.php:761
+msgid "Index #{index}: The user \"{source}\" does not exist."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:779
+msgid "Index #{index}: The item \"{source}\" for media does not exist."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:809
+msgid ""
+"Index #{index}: The action \"{action}\" requires a unique identifier "
+"({identifier}, #{resource_id})."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:821
+msgid ""
+"Index #{index}: The action \"{action}\" requires an identifier "
+"({identifier})."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:826
+msgid ""
+"Index #{index}: The action \"{action}\" requires a unique identifier "
+"({identifier})."
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:894
 msgid ""
 "Index #{index}: Error during validation of the data before creation:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:673
+#: src/Processor/AbstractResourceProcessor.php:901
 msgid "Index #{index}: Core error during creation: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:682
+#: src/Processor/AbstractResourceProcessor.php:912
+msgid "Index #{index}: Created media #{media_id} (item #{item_id})"
+msgstr ""
+
+#: src/Processor/AbstractResourceProcessor.php:917
 msgid "Index #{index}: Created {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:750
+#: src/Processor/AbstractResourceProcessor.php:988
 msgid "Index #{index}: Updated {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:756
+#: src/Processor/AbstractResourceProcessor.php:994
 msgid ""
 "Index #{index}: Error during validation of the data before update:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:763
+#: src/Processor/AbstractResourceProcessor.php:1001
 msgid "Index #{index}: Core error during update: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:771
+#: src/Processor/AbstractResourceProcessor.php:1009
 msgid "Index #{index}: Unknown error occured during update."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:821
+#: src/Processor/AbstractResourceProcessor.php:1058
 msgid ""
 "Index #{index}: Error during validation of the data before deletion:\n"
 "{messages}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:829
+#: src/Processor/AbstractResourceProcessor.php:1066
 msgid "Index #{index}: Core error during deletion: {exception}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:838
+#: src/Processor/AbstractResourceProcessor.php:1075
 msgid "Index #{index}: Deleted {resource_type} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:906
+#: src/Processor/AbstractResourceProcessor.php:1156
 msgid "Action \"{action}\" is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:920
+#: src/Processor/AbstractResourceProcessor.php:1171
 msgid "Action \"{action}\" for unidentified resource is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:932
+#: src/Processor/AbstractResourceProcessor.php:1184
 msgid "No identifier name was selected."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:954
+#: src/Processor/AbstractResourceProcessor.php:1206
 msgid "Invalid identifier names: check your params."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:985
+#: src/Processor/AbstractResourceProcessor.php:1238
 msgid "Action \"{action}\" for identifier is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1002
+#: src/Processor/AbstractResourceProcessor.php:1256
 msgid "Action \"{action}\" for media (update of item) is not managed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1017
+#: src/Processor/AbstractResourceProcessor.php:1272
 msgid "Action \"{action}\" for item set (update of item) is not managed."
 msgstr ""
 
@@ -1388,20 +1599,20 @@ msgstr ""
 msgid "File {url} has not an allowed extension."
 msgstr ""
 
-#: src/Processor/FetchFileTrait.php:58
+#: src/Processor/FetchFileTrait.php:80
 msgid "Unable to download asset {url}."
 msgstr ""
 
-#: src/Processor/FetchFileTrait.php:80
+#: src/Processor/FetchFileTrait.php:102
 msgid "Asset {url} is not an image."
 msgstr ""
 
-#: src/Processor/FetchFileTrait.php:90
+#: src/Processor/FetchFileTrait.php:112
 msgid "File {url} is not an allowed file."
 msgstr ""
 
-#: src/Processor/FetchFileTrait.php:97
-msgid "."
+#: src/Processor/FetchFileTrait.php:113
+msgid "url"
 msgstr ""
 
 #: src/Processor/MappingTrait.php:76
@@ -1429,7 +1640,7 @@ msgid ""
 "module BulkCheck to check and fix them."
 msgstr ""
 
-#: src/Processor/CountEntitiesTrait.php:17
+#: src/Processor/CountEntitiesTrait.php:13
 msgid "Resource \"{type}\" has too much records ({total})."
 msgstr ""
 
@@ -1437,8 +1648,32 @@ msgstr ""
 msgid "Index #{index}: Unable to update data with action \"{action}\"."
 msgstr ""
 
-#: src/Controller/Admin/ImportController.php:64
-msgid "The job is not running."
+#: src/Controller/Admin/ImportController.php:61
+msgid "The import process #{import} does not exists."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:68
+msgid "Attempting to stop the import process #{import}."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:75
+msgid "Attempting to stop the undo process #{import}."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:80
+msgid "The process #{import} cannot be stopped."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:125
+msgid "Import #{import} does not exist."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:134
+msgid "The import #{import} is not undoable currently."
+msgstr ""
+
+#: src/Controller/Admin/ImportController.php:146
+msgid "Undo in progress for import #{import} with job #{job}."
 msgstr ""
 
 #: src/Controller/Admin/ImporterController.php:44
@@ -1501,26 +1736,33 @@ msgstr ""
 msgid "Save of import failed"
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:368
+#: src/Controller/Admin/ImporterController.php:377
 msgid ""
 "Import started in background (job {link_open_job}#{jobId}{link_close}, "
 "{link_open_log}logs{link_close}). This may take a while."
 msgstr ""
 
-#: src/Controller/Admin/ImporterController.php:385
+#: src/Controller/Admin/ImporterController.php:394
 msgid "Import start failed"
 msgstr ""
 
 #: src/Controller/Admin/ImporterController.php:448
-#: src/Controller/Admin/ImporterController.php:482
+#: src/Controller/Admin/ImporterController.php:490
+msgid "Importer #{importer} has error: {error}"
+msgstr ""
+
+#: src/Controller/Admin/ImporterController.php:472
+#: src/Controller/Admin/ImporterController.php:514
 msgid "Continue"
 msgstr ""
 
-#: src/Api/Representation/ImportRepresentation.php:86
+#: src/Api/Representation/ImportRepresentation.php:77
+#: src/Api/Representation/ImportRepresentation.php:151
 msgid "ready"
 msgstr ""
 
-#: src/Api/Representation/ImportRepresentation.php:95
+#: src/Api/Representation/ImportRepresentation.php:83
+#: src/Api/Representation/ImportRepresentation.php:157
 msgid "Ready"
 msgstr ""
 
@@ -1528,13 +1770,16 @@ msgstr ""
 msgid "CSV"
 msgstr ""
 
-#: src/Reader/CsvReader.php:129
-#: src/Reader/OpenDocumentSpreadsheetReader.php:141
+#: src/Reader/CsvReader.php:133
+#: src/Reader/OpenDocumentSpreadsheetReader.php:309
+#: src/Reader/OpenDocumentSpreadsheetReader.php:332
+#: src/Reader/OpenDocumentSpreadsheetReader.php:357
+#: src/Reader/OpenDocumentSpreadsheetReader.php:384
 msgid "File has no available fields."
 msgstr ""
 
-#: src/Reader/CsvReader.php:144
-msgid "File \"{filepath}\" is not fully utf-8."
+#: src/Reader/CsvReader.php:149
+msgid "File \"{filename}\" is not fully utf-8."
 msgstr ""
 
 #: src/Reader/OmekaSReader.php:166
@@ -1565,7 +1810,11 @@ msgstr ""
 msgid "First page cannot be greater to last page."
 msgstr ""
 
-#: src/Reader/TsvReader.php:12
+#: src/Reader/FakeReader.php:7
+msgid "Fake reader"
+msgstr ""
+
+#: src/Reader/TsvReader.php:13
 msgid "TSV (tab-separated values)"
 msgstr ""
 
@@ -1581,61 +1830,109 @@ msgstr ""
 msgid "Unable to read data for object type \"{table}\", page: {exception}"
 msgstr ""
 
-#: src/Reader/SqlReader.php:208
+#: src/Reader/SqlReader.php:204
 msgid "Unable to read data for object type \"{table}\": {exception}"
 msgstr ""
 
-#: src/Reader/SqlReader.php:220
+#: src/Reader/SqlReader.php:216
 msgid "Unable to read data for object type \"{table}\"."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:180
+#: src/Reader/AbstractFileReader.php:53
+msgid "Url \"{url}\" is invalid or empty or unavailable."
+msgstr ""
+
+#: src/Reader/AbstractFileReader.php:221
 msgid "Unable to upload file."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:188
+#: src/Reader/AbstractFileReader.php:229
 msgid "The \"temp_dir\" is not configured"
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:196
+#: src/Reader/AbstractFileReader.php:237
 msgid "Unable to move uploaded file to {filename}"
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:217
+#: src/Reader/AbstractFileReader.php:289
 msgid "File \"{filename}\" doesn’t exist."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:224
+#: src/Reader/AbstractFileReader.php:296
 msgid "File \"{filename}\" is empty."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:231
+#: src/Reader/AbstractFileReader.php:303 src/Reader/XmlReader.php:193
 msgid "File \"{filename}\" is not readable."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:240
+#: src/Reader/AbstractFileReader.php:312
 msgid ""
 "File \"{filename}\" has media type \"{file_media_type}\" and is not managed."
 msgstr ""
 
-#: src/Reader/AbstractFileReader.php:247
+#: src/Reader/AbstractFileReader.php:319
 msgid ""
 "File \"{filename}\" has media type \"{file_media_type}\", not "
 "\"{media_type}\"."
 msgstr ""
 
-#: src/Reader/OpenDocumentSpreadsheetReader.php:13
+#: src/Reader/AbstractFileReader.php:331
+msgid "Url is empty."
+msgstr ""
+
+#: src/Reader/AbstractFileReader.php:340
+msgid "Url should not contain illegal characters."
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:14
 msgid "OpenDocument Spreadsheet"
 msgstr ""
 
-#: src/Reader/OpenDocumentSpreadsheetReader.php:48
+#: src/Reader/OpenDocumentSpreadsheetReader.php:75
 msgid ""
 "To process import of \"{label}\", the php extensions \"zip\" and \"xml\" are "
 "required."
 msgstr ""
 
-#: src/Reader/OpenDocumentSpreadsheetReader.php:108
-msgid "File \"{filepath}\" cannot be open."
+#: src/Reader/OpenDocumentSpreadsheetReader.php:192
+msgid "The library to manage OpenDocument spreadsheet is not available."
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:203
+msgid "File \"{filename}\" cannot be open."
+msgstr ""
+
+#: src/Reader/OpenDocumentSpreadsheetReader.php:260
+msgid "No sheet."
+msgstr ""
+
+#: src/Reader/XmlReader.php:20
+msgid "XML"
+msgstr ""
+
+#: src/Reader/XmlReader.php:71
+msgid "Xslt filepath \"{filename}\" is invalid: it should be a real path."
+msgstr ""
+
+#: src/Reader/XmlReader.php:80
+msgid ""
+"Xslt filepath \"{filename}\" is invalid: it should be a relative path from "
+"Omeka root or directory \"files/xsl\"."
+msgstr ""
+
+#: src/Reader/XmlReader.php:146
+msgid "No output."
+msgstr ""
+
+#: src/Reader/XmlReader.php:151
+msgid ""
+"An issue occurred during initial transformation by the xsl sheet "
+"\"{xslname}\": {message}."
+msgstr ""
+
+#: src/Reader/XmlReader.php:212
+msgid "The file to import is not well formed: {message} (line #{line})."
 msgstr ""
 
 #: src/Media/Ingester/Bulk.php:32
@@ -1650,71 +1947,99 @@ msgstr ""
 msgid "The file is not a temp file."
 msgstr ""
 
-#: src/Job/Import.php:44
+#: src/Job/Import.php:51
 msgid "Import started"
 msgstr ""
 
-#: src/Job/Import.php:48
+#: src/Job/Import.php:55
 msgid "Import completed"
 msgstr ""
 
-#: src/Job/Import.php:96
+#: src/Job/Import.php:108
 msgid "Import record does not exist"
 msgstr ""
 
-#: src/Job/Import.php:116
+#: src/Job/Import.php:128
 msgid "Reader \"{reader}\" is not available."
 msgstr ""
 
-#: src/Job/Import.php:146
+#: src/Job/Import.php:158
 msgid "Processor \"{processor}\" is not available."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:514
+#: src/Job/Undo.php:31
+msgid "The import #{import} does not exist."
+msgstr ""
+
+#: src/Job/Undo.php:39
+msgid "The import #{import} has no resource."
+msgstr ""
+
+#: src/Job/Undo.php:50
+msgid "No resource processed by import #{import}."
+msgstr ""
+
+#: src/Job/Undo.php:57
+msgid "Processing undo of {total} resources for import #{import}."
+msgstr ""
+
+#: src/Job/Undo.php:64
+msgid "The job \"Undo\" was stopped: {count}/{total} resources deleted."
+msgstr ""
+
+#: src/Job/Undo.php:79
+msgid "{count}/{total} resources deleted."
+msgstr ""
+
+#: src/Job/Undo.php:85
+msgid "Undo of {total} imported resources ended for import #{import}."
+msgstr ""
+
+#: src/Mvc/Controller/Plugin/Bulk.php:556
 msgid "resource"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:515
+#: src/Mvc/Controller/Plugin/Bulk.php:557
 msgid "annotation"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:517
+#: src/Mvc/Controller/Plugin/Bulk.php:559
 msgid "property"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:518
+#: src/Mvc/Controller/Plugin/Bulk.php:560
 msgid "resource class"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:537
+#: src/Mvc/Controller/Plugin/Bulk.php:576
 msgid "resources"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:538
+#: src/Mvc/Controller/Plugin/Bulk.php:577
 msgid "annotations"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:539
+#: src/Mvc/Controller/Plugin/Bulk.php:578
 msgid "vocabularies"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:540
+#: src/Mvc/Controller/Plugin/Bulk.php:579
 msgid "properties"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:541
+#: src/Mvc/Controller/Plugin/Bulk.php:580
 msgid "resource classes"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:542
+#: src/Mvc/Controller/Plugin/Bulk.php:581
 msgid "resource templates"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:596
+#: src/Mvc/Controller/Plugin/Bulk.php:635
 msgid "Identifier \"{identifier}\" is not unique ({count} values)."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/Bulk.php:607
+#: src/Mvc/Controller/Plugin/Bulk.php:646
 msgid "Duplicate identifiers are not allowed."
 msgstr ""
 
@@ -1723,68 +2048,68 @@ msgstr ""
 msgid "Command pdftk unavailable or failed: %s"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:76
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:77
 #, php-format
 msgid "The remote file \"%s\" is not readable or empty."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:80
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:81
 #, php-format
 msgid "The input file \"%s\" is not readable."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:129
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:130
 #, php-format
 msgid ""
 "An error occurs during the xsl transformation of the file \"%s\" with the "
 "sheet \"%s\"."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:154
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:155
 #, php-format
 msgid ""
 "Could not load \"%s\". Verify that you have rights to access this folder and "
 "subfolders."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:157
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:158
 #, php-format
 msgid "The file \"%s\" is empty. Process is aborted."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:198
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:199
 #, php-format
 msgid ""
 "An error occurs during the xsl transformation of the file \"%s\" with the "
 "sheet \"%s\" : %s"
 msgstr ""
 
-#: src/Entry/SpreadsheetEntry.php:34
+#: src/Entry/Entry.php:96 src/Entry/Entry.php:101
+msgid "Modification forbidden"
+msgstr ""
+
+#: src/Entry/Entry.php:156
 #, php-format
 msgid "Value of class \"%s\" cannot be converted to string."
 msgstr ""
 
-#: src/Entry/Entry.php:98 src/Entry/Entry.php:103
-msgid "Modification forbidden"
-msgstr ""
-
-#: config/module.config.php:107
+#: config/module.config.php:114
 msgid "Dashboard"
 msgstr ""
 
-#: config/module.config.php:120
+#: config/module.config.php:127
 msgid "Past Imports"
 msgstr ""
 
-#: config/module.config.php:137
+#: config/module.config.php:144
 msgid "Params"
 msgstr ""
 
-#: config/module.config.php:144
+#: config/module.config.php:151
 msgid "Logs"
 msgstr ""
 
-#: test/BulkImportTest/Job/ImportTest.php:305
+#: test/BulkImportTest/Job/ImportTest.php:306
 #, php-format
 msgid "No argument files (%s)."
 msgstr ""
