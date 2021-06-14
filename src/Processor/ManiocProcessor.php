@@ -1458,6 +1458,7 @@ SQL;
             );
         }
 
+        // ATTENTION : ne pas supprimer en amont les propriétés dont on a besoin en aval.
         if ($action === 'remove') {
             $this->transformOperations([
                 [
@@ -1495,9 +1496,26 @@ SQL;
                             'action' => 'create_resource',
                             'params' => [
                                 'mapping_properties' => [
-                                    'manioc:themeGeneral',
+                                    'dcterms:creator' => 'foaf:name',
+                                    'dcterms:contributor' => 'foaf:name',
+                                    'manioc:personne' => 'foaf:name',
+                                    // Organisateur audio-vidéo ci-après.
                                 ],
-                                'destination' => 'dcterms:title',
+                                // Il faut le mettre ici, sinon on ne pourra plus
+                                // repérer les ressources pour le groupe "personnes et collectivités"
+                                // sauf via le code random.
+                                // TODO Permettre l'utilisation du code random dans l'étape finale (via un index spécifique à ajouter ici).
+                                'template' => 'Personne',
+                                'link_resource' => true,
+                                'reciprocal' => null,
+                            ],
+                        ],
+                        [
+                            'action' => 'create_resource',
+                            'params' => [
+                                'mapping_properties' => [
+                                    'manioc:themeGeneral' => 'dcterms:title',
+                                ],
                                 'resource_type' => 'item_sets',
                                 'template' => 'Corpus et sélection documentaire',
                             ],
@@ -1515,23 +1533,33 @@ SQL;
                         [
                             'action' => 'create_resource',
                             'params' => [
+                                'mapping_properties' => [
+                                    'dcterms:publisher' => 'foaf:name',
+                                ],
+                                'link_resource' => true,
+                                'reciprocal' => null,
+                            ],
+                        ],
+                        [
+                            'action' => 'create_resource',
+                            'params' => [
                                 'mapping' => 'manifestations',
                                 'template' => 'Manifestation',
-                                // Simplifie la création des ressources liées,
-                                // supprimées ci-dessous.
-                                'source_term' => 'greenstone:unknownFile',
+                                // Simplifie la création des ressources liées.
+                                'source_term' => 'bio:olb',
                             ],
                         ],
                         [
                             'action' => 'link_resource',
                             'params' => [
                                 'source' => 'dcterms:isPartOf',
-                                'identifier' => 'greenstone:unknownFile',
+                                'identifier' => 'bio:olb',
                                 'destination' => 'dcterms:isPartOf',
                                 'reciprocal' => 'dcterms:hasPart',
                                 'keep_source' => false,
                             ],
                         ],
+                        /* // La source est conservée pour l'enrichissement.
                         [
                             'action' => 'remove_value',
                             'params' => [
@@ -1545,10 +1573,13 @@ SQL;
                                 ],
                             ],
                         ],
+                        */
                     ]);
                 } else if ($group === self::TYPE_IMAGE) {
                     // Cette opération ne dépend pas de la propriété en cours
                     // mais des ressources.
+                    // Attention: la source manioc:internalLink est supprimée
+                    // lors d'une étape postérieure.
                     $this->transformOperations([
                         // Le titre est issu de la valeur dc.Relation^IsPartOf,
                         // mise à jour dans l'opération précédente, mais il
@@ -1586,25 +1617,53 @@ SQL;
                             ],
                         ],
                     ]);
+                } elseif ($group === self::TYPE_PERSONNE_COLLECTIVITE) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'append_value',
+                            'params' => [
+                                'source' => 'foaf:name',
+                                'datatype' => 'valuesuggest:idref:author',
+                                'mapping' => 'valuesuggest:idref:author',
+                                'partial_mapping' => true,
+                                'name' => 'auteurs',
+                                'prefix' => 'https://www.idref.fr/',
+                                'properties' => [
+                                    'identifier' => 'dcterms:identifier',
+                                    'info' => 'bio:biography',
+                                    'bio:birth' => 'bio:birth',
+                                    'bio:death' => 'bio:death',
+                                    'bio:biography' => 'bio:biography',
+                                ],
+                            ],
+                        ],
+                    ]);
+                } elseif ($group === self::TYPE_MANIFESTATION) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'append_value',
+                            'params' => [
+                                'source' => 'bio:olb',
+                                'datatype' => 'valuesuggest:idref:author',
+                                'mapping' => 'valuesuggest:idref:author',
+                                'partial_mapping' => true,
+                                'name' => 'auteurs',
+                                'prefix' => 'https://www.idref.fr/',
+                                // Les dates, lieux, etc. sont déjà ajoutés via la table.
+                                'properties' => [
+                                    'identifier' => 'dcterms:identifier',
+                                ],
+                            ],
+                        ],
+                    ]);
                 }
-                break;
+            break;
 
             case 'Auteur':
             case 'Auteur secondaire':
             case 'Personne (sujet)':
-                $this->transformOperations([
-                    [
-                        'action' => 'convert_datatype',
-                        'params' => [
-                            'datatype' => 'valuesuggest:idref:author',
-                            'source' => $map['property_id'],
-                            'mapping' => 'valuesuggest:idref:author',
-                            'partial_mapping' => true,
-                            'name' => 'auteurs',
-                            'prefix' => 'https://www.idref.fr/',
-                        ],
-                    ],
-                ]);
+                // Rien à faire : ils ont tous été déplacés en notices personne
+                // ou collectivité en étape Pre.
                 break;
 
             case 'Droits':
@@ -1654,22 +1713,7 @@ SQL;
                             ],
                         ]);
                         break;
-                    case self::TYPE_AUDIO_VIDEO:
-                        $this->transformOperations([
-                            // dcterms:publisher => dcterms:publisher (idref collectivité)
-                            [
-                                'action' => 'convert_datatype',
-                                'params' => [
-                                    'datatype' => 'valuesuggest:idref:corporation',
-                                    'source' => $map['property_id'],
-                                    'mapping' => 'dcterms:publisher',
-                                    'partial_mapping' => true,
-                                    'name' => 'editeurs',
-                                    'prefix' => 'https://www.idref.fr/',
-                                ],
-                            ],
-                        ]);
-                        break;
+
                     default:
                         break;
                 }
@@ -1701,8 +1745,8 @@ SQL;
                                 /*
                                 // dcterms:subject ^^uri
                                 'dcterms:subject' => [
-                                    'replace' => 'http://dewey.info/class/{source}/ {destination}',
-                                    'remove_space_source' => true,
+                                     'replace' => 'http://dewey.info/class/{source}/ {destination}',
+                                     'remove_space_source' => true,
                                 ],
                                 */
                                 // dcterms:subject ^^customvocab:thematique-dewey
