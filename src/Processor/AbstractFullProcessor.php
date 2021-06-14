@@ -2,6 +2,7 @@
 
 namespace BulkImport\Processor;
 
+use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Reader\FakeReader;
 use BulkImport\Traits\ConfigurableTrait;
@@ -444,7 +445,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      *
      * @var string
      */
-    protected $importConfigFile = '';
+    protected $fileMapping = '';
 
     /**
      * The entity being inserted.
@@ -568,7 +569,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
-        if ($this->importConfigFile && !$this->getConfigMapping()) {
+        if ($this->fileMapping && !$this->getTableFromFile($this->fileMapping)) {
             return;
         }
 
@@ -1261,6 +1262,34 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
+    protected function getNormalizedMapping(): ?array
+    {
+        $table = $this->getTableFromFile($this->fileMapping);
+        if (!$table) {
+            return null;
+        }
+
+        foreach ($table as $key => &$map) {
+            // Mysql is case insensitive, but not php array.
+            $map = array_change_key_case($map);
+            $field = $map['source'] ?? null;
+            $term = $map['destination'] ?? null;
+            if (empty($field) || empty($term)) {
+                unset($table[$key]);
+            } else {
+                $termId = $this->bulk->getPropertyId($term);
+                if ($termId) {
+                    $map['property_id'] = $termId;
+                } else {
+                    unset($table[$key]);
+                }
+            }
+        }
+        unset($map);
+
+        return $table;
+    }
+
     /**
      * Copy the mapping of source ids and resource ids into a temp csv file.
      *
@@ -1277,7 +1306,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $content .= "$k\t$v\n";
         });
 
-        // TODO Use (but check if mysql has access to it).
+        // TODO Use omeka temp directory (but check if mysql has access to it).
         $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
         touch($filepath . '.csv');
         @unlink($filepath);
@@ -1294,41 +1323,43 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         return $filepath;
     }
 
-    protected function getConfigMapping(): ?array
+    protected function getTableFromFile(?string $filename): ?array
     {
-        if (empty($this->importConfigFile)) {
+        if (empty($filename)) {
             return null;
         }
 
-        $extension = pathinfo($this->importConfigFile, PATHINFO_EXTENSION);
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
 
-        if (file_exists(OMEKA_PATH . '/' . $this->importConfigFile)) {
-            $filepath = OMEKA_PATH . '/' . $this->importConfigFile;
-        } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $this->importConfigFile)) {
-            $filepath = dirname(__DIR__, 2) . '/data/imports/' . $this->importConfigFile;
+        if (file_exists(OMEKA_PATH . '/' . $filename)) {
+            $filepath = OMEKA_PATH . '/' . $filename;
+        } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $filename)) {
+            $filepath = dirname(__DIR__, 2) . '/data/imports/' . $filename;
         } else {
             $this->hasError = true;
             $this->logger->err(
                 'Missing file "{filepath}" for the mapping of values.', // @translate
-                ['filepath' => $this->importConfigFile]
+                ['filepath' => $filename]
             );
             return null;
         }
 
         if ($extension === 'php') {
-            $configMapping = include $filepath;
+            $mapper = include $filepath;
+        } elseif ($extension === 'ods') {
+            $mapper = $this->odsToArray($filepath);
         } elseif ($extension === 'tsv') {
-            $configMapping = $this->tsvToArray($filepath);
+            $mapper = $this->tsvToArray($filepath);
         } else {
             $this->hasError = true;
             $this->logger->err(
                 'Unmanaged extension for file "{filepath}" for the mapping of values.', // @translate
-                ['filepath' => $this->importConfigFile]
+                ['filepath' => $filename]
             );
             return null;
         }
 
-        if (empty($configMapping)) {
+        if (empty($mapper)) {
             $this->hasError = true;
             $this->logger->err(
                 'Empty mapping for values.' // @translate
@@ -1336,40 +1367,94 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return null;
         }
 
-        return $configMapping;
-    }
-
-    protected function getNormalizedMapping()
-    {
-        $configMapping = $this->getConfigMapping();
-        if (!$configMapping) {
-            return null;
-        }
-
-        foreach ($configMapping as $key => &$map) {
+        // Trim all values of all rows.
+        foreach ($mapper as $key => &$map) {
             // Fix trailing rows.
             if (!is_array($map)) {
-                unset($configMapping[$key]);
+                unset($mapper[$key]);
                 continue;
             }
-            // Mysql is case insensitive, but not php array.
-            $map = array_change_key_case($map);
-            $field = $map['source'] ?? null;
-            $term = $map['destination'] ?? null;
-            if (empty($field) || empty($term)) {
-                unset($configMapping[$key]);
-            } else {
-                $termId = $this->bulk->getPropertyId($term);
-                if ($termId) {
-                    $map['property_id'] = $termId;
-                } else {
-                    unset($configMapping[$key]);
-                }
+            $map = array_map('trim', array_map('strval', $map));
+            if (!array_filter($map, 'strlen')) {
+                unset($mapper[$key]);
             }
         }
         unset($map);
 
-        return $configMapping;
+        return $mapper;
+    }
+
+    /**
+     * Quick import a small ods config file into an array with headers as keys.
+     *
+     * @see \BulkImport\Reader\OpenDocumentSpreadsheetReader::initializeReader()
+     */
+    protected function odsToArray(string $filepath): ?array
+    {
+        if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
+            return null;
+        }
+
+        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+        // Manage compatibility with old version of CSV Import.
+        // For now, it should be first checked.
+        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
+            $spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create($this->spreadsheetType);
+        } elseif (class_exists(ReaderEntityFactory::class)) {
+            /** @var \Box\Spout\Reader\ODS\Reader $spreadsheetReader */
+            $spreadsheetReader = ReaderEntityFactory::createODSReader();
+        } else {
+            $this->hasError = true;
+            $this->logger->err(
+                'The library to manage OpenDocument spreadsheet is not available.' // @translate
+            );
+            return null;
+        }
+
+        try {
+            $spreadsheetReader->open($filepath);
+        } catch (\Box\Spout\Common\Exception\IOException $e) {
+            $this->hasError = true;
+            $this->logger->err(
+                'File "{filename}" cannot be open.', // @translate
+                ['filename' => $filepath]
+            );
+            return null;
+        }
+
+        $spreadsheetReader
+            // ->setTempFolder($this->config['temp_dir'])
+            // Read the dates as text. See fix #179 in CSVImport.
+            // TODO Read the good format in spreadsheet entry.
+            ->setShouldFormatDates(true);
+
+        // Process first sheet only.
+        foreach ($spreadsheetReader->getSheetIterator() as $sheet) {
+            $iterator = $sheet->getRowIterator();
+            break;
+        }
+
+        if (empty($iterator)) {
+            return null;
+        }
+
+        $first = true;
+        $headers = [];
+        $data = [];
+        foreach ($iterator as $row) {
+            $cells = $row->getCells();
+            $cells = array_map('trim', $cells);
+            if ($first) {
+                $first = false;
+                $headers = $cells;
+            } else {
+                $data[] = array_combine($headers, $cells);
+            }
+        }
+
+
+        $spreadsheetReader->close();
+        return $data;
     }
 
     /**
@@ -1383,10 +1468,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $content = file_get_contents($filepath);
         $rows = explode("\n", $content);
-        $headers = str_getcsv(array_shift($rows), "\t", '"', '\\');
+        $headers = array_map('trim', str_getcsv(array_shift($rows), "\t", '"', '\\'));
         $data = [];
         foreach ($rows as $row) {
-            $data[] = array_combine($headers, str_getcsv($row, "\t", '"', '\\'));
+            $data[] = array_combine($headers, array_map('trim', str_getcsv($row, "\t", '"', '\\')));
         }
         return $data;
     }

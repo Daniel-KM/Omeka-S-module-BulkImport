@@ -57,7 +57,7 @@ class ManiocProcessor extends AbstractFullProcessor
         ],
     ];
 
-    protected $importConfigFile = 'manioc/mapping.tsv';
+    protected $fileMapping = 'manioc/mapping.ods';
 
     protected $tables = [
         'fichiers',
@@ -286,8 +286,8 @@ class ManiocProcessor extends AbstractFullProcessor
     protected function fillValues(iterable $sources): void
     {
         // The mapping is already checked during initial checks.
-        $configMapping = $this->getNormalizedMapping();
-        if (!$configMapping) {
+        $normalizedMapping = $this->getNormalizedMapping();
+        if (!$normalizedMapping) {
             $this->logger->warn(
                 'The mapping defined for values should use terms or property ids.' // @translate
             );
@@ -332,7 +332,7 @@ CREATE TEMPORARY TABLE `_temporary_map_property` (
 
 SQL;
         $data = [];
-        foreach ($configMapping as $map) {
+        foreach ($normalizedMapping as $map) {
             $data[] = '"' . $map['source'] . '",' . $map['property_id'];
         }
         $sql .= 'INSERT INTO `_temporary_map_property` (`nom`, `property_id`) VALUES(' . implode('),(', $data) . ");\n";
