@@ -91,7 +91,7 @@ trait ConfigTrait
             $extensions = [$extension];
         } else {
             $baseFilename = $filename;
-            $extensions = ['php', 'ods', 'tsv', 'csv'];
+            $extensions = ['php', 'ods', 'tsv', 'csv', 'txt'];
         }
 
         $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -141,6 +141,44 @@ trait ConfigTrait
     }
 
     /**
+     * Get a one column table from a file (php, ods, tsv or csv).
+     */
+    protected function loadList(?string $configKey): ?array
+    {
+        $filepath = $this->getConfigFilepath($configKey);
+        if (!$filepath) {
+            return null;
+        }
+
+        $extension = mb_strtolower(pathinfo($filepath, PATHINFO_EXTENSION));
+        if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
+            return null;
+        }
+
+        if ($extension === 'php') {
+            $mapper = include $filepath;
+            return array_values($mapper);
+        } elseif ($extension === 'ods') {
+            $mapper = $this->odsToArray($filepath, true);
+            return array_keys($mapper);
+        } elseif ($extension === 'csv') {
+            // There may be the enclosure.
+            $mapper = $this->csvToArray($filepath, true);
+            return array_keys($mapper);
+        } elseif (in_array($extension, ['tsv', 'txt'])) {
+            $content = file_get_contents($filepath);
+            return array_values(array_filter(array_map('trim', explode("\n", $content)), 'strlen'));
+        } else {
+            $this->hasError = true;
+            $this->logger->err(
+                'Unmanaged extension for file "{filepath}".', // @translate
+                ['filepath' => $this->configs[$configKey]['file']]
+            );
+            return null;
+        }
+    }
+
+    /**
      * Get a two columns table from a file (php, ods, tsv or csv).
      */
     protected function loadKeyValuePair(?string $configKey, bool $flip = false): ?array
@@ -179,7 +217,9 @@ trait ConfigTrait
             $mapper = $this->odsToArray($filepath, $keyValuePair);
         } elseif ($extension === 'tsv') {
             $mapper = $this->tsvToArray($filepath, $keyValuePair);
-        } elseif ($extension === 'csv') {
+        } elseif ($extension === 'csv'
+            || $extension === 'txt'
+        ) {
             $mapper = $this->csvToArray($filepath, $keyValuePair);
         } else {
             $this->hasError = true;
@@ -306,7 +346,12 @@ trait ConfigTrait
                 $cells[] = '';
                 $cells[] = '';
                 $cells = array_slice($cells, 0, 2);
-                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
+                $key = trim((string) $cells[0]);
+                if ($key === '') {
+                    continue;
+                }
+                $value = trim((string) $cells[1]);
+                $data[$key] = $data[$value];
             }
             $spreadsheetReader->close();
             return $data;
@@ -376,7 +421,12 @@ trait ConfigTrait
                 $cells[] = '';
                 $cells[] = '';
                 $cells = array_slice($cells, 0, 2);
-                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
+                $key = trim((string) $cells[0]);
+                if ($key === '') {
+                    continue;
+                }
+                $value = trim((string) $cells[1]);
+                $data[$key] = $data[$value];
             }
             return $data;
         }
