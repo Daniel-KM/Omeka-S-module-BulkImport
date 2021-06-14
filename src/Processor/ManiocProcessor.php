@@ -1647,6 +1647,20 @@ SQL;
                             break;
 
                         case 'Post':
+                            if ($header === self::TYPE_AUDIO_VIDEO) {
+                                $this->transformOperations([
+                                    [
+                                        'action' => 'copy_values_linked',
+                                        'params' => [
+                                            'source' => 'dcterms:isPartOf',
+                                            'properties' => [
+                                                'dcterms:language',
+                                                'dcterms:audience',
+                                            ],
+                                        ],
+                                    ],
+                                ]);
+                            }
                             break;
 
                         default:

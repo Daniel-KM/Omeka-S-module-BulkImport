@@ -411,6 +411,13 @@ SQL;
                     }
                     break;
 
+                case 'copy_values_linked':
+                    $result = $this->operationCopyValuesLinked($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
                 case 'remove_values':
                     $result = $this->operationRemoveValues($operation['params']);
                     if (!$result) {
@@ -710,11 +717,100 @@ SQL;
         return true;
     }
 
+    /**
+     * Copy all specified values of resources in their linked resources.
+     *
+     * For example, copy all values with properties dcterms:language and dcterms:audience
+     * in the resources linked via the property dcterms:isPartOf.
+     */
+    protected function operationCopyValuesLinked(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        if (empty($params['properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a list of properties.', // @translate
+                ['action' => $this->operationName]
+            );
+            return true;
+        }
+
+        if (!is_array($params['properties'])) {
+            $params['properties'] = [$params['properties']];
+        }
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['properties'] as $property) {
+            $propertyId = $this->bulk->getPropertyId($property);
+            $propertyId
+                ? $properties[$property] = $propertyId
+                : $errors[] = $property;
+        }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $propertyIds = implode(', ', $properties);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Create distinct values from a list of values of linked resources.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+SELECT DISTINCT
+    `value_linked`.`value_resource_id`,
+    `value`.`property_id`,
+    `value`.`value_resource_id`,
+    `value`.`type`,
+    `value`.`lang`,
+    `value`.`value`,
+    `value`.`uri`,
+    `value`.`is_public`
+FROM `value`
+JOIN `value` AS `value_linked`
+    ON `value_linked`.`resource_id` = `value`.`resource_id`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value_linked`.`value_resource_id` IS NOT NULL
+    AND `value`.`property_id` IN ($propertyIds)
+    AND `value_linked`.`property_id` = $sourceId
+    $sqlExcludeWhere
+ORDER BY `value_linked`.`value_resource_id`
+;
+SQL;
+
+        return true;
+    }
+
     protected function operationRemoveValues(array $params): bool
     {
         if (empty($params['properties'])) {
             $this->logger->err(
-                'The operation "{action}" has no property to remove.', // @translate
+                'The operation "{action}" requires a list of properties.', // @translate
                 ['action' => $this->operationName]
             );
             return true;
