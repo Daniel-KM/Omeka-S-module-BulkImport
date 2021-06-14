@@ -73,12 +73,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * @todo Check collation for some identifiers (see CleanUrl).
      *
      * @param array|string $identifiers Identifiers should be unique. If a
-     * string is sent, the result will be the resource.
+     * string is sent, the result will be the resource. For resources values,
+     * identifiers can be the value itself or the uri, but not the label of the uri.
      * @param string|int|array $identifierName Property as integer or term,
      * "o:id", a media ingester (url or file), or an associative array with
-     * multiple conditions (for media source). May be a list of identifier
-     * metadata names, in which case the identifiers are searched in a list of
-     * properties and/or in internal ids.
+     * multiple conditions. May be a list of identifier metadata names, in which
+     * case the identifiers are searched in a list of properties and/or in
+     * internal ids.
      * @param string $resourceType The resource type if any.
      * @param bool $uniqueOnly When true and there are duplicate identifiers,
      * returns an object with the list of identifiers and their count. When the
@@ -390,8 +391,9 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             // the case where the flag ONLY_FULL_GROUP_BY is set.
             // Results are the same, because the "Where" condition returns only
             // duplicate values.
+            // In sql, « <> "" » includes « is not null », but « = "" » does not return « is null ».
             ->select([
-                'MIN(value.value) AS "identifier"',
+                'CASE WHEN MIN(value.uri) <> "" THEN MIN(value.uri) ELSE MIN(value.value) END AS "identifier"',
                 'MIN(value.resource_id) AS "id"',
                 'COUNT(DISTINCT(value.resource_id)) AS "count"',
             ])
@@ -406,7 +408,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $parameters = [];
         if (count($identifiers) === 1) {
             $qb
-                ->andWhere($expr->eq('value.value', ':identifier'));
+                ->andWhere($expr->orX(
+                    $expr->eq('value.uri', ':identifier'),
+                    $expr->andX(
+                        $expr->eq('value.value', ':identifier'),
+                        'value.uri IS NULL OR value.uri = ""'
+                    )
+                ));
             $parameters['identifier'] = reset($identifiers);
         } else {
             // Warning: there is a difference between qb / dbal and qb / orm for
@@ -419,7 +427,14 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 $placeholders[] = ':' . $placeholder;
             }
             $qb
-                ->andWhere($expr->in('value.value', $placeholders));
+                ->andWhere($expr->orX(
+                    $expr->in('value.uri', $placeholders),
+                    $expr->andX(
+                        $expr->in('value.value', $placeholders),
+                        // The column "uri" may not be cleaned.
+                        'value.uri IS NULL OR value.uri = ""'
+                    )
+                ));
         }
 
         if (count($propertyIds) === 1) {
@@ -448,10 +463,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         // but not sure if it can manage all cases (special data types).
         // It avoids to output a null value when there is no identifier too.
         $qb
-            ->andWhere($expr->orX(
-                $expr->andX($expr->isNotNull('value.uri'), $expr->neq('value.uri', '')),
-                $expr->andX($expr->isNotNull('value.value'), $expr->neq('value.value', ''))
-            ));
+            ->andWhere('value.uri <> "" OR value.value <> ""');
 
         $qb
             ->setParameters($parameters);
