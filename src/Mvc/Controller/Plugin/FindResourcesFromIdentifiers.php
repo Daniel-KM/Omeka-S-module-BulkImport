@@ -461,6 +461,16 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $parameters['resource_type'] = $resourceType;
         }
 
+        // Add a performance filter.
+        // A simple filter can be added with "where value_resource_id is null"
+        // but not sure if it can manage all cases (special data types).
+        // It avoids to output a null value when there is no identifier too.
+        $qb
+            ->andWhere($expr->orX(
+                $expr->andX($expr->isNotNull('value.uri'), $expr->neq('value.uri', '')),
+                $expr->andX($expr->isNotNull('value.value'), $expr->neq('value.value', ''))
+            ));
+
         $qb
             ->setParameters($parameters);
 
