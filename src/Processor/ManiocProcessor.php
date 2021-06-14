@@ -1429,8 +1429,7 @@ SELECT
 FROM `value`
 JOIN `resource`
     ON `resource`.`id` = `value`.`resource_id`
-WHERE
-    (`value`.`type` = 'literal' OR `value`.`type` = '' OR `value`.`type` IS NULL)
+WHERE 1 = 1
     $sqlAndProperty
     $sqlAndWhere
 ;
@@ -1629,7 +1628,7 @@ SQL;
                                 'name' => 'auteurs',
                                 'prefix' => 'https://www.idref.fr/',
                                 'properties' => [
-                                    'identifier' => 'dcterms:identifier',
+                                    'identifier' => 'bibo:uri',
                                     'info' => 'bio:biography',
                                     'bio:birth' => 'bio:birth',
                                     'bio:death' => 'bio:death',
@@ -1642,6 +1641,8 @@ SQL;
                                 ],
                             ],
                         ],
+                        // The filling cannot be done here, since bibo:uri is
+                        // not yet a uri.
                     ]);
                 } elseif ($group === self::TYPE_MANIFESTATION) {
                     $this->transformOperations([
@@ -1656,7 +1657,7 @@ SQL;
                                 'prefix' => 'https://www.idref.fr/',
                                 // Les dates, lieux, etc. sont déjà ajoutés via la table.
                                 'properties' => [
-                                    'identifier' => 'dcterms:identifier',
+                                    'identifier' => 'bibo:uri',
                                 ],
                             ],
                         ],
@@ -1868,6 +1869,54 @@ SQL;
                                     'dcterms:language',
                                     'dcterms:audience',
                                 ],
+                            ],
+                        ],
+                    ]);
+                } elseif ($group === self::TYPE_LIVRE) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'dcterms:description',
+                                'destination' => 'dcterms:abstract',
+                            ],
+                        ],
+                    ]);
+                } elseif ($group === self::TYPE_PERSONNE_COLLECTIVITE) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'fill_resource',
+                            'params' => [
+                                'source' => 'bibo:uri',
+                                'properties' => [
+                                    '/record/datafield[@tag="200"]/subfield[@code="a"][1]' => 'foaf:familyName',
+                                    '/record/datafield[@tag="200"]/subfield[@code="b"][1]' => 'foaf:givenName',
+                                    '/record/datafield[@tag="901"]/subfield[@code="a"][1]' => 'dcterms:alternative',
+                                    // Dates are already updated with search query.
+                                    '/record/datafield[@tag="103"]/subfield[@code="a"][1]' => 'bio:birth',
+                                    '/record/datafield[@tag="103"]/subfield[@code="b"][1]' => 'bio:death',
+                                    '/record/datafield[@tag="120"]/subfield[@code="a"][1]' => 'foaf:gender',
+                                    '/record/datafield[@tag="101"]/subfield[@code="a"][1]' => 'dcterms:language',
+                                    '/record/datafield[@tag="102"]/subfield[@code="a"][1]' => 'bio:place',
+                                    '/record/datafield[@tag="200"]/subfield[@code="c"][1]' => 'bio:biography',
+                                    '/record/datafield[@tag="300"]/subfield[@code="a"][1]' => 'bio:biography',
+                                    '/record/datafield[@tag="340"]/subfield[@code="a"][1]' => 'bio:biography',
+                                    '/record/datafield[@tag="810"]/subfield[@code="a"][1]' => 'dcterms:bibliographicCitation',
+                                    '/record/datafield[@tag="810"]/subfield[@code="b"][1]' => 'dcterms:bibliographicCitation',
+                                ],
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'bibo:uri',
+                                'filters' => [
+                                    'datatypes' => [
+                                        'uri',
+                                        'valuesuggest',
+                                    ],
+                                ],
+                                'value' => null,
                             ],
                         ],
                     ]);

@@ -5,8 +5,11 @@ namespace BulkImport\Processor;
 use Box\Spout\Common\Entity\Style\Color;
 use Box\Spout\Writer\Common\Creator\Style\StyleBuilder;
 use Box\Spout\Writer\Common\Creator\WriterEntityFactory;
+use DomDocument;
+use DOMXPath;
 use Laminas\Http\Client\Exception\ExceptionInterface as HttpExceptionInterface;
 use Laminas\Http\ClientStatic;
+// use SimpleXMLElement;
 
 /**
  * The transformation applies to all values of table "_temporary_value_id".
@@ -98,6 +101,13 @@ trait MetadataTransformTrait
 
                 case 'link_resource':
                     $result = $this->operationLinkResource($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
+                case 'fill_resource':
+                    $result = $this->operationFillResource($operation['params']);
                     if (!$result) {
                         return;
                     }
@@ -452,6 +462,215 @@ SQL;
         return true;
     }
 
+    protected function operationFillResource(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+        $sourceTerm = $this->getPropertyTerm($sourceId);
+
+        if (empty($params['properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a list of properties.', // @translate
+                ['action' => $this->operationName]
+            );
+            return true;
+        }
+
+        $params['properties'] = (array) $params['properties'];
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['properties'] as $property) {
+            $propertyId = $this->bulk->getPropertyId($property);
+            $propertyId
+                ? $properties[$property] = $propertyId
+                : $errors[] = $property;
+        }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $list = $this->listDataValues([$sourceTerm => $sourceId], ['valuesuggest'], 'uri', false);
+
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/96.0',
+            'Content-Type' => 'application/xml',
+            'Accept-Encoding' => 'gzip, deflate',
+        ];
+
+        /** @link http://documentation.abes.fr/sudoc/formats/unma/zones/120.htm */
+        $unimarcGenders = [
+            'a' => 'féminin',
+            'b' => 'masculin',
+            'u' => 'inconnu',
+            // 'x' => 'non applicable',
+        ];
+        /** @link http://documentation.abes.fr/sudoc/formats/unma/zones/102.htm */
+        $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'URI');
+        $countries['XX'] = 'Pays inconnu';
+        $countries['ZZ'] = 'Pays multiples';
+
+        $mapper = [];
+        $processed = 0;
+        $totalNewData = 0;
+        $succeed = 0;
+        foreach ($list as $source) {
+            ++$processed;
+            //  TODO Manage other uris than idref.
+            if (!$source || mb_substr($source, 0, 21) !== 'https://www.idref.fr/') {
+                continue;
+            }
+            $url = mb_substr($source, -4) === '.xml' ? $source : $source . '.xml';
+            try {
+                $response = ClientStatic::get($url, [], $headers);
+            } catch (HttpExceptionInterface $e) {
+                $this->logger->err(
+                    'Operation "{action}": connection issue: {exception}', // @translate
+                    ['action' => $this->operationName, 'exception' => $e]
+                );
+                return false;
+            }
+            if (!$response->isSuccess()) {
+                $this->logger->warn(
+                    'Operation "{action}": connection issue for uri {url}.', // @translate
+                    ['action' => $this->operationName, 'url' => $source]
+                );
+                continue;
+            }
+
+            $xml = $response->getBody();
+            if (!$xml) {
+                $this->logger->warn(
+                    'Operation "{action}": no result for uri {url}.', // @translate
+                    ['action' => $this->operationName, 'url' => $source]
+                );
+                continue;
+            }
+
+            // $simpleData = new SimpleXMLElement($xml, LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS
+            //     | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
+
+            libxml_use_internal_errors(true);
+            $doc = new DOMDocument();
+            try {
+                $doc->loadXML($xml);
+            } catch (\Exception $e) {
+                $doc = null;
+            }
+            if (!$doc) {
+                $this->logger->warn(
+                    'Operation "{action}": invalid xml for uri {url}.', // @translate
+                    ['action' => $this->operationName, 'url' => $source]
+                );
+                continue;
+            }
+
+            $xpath = new DOMXPath($doc);
+
+            $hasNew = false;
+            foreach  ($params['properties'] as $query => $property) {
+                $nodeList = $xpath->query($query);
+                if (!$nodeList || !$nodeList->length) {
+                    continue;
+                }
+                $value = trim((string) $nodeList->item(0)->nodeValue);
+                if ($value === '') {
+                    continue;
+                }
+                // Fixes.
+                $uri = null;
+                $type = 'literal';
+                $lang = null;
+                switch ($property) {
+                    default:
+                        break;
+                    case 'dcterms:language':
+                        if ($value === 'fre') {
+                            $value = 'fra';
+                        }
+                        $uri = 'http://id.loc.gov/vocabulary/iso639-2/' . $value;
+                        $type = 'valuesuggest:lc:languages';
+                        break;
+                    case 'foaf:gender':
+                        $value = $unimarcGenders[substr($value, 0, 1)] ?? null;
+                        if (!$value) {
+                            continue 2;
+                        }
+                        break;
+                    case 'bio:birth':
+                    case 'bio:death':
+                        $value = mb_substr($value, 0, 1) === '-'
+                            ? rtrim(mb_substr($value, 0, 5) . '-' . mb_substr($value, 5, 2) . '-' . mb_substr($value, 7, 2), '- ')
+                            : rtrim(mb_substr($value, 0, 4) . '-' . mb_substr($value, 4, 2) . '-' . mb_substr($value, 6, 2), '- ');
+                        break;
+                    case 'bio:place':
+                        if (isset($countries[$value])) {
+                            $uri = $countries[$value];
+                            $type = 'valuesuggest:geonames:geonames';
+                        }
+                        break;
+                }
+                $mapper[] = [
+                    'source' => $source,
+                    'property_id' => $properties[$property],
+                    'value_resource_id' => null,
+                    'type' => $type,
+                    'value' => $value,
+                    'uri' => $uri,
+                    'lang' => $lang,
+                    'is_public' => 1,
+                ];
+                $hasNew = true;
+                ++$totalNewData;
+            }
+
+            if ($hasNew) {
+                ++$succeed;
+            }
+            if ($processed % 100 === 0) {
+                $this->logger->info(
+                    'Operation "{action}": {count}/{total} uris processed, {succeed} with {total_data} new data.', // @translate
+                    ['action' => $this->operationName, 'count' => $processed, 'total' => count($list), 'succeed' => $succeed, 'total_data' => $totalNewData]
+                );
+                if ($this->isErrorOrStop()) {
+                    return true;
+                }
+            }
+        }
+
+        $this->storeMappingTable($mapper);
+
+        $this->processValuesTransformInsert([$sourceId], 'uri');
+
+        $this->removeMappingTables();
+
+        $this->logger->notice(
+            'Operation "{action}": {total} uris processed, {succeed} with {total_data} new data.', // @translate
+            ['action' => $this->operationName, 'total' => count($list), 'succeed' => $succeed, 'total_data' => $totalNewData]
+        );
+
+        return true;
+    }
+
     /**
      * Copy all specified values of resources in their linked resources.
      *
@@ -485,9 +704,7 @@ SQL;
             return true;
         }
 
-        if (!is_array($params['properties'])) {
-            $params['properties'] = [$params['properties']];
-        }
+        $params['properties'] = (array) $params['properties'];
 
         $properties = [];
         $errors = [];
@@ -551,9 +768,7 @@ SQL;
             return true;
         }
 
-        if (!is_array($params['properties'])) {
-            $params['properties'] = [$params['properties']];
-        }
+        $params['properties'] = (array) $params['properties'];
 
         $properties = [];
         $errors = [];
@@ -648,6 +863,24 @@ SQL;
             }
         }
 
+        $sqlFilters = '';
+        if (!empty($params['filters'])) {
+            $filters = &$params['filters'];
+            if (!empty($filters['datatypes'])) {
+                $datatypes = (array) $filters['datatypes'];
+                if (count($datatypes)) {
+                    $sqlFilters = 'AND (`value`.`type` IN (' . implode(', ', array_map([$this->connection, 'quote'], $datatypes)) . ')';
+                    if (in_array('valuesuggest', $datatypes)) {
+                        $sqlFilters .= ' OR `value`.`type` LIKE "valuesuggest%"';
+                    }
+                    if (in_array('', $datatypes)) {
+                        $sqlFilters .= ' OR `value`.`type` IS NULL';
+                    }
+                    $sqlFilters .= ')';
+                }
+            }
+        }
+
         $updates = [];
         if ($sourceId !== $destinationId) {
             $updates[] = '`value`.`property_id` = ' . $destinationId;
@@ -660,6 +893,9 @@ SQL;
             $updates['sql_uri'] = '`value`.`uri` = ' . $params['sql_uri'];
         }
         */
+        if (array_key_exists('value', $params)) {
+            $updates['value'] = '`value`.`value` = ' . (strlen((string) $params['value']) ? $this->connection->quote($params['value']) : 'NULL');
+        }
         // "prefix"/"suffix" and "value_prefix"/"value_suffix" are the same.
         $update = array_filter([
             isset($params['prefix']) ? $this->connection->quote($params['prefix']) : null,
@@ -715,6 +951,7 @@ SET
     $updates
 WHERE
     `value`.`property_id` = $sourceId
+    $sqlFilters
     $sqlExcludeWhere
 ;
 SQL;
@@ -896,7 +1133,11 @@ SQL;
             $params['name'] = str_replace(':', '-', $datatype .'_' . $this->transformIndex);
         }
 
-        $list = $this->prepareListForMappingSourceUris([$sourceTerm => $sourceId]);
+        // Only literal: the already mapped values (label + uri) can be used as
+        // mapping, but useless for a new database.
+        // For example, when authors are created in a previous step, foaf:name
+        // is always literal.
+        $list = $this->listDataValues([$sourceTerm => $sourceId], ['', 'literal'], 'value', true);
         if (is_null($list)) {
             return false;
         }
@@ -1544,7 +1785,11 @@ SQL;
 
         $sourceTerm = $params['source'] = $this->getPropertyTerm($sourceId);
 
-        $list = $this->prepareListForMappingSourceUris([$sourceTerm => $sourceId]);
+        // Only literal: the already mapped values (label + uri) can be used as
+        // mapping, but useless for a new database.
+        // For example, when authors are created in a previous step, foaf:name
+        // is always literal.
+        $list = $this->listDataValues([$sourceTerm => $sourceId], ['', 'literal'], 'value', true);
         if (is_null($list)) {
             return false;
         }
@@ -1603,8 +1848,12 @@ SQL;
         return true;
     }
 
-    protected function prepareListForMappingSourceUris(array $properties): ?array
-    {
+    protected function listDataValues(
+        array $properties,
+        array $datatypes = [],
+        string $column = 'value',
+        bool $asKey = false
+    ): ?array {
         if (empty($properties)) {
             $this->logger->info(
                 'Operation "{action}": the list of properties is empty.', // @translate
@@ -1613,13 +1862,31 @@ SQL;
             return null;
         }
 
-        // Get the list of unique values.
-        // TODO Only literal: the already mapped values (label + uri) can be used as mapping, but useless for a new database.
-        // For example, when authors are created in a previous step, foaf:name
-        // is always literal.
-        $sql = <<<'SQL'
+        if (count($datatypes)) {
+            $whereDatatype = 'AND (`value`.`type` IN (' . implode(', ', array_map([$this->connection, 'quote'], $datatypes)) . ')';
+            if (in_array('valuesuggest', $datatypes)) {
+                $whereDatatype .= ' OR `value`.`type` LIKE "valuesuggest%"';
+            }
+            if (in_array('', $datatypes)) {
+                $whereDatatype .= ' OR `value`.`type` IS NULL';
+            }
+            $whereDatatype .= ')';
+        } else {
+            $whereDatatype = '';
+        }
+
+        if (!in_array($column, ['value', 'uri', 'value_resource_id'])) {
+            $this->logger->info(
+                'Operation "{action}": Column should be "value", "uri" or "value_resource_id".', // @translate
+                ['action' => $this->operationName]
+            );
+            return null;
+        }
+
+        // Get the list of unique values (case insensitive).
+        $sql = <<<SQL
 SELECT DISTINCT
-    `value`.`value` AS `v`,
+    `value`.`$column` AS `v`,
     GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
 FROM `value`
 JOIN `_temporary_value`
@@ -1628,9 +1895,9 @@ JOIN `item`
     ON `item`.`id` = `value`.`resource_id`
 WHERE
     `value`.`property_id` IN (:property_ids)
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
+    $whereDatatype
+    AND `value`.`$column` <> ""
+    AND `value`.`$column` IS NOT NULL
 GROUP BY `v`
 ORDER BY `v`;
 
@@ -1647,9 +1914,11 @@ SQL;
         // Warning: array_column() is used because values are distinct and all
         // of them are strings.
         // Note that numeric topics ("1918") are automatically casted to integer.
-        $list = array_column($list, 'r', 'v');
-        $totalList = count($list);
+        $list = $asKey
+            ? array_column($list, 'r', 'v')
+            : array_column($list, 'v');
 
+        $totalList = count($list);
         if (!$totalList) {
             $this->logger->info(
                 'Operation "{action}": no value to map for terms "{terms}".', // @translate
@@ -1967,16 +2236,16 @@ SQL;
         unset($currentItems);
     }
 
-    protected function processValuesTransformUpdate(): void
+    protected function processValuesTransformUpdate(string $joinColumn = 'value'): void
     {
-        $this->operationSqls[] = <<<'SQL'
+        $this->operationSqls[] = <<<SQL
 # Update values according to the temporary table.
 UPDATE `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`value`
+    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
 SET
     `value`.`property_id` = `_temporary_mapper`.`property_id`,
     `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
@@ -1989,7 +2258,7 @@ SET
 SQL;
     }
 
-    protected function processValuesTransformInsert(array $propertyIds = []): void
+    protected function processValuesTransformInsert(array $propertyIds = [], string $joinColumn = 'value'): void
     {
         // The property may be different between value and temporary mapper:
         // the new values are created from a list of values.
@@ -1999,6 +2268,7 @@ SQL;
             : '';
 
         $this->operationSqls[] = <<<SQL
+# Insert values according to the temporary table.
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
 SELECT DISTINCT
@@ -2014,13 +2284,13 @@ FROM `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`source` = `value`.`value`
+    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
 $properties
 ;
 SQL;
     }
 
-    protected function processValuesTransformReplace(): void
+    protected function processValuesTransformReplace(string $joinColumn = 'value'): void
     {
         // To store the previous max value id is the simplest way to remove
         // updated values without removing other ones.
@@ -2055,7 +2325,7 @@ JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`value`
+    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
 ;
 SQL;
 
@@ -2067,7 +2337,7 @@ JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`value`
+    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
 JOIN `setting`
 WHERE
     `value`.`id` <= `setting`.`value`
@@ -2494,8 +2764,6 @@ SQL;
      *
      * @see \ValueSuggest\Suggester\Geonames\GeonamesSuggest::getSuggestions()
      * @link https://www.iso.org/obp/ui/fr/
-     *
-     * @todo Prepare list of countries with geonames translations (only English and French currently).
      */
     protected function valueSuggestQueryGeonames(string $value, string $datatype, array $options = [], int $loop = 0): ?array
     {
@@ -2504,7 +2772,7 @@ SQL;
         static $searchType;
 
         if (is_null($language2)) {
-            $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'Code alpha-2');
+            $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'ISO-2');
             $language2 = $this->getParam('language_2') ?: '';
             $searchType = $this->getParam('geonames_search') ?: 'strict';
         }
@@ -2597,7 +2865,7 @@ SQL;
                 } elseif (mb_strpos($value, $format['separator']) !== false) {
                     // Manage location like "France | Paris" or "Paris | France".
                     $valueList = array_map('trim', explode('|', $value));
-                    $arguments = is_array($format['arguments']) ? $format['arguments'] : [$format['arguments']];
+                    $arguments = (array) $format['arguments'];
                     foreach ($arguments as $argument)  {
                         $v = array_shift($valueList);
                         if (is_null($v)) {
@@ -2698,8 +2966,10 @@ SQL;
             $suggestions[] = [
                 'value' => $result['name'],
                 'data' => [
-                    // TODO The rdf name should be "https://sws.geonames.org/%s/" ?
-                    'uri' => sprintf('http://www.geonames.org/%s', $result['geonameId']),
+                    // TODO ValueSuggest uses the wrong domain: http://www.geonames.org.
+                    // 'uri' => sprintf('http://www.geonames.org/%s', $result['geonameId']),
+                    // Example: https://sws.geonames.org/3017382/.
+                    'uri' => sprintf('https://sws.geonames.org/%s/', $result['geonameId']),
                     'info' => implode("\n", $info),
                 ],
             ];
