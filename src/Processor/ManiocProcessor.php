@@ -11,6 +11,8 @@ use BulkImport\Form\Processor\ManiocProcessorParamsForm;
  */
 class ManiocProcessor extends AbstractFullProcessor
 {
+    use MetadataTransformTrait;
+
     protected $resourceLabel = 'Manioc'; // @translate
     protected $configFormClass = ManiocProcessorConfigForm::class;
     protected $paramsFormClass = ManiocProcessorParamsForm::class;
@@ -61,9 +63,11 @@ class ManiocProcessor extends AbstractFullProcessor
         ],
     ];
 
-    protected $fileMapping = 'manioc/mapping.ods';
-
-    protected $fileMigration = 'manioc/migration.ods';
+    protected $mappingFiles = [
+        'properties' => 'manioc/mapping.ods',
+        'migration' => 'manioc/migration.ods',
+        'languages' => 'manioc/languages.ods',
+    ];
 
     protected $tables = [
         'fichiers',
@@ -739,7 +743,7 @@ SQL;
 
     protected function transformItemValues(): void
     {
-        $migrationMapping = $this->getTableFromFile($this->fileMigration);
+        $migrationMapping = $this->getTableFromFile($this->mappingFiles['migration']);
         if (!$migrationMapping) {
             $this->logger->warn(
                 'No migration file is defined.' // @translate
@@ -926,47 +930,55 @@ SQL;
                         $bind = $baseBind + [
                             'property_id' => $map['property_id'],
                         ];
-                        $stmt = $this->connection->query($sql);
-                        $result = $stmt->execute();
+                        // TODO Check why the count of the result is not good, but the table is good.
+                        $result = $this->connection->executeUpdate($sql, $bind);
+                        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
                         $realValue = trim(substr($value, 1));
-                        switch ($result && $stmt->rowCount() ? $realValue : 'skip') {
-                            case 'Auteur secondaire':
-                                break;
-                            case 'Pays|Ville (sujet)':
-                                break;
-                            case 'Auteur':
-                                break;
-                            case 'Langue':
-                                break;
-                            case 'Editeur':
-                                break;
-                            case 'Fait partie de':
-                                break;
-                            case 'Droits':
-                                break;
-                            case 'Mot-clé':
-                                break;
-                            case 'Sujet géographique':
-                                break;
-                            case 'Indice Dewey':
-                                break;
-                            case 'Personne (sujet)':
-                                break;
-                            case 'Thématique audio-vidéo':
-                                break;
-                            case 'Thématique images':
-                                break;
-                            case 'Thématique ouvrages numérisés':
-                                break;
-                            case 'Thématique recherche':
-                                break;
-                            default:
-                                $notManaged[] = $realValue;
-                                break;
+                        if ($result) {
+                            $this->logger->info(
+                                'Updating {total} values for template "{template}", property "{term}" (source "{source}").', // @translate
+                                ['total' => $result, 'template' => $templateLabel, 'term' => $map['term'], 'source' => $map['elément']]
+                            );
+                            switch ($realValue) {
+                                case 'Auteur secondaire':
+                                    break;
+                                case 'Pays|Ville (sujet)':
+                                    break;
+                                case 'Auteur':
+                                    break;
+                                case 'Langue':
+                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:iso6392', [
+                                        'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
+                                        'mapping' => $this->getTableFromFile($this->mappingFiles['languages']),
+                                    ]);
+                                    break;
+                                case 'Editeur':
+                                    break;
+                                case 'Fait partie de':
+                                    break;
+                                case 'Droits':
+                                    break;
+                                case 'Mot-clé':
+                                    break;
+                                case 'Sujet géographique':
+                                    break;
+                                case 'Indice Dewey':
+                                    break;
+                                case 'Personne (sujet)':
+                                    break;
+                                case 'Thématique audio-vidéo':
+                                    break;
+                                case 'Thématique images':
+                                    break;
+                                case 'Thématique ouvrages numérisés':
+                                    break;
+                                case 'Thématique recherche':
+                                    break;
+                                default:
+                                    $notManaged[] = $realValue;
+                                    break;
+                            }
                         }
-
-                        $this->connection->query($sql);
-
                         break;
 
                     // Copy all values starting with "+", so nothing to do

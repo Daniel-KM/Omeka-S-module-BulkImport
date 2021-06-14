@@ -439,13 +439,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     ];
 
     /**
-     * The path to the mapping file for properties.
+     * The paths to the mapping files.
      *
-     * Relative path to Omeka root or inside folder data/imports of the module.
+     * List of relative paths to Omeka root or inside the folder data/imports of
+     * the module.
      *
-     * @var string
+     * @var string[]
      */
-    protected $fileMapping = '';
+    protected $mappingFiles = [
+        'properties' => '',
+    ];
 
     /**
      * The entity being inserted.
@@ -569,7 +572,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
-        if ($this->fileMapping && !$this->getTableFromFile($this->fileMapping)) {
+        if ($this->mappingFiles['properties'] && !$this->getTableFromFile($this->mappingFiles['properties'])) {
             return;
         }
 
@@ -1275,7 +1278,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function getNormalizedMapping(): ?array
     {
-        $table = $this->getTableFromFile($this->fileMapping);
+        $table = $this->getTableFromFile($this->mappingFiles['properties']);
         if (!$table) {
             return null;
         }
