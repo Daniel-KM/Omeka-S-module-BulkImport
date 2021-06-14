@@ -51,9 +51,10 @@ trait FetchFileTrait
                 'data' => [
                     'fullpath' => $destPath,
                     'media_type' => 'image/png',
-                    'sha256' => 'd053318edd230ff2757869c4d79172fd924913343edd06a30c2110af28d4ad13',
+                    'sha256' => 'fa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17e',
                     'has_thumbnails' => true,
                     'size' => 894,
+                    'is_fake_file' => true,
                 ],
             ];
         }

@@ -71,6 +71,7 @@ class ManiocProcessor extends AbstractFullProcessor
     ];
 
     protected $mappingFiles = [
+        'sha256' => 'manioc/files_sha256.ods',
         'properties' => 'manioc/mapping.ods',
         'migration' => 'manioc/migration.ods',
         'languages' => 'manioc/languages.ods',
@@ -225,6 +226,8 @@ class ManiocProcessor extends AbstractFullProcessor
 
         // The media data are available only when values are set, even if it is
         // possible to use the original tables.
+        $this->sourceFilenamePropertyId = $this->bulk->getPropertyId('greenstone:sourceFilename');
+        $this->filenamesToSha256 = $this->loadKeyPairFromFile($this->mappingFiles['sha256']) ?: [];
         foreach ($this->prepareReader('media_items') as $mediaItem) {
             $this->entity = $this->entityManager
                 ->find(\Omeka\Entity\Item::class, $this->map['media_items'][$mediaItem['id_fichier']]);
@@ -318,7 +321,7 @@ class ManiocProcessor extends AbstractFullProcessor
      */
     protected function fillMediaItemMedia(array $source): void
     {
-        $propertyId = $this->bulk->getPropertyId('greenstone:sourceFilename');
+        $propertyId = &$this->sourceFilenamePropertyId;
 
         /** @var \Omeka\Entity\Value $value */
         $greenstoneFilename = null;
@@ -430,12 +433,28 @@ class ManiocProcessor extends AbstractFullProcessor
         $result = $this->fetchUrl('original', $greenstoneFilename, $greenstoneFilename, $storageId, $extension, $url);
         if ($result['status'] !== 'success') {
             $this->logger->err($result['message']);
+            if (!empty($this->filenamesToSha256[$greenstoneFilename])) {
+                $media->setSha256($this->filenamesToSha256[$greenstoneFilename]);
+            }
+            $media->setStorageId($storageId);
+            $media->setExtension(mb_strtolower($extension));
+            $media->setHasOriginal(false);
+            $media->setHasThumbnails(false);
+            $media->setSize(0);
         }
         // Continue in order to update other metadata, in particular item.
         else {
+            // Check if it is a fake file in order to reimport it later with the
+            // module BulkCheck, that will update other technical data too.
+            if (empty($result['data']['is_fake_file'])) {
+                $media->setSha256($result['data']['sha256']);
+            } elseif (!empty($this->filenamesToSha256[$greenstoneFilename])) {
+                $media->setSha256($this->filenamesToSha256[$greenstoneFilename]);
+            } else {
+                $media->setSha256($result['data']['sha256']);
+            }
             $media->setStorageId($storageId);
             $media->setExtension(mb_strtolower($extension));
-            $media->setSha256($result['data']['sha256']);
             $media->setMediaType($result['data']['media_type']);
             $media->setHasOriginal(true);
             $media->setHasThumbnails($result['data']['has_thumbnails']);

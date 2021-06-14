@@ -574,6 +574,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if ($this->mappingFiles['properties'] && !$this->getTableFromFile($this->mappingFiles['properties'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Missing file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->mappingFiles['properties']]
+            );
             return;
         }
 
@@ -1299,6 +1304,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         $table = $this->getTableFromFile($this->mappingFiles['properties']);
         if (!$table) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Missing file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->mappingFiles['properties']]
+            );
             return null;
         }
 
@@ -1356,37 +1366,67 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         return $filepath;
     }
 
+    /**
+     * Get a two columns table from a file (php, ods, tsv or csv).
+     */
+    protected function loadKeyPairFromFile(?string $filename): ?array
+    {
+        return $this->loadTableFromFile($filename, true);
+    }
+
+    /**
+     * Get a table from a file (php, ods, tsv or csv).
+     */
     protected function getTableFromFile(?string $filename): ?array
     {
+        return $this->loadTableFromFile($filename, false);
+    }
+
+    /**
+     * Get a table from a file (php, ods, tsv or csv).
+     */
+    protected function loadTableFromFile(?string $filename, bool $keyPair = false): ?array
+    {
+        $filename = trim((string) $filename, '/\\ ');
         if (empty($filename)) {
             return null;
         }
 
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
-
-        if (file_exists(OMEKA_PATH . '/' . $filename)) {
-            $filepath = OMEKA_PATH . '/' . $filename;
-        } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $filename)) {
-            $filepath = dirname(__DIR__, 2) . '/data/imports/' . $filename;
-        } else {
-            $this->hasError = true;
-            $this->logger->err(
-                'Missing file "{filepath}" for the mapping of values.', // @translate
-                ['filepath' => $filename]
-            );
+        $baseFilename = mb_strlen($extension) ? mb_substr($filename, 0, mb_strlen($filename) - mb_strlen($extension) - 1) : $filename;
+        $extensions = [
+            'php',
+            'ods',
+            'tsv',
+            'csv',
+        ];
+        $filepath = null;
+        foreach ($extensions as $extension) {
+            $file = "$baseFilename.$extension";
+            if (file_exists(OMEKA_PATH . '/' . $file)) {
+                $filepath = OMEKA_PATH . '/' . $file;
+                break;
+            } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $file)) {
+                $filepath = dirname(__DIR__, 2) . '/data/imports/' . $file;
+                break;
+            }
+        }
+        if (empty($filepath)) {
             return null;
         }
 
         if ($extension === 'php') {
             $mapper = include $filepath;
         } elseif ($extension === 'ods') {
-            $mapper = $this->odsToArray($filepath);
+            $mapper = $this->odsToArray($filepath, $keyPair);
         } elseif ($extension === 'tsv') {
-            $mapper = $this->tsvToArray($filepath);
+            $mapper = $this->tsvToArray($filepath, $keyPair);
+        } elseif ($extension === 'csv') {
+            $mapper = $this->csvToArray($filepath, $keyPair);
         } else {
             $this->hasError = true;
             $this->logger->err(
-                'Unmanaged extension for file "{filepath}" for the mapping of values.', // @translate
+                'Unmanaged extension for file "{filepath}".', // @translate
                 ['filepath' => $filename]
             );
             return null;
@@ -1395,9 +1435,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (empty($mapper)) {
             $this->hasError = true;
             $this->logger->err(
-                'Empty mapping for values.' // @translate
+                'Empty file "{filepath}".', // @translate
+                ['filepath' => $filename]
             );
             return null;
+        }
+
+        // No cleaning for key pair.
+        if ($keyPair) {
+            return $mapper;
         }
 
         // Trim all values of all rows.
@@ -1407,7 +1453,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 unset($mapper[$key]);
                 continue;
             }
-            $map = array_map('trim', array_map('strval', $map));
+            // The values are already strings, except for php.
+            if ($extension === 'php') {
+                $map = array_map('trim', array_map('strval', $map));
+            }
             if (!array_filter($map, 'strlen')) {
                 unset($mapper[$key]);
             }
@@ -1420,9 +1469,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * Quick import a small ods config file into an array with headers as keys.
      *
+     * Empty or partial rows are managed.
+     *
      * @see \BulkImport\Reader\OpenDocumentSpreadsheetReader::initializeReader()
      */
-    protected function odsToArray(string $filepath): ?array
+    protected function odsToArray(string $filepath, bool $keyPair = false): ?array
     {
         if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             return null;
@@ -1432,7 +1483,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // Manage compatibility with old version of CSV Import.
         // For now, it should be first checked.
         if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
-            $spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create($this->spreadsheetType);
+            $spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create(\Box\Spout\Common\Type::ODS);
         } elseif (class_exists(ReaderEntityFactory::class)) {
             /** @var \Box\Spout\Reader\ODS\Reader $spreadsheetReader */
             $spreadsheetReader = ReaderEntityFactory::createODSReader();
@@ -1471,20 +1522,38 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return null;
         }
 
+        $data = [];
+
+        if ($keyPair) {
+            foreach ($iterator as $row) {
+                $cells = $row->getCells();
+                // Simplify management of empty or partial rows.
+                $cells[] = '';
+                $cells[] = '';
+                $cells = array_slice($cells, 0, 2);
+                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
+            }
+            $spreadsheetReader->close();
+            return $data;
+        }
+
         $first = true;
         $headers = [];
-        $data = [];
         foreach ($iterator as $row) {
             $cells = $row->getCells();
             $cells = array_map('trim', $cells);
             if ($first) {
                 $first = false;
                 $headers = $cells;
+                $countHeaders = count($headers);
+                $emptyRow = array_fill(0, $countHeaders, '');
             } else {
-                $data[] = array_combine($headers, $cells);
+                $data[] = array_combine(
+                    $headers,
+                    array_slice(array_map('trim', array_map('strval', $cells)) + $emptyRow, 0, $countHeaders)
+                );
             }
         }
-
 
         $spreadsheetReader->close();
         return $data;
@@ -1492,8 +1561,30 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     /**
      * Quick import a small tsv config file into an array with headers as keys.
+     *
+     * Empty or partial rows are managed.
      */
-    protected function tsvToArray(string $filepath): ?array
+    protected function tsvToArray(string $filepath, bool $keyPair = false): ?array
+    {
+        return $this->tcsvToArray($filepath, $keyPair, "\t", '"', '\\');
+    }
+
+    /**
+     * Quick import a small csv config file into an array with headers as keys.
+     *
+     * Empty or partial rows are managed.
+     */
+    protected function csvToArray(string $filepath, bool $keyPair = false): ?array
+    {
+        return $this->tcsvToArray($filepath, $keyPair, ",", '"', '\\');
+    }
+
+    /**
+     * Quick import a small tsv/csv config file into an array with headers as keys.
+     *
+     * Empty or partial rows are managed.
+     */
+    protected function tcsvToArray(string $filepath, bool $keyPair = false, string $delimiter = null, string $enclosure = null, string $escape = null): ?array
     {
         if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             return null;
@@ -1501,10 +1592,28 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $content = file_get_contents($filepath);
         $rows = explode("\n", $content);
-        $headers = array_map('trim', str_getcsv(array_shift($rows), "\t", '"', '\\'));
+
         $data = [];
+
+        if ($keyPair) {
+            foreach ($rows as $row) {
+                $cells = str_getcsv($row, $delimiter, $enclosure, $escape);
+                $cells[] = '';
+                $cells[] = '';
+                $cells = array_slice($cells, 0, 2);
+                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
+            }
+            return $data;
+        }
+
+        $headers = array_map('trim', str_getcsv(array_shift($rows), $delimiter, $enclosure, $escape));
+        $countHeaders = count($headers);
+        $emptyRow = array_fill(0, $countHeaders, '');
         foreach ($rows as $row) {
-            $data[] = array_combine($headers, array_map('trim', str_getcsv($row, "\t", '"', '\\')));
+            $data[] = array_combine(
+                $headers,
+                array_slice(array_map('trim', str_getcsv($row, $delimiter, $enclosure, $escape)) + $emptyRow, 0, $countHeaders)
+            );
         }
         return $data;
     }
