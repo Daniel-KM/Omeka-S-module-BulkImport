@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Processor;
 
+use BulkImport\Form\Element\OptionalUrl;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element\ResourceSelect;
@@ -124,7 +125,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ])
             ->add([
                 'name' => 'endpoint',
-                'type' => Element\Url::class,
+                'type' => OptionalUrl::class,
                 'options' => [
                     'label' => 'Url of original site to fetch files', // @translate
                 ],

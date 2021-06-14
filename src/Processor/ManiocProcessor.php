@@ -31,6 +31,8 @@ class ManiocProcessor extends AbstractFullProcessor
             // 'media',
             'item_sets',
         ],
+        'language' => null,
+        'endpoint' => null,
     ];
 
     protected $mapping = [
