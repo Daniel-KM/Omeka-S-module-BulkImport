@@ -694,6 +694,12 @@ SQL;
 
     protected function valueSuggestQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
     {
+        // An exception is done for geonames, because the username is hardcoded
+        // and has few credits for all module users.
+        if ($datatype === 'valuesuggest:geonames:geonames') {
+            return $this->valueSuggestQueryGeonames($value, $datatype, $options);
+        }
+
         /** @var \ValueSuggest\Suggester\SuggesterInterface $suggesters */
         static $suggesters = [];
         // static $lang;
@@ -725,6 +731,137 @@ SQL;
         return is_array($suggestions)
             ? $suggestions
             : [];
+    }
+
+    /**
+     * Fix for the GeonamesSuggester, that cannot manage a specific username.
+     *
+     * @see \ValueSuggest\Suggester\Geonames\GeonamesSuggest::getSuggestions()
+     */
+    protected function valueSuggestQueryGeonames(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    {
+        static $language2;
+        static $searchType;
+
+        if (is_null($language2)) {
+            $language2 = $this->getParam('language_2') ?: '';
+            $searchType = $this->getParam('geonames_search') ?: 'strict';
+        }
+
+        $originalValue = $value;
+        $queryKey = 'name_equals';
+        $isNameRequired = 'true';
+        $startWith = $value;
+        if (mb_strpos($value, '|') !== false) {
+            // Manage location like "France | Paris".
+            // TODO In some other cases, location are indicated "Paris, France", not "France, Paris".
+            $valueList = array_filter(explode('|', $value));
+            if (count($valueList) > 1) {
+                $queryKey = 'name';
+                $valueList = array_reverse($valueList);
+                $value = implode(' ', $valueList);
+                $startWith = reset($valueList);
+            }
+        }
+
+        /** @see https://www.geonames.org/export/geonames-search.html */
+        $query = [
+            $queryKey => $value,
+            // Input is already mainly checked.
+            'name_startsWith' => $startWith,
+            'isNameRequired' => $isNameRequired,
+            'fuzzy' => 0,
+            // Geographical country code (not political country: Guyane is GF).
+            // 'country' => 'FR'
+            // 'continentCode' => 'EU'
+            'maxRows' => 20,
+            'lang' => $language2,
+            // TODO Use your own or a privacy aware username for geonames, not "google'.
+            'username' => 'google',
+        ];
+
+        // Don't use https, or add certificate to omeka config.
+        $url = 'http://api.geonames.org/searchJSON';
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/96.0',
+            'Content-Type' => 'application/json',
+            'Accept-Encoding' => 'gzip, deflate',
+        ];
+
+        $e = null;
+        try {
+            $response = ClientStatic::get($url, $query, $headers);
+        } catch (HttpExceptionInterface $e) {
+            // Check below.
+        }
+
+        if (empty($response) || !$response->isSuccess()) {
+            // Since the exception can occur randomly, a second query is done.
+            if ($loop < 1) {
+                sleep(10);
+                return $this->valueSuggestQueryGeonames($originalValue, $datatype, $options, ++$loop);
+            }
+            // Allow to continue next processes.
+            if (empty($e)) {
+                $this->logger->err(
+                    'Connection issue.', // @translate
+                );
+            } else {
+                $this->logger->err(
+                    'Connection issue: {exception}', // @translate
+                    ['exception' => $e]
+                );
+            }
+            return null;
+        }
+
+        $results = json_decode($response->getBody(), true);
+
+        // Try a larger query when there is no results.
+        $total = $results['totalResultsCount'];
+        if (!$total) {
+            if ($searchType === 'strict' || $queryKey === 'q') {
+                return [];
+            }
+            unset($query[$queryKey]);
+            $query[$queryKey === 'name_equals' ? 'name' : 'q'] = $value;
+            try {
+                $response = ClientStatic::get($url, $query, $headers);
+            } catch (HttpExceptionInterface $e) {
+                return [];
+            }
+            if (empty($response) || !$response->isSuccess()) {
+                return [];
+            }
+            $results = json_decode($response->getBody(), true);
+        }
+
+        $suggestions = [];
+        foreach ($results['geonames'] as $result) {
+            $info = [];
+            if (isset($result['fcodeName']) && $result['fcodeName']) {
+                $info[] = sprintf('Feature: %s', $result['fcodeName']);
+            }
+            if (isset($result['countryName']) && $result['countryName']) {
+                $info[] = sprintf('Country: %s', $result['countryName']);
+            }
+            if (isset($result['adminName1']) && $result['adminName1']) {
+                $info[] = sprintf('Admin name: %s', $result['adminName1']);
+            }
+            if (isset($result['population']) && $result['population']) {
+                $info[] = sprintf('Population: %s', number_format($result['population']));
+            }
+            $suggestions[] = [
+                'value' => $result['name'],
+                'data' => [
+                    // TODO The rdf name should be "https://sws.geonames.org/%s/" ?
+                    'uri' => sprintf('http://www.geonames.org/%s', $result['geonameId']),
+                    'info' => implode("\n", $info),
+                ],
+            ];
+        }
+
+        return $suggestions;
     }
 
     protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): string

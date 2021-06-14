@@ -100,6 +100,17 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 ],
             ])
             ->add([
+                'name' => 'endpoint',
+                'type' => OptionalUrl::class,
+                'options' => [
+                    'label' => 'Url of original site to fetch files', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'endpoint',
+                    'value' => 'http://manioc.org/',
+                ],
+            ])
+            ->add([
                 'name' => 'language',
                 'type' => Element\Text::class,
                 'options' => [
@@ -112,14 +123,30 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 ],
             ])
             ->add([
-                'name' => 'endpoint',
-                'type' => OptionalUrl::class,
+                'name' => 'language_2',
+                'type' => Element\Text::class,
                 'options' => [
-                    'label' => 'Url of original site to fetch files', // @translate
+                    'label' => 'Two letters code of the default language', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'endpoint',
-                    'value' => 'http://manioc.org/',
+                    'id' => 'language',
+                    'placeholder' => 'fr',
+                    'value' => 'fr',
+                ],
+            ])
+            ->add([
+                'name' => 'geonames_search',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Search for geonames', // @translate
+                    'value_options' => [
+                        'strict' => 'Strict', // @translate
+                        'fuzzy' => 'Fuzzy', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'geonames_search',
+                    'value' => 'strict',
                 ],
             ])
         ;
