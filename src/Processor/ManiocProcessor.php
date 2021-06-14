@@ -1838,6 +1838,7 @@ SQL;
                             'partial_mapping' => true,
                             'name' => 'thematiques',
                             'prefix' => 'https://www.idref.fr/',
+                            'get_top_subject' => true,
                         ],
                     ],
                 ]);

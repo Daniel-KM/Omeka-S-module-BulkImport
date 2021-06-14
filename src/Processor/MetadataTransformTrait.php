@@ -2134,6 +2134,8 @@ SQL;
 
         $params['extra_columns'] = $extraColumns;
 
+        $params['only_top_subject'] = !empty($params['only_top_subject']);
+
         $defaultRow = [
             'label' => null,
             'type' => null,
@@ -2747,15 +2749,18 @@ SQL;
         return true;
     }
 
-    protected function valueSuggestQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    protected function valueSuggestQuery(string $value, string $datatype, array $params = [], int $loop = 0): ?array
     {
         // An exception is done for geonames, because the username is hardcoded
         // and has few credits for all module users.
         if ($datatype === 'valuesuggest:geonames:geonames') {
-            return $this->valueSuggestQueryGeonames($value, $datatype, $options);
+            return $this->valueSuggestQueryGeonames($value, $datatype, $params);
         }
         if (in_array($datatype, ['valuesuggest:idref:author', 'valuesuggest:idref:person', 'valuesuggest:idref:corporation', 'valuesuggest:idref:conference'])) {
-            return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $options);
+            return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $params);
+        }
+        if ($datatype === 'valuesuggest:idref:rameau') {
+            return $this->valueSuggestQueryIdRefRameau($value, $datatype, $params);
         }
 
         /** @var \ValueSuggest\Suggester\SuggesterInterface $suggesters */
@@ -2776,7 +2781,7 @@ SQL;
             // Since the exception can occur randomly, a second query is done.
             if ($loop < 1) {
                 sleep(10);
-                return $this->valueSuggestQuery($value, $datatype, $options, ++$loop);
+                return $this->valueSuggestQuery($value, $datatype, $params, ++$loop);
             }
             // Allow to continue next processes.
             $this->logger->err(
@@ -2797,7 +2802,7 @@ SQL;
      * @see \ValueSuggest\Suggester\Geonames\GeonamesSuggest::getSuggestions()
      * @link https://www.iso.org/obp/ui/fr/
      */
-    protected function valueSuggestQueryGeonames(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    protected function valueSuggestQueryGeonames(string $value, string $datatype, array $params = [], int $loop = 0): ?array
     {
         static $countries;
         static $language2;
@@ -2878,8 +2883,8 @@ SQL;
             $query['country'] = $countries[$lowerValue];
         }
         // Improve the search if a format is set.
-        elseif (!empty($options['formats'])) {
-            foreach ($options['formats'] as $format) {
+        elseif (!empty($params['formats'])) {
+            foreach ($params['formats'] as $format) {
                 if (empty($format['arguments'])) {
                     // Skip.
                     continue;
@@ -2943,7 +2948,7 @@ SQL;
             // Since the exception can occur randomly, a second query is done.
             if ($loop < 1) {
                 sleep(10);
-                return $this->valueSuggestQueryGeonames($originalValue, $datatype, $options, ++$loop);
+                return $this->valueSuggestQueryGeonames($originalValue, $datatype, $params, ++$loop);
             }
             // Allow to continue next processes.
             if (empty($e)) {
@@ -3017,7 +3022,7 @@ SQL;
      * @see \ValueSuggest\Suggester\IdRef\IdRefSuggestAll::getSuggestions()
      * @link https://documentation.abes.fr/aideidrefdeveloppeur/index.html#presentation
      */
-    protected function valueSuggestQueryIdRefAuthor(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    protected function valueSuggestQueryIdRefAuthor(string $value, string $datatype, array $params = [], int $loop = 0): ?array
     {
         $cleanValue = strpos($value, ' ')
             ? $value
@@ -3033,7 +3038,7 @@ SQL;
             $q = "persname_t:$cleanValue OR corpname_t:$cleanValue OR conference_t:$cleanValue";
         }
 
-        $extraColumns = $options['extra_columns'] ?? [];
+        $extraColumns = $params['extra_columns'] ?? [];
         $idrefMap = [
             'dcterms:date' => 'datenaissance_dt',
             'dcterms:created' => 'datenaissance_dt',
@@ -3077,7 +3082,7 @@ SQL;
             // Since the exception can occur randomly, a second query is done.
             if ($loop < 1) {
                 sleep(10);
-                return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $options, ++$loop);
+                return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $params, ++$loop);
             }
             // Allow to continue next processes.
             if (empty($e)) {
@@ -3114,17 +3119,17 @@ SQL;
             }
             // "affcourt" may be not present in some results (empty words).
             if (isset($result['affcourt_r'])) {
-                $value = is_array($result['affcourt_r']) ? reset($result['affcourt_r']) : $result['affcourt_r'];
+                $val = is_array($result['affcourt_r']) ? reset($result['affcourt_r']) : $result['affcourt_r'];
             } elseif (isset($result['affcourt_z'])) {
-                $value = is_array($result['affcourt_z']) ? reset($result['affcourt_z']) : $result['affcourt_z'];
+                $val = is_array($result['affcourt_z']) ? reset($result['affcourt_z']) : $result['affcourt_z'];
             } else {
-                $value = $result['ppn_z'];
+                $val = $result['ppn_z'];
             }
             $recordType = empty($result['recordtype_z']) || !isset($recordTypes[$result['recordtype_z']])
                 ? 'valuesuggest:idref:person'
                 : $recordTypes[$result['recordtype_z']];
             $suggestion = [
-                'value' => $value,
+                'value' => $val,
                 'data' => [
                     'uri' => 'https://www.idref.fr/' . $result['ppn_z'],
                     'info' => null,
@@ -3153,6 +3158,115 @@ SQL;
         }
 
         return $suggestions;
+    }
+
+    /**
+     * Default value suggester, but use return the top subject when possible.
+     *
+     * @see \ValueSuggest\Suggester\IdRef\IdRefSuggestAll::getSuggestions()
+     */
+    protected function valueSuggestQueryIdRefRameau(string $value, string $datatype, array $params = [], int $loop = 0): ?array
+    {
+        $cleanValue = strpos($value, ' ')
+            ? $value
+            : '(' . implode(' AND ', array_filter(explode(' ', $value), 'strlen')) . ')';
+
+        $q = 'recordtype_z:r AND subjectheading_t:' . $cleanValue;
+
+        $query = [
+            'q' => $q,
+            'wt' => 'json',
+            'version' => '2.2',
+            'start' => 0,
+            'rows' => 30,
+            'sort' => 'score desc',
+            'indent' => 'on',
+            'fl' => 'id,ppn_z,affcourt_z',
+        ];
+        $url = 'https://www.idref.fr/Sru/Solr';
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/96.0',
+            'Content-Type' => 'application/json',
+            'Accept-Encoding' => 'gzip, deflate',
+        ];
+
+        $e = null;
+        try {
+            $response = ClientStatic::get($url, $query, $headers);
+        } catch (HttpExceptionInterface $e) {
+            // Check below.
+        }
+
+        if (empty($response) || !$response->isSuccess()) {
+            // Since the exception can occur randomly, a second query is done.
+            if ($loop < 1) {
+                sleep(10);
+                return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $params, ++$loop);
+            }
+            // Allow to continue next processes.
+            if (empty($e)) {
+                $this->logger->err(
+                    'Connection issue.', // @translate
+                );
+            } else {
+                $this->logger->err(
+                    'Connection issue: {exception}', // @translate
+                    ['exception' => $e]
+                );
+            }
+            return null;
+        }
+
+        // Parse the JSON response.
+        $suggestions = [];
+        $results = json_decode($response->getBody(), true);
+        if (empty($results['response']['docs'])) {
+            return [];
+        }
+
+         // Check the result key.
+        foreach ($results['response']['docs'] as $result) {
+            if (empty($result['ppn_z'])) {
+                continue;
+            }
+            // "affcourt" may be not present in some results (empty words).
+            if (isset($result['affcourt_r'])) {
+                $val = is_array($result['affcourt_r']) ? reset($result['affcourt_r']) : $result['affcourt_r'];
+            } elseif (isset($result['affcourt_z'])) {
+                $val = is_array($result['affcourt_z']) ? reset($result['affcourt_z']) : $result['affcourt_z'];
+            } else {
+                $val = $result['ppn_z'];
+            }
+            $suggestion = [
+                'value' => $val,
+                'data' => [
+                    'uri' => 'https://www.idref.fr/' . $result['ppn_z'],
+                    'info' => null,
+                ],
+            ];
+            $suggestions[] = $suggestion;
+        }
+
+        foreach ($suggestions as $suggestion) {
+            if ($suggestion['value'] === $value) {
+                return [$suggestion];
+            }
+        }
+
+        if (empty($params['only_top_subject'])) {
+            return $suggestions;
+        }
+
+        $filtereds = [];
+        foreach ($suggestions as $suggestion) {
+            if (strpos($suggestion['value'], '--') === false) {
+                $filtereds[] = $suggestion;
+            }
+        }
+
+        return empty($filtereds)
+            ? $suggestions
+            : $filtereds;
     }
 
     protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): string
