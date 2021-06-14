@@ -36,11 +36,15 @@ trait MetadataTransformTrait
 
     protected $transformIndex = 0;
 
+    protected $operationName = [];
+
+    protected $operationIndex = 0;
+
     protected $operationSqls = [];
 
     protected $operationExcludes = [];
 
-    protected $operationIndex = 0;
+    protected $operationRandoms = [];
 
     protected function transformResetProcess(): void
     {
@@ -167,7 +171,7 @@ trait MetadataTransformTrait
             }
         }
 
-        $this->processValuesTransform($mapper, $hasMultipleDestinations);
+        $this->storeMappingTable($mapper, $hasMultipleDestinations);
 
         // TODO Add a stat message.
     }
@@ -324,7 +328,7 @@ SQL;
                 && is_array($v['uri'])
                 && count($v['uri']) === 1;
         }));
-        $this->processValuesTransform($mapper, false);
+        $this->storeMappingTable($mapper, false);
 
         $this->logger->notice(
             '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
@@ -363,7 +367,7 @@ SQL;
         $this->valueSuggestMappings[$options['name']] = array_combine(array_column($table, 'source'), $table);
     }
 
-    protected function transformLiteralWithOperations(array $operations = []): void
+    protected function transformOperations(array $operations = []): void
     {
         $this->transformResetProcess();
 
@@ -373,32 +377,60 @@ SQL;
         // TODO Bind is not working currently with multiple queries, but only used for property id.
 
         foreach ($operations as $index => $operation) {
+            $this->operationName = $operation['action'];
             $this->operationIndex = ++$index;
+            $this->operationRandoms[$this->operationIndex] = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(64))), 0, 8);
+
             switch ($operation['action']) {
-                case 'cut':
-                    $result = $this->operationCut($operation['params']);
+                // So, "create_resource" is a quick way to import a spreadsheet…
+                case 'create_resource':
+                    $result = $this->operationCreateResource($operation['params']);
                     if (!$result) {
-                        break 2;
+                        return;
                     }
                     break;
 
                 case 'replace_table':
                     $result = $this->operationReplaceTable($operation['params']);
                     if (!$result) {
-                        break 2;
+                        return;
                     }
                     break;
 
                 case 'link_resource':
                     $result = $this->operationLinkResource($operation['params']);
                     if (!$result) {
-                        break 2;
+                        return;
+                    }
+                    break;
+
+                case 'remove_values':
+                    $result = $this->operationRemoveValues($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
+                case 'cut_values':
+                    $result = $this->operationCutValues($operation['params']);
+                    if (!$result) {
+                        return;
                     }
                     break;
 
                 default:
-                    break;
+                    $this->logger->err(
+                        'The operation "{action}" is not managed currently.', // @translate
+                        ['action' => $this->operationName]
+                    );
+                    return;
             }
+        }
+
+        // Skip process when an error occurred.
+        $this->operationSqls = array_filter($this->operationSqls);
+        if (!count($this->operationSqls)) {
+            return;
         }
 
         $this->transformHelperExcludeEnd();
@@ -407,71 +439,298 @@ SQL;
         $this->connection->executeUpdate(implode("\n", $this->operationSqls));
     }
 
-    /**
-     * @param array $mapper The mapper is already checked.
-     */
-    protected function processValuesTransform(array $mapper, bool $hasMultipleDestinations): void
+
+    protected function operationCreateResource(array $params): bool
     {
-        // Create a temporary table with the mapper.
-        $sql = <<<'SQL'
-DROP TABLE IF EXISTS `_temporary_mapper`;
-CREATE TABLE `_temporary_mapper` LIKE `value`;
-ALTER TABLE `_temporary_mapper`
-    DROP `resource_id`,
-    ADD `source` longtext COLLATE utf8mb4_unicode_ci;
+        $params['no_source'] = true;
+        $params['no_destination'] = true;
+        if (!empty($params['properties'])) {
+            $mapper = $this->prepareMappingTableFromValues($params);
+            if (!$mapper) {
+                $this->logger->warn(
+                    'The operation "{action}" has no values to create resource.', // @translate
+                    ['action' => $this->operationName]
+                );
+                return true;
+            }
+        } else {
+            $result = $this->prepareMappingTable($params);
+            if (!$result) {
+                return false;
+            }
 
-SQL;
-        foreach (array_chunk($mapper, self::CHUNK_ENTITIES, true) as $chunk) {
-            array_walk($chunk, function (&$v, $k): void {
-                $v = ((int) $v['property_id'])
-                    . ",'" . $v['type'] . "'"
-                    . ',' . (strlen((string) $v['value']) ? $this->connection->quote($v['value']) : 'NULL')
-                    . ',' . (strlen((string) $v['uri']) ? $this->connection->quote($v['uri']) : 'NULL')
-                    // TODO Check and normalize property language.
-                    . ',' . (strlen((string) $v['lang']) ? $this->connection->quote($v['lang']) : 'NULL')
-                    . ',' . ((int) $v['value_resource_id'] ? (int) $v['value_resource_id'] : 'NULL')
-                    // TODO Try to keep original is_public.
-                    . ',' . (isset($v['is_public']) ? (int) $v['is_public'] : 1)
-                    . ',' . $this->connection->quote($v['source'])
-                ;
-            });
-            $chunkString = implode('),(', $chunk);
-            $sql .= <<<SQL
-INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`value_resource_id`,`is_public`,`source`)
-VALUES($chunkString);
+            $mapper = reset($result);
 
-SQL;
+            $this->storeMappingTable($mapper);
         }
-        $this->connection->exec($sql);
+
+        $this->processCreateResources($params);
+
+        $this->removeMappingTable();
+
+        return true;
+    }
+
+    protected function operationReplaceTable(array $params): bool
+    {
+        $result = $this->prepareMappingTable($params);
+        if (!$result) {
+            return false;
+        }
+
+        [$mapper, $hasMultipleDestinations] = $result;
+
+        $this->storeMappingTable($mapper, true);
 
         $hasMultipleDestinations
             ? $this->processValuesTransformInsert()
             : $this->processValuesTransformUpdate();
 
-        $sql = <<<'SQL'
-DROP TABLE IF EXISTS `_temporary_mapper`;
-SQL;
-        $this->connection->exec($sql);
+        $this->removeMappingTable(true);
+
+        return true;
     }
 
-    protected function operationCut(array $params): bool
+    protected function operationLinkResource(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        if (empty($params['destination'])) {
+            $destinationId = $sourceId;
+        } else {
+            $destinationId = $this->getPropertyId($params['destination']);
+            if (empty($destinationId)) {
+                $this->logger->err(
+                    'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
+                    ['action' => $this->operationName, 'term' => $params['destination']]
+                );
+                return false;
+            }
+        }
+
+        $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
+        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
+        if (empty($sourceIdentifierId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['identifier']]
+            );
+            return false;
+        }
+
+        if (empty($params['reciprocal'])) {
+            $reciprocalId = null;
+        } else {
+            $reciprocalId = $this->getPropertyId($params['reciprocal']);
+            if (empty($reciprocalId)) {
+                $this->logger->err(
+                    'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate
+                    ['action' => $this->operationName, 'term' => $params['reciprocal']]
+                );
+                return false;
+            }
+        }
+
+        $type = $params['type'] ?? 'resource:item';
+        $quotedType = $this->connection->quote($type);
+        // TODO Use the template for is_public.
+        $isPublic = (int) (bool) ($params['is_public'] ?? 1);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Create linked values for all values that have an identifiable value.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+SELECT DISTINCT
+    `value`.`resource_id`,
+    $destinationId,
+    `value_linked`.`resource_id`,
+    $quotedType,
+    $isPublic
+FROM `value`
+JOIN `value` AS `value_linked`
+    ON `value_linked`.`value` = `value`.`value`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceId
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
+    AND `value_linked`.`property_id` = $sourceIdentifierId
+    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+    AND `value_linked`.`value` <> ""
+    AND `value_linked`.`value` IS NOT NULL
+    $sqlExcludeWhere
+ORDER BY `value`.`resource_id`
+;
+SQL;
+
+        if ($reciprocalId) {
+            $this->operationSqls[] = <<<SQL
+# Create reciprocal linked values for all values that have an identifiable value.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+SELECT DISTINCT
+    `value_linked`.`resource_id`,
+    $reciprocalId,
+    `value`.`resource_id`,
+    $quotedType,
+    $isPublic
+FROM `value`
+JOIN `value` AS `value_linked`
+    ON `value_linked`.`value` = `value`.`value`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceId
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
+    AND `value_linked`.`property_id` = $sourceIdentifierId
+    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+    AND `value_linked`.`value` <> ""
+    AND `value_linked`.`value` IS NOT NULL
+    $sqlExcludeWhere
+ORDER BY `value`.`resource_id`
+;
+SQL;
+        }
+
+        if (empty($params['keep_source'])) {
+            $this->operationSqls[] = <<<SQL
+# Remove the values that were linked.
+DELETE `value`
+FROM `value`
+JOIN `value` AS `value_linked`
+    ON `value_linked`.`value` = `value`.`value`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceId
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
+    AND `value_linked`.`property_id` = $sourceIdentifierId
+    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+    AND `value_linked`.`value` <> ""
+    AND `value_linked`.`value` IS NOT NULL
+    $sqlExcludeWhere
+;
+SQL;
+        }
+
+        return true;
+    }
+
+    protected function operationRemoveValues(array $params): bool
+    {
+        if (empty($params['properties'])) {
+            $this->logger->err(
+                'The operation "{action}" has no property to remove.', // @translate
+                ['action' => $this->operationName]
+            );
+            return true;
+        }
+
+        if (!is_array($params['properties'])) {
+            $params['properties'] = [$params['properties']];
+        }
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['properties'] as $property) {
+            $propertyId = $this->bulk->getPropertyId($property);
+            $propertyId
+                ? $properties[$property] = $propertyId
+                : $errors[] = $property;
+        }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $propertyIds = implode(', ', $properties);
+
+        if (!empty($params['on']['resource_random'])) {
+            if (!isset($this->operationRandoms[$this->operationIndex + $params['on']['resource_random']])) {
+                $this->logger->err(
+                    'The operation "{action}" has an invalid parameter', // @translate
+                    ['action' => $this->operationName]
+                );
+                return false;
+            }
+
+            $this->operationSqls[] = <<<SQL
+# Delete values for specific properties.
+DELETE `value`
+FROM `value`
+JOIN `resource`
+    ON `resource`.`id` = `value`.`resource_id`
+JOIN `_temporary_new_resource`
+    ON `_temporary_new_resource`.`id` = `resource`.`id`
+WHERE
+    `value`.`property_id` IN ($propertyIds)
+;
+SQL;
+            return true;
+        }
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Delete values for specific properties.
+DELETE `value`
+FROM `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` IN ($propertyIds)
+    $sqlExcludeWhere
+;
+SQL;
+
+        return true;
+    }
+
+    protected function operationCutValues(array $params): bool
     {
         if (empty($params['destination'])
             || count($params['destination']) !== 2
         ) {
             $this->logger->err(
-                'The operation "cut" requires two destinations currently.' // @translate
+                'The operation "{action}" requires two destinations currently.', // @translate
+                ['action' => $this->operationName]
             );
             return false;
         }
         if (!isset($params['separator']) || !strlen($params['separator'])) {
             $this->logger->err(
-                'The operation "cut" requires a separator.' // @translate
+                'The operation "{action}" requires a separator.', // @translate
+                ['action' => $this->operationName]
             );
             return false;
         }
 
-        [$sqlExclude, $sqlExcludeWhere] = $this->operationHelperExcludeStart($params);
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         // TODO Manage separators quote and double quote for security (but user should be able to access to database anyway).
         $separator = $params['separator'];
@@ -488,6 +747,8 @@ SQL;
         $binds['property_id_1'] = $this->getPropertyId($params['destination'][0]);
         $binds['property_id_2'] = $this->getPropertyId($params['destination'][1]);
 
+        $random = $this->operationRandoms[$this->operationIndex];
+
         $this->operationSqls[] = <<<SQL
 # Create a new trimmed value with first part.
 INSERT INTO `value`
@@ -497,7 +758,7 @@ SELECT
     {$binds['property_id_1']},
     `value`.`value_resource_id`,
     # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
-    CONCAT("operation-$this->operationIndex ", `value`.`type`),
+    CONCAT("$random ", `value`.`type`),
     TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
     `value`.`uri`,
     `value`.`lang`,
@@ -511,7 +772,7 @@ WHERE
     $sqlExcludeWhere
 ;
 SQL;
-    $this->operationSqls[] = <<<SQL
+        $this->operationSqls[] = <<<SQL
 # Update source with the trimmed second part.
 UPDATE `value`
 JOIN `_temporary_value_id`
@@ -525,87 +786,177 @@ WHERE
     $sqlExcludeWhere
 ;
 SQL;
-    $this->operationSqls[] = <<<SQL
+        $this->operationSqls[] = <<<SQL
 # Store the new value ids to manage next operations.
 INSERT INTO `_temporary_value_id` (`id`)
 SELECT `value`.`id`
 FROM `value`
 WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "operation-$this->operationIndex %")
+    AND (`value`.`type` LIKE "$random %")
 ON DUPLICATE KEY UPDATE
     `_temporary_value_id`.`id` = `_temporary_value_id`.`id`
 ;
 SQL;
-    $this->operationSqls[] = <<<SQL
+        $this->operationSqls[] = <<<SQL
 # Finalize type for first part.
 UPDATE `value`
 SET
     `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
 WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "operation-$this->operationIndex %")
+    AND (`value`.`type` LIKE "$random %")
 ;
 SQL;
         return true;
     }
 
-    protected function operationReplaceTable(array $params): bool
+    protected function transformHelperExcludeStart(array $params): array
+    {
+        if (empty($params['exclude'])) {
+            return ['', ''];
+        }
+
+        $exclude = $this->loadList($params['exclude']);
+        if (empty($exclude)) {
+            $this->logger->warn(
+                'Exclusion list "{name}" is empty.', // @translate
+                ['term' => $params['exclude']]
+            );
+            return ['', ''];
+        }
+
+        $index = &$this->operationIndex;
+        $this->operationExcludes[] = $index;
+        // To exclude is to keep only other ones.
+        $this->operationSqls[] = <<<SQL
+# Prepare the list of values not to process.
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+CREATE TABLE `_temporary_value_exclude_$index` (
+    `exclude` longtext COLLATE utf8mb4_unicode_ci,
+    KEY `IDX_exclude` (`exclude`(190))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL;
+        // The list is already filtered.
+        foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
+            $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
+            $this->operationSqls[] = <<<SQL
+INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
+VALUES($chunkString);
+SQL;
+        }
+
+        $sqlExclude = <<<SQL
+LEFT JOIN `_temporary_value_exclude_$index`
+    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
+SQL;
+        $sqlExcludeWhere = <<<SQL
+    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
+SQL;
+
+        return [
+            $sqlExclude,
+            $sqlExcludeWhere,
+        ];
+    }
+
+    protected function transformHelperExcludeEnd(): void
+    {
+        // Remove operationExcludes.
+        foreach ($this->operationExcludes as $index) {
+            $this->operationSqls[] = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+SQL;
+        }
+    }
+
+    protected function prepareMappingTable(array $params): ?array
     {
         $table = $this->loadTable($params['mapping']);
         if (empty($table)) {
             $this->logger->warn(
                 'No mapping or empty mapping in file "{file}" for operation "{action}".', // @translate
-                ['file' => $params['mapping'], 'action' => 'replace_table']
+                ['file' => $params['mapping'], 'action' => $this->operationName]
             );
-            return false;
+            return null;
         }
+
         $first = reset($table);
         if (count($first) <= 1) {
             $this->logger->warn(
-                'Mapping for operation "replace" requires two columns at least.' // @translate
+                'Mapping for operation "{action}" requires two columns at least.', // @translate
+                ['action' => $this->operationName]
             );
-            return false;
+            return null;
         }
+
+        // When mapping table is used differently, there may be no source.
+        $hasSource = empty($params['no_source']);
+        $hasDestination = empty($params['no_destination']);
+
         $firstKeys = array_keys($first);
         $sourceKey = array_search('source', $firstKeys);
-        if ($sourceKey === false) {
+        if ($hasSource && $sourceKey === false) {
             $this->logger->err(
                 'Mapping for operation "{action}" requires a column "source".', // @translate
-                ['action' => 'replace_table']
+                ['action' => $this->operationName]
             );
-            return false;
+            return null;
         }
-        if (empty($params['source'])) {
+
+        // TODO The param "source" is not used here, but in other steps, so move check.
+        if ($hasSource && empty($params['source'])) {
             $this->logger->err(
                 'The operation "{action}" requires a source.', // @translate
-                ['action' => 'replace_table']
+                ['action' => $this->operationName]
             );
-            return false;
+            return null;
         }
-        $propertyId = $this->getPropertyId($params['source']);
-        if (empty($propertyId)) {
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if ($hasSource && empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
-                ['action' => 'replace_table', 'term' => $params['source']]
+                ['action' => $this->operationName, 'term' => $params['source']]
             );
-            return false;
+            return null;
         }
-        if (empty($params['destination'])) {
+
+        // TODO The param "destination" is not used here, but in other steps, so move check.
+        if ($hasDestination && empty($params['destination'])) {
             $this->logger->err(
                 'The operation "{action}" requires at least one destination.', // @translate
-                ['action' => 'replace_table']
+                ['action' => $this->operationName]
             );
-            return false;
+            return null;
         }
+
         /*
         // Don't allow to map a partial table.
-        if (array_diff_key(array_flip($params['destination']), $first)) {
+        if ($hasDestination && array_diff_key(array_flip($params['destination']), $first)) {
             $this->logger->warn(
                 'Mapping for operation "replace" requires destination terms "terms".', // @translate
                 ['terms' => implode('", "', $params['destination'])]
             );
-            return false;
+            return null;
         }
         */
+
+        if (!empty($params['source_term'])) {
+            $saveSourceId = $this->getPropertyId($params['source_term']);
+            if (empty($saveSourceId)) {
+                $this->logger->err(
+                    'The operation "{action}" set an invalid property to save source: "{term}".', // @translate
+                    ['action' => $this->operationName, 'term' => $params['source_term']]
+                );
+                return null;
+            }
+        } else {
+            $saveSourceId = null;
+        }
+
+        // Just fix messages.
+        if (!$hasSource) {
+            $params['source'] = 'spreadsheet';
+        }
 
         unset($firstKeys[$sourceKey]);
 
@@ -633,7 +984,7 @@ SQL;
                 'There are no mapped properties for destination: "{terms}".', // @translate
                 ['terms' => implode('", "', $firstKeys)]
             );
-            return false;
+            return null;
         }
 
         $this->logger->notice(
@@ -720,190 +1071,183 @@ SQL;
                     'is_public' => $isPublic,
                 ];
             }
+
+            if ($saveSourceId) {
+                $maps[] = [
+                    'source' => $source,
+                    'property_id' => $saveSourceId,
+                    'type' => 'literal',
+                    'value' => $source,
+                    'uri' => null,
+                    'value_resource_id' => null,
+                    'lang' => null,
+                    'is_public' => 0,
+                ];
+            }
+
             if (count($maps)) {
                 $mapper = array_merge($mapper, $maps);
             }
         }
 
         $hasMultipleDestinations = count($destinations) > 1;
-        $this->processValuesTransform($mapper, $hasMultipleDestinations);
-
-        // TODO Add a stat message.
-
-        return true;
-    }
-
-    protected function operationLinkResource(array $params): bool
-    {
-        if (empty($params['source'])) {
-            $this->logger->err(
-                'The operation "{action}" requires a source.', // @translate
-                ['operation' => 'link_resource']
-            );
-            return false;
-        }
-        $sourceId = $this->getPropertyId($params['source']);
-        if (empty($sourceId)) {
-            $this->logger->err(
-                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
-                ['action' => 'link_resource', 'term' => $params['source']]
-            );
-            return false;
-        }
-
-        if (empty($params['destination'])) {
-            $destinationId = $sourceId;
-        } else {
-            $destinationId = $this->getPropertyId($params['destination']);
-            if (empty($destinationId)) {
-                $this->logger->err(
-                    'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
-                    ['action' => 'link_resource', 'term' => $params['destination']]
-                );
-                return false;
-            }
-        }
-
-        $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
-        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
-        if (empty($sourceIdentifierId)) {
-            $this->logger->err(
-                'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
-                ['action' => 'link_resource', 'term' => $params['identifier']]
-            );
-            return false;
-        }
-
-        if (empty($params['reciprocal'])) {
-            $reciprocalId = null;
-        } else {
-            $reciprocalId = $this->getPropertyId($params['reciprocal']);
-            if (empty($reciprocalId)) {
-                $this->logger->err(
-                    'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate
-                    ['action' => 'link_resource', 'term' => $params['reciprocal']]
-                );
-                return false;
-            }
-        }
-
-        $type = $params['type'] ?? 'resource:item';
-        $quotedType = $this->connection->quote($type);
-        // TODO Use the template for is_public.
-        $isPublic = (int) (bool) ($params['is_public'] ?? 1);
-
-        [$sqlExclude, $sqlExcludeWhere] = $this->operationHelperExcludeStart($params);
-
-        $this->operationSqls[] = <<<SQL
-# Create linked values for all values that have an identifiable value.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
-SELECT
-    `value`.`resource_id`,
-    $destinationId,
-    `value_dest`.`resource_id`,
-    $quotedType,
-    $isPublic
-FROM
-    `value`,
-    `value` AS value_dest
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceIdentifierId
-    AND `value_dest`.`property_id` = $sourceIdentifierId
-    AND `value_dest`.`value` = `value`.`value`
-    $sqlExcludeWhere
-ORDER BY `value`.`resource_id`
-SQL;
-
-        if ($reciprocalId) {
-            $this->operationSqls[] = <<<SQL
-# Create linked values for all values that have an identifiable value.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
-SELECT
-    `value_dest`.`resource_id`,
-    $reciprocalId,
-    `value`.`resource_id`,
-    $quotedType,
-    $isPublic
-FROM
-    `value`,
-    `value` AS value_dest
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceIdentifierId
-    AND `value_dest`.`property_id` = $sourceIdentifierId
-    AND `value_dest`.`value` = `value`.`value`
-    $sqlExcludeWhere
-ORDER BY `value`.`resource_id`
-SQL;
-        }
-
-        return true;
-    }
-
-    protected function operationHelperExcludeStart(array $params): array
-    {
-        if (empty($params['exclude'])) {
-            return ['', ''];
-        }
-
-        $exclude = $this->loadList($params['exclude']);
-        if (empty($exclude)) {
-            $this->logger->warn(
-                'Exclusion list "{name}" is empty.', // @translate
-                ['term' => $params['exclude']]
-            );
-            return ['', ''];
-        }
-
-        $index = &$this->operationIndex;
-        $this->operationExcludes[] = $index;
-        // To exclude is to keep only other ones.
-        $this->operationSqls[] = <<<SQL
-# Prepare the list of values not to process.
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
-CREATE TABLE `_temporary_value_exclude_$index` (
-    `exclude` longtext COLLATE utf8mb4_unicode_ci,
-    KEY `IDX_exclude` (`exclude`(190))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-SQL;
-        // The list is already filtered.
-        foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
-            $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
-            $this->operationSqls[] = <<<SQL
-INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
-VALUES($chunkString);
-SQL;
-        }
-
-        $sqlExclude = <<<SQL
-LEFT JOIN `_temporary_value_exclude_$index`
-    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
-SQL;
-        $sqlExcludeWhere = <<<SQL
-    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
-SQL;
 
         return [
-            $sqlExclude,
-            $sqlExcludeWhere,
+            $mapper,
+            $hasMultipleDestinations,
         ];
     }
 
-    protected function operationHelperExcludeEnd(): void
+    /**
+     * Save a mapping table in a temporary table in database.
+     *
+     * The mapping table is like the table value with a column "source" and
+     * without column "resource_id".
+     *
+     * @param array $mapper The mapper is already checked.
+     * @param bool $exec Exec (true), or append to the sql list.
+     */
+    protected function storeMappingTable(array $mapper, bool $exec = false): void
     {
-        // Remove operationExcludes.
-        foreach ($this->operationExcludes as $index) {
-            $this->operationSqls[] = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+        // Create a temporary table with the mapper.
+        $sqls = <<<'SQL'
+# Create a temporary table to map values.
+DROP TABLE IF EXISTS `_temporary_mapper`;
+CREATE TABLE `_temporary_mapper` LIKE `value`;
+ALTER TABLE `_temporary_mapper`
+    DROP `resource_id`,
+    ADD `source` longtext COLLATE utf8mb4_unicode_ci
+;
 SQL;
+        if (!$exec) {
+            $this->operationSqls[] = $sqls;
         }
+        foreach (array_chunk($mapper, self::CHUNK_ENTITIES, true) as $chunk) {
+            array_walk($chunk, function (&$v, $k) use ($exec): void {
+                $v = ((int) $v['property_id'])
+                    . ",'" . $v['type'] . "'"
+                    . ',' . (strlen((string) $v['value']) ? $this->connection->quote($v['value']) : 'NULL')
+                    . ',' . (strlen((string) $v['uri']) ? $this->connection->quote($v['uri']) : 'NULL')
+                    // TODO Check and normalize property language.
+                    . ',' . (strlen((string) $v['lang']) ? $this->connection->quote($v['lang']) : 'NULL')
+                    . ',' . ((int) $v['value_resource_id'] ? (int) $v['value_resource_id'] : 'NULL')
+                    // TODO Try to keep original is_public or use the template one.
+                    . ',' . (isset($v['is_public']) ? (int) $v['is_public'] : 1)
+                    . ',' . $this->connection->quote($v['source'])
+                ;
+            });
+            $chunkString = implode('),(', $chunk);
+            $sql = <<<SQL
+INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`value_resource_id`,`is_public`,`source`)
+VALUES($chunkString);
+
+SQL;
+            $exec
+                ? $sqls .= $sql
+                : $this->operationSqls[] = $sql;
+        }
+
+        if (!$exec) {
+            return;
+        }
+        $this->connection->exec($sqls);
+    }
+
+    protected function prepareMappingTableFromValues(array $params): bool
+    {
+        if (!empty($params['destination'])) {
+            $destinationId = $this->bulk->getPropertyId($params['destination']);
+            if (!$destinationId) {
+                $this->logger->err(
+                    'The operation "{action}" has an invalid destination: "{term}".', // @translate
+                    ['action' => $this->operationName, 'term' => $params['destination']]
+                );
+                return false;
+            }
+        } else {
+            $destinationId = $this->bulk->getPropertyId('dcterms:title');
+        }
+
+        if (!is_array($params['properties'])) {
+            $params['properties'] = [$params['properties']];
+        }
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['properties'] as $property) {
+            $propertyId = $this->bulk->getPropertyId($property);
+            $propertyId
+                ? $properties[$property] = $propertyId
+                : $errors[] = $property;
+            }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $propertyIds = implode(', ', $properties);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        // Copy all distinct values in a temporary table.
+        // Create a temporary table with the mapper.
+        $this->operationSqls[] = <<<'SQL'
+# Create a temporary table to store values.
+DROP TABLE IF EXISTS `_temporary_mapper`;
+CREATE TABLE `_temporary_mapper` LIKE `value`;
+ALTER TABLE `_temporary_mapper`
+    DROP `resource_id`,
+    ADD `source` longtext COLLATE utf8mb4_unicode_ci
+;
+SQL;
+
+        $this->operationSqls[] = <<<SQL
+# Fill temporary table with unique values from existing values.
+INSERT INTO `_temporary_mapper`
+    (`property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`, `source`)
+SELECT DISTINCT
+    $destinationId,
+    'literal',
+    `value`.`value`,
+    NULL,
+    `value`.`lang`,
+    NULL,
+    `value`.`is_public`,
+    `value`.`value`
+FROM `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` IN ($propertyIds)
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND (`value`.`value` <> "")
+    AND (`value`.`value` IS NOT NULL)
+    $sqlExcludeWhere
+;
+SQL;
+
+        return true;
+    }
+
+    protected function removeMappingTable(bool $exec = false): void
+    {
+        if ($exec) {
+            $sql = <<<'SQL'
+DROP TABLE IF EXISTS `_temporary_mapper`;
+SQL;
+            $this->connection->exec($sql);
+            return;
+        }
+
+        // Remove operationExcludes.
+        $this->operationSqls[] = <<<'SQL'
+DROP TABLE IF EXISTS `_temporary_mapper`;
+SQL;
     }
 
     protected function processValuesTransformUpdate(): void
@@ -1007,6 +1351,151 @@ SQL;
             'uri' => $uri,
         ];
         $this->connection->executeUpdate($sql, $bind);
+    }
+
+    protected function processCreateResources(array $params): void
+    {
+        // TODO Factorize with createEmptyResource().
+
+        // TODO Use the right owner.
+        $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
+        if (isset($params['template'])) {
+            $resourceTemplate = $this->bulk->getResourceTemplateId($params['template']) ?? 'NULL';
+            $resourceClass = $this->bulk->getResourceTemplateClassId($params['template']) ?? 'NULL';
+        } else {
+            $resourceTemplate = 'NULL';
+            $resourceClass = 'NULL';
+        }
+        if (isset($params['class'])) {
+            $resourceClass = $this->bulk->getResourceClassId($params['class']) ?? 'NULL';
+        }
+        $resourceType = empty($params['resource_type'])
+            ? \Omeka\Entity\Item::class
+            : $this->bulk->normalizeResourceType($params['resource_type']) ?? \Omeka\Entity\Item::class;
+        if ($resourceType === \Omeka\Entity\Media::class) {
+            $this->logger->err(
+                'The operation "{action}" cannot create media currently.', // @translate
+                ['action' => $this->operationName]
+            );
+            return;
+        }
+        $isPublic = (int) (bool) ($params['is_public'] ?? 1);
+
+        $quotedResourceType = $this->connection->quote($resourceType);
+
+        $random = $this->operationRandoms[$this->operationIndex];
+
+        $this->operationSqls[] = <<<SQL
+# Create resources.
+INSERT INTO `resource`
+    (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
+SELECT
+    $ownerIdOrNull,
+    $resourceClass,
+    $resourceTemplate,
+    $isPublic,
+    "$this->currentDateTimeFormatted",
+    NULL,
+    $quotedResourceType,
+    NULL,
+    CONCAT("$random ", `_temporary_mapper`.`source`)
+FROM `_temporary_mapper`
+;
+SQL;
+
+    $position = strlen($random) + 2;
+    $this->operationSqls[] = <<<SQL
+# Store new resource ids to speed next steps. and to remove random titles.
+DROP TABLE IF EXISTS `_temporary_new_resource`;
+CREATE TABLE `_temporary_new_resource` (
+    `id` int(11) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `_temporary_new_resource`
+    (`id`)
+SELECT DISTINCT
+    `resource`.`id`
+FROM `resource` AS `resource`
+WHERE `resource`.`title` LIKE "$random %"
+ON DUPLICATE KEY UPDATE
+    `id` = `_temporary_new_resource`.`id`
+;
+UPDATE `resource`
+JOIN `_temporary_new_resource`
+    ON `_temporary_new_resource`.`id` = `resource`.`id`
+SET
+    `resource`.`title` = SUBSTRING(`resource`.`title`, $position)
+WHERE
+    `resource`.`title` LIKE "$random %"
+;
+
+SQL;
+
+    if ($resourceType === \Omeka\Entity\Item::class) {
+        $this->operationSqls[] = <<<SQL
+# Create items for created resources.
+INSERT INTO `item`
+    (`id`)
+SELECT DISTINCT
+    `resource`.`id`
+FROM `_temporary_new_resource` AS `resource`
+ON DUPLICATE KEY UPDATE
+    `id` = `item`.`id`
+;
+SQL;
+    } elseif ($resourceType === \Omeka\Entity\ItemSet::class) {
+        $this->operationSqls[] = <<<SQL
+# Create item sets for created resources.
+INSERT INTO `item_set`
+    (`id`, `is_open`)
+SELECT DISTINCT
+    `resource`.`id`,
+    1
+FROM `_temporary_new_resource` AS `resource`
+ON DUPLICATE KEY UPDATE
+    `id` = `item_set`.`id`,
+    `is_open` = `item_set`.`is_open`
+;
+SQL;
+    } elseif ($resourceType === \Omeka\Entity\Media::class) {
+        $this->operationSqls[] = <<<SQL
+# Create medias for created resources.
+INSERT INTO `media`
+    (`id`, `item_id`, `ingester`, `renderer`, `has_original`, `has_tumbnails`)
+SELECT
+    `resource`.`id`,
+    0,
+    "",
+    "",
+    0,
+    0
+FROM `_temporary_new_resource` AS `resource`
+ON DUPLICATE KEY UPDATE
+    `id` = `media`.`id`
+;
+SQL;
+    }
+
+        $this->operationSqls[] = <<<SQL
+# Add values to new resources.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+SELECT
+    `resource`.`id`,
+    `_temporary_mapper`.`property_id`,
+    `_temporary_mapper`.`value_resource_id`,
+    `_temporary_mapper`.`type`,
+    `_temporary_mapper`.`lang`,
+    `_temporary_mapper`.`value`,
+    `_temporary_mapper`.`uri`,
+    `_temporary_mapper`.`is_public`
+FROM `_temporary_mapper`
+JOIN `resource`
+    ON `resource`.`title` = `_temporary_mapper`.`source`
+JOIN `_temporary_new_resource`
+    ON `_temporary_new_resource`.`id` = `resource`.`id`
+;
+SQL;
     }
 
     protected function checkTransformArguments($term = null, array $options = []): bool

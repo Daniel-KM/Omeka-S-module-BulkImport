@@ -1409,10 +1409,59 @@ SQL;
                     switch ($value) {
                         // Effectue des modifications avant toute autre modification.
                         case 'Pre':
-                            if ($header === self::TYPE_IMAGE) {
+                            if ($header === 'all') {
+                                $this->transformOperations([
+                                    [
+                                        'action' => 'create_resource',
+                                        'params' => [
+                                            'properties' => [
+                                                'manioc:themeGeneral',
+                                            ],
+                                            'destination' => 'dcterms:title',
+                                            'resource_type' => 'item_sets',
+                                            'template' => 'Corpus et sélection documentaire',
+                                        ],
+                                    ],
+                                ]);
+                            } elseif ($header === self::TYPE_AUDIO_VIDEO) {
+                                $this->transformOperations([
+                                    [
+                                        'action' => 'create_resource',
+                                        'params' => [
+                                            'mapping' => 'manifestations',
+                                            'template' => 'Manifestation',
+                                            // Simplifie la création des ressources ilées.
+                                            'source_term' => 'greenstone:unknownFile',
+                                        ],
+                                    ],
+                                    [
+                                        'action' => 'link_resource',
+                                        'params' => [
+                                            'source' => 'dcterms:isPartOf',
+                                            'identifier' => 'greenstone:unknownFile',
+                                            'destination' => 'dcterms:isPartOf',
+                                            'reciprocal' => 'dcterms:hasPart',
+                                            'keep_source' => false,
+                                        ],
+                                    ],
+                                    [
+                                        'action' => 'remove_values',
+                                        'params' => [
+                                            // Sur les nouvelles manifestations,
+                                            // pas les audio-vidéos.
+                                            'on' => [
+                                                'resource_random' => -2,
+                                            ],
+                                            'properties' => [
+                                                'greenstone:unknownFile',
+                                            ],
+                                        ],
+                                    ],
+                                ]);
+                            } else if ($header === self::TYPE_IMAGE) {
                                 // Cette opération ne dépend pas de la propriété en cours
                                 // mais des ressources.
-                                $this->transformLiteralWithOperations([
+                                $this->transformOperations([
                                     // Le titre est issu de la valeur dc.Relation^IsPartOf,
                                     // mise à jour dans l'opération précédente, mais il
                                     // est aussi disponible dans manioc:internalLink
@@ -1432,6 +1481,7 @@ SQL;
                                             // Ajout des liens inverses dans la notice du livre
                                             // dans dcterms:hasPart.
                                             'reciprocal' => 'dcterms:hasPart',
+                                            'keep_source' => true,
                                         ],
                                     ],
                                     [
@@ -1444,6 +1494,7 @@ SQL;
                                             'identifier' => 'dcterms:title',
                                             'destination' => 'dcterms:isPartOf',
                                             'reciprocal' => 'dcterms:hasPart',
+                                            'keep_source' => true,
                                         ],
                                     ],
                                 ]);
@@ -1475,9 +1526,9 @@ SQL;
                                     // Lieu d’édition : éditeur
                                     // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
                                     // Mais certains éditeurs ne sont pas des lieux : "ANR : Agence Nationale de la Recherche".
-                                    $this->transformLiteralWithOperations([
+                                    $this->transformOperations([
                                         [
-                                            'action' => 'cut',
+                                            'action' => 'cut_values',
                                             'params' => [
                                                 'source' => $map['property_id'],
                                                 'exclude' => 'editeurs_sans_lieu',
@@ -1516,7 +1567,7 @@ SQL;
                         case 'Fait partie de':
                             if ($header === self::TYPE_IMAGE) {
                                 // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
-                                $this->transformLiteralWithOperations([
+                                $this->transformOperations([
                                     [
                                         'action' => 'replace_table',
                                         'params' => [
@@ -1529,7 +1580,7 @@ SQL;
                             break;
 
                         case 'Indice Dewey':
-                            $this->transformLiteralWithOperations([
+                            $this->transformOperations([
                                 [
                                     'action' => 'replace_table',
                                     'params' => [
@@ -1576,7 +1627,7 @@ SQL;
                         case 'Titre':
                             if ($header === self::TYPE_LIVRE) {
                                 // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
-                                $this->transformLiteralWithOperations([
+                                $this->transformOperations([
                                     [
                                         'action' => 'replace_table',
                                         'params' => [
