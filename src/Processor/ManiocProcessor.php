@@ -63,6 +63,8 @@ class ManiocProcessor extends AbstractFullProcessor
 
     protected $fileMapping = 'manioc/mapping.ods';
 
+    protected $fileMigration = 'manioc/migration.ods';
+
     protected $tables = [
         'fichiers',
         'metadata',
@@ -183,6 +185,7 @@ class ManiocProcessor extends AbstractFullProcessor
     protected function fillOthers(): void
     {
         $this->fillItemTemplates();
+        $this->transformItemValues();
         parent::fillOthers();
     }
 
@@ -327,6 +330,9 @@ class ManiocProcessor extends AbstractFullProcessor
         }
 
         // Update values in temporary tables to simplify final copy.
+        $this->logger->info(
+            'Preparing filling of values.' // @translate
+        );
 
         // Copy the mapping of source ids and resource ids.
         // It's quicker to use a temp file and it avoids a large query.
@@ -442,6 +448,18 @@ SQL;
 
         $this->connection->query($sql);
         unlink($filepath);
+
+        if (!empty($this->modules['BulkEdit'])) {
+            /** @var \BulkEdit\Mvc\Controller\Plugin\TrimValues $trimValues */
+            $trimValues = $this->getServiceLocator()->get('ControllerPluginManager')->get('trimValues');
+            $trimValues();
+        }
+
+        $total = $this->connection->query('SELECT count(`id`) FROM `value`;')->fetchColumn();
+        $this->logger->notice(
+            '{total} values have been copied from the source.', // @translate
+            ['total' => $total]
+        );
     }
 
     /**
@@ -717,6 +735,276 @@ SQL;
         $this->logger->notice(
             'Updated templates for resources.' // @translate
         );
+    }
+
+    protected function transformItemValues(): void
+    {
+        $migrationMapping = $this->getTableFromFile($this->fileMigration);
+        if (!$migrationMapping) {
+            $this->logger->warn(
+                'No migration file is defined.' // @translate
+            );
+            return;
+        }
+
+        // Les règles varient selon les 4 types d'origine, qui ont été
+        // remplacés par des modèles.
+        $templates = dirname(__DIR__, 2) . '/data/imports/manioc/templates.php';
+        if (file_exists($templates)) {
+            $templates = include $templates;
+            $templates = array_filter($templates);
+            if (!$templates) {
+                $this->logger->warn(
+                    'The mapping for old and new templates is empty (file "/data/imports/manioc/templates.php").' // @translate
+                );
+            }
+        } else {
+            $this->logger->warn(
+                'There is no mapping for old and new templates (file "/data/imports/manioc/templates.php").' // @translate
+            );
+        }
+
+        // Add the common transformation for all resources.
+        // It should be the first template.
+        $templates = ['all' => 'all'] + $templates;
+
+        $normalizedMapping = $this->getNormalizedMapping();
+        if (!$normalizedMapping) {
+            $this->logger->warn(
+                'The mapping defined for values should use terms or property ids.' // @translate
+            );
+            return;
+        }
+
+        // Mettre à jour la colonne des éléments.
+        foreach ($migrationMapping as $key => &$map) {
+            // Mysql is case insensitive, but not php array.
+            $map = array_change_key_case($map);
+            $field = $map['elément'] ?? null;
+            if (empty($field)) {
+                unset($migrationMapping[$key]);
+            } else {
+                foreach ($normalizedMapping as $nMap) {
+                    if ($field === $nMap['source']) {
+                        $map['property_id'] = $nMap['property_id'];
+                        $map['term'] = $nMap['destination'];
+                        if (array_key_exists('tous', $map)) {
+                            $map['all'] = $map['tous'];
+                            unset($map['tous']);
+                        } else {
+                            $map['all'] = null;
+                        }
+                        break;
+                    }
+                }
+                if (empty($map['property_id'])) {
+                    unset($migrationMapping[$key]);
+                    $this->logger->warn(
+                        'No map for field "{label}".', // @translate
+                        ['label' => $field]
+                    );
+                }
+            }
+        }
+        unset($map);
+
+        if (!count($migrationMapping)) {
+            $this->logger->warn(
+                'The mapping defined to migrate values should use terms or property ids.' // @translate
+            );
+            return;
+        }
+
+        $totalRemoved = 0;
+        $notManaged = [];
+        foreach ($templates as $templateLabel => $header) {
+            $lowerLabel = mb_strtolower($templateLabel);
+            $lowerHeader = mb_strtolower($header);
+            $processAll = $lowerLabel === 'all';
+            if ($processAll) {
+                $templateId = null;
+                $this->logger->notice(
+                    'Processing values for all templates.' // @translate
+                );
+            } else {
+                $templateId = $this->bulk->getResourceTemplateId($templateLabel);
+                if (!$templateId) {
+                    $this->logger->warn(
+                        'No template for "{label}".', // @translate
+                        ['label' => $templateLabel]
+                    );
+                    continue;
+                }
+                $this->logger->notice(
+                    'Processing values for template "{template}".', // @translate
+                    ['template' => $templateLabel]
+                );
+            }
+
+            if ($processAll) {
+                $sqlAndWhere = '';
+                $baseBind = [];
+            } else {
+                $sqlAndWhere = 'AND `resource`.`resource_template_id` = :resource_template_id';
+                $baseBind = ['resource_template_id' => $templateId];
+            }
+
+            foreach ($migrationMapping as $map) {
+                if (empty($map[$lowerHeader])) {
+                    continue;
+                }
+                // All is the first process, so skip next ones when all is set.
+                if ($lowerHeader !== 'all' && !empty($map['all'])) {
+                    continue;
+                }
+                $bind = [];
+                $value = $map[$lowerHeader];
+                $first = $value ? substr($value, 0, 1) : '';
+                switch ($first) {
+                    // Remove all values starting with "-".
+                    case '-':
+                        $sql = <<<SQL
+DELETE `value`
+FROM `value`
+JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
+WHERE `value`.`property_id` = :property_id
+    $sqlAndWhere;
+
+SQL;
+                        $bind = $baseBind + [
+                            'property_id' => $map['property_id'],
+                        ];
+                        $result = $this->connection->executeUpdate($sql, $bind);
+                        if ($result) {
+                            $totalRemoved += $result;
+                            $this->logger->info(
+                                '{total} values removed for template "{template}", property "{term}" (source "{source}").', // @translate
+                                ['total' => $result, 'template' => $templateLabel, 'term' => $map['term'], 'source' => $map['elément']]
+                            );
+                        }
+                        break;
+
+                    // Make private all values starting with "?".
+                    case '?':
+                        $sql = <<<SQL
+UPDATE `value`
+JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
+SET `value`.`is_public` = 0
+WHERE `value`.`property_id` = :property_id
+    $sqlAndWhere;
+
+SQL;
+                        $bind = $baseBind + [
+                            'property_id' => $map['property_id'],
+                        ];
+                        $this->connection->executeUpdate($sql, $bind);
+                        break;
+
+                    // Manage exceptions for values starting with "*".
+                    case '*':
+                        // The exception applies to all values included in a
+                        // temporary table.
+                        $sql = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_id`;
+CREATE TABLE `_temporary_value_id` (
+    `id` int(11) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `_temporary_value_id`
+    (`id`)
+SELECT
+    `value`.`id`
+FROM `value`
+JOIN `resource`
+    ON `resource`.`id` = `value`.`resource_id`
+WHERE
+    `value`.`property_id` = :property_id
+    AND (`value`.`type` = 'literal' OR `value`.`type` = '' OR `value`.`type` IS NULL)
+    $sqlAndWhere;
+
+SQL;
+                        $bind = $baseBind + [
+                            'property_id' => $map['property_id'],
+                        ];
+                        $stmt = $this->connection->query($sql);
+                        $result = $stmt->execute();
+                        $realValue = trim(substr($value, 1));
+                        switch ($result && $stmt->rowCount() ? $realValue : 'skip') {
+                            case 'Auteur secondaire':
+                                break;
+                            case 'Pays|Ville (sujet)':
+                                break;
+                            case 'Auteur':
+                                break;
+                            case 'Langue':
+                                break;
+                            case 'Editeur':
+                                break;
+                            case 'Fait partie de':
+                                break;
+                            case 'Droits':
+                                break;
+                            case 'Mot-clé':
+                                break;
+                            case 'Sujet géographique':
+                                break;
+                            case 'Indice Dewey':
+                                break;
+                            case 'Personne (sujet)':
+                                break;
+                            case 'Thématique audio-vidéo':
+                                break;
+                            case 'Thématique images':
+                                break;
+                            case 'Thématique ouvrages numérisés':
+                                break;
+                            case 'Thématique recherche':
+                                break;
+                            default:
+                                $notManaged[] = $realValue;
+                                break;
+                        }
+
+                        $this->connection->query($sql);
+
+                        break;
+
+                    // Copy all values starting with "+", so nothing to do
+                    // because already migrated.
+                    case '+':
+                    // Let empty values, probably none.
+                    default:
+                        break;
+                }
+            }
+        }
+
+        $sql = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_id`;
+SQL;
+        $this->connection->exec($sql);
+
+        if ($totalRemoved) {
+            $this->logger->warn(
+                'A total of {total} values were removed.',  // @translate
+                ['total' => $totalRemoved]
+            );
+        }
+
+        if (count($notManaged)) {
+            $this->logger->warn(
+                'The following processes are not managed: "{list}".',  // @translate
+                ['list' => implode('", "', $notManaged)]
+            );
+        }
+
+        $this->logger->notice(
+            'Values were transformed.' // @translate
+        );
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
     }
 
     /**
