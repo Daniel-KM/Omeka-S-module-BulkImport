@@ -1315,7 +1315,7 @@ SQL;
 
         // Check if value suggest is available in order to prepare a temp table.
         if (!empty($this->modules['ValueSuggest'])) {
-            $this->saveValueSuggestMappings();
+            $this->saveMappingsSourceUris();
             $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 SQL;

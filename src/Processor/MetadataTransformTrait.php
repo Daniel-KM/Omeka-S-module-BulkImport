@@ -31,9 +31,15 @@ trait MetadataTransformTrait
      * It allows to use a manual user mapping or a previous mapping too.
      * It is used to fill output too (ods and html).
      *
+     * The content is: $this->mappingsSourceUris[$name][$source][$uri] = $dataArray
+     *
      * @var array
      */
-    protected $valueSuggestMappings = [];
+    protected $mappingsSourceUris = [];
+
+    protected $mappingsSourceItems = [];
+
+    protected $mappingsColumns = [];
 
     protected $transformIndex = 0;
 
@@ -890,7 +896,7 @@ SQL;
             $params['name'] = str_replace(':', '-', $datatype .'_' . $this->transformIndex);
         }
 
-        $list = $this->prepareListForValueSuggest([$sourceTerm => $sourceId]);
+        $list = $this->prepareListForMappingSourceUris([$sourceTerm => $sourceId]);
         if (is_null($list)) {
             return false;
         }
@@ -900,9 +906,9 @@ SQL;
         }
 
         // Prepare the current mapping if any from params or previous steps.
-        $this->prepareValueSuggestMapping($params);
-        $this->updateValueSuggestMapping($params, $list);
-        $currentMapping = &$this->valueSuggestMappings[$params['name']];
+        $this->prepareMappingSourceUris($params);
+        $this->updateMappingSourceUris($params, $list);
+        $currentMapping = &$this->mappingsSourceUris[$params['name']];
         if (empty($currentMapping)) {
             return false;
         }
@@ -911,60 +917,47 @@ SQL;
             return false;
         }
 
+        // Fix exception.
+        if ($datatype === 'valuesuggest:idref:author') {
+            $datatype = 'valuesuggest:idref:person';
+        }
+
         // Save mapped values for the current values. It allows to manage
         // multiple steps, for example to store some authors as creators, then as
         // contributors.
-
-        // Only values with a single result are used to update resources.
-        $single = function ($v) {
-            return isset($v['source'])
-                && mb_strlen($v['source'])
-                && (
-                    (!is_array($v['uri']) && mb_strlen((string) $v['uri']))
-                    || (is_array($v['uri']) && count($v['uri']) === 1)
-                );
-        };
-
         $mapper = [];
-        foreach (array_filter($currentMapping, $single) as $v) {
+        foreach ($currentMapping as $source => $rows) {
+            // Only values with a source and a single uri can update resources.
+            if (!$source || !count($rows) || count($rows) > 1) {
+                continue;
+            }
+            $uriRow = key($rows);
+            if (empty($uriRow)) {
+                continue;
+            }
+            $row = reset($rows);
             foreach ($fromTo as $from => $propertyId) {
                 if ($from === 'identifier') {
-                    if (!isset($v['uri'])) {
-                        $v['uri'] = [];
-                    } elseif (!is_array($v['uri'])) {
-                        $v['uri'] = [$v['uri']];
-                    }
-                    $uri = reset($v['uri']) ?: null;
-                    if (!isset($v['label'])) {
-                        $v['label'] = [];
-                    } elseif (!is_array($v['label'])) {
-                        $v['label'] = [$v['label']];
-                    }
-                    $value = reset($v['label']) ?: null;
-                    if (!isset($v['type'])) {
-                        $v['type'] = [];
-                    } elseif (!is_array($v['type'])) {
-                        $v['type'] = [$v['type']];
-                    }
-                    $type = reset($v['type']) ?: $datatype;
-                } elseif (empty($v[$from])) {
-                    continue;
-                } else {
-                    $value = is_array($v[$from]) ? reset($v[$from]) : $v[$from];
-                    if (is_null($value) || $value === '') {
-                        continue;
-                    }
-                    $type = 'literal';
+                    $uri = $uriRow;
+                    $label = isset($row['label']) && $row['label'] !== '' ? $row['label'] : null;
+                    $type= isset($row['type']) && $row['type'] !== '' ? $row['type'] : $datatype;
+                } elseif (isset($row[$from]) && $row[$from] !== '') {
                     $uri = null;
+                    $label = $row[$from];
+                    $type = 'literal';
+                } else {
+                    continue;
                 }
                 $mapper[] = [
-                    'source' => $v['source'],
+                    'source' => $source,
                     'property_id' => $propertyId,
-                    'type' => $type,
-                    'value' => $value,
-                    'uri' => $uri,
-                    'lang' => null,
                     'value_resource_id' => null,
+                    'type' => $type,
+                    'value' => $label,
+                    'uri' => $uri,
+                    // TODO Check and normalize property language.
+                    'lang' => null,
+                    // TODO Try to keep original is_public.
                     'is_public' => 1,
                 ];
             }
@@ -1551,7 +1544,7 @@ SQL;
 
         $sourceTerm = $params['source'] = $this->getPropertyTerm($sourceId);
 
-        $list = $this->prepareListForValueSuggest([$sourceTerm => $sourceId]);
+        $list = $this->prepareListForMappingSourceUris([$sourceTerm => $sourceId]);
         if (is_null($list)) {
             return false;
         }
@@ -1561,9 +1554,9 @@ SQL;
         }
 
         // Prepare the current mapping if any from params or previous steps.
-        $this->prepareValueSuggestMapping($params);
-        $this->updateValueSuggestMapping($params, $list);
-        $currentMapping = &$this->valueSuggestMappings[$params['name']];
+        $this->prepareMappingSourceUris($params);
+        $this->updateMappingSourceUris($params, $list);
+        $currentMapping = &$this->mappingsSourceUris[$params['name']];
         if (empty($currentMapping)) {
             return false;
         }
@@ -1579,52 +1572,38 @@ SQL;
         // multiple steps, for example to store some authors as creators, then as
         // contributors.
 
-        // Only single values are updated.
-        $single = function ($v) {
-            return isset($v['source'])
-                && mb_strlen($v['source'])
-                && (
-                    (!is_array($v['uri']) && mb_strlen((string) $v['uri']))
-                    || (is_array($v['uri']) && count($v['uri']) === 1)
-                );
-        };
-
-        $mapper = array_map(function ($v) use ($sourceId, $datatype) {
-            if (!isset($v['uri'])) {
-                $uri = null;
-            } else {
-                $uri = is_array($v['uri']) ? reset($v['uri']) : $v['uri'];
+        // Only values with a source and a single uri can be used.
+        $mapper = [];
+        foreach ($currentMapping as $source => $row) {
+            if (!$source || !count($row) || count($row) > 1 || empty(key($row))) {
+                continue;
             }
-            if (!isset($v['label'])) {
-                $label = null;
-            } else {
-                $label = is_array($v['label']) ? reset($v['label']) : $v['label'];
-            }
-            if (isset($v['type'])) {
-                $type = is_array($v['type']) && reset($v['type']) ? reset($v['type']) : $datatype;
-            } else {
-                $type = $datatype;
-            }
-            return [
-                'source' => $v['source'],
+            $uri = key($row);
+            $label = isset($row['label']) && mb_strlen($row['label']) ? $row['label'] : null;
+            $type= isset($row['type']) && mb_strlen($row['type']) ? $row['type'] : $datatype;
+            $mapper[] = [
+                'source' => $source,
                 'property_id' => $sourceId,
+                'value_resource_id' => null,
                 'type' => $type,
                 'value' => $label,
                 'uri' => $uri,
                 // TODO Check and normalize property language.
                 'lang' => null,
-                'value_resource_id' => null,
                 // TODO Try to keep original is_public.
                 'is_public' => 1,
             ];
-        }, array_filter($currentMapping, $single));
+        }
 
         $this->storeMappingTable($mapper);
+
+        // Unset references.
+        unset($currentMapping);
 
         return true;
     }
 
-    protected function prepareListForValueSuggest(array $properties): ?array
+    protected function prepareListForMappingSourceUris(array $properties): ?array
     {
         if (empty($properties)) {
             $this->logger->info(
@@ -1665,6 +1644,9 @@ SQL;
         $stmt = $this->connection->executeQuery($sql, $bind, $types);
         // Fetch by key pair is not supported by doctrine 2.0.
         $list = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // Warning: array_column() is used because values are distinct and all
+        // of them are strings.
+        // Note that numeric topics ("1918") are automatically casted to integer.
         $list = array_column($list, 'r', 'v');
         $totalList = count($list);
 
@@ -1684,10 +1666,15 @@ SQL;
         return $list;
     }
 
-    protected function prepareValueSuggestMapping(array $params): void
+    /**
+     * Clean the user provided table for uri mapping.
+     *
+     * @todo The columns should be the same in all parts of the config and tables. Anyway, loaded once.
+     */
+    protected function prepareMappingSourceUris(array $params): void
     {
         // If exists, the original table is already loaded (no mix mappings).
-        if (isset($this->valueSuggestMappings[$params['name']])) {
+        if (isset($this->mappingsSourceUris[$params['name']])) {
             return;
         }
 
@@ -1696,7 +1683,7 @@ SQL;
 
         $datatype = $params['datatype'] ?? null;
 
-        // Keep only the needed columns.
+        // Prepare the list of needed columns.
         $columns = [
             'source' => null,
             'items' => null,
@@ -1711,31 +1698,118 @@ SQL;
         if (!empty($params['properties'])) {
             $columns += array_fill_keys(array_keys($params['properties']), null);
         }
+        // The column "identifier" is the uri.
         unset($columns['identifier']);
-        $table = array_map(function ($v) use ($columns) {
-            return array_replace($columns, array_intersect_key($v, $columns));
-        }, $table);
 
-        if (isset($params['prefix']) && strlen($params['prefix'])) {
-            $prefix = $params['prefix'];
-            $table = array_map(function ($v) use ($prefix) {
-                if (!empty($v['uri']) && strpos($v['uri'], $prefix) !== 0) {
-                    $v['uri'] = $prefix . $v['uri'];
-                }
-                return $v;
-            }, $table);
+        $this->mappingsColumns[$params['name']] = array_flip($columns);
+        $this->mappingsSourceItems[$params['name']] = [];
+
+        // Merge the sources to search them instantly: in some cases, there are
+        // multiple times the same source.
+        // Warning: because array_column() casts numerical strings in keys, it
+        // may break some values, like numeric topic "1918". Nevertheless, this
+        // issue doesn't occur here, because all values of the table are strings
+        // and there is no floats, etc.
+        $this->mappingsSourceUris[$params['name']] = array_fill_keys(array_column($table, 'source'), []);
+
+        // Use references for simplicity.
+        $storedSourceItems = &$this->mappingsSourceItems[$params['name']];
+        $sources = &$this->mappingsSourceUris[$params['name']];
+        unset($sources['']);
+
+        $prefix = isset($params['prefix']) && strlen($params['prefix'])
+            ? $params['prefix']
+            : false;
+
+        // Clean the input table.
+        foreach ($table as $key => &$row) {
+            // Remove row without source.
+            if (!isset($row['source']) || $row['source'] === '' || $row['source'] === null || $row['source'] === []) {
+                unset($table[$key]);
+                continue;
+            }
+
+            // Remove columns with empty headers.
+            unset($row['']);
+
+            // Keep all needed columns and only them, and order them.
+            $row = array_replace($columns, array_intersect_key($row, $columns));
+
+            // Merge the rows by source and uri.
+            $source = $row['source'];
+            $items = $row['items'] ?? [];
+            unset($row['source'], $row['items']);
+
+            // Clean the list of items, merge it with previous ones and store it
+            // separately, in all cases.
+            if ($items) {
+                $items = array_unique(array_filter(array_map('intval', explode(' ', str_replace('#', ' ', $items)))));
+                sort($items);
+            } else {
+                $items = [];
+            }
+            if (!empty($storedSourceItems[$source])) {
+                $items = array_unique(array_merge($storedSourceItems[$source], $items));
+                sort($items);
+            }
+            $storedSourceItems[$source] = $items;
+
+            // Prepend the prefix when missing.
+            if ($prefix
+                && !empty($row['uri'])
+                && mb_strpos($row['uri'], $prefix) !== 0
+            ) {
+                $row['uri'] = $prefix . $row['uri'];
+            }
+            $uri = $row['uri'] ?: null;
+
+            // Keep only the first row with the specified uri.
+            // Rows are not mixed.
+            if (isset($sources[$source][$uri])) {
+                unset($table[$key]);
+                continue;
+            }
+
+            // When there is an uri, the row with an empty uri should be removed
+            // because this is a result.
+            if ($uri) {
+                unset($sources[$source]['']);
+            }
+
+            unset($row['uri']);
+            $sources[$source][$uri] = $row;
         }
 
-        // Prepare the keys to search instantly in the mapping.
-        $this->valueSuggestMappings[$params['name']] = array_combine(array_column($table, 'source'), $table);
+        // Unset references.
+        unset($storedSourceItems);
+        unset($sources);
     }
 
-    protected function updateValueSuggestMapping(array $params, array $list): void
+    /**
+     * Update a mapping of values with missing sources and identifiers.
+     *
+     * Only the list of sources is updated, not the existing mapping sources,
+     * because the list contains the used sources and only them are useful.
+     *
+     * The original sources are not updated when there is an uri: use operation
+     * "append_values" if needed.
+     */
+    protected function updateMappingSourceUris(array $params, array $list): void
     {
-        $currentMapping = &$this->valueSuggestMappings[$params['name']];
-        $originalDataType = $datatype = $params['datatype'];
+        // Should be prepared first.
+        if (!isset($this->mappingsSourceUris[$params['name']])) {
+            $this->prepareMappingSourceUris($params);
+        }
+
+        // Use references for simplicity.
+        $currentMapping = &$this->mappingsSourceUris[$params['name']];
+        $currentItems = &$this->mappingsSourceItems[$params['name']];
+
+        $datatype = $params['datatype'];
+        $originalDataType = $datatype;
         $sourceTerm = $params['source'];
 
+        // TODO Use $this->mappingsColumns.
         $columns = [
             'source',
             'items',
@@ -1759,52 +1833,62 @@ SQL;
 
         $params['extra_columns'] = $extraColumns;
 
-        // Update the mapping for missing values, using the suggesters.
-        $count = 0;
+        $defaultRow = [
+            'label' => null,
+            'type' => null,
+            'info' => null,
+        ];
+        foreach ($extraColumns as $column) {
+            $defaultRow[$column] = null;
+        }
+
+        // Update the mapping for missing values in list, using the suggesters.
+        $processed = 0;
         $countSingle = 0;
-        foreach ($list as $value => $resourceIds) {
-            ++$count;
-            $value = trim((string) $value);
-
-            // In all cases, update the resource ids for future check.
-            if (empty($currentMapping[$value]['items'])) {
-                $ids = $resourceIds;
-            } else {
-                $ids = array_filter(explode(' ', str_replace('#', ' ', $currentMapping[$value]['items']) . ' ' . $resourceIds));
-                sort($ids);
-                $ids = implode(' ', array_unique($ids));
-            }
-
-            // Check if the value is already mapped with one or multiple uris.
-            // It may have been checked in a previous step with an empty array.
-            // An empty string means a value missing in the mapping of the
-            // config, else it is an empty array.
-            // TODO Fill missing data too? Not here.
-            if (isset($currentMapping[$value]['uri']) && $currentMapping[$value]['uri'] !== '') {
+        foreach ($list as $source => $resourceIds) {
+            ++$processed;
+            $source = trim((string) $source);
+            if ($source === '') {
                 continue;
             }
 
-            if (isset($currentMapping[$value]['uri'])
-                && $currentMapping[$value]['uri'] === ''
-                && !empty($currentMapping[$value]['type'])
+            // In all cases, update the resource ids for future check.
+            $resourceIds = array_values(array_filter(explode(' ', $resourceIds)));
+            if (!empty($currentItems[$source])) {
+                $resourceIds = array_filter(array_unique(array_merge($currentItems[$source], $resourceIds)));
+                sort($resourceIds);
+            }
+            $currentItems[$source] = $resourceIds;
+
+            // Check if the value is already mapped with one or multiple uris to
+            // avoid to repeat search.
+            // So check the keys (uris) in the sources (values): when there is
+            // no empty key, it means that the source is already checked.
+            if (isset($currentMapping[$source])
+                && (
+                    !count($currentMapping[$source])
+                    || count($currentMapping[$source]) > 1
+                    || (count($currentMapping[$source]) === 1
+                        && (key($currentMapping[$source]) !== '' || !empty($currentMapping[$source]['_chk']))
+                    )
+                )
             ) {
-                $datatype = $currentMapping[$value]['type'];
+                continue;
+            }
+
+            // There is no value or there is one value without uri.
+            // When there is one value, get the type if any.
+            $existing = isset($currentMapping[$source]) ? reset($currentMapping[$source]) : null;
+            if ($existing) {
+                if (!empty($existing['type'])) {
+                    $datatype = $existing['type'];
+                }
             } else {
+                $currentMapping[$source] = [];
                 $datatype = $originalDataType;
             }
 
-            // Complete the new mapping.
-            $currentMapping[$value]['source'] = $value;
-            $currentMapping[$value]['items'] = $resourceIds;
-            $currentMapping[$value]['uri'] = [];
-            $currentMapping[$value]['label'] = [];
-            $currentMapping[$value]['info'] = [];
-            $currentMapping[$value]['type'] = [];
-            foreach ($extraColumns as $column) {
-                $currentMapping[$value][$column] = [];
-            }
-
-            $result = $this->valueSuggestQuery($value, $datatype, $params);
+             $result = $this->valueSuggestQuery($source, $datatype, $params);
 
             if ($result === null) {
                 $this->logger->err(
@@ -1814,40 +1898,58 @@ SQL;
                 break;
             }
 
+            if (!count($result)) {
+                if ($existing) {
+                    // Avoid to check the row during another operation.
+                    $currentMapping[$source]['']['_chk'] = true;
+                }
+                continue;
+            }
+
             // Check if one of the value is exactly the queried value.
             // Many results may be returned but only the good one is needed.
             if (count($result) > 1) {
-                foreach ($result as $r) {
-                    if ($r['value'] === $value) {
-                        $result = [$r];
-                        break;
+                $first = null;
+                $count = 0;
+                foreach ($result as $k => $r) {
+                    if ($r['value'] === $source) {
+                        ++$count;
+                        if (is_null($first)) {
+                            $first = $k;
+                        }
                     }
+                }
+                if ($count === 1) {
+                    $result = [$result[$first]];
                 }
             }
 
             // Store the results for future steps.
             foreach ($result as $r) {
-                $currentMapping[$value]['uri'][] = $r['data']['uri'];
-                $currentMapping[$value]['label'][] = $r['value'];
-                if (isset($r['data']['type'])) {
-                    $currentMapping[$value]['type'][] = $r['data']['type'];
-                }
-                $currentMapping[$value]['info'][] = $r['data']['info'];
+                $uri = $r['data']['uri'];
+                $row = $defaultRow;
+                $row['label'] = $r['value'];
+                $row['type'] = empty($r['data']['type']) ? $datatype : $r['data']['type'];
+                $row['info'] = $r['data']['info'];
                 foreach ($extraColumns as $column) {
                     if (isset($r['data'][$column])) {
-                        $currentMapping[$value][$column][] = $r['data'][$column];
+                        $row[$column] = $r['data'][$column];
                     }
                 }
+                $currentMapping[$source][$uri] = $row;
             }
 
             if (count($result) === 1) {
                 ++$countSingle;
+                // Remove the existing value when a value is found.
+                // TODO The value of the user input is not merged with result to avoid mixing data.
+                unset($currentMapping[$source]['']);
             }
 
-            if ($count % 100 === 0) {
+            if ($processed % 100 === 0) {
                 $this->logger->info(
                     'Operation "{action}": {count}/{total} unique values for term "{term}" processed, {singles} values with a single uri.', // @translate
-                    ['action' => $this->operationName, 'count' => $count, 'total' => count($list), 'term' => $sourceTerm, 'singles' => $countSingle]
+                    ['action' => $this->operationName, 'count' => $processed, 'total' => count($list), 'term' => $sourceTerm, 'singles' => $countSingle]
                 );
                 if ($this->isErrorOrStop()) {
                     return;
@@ -1859,6 +1961,10 @@ SQL;
             'Operation "{action}": {total} unique values for data type "{type}" (term "{term}") processed, {singles} new values updated with a single uri.', // @translate
             ['action' => $this->operationName, 'total' => count($list), 'type' => $datatype, 'term' => $sourceTerm, 'singles' => $countSingle]
         );
+
+        // Clear reference.
+        unset($currentMapping);
+        unset($currentItems);
     }
 
     protected function processValuesTransformUpdate(): void
@@ -2772,7 +2878,7 @@ SQL;
      * values with end of lines. Furthermore, it allows to merge cells when
      * there are multiple results (but box/spout doesn't manage it).
      */
-    protected function saveValueSuggestMappings(): void
+    protected function saveMappingsSourceUris(): void
     {
         $columns = [
             'source',
@@ -2782,23 +2888,24 @@ SQL;
             'type',
             'info',
         ];
-        foreach ($this->valueSuggestMappings as $name => $mapper) {
+        foreach ($this->mappingsSourceUris as $name => $mapper) {
             // Prepare the list of specific headers one time in order to save
             // the fetched data and the ones from the original file.
-            $headers = [];
-            foreach ($mapper as $map) {
-                $headers = array_unique(array_merge($headers, array_keys($map)));
+            $extraColumns = [];
+            foreach ($mapper as $rows) {
+                foreach ($rows as $row) {
+                    $extraColumns = array_unique(array_merge($extraColumns, array_keys($row)));
+                }
             }
-            $headers = array_flip(array_diff($headers, $columns));
-            unset($headers['']);
-            unset($headers[0]);
-            $headers = array_keys($headers);
-            $this->saveValueSuggestMappingToOds($name, $mapper, $headers);
-            $this->saveValueSuggestMappingToHtml($name, $mapper, $headers);
+            $extraColumns = array_flip(array_diff($extraColumns, $columns));
+            unset($extraColumns['_chk']);
+            $extraColumns = array_keys($extraColumns);
+            $this->saveMappingSourceUrisToOds($name, $mapper, $extraColumns);
+            $this->saveMappingSourceUrisToHtml($name, $mapper, $extraColumns);
         }
     }
 
-    protected function saveValueSuggestMappingToOds(string $name, array $mapper, array $extraColumns = []): void
+    protected function saveMappingSourceUrisToOds(string $name, array $mapper, array $extraColumns = []): void
     {
         $basePath = trim($this->job->getArg('base_path'), '/');
         $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
@@ -2844,11 +2951,8 @@ SQL;
             'info',
         ];
         $extraColumns = array_values(array_unique(array_filter(array_diff($extraColumns, $headers))));
-        $mostColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items']));
         $tableHeaders = array_values(array_merge($headers, $extraColumns));
-        $emptyRow = array_fill_keys($tableHeaders, ['']);
-        $emptyRow['source'] = '';
-        $emptyRow['items'] = '';
+        $emptyRow = array_fill_keys($tableHeaders, '');
 
         /** @var \Box\Spout\Common\Entity\Row $row */
         $row = WriterEntityFactory::createRowFromArray($tableHeaders, (new StyleBuilder())->setFontBold()->build());
@@ -2857,59 +2961,38 @@ SQL;
         $newStyle = (new StyleBuilder())->setBackgroundColor(Color::rgb(208, 228, 245))->build();
 
         $even = false;
-        foreach ($mapper as $map) {
+        foreach ($mapper as $source => $rows) {
             // Skip useless data.
-            if (empty($map['source'])) {
+            if (empty($source)) {
                 continue;
             }
 
             // Fill the map with all columns.
-            // There should be at least one uri to keep the row below.
-            if (is_array($map['uri'])) {
-                foreach ($mostColumns as $column) {
-                    $map[$column] = isset($map[$column]) && count($map[$column])
-                        ? $map[$column]
-                        : [''];
-                }
-            }
-            // In the case where a user mapped value was not updated (not found
-            // in database or not migrated).
-            else {
-                foreach ($mostColumns as $column) {
-                    $map[$column] = isset($map[$column]) ? [$map[$column]] : [''];
-                }
+            // There should be at least one row to keep the sources.
+            if (empty($rows)) {
+                $rows[''] = $emptyRow;
             }
 
-            // The order should be always the same.
-            $map = array_replace($emptyRow, $map);
-
-            $resources = '';
-            $list = array_unique(array_filter(explode(' ', str_replace('#', ' ', $map['items']))));
-            foreach (array_chunk($list, $this->outputByColumn) as $chunk) {
-                foreach ($chunk as $id) {
-                    // $resources .= sprintf('%sadmin/item/%d ', $baseUrl, $id);
-                    $resources .= "#$id ";
-                }
-                // $resources .= "\n";
+            $resourceIds = '';
+            $list = $this->mappingsSourceItems[$name][$source] ?? [];
+            foreach ($list as $id) {
+                $resourceIds .= "#$id ";
             }
-            $resources = trim($resources);
+            $resourceIds = trim($resourceIds);
 
-            $data = [
-                $map['source'],
-                $resources,
-            ];
-
-            $dataBase = $data;
-            foreach (array_keys($map['uri']) as $key) {
-                $data = $dataBase;
-                foreach ($mostColumns as $column) {
-                    $data[] = $map[$column][$key] ?? '';
-                }
-                $row = WriterEntityFactory::createRowFromArray($data);
+            // The rows are already checked.
+            foreach ($rows as $uri => $row) {
+                $row['source'] = $source;
+                $row['items'] = $resourceIds;
+                $row['uri'] = $uri;
+                $row = array_filter(array_map('strval', $row), 'strlen');
+                // The order should be always the same.
+                $row = array_replace($emptyRow, array_intersect_key($row, $emptyRow));
+                $sheetRow = WriterEntityFactory::createRowFromArray($row);
                 if ($even) {
-                    $row->setStyle($newStyle);
+                    $sheetRow->setStyle($newStyle);
                 }
-                $spreadsheetWriter->addRow($row);
+                $spreadsheetWriter->addRow($sheetRow);
             }
 
             $even = !$even;
@@ -2926,7 +3009,7 @@ SQL;
         );
     }
 
-    protected function saveValueSuggestMappingToHtml(string $name, array $mapper, array $extraColumns = []): void
+    protected function saveMappingSourceUrisToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
         $basePath = trim($this->job->getArg('base_path'), '/');
         $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
@@ -2942,48 +3025,33 @@ SQL;
             'info',
         ];
         $extraColumns = array_values(array_unique(array_filter(array_diff($extraColumns, $headers))));
-        $mostColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items']));
-        $moreColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items', 'uri']));
         $tableHeaders = array_values(array_merge($headers, $extraColumns));
-        $emptyRow = array_fill_keys($tableHeaders, ['']);
-        $emptyRow['source'] = '';
-        $emptyRow['items'] = '';
+        $emptyRow = array_fill_keys($tableHeaders, '');
 
-        $this->prepareValueSuggestMappingToHtml($filepath, 'start', $name, $tableHeaders);
+        $this->prepareMappingSourceUrisToHtml($filepath, 'start', $name, $tableHeaders);
 
         $fp = fopen($filepath, 'ab');
 
-        foreach ($mapper as $map) {
+        foreach ($mapper as $source => $rows) {
             // Skip useless data.
-            if (empty($map['source'])) {
+            if (empty($source)) {
                 continue;
             }
 
             // Fill the map with all columns.
-            // There should be at least one uri to keep the row below.
-            if (is_array($map['uri'])) {
-                foreach ($mostColumns as $column) {
-                    $map[$column] = isset($map[$column]) && count($map[$column])
-                        ? $map[$column]
-                        : [''];
-                }
-            }
-            // In the case where a user mapped value was not updated (not found
-            // in database or not migrated).
-            else {
-                foreach ($mostColumns as $column) {
-                    $map[$column] = isset($map[$column]) ? [$map[$column]] : [''];
-                }
+            // There should be at least one row to keep the sources.
+            if (empty($rows)) {
+                $rows[''] = $emptyRow;
             }
 
-            // The order should be always the same.
-            $map = array_replace($emptyRow, $map);
+            $resourceIds = $this->mappingsSourceItems[$name][$source] ?? [];
 
-            $this->appendValueSuggestMappingToHtml($fp, $map, $baseUrl, $moreColumns);
+            // Warning: numeric keys are cast-ed to integer, so force string here.
+            $this->appendMappingSourceUrisToHtml($fp, $rows, $baseUrl, (string) $source, $resourceIds, $emptyRow);
         }
 
         fclose($fp);
-        $this->prepareValueSuggestMappingToHtml($filepath, 'end');
+        $this->prepareMappingSourceUrisToHtml($filepath, 'end');
 
         $this->logger->notice(
             'The mapping checking page for "{name}" is available in "{url}".', // @translate
@@ -2994,7 +3062,7 @@ SQL;
         );
     }
 
-    protected function prepareValueSuggestMappingToHtml(string $filepath, ?string $part = null, ?string $name = null, array $tableHeaders = []): void
+    protected function prepareMappingSourceUrisToHtml(string $filepath, ?string $part = null, ?string $name = null, array $tableHeaders = []): void
     {
         if ($name) {
             $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
@@ -3095,15 +3163,20 @@ HTML;
         file_put_contents($filepath, $html);
     }
 
-    protected function appendValueSuggestMappingToHtml($fp, array $map, string $baseUrl, array $columns): void
-    {
+    protected function appendMappingSourceUrisToHtml(
+        $fp,
+        array $rows,
+        string $baseUrl,
+        string $source,
+        array $resourceIds,
+        array $emptyRow
+    ): void {
         // Don't repeat same source and items.
-        $count = count($map['uri']);
+        $count = count($rows);
         $rowspan = $count <= 1 ? '' : sprintf(' rowspan="%d"', $count);
 
         $resources = '';
-        $list = array_unique(array_filter(explode(' ', str_replace('#', ' ', $map['items']))));
-        foreach ($list as $id) {
+        foreach ($resourceIds as $id) {
             $resources .= sprintf(
                 '<a href="%sadmin/item/%s" target="_blank">#%s</a>' . " \n",
                 $baseUrl, $id, $id
@@ -3111,11 +3184,11 @@ HTML;
         }
 
         $html = "                <tr>\n";
-        $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($map['source'], ENT_NOQUOTES | ENT_HTML5)) . "\n";
+        $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($source, ENT_NOQUOTES | ENT_HTML5)) . "\n";
         $html .= sprintf('                    <td%s>%s</td>', $rowspan, $resources) . "\n";
 
         $first = true;
-        foreach ($map['uri'] as $key => $uri) {
+        foreach ($rows as $uri => $row) {
             if ($first) {
                 $first = false;
             } else {
@@ -3123,9 +3196,15 @@ HTML;
             }
             $code = (string) basename(rtrim($uri, '/'));
             $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-            foreach ($columns as $column) {
-                $value = $map[$column][$key] ?? '';
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($value, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+
+            $row = array_filter(array_map('strval', $row), 'strlen');
+            // The order should be always the same.
+            $row = array_replace($emptyRow, array_intersect_key($row, $emptyRow));
+            unset($row['source'], $row['items'], $row['uri'], $row['_chk']);
+            foreach ($row as $cell) {
+                $html .= $cell === ''
+                    ? "                    <td></td>\n"
+                    : sprintf('                    <td>%s</td>', htmlspecialchars($cell, ENT_NOQUOTES | ENT_HTML5)) . "\n";
             }
             $html .= "                </tr>\n";
         }
