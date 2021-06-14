@@ -5,6 +5,10 @@ namespace BulkImport\Processor;
 use BulkImport\Form\Processor\ManiocProcessorConfigForm;
 use BulkImport\Form\Processor\ManiocProcessorParamsForm;
 
+/**
+ * FIXME Some sql queries apply on all the database: limit them to the item mapping.
+ * TODO Remove hard coded data (templates).
+ */
 class ManiocProcessor extends AbstractFullProcessor
 {
     protected $resourceLabel = 'Manioc'; // @translate
@@ -66,6 +70,10 @@ class ManiocProcessor extends AbstractFullProcessor
 
     protected function preImport(): void
     {
+        $this->logger->warn(
+            'Currently, this importer must be run on an empty database.', // @translate
+        );
+
         // With this processor, direct requests are done to the source database,
         // so check right of the current database user.
         // Some processes below copy some tables for simplicity purpose.
@@ -170,6 +178,12 @@ class ManiocProcessor extends AbstractFullProcessor
     protected function fillItemSets(): void
     {
         $this->fillResources($this->prepareReader('item_sets'), 'item_sets');
+    }
+
+    protected function fillOthers(): void
+    {
+        $this->fillItemTemplates();
+        parent::fillOthers();
     }
 
     protected function fillItem(array $source): void
@@ -428,6 +442,281 @@ SQL;
 
         $this->connection->query($sql);
         unlink($filepath);
+    }
+
+    /**
+     * @todo Convertir les règles en modèles.
+     */
+    protected function fillItemTemplates(): void
+    {
+        // TODO Use the query builder.
+        $this->logger->info(
+            'Preparing filling of templates.' // @translate
+        );
+
+        // Check independantly, even if useless most of the time.
+        $sqlTotal = 'SELECT count(`id`) FROM `resource` WHERE `resource_template_id` = :template_id;';
+
+        // Audio: extension mp3 (13 items).
+        /*
+        SELECT DISTINCT id_fichier
+        FROM metadata
+        WHERE
+            (nom LIKE 'gsdlsourcefilename' AND valeur LIKE '%.mp3')
+            OR
+            (nom LIKE 'dc.Format' AND valeur LIKE 'audio/mp3');
+        */
+        $sqlSimple = <<<'SQL'
+UPDATE `resource`
+INNER JOIN `value` ON `value`.`resource_id` = `resource`.`id`
+INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `resource`.`resource_template_id` = :template_id,
+    `resource`.`resource_class_id` = :class_id
+WHERE `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    AND `vocabulary`.`prefix` = :vocabulary_prefix
+    AND `property`.`local_name` = :property_name
+    AND `value`.`value` LIKE :value;
+
+SQL;
+        $sql = $sqlSimple;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Audio'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'vocabulary_prefix' => 'greenstone',
+            'property_name' => 'sourceFilename',
+            'value' => '%.mp3',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Audio'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'vocabulary_prefix' => 'dcterms',
+            'property_name' => 'format',
+            'value' => 'audio/mp3',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Audio', 'total' => $result]
+        );
+
+        // Document d’archive: a champ vient d’une archive (220 items).
+        /*
+        SELECT id_fichier
+        FROM metadata
+        WHERE nom LIKE "man.archive";
+        */
+        $sql = <<<'SQL'
+UPDATE `resource`
+INNER JOIN `value` ON `value`.`resource_id` = `resource`.`id`
+INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `resource`.`resource_template_id` = :template_id,
+    `resource`.`resource_class_id` = :class_id
+WHERE `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    AND `vocabulary`.`prefix` = :vocabulary_prefix
+    AND `property`.`local_name` = :property_name;
+
+SQL;
+        $bind = [
+            'template_id' => $this->map['resource_templates']["Document d'archives"],
+            'class_id' => $this->bulk->getResourceTemplateClassId("Document d'archives"),
+            'vocabulary_prefix' => 'manioc',
+            'property_name' => 'archive',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => "Document d'archives", 'total' => $result]
+        );
+
+        // Image : collection image sauf vient d’une archive (15776 items).
+        /*
+        SELECT id_fichier
+        FROM fichiers
+        WHERE id_collection = 4
+            AND id_fichier NOT IN (
+                SELECT  id_fichier FROM metadata WHERE nom LIKE 'man.archive'
+            );
+         */
+        $sql = <<<'SQL'
+UPDATE `resource`
+INNER JOIN `value` ON `value`.`resource_id` = `resource`.`id`
+INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `resource`.`resource_template_id` = :template_id,
+    `resource`.`resource_class_id` = :class_id
+WHERE `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    AND (
+        `vocabulary`.`prefix` = :vocabulary_prefix
+        AND `property`.`local_name` = :property_name
+        AND `value`.`value` LIKE :value
+    )
+    AND `resource`.`id` NOT IN (
+        SELECT `value`.`resource_id`
+        FROM `value`
+        INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+        INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+        WHERE `vocabulary`.`prefix` = :vocabulary_prefix_2
+            AND `property`.`local_name` = :property_name_2
+    );
+
+SQL;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Image'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Image'),
+            'vocabulary_prefix' => 'dcterms',
+            'property_name' => 'identifier',
+            'value' => 'greenstone_collection_id: 4',
+            'vocabulary_prefix_2' => 'manioc',
+            'property_name_2' => 'archive',
+        ];
+
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Image', 'total' => $result]
+        );
+
+        // Mémoire et thèse : a le type de document (4 items).
+        /*
+        SELECT id_fichier
+        FROM metadata
+        WHERE nom LIKE 'man.type' AND valeur LIKE 'Mémoires, thèses';
+        */
+        $sql = $sqlSimple;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Mémoire et thèse'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Mémoire et thèse'),
+            'vocabulary_prefix' => 'manioc',
+            'property_name' => 'type',
+            'value' => 'Mémoires, thèses',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Mémoire et thèse', 'total' => $result]
+        );
+
+        // Numéro de revue : type de document revue (0 items).
+        /*
+        SELECT id_fichier
+        FROM metadata
+        WHERE nom LIKE 'man.type' AND valeur LIKE 'Numéro de périodique';
+        */
+        $sql = $sqlSimple;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Numéro de revue'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Numéro de revue'),
+            'vocabulary_prefix' => 'manioc',
+            'property_name' => 'type',
+            'value' => 'Numéro de périodique',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Numéro de revue', 'total' => $result]
+        );
+
+        // Photographie => Image
+
+        // Vidéo : collection audio-vidéo sauf audio (2895 items).
+        /*
+        SELECT id_fichier
+        FROM fichiers
+        WHERE id_collection = 2
+            AND id_fichier NOT IN (
+                SELECT id_fichier FROM metadata
+                WHERE
+                    (nom LIKE 'gsdlsourcefilename' AND valeur LIKE '%.mp3')
+                    OR
+                    (nom LIKE 'dc.Format' AND valeur LIKE 'audio/mp3')
+            );
+        */
+
+        $sql = <<<'SQL'
+UPDATE `resource`
+INNER JOIN `value` ON `value`.`resource_id` = `resource`.`id`
+INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `resource`.`resource_template_id` = :template_id,
+    `resource`.`resource_class_id` = :class_id
+WHERE `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    AND (
+        `vocabulary`.`prefix` = :vocabulary_prefix
+        AND `property`.`local_name` = :property_name
+        AND `value`.`value` LIKE :value
+    )
+    AND `resource`.`resource_template_id` IS NULL;
+
+SQL;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Vidéo'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Vidéo'),
+            'vocabulary_prefix' => 'dcterms',
+            'property_name' => 'identifier',
+            'value' => 'greenstone_collection_id: 2',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Vidéo', 'total' => $result]
+        );
+
+        // Livre : collection ouvrage sauf vient d’une archive sauf type de document revue (2627 items).
+        // On le met en dernier de façon à l'appliquer à tous ceux sans modèle dans la collection.
+        /*
+        SELECT id_fichier
+        FROM fichiers
+        WHERE id_collection = 1
+        AND id_fichier NOT IN (SELECT  id_fichier FROM metadata WHERE nom LIKE 'man.archive')
+        AND id_fichier NOT IN (SELECT id_fichier FROM metadata WHERE nom LIKE 'man.type' AND valeur LIKE 'Numéro de périodique');
+        */
+        $sql = <<<'SQL'
+UPDATE `resource`
+INNER JOIN `value` ON `value`.`resource_id` = `resource`.`id`
+INNER JOIN `property` ON `property`.`id` = `value`.`property_id`
+INNER JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `resource`.`resource_template_id` = :template_id,
+    `resource`.`resource_class_id` = :class_id
+WHERE `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    AND (
+        `vocabulary`.`prefix` = :vocabulary_prefix
+        AND `property`.`local_name` = :property_name
+        AND `value`.`value` LIKE :value
+    )
+    AND `resource`.`resource_template_id` IS NULL;
+
+SQL;
+        $bind = [
+            'template_id' => $this->map['resource_templates']['Livre'],
+            'class_id' => $this->bulk->getResourceTemplateClassId('Livre'),
+            'vocabulary_prefix' => 'dcterms',
+            'property_name' => 'identifier',
+            'value' => 'greenstone_collection_id: 1',
+        ];
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $this->logger->notice(
+            'The template "{label}" has been set for {total} resources.',  // @translate
+            ['label' => 'Livre', 'total' => $result]
+        );
+
+        $this->logger->notice(
+            'Updated templates for resources.' // @translate
+        );
     }
 
     /**
