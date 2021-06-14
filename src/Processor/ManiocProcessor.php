@@ -488,7 +488,7 @@ class ManiocProcessor extends AbstractFullProcessor
         $values[] = [
             'term' => 'dcterms:title',
             'lang' => 'fra',
-            'value' => $source['nom_collection'],
+            'value' => html_entity_decode($source['nom_collection']),
         ];
         $values[] = [
             'term' => 'dcterms:identifier',
@@ -617,6 +617,71 @@ DELETE `_temporary_source_value`
 FROM `_temporary_source_value`
 LEFT JOIN `_temporary_source_resource` ON `_temporary_source_resource`.`id_fichier` = `_temporary_source_value`.`id_fichier`
 WHERE `_temporary_source_resource`.`id_fichier` IS NULL;
+
+SQL;
+
+        // Decode html entities in values (only common ones).
+        // Some values (description) may be html, so keep "<" and ">" in that
+        // case. Some values with entities may be remaining.
+        $sql .= <<<SQL
+# Decode common html entities.
+UPDATE `_temporary_source_value`
+SET `_temporary_source_value`.`valeur` =
+    TRIM(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+        `_temporary_source_value`.`valeur`,
+    '""', '"'),
+    "&quot;", '"'),
+    "&apos;", "'"),
+    "&#034;", '"'),
+    "&#039;", "'"),
+    "&lsqb;", "["),
+    "&rsqb;", "]"),
+    "&#091;", "["),
+    "&#093;", "]"),
+    "&#095;", "_"),
+    "&laquo;", "«"),
+    "&raquo;", "»"),
+    "&agrave;", "à"),
+    "&eacute;", "é"),
+    "&egrave;", "è"),
+    "&Eacute;", "É"),
+    "&Egrave;", "È")
+    )
+;
+UPDATE `_temporary_source_value`
+SET `_temporary_source_value`.`valeur` =
+    TRIM(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+    REPLACE(
+        `_temporary_source_value`.`valeur`,
+    "&lt;", "<"),
+    "&gt;", '>'),
+    "&#060;", "<"),
+    "&#062;", '>')
+    )
+WHERE
+    `_temporary_source_value`.`valeur` NOT LIKE "%>%"
+    AND `_temporary_source_value`.`valeur` NOT LIKE "%<%"
+;
 
 SQL;
 
