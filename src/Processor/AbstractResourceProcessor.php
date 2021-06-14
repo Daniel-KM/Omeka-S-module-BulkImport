@@ -420,12 +420,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Check if the entry has a value for this source field.
             if (!isset($entry[$sourceField])) {
                 // Probably an issue in the config.
+                /*
+                // TODO Warn when it is not a multisheet. Check updates with a multisheet.
                 if (!$entry->offsetExists($sourceField)) {
                     $this->logger->warn(
                         'Index #{index}: The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
                         ['index' => $this->indexResource, 'field' => $sourceField]
                     );
                 }
+                */
                 $this->skippedSourceFields[] = $sourceField;
                 continue;
             }

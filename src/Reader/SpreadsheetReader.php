@@ -27,6 +27,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
         'delimiter',
         'enclosure',
         'escape',
+        // TODO Multisheet for generic spreadsheet.
         'separator',
     ];
 

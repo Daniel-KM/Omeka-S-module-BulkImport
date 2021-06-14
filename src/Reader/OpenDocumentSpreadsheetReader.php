@@ -4,6 +4,7 @@ namespace BulkImport\Reader;
 use Box\Spout\Common\Type;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Box\Spout\Reader\ReaderInterface;
+use BulkImport\Entry\SpreadsheetEntry;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
 use Log\Stdlib\PsrMessage;
@@ -21,8 +22,29 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
     protected $paramsKeys = [
         'filename',
+        'multisheet',
         'separator',
     ];
+
+    /**
+     * @var bool
+     */
+    protected $isMultiSheet = false;
+
+    /**
+     * @var \Box\Spout\Reader\IteratorInterface
+     */
+    protected $sheetIterator;
+
+    /**
+     * @var ?int
+     */
+    protected $sheetIndex = null;
+
+    /**
+     * @var array
+     */
+    protected $availableFieldsMultiSheets = [];
 
     /**
      * @var \Box\Spout\Reader\ODS\Reader
@@ -58,6 +80,15 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return parent::isValid();
     }
 
+    protected function currentEntry()
+    {
+        return new SpreadsheetEntry(
+            $this->currentData,
+            $this->isMultiSheet ? $this->availableFieldsMultiSheets[$this->sheetIndex] : $this->availableFields,
+            $this->getParams()
+        );
+    }
+
     public function key()
     {
         // The first row is the headers, not the data, and it's numbered from 1,
@@ -77,9 +108,52 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      */
     public function rewind(): void
     {
-        $this->isReady;
+        // Disable check isReady().
+        // $this->isReady();
+        $this->sheetIndex = null;
         $this->initializeReader();
         $this->next();
+    }
+
+    public function valid(): bool
+    {
+        $this->isReady();
+        if ($this->iterator->valid()) {
+            return true;
+        }
+
+        if (!$this->isMultiSheet) {
+            return false;
+        }
+
+        // When the row is false (invalid), prepare next sheet until last one.
+        $this->sheetIndex = null;
+        do {
+            $this->sheetIterator->next();
+            if (!$this->sheetIterator->valid()) {
+                return false;
+            }
+            /** @var \\Box\Spout\Reader\SheetInterface $sheet */
+            $sheet = $this->sheetIterator->current();
+            if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
+                continue;
+            }
+            $rowIterator = $sheet->getRowIterator();
+            // There should be at least one row, excluding the header.
+            $totalRows = iterator_count($rowIterator) - 1;
+            if ($totalRows < 1) {
+                continue;
+            }
+            break;
+        } while (true);
+
+        $this->sheetIndex = $sheet->getIndex();
+        $this->prepareIterator();
+
+        // Go on the second row, headers are already stored.
+        $this->next();
+
+        return true;
     }
 
     protected function reset(): \BulkImport\Interfaces\Reader
@@ -138,18 +212,80 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             // TODO Read the good format in spreadsheet entry.
             ->setShouldFormatDates(true);
 
-        // Process first sheet only.
-        $this->iterator = null;
-        foreach ($this->spreadsheetReader->getSheetIterator() as $sheet) {
-            $this->iterator = $sheet->getRowIterator();
-            break;
+        // Initialize first sheet and sheet iterator.
+        $this->sheetIterator = $this->spreadsheetReader->getSheetIterator();
+        $this->sheetIterator->rewind();
+        $sheet = null;
+        $multisheet = $this->getParam('multisheet', 'active');
+        $this->isMultiSheet = $multisheet === 'all';
+        if ($multisheet === 'active') {
+            /** @var \Box\Spout\Reader\ODS\Sheet $currentSheet */
+            foreach ($this->sheetIterator as $currentSheet) {
+                if ($currentSheet->isActive() && ($this->isOldBoxSpout || $currentSheet->isVisible())) {
+                    $sheet = $currentSheet;
+                    break;
+                }
+            }
+        } elseif ($multisheet === 'first') {
+            /** @var \Box\Spout\Reader\ODS\Sheet $currentSheet */
+            foreach ($this->sheetIterator as $currentSheet) {
+                if ($this->isOldBoxSpout || $currentSheet->isVisible()) {
+                    $sheet = $currentSheet;
+                    break;
+                }
+            }
+        } else {
+            // Multisheet.
+            if (is_null($this->sheetIndex)) {
+                /** @var \Box\Spout\Reader\ODS\Sheet $currentSheet */
+                foreach ($this->sheetIterator as $currentSheet) {
+                    if ($this->isOldBoxSpout || $currentSheet->isVisible()) {
+                        $sheet = $currentSheet;
+                        $this->sheetIndex = $sheet->getIndex();
+                        break;
+                    }
+                }
+            } else {
+                // Set the current sheet when iterating all sheets.
+                /** @var \Box\Spout\Reader\ODS\Sheet $currentSheet */
+                foreach ($this->sheetIterator as $currentSheet) {
+                    if ($currentSheet->getIndex() === $this->sheetIndex) {
+                        $sheet = $currentSheet;
+                        break;
+                    }
+                }
+            }
         }
+        if (empty($sheet)) {
+            $this->lastErrorMessage = 'No sheet.'; // @translate
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+        }
+        $this->iterator = $sheet->getRowIterator();
+
         return $this;
     }
 
     protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
+        if ($this->isMultiSheet) {
+            return $this->finalizePrepareIteratorMultiSheets();
+        }
+
         $this->totalEntries = iterator_count($this->iterator) - 1;
+        $this->initializeReader();
+        return $this;
+    }
+
+    protected function finalizePrepareIteratorMultiSheets(): \BulkImport\Interfaces\Reader
+    {
+        $this->totalEntries = 0;
+        /** @var \Box\Spout\Reader\ODS\Sheet $sheet */
+        foreach ($this->sheetIterator as $sheet) {
+            if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
+                continue;
+            }
+            $this->totalEntries += iterator_count($sheet->getRowIterator()) - 1;
+        }
         $this->initializeReader();
         return $this;
     }
@@ -159,6 +295,10 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         if ($this->isOldBoxSpout) {
             $this->prepareAvailableFieldsOld();
             return $this;
+        }
+
+        if ($this->isMultiSheet ) {
+            return $this->prepareAvailableFieldsMultiSheets();
         }
 
         /** @var \Box\Spout\Common\Entity\Row $row */
@@ -175,11 +315,40 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
+    protected function prepareAvailableFieldsMultiSheets(): \BulkImport\Interfaces\Reader
+    {
+        $this->availableFields = [];
+        $this->availableFieldsMultiSheets = [];
+        /** @var \Box\Spout\Reader\ODS\Sheet $sheet */
+        foreach ($this->sheetIterator as $sheet) {
+            if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
+                continue;
+            }
+            /** @var \Box\Spout\Common\Entity\Row $row */
+            foreach ($sheet->getRowIterator() as $row) {
+                break;
+            }
+            if (!$row) {
+                $this->lastErrorMessage = 'File has no available fields.'; // @translate
+                throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+            }
+            // The data should be cleaned, since it's not an entry.
+            $this->availableFieldsMultiSheets[$sheet->getIndex()] = $this->cleanData($row->toArray());
+        }
+        $this->availableFields = array_values(array_unique(array_merge(...$this->availableFieldsMultiSheets)));
+        $this->initializeReader();
+        return $this;
+    }
+
     /**
      * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
      */
     protected function prepareAvailableFieldsOld(): \BulkImport\Interfaces\Reader
     {
+        if ($this->isMultiSheet ) {
+            return $this->prepareAvailableFieldsMultiSheetsOld();
+        }
+
         /** @var \Box\Spout\Common\Entity\Row $fields */
         foreach ($this->iterator as $fields) {
             break;
@@ -190,6 +359,35 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = $this->cleanData($fields);
+        $this->initializeReader();
+        return $this;
+    }
+
+    /**
+     * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+     */
+    protected function prepareAvailableFieldsMultiSheetsOld(): \BulkImport\Interfaces\Reader
+    {
+        $this->availableFields = [];
+        $this->availableFieldsMultiSheets = [];
+        /** @var \Box\Spout\Reader\ODS\Sheet $sheet */
+        foreach ($this->sheetIterator as $sheet) {
+            if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
+                continue;
+            }
+
+            /** @var \Box\Spout\Common\Entity\Row $fields */
+            foreach ($sheet->getRowIterator() as $fields) {
+                break;
+            }
+            if (!is_array($fields)) {
+                $this->lastErrorMessage = 'File has no available fields.'; // @translate
+                throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+            }
+            // The data should be cleaned, since it's not an entry.
+            $this->availableFieldsMultiSheets[$sheet->getIndex()] = $this->cleanData($fields);
+        }
+        $this->availableFields = array_values(array_unique(array_merge(...$this->availableFieldsMultiSheets)));
         $this->initializeReader();
         return $this;
     }
