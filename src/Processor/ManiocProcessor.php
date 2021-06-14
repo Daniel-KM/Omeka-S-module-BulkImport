@@ -1635,6 +1635,11 @@ SQL;
                                     'bio:death' => 'bio:death',
                                     'bio:biography' => 'bio:biography',
                                 ],
+                                'identifier_to_templates_and_classes' => [
+                                    'valuesuggest:idref:person' => 'Personne',
+                                    'valuesuggest:idref:corporation' => 'Collectivité',
+                                    'valuesuggest:idref:conference' => 'Collectivité',
+                                ],
                             ],
                         ],
                     ]);

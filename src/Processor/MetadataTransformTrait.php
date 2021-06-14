@@ -966,6 +966,10 @@ SQL;
 
         $this->processValuesTransformInsert([$sourceId]);
 
+        if (!empty($params['identifier_to_templates_and_classes'])) {
+            $this->processUpdateTemplatesFromDataTypes($params);
+        }
+
         $this->removeMappingTables();
 
         return true;
@@ -1950,6 +1954,111 @@ DELETE `setting`
 FROM `setting`
 WHERE
     `setting`.`id` = "bulkimport_max_value_id_$random"
+;
+SQL;
+    }
+
+    /**
+     * Update the template according to the data type of the identifier.
+     *
+     * @todo Limit values when needed.
+     */
+    protected function processUpdateTemplatesFromDataTypes(array $params): void
+    {
+        $term = empty($params['properties']['identifier']) ? 'dcterms:identifier' : $params['properties']['identifier'];
+        $propertyId = $this->getPropertyId($term);
+        if (empty($propertyId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid property to set templates: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $term]
+            );
+            return;
+        }
+
+        if (empty($params['identifier_to_templates_and_classes'])) {
+            $this->logger->err(
+                'A list of templates is required to update templates.' // @translate
+            );
+            return;
+        }
+
+        $templates = $params['identifier_to_templates_and_classes'];
+        $templateIds = [];
+        $templateClassIds = [];
+        $errors = [];
+        foreach ($templates as $datatype => $template) {
+            if (!$template) {
+                $templateIds[$datatype] = null;
+                $templateClassIds[$datatype] = null;
+            } else {
+                $templateId = $this->bulk->getResourceTemplateId($template);
+                if ($templateId) {
+                    $templateIds[$datatype] = $templateId;
+                    $templateClassIds[$datatype] = $this->bulk->getResourceTemplateClassId($templateId);
+                } else {
+                    $errors[] = $template;
+                }
+            }
+        }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid templates: "{templates}".', // @translate
+                ['action' => $this->operationName, 'templates' => implode('", "', $errors)]
+            );
+            return;
+        }
+
+        if (array_key_exists('', $templateIds) || array_key_exists(0, $templateIds)) {
+            $destination = $templateIds[''] ?? $templateIds[0];
+            $destinationClass = $this->bulk->getResourceTemplateClassId($destination);
+            $destinationClass = $destination && $destinationClass ? $destinationClass : 'NULL';
+            $destination = $destination ?: 'NULL';
+            $whereDestination = '';
+        } elseif (count(array_unique($templateIds)) === 1) {
+            $destination = reset($templateIds) ?: 'NULL';
+            $destinationClass = $this->bulk->getResourceTemplateClassId(reset($templateIds)) ?: 'NULL';
+            $types = [];
+            foreach ($templateIds as $datatype => $templateId) {
+                $types[] = $this->connection->quote($datatype);
+            }
+            $whereDestination = '    AND `value`.`type` IN ("' . implode('", "', $types) . '")';
+        } else {
+            $destination = "    CASE\n";
+            foreach ($templateIds as $datatype => $templateId) {
+                $templateId = $templateId ?: 'NULL';
+                $type = $this->connection->quote($datatype);
+                $destination .= "        WHEN `value`.`type` = $type THEN $templateId\n";
+            }
+            $destination .= "    ELSE `resource`.`resource_template_id`\n";
+            $destination .= '    END';
+
+            $destinationClass = "    CASE\n";
+            foreach ($templateClassIds as $datatype => $templateClassId) {
+                $templateClassId = $templateClassId ?: 'NULL';
+                $type = $this->connection->quote($datatype);
+                $destinationClass .= "        WHEN `value`.`type` = $type THEN $templateClassId\n";
+            }
+            $destinationClass .= "    ELSE `resource`.`resource_class_id`\n";
+            $destinationClass .= '    END';
+            $whereDestination = '';
+        }
+
+        // Don't limit values, because values are new.
+        $this->operationSqls[] = <<<SQL
+# Update values according to the temporary table.
+UPDATE `resource`
+JOIN `value`
+    ON `value`.`resource_id` = `resource`.`id`
+JOIN `_temporary_mapper`
+    ON `_temporary_mapper`.`property_id` = `value`.`property_id`
+    AND `_temporary_mapper`.`source` = `value`.`value`
+SET
+    `resource`.`resource_template_id` = $destination,
+    `resource`.`resource_class_id` = $destinationClass
+WHERE
+    `value`.`property_id` = $propertyId
+    $whereDestination
 ;
 SQL;
     }
