@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2020 Daniel Berthereau
+ * Copyright 2017-2021 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -34,7 +34,7 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Mvc\Controller\Plugin\Api;
 
 /**
- * Copy of the controller plugin of the module Csv Import
+ * Improvements from the controller plugin of the module Csv Import.
  *
  * @see \CSVImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
  */
@@ -51,20 +51,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
     protected $api;
 
     /**
-     * @param bool
-     */
-    protected $supportAnyValue;
-
-    /**
      * @param Connection $connection
      * @param Api $api
-     * @param bool $supportAnyValue
      */
-    public function __construct(Connection $connection, Api $api, $supportAnyValue)
+    public function __construct(Connection $connection, Api $api)
     {
         $this->connection = $connection;
         $this->api = $api;
-        $this->supportAnyValue = $supportAnyValue;
     }
 
     /**
@@ -178,7 +171,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 if (!is_array($identifierName)) {
                     $identifierName = [$identifierName];
                 }
-                return $this->findResourcesFromPropertyIds($identifiers, $identifierName, $resourceType);
+                return $this->findResourcesFromValues($identifiers, $identifierName, $resourceType);
             case 'media_metadata':
                 if (is_array($identifierName)) {
                     $identifierName = reset($identifierName);
@@ -385,41 +378,30 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         return array_replace(array_fill_keys($ids, null), array_combine($result, $result));
     }
 
-    protected function findResourcesFromPropertyIds(array $identifiers, array $propertyIds, $resourceType)
+    protected function findResourcesFromValues(array $identifiers, array $propertyIds, $resourceType)
     {
         // The api manager doesn't manage this type of search.
         $conn = $this->connection;
 
         $qb = $conn->createQueryBuilder();
         $expr = $qb->expr();
-        if ($this->supportAnyValue) {
-            $qb
-                ->select([
-                    'ANY_VALUE(value.value) AS "identifier"',
-                    'ANY_VALUE(value.resource_id) AS "id"',
-                    'COUNT(DISTINCT(value.resource_id)) AS "count"',
-                ])
-                ->from('value', 'value')
-                ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
-                // ->andWhere($expr->in('value.property_id', $propertyIds))
-                // ->andWhere($expr->in('value.value', $identifiers))
-                ->addGroupBy('value.value')
-                ->addOrderBy('"id"', 'ASC');
-        } else {
-            $qb
-                ->select([
-                    'value.value AS "identifier"',
-                    'value.resource_id AS "id"',
-                    'COUNT(DISTINCT(value.resource_id)) AS "count"',
-                ])
-                ->from('value', 'value')
-                ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
-                // ->andWhere($expr->in('value.property_id', $propertyIds))
-                // ->andWhere($expr->in('value.value', $identifiers))
-                ->addGroupBy('value.value')
-                ->addOrderBy('"id"', 'ASC')
-                ->addOrderBy('value.id', 'ASC');
-        }
+        $qb
+            // Min() is a more compatible replacement for Any_Value(), required to manage
+            // the case where the flag ONLY_FULL_GROUP_BY is set.
+            // Results are the same, because the "Where" condition returns only
+            // duplicate values.
+            ->select([
+                'MIN(value.value) AS "identifier"',
+                'MIN(value.resource_id) AS "id"',
+                'COUNT(DISTINCT(value.resource_id)) AS "count"',
+            ])
+            ->from('value', 'value')
+            ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
+            // ->andWhere($expr->in('value.property_id', $propertyIds))
+            // ->andWhere($expr->in('value.value', $identifiers))
+            ->addGroupBy('value.value')
+            ->addOrderBy('MIN(value.resource_id)', 'ASC')
+            ->addOrderBy('value.id', 'ASC');
 
         $parameters = [];
         if (count($identifiers) === 1) {
@@ -499,29 +481,16 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $expr = $qb->expr();
         $parameters = [];
 
-        if ($this->supportAnyValue) {
-            $qb
-                ->select([
-                    'ANY_VALUE(media.' . $column . ') AS "identifier"',
-                    'ANY_VALUE(media.id) AS "id"',
-                    'COUNT(media.' . $column . ') AS "count"',
-                ])
-                ->from('media', 'media')
-                // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
-                ->addGroupBy('media.' . $column)
-                ->addOrderBy('"id"', 'ASC');
-        } else {
-            $qb
-                ->select([
-                    'media.' . $column . ' AS "identifier"',
-                    'media.id AS "id"',
-                    'COUNT(media.' . $column . ') AS "count"',
-                ])
-                ->from('media', 'media')
-                // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
-                ->addGroupBy('media.' . $column)
-                ->addOrderBy('media.id', 'ASC');
-        }
+        $qb
+            ->select([
+                'MIN(media.' . $column . ') AS "identifier"',
+                'MIN(media.id) AS "id"',
+                'COUNT(media.' . $column . ') AS "count"',
+            ])
+            ->from('media', 'media')
+            // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
+            ->addGroupBy('media.' . $column)
+            ->addOrderBy('MIN(media.id)', 'ASC');
 
         if ($ingesterName) {
             $qb
@@ -578,30 +547,17 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         // that are used by module Archive Repertory.
         $isPartial = $identifierName === 'o:basename';
 
-        if ($this->supportAnyValue) {
-            $qb
-                ->select([
-                    // TODO There may be no extension.
-                    $isPartial
-                        ? 'CONCAT(SUBSTRING_INDEX(ANY_VALUE(media.storage_id), "/", -1), ".", ANY_VALUE(media.extension)) AS "identifier"'
-                        : 'CONCAT(ANY_VALUE(media.storage_id), ".", ANY_VALUE(media.extension)) AS "identifier"',
-                    'ANY_VALUE(media.id) AS "id"',
-                    'COUNT(media.source) AS "count"',
-                ])
-                ->from('media', 'media')
-                ->addOrderBy('"id"', 'ASC');
-        } else {
-            $qb
-                ->select([
-                    $isPartial
-                        ? 'CONCAT(SUBSTRING_INDEX(media.storage_id, "/", -1), ".", media.extension) AS "identifier"'
-                        : 'CONCAT(media.storage_id, ".", media.extension) AS "identifier"',
-                    'media.id AS "id"',
-                    'COUNT(media.source) AS "count"',
-                ])
-                ->from('media', 'media')
-                ->addOrderBy('media.id', 'ASC');
-        }
+        $qb
+            ->select([
+                // TODO There may be no extension.
+                $isPartial
+                    ? 'CONCAT(SUBSTRING_INDEX(MIN(media.storage_id), "/", -1), ".", MIN(media.extension)) AS "identifier"'
+                    : 'CONCAT(MIN(media.storage_id), ".", MIN(media.extension)) AS "identifier"',
+                'MIN(media.id) AS "id"',
+                'COUNT(media.source) AS "count"',
+            ])
+            ->from('media', 'media')
+            ->addOrderBy('MIN(media.id)', 'ASC');
 
         $getStorageIdAndExtension = function ($identifier) {
             $extension = pathinfo($identifier, PATHINFO_EXTENSION);
