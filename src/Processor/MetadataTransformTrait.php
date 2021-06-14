@@ -390,6 +390,13 @@ SQL;
                     }
                     break;
 
+                case 'attach_item_sets':
+                    $result = $this->operationAttachItemSets($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
                 case 'replace_table':
                     $result = $this->operationReplaceTable($operation['params']);
                     if (!$result) {
@@ -467,6 +474,73 @@ SQL;
         $this->processCreateResources($params);
 
         $this->removeMappingTable();
+
+        return true;
+    }
+
+    protected function operationAttachItemSets(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
+        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
+        if (empty($sourceIdentifierId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['identifier']]
+            );
+            return false;
+        }
+
+        // Impossible to list item sets identifiers, that may be created in a
+        // previous operation.
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Attach items to item sets according to a value.
+INSERT INTO `item_item_set`
+    (`item_id`, `item_set_id`)
+SELECT DISTINCT
+    `value`.`resource_id`,
+    `value_item_set`.`resource_id`
+FROM `value`
+JOIN `value` AS `value_item_set`
+JOIN `item_set`
+    ON `item_set`.`id` = `value_item_set`.`resource_id`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceId
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND (`value`.`value` <> "")
+    AND (`value`.`value` IS NOT NULL)
+    AND `value_item_set`.`property_id` = $sourceIdentifierId
+    AND (`value_item_set`.`type` = "literal" OR `value_item_set`.`type` = "" OR `value_item_set`.`type` IS NULL)
+    AND `value`.`value` = `value_item_set`.`value`
+$sqlExcludeWhere
+ORDER BY `value`.`resource_id`
+ON DUPLICATE KEY UPDATE
+    `item_id` = `item_item_set`.`item_id`,
+    `item_set_id` = `item_item_set`.`item_set_id`
+;
+SQL;
 
         return true;
     }

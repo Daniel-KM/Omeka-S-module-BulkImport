@@ -1422,6 +1422,13 @@ SQL;
                                             'template' => 'Corpus et sélection documentaire',
                                         ],
                                     ],
+                                    [
+                                        'action' => 'attach_item_sets',
+                                        'params' => [
+                                            'source' => 'manioc:themeGeneral',
+                                            'identifier' => 'dcterms:title',
+                                        ],
+                                    ],
                                 ]);
                             } elseif ($header === self::TYPE_AUDIO_VIDEO) {
                                 $this->transformOperations([
