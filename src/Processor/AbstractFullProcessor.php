@@ -2,7 +2,6 @@
 
 namespace BulkImport\Processor;
 
-use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Reader\FakeReader;
 use BulkImport\Traits\ConfigurableTrait;
@@ -18,6 +17,7 @@ use Omeka\Entity\ItemSet;
 abstract class AbstractFullProcessor extends AbstractProcessor implements Parametrizable
 {
     use AssetTrait;
+    use ConfigTrait;
     use ConfigurableTrait;
     use CountEntitiesTrait;
     use CustomVocabTrait;
@@ -440,18 +440,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     ];
 
     /**
-     * The paths to the mapping files.
-     *
-     * List of relative paths to Omeka root or inside the folder data/imports of
-     * the module.
-     *
-     * @var string[]
-     */
-    protected $mappingFiles = [
-        'properties' => '',
-    ];
-
-    /**
      * The entity being inserted.
      *
      * @var \Omeka\Entity\EntityInterface
@@ -573,15 +561,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
-        if ($this->mappingFiles['properties'] && !$this->getTableFromFile($this->mappingFiles['properties'])) {
-            $this->hasError = true;
-            $this->logger->err(
-                'Missing file "{filepath}" for the mapping of values.', // @translate
-                ['filepath' => $this->mappingFiles['properties']]
-            );
-            return;
-        }
-
         foreach (array_keys($this->main) as $name) {
             $this->prepareMainResource($name);
         }
@@ -619,6 +598,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $this->preImport();
         if ($this->isErrorOrStop()) {
+            return;
+        }
+
+        if ($this->hasConfigFile('properties') && !$this->loadTable('properties')) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Missing file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->configs['properties']['file']]
+            );
             return;
         }
 
@@ -1297,332 +1285,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 $this->main['classes'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => $localName]);
             }
         }
-    }
-
-    protected function getNormalizedMapping(): ?array
-    {
-        $table = $this->getTableFromFile($this->mappingFiles['properties']);
-        if (!$table) {
-            $this->hasError = true;
-            $this->logger->err(
-                'Missing file "{filepath}" for the mapping of values.', // @translate
-                ['filepath' => $this->mappingFiles['properties']]
-            );
-            return null;
-        }
-
-        foreach ($table as $key => &$map) {
-            // Mysql is case insensitive, but not php array.
-            $map = array_change_key_case($map);
-            $field = $map['source'] ?? null;
-            $term = $map['destination'] ?? null;
-            if (empty($field) || empty($term)) {
-                unset($table[$key]);
-            } else {
-                $termId = $this->bulk->getPropertyId($term);
-                if ($termId) {
-                    $map['property_id'] = $termId;
-                } else {
-                    unset($table[$key]);
-                }
-            }
-        }
-        unset($map);
-
-        return $table;
-    }
-
-    /**
-     * Copy the mapping of source ids and resource ids into a temp csv file.
-     *
-     * The csv is a tab-separated values.
-     */
-    protected function saveKeyPairToTsv(string $resourceName, bool $skipEmpty = false): string
-    {
-        $resources = $skipEmpty
-            ? array_filter($this->map[$resourceName])
-            : $this->map[$resourceName];
-
-        $content = '';
-        array_walk($resources, function (&$v, $k) use ($content): void {
-            $content .= "$k\t$v\n";
-        });
-
-        // TODO Use omeka temp directory (but check if mysql has access to it).
-        $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
-        touch($filepath . '.csv');
-        @unlink($filepath);
-        $filepath .= '.csv';
-
-        $result = file_put_contents($filepath, $content);
-        if ($result === false) {
-            $this->hasError = true;
-            $this->logger->warn(
-                'Unable to put content in a temp file.' // @translate
-            );
-        }
-
-        return $filepath;
-    }
-
-    /**
-     * Get a two columns table from a file (php, ods, tsv or csv).
-     */
-    protected function loadKeyPairFromFile(?string $filename): ?array
-    {
-        return $this->loadTableFromFile($filename, true);
-    }
-
-    /**
-     * Get a table from a file (php, ods, tsv or csv).
-     */
-    protected function getTableFromFile(?string $filename): ?array
-    {
-        return $this->loadTableFromFile($filename, false);
-    }
-
-    /**
-     * Get a table from a file (php, ods, tsv or csv).
-     *
-     * The filename can be a relative or a full filepath.
-     */
-    protected function loadTableFromFile(?string $filename, bool $keyPair = false): ?array
-    {
-        if (empty($filename)) {
-            return null;
-        }
-
-        $isFullFilepath = mb_substr($filename, 0, 1) === '/';
-        $extension = pathinfo($filename, PATHINFO_EXTENSION);
-
-        if ($isFullFilepath) {
-            $filepath = $filename;
-            $filename = basename($filepath);
-        } else {
-            $baseFilename = mb_strlen($extension) ? mb_substr($filename, 0, mb_strlen($filename) - mb_strlen($extension) - 1) : $filename;
-            $extensions = [
-                'php',
-                'ods',
-                'tsv',
-                'csv',
-            ];
-            $filepath = null;
-            foreach ($extensions as $extension) {
-                $file = "$baseFilename.$extension";
-                if (file_exists(OMEKA_PATH . '/files/' . $file)) {
-                    $filepath = OMEKA_PATH . '/files/' . $file;
-                    break;
-                } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $file)) {
-                    $filepath = dirname(__DIR__, 2) . '/data/imports/' . $file;
-                    break;
-                }
-            }
-            if (empty($filepath)) {
-                return null;
-            }
-        }
-
-        if ($extension === 'php') {
-            $mapper = include $filepath;
-        } elseif ($extension === 'ods') {
-            $mapper = $this->odsToArray($filepath, $keyPair);
-        } elseif ($extension === 'tsv') {
-            $mapper = $this->tsvToArray($filepath, $keyPair);
-        } elseif ($extension === 'csv') {
-            $mapper = $this->csvToArray($filepath, $keyPair);
-        } else {
-            $this->hasError = true;
-            $this->logger->err(
-                'Unmanaged extension for file "{filepath}".', // @translate
-                ['filepath' => $filename]
-            );
-            return null;
-        }
-
-        if (empty($mapper)) {
-            $this->hasError = true;
-            $this->logger->err(
-                'Empty file "{filepath}".', // @translate
-                ['filepath' => $filename]
-            );
-            return null;
-        }
-
-        // No cleaning for key pair.
-        if ($keyPair) {
-            return $mapper;
-        }
-
-        // Trim all values of all rows.
-        foreach ($mapper as $key => &$map) {
-            // Fix trailing rows.
-            if (!is_array($map)) {
-                unset($mapper[$key]);
-                continue;
-            }
-            // The values are already strings, except for php.
-            if ($extension === 'php') {
-                $map = array_map('trim', array_map('strval', $map));
-            }
-            if (!array_filter($map, 'strlen')) {
-                unset($mapper[$key]);
-            }
-        }
-        unset($map);
-
-        return $mapper;
-    }
-
-    /**
-     * Quick import a small ods config file into an array with headers as keys.
-     *
-     * Empty or partial rows are managed.
-     *
-     * @see \BulkImport\Reader\OpenDocumentSpreadsheetReader::initializeReader()
-     */
-    protected function odsToArray(string $filepath, bool $keyPair = false): ?array
-    {
-        if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
-            return null;
-        }
-
-        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
-        // Manage compatibility with old version of CSV Import.
-        // For now, it should be first checked.
-        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
-            $spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create(\Box\Spout\Common\Type::ODS);
-        } elseif (class_exists(ReaderEntityFactory::class)) {
-            /** @var \Box\Spout\Reader\ODS\Reader $spreadsheetReader */
-            $spreadsheetReader = ReaderEntityFactory::createODSReader();
-        } else {
-            $this->hasError = true;
-            $this->logger->err(
-                'The library to manage OpenDocument spreadsheet is not available.' // @translate
-            );
-            return null;
-        }
-
-        try {
-            $spreadsheetReader->open($filepath);
-        } catch (\Box\Spout\Common\Exception\IOException $e) {
-            $this->hasError = true;
-            $this->logger->err(
-                'File "{filename}" cannot be open.', // @translate
-                ['filename' => $filepath]
-            );
-            return null;
-        }
-
-        $spreadsheetReader
-            // ->setTempFolder($this->config['temp_dir'])
-            // Read the dates as text. See fix #179 in CSVImport.
-            // TODO Read the good format in spreadsheet entry.
-            ->setShouldFormatDates(true);
-
-        // Process first sheet only.
-        foreach ($spreadsheetReader->getSheetIterator() as $sheet) {
-            $iterator = $sheet->getRowIterator();
-            break;
-        }
-
-        if (empty($iterator)) {
-            return null;
-        }
-
-        $data = [];
-
-        if ($keyPair) {
-            foreach ($iterator as $row) {
-                $cells = $row->getCells();
-                // Simplify management of empty or partial rows.
-                $cells[] = '';
-                $cells[] = '';
-                $cells = array_slice($cells, 0, 2);
-                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
-            }
-            $spreadsheetReader->close();
-            return $data;
-        }
-
-        $first = true;
-        $headers = [];
-        foreach ($iterator as $row) {
-            $cells = $row->getCells();
-            $cells = array_map('trim', $cells);
-            if ($first) {
-                $first = false;
-                $headers = $cells;
-                $countHeaders = count($headers);
-                $emptyRow = array_fill(0, $countHeaders, '');
-            } else {
-                $data[] = array_combine(
-                    $headers,
-                    array_slice(array_map('trim', array_map('strval', $cells)) + $emptyRow, 0, $countHeaders)
-                );
-            }
-        }
-
-        $spreadsheetReader->close();
-        return $data;
-    }
-
-    /**
-     * Quick import a small tsv config file into an array with headers as keys.
-     *
-     * Empty or partial rows are managed.
-     */
-    protected function tsvToArray(string $filepath, bool $keyPair = false): ?array
-    {
-        return $this->tcsvToArray($filepath, $keyPair, "\t", '"', '\\');
-    }
-
-    /**
-     * Quick import a small csv config file into an array with headers as keys.
-     *
-     * Empty or partial rows are managed.
-     */
-    protected function csvToArray(string $filepath, bool $keyPair = false): ?array
-    {
-        return $this->tcsvToArray($filepath, $keyPair, ",", '"', '\\');
-    }
-
-    /**
-     * Quick import a small tsv/csv config file into an array with headers as keys.
-     *
-     * Empty or partial rows are managed.
-     */
-    protected function tcsvToArray(string $filepath, bool $keyPair = false, string $delimiter = null, string $enclosure = null, string $escape = null): ?array
-    {
-        if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
-            return null;
-        }
-
-        $content = file_get_contents($filepath);
-        $rows = explode("\n", $content);
-
-        $data = [];
-
-        if ($keyPair) {
-            foreach ($rows as $row) {
-                $cells = str_getcsv($row, $delimiter, $enclosure, $escape);
-                $cells[] = '';
-                $cells[] = '';
-                $cells = array_slice($cells, 0, 2);
-                $data[trim((string) $cells[0])] = $data[trim((string) $cells[1])];
-            }
-            return $data;
-        }
-
-        $headers = array_map('trim', str_getcsv(array_shift($rows), $delimiter, $enclosure, $escape));
-        $countHeaders = count($headers);
-        $emptyRow = array_fill(0, $countHeaders, '');
-        foreach ($rows as $row) {
-            $data[] = array_combine(
-                $headers,
-                array_slice(array_map('trim', str_getcsv($row, $delimiter, $enclosure, $escape)) + $emptyRow, 0, $countHeaders)
-            );
-        }
-        return $data;
     }
 
     /**

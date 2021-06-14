@@ -2,29 +2,48 @@
 
 namespace BulkImport\Processor;
 
+use Box\Spout\Common\Entity\Style\Color;
+use Box\Spout\Writer\Common\Creator\Style\StyleBuilder;
+use Box\Spout\Writer\Common\Creator\WriterEntityFactory;
 use Laminas\Http\Client\Adapter\Exception as HttpAdapterException;
 
 /**
  * The transformation applies to all values of table "_temporary_value_id".
+ *
+ * Require trait ConfigTrait.
  */
 trait MetadataTransformTrait
 {
+    /**
+     * Store all mappings during the a job, so it can be completed.
+     *
+     * The use case is to fill creators and contributors with the same endpoint.
+     * It allows to use a manual user mapping or a previous mapping too.
+     *
+     * @var array
+     */
+    protected $valueSuggestMappings = [];
+
     protected function transformLiteralToValueSuggest($term, string $datatype, array $options = []): void
     {
+        if (empty($options['name'])) {
+            $options['name'] = str_replace(':', '-', $term .'_' . $datatype);
+        }
+
         empty($options['mapping']) || !empty($options['partial'])
             ? $this->transformLiteralToValueSuggestWithApi($term, $datatype, $options)
-            : $this->transformLiteralToValueSuggestWithMapping($term, $datatype, $options);
+            : $this->transformLiteralToValueSuggestDirectly($term, $datatype, $options);
     }
 
-    protected function transformLiteralToValueSuggestWithMapping($term, string $datatype, array $options = []): void
+    protected function transformLiteralToValueSuggestDirectly($term, string $datatype, array $options = []): void
     {
-        if (!$this->checkTransformArguments($term, $datatype)) {
+        if (!$this->checkTransformArguments($term, $datatype, $options['mapping'])) {
             return;
         }
 
         $propertyId = $this->getPropertyId($term);
-        $prefix = $options['prefix'] ?? null;
-        $mapping = $this->getTableFromFile($options['mapping']);
+        $prefix = $options['prefix'] ?? false;
+        $mapping = $this->loadTable($options['mapping']);
         if (empty($mapping)) {
             $this->logger->warn(
                 'The mapping "file" is empty.', // @translate
@@ -36,14 +55,14 @@ trait MetadataTransformTrait
         // Prepare the mapping. Cells are already trimmed strings.
         $mapper = [];
         foreach ($mapping as $map) {
-            // Mysql is case insensitive, but not php array.
-            $map = array_change_key_case($map);
             $source = $map['source'] ?? null;
             $destination = $map['destination'] ?? null;
             if (!$source || !$destination) {
                 continue;
             }
 
+            // Manage the case where a single value is mapped to multiple ones,
+            // for example a value to explode into a list of languages.
             $destination = array_filter(array_map('trim', explode('|', $destination)), 'strlen');
             if (!$destination) {
                 continue;
@@ -69,16 +88,20 @@ trait MetadataTransformTrait
                     // TODO Check and normalize property language.
                     'lang' => empty($map['lang']) ? null : $map['lang'],
                     'value_resource_id' => null,
+                    // TODO Try to keep original is_public.
                     'is_public' => 1,
                 ];
             }
         }
 
-        $this->transformValuesProcess($mapper);
+        $this->processValuesTransform($mapper);
+
+        // TODO Add a stat message.
     }
 
     protected function transformLiteralToValueSuggestWithApi($term, string $datatype, array $options = []): void
     {
+        // The mapping is optional, so not checked.
         if (!$this->checkTransformArguments($term, $datatype)) {
             return;
         }
@@ -87,10 +110,11 @@ trait MetadataTransformTrait
         $term = $this->getPropertyTerm($propertyId);
 
         // Get the list of unique values.
+        // TODO Only literal: the already mapped values (label + uri) can be used as mapping, but useless for a new database.
         $sql = <<<'SQL'
 SELECT DISTINCT
     `value`.`value` AS `v`,
-    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ',') AS r
+    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
 FROM `value`
 JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
@@ -110,152 +134,146 @@ SQL;
         $list = array_column($list, 'r', 'v');
 
         $this->logger->info(
-            'There are {total} literal values for term "{term}".', // @translate
-            ['total' => count($list), 'term' => $term]
+            'Processing {total} unique literal values for term "{term}" to map to "{type}".', // @translate
+            ['total' => count($list), 'term' => $term, 'type' => $datatype]
         );
-        if (!count($list)) {
+        $totalList = count($list);
+        if (!$totalList) {
             return;
         }
 
-        // The original file is not updated: the new mapping is saved in files/.
-        $config = $this->getServiceLocator()->get('Config');
-        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getJobId() . '_' . ($options['filename'] ?? str_replace(':', '-', $term)) . '.tsv';
-        $filepathHtml = $basePath . '/bulk_import/' . 'import_' . ($options['filename'] ?? str_replace(':', '-', $term)) . '.html';
-        if (!file_exists($filepath)) {
-            if (!is_dir(dirname($filepath))) {
-                @mkdir(dirname($filepath, 0775, true));
-            }
-            touch($filepath);
-            $this->logger->notice(
-                'Mapping for {term} will be saved in "{url}".', // @translate
-                ['term' => $term, 'url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
-            );
-            $headers = [
-                'label',
-                'ids',
-                'uri',
-                // 'label_1',
-                // 'info_1',
-                // 'uri_2',
-                // 'label_2',
-                // 'info_2',
-            ];
-            $fp = fopen($filepath, 'wb');
-            fputcsv($fp, $headers, "\t", '"', '\\');
-            fclose($fp);
-        }
+        $this->prepareValueSuggestMapping($term, $datatype, $options);
+        $currentMapping = &$this->valueSuggestMappings[$options['name']];
 
-        // Create a mapping for checking and future reimport.
-        $mapping = $this->getTableFromFile($options['mapping']) ?: [];
-        if (!empty($mapping)) {
-            $this->logger->info(
-                'The mapping "{file}" for "{term}" contains "{total}" rows.', // @translate
-                ['file' => $options['mapping'], 'term' => $term, count($mapping)]
-            );
-            // Prepare the keys to search instantly in the mapping.
-            $mapping = array_combine(array_column($mapping, 'label'), $mapping);
-        }
-
-        // Append the mapping from the file filled in a previous step.
-        if (filesize($filepath)) {
-            $previousMapping = $this->getTableFromFile($filepath) ?: [];
-            // Keep only needed keys and fill them all (for the mapping check).
-            // $previousMapping = array_map(function ($v) {
-            //     return array_intersect_key($v + ['label' => '', 'id' => '', 'uri' => ''], ['label' => '', 'id' => '', 'uri' => '']);
-            // }, $previousMapping);
-            $previousMapping = array_combine(array_column($previousMapping, 'label'), $previousMapping);
-            $mapping = array_merge($mapping, $previousMapping);
-            unset($previousMapping);
-        }
-
-        // Prepare the html output.
-        if (!file_exists($filepathHtml) || !filesize($filepathHtml)) {
-            $this->prepareCheckingFile($filepathHtml, 'start', $term);
-        } else {
-            $this->prepareCheckingFile($filepathHtml, 'continue', $term);
-        }
-
-        // Fill the html mapping (append).
-        $fpHtml = fopen($filepathHtml, 'ab');
-
-        // Fill the tsv mapping (append).
         $count = 0;
         $countSingle = 0;
-        $total = count($list);
-        $fp = fopen($filepath, 'ab');
         foreach ($list as $value => $resourceIds) {
             ++$count;
             $value = trim($value);
-            if (!isset($mapping[$value]) || empty($mapping[$value]['uri'])) {
-                $mapping[$value]['label'] = $value;
-                $mapping[$value]['ids'] = $resourceIds;
 
-                $result = $this->apiQuery($value, $datatype, $options);
-                if ($result === null) {
-                    $this->logger->err(
-                        'Connection issue: skipping next requests for property {term}.', // @translate
-                        ['term' => $term]
-                    );
-                    break;
-                }
-
-                $isSingleResult = count($result) === 1;
-                foreach ($result as $key => $r) {
-                    $k = $key + 1;
-                    $mapping[$value]['uri' . ($key ? '_' . $k : '')] = $r['data']['uri'];
-                    $mapping[$value]['label_' . $k] = $r['value'];
-                    $mapping[$value]['info_' . $k] = is_array($r['data']['info']) ? json_encode($r['data']['info'], 320) : $r['data']['info'];
-                }
+            // In all cases, update the resource ids for future check.
+            if (empty($currentMapping[$value]['items'])) {
+                $ids = $resourceIds;
             } else {
-                $mapping[$value]['ids'] = $resourceIds;
+                $ids = array_filter(explode(' ', $currentMapping[$value]['items'] . ' ' . $resourceIds));
+                sort($ids);
+                $ids = implode(' ', array_unique($ids));
             }
 
-            // Save the mapping directly (but keep the original label).
-            fputcsv($fp, $mapping[$value], "\t", '"', '\\');
-            $this->appendCheckingFile($fpHtml, $value, $resourceIds, $result);
+            // Check if the value is already mapped with one or multiple uris.
+            // It may have been checked in a previous step with an empty array.
+            // An empty string means a value missing in the user mapping.
+            if (isset($currentMapping[$value]['uri']) && $currentMapping[$value]['uri'] !== '') {
+                continue;
+            }
 
-            if ($isSingleResult) {
-                ++$countSingle;
-                $this->transformValuesSingle(
-                    $propertyId,
-                    $datatype,
-                    $value,
-                    $mapping[$value]['uri'],
-                    null,
-                    null
+            // Complete the new mapping.
+            $currentMapping[$value]['source'] = $value;
+            $currentMapping[$value]['items'] = $resourceIds;
+            $currentMapping[$value]['uri'] = [];
+            $currentMapping[$value]['label'] = [];
+            $currentMapping[$value]['info'] = [];
+
+            $result = $this->apiQuery($value, $datatype, $options);
+
+            if ($result === null) {
+                $this->logger->err(
+                    'Connection issue: skipping next requests for property {term}.', // @translate
+                    ['term' => $term]
                 );
+                break;
+            }
+
+            // Store the results for future steps.
+            foreach ($result as $r) {
+                $currentMapping[$value]['uri'][] = $r['data']['uri'];
+                $currentMapping[$value]['label'][] = $r['value'];
+                $currentMapping[$value]['info'][] = $r['data']['info'];
+            }
+
+            if (count($result) === 1) {
+                ++$countSingle;
             }
 
             if ($count % 100 === 0) {
                 $this->logger->info(
-                    '{count}/{total} values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
-                    ['count' => $count, 'total' => $total, 'term' => $term, 'singles' => $countSingle]
+                    '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
+                    ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
                 );
                 if ($this->isErrorOrStop()) {
                     break;
                 }
             }
         }
-        fclose($fp);
-        fclose($fpHtml);
-        $this->prepareCheckingFile($filepathHtml, 'end');
+
+        if ($this->isErrorOrStop()) {
+            return;
+        }
+
+        // Save mapped values for the current values. It allows to manage
+        // multiple steps, for example to store some authors as creators, then as
+        // contributors. Only single values are updated.
+        $mapper = array_map(function ($v) use ($propertyId, $datatype) {
+            return [
+                'source' => $v['source'],
+                'property_id' => $propertyId,
+                'type' => $datatype,
+                'value' => reset($v['label']) ?: null,
+                'uri' => reset($v['uri']),
+                // TODO Check and normalize property language.
+                'lang' => null,
+                'value_resource_id' => null,
+                // TODO Try to keep original is_public.
+                'is_public' => 1,
+            ];
+        }, array_filter($currentMapping, function ($v) {
+            return $v['source']
+                && is_array($v['uri'])
+                && count($v['uri']) === 1;
+        }));
+        $this->processValuesTransform($mapper);
 
         $this->logger->notice(
-            '{count}/{total} values for term "{term}" processed, {count_single} new values updated with a single uri.', // @translate
-            ['count' => $count, 'total' => $total, 'count_single' => $countSingle]
+            '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
+            ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
         );
+   }
 
-        $this->logger->notice(
-            'The mapping page for {term} is available in "{url}".', // @translate
-            ['term' => $term, 'url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepathHtml, strlen($basePath) + 1)]
-        );
+    protected function prepareValueSuggestMapping($term, string $datatype, array $options = []): void
+    {
+        // Create a mapping for checking and future reimport.
+        $table = $this->loadTable($options['mapping']) ?: [];
+
+        // Keep only the needed columns.
+        $columns = [
+            'source' => null,
+            'items' => null,
+            'uri' => null,
+            'label' => null,
+            'info' => null,
+        ];
+        $table = array_map(function ($v) use ($columns) {
+            return array_replace($columns, array_intersect_key($v, $columns));
+        }, $table);
+
+        if (!empty($options['prefix'])) {
+            $prefix = $options['prefix'];
+            $table = array_map(function ($v) use ($prefix) {
+                if (!empty($v['uri']) && strpos($v['uri'], $prefix) !== 0) {
+                    $v['uri'] = $prefix . $v['uri'];
+                }
+                return $v;
+            }, $table);
+        }
+
+        // Prepare the keys to search instantly in the mapping.
+        $this->valueSuggestMappings[$options['name']] = array_combine(array_column($table, 'source'), $table);
     }
 
     /**
      * @param array $mapper The mapper is already checked.
      */
-    protected function transformValuesProcess(array $mapper): void
+    protected function processValuesTransform(array $mapper): void
     {
         // Create a temporary table with the mapper.
         $sql = <<<SQL
@@ -272,6 +290,7 @@ SQL;
                     . ",'" . $v['type'] . "'"
                     . ',' . (strlen((string) $v['value']) ? $this->connection->quote($v['value']) : 'NULL')
                     . ',' . (strlen((string) $v['uri']) ? $this->connection->quote($v['uri']) : 'NULL')
+                    // TODO Check and normalize property language.
                     . ',' . (strlen((string) $v['lang']) ? $this->connection->quote($v['lang']) : 'NULL')
                     . ',' . ((int) $v['value_resource_id'] ? (int) $v['value_resource_id'] : 'NULL')
                     // TODO Try to keep original is_public.
@@ -302,8 +321,8 @@ SQL;
             }
         }
         $hasMultipleDestinations
-            ? $this->transformValuesInsert()
-            : $this->transformValuesUpdate();
+            ? $this->processValuesTransformInsert()
+            : $this->processValuesTransformUpdate();
 
         $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_mapper`;
@@ -311,10 +330,7 @@ SQL;
         $this->connection->exec($sql);
     }
 
-    /**
-     * @param array $mapper The mapper is already checked.
-     */
-    protected function transformValuesUpdate(): void
+    protected function processValuesTransformUpdate(): void
     {
         $sql = <<<SQL
 UPDATE `value`
@@ -328,18 +344,15 @@ SET
     `value`.`type` = `_temporary_mapper`.`type`,
     `value`.`value` = `_temporary_mapper`.`value`,
     `value`.`uri` = `_temporary_mapper`.`uri`,
-    `value`.`lang` = `_temporary_mapper`.`lang`,
     `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
-    `value`.`is_public` = `_temporary_mapper`.`is_public`;
+    # `value`.`is_public` = `_temporary_mapper`.`is_public`,
+    `value`.`lang` = `_temporary_mapper`.`lang`;
 
 SQL;
         $this->connection->executeUpdate($sql);
     }
 
-    /**
-     * @param array $mapper The mapper is already checked.
-     */
-    protected function transformValuesInsert(): void
+    protected function processValuesTransformInsert(): void
     {
         $sql = <<<SQL
 SELECT MAX(`id`) FROM `value`;
@@ -383,7 +396,7 @@ SQL;
         $this->connection->executeUpdate($sql, ['value_id' => $maxId]);
     }
 
-    protected function transformValuesSingle(
+    protected function processValuesTransformSingle(
         int $propertyId,
         string $datatype,
         ?string $value = null,
@@ -420,7 +433,7 @@ SQL;
         $this->connection->executeUpdate($sql, $bind);
     }
 
-    protected function checkTransformArguments($term, $datatype = null): bool
+    protected function checkTransformArguments($term = null, $datatype = null, $configKey = null): bool
     {
         $propertyId = $this->bulk->getPropertyId($term);
         if (!$propertyId) {
@@ -431,21 +444,23 @@ SQL;
             return false;
         }
 
-        if (!$datatype) {
-            return true;
+        if ($datatype) {
+            if (substr($datatype, 0, 12) === 'valuesuggest' && empty($this->modules['ValueSuggest'])) {
+                $this->logger->err(
+                    'The module "Value Suggest" is required to transform values.' // @translate
+                );
+                return false;
+            }
         }
 
-        if (substr($datatype, 0, 12) === 'valuesuggest' && empty($this->modules['ValueSuggest'])) {
-            $this->logger->err(
-                'The module "Value Suggest" is required to transform values.' // @translate
-            );
-            return false;
+        if ($configKey) {
+            return (bool) $this->getConfigFilepath($configKey);
         }
 
         return true;
     }
 
-    protected function apiQuery(string $value, string $datatype, array $options = []): ?array
+    protected function apiQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
     {
         /** @var \ValueSuggest\Suggester\SuggesterInterface $suggesters */
         static $suggesters = [];
@@ -468,6 +483,10 @@ SQL;
         try {
             $suggestions = $suggesters[$datatype]->getSuggestions($value);
         } catch (HttpAdapterException $e) {
+            // Since the exception can occur randomly, a second query is done.
+            if ($loop < 1) {
+                return $this->apiQuery($value, $datatype, $options, ++$loop);
+            }
             $this->logger->err(
                 'Connection issue: {exception}', // @translate
                 ['exception' => $e]
@@ -480,14 +499,205 @@ SQL;
             : [];
     }
 
-    protected function prepareCheckingFile(string $filepath, ?string $part = null, ?string $term = null): void
+    protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): string
     {
+        $relativePath = 'bulk_import/' . 'import_' . $this->job->getJobId() . '_' . str_replace(':', '-', $filename) . '.' . $extension;
+        if ($relative) {
+            return 'files/' . $relativePath;
+        }
+        $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $filepath = $basePath . '/' . $relativePath;
+        if (!file_exists($filepath)) {
+            if (!is_dir(dirname($filepath))) {
+                @mkdir(dirname($filepath, 0775, true));
+            }
+            touch($filepath);
+        }
+        return $filepath;
+    }
+
+    /**
+     * The original files are not updated: the new mapping are saved inside
+     * files/bulk_import/ with the job id in filename.
+     *
+     * OpenDocument Spreedsheet is used instead of csv/tsv because there may be
+     * values with end of lines. Furthermore, it allows to merge cells when
+     * there are multiple results (but box/spout doesn't manage it).
+     */
+    protected function saveValueSuggestMappings(): void
+    {
+        foreach ($this->valueSuggestMappings as $name => $mapper) {
+            $this->saveValueSuggestMappingToOds($name, $mapper);
+            $this->saveValueSuggestMappingToHtml($name, $mapper);
+        }
+    }
+
+    protected function saveValueSuggestMappingToOds(string $name, array $mapper): void
+    {
+        $basePath = trim($this->job->getArg('base_path'), '/');
+        $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
+        $filepath = $this->getOutputFilepath($name, 'ods');
+        $relativePath = $this->getOutputFilepath($name, 'ods', true);
+
+        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+        // Manage compatibility with old version of CSV Import.
+        // For now, it should be first checked.
+        if (class_exists(\Box\Spout\Writer\WriterFactory::class)) {
+            $spreadsheetWriter = \Box\Spout\Writer\WriterFactory::create(\Box\Spout\Common\Type::ODS);
+        } elseif (class_exists(WriterEntityFactory::class)) {
+            /** @var \Box\Spout\Writer\ODS\Writer $spreadsheetWriter */
+            $spreadsheetWriter = WriterEntityFactory::createODSWriter();
+        } else {
+            $this->logger->err(
+                'The library to manage OpenDocument spreadsheet is not available.' // @translate
+            );
+            return;
+        }
+
+        try {
+            @unlink($filepath);
+            $spreadsheetWriter->openToFile($filepath);
+        } catch (\Box\Spout\Common\Exception\IOException $e) {
+            $this->hasError = true;
+            $this->logger->err(
+                'File "{filename}" cannot be created.', // @translate
+                ['filename' => $filepath]
+            );
+            return;
+        }
+
+        $spreadsheetWriter->getCurrentSheet()
+            ->setName($name);
+
+        $headers = [
+            'source',
+            'items',
+            'uri',
+            'label',
+            'info',
+        ];
+        /** @var \Box\Spout\Common\Entity\Row $row */
+        $row = WriterEntityFactory::createRowFromArray($headers, (new StyleBuilder())->setFontBold()->build());
+        $spreadsheetWriter->addRow($row);
+
+        $newStyle = (new StyleBuilder())->setBackgroundColor(Color::rgb(208, 228, 245))->build();
+
+        $even = false;
+        foreach ($mapper as $map) {
+            // Skip useless data.
+            if (empty($map['source'])) {
+                continue;
+            }
+
+            // In the case where a user mapped value was not updated.
+            if (!is_array($map['uri'])) {
+                $map['uri'] = array_filter([$map['uri']]);
+                $map['label'] = array_filter([$map['label']]);
+                $map['info'] = array_filter([$map['info']]);
+            }
+            if (!count($map['uri'])) {
+                $map['uri'] = [''];
+                $map['label'] = [''];
+                $map['info'] = [''];
+            }
+
+            $resources = '';
+            foreach (array_unique(array_filter(explode(' ', $map['items']))) as $id) {
+                $resources .= sprintf('%sadmin/item/%d', $baseUrl, $id) . "\n";
+            }
+            $resources = trim($resources);
+
+            $data = [
+                $map['source'],
+                $resources,
+            ];
+
+            $dataBase = $data;
+            foreach ($map['uri'] as $key => $uri) {
+                $data = $dataBase;
+                $data[] = $uri;
+                $data[] = $map['label'][$key] ?? '';
+                $data[] = $map['info'][$key] ?? '';
+                $row = WriterEntityFactory::createRowFromArray($data);
+                if ($even) {
+                    $row->setStyle($newStyle);
+                }
+                $spreadsheetWriter->addRow($row);
+            }
+
+            $even = !$even;
+        }
+
+        $spreadsheetWriter->close();
+
+        $this->logger->notice(
+            'The mapping spreadsheet for "{name}" is available in "{url}".', // @translate
+            [
+                'name' => $name,
+                'url' => $baseUrl . $relativePath,
+            ]
+        );
+    }
+
+    protected function saveValueSuggestMappingToHtml(string $name, array $mapper): void
+    {
+        $basePath = trim($this->job->getArg('base_path'), '/');
+        $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
+        $filepath = $this->getOutputFilepath($name, 'html');
+        $relativePath = $this->getOutputFilepath($name, 'html', true);
+
+        $this->prepareValueSuggestMappingToHtml($filepath, 'start', $name);
+
+        $fp = fopen($filepath, 'ab');
+
+        foreach ($mapper as $map) {
+            // Skip useless data.
+            if (empty($map['source'])) {
+                continue;
+            }
+
+            // In the case where a user mapped value was not updated.
+            if (!is_array($map['uri'])) {
+                $map['uri'] = array_filter([$map['uri']]);
+                $map['label'] = array_filter([$map['label']]);
+                $map['info'] = array_filter([$map['info']]);
+            }
+            if (!count($map['uri'])) {
+                $map['uri'] = [''];
+                $map['label'] = [''];
+                $map['info'] = [''];
+            }
+
+            $this->appendValueSuggestMappingToHtml($fp, $map, $baseUrl);
+        }
+
+        fclose($fp);
+        $this->prepareValueSuggestMappingToHtml($filepath, 'end');
+
+        $this->logger->notice(
+            'The mapping checking page for "{name}" is available in "{url}".', // @translate
+            [
+                'name' => $name,
+                'url' => $baseUrl . $relativePath,
+            ]
+        );
+    }
+
+    protected function prepareValueSuggestMappingToHtml(string $filepath, ?string $part = null, ?string $name = null): void
+    {
+        if ($name) {
+            $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
+            $title = htmlspecialchars(sprintf($translate('Mapping "%s"'), ucfirst($name)), ENT_NOQUOTES | ENT_HTML5);
+        } else {
+            $title = '';
+        }
+
         $html = <<<HTML
 <!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>Mapping $term</title>
+        <title>$title</title>
         <!-- From https://divtable.com/table-styler -->
         <style>
         table.blueTable {
@@ -526,15 +736,15 @@ SQL;
         </style>
     </head>
     <body>
-        <h1>Mapping $term</h1>
+        <h1>$title</h1>
         <table class="blueTable">
             <thead>
                 <tr>
-                    <th scope="col">Label source</th>
-                    <th scope="col">Ressource id</th>
-                    <th scope="col">Uri</th>
-                    <th scope="col">Valeur</th>
-                    <th scope="col">Info</th>
+                    <th scope="col">source</th>
+                    <th scope="col">items</th>
+                    <th scope="col">uri</th>
+                    <th scope="col">label</th>
+                    <th scope="col">info</th>
                 </tr>
             </thead>
             <tbody>
@@ -566,42 +776,43 @@ HTML;
         file_put_contents($filepath, $html);
     }
 
-    protected function appendCheckingFile($fp, string $value, $resourceIds, array $result): void
+    protected function appendValueSuggestMappingToHtml($fp, array $map, string $baseUrl): void
     {
-        $count = count($result);
+        $count = count($map['uri']);
         $rowspan = $count <= 1 ? '' : sprintf(' rowspan="%d"', $count);
 
         $resources = '';
-        foreach (explode(',', $resourceIds) as $id) {
+        foreach (array_unique(array_filter(explode(' ', $map['items']))) as $id) {
             $resources .= sprintf(
-                '<a href="%s/admin/item/%d" target="_blank">item #%d</a><br/>',
-                $this->job->getArg('base_path'), $id, $id
+                '<a href="%sadmin/item/%d" target="_blank">#%d</a><br/>',
+                $baseUrl, $id, $id
             ) . "\n";
         }
 
         $html = "                <tr>\n";
-        $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($value, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+        $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($map['source'], ENT_NOQUOTES | ENT_HTML5)) . "\n";
         $html .= sprintf('                    <td%s>%s</td>', $rowspan, $resources) . "\n";
-        if (!$count) {
+        if (!reset($map['uri'])) {
             $html .= str_repeat('                    <td></td>' . "\n", 3);
             $html .= "                </tr>\n";
         } else {
             $first = true;
-            foreach ($result as $r) {
+            foreach ($map['uri'] as $key => $uri) {
                 if ($first) {
                     $first = false;
                 } else {
                     $html .= "                <tr>\n";
                 }
-                $uri = $r['data']['uri'] ?? '';
                 $code = (string) basename(rtrim($uri, '/'));
-                $info = $r['data']['info'] ?? '';
+                $label = $map['label'][$key] ?? '';
+                $info = $map['info'][$key] ?? '';
                 $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($r['value'] ?? '', ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars(is_array($info) ? json_encode($info, 320) : (string) $info, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($label, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($info, ENT_NOQUOTES | ENT_HTML5)) . "\n";
                 $html .= "                </tr>\n";
             }
         }
+
         fwrite($fp, $html);
     }
 }
