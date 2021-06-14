@@ -1174,6 +1174,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();
+        $plugins = $services->get('ControllerPluginManager');
         $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
 
@@ -1196,14 +1197,26 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (count($ids)) {
             $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
         }
+
         $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+
         if (!empty($this->modules['Thesaurus'])) {
             $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
         }
 
+        if ($plugins->has('deduplicateValues')) {
+            $plugins->get('deduplicateValues')->__invoke();
+        } else {
+            $this->logger->warn(
+                'To deduplicate metadata, run the job "Deduplicate values" with module Bulk Edit.' // @translate
+            );
+        }
+
+        // TODO Reorder values according to template.
+
         // TODO Run derivative files job.
         if (count($this->map['media'])) {
-            $this->logger->warning('Derivative files should be recreated with module Bulk Check.'); // @translate
+            $this->logger->warn('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
     }
 

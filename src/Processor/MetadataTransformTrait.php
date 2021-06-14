@@ -369,6 +369,7 @@ SQL;
 
         // TODO Move all check inside the preprocess.
         // TODO Use a transaction (implicit currently).
+        // TODO Move the term into the params.
         // TODO Bind is not working currently with multiple queries, but only used for property id.
 
         foreach ($operations as $index => $operation) {
@@ -383,6 +384,13 @@ SQL;
 
                 case 'replace_table':
                     $result = $this->operationReplaceTable($operation['params']);
+                    if (!$result) {
+                        break 2;
+                    }
+                    break;
+
+                case 'link_resource':
+                    $result = $this->operationLinkResource($operation['params']);
                     if (!$result) {
                         break 2;
                     }
@@ -545,8 +553,8 @@ SQL;
         $table = $this->loadTable($params['mapping']);
         if (empty($table)) {
             $this->logger->warn(
-                'No mapping or empty mapping in file "{file}" for operation "{operation}".', // @translate
-                ['file' => $params['mapping'], 'operation' => 'replace_table']
+                'No mapping or empty mapping in file "{file}" for operation "{action}".', // @translate
+                ['file' => $params['mapping'], 'action' => 'replace_table']
             );
             return false;
         }
@@ -560,28 +568,31 @@ SQL;
         $firstKeys = array_keys($first);
         $sourceKey = array_search('source', $firstKeys);
         if ($sourceKey === false) {
-            $this->logger->warn(
-                'Mapping for operation "replace" requires a column "source".' // @translate
+            $this->logger->err(
+                'Mapping for operation "{action}" requires a column "source".', // @translate
+                ['action' => 'replace_table']
             );
             return false;
         }
         if (empty($params['source'])) {
-            $this->logger->warn(
-                'The operation "replace" requires a source property.' // @translate
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => 'replace_table']
             );
             return false;
         }
         $propertyId = $this->getPropertyId($params['source']);
         if (empty($propertyId)) {
-            $this->logger->warn(
-                'The operation "replace" requires a valid source property ("{term}").', // @translate
-                ['term' => $params['source']]
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => 'replace_table', 'term' => $params['source']]
             );
             return false;
         }
         if (empty($params['destination'])) {
-            $this->logger->warn(
-                'The operation "replace" requires at least one destination.' // @translate
+            $this->logger->err(
+                'The operation "{action}" requires at least one destination.', // @translate
+                ['action' => 'replace_table']
             );
             return false;
         }
@@ -718,6 +729,120 @@ SQL;
         $this->processValuesTransform($mapper, $hasMultipleDestinations);
 
         // TODO Add a stat message.
+
+        return true;
+    }
+
+    protected function operationLinkResource(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['operation' => 'link_resource']
+            );
+            return false;
+        }
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => 'link_resource', 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        if (empty($params['destination'])) {
+            $destinationId = $sourceId;
+        } else {
+            $destinationId = $this->getPropertyId($params['destination']);
+            if (empty($destinationId)) {
+                $this->logger->err(
+                    'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
+                    ['action' => 'link_resource', 'term' => $params['destination']]
+                );
+                return false;
+            }
+        }
+
+        $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
+        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
+        if (empty($sourceIdentifierId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
+                ['action' => 'link_resource', 'term' => $params['identifier']]
+            );
+            return false;
+        }
+
+        if (empty($params['reciprocal'])) {
+            $reciprocalId = null;
+        } else {
+            $reciprocalId = $this->getPropertyId($params['reciprocal']);
+            if (empty($reciprocalId)) {
+                $this->logger->err(
+                    'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate
+                    ['action' => 'link_resource', 'term' => $params['reciprocal']]
+                );
+                return false;
+            }
+        }
+
+        $type = $params['type'] ?? 'resource:item';
+        $quotedType = $this->connection->quote($type);
+        // TODO Use the template for is_public.
+        $isPublic = (int) (bool) ($params['is_public'] ?? 1);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->operationHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Create linked values for all values that have an identifiable value.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+SELECT
+    `value`.`resource_id`,
+    $destinationId,
+    `value_dest`.`resource_id`,
+    $quotedType,
+    $isPublic
+FROM
+    `value`,
+    `value` AS value_dest
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceIdentifierId
+    AND `value_dest`.`property_id` = $sourceIdentifierId
+    AND `value_dest`.`value` = `value`.`value`
+    $sqlExcludeWhere
+ORDER BY `value`.`resource_id`
+SQL;
+
+        if ($reciprocalId) {
+            $this->operationSqls[] = <<<SQL
+# Create linked values for all values that have an identifiable value.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+SELECT
+    `value_dest`.`resource_id`,
+    $reciprocalId,
+    `value`.`resource_id`,
+    $quotedType,
+    $isPublic
+FROM
+    `value`,
+    `value` AS value_dest
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` = $sourceIdentifierId
+    AND `value_dest`.`property_id` = $sourceIdentifierId
+    AND `value_dest`.`value` = `value`.`value`
+    $sqlExcludeWhere
+ORDER BY `value`.`resource_id`
+SQL;
+        }
 
         return true;
     }

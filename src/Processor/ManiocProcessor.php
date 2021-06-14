@@ -1178,6 +1178,22 @@ SQL;
                 $baseBind = ['resource_template_id' => $templateId];
             }
 
+            // Pre-process on whole resource.
+            $this->transformValues(
+                [
+                    'map' => [
+                        $header => '* Pre',
+                    ],
+                ],
+                [
+                    'templateLabel' => $templateLabel,
+                    'header' => $header,
+                    'sqlAndWhere' => $sqlAndWhere,
+                    'baseBind' => $baseBind,
+                ]
+            );
+
+            // Main process on each map.
             foreach ($migrationMapping as $map) {
                 if (empty($map['map'][$header])) {
                     continue;
@@ -1197,6 +1213,21 @@ SQL;
                     'baseBind' => $baseBind,
                 ]);
             }
+
+            // Post-process on whole resource.
+            $this->transformValues(
+                [
+                    'map' => [
+                        $header => '* Post',
+                    ],
+                ],
+                [
+                    'templateLabel' => $templateLabel,
+                    'header' => $header,
+                    'sqlAndWhere' => $sqlAndWhere,
+                    'baseBind' => $baseBind,
+                ]
+            );
         }
 
         // Check if value suggest is available in order to prepare a temp table.
@@ -1268,10 +1299,22 @@ SQL;
         $action = $actions[$action];
         $value = trim(mb_substr($value, 1));
 
-        $this->logger->info(
-            'Template "{template}": processing action "{action}" with value "{value}".', // @translate
-            ['template' => $templateLabel, 'action' => $action, 'value' => $value]
-        );
+        if ($value === 'Pre') {
+            $this->logger->info(
+                'Template "{template}": pre-processing values.', // @translate
+                ['template' => $templateLabel]
+            );
+        } elseif ($value === 'Post') {
+            $this->logger->info(
+                'Template "{template}": post-processing values.', // @translate
+                ['template' => $templateLabel]
+            );
+        } else {
+            $this->logger->info(
+                'Template "{template}": processing action "{action}" with value "{value}".', // @translate
+                ['template' => $templateLabel, 'action' => $action, 'value' => $value]
+            );
+        }
 
         switch ($action) {
             case 'append':
@@ -1319,6 +1362,16 @@ SQL;
             case 'transform':
                 // The exception applies to all values included in a
                 // temporary table.
+                // To simplify process, a temporary table is created even when
+                // there is no filter.
+                $bind = $baseBind;
+                if (empty($map['property_id'])) {
+                    $sqlAndProperty = '';
+                } else {
+                    $sqlAndProperty = 'AND `value`.`property_id` = :property_id';
+                    $bind['property_id'] = $map['property_id'];
+                }
+
                 $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_value_id`;
 CREATE TABLE `_temporary_value_id` (
@@ -1333,23 +1386,70 @@ FROM `value`
 JOIN `resource`
     ON `resource`.`id` = `value`.`resource_id`
 WHERE
-    `value`.`property_id` = :property_id
-    AND (`value`.`type` = 'literal' OR `value`.`type` = '' OR `value`.`type` IS NULL)
+    (`value`.`type` = 'literal' OR `value`.`type` = '' OR `value`.`type` IS NULL)
+    $sqlAndProperty
     $sqlAndWhere;
 
 SQL;
-                $bind = $baseBind + [
-                    'property_id' => $map['property_id'],
-                ];
                 // TODO Check why the count of the result is not good, but the table is good.
                 $this->connection->executeUpdate($sql, $bind);
                 $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
                 if ($result) {
-                    $this->logger->info(
-                        'Template "{template}": Updating {total} values from source "{source}" to property "{term}".', // @translate
-                        ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-                    );
+                    if (empty($map['source']) || empty($map['destination'])) {
+                        $this->logger->info(
+                            'Template "{template}": Updating {total} values.', // @translate
+                            ['template' => $templateLabel, 'total' => $result]
+                        );
+                    } else {
+                        $this->logger->info(
+                            'Template "{template}": Updating {total} values from source "{source}" to property "{term}".', // @translate
+                            ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
+                        );
+                    }
                     switch ($value) {
+                        // Effectue des modifications avant toute autre modification.
+                        case 'Pre':
+                            if ($header === self::TYPE_IMAGE) {
+                                // Cette opération ne dépend pas de la propriété en cours
+                                // mais des ressources.
+                                $this->transformLiteralWithOperations([
+                                    // Le titre est issu de la valeur dc.Relation^IsPartOf,
+                                    // mise à jour dans l'opération précédente, mais il
+                                    // est aussi disponible dans manioc:internalLink
+                                    // et dans manioc:etagere.
+                                    [
+                                        'action' => 'link_resource',
+                                        'params' => [
+                                            'source' => 'manioc:internalLink',
+                                            // "man.link" a été déplacé en bibo:uri.
+                                            'identifier' => 'bibo:uri',
+                                            'destination' => 'dcterms:isPartOf',
+                                            // Le titre est à rechercher dans les livres anciens,
+                                            // même s'il devrait être unique.
+                                            // 'filter' => [
+                                            //     'template' => 'Livre',
+                                            // ],
+                                            // Ajout des liens inverses dans la notice du livre
+                                            // dans dcterms:hasPart.
+                                            'reciprocal' => 'dcterms:hasPart',
+                                        ],
+                                    ],
+                                    [
+                                        // Il y aura de nombreux doublons, mais ils
+                                        // seron supprimés lors de la dernière étape
+                                        // via "DeduplicateValues".
+                                        'action' => 'link_resource',
+                                        'params' => [
+                                            'source' => 'manioc:etagere',
+                                            'identifier' => 'dcterms:title',
+                                            'destination' => 'dcterms:isPartOf',
+                                            'reciprocal' => 'dcterms:hasPart',
+                                        ],
+                                    ],
+                                ]);
+                            }
+                            break;
+
                         case 'Auteur':
                         case 'Auteur secondaire':
                         case 'Personne (sujet)':
@@ -1486,6 +1586,9 @@ SQL;
                                     ],
                                 ]);
                             }
+                            break;
+
+                        case 'Post':
                             break;
 
                         default:
