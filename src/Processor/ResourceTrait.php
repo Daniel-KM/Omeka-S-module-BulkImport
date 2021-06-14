@@ -430,10 +430,10 @@ SQL;
             $this->entity->setModified($modified);
         }
 
-        $this->fillValues($source);
+        $this->fillResourceValues($source);
     }
 
-    protected function fillValues(array $source): void
+    protected function fillResourceValues(array $source): void
     {
         $classes = [
             'items' => \Omeka\Entity\Item::class,
@@ -671,7 +671,8 @@ SQL;
      * Append a list of value to a resource, ordered according the template.
      *
      * The existing values of the resource are not reordered.
-     * Use `fillValues()` if the values are already ordered.
+     * Use `fillResourceValues()` if values are Omeka values or `appendValues()` if the
+     * values are already ordered.
      *
      * @param array $values A list of values. Value is not a representation, but
      *   a simple mapping with the database table.
@@ -688,6 +689,29 @@ SQL;
         }
 
         $values = $this->reorderListOfValues($values, $source);
+        $this->appendValues($values, $source);
+    }
+
+    /**
+     * Append a list of value to a resource.
+     *
+     * The existing values of the resource are not reordered.
+     * Use `fillResourceValues()` if the values are already Omeka values.
+     *
+     * @param array $values A list of values. Value is not a representation, but
+     *   a simple mapping with the database table.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function appendValues(array $values, ?Resource $source = null): void
+    {
+        if (!count($values)) {
+            return;
+        }
+
+        if (!$source) {
+            $source = $this->entity;
+        }
+
         foreach ($values as $value) {
             $this->appendValue($value, $source);
         }
@@ -865,7 +889,7 @@ SQL;
         }
         foreach ($source['o:item_set'] as $itemSet) {
             if (isset($this->map['item_sets'][$itemSet['o:id']])
-                // This check avoids a core bug.
+                // This check avoids a core bug (don't add the same item set twice).
                 && !in_array($this->map['item_sets'][$itemSet['o:id']], $itemSetIds)
             ) {
                 $itemSets->add($this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['item_sets'][$itemSet['o:id']]));

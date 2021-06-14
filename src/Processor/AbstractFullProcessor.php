@@ -438,6 +438,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     ];
 
     /**
+     * The path to the mapping file for properties.
+     *
+     * Relative path to Omeka root or inside folder data/imports of the module.
+     *
+     * @var string
+     */
+    protected $importConfigFile = '';
+
+    /**
      * The entity being inserted.
      *
      * @var \Omeka\Entity\EntityInterface
@@ -556,6 +565,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!$this->reader->isValid()) {
             $this->hasError = true;
             $this->logger->err('The source is unavailable. Check params, rights or connection.'); // @translate
+            return;
+        }
+
+        if ($this->importConfigFile && !$this->getConfigMapping()) {
             return;
         }
 
@@ -1121,10 +1134,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $config = $this->getServiceLocator()->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getJobId() . '.json';
+        if (!is_dir(dirname($filepath))) {
+            @mkdir(dirname($filepath, 0775, true));
+        }
         file_put_contents($filepath, json_encode($this->map, 448));
         $this->logger->notice(
-            'Mapping saved in {filepath} inside directory "files/".', // @translate
-            ['filepath' => mb_substr($filepath, strlen($basePath))]
+            'Mapping saved in "{url}".', // @translate
+            // TODO Add domain to url.
+            ['url' => '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
         );
 
         $this->logger->info('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
@@ -1242,6 +1259,136 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 $this->main['classes'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => $localName]);
             }
         }
+    }
+
+    /**
+     * Copy the mapping of source ids and resource ids into a temp csv file.
+     *
+     * The csv is a tab-separated values.
+     */
+    protected function saveKeyPairToTsv(string $resourceName, bool $skipEmpty = false): string
+    {
+        $resources = $skipEmpty
+            ? array_filter($this->map[$resourceName])
+            : $this->map[$resourceName];
+
+        $content = '';
+        array_walk($resources, function (&$v, $k) use ($content): void {
+            $content .= "$k\t$v\n";
+        });
+
+        // TODO Use (but check if mysql has access to it).
+        $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
+        touch($filepath . '.csv');
+        @unlink($filepath);
+        $filepath .= '.csv';
+
+        $result = file_put_contents($filepath, $content);
+        if ($result === false) {
+            $this->hasError = true;
+            $this->logger->warn(
+                'Unable to put content in a temp file.' // @translate
+            );
+        }
+
+        return $filepath;
+    }
+
+    protected function getConfigMapping(): ?array
+    {
+        if (empty($this->importConfigFile)) {
+            return null;
+        }
+
+        $extension = pathinfo($this->importConfigFile, PATHINFO_EXTENSION);
+
+        if (file_exists(OMEKA_PATH . '/' . $this->importConfigFile)) {
+            $filepath = OMEKA_PATH . '/' . $this->importConfigFile;
+        } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $this->importConfigFile)) {
+            $filepath = dirname(__DIR__, 2) . '/data/imports/' . $this->importConfigFile;
+        } else {
+            $this->hasError = true;
+            $this->logger->err(
+                'Missing file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->importConfigFile]
+            );
+            return null;
+        }
+
+        if ($extension === 'php') {
+            $configMapping = include $filepath;
+        } elseif ($extension === 'tsv') {
+            $configMapping = $this->tsvToArray($filepath);
+        } else {
+            $this->hasError = true;
+            $this->logger->err(
+                'Unmanaged extension for file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->importConfigFile]
+            );
+            return null;
+        }
+
+        if (empty($configMapping)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Empty mapping for values.' // @translate
+            );
+            return null;
+        }
+
+        return $configMapping;
+    }
+
+    protected function getNormalizedMapping()
+    {
+        $configMapping = $this->getConfigMapping();
+        if (!$configMapping) {
+            return null;
+        }
+
+        foreach ($configMapping as $key => &$map) {
+            // Fix trailing rows.
+            if (!is_array($map)) {
+                unset($configMapping[$key]);
+                continue;
+            }
+            // Mysql is case insensitive, but not php array.
+            $map = array_change_key_case($map);
+            $field = $map['source'] ?? null;
+            $term = $map['destination'] ?? null;
+            if (empty($field) || empty($term)) {
+                unset($configMapping[$key]);
+            } else {
+                $termId = $this->bulk->getPropertyId($term);
+                if ($termId) {
+                    $map['property_id'] = $termId;
+                } else {
+                    unset($configMapping[$key]);
+                }
+            }
+        }
+        unset($map);
+
+        return $configMapping;
+    }
+
+    /**
+     * Quick import a small tsv config file into an array with headers as keys.
+     */
+    protected function tsvToArray(string $filepath): ?array
+    {
+        if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
+            return null;
+        }
+
+        $content = file_get_contents($filepath);
+        $rows = explode("\n", $content);
+        $headers = str_getcsv(array_shift($rows), "\t", '"', '\\');
+        $data = [];
+        foreach ($rows as $row) {
+            $data[] = array_combine($headers, str_getcsv($row, "\t", '"', '\\'));
+        }
+        return $data;
     }
 
     /**

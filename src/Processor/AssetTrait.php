@@ -61,8 +61,8 @@ SQL;
         $existingAssets = array_map('intval', array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd'));
 
         $sql = '';
-        // Save the ids as storage, it should be unique anyway, except
-        // in case of reimport.
+        // Save the ids as storage, it should be unique anyway, except in case
+        // of reimport.
         $toCreate = array_diff_key($this->map['assets'], array_flip($existingAssets));
         foreach (array_chunk($toCreate, self::CHUNK_RECORD_IDS) as $chunk) {
             $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","","' . implode('"),("","","', $chunk) . '");' . "\n";
