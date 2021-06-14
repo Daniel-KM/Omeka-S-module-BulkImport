@@ -111,6 +111,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         if ($this->reader instanceof Parametrizable) {
             $this->reader->setParams($this->getParams());
         }
+        $this->appendInternalParams();
         return $this;
     }
 }

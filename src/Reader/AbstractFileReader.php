@@ -96,6 +96,7 @@ abstract class AbstractFileReader extends AbstractReader
         }
 
         $this->setParams($params);
+        $this->appendInternalParams();
         $this->reset();
         return $this;
     }

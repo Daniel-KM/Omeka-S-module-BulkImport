@@ -15,45 +15,46 @@ class Entry implements EntryInterface
     protected $data = [];
 
     /**
+     * @var array
+     */
+    protected $fields = [];
+
+    /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * @var bool
      */
     protected $valid;
 
     public function __construct($data, array $fields, array $options = [])
     {
-        $this->preInit($data, $fields, $options);
-        $this->init($data, $fields, $options);
-        $this->postInit($data, $fields, $options);
+        $this->data = $data;
+        $this->fields = $fields;
+        $this->options = $options;
+        $this->init();
     }
 
-    protected function preInit($data, array $fields, array $options): void
-    {
-        // The set fields should be kept set (for array_key_exists).
-        $this->data = [];
-        foreach ($fields as $name) {
-            $this->data[$name] = null;
-        }
-    }
-
-    protected function init($data, array $fields, array $options): void
+    protected function init(): void
     {
         // Don't keep data that are not attached to a field.
-        // Avoid an issue when the number of data is greater than the number of
-        // fields.
+        // Avoid issue when number of data is greater than number of fields.
         // TODO Collect data without field as garbage (for empty field "")?
-        $data = array_slice($data, 0, count($fields), true);
+        $datas = array_slice($this->data, 0, count($this->fields), true);
+        $datas = array_map([$this, 'trimUnicode'], $datas);
 
-        $data = array_map([$this, 'trimUnicode'], $data);
-        foreach ($data as $i => $value) {
-            $this->data[$fields[$i]][] = $value;
+        // The set fields should be kept set (for array_key_exists).
+        $this->data = array_fill_keys($this->fields, []);
+
+        foreach ($datas as $i => $value) {
+            $this->data[$this->fields[$i]][] = $value;
         }
-    }
 
-    protected function postInit($data, array $fields, array $options): void
-    {
         // Filter duplicated and null values.
         foreach ($this->data as &$datas) {
-            $datas = is_null($datas) ? [] : array_unique(array_filter(array_map('strval', $datas), 'strlen'));
+            $datas = is_null($datas) ? [] : array_unique(array_filter($datas, 'strlen'));
         }
     }
 
@@ -149,6 +150,16 @@ class Entry implements EntryInterface
      */
     protected function trimUnicode($string)
     {
+        if (is_object($string) && !method_exists($string, '__toString')) {
+            if (!($string instanceof \DateTime)) {
+                throw new \Omeka\Mvc\Exception\RuntimeException(
+                    sprintf('Value of class "%s" cannot be converted to string.', get_class($string)) // @translate
+                );
+            }
+            $string = $string->format('Y-m-d H:i:s');
+        } else {
+            $string = (string) $string;
+        }
         return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', $string);
     }
 }

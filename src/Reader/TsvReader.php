@@ -41,6 +41,7 @@ class TsvReader extends CsvReader
         $params['enclosure'] = chr(0);
         $params['escape'] = chr(0);
         $this->setParams($params);
+        $this->appendInternalParams();
         return $this;
     }
 

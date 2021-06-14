@@ -11,41 +11,28 @@ class SpreadsheetEntry extends Entry
 {
     const SIMPLE_DATA = true;
 
-    protected function init($data, array $fields, array $options): void
+    protected function init(): void
     {
+        parent::init($this->fields, $this->data, $this->options);
+
         // The standard process is used when there is no separator.
-        if (!isset($options['separator']) || !strlen((string) $options['separator'])) {
-            parent::init($fields, $data, $options);
+        if (!isset($this->options['separator']) || !strlen((string) $this->options['separator'])) {
             return;
         }
 
-        // Don't keep data that are not attached to a field.
-        $data = array_slice($data, 0, count($fields), true);
-
-        // Fill empty values, so no check needed for duplicated headers (for
-        // example multiple creators with one creator by column, with the same
-        // header).
-        foreach ($data as $i => $value) {
-            $this->data[$fields[$i]] = [];
+        // Explode each value.
+        $separator = (string) $this->options['separator'];
+        foreach ($this->data as $key => $values) {
+            foreach ($values as $value) {
+                if (mb_strpos($value, $separator) !== false) {
+                    $this->data[$key] = array_map([$this, 'trimUnicode'], explode($separator, $value));
+                }
+            }
         }
 
-        // Fill each key with multivalued values.
-        $separator = (string) $options['separator'];
-        foreach ($data as $i => $value) {
-            if (is_object($value) && !method_exists($value, '__toString')) {
-                if (!($value instanceof \DateTime)) {
-                    throw new \Omeka\Mvc\Exception\RuntimeException(
-                        sprintf('Value of class "%s" cannot be converted to string.', get_class($value)) // @translate
-                    );
-                }
-                $value = $value->format('Y-m-d H:i:s');
-            } else {
-                $value = (string) $value;
-            }
-            $this->data[$fields[$i]] = array_merge(
-                $this->data[$fields[$i]],
-                array_map([$this, 'trimUnicode'], explode($separator, $value))
-            );
+        // Filter duplicated and null values.
+        foreach ($this->data as &$datas) {
+            $datas = array_unique(array_filter(array_map('strval', $datas), 'strlen'));
         }
     }
 }

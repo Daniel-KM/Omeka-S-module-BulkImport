@@ -8,10 +8,10 @@ class XmlEntry extends Entry
 {
     private $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed'];
 
-    protected function init($data, array $fields, array $options): void
+    protected function init(): void
     {
         /** @var \XMLReaderNode $data */
-        $simpleData = $data->getSimpleXMLElement();
+        $simpleData = $this->data->getSimpleXMLElement();
         $namespaces = [null] + $simpleData->getNamespaces(true);
 
         // Fix issue with cdata (no: it will escape html tags).
@@ -185,6 +185,9 @@ class XmlEntry extends Entry
                 break;
 
             case 'iiif':
+                if (!$this->isUrl($value) && !empty($this->options['iiifserver_image_server'])) {
+                    $value = $this->options['iiifserver_image_server'] . $value;
+                }
                 $resource += [
                     'resource_type' => 'media',
                     'o:ingester' => 'iiif',
@@ -391,10 +394,6 @@ class XmlEntry extends Entry
         }
 
         return $value;
-    }
-
-    protected function postInit($data, array $fields, array $options): void
-    {
     }
 
     public function isEmpty(): bool

@@ -129,6 +129,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $values = $form->getData();
         $params = array_intersect_key($values, array_flip($this->paramsKeys));
         $this->setParams($params);
+        $this->appendInternalParams();
         $this->reset();
         return $this;
     }
@@ -190,6 +191,23 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         }
 
         $this->isReady = true;
+        return $this;
+    }
+
+    /**
+     * Prepare other internal data.
+     */
+    protected function appendInternalParams(): \BulkImport\Interfaces\Reader
+    {
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $internalParams = [];
+        $internalParams['iiifserver_image_server'] = $settings->get('iiifserver_image_server', '');
+        if ($internalParams['iiifserver_image_server']
+            && mb_substr($internalParams['iiifserver_image_server'], -1) !== '/'
+        ) {
+            $internalParams['iiifserver_image_server'] .= '/';
+        }
+        $this->setParams(array_merge($this->getParams() + $internalParams));
         return $this;
     }
 }

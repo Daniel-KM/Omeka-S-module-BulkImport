@@ -67,11 +67,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionItemSet;
 
     /**
-     * @var array
-     */
-    protected $internalParams = [];
-
-    /**
      * @var bool
      */
     protected $hasMapping = false;
@@ -199,7 +194,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->prepareActionMedia();
         $this->prepareActionItemSet();
 
-        $this->prepareInternalParams();
+        $this->appendInternalParams();
 
         $this->prepareMapping();
 
@@ -1377,15 +1372,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Prepare other internal data..
      */
-    protected function prepareInternalParams(): \BulkImport\Interfaces\Processor
+    protected function appendInternalParams(): \BulkImport\Interfaces\Processor
     {
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
-        $this->internalParams['iiifserver_image_server'] = $settings->get('iiifserver_image_server', '');
-        if ($this->internalParams['iiifserver_image_server']
-            && mb_substr($this->internalParams['iiifserver_image_server'], -1) !== '/'
+        $internalParams = [];
+        $internalParams['iiifserver_image_server'] = $settings->get('iiifserver_image_server', '');
+        if ($internalParams['iiifserver_image_server']
+            && mb_substr($internalParams['iiifserver_image_server'], -1) !== '/'
         ) {
-            $this->internalParams['iiifserver_image_server'] .= '/';
+            $internalParams['iiifserver_image_server'] .= '/';
         }
+        $this->setParams(array_merge($this->getParams() + $internalParams));
         return $this;
     }
 }
