@@ -17,6 +17,8 @@ use Laminas\Http\ClientStatic;
  */
 trait MetadataTransformTrait
 {
+    use ConfigTrait;
+
     /**
      * @var \Doctrine\DBAL\Connection $connection
      */
@@ -34,8 +36,22 @@ trait MetadataTransformTrait
 
     protected $transformIndex = 0;
 
+    protected $operationSqls = [];
+
+    protected $operationExcludes = [];
+
+    protected $operationIndex = 0;
+
+    protected function transformResetProcess(): void
+    {
+        $this->operationSqls = [];
+        $this->operationExcludes = [];
+    }
+
     protected function transformLiteralToVarious($term, array $options = []): void
     {
+        $this->transformResetProcess();
+
         if (!$this->checkTransformArguments($term, $options)) {
             return;
         }
@@ -50,6 +66,8 @@ trait MetadataTransformTrait
 
     protected function transformLiteralToValueSuggest($term, array $options = []): void
     {
+        $this->transformResetProcess();
+
         if (empty($options['name'])) {
             $options['name'] = str_replace(':', '-', $term .'_' . ++$this->transformIndex);
         }
@@ -75,13 +93,15 @@ trait MetadataTransformTrait
 
     /**
      * The mapping should be already checked.
+     *
+     * @todo Merge with self::operationReplaceTable()
      */
     protected function transformLiteralValues($term, ?array $mapping, array $options = []): void
     {
         if (empty($mapping)) {
             $this->logger->warn(
-                'The mapping "{file}" is empty.', // @translate
-                ['file' => $options['mapping']]
+                'No mapping or empty mapping in file "{file}" for operation "{operation}" (term "{term}").', // @translate
+                ['file' => $options['mapping'], 'operation' => 'transform', 'term' => $term]
             );
             return;
         }
@@ -90,6 +110,7 @@ trait MetadataTransformTrait
         $prefix = $options['prefix'] ?? false;
 
         // Prepare the mapping. Cells are already trimmed strings.
+        $hasMultipleDestinations = false;
         $mapper = [];
         foreach ($mapping as $map) {
             $source = $map['source'] ?? null;
@@ -101,9 +122,12 @@ trait MetadataTransformTrait
             // Manage the case where a single value is mapped to multiple ones,
             // for example a value to explode into a list of languages.
             $destination = array_filter(array_map('trim', explode('|', $destination)), 'strlen');
-            if (!$destination) {
+            if (!count($destination)) {
                 continue;
             }
+
+            $hasMultipleDestinations = $hasMultipleDestinations
+                || count($destination) > 1;
 
             $type = empty($map['type']) ? 'literal' : $map['type'];
             $value = empty($map['label']) ? null : $map['label'];
@@ -131,7 +155,6 @@ trait MetadataTransformTrait
             foreach ($destination as $dest) {
                 $mapper[] = [
                     'source' => $source,
-                    'destination' => $destination,
                     'property_id' => $propertyId,
                     'type' => $type,
                     'value' => $value,
@@ -144,13 +167,15 @@ trait MetadataTransformTrait
             }
         }
 
-        $this->processValuesTransform($mapper);
+        $this->processValuesTransform($mapper, $hasMultipleDestinations);
 
         // TODO Add a stat message.
     }
 
     protected function transformLiteralToValueSuggestWithApi($term, array $options = []): void
     {
+        $this->transformResetProcess();
+
         // The mapping is optional, so not checked.
         if (empty($options['mapping'])) {
             unset($options['mapping']);
@@ -299,7 +324,7 @@ SQL;
                 && is_array($v['uri'])
                 && count($v['uri']) === 1;
         }));
-        $this->processValuesTransform($mapper);
+        $this->processValuesTransform($mapper, false);
 
         $this->logger->notice(
             '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
@@ -340,135 +365,27 @@ SQL;
 
     protected function transformLiteralWithOperations(array $operations = []): void
     {
+        $this->transformResetProcess();
+
         // TODO Move all check inside the preprocess.
         // TODO Use a transaction (implicit currently).
         // TODO Bind is not working currently with multiple queries, but only used for property id.
 
-        $sqls = [];
-        // $bind = [];
-        $excludes = [];
         foreach ($operations as $index => $operation) {
-            ++$index;
-            $sqlExclude = '';
-            $sqlExcludeWhere = '';
-            if (!empty($operation['params']['exclude'])) {
-                $exclude = $this->loadList($operation['params']['exclude']);
-                if ($exclude) {
-                    $excludes[] = $index;
-                    // To exclude is to keep only other ones.
-                    $sqls[] = <<<SQL
-# Prepare the list of values not to process.
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
-CREATE TABLE `_temporary_value_exclude_$index` (
-    `exclude` longtext COLLATE utf8mb4_unicode_ci,
-    KEY `IDX_exclude` (`exclude`(190))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-SQL;
-                    // The list is already filtered.
-                    foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
-                        $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
-                        $sqls[] = <<<SQL
-INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
-VALUES($chunkString);
-SQL;
-                    }
-                    $sqlExclude = <<<SQL
-LEFT JOIN `_temporary_value_exclude_$index`
-    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
-SQL;
-                    $sqlExcludeWhere = <<<SQL
-    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
-SQL;
-                }
-            }
-
+            $this->operationIndex = ++$index;
             switch ($operation['action']) {
                 case 'cut':
-                    if (empty($operation['params']['destination'])
-                        || count($operation['params']['destination']) !== 2
-                    ) {
-                        $this->logger->err(
-                            'The operation "cut" requires two destinations currently.' // @translate
-                        );
+                    $result = $this->operationCut($operation['params']);
+                    if (!$result) {
                         break 2;
                     }
-                    if (!isset($operation['params']['separator']) || !strlen($operation['params']['separator'])) {
-                        $this->logger->err(
-                            'The operation "cut" requires a separator.' // @translate
-                        );
+                    break;
+
+                case 'replace_table':
+                    $result = $this->operationReplaceTable($operation['params']);
+                    if (!$result) {
                         break 2;
                     }
-                    // TODO Manage separators quote and double quote for security (but user should be able to access to database anyway).
-                    $separator = $operation['params']['separator'];
-                    $quotedSeparator = $this->connection->quote($separator);
-                    if ($separator === '%') {
-                        $separator = '\\%';
-                    } elseif ($separator === '_') {
-                        $separator = '\\_';
-                    }
-
-                    // value => bio:place : dcterms:publisher
-                    $binds = [];
-                    $binds['property_id_1'] = $this->getPropertyId($operation['params']['destination'][0]);
-                    $binds['property_id_2'] = $this->getPropertyId($operation['params']['destination'][1]);
-
-                    $sqls[] = <<<SQL
-# Create a new trimmed value with first part.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`)
-SELECT
-    `value`.`resource_id`,
-    {$binds['property_id_1']},
-    # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
-    CONCAT("operation-$index ", `value`.`type`),
-    TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
-    `value`.`uri`,
-    `value`.`lang`,
-    `value`.`value_resource_id`,
-    `value`.`is_public`
-FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`value` LIKE '%$separator%'
-    $sqlExcludeWhere
-;
-SQL;
-                    $sqls[] = <<<SQL
-# Update source with the trimmed second part.
-UPDATE `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-$sqlExclude
-SET
-    `value`.`property_id` = {$binds['property_id_2']},
-    `value`.`value` = TRIM(SUBSTRING(`value`.`value`, LOCATE($quotedSeparator, `value`.`value`) + 1))
-WHERE
-    value.value LIKE '%$separator%'
-    $sqlExcludeWhere
-;
-SQL;
-                    $sqls[] = <<<SQL
-# Store the new value ids to manage next operations.
-INSERT INTO `_temporary_value_id` (`id`)
-SELECT `value`.`id`
-FROM `value`
-WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "operation-$index %")
-ON DUPLICATE KEY UPDATE
-    `_temporary_value_id`.`id` = `_temporary_value_id`.`id`
-;
-SQL;
-                    $sqls[] = <<<SQL
-# Finalize type for first part.
-UPDATE `value`
-SET
-    `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
-WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "operation-$index %")
-;
-SQL;
                     break;
 
                 default:
@@ -476,21 +393,16 @@ SQL;
             }
         }
 
-        // Remove excludes.
-        foreach ($excludes as $index) {
-            $sqls[] = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
-SQL;
-        }
+        $this->transformHelperExcludeEnd();
 
         // Transaction is implicit.
-        $this->connection->executeUpdate(implode("\n", $sqls));
+        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
     }
 
     /**
      * @param array $mapper The mapper is already checked.
      */
-    protected function processValuesTransform(array $mapper): void
+    protected function processValuesTransform(array $mapper, bool $hasMultipleDestinations): void
     {
         // Create a temporary table with the mapper.
         $sql = <<<'SQL'
@@ -524,19 +436,6 @@ SQL;
         }
         $this->connection->exec($sql);
 
-        // When there are multiple destinations for one source, the process
-        // inserts new rows then removes the source one, else a simple update is
-        // possible.
-        $hasMultipleDestinations = false;
-        foreach ($mapper as $map) {
-            if (isset($map['destination'])
-                && is_array($map['destination'])
-                && count($map['destination']) > 1
-            ) {
-                $hasMultipleDestinations = true;
-                break;
-            }
-        }
         $hasMultipleDestinations
             ? $this->processValuesTransformInsert()
             : $this->processValuesTransformUpdate();
@@ -545,6 +444,262 @@ SQL;
 DROP TABLE IF EXISTS `_temporary_mapper`;
 SQL;
         $this->connection->exec($sql);
+    }
+
+    protected function operationCut(array $params): bool
+    {
+        if (empty($params['destination'])
+            || count($params['destination']) !== 2
+        ) {
+            $this->logger->err(
+                'The operation "cut" requires two destinations currently.' // @translate
+            );
+            return false;
+        }
+        if (!isset($params['separator']) || !strlen($params['separator'])) {
+            $this->logger->err(
+                'The operation "cut" requires a separator.' // @translate
+            );
+            return false;
+        }
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->operationHelperExcludeStart($params);
+
+        // TODO Manage separators quote and double quote for security (but user should be able to access to database anyway).
+        $separator = $params['separator'];
+        $quotedSeparator = $this->connection->quote($separator);
+        if ($separator === '%') {
+            $separator = '\\%';
+        } elseif ($separator === '_') {
+            $separator = '\\_';
+        }
+
+        // TODO Bind is not working currently with multiple queries, but only used for property id.
+        // value => bio:place : dcterms:publisher
+        $binds = [];
+        $binds['property_id_1'] = $this->getPropertyId($params['destination'][0]);
+        $binds['property_id_2'] = $this->getPropertyId($params['destination'][1]);
+
+        $this->operationSqls[] = <<<SQL
+# Create a new trimmed value with first part.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`)
+SELECT
+    `value`.`resource_id`,
+    {$binds['property_id_1']},
+    # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
+    CONCAT("operation-$this->operationIndex ", `value`.`type`),
+    TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
+    `value`.`uri`,
+    `value`.`lang`,
+    `value`.`value_resource_id`,
+    `value`.`is_public`
+FROM `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`value` LIKE '%$separator%'
+    $sqlExcludeWhere
+;
+SQL;
+    $this->operationSqls[] = <<<SQL
+# Update source with the trimmed second part.
+UPDATE `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+SET
+    `value`.`property_id` = {$binds['property_id_2']},
+    `value`.`value` = TRIM(SUBSTRING(`value`.`value`, LOCATE($quotedSeparator, `value`.`value`) + 1))
+WHERE
+    value.value LIKE '%$separator%'
+    $sqlExcludeWhere
+;
+SQL;
+    $this->operationSqls[] = <<<SQL
+# Store the new value ids to manage next operations.
+INSERT INTO `_temporary_value_id` (`id`)
+SELECT `value`.`id`
+FROM `value`
+WHERE `value`.`property_id` = {$binds['property_id_1']}
+    AND (`value`.`type` LIKE "operation-$this->operationIndex %")
+ON DUPLICATE KEY UPDATE
+    `_temporary_value_id`.`id` = `_temporary_value_id`.`id`
+;
+SQL;
+    $this->operationSqls[] = <<<SQL
+# Finalize type for first part.
+UPDATE `value`
+SET
+    `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
+WHERE `value`.`property_id` = {$binds['property_id_1']}
+    AND (`value`.`type` LIKE "operation-$this->operationIndex %")
+;
+SQL;
+        return true;
+    }
+
+    protected function operationReplaceTable(array $params): bool
+    {
+        $table = $this->loadTable($params['mapping']);
+        if (empty($table)) {
+            $this->logger->warn(
+                'No mapping or empty mapping in file "{file}" for operation "{operation}".', // @translate
+                ['file' => $params['mapping'], 'operation' => 'replace_table']
+            );
+            return false;
+        }
+        $first = reset($table);
+        if (count($first) <= 1) {
+            $this->logger->warn(
+                'Mapping for operation "replace" requires two columns at least.' // @translate
+            );
+            return false;
+        }
+        $firstKeys = array_keys($first);
+        if (!in_array('source', $firstKeys)) {
+            $this->logger->warn(
+                'Mapping for operation "replace" requires a column "source".' // @translate
+            );
+            return false;
+        }
+        if (empty($params['source'])) {
+            $this->logger->warn(
+                'The operation "replace" requires a source property.' // @translate
+            );
+            return false;
+        }
+        $propertyId = $this->getPropertyId($params['source']);
+        if (empty($propertyId)) {
+            $this->logger->warn(
+                'The operation "replace" requires a valid source property ("{term}").', // @translate
+                ['term' => $params['source']]
+            );
+            return false;
+        }
+        if (empty($params['destination'])) {
+            $this->logger->warn(
+                'The operation "replace" requires at least one destination.' // @translate
+            );
+            return false;
+        }
+        /*
+        // Don't allow to map a partial table.
+        if (array_diff_key(array_flip($params['destination']), $first)) {
+            $this->logger->warn(
+                'Mapping for operation "replace" requires destination terms "terms".', // @translate
+                ['terms' => implode('", "', $params['destination'])]
+            );
+            return false;
+        }
+        */
+
+        // TODO Use the automapping to manage data type and language.
+        $properties = array_intersect_key($this->getPropertyIds(), array_flip($params['destination']));
+        if (count($properties) !== count($params['destination'])) {
+            $this->logger->warn(
+                'There are unknown properties for destination: "{terms}".', // @translate
+                ['terms' => implode('", "', $params['destination'])]
+            );
+            return false;
+        }
+
+        // Prepare the mapping. Cells are already trimmed strings.
+        $mapper = [];
+        foreach ($table as $row) {
+            $source = $row['source'] ?? '';
+            if (!strlen($source)) {
+                continue;
+            }
+
+            // Prepare a map for the row with one value at least.
+            $maps = [];
+            foreach ($properties as $term => $propertyId) {
+                if (isset($row[$term]) && strlen($row[$term])) {
+                    $maps[] = [
+                        'source' => $source,
+                        'property_id' => $propertyId,
+                        'type' => 'literal',
+                        'value' => $row[$term],
+                        'uri' => null,
+                        'value_resource_id' => null,
+                        // TODO Try to keep original lang and is_public.
+                        'lang' => null,
+                        'is_public' => null,
+                    ];
+                }
+            }
+            if (count($maps)) {
+                $mapper = array_merge($mapper, $maps);
+            }
+        }
+
+        $hasMultipleDestinations = count($properties) > 1;
+        $this->processValuesTransform($mapper, $hasMultipleDestinations);
+
+        // TODO Add a stat message.
+
+        return true;
+    }
+
+    protected function operationHelperExcludeStart(array $params): array
+    {
+        if (empty($params['exclude'])) {
+            return ['', ''];
+        }
+
+        $exclude = $this->loadList($params['exclude']);
+        if (empty($exclude)) {
+            $this->logger->warn(
+                'Exclusion list "{name}" is empty.', // @translate
+                ['term' => $params['exclude']]
+            );
+            return ['', ''];
+        }
+
+        $index = &$this->operationIndex;
+        $this->operationExcludes[] = $index;
+        // To exclude is to keep only other ones.
+        $this->operationSqls[] = <<<SQL
+# Prepare the list of values not to process.
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+CREATE TABLE `_temporary_value_exclude_$index` (
+    `exclude` longtext COLLATE utf8mb4_unicode_ci,
+    KEY `IDX_exclude` (`exclude`(190))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL;
+        // The list is already filtered.
+        foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
+            $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
+            $this->operationSqls[] = <<<SQL
+INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
+VALUES($chunkString);
+SQL;
+        }
+
+        $sqlExclude = <<<SQL
+LEFT JOIN `_temporary_value_exclude_$index`
+    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
+SQL;
+        $sqlExcludeWhere = <<<SQL
+    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
+SQL;
+
+        return [
+            $sqlExclude,
+            $sqlExcludeWhere,
+        ];
+    }
+
+    protected function operationHelperExcludeEnd(): void
+    {
+        // Remove operationExcludes.
+        foreach ($this->operationExcludes as $index) {
+            $this->operationSqls[] = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+SQL;
+        }
     }
 
     protected function processValuesTransformUpdate(): void
@@ -587,7 +742,8 @@ SELECT
     `_temporary_mapper`.`uri`,
     `_temporary_mapper`.`lang`,
     `_temporary_mapper`.`value_resource_id`,
-    `_temporary_mapper`.`is_public`
+    # `_temporary_mapper`.`is_public`
+    `value`.`is_public`,
 FROM `value`
 JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`

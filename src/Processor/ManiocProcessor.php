@@ -13,6 +13,11 @@ class ManiocProcessor extends AbstractFullProcessor
 {
     use MetadataTransformTrait;
 
+    const TYPE_AUDIO_VIDEO = 'audio-video';
+    const TYPE_IMAGE = 'images';
+    const TYPE_LIVRE = 'livres anciens';
+    const TYPE_RECHERCHE = 'recherche';
+
     protected $resourceLabel = 'Manioc'; // @translate
     protected $configFormClass = ManiocProcessorConfigForm::class;
     protected $paramsFormClass = ManiocProcessorParamsForm::class;
@@ -1366,7 +1371,7 @@ SQL;
 
                         case 'Editeur':
                             switch ($header) {
-                                case 'livres anciens':
+                                case self::TYPE_LIVRE:
                                     // Lieu d’édition : éditeur
                                     // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
                                     // Mais certains éditeurs ne sont pas des lieux : "ANR : Agence Nationale de la Recherche".
@@ -1393,7 +1398,7 @@ SQL;
                                         'prefix' => 'http://www.geonames.org/',
                                     ]);
                                     break;
-                                case 'audio-video':
+                                case self::TYPE_AUDIO_VIDEO:
                                     // dcterms:publisher => dcterms:publisher (idref collectivité)
                                     $this->transformLiteralToValueSuggest($map['property_id'],  [
                                         'mapping' => 'dcterms:publisher',
@@ -1409,6 +1414,23 @@ SQL;
                             break;
 
                         case 'Fait partie de':
+                            if ($header === self::TYPE_IMAGE) {
+                                // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
+                                $this->transformLiteralWithOperations([
+                                    [
+                                        'action' => 'replace_table',
+                                        'params' => [
+                                            'source' => $map['property_id'],
+                                            'mapping' => 'partie_images',
+                                            'destination' => [
+                                                'dcterms:title',
+                                                'bibo:pages',
+                                                'bibo:locator',
+                                            ],
+                                        ],
+                                    ],
+                                ]);
+                            }
                             break;
 
                         case 'Indice Dewey':
@@ -1454,6 +1476,22 @@ SQL;
                             break;
 
                         case 'Titre':
+                            if ($header === self::TYPE_LIVRE) {
+                                // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
+                                $this->transformLiteralWithOperations([
+                                    [
+                                        'action' => 'replace_table',
+                                        'params' => [
+                                            'source' => $map['property_id'],
+                                            'mapping' => 'titres_livres_anciens',
+                                            'destination' => [
+                                                'dcterms:title',
+                                                'bibo:volume',
+                                            ],
+                                        ],
+                                    ],
+                                ]);
+                            }
                             break;
 
                         default:
