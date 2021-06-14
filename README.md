@@ -149,6 +149,8 @@ To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation
 To import an uri with a label, the value should be the uri, a space and the label.
 To import a value as an Omeka resource, use header `Relation ^^resource`. The
 value should be the internal id or a resource identifier (generally dcterms:identifier).
+To import a custom vocab value, the header should contain `^^customvocab:xxx`,
+where "xxx" is the identifier of the vocab or its label without spaces.
 To import multiple targets for a column, use the separator "|" in the header.
 Note that if there may be multiple properties, only the first language and type
 will be used. It allows to keep consistency in the metadata.
@@ -176,6 +178,7 @@ TODO
 - [x] Import of uri with label in spreadsheet.
 - [ ] Import of uri with label in value suggest.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
+- [ ] Add check, in particular with multi-sheets.
 - [ ] Manage import of Custom vocab with items.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
