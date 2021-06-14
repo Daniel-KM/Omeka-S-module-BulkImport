@@ -56,6 +56,8 @@ trait MetadataTransformTrait
 
     protected $operationRandoms = [];
 
+    protected $operationPartialFlush = false;
+
     /**
      * Maximum number of resources to display in ods/html output.
      *
@@ -71,10 +73,12 @@ trait MetadataTransformTrait
         // TODO Use a transaction (implicit currently).
         // TODO Bind is not working with multiple queries.
 
+        $hasPartialFlush = false;
         foreach ($operations as $index => $operation) {
             $this->operationName = $operation['action'];
             $this->operationIndex = ++$index;
             $this->operationRandoms[$this->operationIndex] = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(64))), 0, 8);
+            $this->operationPartialFlush = false;
 
             switch ($operation['action']) {
                 // So, "create_resource" is a quick way to import a spreadsheet…
@@ -107,6 +111,7 @@ trait MetadataTransformTrait
                     break;
 
                 case 'fill_resource':
+                    $this->operationPartialFlush = true;
                     $result = $this->operationFillResource($operation['params']);
                     if (!$result) {
                         return;
@@ -156,12 +161,8 @@ trait MetadataTransformTrait
                     break;
 
                 case 'apply':
-                    $this->operationSqls = array_filter($this->operationSqls);
-                    if (count($this->operationSqls)) {
-                        $this->transformHelperExcludeEnd();
-                        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
-                    }
-                    $this->transformResetProcess();
+                    $this->operationPartialFlush = true;
+                    $this->transformApplyOperations(true);
                     break;
 
                 default:
@@ -171,24 +172,38 @@ trait MetadataTransformTrait
                     );
                     return;
             }
+
+            $hasPartialFlush = $hasPartialFlush || $this->operationPartialFlush;
         }
 
-        // Skip process when an error occurred.
-        $this->operationSqls = array_filter($this->operationSqls);
-        if (!count($this->operationSqls)) {
-            return;
+        if ($hasPartialFlush) {
+            $this->transformHelperExcludeEnd();
         }
 
-        $this->transformHelperExcludeEnd();
-
-        // Transaction is implicit.
-        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
+        $this->transformApplyOperations();
     }
 
     protected function transformResetProcess(): void
     {
         $this->operationSqls = [];
         $this->operationExcludes = [];
+        $this->operationRandoms = [];
+        $this->operationPartialFlush = false;
+    }
+
+    protected function transformApplyOperations(bool $flush = false): void
+    {
+        // Skip process when an error occurred.
+        $this->operationSqls = array_filter($this->operationSqls);
+        if (count($this->operationSqls) && !$flush) {
+            $this->transformHelperExcludeEnd();
+        }
+
+        // Transaction is implicit.
+        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
+        if ($flush) {
+            $this->operationSqls = [];
+        }
     }
 
     protected function operationCreateResource(array $params): bool
@@ -529,6 +544,10 @@ SQL;
         $countries['XX'] = 'Pays inconnu';
         $countries['ZZ'] = 'Pays multiples';
 
+        if ($this->operationPartialFlush) {
+            $this->storeMappingTablePrepare();
+        }
+
         $mapper = [];
         $processed = 0;
         $totalNewData = 0;
@@ -654,10 +673,15 @@ SQL;
                 if ($this->isErrorOrStop()) {
                     return true;
                 }
+                // To avoid memory issue, store into mapping table
+                if ($this->operationPartialFlush) {
+                    $this->storeMappingTable($mapper, true);
+                    $mapper = [];
+                }
             }
         }
 
-        $this->storeMappingTable($mapper);
+        $this->storeMappingTable($mapper, $this->operationPartialFlush);
 
         $this->processValuesTransformInsert([$sourceId], 'uri');
 
@@ -1613,12 +1637,12 @@ SQL;
     }
 
     /**
-     * Save a mapping table in a temporary table in database.
+     * Prepare the mapping table to store data.
      *
      * The mapping table is like the table value with a column "source" and
      * without column "resource_id".
      */
-    protected function storeMappingTable(array $mapper): void
+    protected function storeMappingTablePrepare(): void
     {
         // Create a temporary table with the mapper.
         $this->operationSqls[] = <<<'SQL'
@@ -1630,6 +1654,19 @@ ALTER TABLE `_temporary_mapper`
     ADD `source` longtext COLLATE utf8mb4_unicode_ci
 ;
 SQL;
+    }
+
+    /**
+     * Save a mapping table in a temporary table in database.
+     *
+     * The mapping table is like the table value with a column "source" and
+     * without column "resource_id".
+     */
+    protected function storeMappingTable(array $mapper, bool $flush = false): void
+    {
+        if (!$flush) {
+            $this->storeMappingTablePrepare();
+        }
 
         foreach (array_chunk($mapper, self::CHUNK_ENTITIES, true) as $chunk) {
             array_walk($chunk, function (&$v): void {
@@ -1651,6 +1688,10 @@ INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`valu
 VALUES($chunkString);
 
 SQL;
+        }
+
+        if ($flush && $mapper) {
+            $this->transformApplyOperations($flush);
         }
     }
 
@@ -1716,16 +1757,8 @@ SQL;
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         // Copy all distinct values in a temporary table.
-        // Create a temporary table with the mapper.
-        $this->operationSqls[] = <<<'SQL'
-# Create a temporary table to store values.
-DROP TABLE IF EXISTS `_temporary_mapper`;
-CREATE TABLE `_temporary_mapper` LIKE `value`;
-ALTER TABLE `_temporary_mapper`
-    DROP `resource_id`,
-    ADD `source` longtext COLLATE utf8mb4_unicode_ci
-;
-SQL;
+
+        $this->storeMappingTablePrepare();
 
         $this->operationSqls[] = <<<SQL
 # Fill temporary table with unique values from existing values.
@@ -1754,7 +1787,6 @@ SQL;
 
     protected function removeMappingTables(): void
     {
-        // Remove operationExcludes.
         $this->operationSqls[] = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_mapper`;
 DROP TABLE IF EXISTS `_temporary_new_resource`;
