@@ -75,6 +75,11 @@ class ManiocProcessor extends AbstractFullProcessor
         'metadata',
     ];
 
+    protected $stats = [
+        'removed' => 0,
+        'not_managed' => [],
+    ];
+
     protected function preImport(): void
     {
         $this->logger->warn(
@@ -250,7 +255,8 @@ class ManiocProcessor extends AbstractFullProcessor
         }
 
         $this->fillItemTemplates();
-        $this->transformItemValues();
+        $this->migrateValues();
+        $this->finalizeValues();
         parent::fillOthers();
     }
 
@@ -1028,7 +1034,14 @@ SQL;
         $this->refreshMainResources();
     }
 
-    protected function transformItemValues(): void
+    /**
+     * Process specific transformations on each property of each template.
+     *
+     * The base config is in the table of migration and in the table of properties.
+     *
+     * @todo Normalize and merge the tables of migration and properties.
+     */
+    protected function migrateValues(): void
     {
         $migrationMapping = $this->loadTable('migration');
         if (!$migrationMapping) {
@@ -1039,7 +1052,7 @@ SQL;
         }
 
         // Les règles varient selon les 4 types d'origine, qui ont été remplacés
-        // par des modèles.
+        // par des modèles dans l'étape précédente.
         $templates = $this->loadKeyValuePair('templates');
 
         $templates = array_filter($templates);
@@ -1058,7 +1071,6 @@ SQL;
         // Add the common transformation for all resources.
         // It should be the first template.
         $templates = ['all' => 'all'] + $templates;
-
 
         $normalizedMapping = $this->loadTableWithIds('properties', 'Property');
         if (!$normalizedMapping) {
@@ -1127,10 +1139,10 @@ SQL;
             return;
         }
 
-        $totalRemoved = 0;
-        $notManaged = [];
+        $this->stats['removed'] = 0;
+        $this->stats['not_managed'] = [];
         foreach ($templates as $templateLabel => $header) {
-            $processAll = $templateLabel === 'all';
+            $processAll = $header === 'all';
             if ($processAll) {
                 $templateId = null;
                 $this->logger->notice(
@@ -1168,41 +1180,99 @@ SQL;
                     continue;
                 }
                 if ($this->isErrorOrStop()) {
-                    break;
+                    break 2;
                 }
 
-                $actions = [
-                    '+' => 'append',
-                    '-' => 'remove',
-                    '*' => 'transform',
-                    '?' => 'keep private',
-                ];
+                $this->transformValues($map, [
+                    'templateLabel' => $templateLabel,
+                    'header' => $header,
+                    'sqlAndWhere' => $sqlAndWhere,
+                    'baseBind' => $baseBind,
+                ]);
+            }
+        }
 
-                $bind = [];
-                $value = $map['map'][$header];
-                $action = mb_substr($value, 0, 1);
-                if (!isset($actions[$action])) {
-                    $this->logger->warn(
-                        'Template "{template}": action {action} not managed (value: {value}).', // @translate
-                        ['template' => $templateLabel, 'action' => $action, 'value' => $value]
-                    );
-                    continue;
-                }
-                $action = $actions[$action];
-                $value = trim(mb_substr($value, 1));
+        // Check if value suggest is available in order to prepare a temp table.
+        if (!empty($this->modules['ValueSuggest'])) {
+            $this->saveValueSuggestMappings();
+            $sql = <<<SQL
+DROP TABLE IF EXISTS `_temporary_valuesuggest`;
+SQL;
+            $this->connection->exec($sql);
+        }
 
-                $this->logger->info(
-                    'Template "{template}": processing action "{action}" with value "{value}".', // @translate
-                    ['template' => $templateLabel, 'action' => $action, 'value' => $value]
-                );
+        $sql = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_id`;
+SQL;
+        $this->connection->exec($sql);
 
-                switch ($action) {
-                    case 'append':
-                        // Nothing to do because already migrated in bulk.
-                        break;
+        if ($this->stats['removed']) {
+            $this->logger->warn(
+                'A total of {total} values were removed.',  // @translate
+                ['total' => $this->stats['removed']]
+            );
+        }
 
-                    case 'remove':
-                        $sql = <<<SQL
+        if (count($this->stats['not_managed'])) {
+            $this->logger->warn(
+                'The following processes are not managed: "{list}".',  // @translate
+                ['list' => implode('", "', $this->stats['not_managed'])]
+            );
+        }
+
+        $this->logger->notice(
+            'Values were transformed.' // @translate
+        );
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+    }
+
+    /**
+     * Process a specific transform on the values.
+     *
+     * @todo Simplify config into one file.
+     */
+    protected function transformValues(array $map, array $options): void
+    {
+        $header = $options['header'];
+        $templateLabel = $options['templateLabel'];
+        $sqlAndWhere = $options['sqlAndWhere'];
+        $baseBind = $options['baseBind'];
+
+        $actions = [
+            '+' => 'append',
+            '-' => 'remove',
+            '*' => 'transform',
+            '?' => 'keep private',
+        ];
+
+        $bind = [];
+        $value = $map['map'][$header];
+        $action = mb_substr($value, 0, 1);
+        if (!isset($actions[$action])) {
+            $this->logger->warn(
+                'Template "{template}": action {action} not managed (value: {value}).', // @translate
+                ['template' => $templateLabel, 'action' => $action, 'value' => $value]
+            );
+            return;
+        }
+        $action = $actions[$action];
+        $value = trim(mb_substr($value, 1));
+
+        $this->logger->info(
+            'Template "{template}": processing action "{action}" with value "{value}".', // @translate
+            ['template' => $templateLabel, 'action' => $action, 'value' => $value]
+        );
+
+        switch ($action) {
+            case 'append':
+                // Nothing to do because already migrated in bulk.
+                break;
+
+            case 'remove':
+                $sql = <<<SQL
 DELETE `value`
 FROM `value`
 JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
@@ -1210,21 +1280,21 @@ WHERE `value`.`property_id` = :property_id
     $sqlAndWhere;
 
 SQL;
-                        $bind = $baseBind + [
-                            'property_id' => $map['property_id'],
-                        ];
-                        $result = $this->connection->executeUpdate($sql, $bind);
-                        if ($result) {
-                            $totalRemoved += $result;
-                            $this->logger->info(
-                                'Template "{template}": {total} values removed for source "{source}", mapped to property "{term}".', // @translate
-                                ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-                            );
-                        }
-                        break;
+                $bind = $baseBind + [
+                    'property_id' => $map['property_id'],
+                ];
+                $result = $this->connection->executeUpdate($sql, $bind);
+                if ($result) {
+                    $this->stats['removed'] += $result;
+                    $this->logger->info(
+                        'Template "{template}": {total} values removed for source "{source}", mapped to property "{term}".', // @translate
+                        ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
+                    );
+                }
+                break;
 
-                    case 'keep private':
-                        $sql = <<<SQL
+            case 'keep private':
+                $sql = <<<SQL
 UPDATE `value`
 JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
 SET `value`.`is_public` = 0
@@ -1232,17 +1302,17 @@ WHERE `value`.`property_id` = :property_id
     $sqlAndWhere;
 
 SQL;
-                        $bind = $baseBind + [
-                            'property_id' => $map['property_id'],
-                        ];
-                        $this->connection->executeUpdate($sql, $bind);
-                        break;
+                $bind = $baseBind + [
+                    'property_id' => $map['property_id'],
+                ];
+                $this->connection->executeUpdate($sql, $bind);
+                break;
 
-                    // Manage exceptions for values.
-                    case 'transform':
-                        // The exception applies to all values included in a
-                        // temporary table.
-                        $sql = <<<SQL
+            // Manage exceptions for values.
+            case 'transform':
+                // The exception applies to all values included in a
+                // temporary table.
+                $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_value_id`;
 CREATE TABLE `_temporary_value_id` (
     `id` int(11) NOT NULL,
@@ -1261,141 +1331,159 @@ WHERE
     $sqlAndWhere;
 
 SQL;
-                        $bind = $baseBind + [
-                            'property_id' => $map['property_id'],
-                        ];
-                        // TODO Check why the count of the result is not good, but the table is good.
-                        $result = $this->connection->executeUpdate($sql, $bind);
-                        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
-                        if ($result) {
-                            $this->logger->info(
-                                'Template "{template}": Updating {total} values from source "{source}" to property "{term}".', // @translate
-                                ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-                            );
-                            switch ($value) {
-                                case 'Auteur':
-                                case 'Auteur secondaire':
-                                case 'Personne (sujet)':
-                                    // TODO Nom de collectivité.
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:person', [
-                                        'mapping' => 'valuesuggest:idref:person',
+                $bind = $baseBind + [
+                    'property_id' => $map['property_id'],
+                ];
+                // TODO Check why the count of the result is not good, but the table is good.
+                $this->connection->executeUpdate($sql, $bind);
+                $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
+                if ($result) {
+                    $this->logger->info(
+                        'Template "{template}": Updating {total} values from source "{source}" to property "{term}".', // @translate
+                        ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
+                    );
+                    switch ($value) {
+                        case 'Auteur':
+                        case 'Auteur secondaire':
+                        case 'Personne (sujet)':
+                            $this->transformLiteralToValueSuggest($map['property_id'], [
+                                'mapping' => 'valuesuggest:idref:author',
+                                'partial' => true,
+                                'name' => 'auteurs',
+                                'datatype' => 'valuesuggest:idref:person',
+                                'prefix' => 'https://www.idref.fr/',
+                            ]);
+                            break;
+
+                        case 'Droits':
+                            $this->transformLiteralToVarious($map['property_id'], [
+                                'mapping' => 'dcterms:rights',
+                                'name' => 'droits',
+                            ]);
+                            break;
+
+                        case 'Editeur':
+                            switch ($header) {
+                                case 'livres anciens':
+                                    // Lieu d’édition : éditeur
+                                    // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
+                                    // Mais certains éditeurs ne sont pas des lieux : "ANR : Agence Nationale de la Recherche".
+                                    $this->transformLiteralWithOperations([
+                                        [
+                                            'action' => 'cut',
+                                            'params' => [
+                                                'source' => $map['property_id'],
+                                                'exclude' => 'editeurs_sans_lieu',
+                                                'separator' => ':',
+                                                'destination' => [
+                                                    'bio:place',
+                                                    'dcterms:publisher',
+                                                ],
+                                            ],
+                                        ],
+                                    ]);
+                                    // Fonctionne car la liste des valeurs a été mise à jour dans l'opération précédente.
+                                    $this->transformLiteralToValueSuggest($this->getPropertyId('bio:place'), [
+                                        'mapping' => 'geonames',
                                         'partial' => true,
-                                        'name' => 'auteurs',
-                                        'prefix' => 'https://www.idref.fr/',
+                                        'name' => 'lieux',
+                                        'datatype' => 'valuesuggest:geonames:geonames',
+                                        'prefix' => 'http://www.geonames.org/',
                                     ]);
                                     break;
-                                case 'Droits':
-                                    break;
-                                case 'Editeur':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:corporation', [
+                                case 'audio-video':
+                                    // dcterms:publisher => dcterms:publisher (idref collectivité)
+                                    $this->transformLiteralToValueSuggest($map['property_id'],  [
                                         'mapping' => 'dcterms:publisher',
                                         'partial' => true,
                                         'name' => 'editeurs',
-                                        'prefix' => 'https://www.idref.fr/',
-                                    ]);
-                                    break;
-                                case 'Fait partie de':
-                                    break;
-                                case 'Indice Dewey':
-                                    // TODO Mapping Dewey ?
-                                    // $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:dewey', [
-                                    //     'mapping' => 'valuesuggest:lc:dewey',
-                                    //     'name' => 'dewey',
-                                    //     'prefix' => '',
-                                    // ]);
-                                    break;
-                                case 'Langue':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:iso6392', [
-                                        'mapping' => 'languages',
-                                        'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
-                                    ]);
-                                    break;
-                                case 'Mot-clé':
-                                    break;
-                                case 'Pays|Ville (sujet)':
-                                case 'Sujet géographique':
-                                    break;
-                                case 'Thématique audio-vidéo':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:rameau', [
-                                        'mapping' => 'valuesuggest:idref:rameau',
-                                        'partial' => true,
-                                        'name' => 'thematiques',
-                                        'prefix' => 'https://www.idref.fr/',
-                                    ]);
-                                    break;
-                                case 'Thématique images':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:rameau', [
-                                        'mapping' => 'valuesuggest:idref:rameau',
-                                        'partial' => true,
-                                        'name' => 'thematiques',
-                                        'prefix' => 'https://www.idref.fr/',
-                                    ]);
-                                    break;
-                                case 'Thématique ouvrages numérisés':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:rameau', [
-                                        'mapping' => 'valuesuggest:idref:rameau',
-                                        'partial' => true,
-                                        'name' => 'thematiques',
-                                        'prefix' => 'https://www.idref.fr/',
-                                    ]);
-                                    break;
-                                case 'Thématique recherche':
-                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:rameau', [
-                                        'mapping' => 'valuesuggest:idref:rameau',
-                                        'partial' => true,
-                                        'name' => 'thematiques',
+                                        'datatype' => 'valuesuggest:idref:corporation',
                                         'prefix' => 'https://www.idref.fr/',
                                     ]);
                                     break;
                                 default:
-                                    $notManaged[] = $value;
                                     break;
                             }
-                        }
-                        break;
+                            break;
 
-                    default:
-                        // Let empty values, probably none.
-                        break;
+                        case 'Fait partie de':
+                            break;
+
+                        case 'Indice Dewey':
+                            // TODO Mapping Dewey.
+                            // $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:dewey', [
+                            //     'mapping' => 'valuesuggest:lc:dewey',
+                            //     'name' => 'dewey',
+                            //     'prefix' => '',
+                            // ]);
+                            break;
+
+                        case 'Langue':
+                            $this->transformLiteralToValueSuggest($map['property_id'], [
+                                'mapping' => 'dcterms:language',
+                                'datatype' => 'valuesuggest:lc:iso6392',
+                                'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
+                            ]);
+                            break;
+
+                        case 'Pays|Ville (sujet)':
+                        case 'Sujet géographique':
+                            $this->transformLiteralToValueSuggest($map['property_id'], [
+                                'mapping' => 'geonames',
+                                'partial' => true,
+                                'name' => 'lieux',
+                                'datatype' => 'valuesuggest:geonames:geonames',
+                                'prefix' => 'http://www.geonames.org/',
+                            ]);
+                            break;
+
+                        case 'Mot-clé':
+                        case 'Thématique audio-vidéo':
+                        case 'Thématique images':
+                        case 'Thématique ouvrages numérisés':
+                        case 'Thématique recherche':
+                            $this->transformLiteralToValueSuggest($map['property_id'], [
+                                'mapping' => 'valuesuggest:idref:rameau',
+                                'partial' => true,
+                                'name' => 'thematiques',
+                                'datatype' => 'valuesuggest:idref:rameau',
+                                'prefix' => 'https://www.idref.fr/',
+                            ]);
+                            break;
+
+                        case 'Titre':
+                            break;
+
+                        default:
+                            $this->stats['not_managed'][] = $value;
+                            break;
+                    }
                 }
-            }
-        }
+                break;
 
-        // Check if value suggest is available in order to prepare a temp table.
-        if (!empty($this->modules['ValueSuggest'])) {
-            $this->saveValueSuggestMappings();
-            $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_valuesuggest`;
+            default:
+                // Let empty values, probably none.
+                break;
+        }
+    }
+
+    protected function finalizeValues(): void
+    {
+        // Rendre privées toutes les valeurs des ontologies spécifiques.
+        $sql = <<<'SQL'
+UPDATE `value`
+JOIN `property` ON `property`.`id` = `value`.`property_id`
+JOIN `vocabulary` ON `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `value`.`is_public` = 0
+WHERE
+    `vocabulary`.`prefix` IN (
+        "greenstone",
+        "manioc"
+    )
+;
 SQL;
-            $this->connection->exec($sql);
-        }
-
-        $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_id`;
-SQL;
-        $this->connection->exec($sql);
-
-        if ($totalRemoved) {
-            $this->logger->warn(
-                'A total of {total} values were removed.',  // @translate
-                ['total' => $totalRemoved]
-            );
-        }
-
-        if (count($notManaged)) {
-            $this->logger->warn(
-                'The following processes are not managed: "{list}".',  // @translate
-                ['list' => implode('", "', $notManaged)]
-            );
-        }
-
-        $this->logger->notice(
-            'Values were transformed.' // @translate
-        );
-
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-        $this->refreshMainResources();
+        $this->connection->executeUpdate($sql);
     }
 
     /**

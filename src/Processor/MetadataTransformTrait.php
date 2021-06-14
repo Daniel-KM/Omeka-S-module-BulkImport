@@ -5,15 +5,23 @@ namespace BulkImport\Processor;
 use Box\Spout\Common\Entity\Style\Color;
 use Box\Spout\Writer\Common\Creator\Style\StyleBuilder;
 use Box\Spout\Writer\Common\Creator\WriterEntityFactory;
-use Laminas\Http\Client\Adapter\Exception as HttpAdapterException;
+use Laminas\Http\Client\Exception\ExceptionInterface as HttpExceptionInterface;
+use Laminas\Http\ClientStatic;
 
 /**
  * The transformation applies to all values of table "_temporary_value_id".
+ *
+ * @todo Convert all transformations into atomic and serializable ones.
  *
  * Require trait ConfigTrait.
  */
 trait MetadataTransformTrait
 {
+    /**
+     * @var \Doctrine\DBAL\Connection $connection
+     */
+    protected $connection;
+
     /**
      * Store all mappings during the a job, so it can be completed.
      *
@@ -24,33 +32,62 @@ trait MetadataTransformTrait
      */
     protected $valueSuggestMappings = [];
 
-    protected function transformLiteralToValueSuggest($term, string $datatype, array $options = []): void
+    protected $transformIndex = 0;
+
+    protected function transformLiteralToVarious($term, array $options = []): void
     {
-        if (empty($options['name'])) {
-            $options['name'] = str_replace(':', '-', $term .'_' . $datatype);
+        if (!$this->checkTransformArguments($term, $options)) {
+            return;
         }
 
-        empty($options['mapping']) || !empty($options['partial'])
-            ? $this->transformLiteralToValueSuggestWithApi($term, $datatype, $options)
-            : $this->transformLiteralToValueSuggestDirectly($term, $datatype, $options);
+        if (empty($options['name'])) {
+            $options['name'] = str_replace(':', '-', $term);
+        }
+
+        $mapping = $this->loadTable($options['mapping']);
+        $this->transformLiteralValues($term, $mapping, $options);
     }
 
-    protected function transformLiteralToValueSuggestDirectly($term, string $datatype, array $options = []): void
+    protected function transformLiteralToValueSuggest($term, array $options = []): void
     {
-        if (!$this->checkTransformArguments($term, $datatype, $options['mapping'])) {
+        if (empty($options['name'])) {
+            $options['name'] = str_replace(':', '-', $term .'_' . ++$this->transformIndex);
+        }
+
+        if (empty($options['mapping']) || !empty($options['partial'])) {
+            $this->transformLiteralToValueSuggestWithApi($term, $options);
+            return;
+        }
+
+        if (!$this->checkTransformArguments($term, $options)) {
+            return;
+        }
+
+        $mapping = $this->loadTable($options['mapping']) ?: [];
+        $datatype = $options['datatype'] ?? null;
+        foreach ($mapping as &$map) {
+            $mapping['type'] = $datatype;
+        }
+        unset($map);
+
+        $this->transformLiteralValues($term, $mapping, $options);
+    }
+
+    /**
+     * The mapping should be already checked.
+     */
+    protected function transformLiteralValues($term, ?array $mapping, array $options = []): void
+    {
+        if (empty($mapping)) {
+            $this->logger->warn(
+                'The mapping "{file}" is empty.', // @translate
+                ['file' => $options['mapping']]
+            );
             return;
         }
 
         $propertyId = $this->getPropertyId($term);
         $prefix = $options['prefix'] ?? false;
-        $mapping = $this->loadTable($options['mapping']);
-        if (empty($mapping)) {
-            $this->logger->warn(
-                'The mapping "file" is empty.', // @translate
-                ['file' => $options['mapping']]
-            );
-            return;
-        }
 
         // Prepare the mapping. Cells are already trimmed strings.
         $mapper = [];
@@ -68,6 +105,20 @@ trait MetadataTransformTrait
                 continue;
             }
 
+            $type = empty($map['type']) ? 'literal' : $map['type'];
+            $value = empty($map['label']) ? null : $map['label'];
+            if ($type === 'literal' && (string) $value === '') {
+                // Unchanged or empty literal value?
+                $this->logger->warn(
+                    'Cannot convert source "{source}" into "{destination}": a literal value cannot be empty.', // @translate
+                    ['source' => $map['source'], 'destination' => $map['destination']]
+                );
+                continue;
+            }
+
+            // TODO Check and normalize property language.
+            $lang = empty($map['lang']) ? null : $map['lang'];
+
             if ($prefix) {
                 foreach ($destination as &$dest) {
                     if (strpos($dest, $prefix) !== 0) {
@@ -82,11 +133,10 @@ trait MetadataTransformTrait
                     'source' => $source,
                     'destination' => $destination,
                     'property_id' => $propertyId,
-                    'type' => $datatype,
-                    'value' => empty($map['label']) ? null : $map['label'],
-                    'uri' => $dest,
-                    // TODO Check and normalize property language.
-                    'lang' => empty($map['lang']) ? null : $map['lang'],
+                    'type' => $type,
+                    'value' => $value,
+                    'uri' => $type === 'literal' ? null : $dest,
+                    'lang' => $lang,
                     'value_resource_id' => null,
                     // TODO Try to keep original is_public.
                     'is_public' => 1,
@@ -99,15 +149,19 @@ trait MetadataTransformTrait
         // TODO Add a stat message.
     }
 
-    protected function transformLiteralToValueSuggestWithApi($term, string $datatype, array $options = []): void
+    protected function transformLiteralToValueSuggestWithApi($term, array $options = []): void
     {
         // The mapping is optional, so not checked.
-        if (!$this->checkTransformArguments($term, $datatype)) {
+        if (empty($options['mapping'])) {
+            unset($options['mapping']);
+        }
+        if (!$this->checkTransformArguments($term, $options)) {
             return;
         }
 
         $propertyId = $this->getPropertyId($term);
         $term = $this->getPropertyTerm($propertyId);
+        $datatype = $options['datatype'];
 
         // Get the list of unique values.
         // TODO Only literal: the already mapped values (label + uri) can be used as mapping, but useless for a new database.
@@ -134,22 +188,22 @@ SQL;
         $list = array_column($list, 'r', 'v');
 
         $this->logger->info(
-            'Processing {total} unique literal values for term "{term}" to map to "{type}".', // @translate
-            ['total' => count($list), 'term' => $term, 'type' => $datatype]
+            'Processing {total} unique literal values for term "{term}" to map to "{datatype}".', // @translate
+            ['total' => count($list), 'term' => $term, 'datatype' => $datatype]
         );
         $totalList = count($list);
         if (!$totalList) {
             return;
         }
 
-        $this->prepareValueSuggestMapping($term, $datatype, $options);
+        $this->prepareValueSuggestMapping($options);
         $currentMapping = &$this->valueSuggestMappings[$options['name']];
 
         $count = 0;
         $countSingle = 0;
         foreach ($list as $value => $resourceIds) {
             ++$count;
-            $value = trim($value);
+            $value = trim((string) $value);
 
             // In all cases, update the resource ids for future check.
             if (empty($currentMapping[$value]['items'])) {
@@ -174,7 +228,7 @@ SQL;
             $currentMapping[$value]['label'] = [];
             $currentMapping[$value]['info'] = [];
 
-            $result = $this->apiQuery($value, $datatype, $options);
+            $result = $this->valueSuggestQuery($value, $datatype, $options);
 
             if ($result === null) {
                 $this->logger->err(
@@ -200,6 +254,9 @@ SQL;
                 $currentMapping[$value]['uri'][] = $r['data']['uri'];
                 $currentMapping[$value]['label'][] = $r['value'];
                 $currentMapping[$value]['info'][] = $r['data']['info'];
+                if (isset($r['data']['datatype'])) {
+                    $currentMapping[$value]['datatype'][] = $r['data']['datatype'];
+                }
             }
 
             if (count($result) === 1) {
@@ -228,7 +285,7 @@ SQL;
             return [
                 'source' => $v['source'],
                 'property_id' => $propertyId,
-                'type' => $datatype,
+                'type' => $v['datatype'] ?? $datatype,
                 'value' => reset($v['label']) ?: null,
                 'uri' => reset($v['uri']),
                 // TODO Check and normalize property language.
@@ -250,7 +307,7 @@ SQL;
         );
    }
 
-    protected function prepareValueSuggestMapping($term, string $datatype, array $options = []): void
+    protected function prepareValueSuggestMapping(array $options = []): void
     {
         // Create a mapping for checking and future reimport.
         $table = $this->loadTable($options['mapping']) ?: [];
@@ -281,13 +338,162 @@ SQL;
         $this->valueSuggestMappings[$options['name']] = array_combine(array_column($table, 'source'), $table);
     }
 
+    protected function transformLiteralWithOperations(array $operations = []): void
+    {
+        // TODO Move all check inside the preprocess.
+        // TODO Use a transaction (implicit currently).
+        // TODO Bind is not working currently with multiple queries, but only used for property id.
+
+        $sqls = [];
+        // $bind = [];
+        $excludes = [];
+        foreach ($operations as $index => $operation) {
+            ++$index;
+            $sqlExclude = '';
+            $sqlExcludeWhere = '';
+            if (!empty($operation['params']['exclude'])) {
+                $exclude = $this->loadList($operation['params']['exclude']);
+                if ($exclude) {
+                    $excludes[] = $index;
+                    // To exclude is to keep only other ones.
+                    $sqls[] = <<<SQL
+# Prepare the list of values not to process.
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+CREATE TABLE `_temporary_value_exclude_$index` (
+    `exclude` longtext COLLATE utf8mb4_unicode_ci,
+    KEY `IDX_exclude` (`exclude`(190))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL;
+                    // The list is already filtered.
+                    foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
+                        $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
+                        $sqls[] = <<<SQL
+INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
+VALUES($chunkString);
+SQL;
+                    }
+                    $sqlExclude = <<<SQL
+LEFT JOIN `_temporary_value_exclude_$index`
+    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
+SQL;
+                    $sqlExcludeWhere = <<<SQL
+    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
+SQL;
+                }
+            }
+
+            switch ($operation['action']) {
+                case 'cut':
+                    if (empty($operation['params']['destination'])
+                        || count($operation['params']['destination']) !== 2
+                    ) {
+                        $this->logger->err(
+                            'The operation "cut" requires two destinations currently.' // @translate
+                        );
+                        break 2;
+                    }
+                    if (!isset($operation['params']['separator']) || !strlen($operation['params']['separator'])) {
+                        $this->logger->err(
+                            'The operation "cut" requires a separator.' // @translate
+                        );
+                        break 2;
+                    }
+                    // TODO Manage separators quote and double quote for security (but user should be able to access to database anyway).
+                    $separator = $operation['params']['separator'];
+                    $quotedSeparator = $this->connection->quote($separator);
+                    if ($separator === '%') {
+                        $separator = '\\%';
+                    } elseif ($separator === '_') {
+                        $separator = '\\_';
+                    }
+
+                    // value => bio:place : dcterms:publisher
+                    $binds = [];
+                    $binds['property_id_1'] = $this->getPropertyId($operation['params']['destination'][0]);
+                    $binds['property_id_2'] = $this->getPropertyId($operation['params']['destination'][1]);
+
+                    $sqls[] = <<<SQL
+# Create a new trimmed value with first part.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`)
+SELECT
+    `value`.`resource_id`,
+    {$binds['property_id_1']},
+    # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
+    CONCAT("operation-$index ", `value`.`type`),
+    TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
+    `value`.`uri`,
+    `value`.`lang`,
+    `value`.`value_resource_id`,
+    `value`.`is_public`
+FROM `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+WHERE
+    `value`.`value` LIKE '%$separator%'
+    $sqlExcludeWhere
+;
+SQL;
+                    $sqls[] = <<<SQL
+# Update source with the trimmed second part.
+UPDATE `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+SET
+    `value`.`property_id` = {$binds['property_id_2']},
+    `value`.`value` = TRIM(SUBSTRING(`value`.`value`, LOCATE($quotedSeparator, `value`.`value`) + 1))
+WHERE
+    value.value LIKE '%$separator%'
+    $sqlExcludeWhere
+;
+SQL;
+                    $sqls[] = <<<SQL
+# Store the new value ids to manage next operations.
+INSERT INTO `_temporary_value_id` (`id`)
+SELECT `value`.`id`
+FROM `value`
+WHERE `value`.`property_id` = {$binds['property_id_1']}
+    AND (`value`.`type` LIKE "operation-$index %")
+ON DUPLICATE KEY UPDATE
+    `_temporary_value_id`.`id` = `_temporary_value_id`.`id`
+;
+SQL;
+                    $sqls[] = <<<SQL
+# Finalize type for first part.
+UPDATE `value`
+SET
+    `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
+WHERE `value`.`property_id` = {$binds['property_id_1']}
+    AND (`value`.`type` LIKE "operation-$index %")
+;
+SQL;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        // Remove excludes.
+        foreach ($excludes as $index) {
+            $sqls[] = <<<SQL
+DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+SQL;
+        }
+
+        // Transaction is implicit.
+        $this->connection->executeUpdate(implode("\n", $sqls));
+    }
+
     /**
      * @param array $mapper The mapper is already checked.
      */
     protected function processValuesTransform(array $mapper): void
     {
         // Create a temporary table with the mapper.
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_mapper`;
 CREATE TABLE `_temporary_mapper` LIKE `value`;
 ALTER TABLE `_temporary_mapper`
@@ -335,7 +541,7 @@ SQL;
             ? $this->processValuesTransformInsert()
             : $this->processValuesTransformUpdate();
 
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_mapper`;
 SQL;
         $this->connection->exec($sql);
@@ -343,7 +549,7 @@ SQL;
 
     protected function processValuesTransformUpdate(): void
     {
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 UPDATE `value`
 JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
@@ -365,7 +571,7 @@ SQL;
 
     protected function processValuesTransformInsert(): void
     {
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 SELECT MAX(`id`) FROM `value`;
 SQL;
         $maxId = $this->connection->query($sql)->fetchColumn();
@@ -392,7 +598,7 @@ JOIN `_temporary_mapper`
 SQL;
         $this->connection->executeUpdate($sql);
 
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 DELETE `value`
 FROM `value`
 JOIN `_temporary_value_id`
@@ -444,46 +650,55 @@ SQL;
         $this->connection->executeUpdate($sql, $bind);
     }
 
-    protected function checkTransformArguments($term = null, $datatype = null, $configKey = null): bool
+    protected function checkTransformArguments($term = null, array $options = []): bool
     {
-        $propertyId = $this->bulk->getPropertyId($term);
-        if (!$propertyId) {
-            $this->logger->err(
-                'The property "{property}" does not exist.', // @translate
-                ['property' => $term]
-            );
-            return false;
-        }
-
-        if ($datatype) {
-            if (substr($datatype, 0, 12) === 'valuesuggest' && empty($this->modules['ValueSuggest'])) {
+        if ($term) {
+            $propertyId = $this->bulk->getPropertyId($term);
+            if (!$propertyId) {
                 $this->logger->err(
-                    'The module "Value Suggest" is required to transform values.' // @translate
+                    'The property "{property}" does not exist.', // @translate
+                    ['property' => $term]
                 );
                 return false;
             }
         }
 
-        if ($configKey) {
-            return (bool) $this->getConfigFilepath($configKey);
+        if (!empty($options['datatype'])) {
+            $dataTypeExceptions = [
+            ];
+            $dataTypeManager = $this->getServiceLocator()->get('Omeka\DataTypeManager');
+            if (!in_array($options['datatype'], $dataTypeExceptions)
+                && !$dataTypeManager->has($options['datatype'])
+            ) {
+                $this->logger->err(
+                    'The data type "{datatype}" does not exist.', // @translate
+                    ['datatype' => $options['datatype']]
+                );
+                return false;
+            }
+        }
+
+        if (!empty($options['mapping'])) {
+            $result =  (bool) $this->hasConfigFile($options['mapping']);
+            if (!$result) {
+                $this->logger->err(
+                    'There is no file "{filename}".', // @translate
+                    ['filename' => $options['mapping']]
+                );
+                return false;
+            }
         }
 
         return true;
     }
 
-    protected function apiQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    protected function valueSuggestQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
     {
         /** @var \ValueSuggest\Suggester\SuggesterInterface $suggesters */
         static $suggesters = [];
         // static $lang;
 
         if (!isset($suggesters[$datatype])) {
-            if (mb_substr($datatype, 0, 12) !== 'valuesuggest') {
-                $this->logger->err(
-                    'Only value suggest data types can be queried currently.' // @translate
-                );
-                return null;
-            }
             $suggesters[$datatype] = $this->getServiceLocator()->get('Omeka\DataTypeManager')
                 ->get($datatype)
                 ->getSuggester();
@@ -493,11 +708,13 @@ SQL;
 
         try {
             $suggestions = $suggesters[$datatype]->getSuggestions($value);
-        } catch (HttpAdapterException $e) {
+        } catch (HttpExceptionInterface $e) {
             // Since the exception can occur randomly, a second query is done.
             if ($loop < 1) {
-                return $this->apiQuery($value, $datatype, $options, ++$loop);
+                sleep(10);
+                return $this->valueSuggestQuery($value, $datatype, $options, ++$loop);
             }
+            // Allow to continue next processes.
             $this->logger->err(
                 'Connection issue: {exception}', // @translate
                 ['exception' => $e]
