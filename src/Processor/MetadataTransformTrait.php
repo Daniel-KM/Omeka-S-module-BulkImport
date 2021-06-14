@@ -483,16 +483,16 @@ SQL;
         $this->operationSqls[] = <<<SQL
 # Create a new trimmed value with first part.
 INSERT INTO `value`
-    (`resource_id`, `property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`)
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
 SELECT
     `value`.`resource_id`,
     {$binds['property_id_1']},
+    `value`.`value_resource_id`,
     # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
     CONCAT("operation-$this->operationIndex ", `value`.`type`),
     TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
     `value`.`uri`,
     `value`.`lang`,
-    `value`.`value_resource_id`,
     `value`.`is_public`
 FROM `value`
 JOIN `_temporary_value_id`
@@ -558,7 +558,8 @@ SQL;
             return false;
         }
         $firstKeys = array_keys($first);
-        if (!in_array('source', $firstKeys)) {
+        $sourceKey = array_search('source', $firstKeys);
+        if ($sourceKey === false) {
             $this->logger->warn(
                 'Mapping for operation "replace" requires a column "source".' // @translate
             );
@@ -595,15 +596,39 @@ SQL;
         }
         */
 
-        // TODO Use the automapping to manage data type and language.
-        $properties = array_intersect_key($this->getPropertyIds(), array_flip($params['destination']));
-        if (count($properties) !== count($params['destination'])) {
+        unset($firstKeys[$sourceKey]);
+
+        /** @var \BulkImport\View\Helper\AutomapFields $automapFields */
+        $automapFields = $this->getServiceLocator()->get('ViewHelperManager')->get('automapFields');
+
+        $destinations = [];
+        $properties = [];
+        $propertyIds = $this->getPropertyIds();
+        $fields = $automapFields($firstKeys, ['output_full_matches' => true]);
+        foreach (array_filter($fields) as $index => $field) {
+            $field = reset($field);
+            if (isset($propertyIds[$field['field']])) {
+                $field['header'] = $firstKeys[$index];
+                $field['term'] = $field['field'];
+                $field['property_id'] = $propertyIds[$field['field']];
+                $field['type'] = $field['type'] ?: 'literal';
+                $destinations[] = $field;
+                $properties[$field['field']] = $field['property_id'];
+            }
+        }
+
+        if (!count($destinations)) {
             $this->logger->warn(
-                'There are unknown properties for destination: "{terms}".', // @translate
-                ['terms' => implode('", "', $params['destination'])]
+                'There are no mapped properties for destination: "{terms}".', // @translate
+                ['terms' => implode('", "', $firstKeys)]
             );
             return false;
         }
+
+        $this->logger->notice(
+            'The source {term} is mapped with {count} properties: "{terms}".', // @translate
+            ['term' => $params['source'], 'count' => count($properties), 'terms' => implode('", "', array_keys($properties))]
+        );
 
         // Prepare the mapping. Cells are already trimmed strings.
         $mapper = [];
@@ -615,27 +640,81 @@ SQL;
 
             // Prepare a map for the row with one value at least.
             $maps = [];
-            foreach ($properties as $term => $propertyId) {
-                if (isset($row[$term]) && strlen($row[$term])) {
-                    $maps[] = [
-                        'source' => $source,
-                        'property_id' => $propertyId,
-                        'type' => 'literal',
-                        'value' => $row[$term],
-                        'uri' => null,
-                        'value_resource_id' => null,
-                        // TODO Try to keep original lang and is_public.
-                        'lang' => null,
-                        'is_public' => null,
-                    ];
+            foreach ($destinations as $destination) {
+                $type = $destination['type'];
+                $value = $row[$destination['header']];
+                $uri = null;
+                $valueResourceId = null;
+                $language = null;
+                $isPublic = null;
+                switch ($type) {
+                    default:
+                    // TODO Log unmanaged type.
+                    // case 'literal':
+                    // case 'html':
+                    // case 'rdf:HTML':
+                    // case 'xml':
+                    // case 'rdf:XMLLiteral':
+                    // case substr($type, 0, 12) === 'customvocab:':
+                        // Nothing to do.
+                        break;
+
+                    case 'uri':
+                    case 'dcterms:URI':
+                    case substr($type, 0, 12) === 'valuesuggest':
+                        $posSpace = mb_strpos($value, ' ');
+                        if ($posSpace === false) {
+                            $uri = $value;
+                            $value = null;
+                        } else {
+                            $uri = mb_substr($value, 0, $posSpace);
+                            $value = trim(mb_substr($value, $posSpace + 1));
+                        }
+                        break;
+
+                    case substr($type, 0, 8) === 'resource':
+                        $vvalue = (int) $value;
+                        if ($vvalue) {
+                            $valueResourceId = $vvalue;
+                            $value = null;
+                        } else {
+                            // TODO Manage resource id with identifier.
+                            $this->logger->err(
+                                'For "{term}", the value "{value}" is not a valid resource id.', // @translate
+                                ['term' => $params['source'], 'value' => $value]
+                            );
+                        }
+                        break;
+
+                    case 'numeric:integer':
+                    case 'numeric:timestamp':
+                    case 'numeric:interval':
+                    case 'numeric:duration':
+                    case 'xsd:integer':
+                        // TODO Not managed: store data in the second table (so convert and insert all non-mapped values).
+                        $this->logger->err(
+                            'Cannot convert source "{term}" into a numeric data type for now.', // @translate
+                            ['term' => $params['source']]
+                        );
+                        break;
                 }
+                $maps[] = [
+                    'source' => $source,
+                    'property_id' => $destination['property_id'],
+                    'type' => $type,
+                    'value' => $value,
+                    'uri' => $uri,
+                    'value_resource_id' => $valueResourceId,
+                    'lang' => $language,
+                    'is_public' => $isPublic,
+                ];
             }
             if (count($maps)) {
                 $mapper = array_merge($mapper, $maps);
             }
         }
 
-        $hasMultipleDestinations = count($properties) > 1;
+        $hasMultipleDestinations = count($destinations) > 1;
         $this->processValuesTransform($mapper, $hasMultipleDestinations);
 
         // TODO Add a stat message.
@@ -713,13 +792,13 @@ JOIN `_temporary_mapper`
     AND `_temporary_mapper`.`source` = `value`.`value`
 SET
     `value`.`property_id` = `_temporary_mapper`.`property_id`,
+    `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
     `value`.`type` = `_temporary_mapper`.`type`,
+    `value`.`lang` = `_temporary_mapper`.`lang`,
     `value`.`value` = `_temporary_mapper`.`value`,
     `value`.`uri` = `_temporary_mapper`.`uri`,
-    `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
-    # `value`.`is_public` = `_temporary_mapper`.`is_public`,
-    `value`.`lang` = `_temporary_mapper`.`lang`;
-
+    `value`.`is_public` = `_temporary_mapper`.`is_public`
+;
 SQL;
         $this->connection->executeUpdate($sql);
     }
@@ -733,17 +812,16 @@ SQL;
 
         $sql = <<<SQL
 INSERT INTO `value`
-    (`resource_id`, `property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`)
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
 SELECT
     `value`.`resource_id`,
     `_temporary_mapper`.`property_id`,
+    `_temporary_mapper`.`value_resource_id`,
     `_temporary_mapper`.`type`,
+    `_temporary_mapper`.`lang`,
     `_temporary_mapper`.`value`,
     `_temporary_mapper`.`uri`,
-    `_temporary_mapper`.`lang`,
-    `_temporary_mapper`.`value_resource_id`,
-    # `_temporary_mapper`.`is_public`
-    `value`.`is_public`,
+    `_temporary_mapper`.`is_public`
 FROM `value`
 JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
@@ -784,9 +862,9 @@ JOIN `_temporary_value_id`
 JOIN `resource`
     ON `resource`.`id` = `value`.`resource_id`
 SET
+    `value`.`value_resource_id` = :value_resource_id,
     `value`.`type` = :datatype,
     `value`.`uri` = :uri,
-    `value`.`value_resource_id` = :value_resource_id,
     `value`.`lang` = :lang
 WHERE
     `resource`.`resource_type` = "Omeka\\Entity\\Item"
@@ -797,11 +875,11 @@ WHERE
 SQL;
         $bind = [
             'property_id' => $propertyId,
+            'value_resource_id' => $valueResourceId,
             'datatype' => $datatype,
+            'lang' => $lang,
             'value' => $value,
             'uri' => $uri,
-            'value_resource_id' => $valueResourceId,
-            'lang' => $lang,
         ];
         $this->connection->executeUpdate($sql, $bind);
     }

@@ -1422,11 +1422,6 @@ SQL;
                                         'params' => [
                                             'source' => $map['property_id'],
                                             'mapping' => 'partie_images',
-                                            'destination' => [
-                                                'dcterms:title',
-                                                'bibo:pages',
-                                                'bibo:locator',
-                                            ],
                                         ],
                                     ],
                                 ]);
@@ -1434,12 +1429,15 @@ SQL;
                             break;
 
                         case 'Indice Dewey':
-                            // TODO Mapping Dewey.
-                            // $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:dewey', [
-                            //     'mapping' => 'valuesuggest:lc:dewey',
-                            //     'name' => 'dewey',
-                            //     'prefix' => '',
-                            // ]);
+                            $this->transformLiteralWithOperations([
+                                [
+                                    'action' => 'replace_table',
+                                    'params' => [
+                                        'source' => $map['property_id'],
+                                        'mapping' => 'dewey',
+                                    ],
+                                ],
+                            ]);
                             break;
 
                         case 'Langue':
@@ -1484,10 +1482,6 @@ SQL;
                                         'params' => [
                                             'source' => $map['property_id'],
                                             'mapping' => 'titres_livres_anciens',
-                                            'destination' => [
-                                                'dcterms:title',
-                                                'bibo:volume',
-                                            ],
                                         ],
                                     ],
                                 ]);

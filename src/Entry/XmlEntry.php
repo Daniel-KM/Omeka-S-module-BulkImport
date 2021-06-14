@@ -239,6 +239,11 @@ class XmlEntry extends Entry
                 ];
                 break;
 
+            case substr($type, 0, 8) === 'resource':
+                // FIXME Manage source for xml entry.
+                throw new \Exception('Unable to import a linked resource via xml currently.'); // @translate
+                break;
+
                 // Module Custom Vocab.
 
             case substr($type, 0, 12) === 'customvocab:':
