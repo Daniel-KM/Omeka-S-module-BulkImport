@@ -32,14 +32,26 @@ trait ConfigTrait
         'properties' => [
             'file' => '',
             'headers' => [
-                'source' => 'Source',
-                'destination' => 'Destination',
+                'Source' => 'source',
+                'Destination' => 'destination',
             ],
         ],
     ];
 
+    /**
+     * Main php file that contains config of each other file.
+     */
     protected function prepareConfig(string $file, string $subdir = ''): void
     {
+        $extension = mb_strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if ($extension !== 'php') {
+            $this->hasError = true;
+            $this->logger->err(
+                'The main config file should be a php file.',  // @translate
+            );
+            return;
+        }
+
         if ($subdir) {
             $subdir = trim($subdir, '/ ') . '/';
             $file = $subdir . $file;
@@ -63,6 +75,7 @@ trait ConfigTrait
         if (!$subdir) {
             return;
         }
+
         foreach ($this->configs as &$config) {
             if (!empty($config['file'])) {
                 $config['file'] = $subdir . $config['file'];
