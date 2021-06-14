@@ -235,8 +235,8 @@ FROM `value`
 JOIN `value` AS `value_item_set`
 JOIN `item_set`
     ON `item_set`.`id` = `value_item_set`.`resource_id`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 WHERE
     `value`.`property_id` = $sourceId
@@ -496,8 +496,8 @@ SELECT DISTINCT
 FROM `value`
 JOIN `value` AS `value_linked`
     ON `value_linked`.`resource_id` = `value`.`resource_id`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 WHERE
     `value_linked`.`value_resource_id` IS NOT NULL
@@ -574,8 +574,8 @@ SQL;
 # Delete values for specific properties.
 DELETE `value`
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 WHERE
     `value`.`property_id` IN ($propertyIds)
@@ -678,8 +678,8 @@ SQL;
         $this->operationSqls[] = <<<SQL
 # Update values according to rules for each column.
 UPDATE `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 SET
     $updates
@@ -745,8 +745,8 @@ SELECT DISTINCT
     `value`.`lang`,
     `value`.`is_public`
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 WHERE
     `value`.`value` LIKE '%$separator%'
@@ -756,8 +756,8 @@ SQL;
         $this->operationSqls[] = <<<SQL
 # Update source with the trimmed second part.
 UPDATE `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 SET
     `value`.`property_id` = {$binds['property_id_2']},
@@ -769,13 +769,13 @@ WHERE
 SQL;
         $this->operationSqls[] = <<<SQL
 # Store the new value ids to manage next operations.
-INSERT INTO `_temporary_value_id` (`id`)
+INSERT INTO `_temporary_value` (`id`)
 SELECT `value`.`id`
 FROM `value`
 WHERE `value`.`property_id` = {$binds['property_id_1']}
     AND (`value`.`type` LIKE "$random %")
 ON DUPLICATE KEY UPDATE
-    `_temporary_value_id`.`id` = `_temporary_value_id`.`id`
+    `_temporary_value`.`id` = `_temporary_value`.`id`
 ;
 SQL;
         $this->operationSqls[] = <<<SQL
@@ -1312,15 +1312,14 @@ SELECT DISTINCT
     `value`.`is_public`,
     `value`.`value`
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 $sqlExclude
 WHERE
     `value`.`property_id` IN ($sourceIds)
     $sqlExcludeWhere
 ;
 SQL;
-
         return true;
     }
 
@@ -1364,8 +1363,8 @@ SELECT DISTINCT
     `value`.`value` AS `v`,
     GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 JOIN `item`
     ON `item`.`id` = `value`.`resource_id`
 WHERE
@@ -1557,8 +1556,8 @@ SQL;
         $this->operationSqls[] = <<<'SQL'
 # Update values according to the temporary table.
 UPDATE `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
     AND `_temporary_mapper`.`source` = `value`.`value`
@@ -1605,8 +1604,8 @@ SELECT DISTINCT
     `_temporary_mapper`.`uri`,
     `_temporary_mapper`.`is_public`
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
     AND `_temporary_mapper`.`source` = `value`.`value`
@@ -1617,8 +1616,8 @@ SQL;
 # Explode values according to the temporary table (step 3/4).
 DELETE `value`
 FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
     AND `_temporary_mapper`.`source` = `value`.`value`

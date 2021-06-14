@@ -14,10 +14,12 @@ class ManiocProcessor extends AbstractFullProcessor
     use MetadataTransformTrait;
 
     const TYPE_ALL = 'all';
-    const TYPE_AUDIO_VIDEO = 'audio-video';
+    const TYPE_AUDIO_VIDEO = 'audio-vidéo';
     const TYPE_IMAGE = 'images';
     const TYPE_LIVRE = 'livres anciens';
     const TYPE_RECHERCHE = 'recherche';
+    const TYPE_PERSONNE_COLLECTIVITE = 'personnes et collectivités';
+    const TYPE_MANIFESTATION = 'manifestations';
 
     protected $resourceLabel = 'Manioc'; // @translate
     protected $configFormClass = ManiocProcessorConfigForm::class;
@@ -1126,26 +1128,30 @@ SQL;
             return;
         }
 
+        // Prepare the template groups.
+        // The process for all should be the first.
+        $templateGroups = [self::TYPE_ALL => self::TYPE_ALL];
+
         // Les règles varient selon les 4 types d'origine, qui ont été remplacés
         // par des modèles dans l'étape précédente.
         $templates = $this->configs['templates'] ?? null;
         if (is_null($templates)) {
-            $templates = [];
             $this->logger->warn(
                 'There is no mapping for old and new templates.' // @translate
             );
         } else {
             $templates = array_filter($templates);
-            if (!count($templates)) {
+            if (count($templates)) {
+                // Get the templates by group.
+                foreach ($templates as $templateLabel => $templateGroup) {
+                    $templateGroups[$templateGroup][] = $templateLabel;
+                }
+            } else {
                 $this->logger->warn(
                     'The mapping for old and new templates is empty.' // @translate
                 );
             }
         }
-
-        // Add the common transformation for all resources.
-        // It should be the first template.
-        $templates = [self::TYPE_ALL => self::TYPE_ALL] + $templates;
 
         $normalizedMapping = $this->loadTableWithIds('properties', 'Property');
         if (!$normalizedMapping) {
@@ -1216,58 +1222,65 @@ SQL;
 
         $this->stats['removed'] = 0;
         $this->stats['not_managed'] = [];
-        foreach ($templates as $templateLabel => $header) {
-            $processAll = $header === self::TYPE_ALL;
+        foreach ($templateGroups as $group => $templateLabels) {
+            $processAll = $group === self::TYPE_ALL;
             if ($processAll) {
                 $templateId = null;
                 $this->logger->notice(
                     'Processing values for all templates.' // @translate
                 );
             } else {
-                $templateId = $this->bulk->getResourceTemplateId($templateLabel);
-                if (!$templateId) {
-                    $this->logger->warn(
-                        'No template for "{label}".', // @translate
-                        ['label' => $templateLabel]
-                    );
-                    continue;
+                $templateIds = [];
+                foreach ($templateLabels as $templateLabel) {
+                    $templateId = $this->bulk->getResourceTemplateId($templateLabel);
+                    if (!$templateId) {
+                        $this->logger->warn(
+                            'Skipping "{template_group}": no template for "{label}".', // @translate
+                            ['template_group' => $group,  'label' => $templateLabel]
+                        );
+                        continue 2;
+                    }
+                    $templateIds[] = $templateId;
                 }
                 $this->logger->notice(
-                    'Processing values for template "{template}".', // @translate
-                    ['template' => $templateLabel]
+                    'Processing values for template group "{template_group}".', // @translate
+                    ['template_group' => $group]
                 );
             }
 
             if ($processAll) {
                 $sqlAndWhere = '';
                 $baseBind = [];
+                $baseTypes = [];
             } else {
-                $sqlAndWhere = 'AND `resource`.`resource_template_id` = :resource_template_id';
-                $baseBind = ['resource_template_id' => $templateId];
+                $sqlAndWhere = 'AND `resource`.`resource_template_id` IN (:resource_template_ids)';
+                $baseBind = ['resource_template_ids' => $templateIds];
+                $baseTypes = ['resource_template_ids' => $this->connection::PARAM_INT_ARRAY];
             }
 
             // Pre-process on whole resource.
             $this->transformValues(
                 [
                     'map' => [
-                        $header => '* Pre',
+                        $group => '* Pre',
                     ],
                 ],
                 [
-                    'templateLabel' => $templateLabel,
-                    'header' => $header,
+                    'group' => $group,
+                    'templateLabels' => $templateLabels,
                     'sqlAndWhere' => $sqlAndWhere,
                     'baseBind' => $baseBind,
+                    'baseTypes' => $baseTypes,
                 ]
             );
 
             // Main process on each map.
             foreach ($migrationMapping as $map) {
-                if (empty($map['map'][$header])) {
+                if (empty($map['map'][$group])) {
                     continue;
                 }
                 // All is the first process, so skip next ones when all is set.
-                if ($header !== self::TYPE_ALL && !empty($map['map'][self::TYPE_ALL])) {
+                if ($group !== self::TYPE_ALL && !empty($map['map'][self::TYPE_ALL])) {
                     continue;
                 }
                 if ($this->isErrorOrStop()) {
@@ -1275,10 +1288,11 @@ SQL;
                 }
 
                 $this->transformValues($map, [
-                    'templateLabel' => $templateLabel,
-                    'header' => $header,
+                    'group' => $group,
+                    'templateLabels' => $templateLabels,
                     'sqlAndWhere' => $sqlAndWhere,
                     'baseBind' => $baseBind,
+                    'baseTypes' => $baseTypes,
                 ]);
             }
 
@@ -1286,14 +1300,15 @@ SQL;
             $this->transformValues(
                 [
                     'map' => [
-                        $header => '* Post',
+                        $group => '* Post',
                     ],
                 ],
                 [
-                    'templateLabel' => $templateLabel,
-                    'header' => $header,
+                    'group' => $group,
+                    'templateLabels' => $templateLabels,
                     'sqlAndWhere' => $sqlAndWhere,
                     'baseBind' => $baseBind,
+                    'baseTypes' => $baseTypes,
                 ]
             );
         }
@@ -1308,7 +1323,7 @@ SQL;
         }
 
         $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_id`;
+DROP TABLE IF EXISTS `_temporary_value`;
 SQL;
         $this->connection->exec($sql);
 
@@ -1342,10 +1357,11 @@ SQL;
      */
     protected function transformValues(array $map, array $options): void
     {
-        $header = $options['header'];
-        $templateLabel = $options['templateLabel'];
+        $group = $options['group'];
+        // $templateLabels = $options['templateLabels'];
         $sqlAndWhere = $options['sqlAndWhere'];
         $baseBind = $options['baseBind'];
+        $baseTypes = $options['baseTypes'];
 
         $actions = [
             '+' => 'append',
@@ -1355,12 +1371,12 @@ SQL;
         ];
 
         $bind = [];
-        $value = $map['map'][$header];
+        $value = $map['map'][$group];
         $action = mb_substr($value, 0, 1);
         if (!isset($actions[$action])) {
             $this->logger->warn(
-                'Template "{template}": action {action} not managed (value: {value}).', // @translate
-                ['template' => $templateLabel, 'action' => $action, 'value' => $value]
+                'Template group "{template_group}": action {action} not managed (value: {value}).', // @translate
+                ['template_group' => $group, 'action' => $action, 'value' => $value]
             );
             return;
         }
@@ -1370,18 +1386,18 @@ SQL;
 
         if ($value === 'Pre') {
             $this->logger->info(
-                'Template "{template}": pre-processing values.', // @translate
-                ['template' => $templateLabel]
+                'Template group "{template_group}": pre-processing values.', // @translate
+                ['template_group' => $group]
             );
         } elseif ($value === 'Post') {
             $this->logger->info(
-                'Template "{template}": post-processing values.', // @translate
-                ['template' => $templateLabel]
+                'Template group "{template_group}": post-processing values.', // @translate
+                ['template_group' => $group]
             );
         } else {
             $this->logger->info(
-                'Template "{template}": processing action "{action}" with value "{value}".', // @translate
-                ['template' => $templateLabel, 'action' => $action, 'value' => $value]
+                'Template group "{template_group}": processing action "{action}" with value "{value}".', // @translate
+                ['template_group' => $group, 'action' => $action, 'value' => $value]
             );
         }
 
@@ -1401,12 +1417,12 @@ SQL;
         }
 
         $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_id`;
-CREATE TABLE `_temporary_value_id` (
+DROP TABLE IF EXISTS `_temporary_value`;
+CREATE TABLE `_temporary_value` (
     `id` int(11) NOT NULL,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO `_temporary_value_id`
+INSERT INTO `_temporary_value`
     (`id`)
 SELECT
     `value`.`id`
@@ -1420,25 +1436,25 @@ WHERE
 ;
 SQL;
 
-        $this->connection->executeUpdate($sql, $bind);
-        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
+        $this->connection->executeUpdate($sql, $bind, $baseTypes);
+        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value`;')->fetchColumn();
         if (!$result) {
             $this->logger->info(
-                'Template "{template}": no values to process.', // @translate
-                ['template' => $templateLabel]
+                'Template group "{template_group}": no values to process.', // @translate
+                ['template_group' => $group]
             );
             return;
         }
 
         if (empty($map['source']) || empty($map['destination'])) {
             $this->logger->info(
-                'Template "{template}": Processing {total} values.', // @translate
-                ['template' => $templateLabel, 'total' => $result]
+                'Template group "{template_group}": Processing {total} values.', // @translate
+                ['template_group' => $group, 'total' => $result]
             );
         } else {
             $this->logger->info(
-                'Template "{template}": Processing {total} values from source "{source}" to property "{term}".', // @translate
-                ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
+                'Template group "{template_group}": Processing {total} values from source "{source}" to property "{term}".', // @translate
+                ['template_group' => $group, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
             );
         }
 
@@ -1473,7 +1489,7 @@ SQL;
         switch ($value) {
             // Effectue des modifications avant toute autre modification.
             case 'Pre':
-                if ($header === self::TYPE_ALL) {
+                if ($group === self::TYPE_ALL) {
                     $this->transformOperations([
                         [
                             'action' => 'create_resource',
@@ -1494,7 +1510,7 @@ SQL;
                             ],
                         ],
                     ]);
-                } elseif ($header === self::TYPE_AUDIO_VIDEO) {
+                } elseif ($group === self::TYPE_AUDIO_VIDEO) {
                     $this->transformOperations([
                         [
                             'action' => 'create_resource',
@@ -1525,12 +1541,12 @@ SQL;
                                     'resource_random' => -2,
                                 ],
                                 'properties' => [
-                                    'greenstone:unknownFile',
+                                    'bio:olb',
                                 ],
                             ],
                         ],
                     ]);
-                } else if ($header === self::TYPE_IMAGE) {
+                } else if ($group === self::TYPE_IMAGE) {
                     // Cette opération ne dépend pas de la propriété en cours
                     // mais des ressources.
                     $this->transformOperations([
@@ -1604,7 +1620,7 @@ SQL;
                 break;
 
             case 'Editeur':
-                switch ($header) {
+                switch ($group) {
                     case self::TYPE_LIVRE:
                         // Lieu d’édition : éditeur
                         // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
@@ -1660,7 +1676,7 @@ SQL;
                 break;
 
             case 'Fait partie de':
-                if ($header === self::TYPE_IMAGE) {
+                if ($group === self::TYPE_IMAGE) {
                     // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
                     $this->transformOperations([
                         [
@@ -1778,7 +1794,7 @@ SQL;
                 break;
 
             case 'Titre':
-                if ($header === self::TYPE_LIVRE) {
+                if ($group === self::TYPE_LIVRE) {
                     // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
                     $this->transformOperations([
                         [
@@ -1793,21 +1809,7 @@ SQL;
                 break;
 
             case 'Post':
-                if ($header === self::TYPE_ALL) {
-                    $this->transformOperations([
-                        [
-                            'action' => 'create_resource',
-                            'params' => [
-                                'properties' => [
-                                    'manioc:themeGeneral',
-                                ],
-                                'destination' => 'dcterms:title',
-                                'resource_type' => 'item_sets',
-                                'template' => 'Corpus et sélection documentaire',
-                            ],
-                        ],
-                    ]);
-                } elseif ($header === self::TYPE_AUDIO_VIDEO) {
+                if ($group === self::TYPE_AUDIO_VIDEO) {
                     $this->transformOperations([
                         [
                             'action' => 'copy_value_linked',
