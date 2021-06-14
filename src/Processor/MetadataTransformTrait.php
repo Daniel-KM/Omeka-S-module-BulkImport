@@ -184,6 +184,17 @@ SQL;
                 break;
             }
 
+            // Check if one of the value is exactly the queried value.
+            // Many results may be returned but only the good one is needed.
+            if (count($result) > 1) {
+                foreach ($result as $r) {
+                    if ($r['value'] === $value) {
+                        $result = [$r];
+                        break;
+                    }
+                }
+            }
+
             // Store the results for future steps.
             foreach ($result as $r) {
                 $currentMapping[$value]['uri'][] = $r['data']['uri'];
