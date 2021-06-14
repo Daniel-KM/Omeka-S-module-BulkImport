@@ -163,7 +163,7 @@ trait MetadataTransformTrait
     protected function operationCreateResource(array $params): bool
     {
         $params['no_source'] = true;
-        if (!empty($params['properties'])) {
+        if (!empty($params['mapping_properties'])) {
             $mapper = $this->prepareMappingTableFromValues($params);
             if (!$mapper) {
                 $this->logger->warn(
@@ -630,6 +630,15 @@ SQL;
             $updates['sql_uri'] = '`value`.`uri` = ' . $params['sql_uri'];
         }
         */
+        // "prefix"/"suffix" and "value_prefix"/"value_suffix" are the same.
+        $update = array_filter([
+            isset($params['prefix']) ? $this->connection->quote($params['prefix']) : null,
+            '`value`.`value`',
+            isset($params['suffix']) ? $this->connection->quote($params['suffix']) : null,
+        ]);
+        if (count($update) > 1) {
+            $updates['value'] = '`value`.`value` = CONCAT(' . implode(', ', $update) . ')';
+        }
         $update = array_filter([
             isset($params['value_prefix']) ? $this->connection->quote($params['value_prefix']) : null,
             '`value`.`value`',
@@ -911,11 +920,19 @@ SQL;
 
     protected function prepareMappingTable(array $params): ?array
     {
+        if (empty($params['mapping'])) {
+            $this->logger->warn(
+                'Operation "{action}": no mapping defined.', // @translate
+                ['action' => $this->operationName]
+            );
+            return null;
+        }
+
         $table = $this->loadTable($params['mapping']);
         if (empty($table)) {
             $this->logger->warn(
-                'No mapping or empty mapping in file "{file}" for operation "{action}".', // @translate
-                ['file' => $params['mapping'], 'action' => $this->operationName]
+                'Operation "{action}": no mapping or empty mapping in file "{file}".', // @translate
+                ['action' => $this->operationName, 'file' => $params['mapping']]
             );
             return null;
         }
@@ -923,7 +940,7 @@ SQL;
         $first = reset($table);
         if (count($first) <= 1) {
             $this->logger->warn(
-                'Mapping for operation "{action}" requires two columns at least.', // @translate
+                'Operation "{action}": mapping requires two columns at least.', // @translate
                 ['action' => $this->operationName]
             );
             return null;
@@ -936,7 +953,7 @@ SQL;
         $sourceKey = array_search('source', $firstKeys);
         if ($hasSource && $sourceKey === false) {
             $this->logger->err(
-                'Mapping for operation "{action}" requires a column "source".', // @translate
+                'Operation "{action}": mapping requires a column "source".', // @translate
                 ['action' => $this->operationName]
             );
             return null;
@@ -945,7 +962,7 @@ SQL;
         // TODO The param "source" is not used here, but in other steps, so move check.
         if ($hasSource && empty($params['source'])) {
             $this->logger->err(
-                'The operation "{action}" requires a source.', // @translate
+                'Operation "{action}": a source is required.', // @translate
                 ['action' => $this->operationName]
             );
             return null;
@@ -954,7 +971,7 @@ SQL;
         $sourceId = $this->getPropertyId($params['source']);
         if ($hasSource && empty($sourceId)) {
             $this->logger->err(
-                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                'Operation "{action}": a valid source is required: "{term}" does not exist.', // @translate
                 ['action' => $this->operationName, 'term' => $params['source']]
             );
             return null;
@@ -964,7 +981,7 @@ SQL;
             $saveSourceId = $this->getPropertyId($params['source_term']);
             if (empty($saveSourceId)) {
                 $this->logger->err(
-                    'The operation "{action}" set an invalid property to save source: "{term}".', // @translate
+                    'Operation "{action}": an invalid property is set to save source: "{term}".', // @translate
                     ['action' => $this->operationName, 'term' => $params['source_term']]
                 );
                 return null;
@@ -997,12 +1014,28 @@ SQL;
         $propertyIds = $this->getPropertyIds();
         $fields = $automapFields($firstKeys, ['output_full_matches' => true]);
         foreach (array_filter($fields) as $index => $field) {
+            // Only one field is managed currently.
             $field = reset($field);
             if (isset($propertyIds[$field['field']])) {
                 $field['header'] = $firstKeys[$index];
                 $field['term'] = $field['field'];
                 $field['property_id'] = $propertyIds[$field['field']];
-                $field['type'] = $field['type'] ?: 'literal';
+                // TODO Check the type from the header in the automapping.
+                $type = $field['type'] ?: 'literal';
+                if (mb_substr($type, 0, 12) === 'customvocab:') {
+                    if (empty($this->map['custom_vocabs'][$type]['datatype'])) {
+                        $typeResult = $this->getCustomVocabDataType($type);
+                        if (!$typeResult) {
+                            $this->logger->err(
+                                'The data type "{type}" is not valid.', // @translate
+                                ['term' => $params['source'], 'value' => $type]
+                            );
+                            return null;
+                        }
+                        $type = $typeResult;
+                    }
+                }
+                $field['type'] = $type;
                 $destinations[] = $field;
                 $properties[$field['field']] = $field['property_id'];
             }
@@ -1037,10 +1070,21 @@ SQL;
                     continue;
                 }
 
+                // Unlike operation "modify_value", this is the mapping that is
+                // modified, so the cell value. The Omeka value is set below.
                 if (isset($settings[$destination['term']])) {
                     $setting = &$settings[$destination['term']];
-                    if (isset($setting['prefix']) && strpos($value, $setting['prefix']) !== 0) {
+                    if (isset($setting['prefix'])) {
                         $value = $setting['prefix'] . $value;
+                    }
+                    if (isset($setting['suffix'])) {
+                        $value .= $setting['suffix'];
+                    }
+                    if (isset($setting['replace']) && mb_strlen($setting['replace'])) {
+                        $sourceForValue = empty($setting['remove_space_source'])
+                            ? $source
+                            : str_replace(' ', '', $source);
+                        $value = str_replace(['{source}', '{destination}'], [$sourceForValue, $value], $value);
                     }
                     unset($setting);
                 }
@@ -1059,7 +1103,7 @@ SQL;
                     // case 'rdf:HTML':
                     // case 'xml':
                     // case 'rdf:XMLLiteral':
-                    // case substr($type, 0, 12) === 'customvocab:':
+                    // case mb_substr($type, 0, 12) === 'customvocab:':
                         // Nothing to do.
                         break;
 
@@ -1184,31 +1228,29 @@ SQL;
 
     protected function prepareMappingTableFromValues(array $params): bool
     {
-        if (!empty($params['destination'])) {
-            $destinationId = $this->bulk->getPropertyId($params['destination']);
-            if (!$destinationId) {
-                $this->logger->err(
-                    'The operation "{action}" has an invalid destination: "{term}".', // @translate
-                    ['action' => $this->operationName, 'term' => $params['destination']]
-                );
-                return false;
-            }
-        } else {
-            $destinationId = $this->bulk->getPropertyId('dcterms:title');
-        }
-
-        if (!is_array($params['properties'])) {
-            $params['properties'] = [$params['properties']];
+        if (empty($params['mapping_properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a mapping of properties.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
         }
 
         $properties = [];
         $errors = [];
-        foreach ($params['properties'] as $property) {
-            $propertyId = $this->bulk->getPropertyId($property);
-            $propertyId
-                ? $properties[$property] = $propertyId
-                : $errors[] = $property;
+        foreach ($params['mapping_properties'] as $source => $destination) {
+            $sourceId = $this->bulk->getPropertyId($source);
+            if (!$sourceId) {
+                $errors[] = $source;
             }
+            $destinationId = $this->bulk->getPropertyId($destination);
+            if (!$destinationId) {
+                $errors[] = $destination;
+            }
+            if ($sourceId && $destinationId) {
+                $properties[$sourceId] = $destinationId;
+            }
+        }
 
         if (count($errors)) {
             $this->logger->err(
@@ -1218,7 +1260,29 @@ SQL;
             return false;
         }
 
-        $propertyIds = implode(', ', $properties);
+        if (count(array_unique($properties)) === 1) {
+            $sourceToDestination = $destinationId;
+        } else {
+            $sourceIsDestination = true;
+            foreach ($properties as $sourceId => $destinationId) {
+                if ($sourceId !== $destinationId) {
+                    $sourceIsDestination = false;
+                    break;
+                }
+            }
+            if ($sourceIsDestination) {
+                $sourceToDestination = '`value`.`property_id`';
+            } else {
+                $sourceToDestination = "    CASE\n";
+                foreach ($properties as $sourceId => $destinationId) {
+                    $sourceToDestination .= "        WHEN `value`.`property_id` = $sourceId THEN $destinationId\n";
+                }
+                $sourceToDestination .= "    ELSE `value`.`property_id`\n";
+                $sourceToDestination .= '    END';
+            }
+        }
+
+        $sourceIds = implode(', ', array_keys($properties));
 
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
@@ -1239,12 +1303,12 @@ SQL;
 INSERT INTO `_temporary_mapper`
     (`property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`, `source`)
 SELECT DISTINCT
-    $destinationId,
-    'literal',
+    $sourceToDestination,
+    `value`.`type`,
     `value`.`value`,
-    NULL,
+    `value`.`uri`,
     `value`.`lang`,
-    NULL,
+    `value`.`value_resource_id`,
     `value`.`is_public`,
     `value`.`value`
 FROM `value`
@@ -1252,10 +1316,7 @@ JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
 $sqlExclude
 WHERE
-    `value`.`property_id` IN ($propertyIds)
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
+    `value`.`property_id` IN ($sourceIds)
     $sqlExcludeWhere
 ;
 SQL;

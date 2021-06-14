@@ -13,6 +13,7 @@ class ManiocProcessor extends AbstractFullProcessor
 {
     use MetadataTransformTrait;
 
+    const TYPE_ALL = 'all';
     const TYPE_AUDIO_VIDEO = 'audio-video';
     const TYPE_IMAGE = 'images';
     const TYPE_LIVRE = 'livres anciens';
@@ -1144,7 +1145,7 @@ SQL;
 
         // Add the common transformation for all resources.
         // It should be the first template.
-        $templates = ['all' => 'all'] + $templates;
+        $templates = [self::TYPE_ALL => self::TYPE_ALL] + $templates;
 
         $normalizedMapping = $this->loadTableWithIds('properties', 'Property');
         if (!$normalizedMapping) {
@@ -1216,7 +1217,7 @@ SQL;
         $this->stats['removed'] = 0;
         $this->stats['not_managed'] = [];
         foreach ($templates as $templateLabel => $header) {
-            $processAll = $header === 'all';
+            $processAll = $header === self::TYPE_ALL;
             if ($processAll) {
                 $templateId = null;
                 $this->logger->notice(
@@ -1266,7 +1267,7 @@ SQL;
                     continue;
                 }
                 // All is the first process, so skip next ones when all is set.
-                if ($header !== 'all' && !empty($map['map']['all'])) {
+                if ($header !== self::TYPE_ALL && !empty($map['map'][self::TYPE_ALL])) {
                     continue;
                 }
                 if ($this->isErrorOrStop()) {
@@ -1472,12 +1473,12 @@ SQL;
         switch ($value) {
             // Effectue des modifications avant toute autre modification.
             case 'Pre':
-                if ($header === 'all') {
+                if ($header === self::TYPE_ALL) {
                     $this->transformOperations([
                         [
                             'action' => 'create_resource',
                             'params' => [
-                                'properties' => [
+                                'mapping_properties' => [
                                     'manioc:themeGeneral',
                                 ],
                                 'destination' => 'dcterms:title',
@@ -1680,6 +1681,19 @@ SQL;
                         'params' => [
                             'source' => $map['property_id'],
                             'mapping' => 'dewey',
+                            'settings' => [
+                                /*
+                                // dcterms:subject ^^uri
+                                'dcterms:subject' => [
+                                    'replace' => 'http://dewey.info/class/{source}/ {destination}',
+                                    'remove_space_source' => true,
+                                ],
+                                */
+                                // dcterms:subject ^^customvocab:thematique-dewey
+                                'dcterms:subject' => [
+                                    'replace' => '{source} {destination}',
+                                ],
+                            ],
                         ],
                     ],
                 ]);
@@ -1779,7 +1793,21 @@ SQL;
                 break;
 
             case 'Post':
-                if ($header === self::TYPE_AUDIO_VIDEO) {
+                if ($header === self::TYPE_ALL) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'create_resource',
+                            'params' => [
+                                'properties' => [
+                                    'manioc:themeGeneral',
+                                ],
+                                'destination' => 'dcterms:title',
+                                'resource_type' => 'item_sets',
+                                'template' => 'Corpus et sélection documentaire',
+                            ],
+                        ],
+                    ]);
+                } elseif ($header === self::TYPE_AUDIO_VIDEO) {
                     $this->transformOperations([
                         [
                             'action' => 'copy_value_linked',

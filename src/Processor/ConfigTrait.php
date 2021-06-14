@@ -96,15 +96,16 @@ trait ConfigTrait
             return null;
         }
 
+        $extensions = ['php', 'ods', 'tsv', 'csv', 'txt'];
+
         $filepath = null;
         $filename = $this->configs[$configKey]['file'];
         $extension = mb_strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        if (mb_strlen($extension)) {
+        if (mb_strlen($extension) && in_array($extension, $extensions)) {
             $baseFilename = mb_substr($filename, 0, mb_strlen($filename) - mb_strlen($extension) - 1);
             $extensions = [$extension];
         } else {
             $baseFilename = $filename;
-            $extensions = ['php', 'ods', 'tsv', 'csv', 'txt'];
         }
 
         $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
