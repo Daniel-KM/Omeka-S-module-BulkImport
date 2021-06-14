@@ -163,13 +163,14 @@ class AutomapFields extends AbstractHelper
             . '(?:'
             // Check a language + country (@fr-Fr).
             . '(\s*@\s*(?<language>[a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))'
-            // Check a data type (^^resource:item).
-            . '|(\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][\w:-]*|[a-zA-Z][\w-]*|))'
+            // Check a data type (^^resource:item or ^^customvocab:Liste des établissements).
+            . '|(\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|))'
             // Check visibility (§private).
             . '|(?:\s*§\s*(?<visibility>public|private|))'
-            // Max three options, but no check for duplicates.
-            . '|){0,3}$'
-            . '~';
+            // Max three options, but no check for duplicates. Remove final spaces too.
+            . '|){0,3}\s*$'
+            // Unicode is used for custom vocab labels.
+            . '~u';
 
         $matches = [];
 
