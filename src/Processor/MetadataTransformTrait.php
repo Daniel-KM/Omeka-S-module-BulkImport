@@ -665,11 +665,10 @@ SQL;
 
         if (!empty($options['datatype'])) {
             $dataTypeExceptions = [
+                'valuesuggest:idref:author',
             ];
             $dataTypeManager = $this->getServiceLocator()->get('Omeka\DataTypeManager');
-            if (!in_array($options['datatype'], $dataTypeExceptions)
-                && !$dataTypeManager->has($options['datatype'])
-            ) {
+            if (!in_array($options['datatype'], $dataTypeExceptions) && !$dataTypeManager->has($options['datatype'])) {
                 $this->logger->err(
                     'The data type "{datatype}" does not exist.', // @translate
                     ['datatype' => $options['datatype']]
@@ -698,6 +697,9 @@ SQL;
         // and has few credits for all module users.
         if ($datatype === 'valuesuggest:geonames:geonames') {
             return $this->valueSuggestQueryGeonames($value, $datatype, $options);
+        }
+        if ($datatype === 'valuesuggest:idref:author') {
+            return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $options);
         }
 
         /** @var \ValueSuggest\Suggester\SuggesterInterface $suggesters */
@@ -857,6 +859,108 @@ SQL;
                     // TODO The rdf name should be "https://sws.geonames.org/%s/" ?
                     'uri' => sprintf('http://www.geonames.org/%s', $result['geonameId']),
                     'info' => implode("\n", $info),
+                ],
+            ];
+        }
+
+        return $suggestions;
+    }
+
+    /**
+     * Allow to search authors (person, corporation, conference) in all idref
+     * sub-bases simultaneously.
+     *
+     * @see \ValueSuggest\Suggester\IdRef\IdRefSuggestAll::getSuggestions()
+     * @link https://documentation.abes.fr/aideidrefdeveloppeur/index.html#presentation
+     */
+    protected function valueSuggestQueryIdRefAuthor(string $value, string $datatype, array $options = [], int $loop = 0): ?array
+    {
+        $cleanValue = strpos($value, ' ')
+            ? $value
+            : '(' . implode(' AND ', array_filter(explode(' ', $value), 'strlen')) . ')';
+
+        $q = "persname_t:$cleanValue OR corpname_t:$cleanValue OR conference_t:$cleanValue";
+
+        $query = [
+            'q' => $q,
+            'wt' => 'json',
+            'version' => '2.2',
+            'start' => 0,
+            'rows' => 30,
+            'sort' => 'score desc',
+            'indent' => 'on',
+            'fl' => 'id,ppn_z,recordtype_z,affcourt_z',
+        ];
+        $url = 'https://www.idref.fr/Sru/Solr';
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/96.0',
+            'Content-Type' => 'application/json',
+            'Accept-Encoding' => 'gzip, deflate',
+        ];
+
+        $e = null;
+        try {
+            $response = ClientStatic::get($url, $query, $headers);
+        } catch (HttpExceptionInterface $e) {
+            // Check below.
+        }
+
+        if (empty($response) || !$response->isSuccess()) {
+            // Since the exception can occur randomly, a second query is done.
+            if ($loop < 1) {
+                sleep(10);
+                return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $options, ++$loop);
+            }
+            // Allow to continue next processes.
+            if (empty($e)) {
+                $this->logger->err(
+                    'Connection issue.', // @translate
+                );
+            } else {
+                $this->logger->err(
+                    'Connection issue: {exception}', // @translate
+                    ['exception' => $e]
+                );
+            }
+            return null;
+        }
+
+        // Parse the JSON response.
+        $suggestions = [];
+        $results = json_decode($response->getBody(), true);
+        if (empty($results['response']['docs'])) {
+            return [];
+        }
+
+        // Record type : http://documentation.abes.fr/aideidrefdeveloppeur/index.html#filtres
+        $recordTypes = [
+            'a' => 'valuesuggest:idref:person',
+            'b' => 'valuesuggest:idref:corporation',
+            's' => 'valuesuggest:idref:conference',
+        ];
+
+        // Check the result key.
+        foreach ($results['response']['docs'] as $result) {
+            if (empty($result['ppn_z'])) {
+                continue;
+            }
+            // "affcourt" may be not present in some results (empty words).
+            if (isset($result['affcourt_r'])) {
+                $value = is_array($result['affcourt_r']) ? reset($result['affcourt_r']) : $result['affcourt_r'];
+            } elseif (isset($result['affcourt_z'])) {
+                $value = is_array($result['affcourt_z']) ? reset($result['affcourt_z']) : $result['affcourt_z'];
+            } else {
+                $value = $result['ppn_z'];
+            }
+            $recordType = empty($result['recordtype_z']) || !isset($recordTypes[$result['recordtype_z']])
+                ? 'valuesuggest:idref:person'
+                : $recordTypes[$result['recordtype_z']];
+            $suggestions[] = [
+                'value' => $value,
+                'data' => [
+                    'uri' => 'https://www.idref.fr/' . $result['ppn_z'],
+                    'info' => null,
+                    'datatype' => $recordType,
                 ],
             ];
         }

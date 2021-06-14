@@ -1352,7 +1352,7 @@ SQL;
                                 'mapping' => 'valuesuggest:idref:author',
                                 'partial' => true,
                                 'name' => 'auteurs',
-                                'datatype' => 'valuesuggest:idref:person',
+                                'datatype' => 'valuesuggest:idref:author',
                                 'prefix' => 'https://www.idref.fr/',
                             ]);
                             break;
