@@ -163,7 +163,8 @@ trait MetadataTransformTrait
     protected function operationCreateResource(array $params): bool
     {
         $params['no_source'] = true;
-        if (!empty($params['mapping_properties'])) {
+        $hasMappingProperties = !empty($params['mapping_properties']);
+        if ($hasMappingProperties) {
             $mapper = $this->prepareMappingTableFromValues($params);
             if (!$mapper) {
                 $this->logger->warn(
@@ -184,6 +185,14 @@ trait MetadataTransformTrait
         }
 
         $this->processCreateResources($params);
+
+        if (!empty($params['link_resource'])) {
+            if ($hasMappingProperties) {
+                $this->processCreateLinkForCreatedResourcesFromValues($params);
+            } else {
+                // TODO Create links for created resources from a mapping. Currently, link resources with source_term and remove values.
+            }
+        }
 
         $this->removeMappingTable();
 
@@ -1794,6 +1803,114 @@ JOIN `_temporary_new_resource`
     ON `_temporary_new_resource`.`id` = `resource`.`id`
 ;
 SQL;
+
+    }
+
+    protected function processCreateLinkForCreatedResourcesFromValues(array $params): bool
+    {
+        // TODO Factorize checks with prepareMappingTableFromValues().
+        if (empty($params['mapping_properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a mapping of properties.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['mapping_properties'] as $source => $destination) {
+            $sourceId = $this->bulk->getPropertyId($source);
+            if (!$sourceId) {
+                $errors[] = $source;
+            }
+            $destinationId = $this->bulk->getPropertyId($destination);
+            if (!$destinationId) {
+                $errors[] = $destination;
+            }
+            if ($sourceId && $destinationId) {
+                $properties[$sourceId] = $destinationId;
+            }
+        }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        if (empty($params['reciprocal'])) {
+            $reciprocalId = null;
+        } else {
+            $reciprocalId = $this->getPropertyId($params['reciprocal']);
+            if (empty($reciprocalId)) {
+                $this->logger->err(
+                    'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate
+                    ['action' => $this->operationName, 'term' => $params['reciprocal']]
+                );
+                return false;
+            }
+        }
+
+        $sourceIds = implode(', ', array_keys($properties));
+        $type = $params['type'] ?? 'resource:item';
+        $quotedType = $this->connection->quote($type);
+        // TODO Use the template for is_public.
+        $isPublic = (int) (bool) ($params['is_public'] ?? 1);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Link created resources.
+UPDATE `value`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
+JOIN `resource`
+    ON `resource`.`title` = `value`.`value`
+JOIN `_temporary_new_resource`
+    ON `_temporary_new_resource`.`id` = `resource`.`id`
+$sqlExclude
+SET
+    `value`.`value_resource_id` = `resource`.`id`,
+    `value`.`type` = $quotedType,
+    `value`.`value` = NULL,
+    `value`.`uri` = NULL,
+    `value`.`lang` = NULL
+WHERE
+    `value`.`property_id` IN ($sourceIds)
+    $sqlExcludeWhere
+;
+SQL;
+
+        if ($reciprocalId) {
+            $this->operationSqls[] = <<<SQL
+# Create reciprocal link for created resources.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+SELECT DISTINCT
+    `value`.`resource_id`,
+    $reciprocalId,
+    `resource`.`id`,
+    $quotedType,
+    $isPublic
+FROM `value`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
+JOIN `resource`
+    ON `resource`.`title` = `value`.`value`
+JOIN `_temporary_new_resource`
+    ON `_temporary_new_resource`.`id` = `resource`.`id`
+$sqlExclude
+WHERE
+    `value`.`property_id` IN ($sourceIds)
+    $sqlExcludeWhere
+;
+SQL;
+        }
+
+        return true;
     }
 
     protected function valueSuggestQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array
