@@ -1674,6 +1674,24 @@ SQL;
                             break;
 
                         case 'Pays|Ville (sujet)':
+                            $this->transformLiteralToValueSuggest($map['property_id'], [
+                                'mapping' => 'geonames',
+                                'partial' => true,
+                                'name' => 'lieux',
+                                'datatype' => 'valuesuggest:geonames:geonames',
+                                'prefix' => 'http://www.geonames.org/',
+                                'formats' => [
+                                    [
+                                        'arguments' => ['country', 'location'],
+                                        'separator' => '|',
+                                    ],
+                                    [
+                                        'arguments' => 'country',
+                                    ],
+                                ],
+                            ]);
+                            break;
+
                         case 'Sujet géographique':
                             $this->transformLiteralToValueSuggest($map['property_id'], [
                                 'mapping' => 'geonames',

@@ -211,6 +211,30 @@ trait ConfigTrait
     }
 
     /**
+     * Merge columns of a table into a key-values array.
+     */
+    protected function loadTableAsKeyValue(?string $configKey, string $valueColumn): ?array
+    {
+        $table = $this->loadTable($configKey);
+        if (!$table) {
+            return $table;
+        }
+
+        $result = [];
+        foreach ($table as $row) {
+            if (array_key_exists($valueColumn, $row)) {
+                $value = $row[$valueColumn];
+                foreach ($row as $cell) {
+                    $result[$cell] = $value;
+                    $result[mb_strtolower($cell)] = $value;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Get a table from a file (php, ods, tsv or csv).
      *
      * The config key is a key in the property "configs" of this trait.

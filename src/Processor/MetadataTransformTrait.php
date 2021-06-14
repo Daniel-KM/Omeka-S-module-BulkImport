@@ -1757,48 +1757,136 @@ SQL;
      * Fix for the GeonamesSuggester, that cannot manage a specific username.
      *
      * @see \ValueSuggest\Suggester\Geonames\GeonamesSuggest::getSuggestions()
+     * @link https://www.iso.org/obp/ui/fr/
+     *
+     * @todo Prepare list of countries with geonames translations (only English and French currently).
      */
     protected function valueSuggestQueryGeonames(string $value, string $datatype, array $options = [], int $loop = 0): ?array
     {
+        static $countries;
         static $language2;
         static $searchType;
 
         if (is_null($language2)) {
+            $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'Code alpha-2');
             $language2 = $this->getParam('language_2') ?: '';
             $searchType = $this->getParam('geonames_search') ?: 'strict';
         }
 
-        $originalValue = $value;
-        $queryKey = 'name_equals';
-        $isNameRequired = 'true';
-        $startWith = $value;
-        if (mb_strpos($value, '|') !== false) {
-            // Manage location like "France | Paris".
-            // TODO In some other cases, location are indicated "Paris, France", not "France, Paris".
-            $valueList = array_filter(explode('|', $value));
-            if (count($valueList) > 1) {
-                $queryKey = 'name';
-                $valueList = array_reverse($valueList);
-                $value = implode(' ', $valueList);
-                $startWith = reset($valueList);
-            }
+        if ($value === '') {
+            return [];
         }
+
+        /*
+        // The list of possible arguments for main geonames search.
+        $geonamesArguments = [
+            // 'q',
+            // 'name',
+            // 'name_equals',
+            'name_startsWith',
+            'country',
+            'countryBias',
+            'continentCode',
+            'adminCode1',
+            'adminCode2',
+            'adminCode3',
+            'adminCode4',
+            'adminCode5',
+            'featureClass',
+            'featureCode',
+            'cities',
+            'lang',
+            'type',
+            'style',
+            'isNameRequired',
+            'tag ',
+            'operator',
+            'charset',
+            'fuzzy',
+            'east',
+            'west',
+            'north',
+            'south',
+            'searchlang',
+            'orderby',
+            'inclBbox',
+        ];
+        */
+
+        // Prepare the default search.
+        $originalValue = $value;
+
+        // Query key must be "q", "name" or "name_equals".
+        $queryKey = 'name_equals';
 
         /** @see https://www.geonames.org/export/geonames-search.html */
         $query = [
             $queryKey => $value,
-            // Input is already mainly checked.
-            'name_startsWith' => $startWith,
-            'isNameRequired' => $isNameRequired,
-            'fuzzy' => 0,
-            // Geographical country code (not political country: Guyane is GF).
-            // 'country' => 'FR'
-            // 'continentCode' => 'EU'
+            'name_startsWith' => $value,
+            'isNameRequired' => 'true',
+            // Fuzzy = 1 means no fuzzy…
+            'fuzzy' => 1,
+            // Geographical country code ISO-3166 (not political country: Guyane is GF).
+            // 'country' => 'FR',
+            // 'countryBias' => 'FR',
+            // 'continentCode' => 'EU',
             'maxRows' => 20,
-            'lang' => $language2,
+            'lang' => strtoupper($language2),
             // TODO Use your own or a privacy aware username for geonames, not "google'.
             'username' => 'google',
         ];
+
+        // First, quick check if the value is a country.
+        $lowerValue = mb_strtolower($value);
+        if (isset($countries[$lowerValue])) {
+            $query['country'] = $countries[$lowerValue];
+        }
+        // Improve the search if a format is set.
+        elseif (!empty($options['formats'])) {
+            foreach ($options['formats'] as $format) {
+                if (empty($format['arguments'])) {
+                    // Skip.
+                    continue;
+                } elseif (empty($format['separator'])) {
+                    // Default case.
+                    $argument = is_array($format['arguments']) ? reset($format['arguments']) : $format['arguments'];
+                    if ($argument === 'country' || $argument === 'countryBias') {
+                        if (isset($countries[$lowerValue])) {
+                            $query[$argument] = $countries[$lowerValue];
+                        }
+                    } else {
+                        $query[$argument] = $value;
+                    }
+                    break;
+                } elseif (mb_strpos($value, $format['separator']) !== false) {
+                    // Manage location like "France | Paris" or "Paris | France".
+                    $valueList = array_map('trim', explode('|', $value));
+                    $arguments = is_array($format['arguments']) ? $format['arguments'] : [$format['arguments']];
+                    foreach ($arguments as $argument)  {
+                        $v = array_shift($valueList);
+                        if (is_null($v)) {
+                            break;
+                        }
+                        if ($v === '') {
+                            continue;
+                        }
+                        if ($argument === 'country' || $argument === 'countryBias') {
+                            $query[$argument] = $countries[mb_strtolower($v)] ?? $v;
+                        } else {
+                            $query[$argument] = $v;
+                        }
+                    }
+                    if (isset($query['location'])) {
+                        $query[$queryKey] = $query['location'];
+                        $query['name_startsWith'] = $query['location'];
+                        unset($query['location']);
+                    }
+                    break;
+                }
+            }
+        }
+
+        $query = array_filter($query, 'strlen');
 
         // Don't use https, or add certificate to omeka config.
         $url = 'http://api.geonames.org/searchJSON';
