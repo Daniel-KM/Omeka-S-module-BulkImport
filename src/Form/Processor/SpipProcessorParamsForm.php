@@ -147,10 +147,6 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 'name' => 'types',
                 'required' => false,
             ])
-            ->add([
-                'name' => 'base_url',
-                'required' => false,
-            ])
         ;
     }
 }

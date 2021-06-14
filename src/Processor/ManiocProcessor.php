@@ -75,6 +75,7 @@ class ManiocProcessor extends AbstractFullProcessor
         'properties' => 'manioc/mapping.ods',
         'migration' => 'manioc/migration.ods',
         'languages' => 'manioc/languages.ods',
+        'valuesuggest:idref:person' => 'manioc/auteurs.ods',
     ];
 
     protected $tables = [
@@ -1152,16 +1153,20 @@ SQL;
                                 ['total' => $result, 'template' => $templateLabel, 'term' => $map['term'], 'source' => $map['elément']]
                             );
                             switch ($realValue) {
+                                case 'Auteur':
                                 case 'Auteur secondaire':
+                                    $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:idref:person', [
+                                        'mapping' => $this->mappingFiles['valuesuggest:idref:person'],
+                                        'partial' => true,
+                                        'filename' => 'auteurs',
+                                    ]);
                                     break;
                                 case 'Pays|Ville (sujet)':
                                     break;
-                                case 'Auteur':
-                                    break;
                                 case 'Langue':
                                     $this->transformLiteralToValueSuggest($map['property_id'], 'valuesuggest:lc:iso6392', [
+                                        'mapping' => $this->mappingFiles['languages'],
                                         'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
-                                        'mapping' => $this->getTableFromFile($this->mappingFiles['languages']),
                                     ]);
                                     break;
                                 case 'Editeur':

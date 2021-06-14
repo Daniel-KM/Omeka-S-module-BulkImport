@@ -1179,8 +1179,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         file_put_contents($filepath, json_encode($this->map, 448));
         $this->logger->notice(
             'Mapping saved in "{url}".', // @translate
-            // TODO Add domain to url.
-            ['url' => '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
+            ['url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
         );
 
         $this->logger->info('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
@@ -1384,35 +1383,43 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     /**
      * Get a table from a file (php, ods, tsv or csv).
+     *
+     * The filename can be a relative or a full filepath.
      */
     protected function loadTableFromFile(?string $filename, bool $keyPair = false): ?array
     {
-        $filename = trim((string) $filename, '/\\ ');
         if (empty($filename)) {
             return null;
         }
 
+        $isFullFilepath = mb_substr($filename, 0, 1) === '/';
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        $baseFilename = mb_strlen($extension) ? mb_substr($filename, 0, mb_strlen($filename) - mb_strlen($extension) - 1) : $filename;
-        $extensions = [
-            'php',
-            'ods',
-            'tsv',
-            'csv',
-        ];
-        $filepath = null;
-        foreach ($extensions as $extension) {
-            $file = "$baseFilename.$extension";
-            if (file_exists(OMEKA_PATH . '/' . $file)) {
-                $filepath = OMEKA_PATH . '/' . $file;
-                break;
-            } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $file)) {
-                $filepath = dirname(__DIR__, 2) . '/data/imports/' . $file;
-                break;
+
+        if ($isFullFilepath) {
+            $filepath = $filename;
+            $filename = basename($filepath);
+        } else {
+            $baseFilename = mb_strlen($extension) ? mb_substr($filename, 0, mb_strlen($filename) - mb_strlen($extension) - 1) : $filename;
+            $extensions = [
+                'php',
+                'ods',
+                'tsv',
+                'csv',
+            ];
+            $filepath = null;
+            foreach ($extensions as $extension) {
+                $file = "$baseFilename.$extension";
+                if (file_exists(OMEKA_PATH . '/files/' . $file)) {
+                    $filepath = OMEKA_PATH . '/files/' . $file;
+                    break;
+                } elseif (file_exists(dirname(__DIR__, 2) . '/data/imports/' . $file)) {
+                    $filepath = dirname(__DIR__, 2) . '/data/imports/' . $file;
+                    break;
+                }
             }
-        }
-        if (empty($filepath)) {
-            return null;
+            if (empty($filepath)) {
+                return null;
+            }
         }
 
         if ($extension === 'php') {
