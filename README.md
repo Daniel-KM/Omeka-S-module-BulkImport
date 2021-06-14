@@ -202,6 +202,8 @@ See online issues on the [module issues] page on GitLab.
 License
 -------
 
+### Module
+
 This module is published under the [CeCILL v2.1] license, compatible with
 [GNU/GPL] and approved by [FSF] and [OSI].
 
@@ -227,6 +229,12 @@ conditions as regards security.
 
 The fact that you are presently reading this means that you have had knowledge
 of the CeCILL license and that you accept its terms.
+
+### Data
+
+- Table of countries and languages:
+  - https://www.iso.org/obp/ui/
+  - https://download.geonames.org/export/dump/countryInfo.txt
 
 
 Copyright
