@@ -1458,11 +1458,10 @@ SQL;
         if ($action === 'keep private') {
             $this->transformOperations([
                 [
-                    'action' => 'keep_private',
+                    'action' => 'modify_value',
                     'params' => [
-                        'properties' => [
-                            $map['property_id'],
-                        ],
+                        'source' => $map['property_id'],
+                        'is_public' => false,
                     ],
                 ],
             ]);

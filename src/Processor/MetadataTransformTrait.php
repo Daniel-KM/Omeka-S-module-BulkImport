@@ -103,8 +103,8 @@ trait MetadataTransformTrait
                     }
                     break;
 
-                case 'keep_private':
-                    $result = $this->operationKeepPrivate($operation['params']);
+                case 'modify_value':
+                    $result = $this->operationModifyValue($operation['params']);
                     if (!$result) {
                         return;
                     }
@@ -586,40 +586,85 @@ SQL;
         return true;
     }
 
-    protected function operationKeepPrivate(array $params): bool
+    protected function operationModifyValue(array $params): bool
     {
-        if (empty($params['properties'])) {
+        if (empty($params['source'])) {
             $this->logger->err(
-                'The operation "{action}" requires a list of properties.', // @translate
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        if (empty($params['destination'])) {
+            $destinationId = $sourceId;
+        } else {
+            $destinationId = $this->getPropertyId($params['destination']);
+            if (empty($destinationId)) {
+                $this->logger->err(
+                    'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
+                    ['action' => $this->operationName, 'term' => $params['destination']]
+                );
+                return false;
+            }
+        }
+
+        $updates = [];
+        if ($sourceId !== $destinationId) {
+            $updates[] = '`value`.`property_id` = ' . $destinationId;
+        }
+        /* // Use of sql requests from config is not secure.
+        if (isset($params['sql_value'])) {
+            $updates['sql_value'] = '`value`.`value` = ' . $params['sql_value'];
+        }
+        if (isset($params['sql_uri'])) {
+            $updates['sql_uri'] = '`value`.`uri` = ' . $params['sql_uri'];
+        }
+        */
+        $update = array_filter([
+            isset($params['value_prefix']) ? $this->connection->quote($params['value_prefix']) : null,
+            '`value`.`value`',
+            isset($params['value_suffix']) ? $this->connection->quote($params['value_suffix']) : null,
+        ]);
+        if (count($update) > 1) {
+            $updates['value'] = '`value`.`value` = CONCAT(' . implode(', ', $update) . ')';
+        }
+        $update = array_filter([
+            isset($params['uri_prefix']) ? $this->connection->quote($params['uri_prefix']) : null,
+            '`value`.`value`',
+            isset($params['uri_suffix']) ? $this->connection->quote($params['uri_suffix']) : null,
+        ]);
+        if (count($update) > 1) {
+            $updates['uri'] = '`value`.`uri` = CONCAT(' . implode(', ', $update) . ')';
+        }
+        if (isset($params['language'])) {
+            $updates['lang'] = '`value`.`lang` = ' . (empty($params['language']) ? 'NULL' : $this->connection->quote($params['language']));
+        }
+        if (isset($params['is_public'])) {
+            $updates['is_public'] = '`value`.`is_public` = ' . (int) (bool) $params['is_public'];
+        }
+        $updates = array_filter($updates);
+
+        if (!count($updates)) {
+            $this->logger->err(
+                'The operation "{action}" has not defined action to update values.', // @translate
                 ['action' => $this->operationName]
             );
             return true;
         }
 
-        if (!is_array($params['properties'])) {
-            $params['properties'] = [$params['properties']];
-        }
-
-        $properties = [];
-        $errors = [];
-        foreach ($params['properties'] as $property) {
-            $propertyId = $this->bulk->getPropertyId($property);
-            $propertyId
-                ? $properties[$property] = $propertyId
-                : $errors[] = $property;
-            }
-
-        if (count($errors)) {
-            $this->logger->err(
-                'The operation "{action}" has invalid properties: "{terms}".', // @translate
-                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
-            );
-            return false;
-        }
-
-        $propertyIds = implode(', ', $properties);
-
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $updates = implode(",\n    ", $updates);
 
         $this->operationSqls[] = <<<SQL
 # Update values according to rules for each column.
@@ -628,9 +673,9 @@ JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
 $sqlExclude
 SET
-    `value`.`is_public` = 0
+    $updates
 WHERE
-    `value`.`property_id` IN ($propertyIds)
+    `value`.`property_id` = $sourceId
     $sqlExcludeWhere
 ;
 SQL;
