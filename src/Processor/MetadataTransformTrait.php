@@ -1429,19 +1429,29 @@ SQL;
                 continue;
             }
 
+            if (isset($currentMapping[$value]['uri'])
+                && $currentMapping[$value]['uri'] === ''
+                && !empty($currentMapping[$value]['type'])
+            ) {
+                $datatype = $currentMapping[$value]['type'];
+            } else {
+                $datatype = $originalType;
+            }
+
             // Complete the new mapping.
             $currentMapping[$value]['source'] = $value;
             $currentMapping[$value]['items'] = $resourceIds;
             $currentMapping[$value]['uri'] = [];
             $currentMapping[$value]['label'] = [];
             $currentMapping[$value]['info'] = [];
+            $currentMapping[$value]['type'] = [];
 
             $result = $this->valueSuggestQuery($value, $datatype, $params);
 
             if ($result === null) {
                 $this->logger->err(
                     'Operation "{action}": connection issue: skipping next requests for data type "{type}" (term {term}).', // @translate
-                    ['action' => $this->operationName, 'type' => $datatype, 'term' => $term]
+                    ['action' => $this->operationName, 'type' => $datatype, 'term' => $sourceTerm]
                 );
                 break;
             }
@@ -1462,8 +1472,8 @@ SQL;
                 $currentMapping[$value]['uri'][] = $r['data']['uri'];
                 $currentMapping[$value]['label'][] = $r['value'];
                 $currentMapping[$value]['info'][] = $r['data']['info'];
-                if (isset($r['data']['datatype'])) {
-                    $currentMapping[$value]['datatype'][] = $r['data']['datatype'];
+                if (isset($r['data']['type'])) {
+                    $currentMapping[$value]['type'][] = $r['data']['type'];
                 }
             }
 
@@ -1474,7 +1484,7 @@ SQL;
             if ($count % 100 === 0) {
                 $this->logger->info(
                     '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
-                    ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
+                    ['count' => $count, 'total' => $totalList, 'term' => $sourceTerm, 'singles' => $countSingle]
                 );
                 if ($this->isErrorOrStop()) {
                     break;
@@ -1493,7 +1503,7 @@ SQL;
             return [
                 'source' => $v['source'],
                 'property_id' => $sourceId,
-                'type' => $v['datatype'] ?? $datatype,
+                'type' => isset($v['type']) && reset($v['type']) ? reset($v['type']) : $datatype,
                 'value' => reset($v['label']) ?: null,
                 'uri' => reset($v['uri']),
                 // TODO Check and normalize property language.
@@ -1511,7 +1521,7 @@ SQL;
 
         $this->logger->notice(
             'Operation "{action}": {count}/{total} unique values for data type "{type}" (term "{term}") processed, {singles} new values updated with a single uri.', // @translate
-            ['action' => $this->operationName, 'count' => $count, 'total' => $totalList, 'type' => $datatype, 'term' => $term, 'singles' => $countSingle]
+            ['action' => $this->operationName, 'count' => $count, 'total' => $totalList, 'type' => $datatype, 'term' => $sourceTerm, 'singles' => $countSingle]
         );
 
         return true;
@@ -1529,6 +1539,7 @@ SQL;
             'uri' => null,
             'label' => null,
             'info' => null,
+            'type' => null,
         ];
         $table = array_map(function ($v) use ($columns) {
             return array_replace($columns, array_intersect_key($v, $columns));
@@ -1647,14 +1658,14 @@ SQL;
         // TODO Use the right owner.
         $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
         if (isset($params['template'])) {
-            $resourceTemplate = $this->bulk->getResourceTemplateId($params['template']) ?? 'NULL';
-            $resourceClass = $this->bulk->getResourceTemplateClassId($params['template']) ?? 'NULL';
+            $templateId = $this->bulk->getResourceTemplateId($params['template']) ?? 'NULL';
+            $classId = $this->bulk->getResourceTemplateClassId($params['template']) ?? 'NULL';
         } else {
-            $resourceTemplate = 'NULL';
-            $resourceClass = 'NULL';
+            $templateId = 'NULL';
+            $classId = 'NULL';
         }
         if (isset($params['class'])) {
-            $resourceClass = $this->bulk->getResourceClassId($params['class']) ?? 'NULL';
+            $classId = $this->bulk->getResourceClassId($params['class']) ?? 'NULL';
         }
         $resourceType = empty($params['resource_type'])
             ? \Omeka\Entity\Item::class
@@ -1678,8 +1689,8 @@ INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT DISTINCT
     $ownerIdOrNull,
-    $resourceClass,
-    $resourceTemplate,
+    $classId,
+    $templateId,
     $isPublic,
     "$this->currentDateTimeFormatted",
     NULL,
@@ -1764,7 +1775,7 @@ SQL;
     }
 
         $this->operationSqls[] = <<<SQL
-# Add values to new resources.
+# Add the main value to new resources.
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
 SELECT DISTINCT
@@ -1792,7 +1803,7 @@ SQL;
         if ($datatype === 'valuesuggest:geonames:geonames') {
             return $this->valueSuggestQueryGeonames($value, $datatype, $options);
         }
-        if ($datatype === 'valuesuggest:idref:author') {
+        if (in_array($datatype, ['valuesuggest:idref:author', 'valuesuggest:idref:person', 'valuesuggest:idref:corporation', 'valuesuggest:idref:conference'])) {
             return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $options);
         }
 
@@ -2061,7 +2072,15 @@ SQL;
             ? $value
             : '(' . implode(' AND ', array_filter(explode(' ', $value), 'strlen')) . ')';
 
-        $q = "persname_t:$cleanValue OR corpname_t:$cleanValue OR conference_t:$cleanValue";
+        if ($datatype === 'valuesuggest:idref:person') {
+            $q = "persname_t:$cleanValue";
+        } elseif ($datatype === 'valuesuggest:idref:corporation') {
+            $q = "corpname_t:$cleanValue";
+        } elseif ($datatype === 'valuesuggest:idref:conference') {
+            $q = "conference_t:$cleanValue";
+        } else {
+            $q = "persname_t:$cleanValue OR corpname_t:$cleanValue OR conference_t:$cleanValue";
+        }
 
         $query = [
             'q' => $q,
@@ -2142,7 +2161,7 @@ SQL;
                 'data' => [
                     'uri' => 'https://www.idref.fr/' . $result['ppn_z'],
                     'info' => null,
-                    'datatype' => $recordType,
+                    'type' => $recordType,
                 ],
             ];
         }
@@ -2225,6 +2244,7 @@ SQL;
             'items',
             'uri',
             'label',
+            'type',
             'info',
         ];
         /** @var \Box\Spout\Common\Entity\Row $row */
@@ -2244,11 +2264,13 @@ SQL;
             if (!is_array($map['uri'])) {
                 $map['uri'] = array_filter([$map['uri']]);
                 $map['label'] = array_filter([$map['label']]);
+                $map['type'] = array_filter([$map['type']]);
                 $map['info'] = array_filter([$map['info']]);
             }
             if (!count($map['uri'])) {
                 $map['uri'] = [''];
                 $map['label'] = [''];
+                $map['type'] = [''];
                 $map['info'] = [''];
             }
 
@@ -2268,6 +2290,7 @@ SQL;
                 $data = $dataBase;
                 $data[] = $uri;
                 $data[] = $map['label'][$key] ?? '';
+                $data[] = $map['type'][$key] ?? '';
                 $data[] = $map['info'][$key] ?? '';
                 $row = WriterEntityFactory::createRowFromArray($data);
                 if ($even) {
@@ -2395,6 +2418,7 @@ SQL;
                     <th scope="col">items</th>
                     <th scope="col">uri</th>
                     <th scope="col">label</th>
+                    <th scope="col">type</th>
                     <th scope="col">info</th>
                 </tr>
             </thead>
@@ -2444,7 +2468,7 @@ HTML;
         $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($map['source'], ENT_NOQUOTES | ENT_HTML5)) . "\n";
         $html .= sprintf('                    <td%s>%s</td>', $rowspan, $resources) . "\n";
         if (!reset($map['uri'])) {
-            $html .= str_repeat('                    <td></td>' . "\n", 3);
+            $html .= str_repeat('                    <td></td>' . "\n", 4);
             $html .= "                </tr>\n";
         } else {
             $first = true;
@@ -2456,9 +2480,11 @@ HTML;
                 }
                 $code = (string) basename(rtrim($uri, '/'));
                 $label = $map['label'][$key] ?? '';
+                $type = $map['type'][$key] ?? '';
                 $info = $map['info'][$key] ?? '';
                 $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
                 $html .= sprintf('                    <td>%s</td>', htmlspecialchars($label, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($type, ENT_NOQUOTES | ENT_HTML5)) . "\n";
                 $html .= sprintf('                    <td>%s</td>', htmlspecialchars($info, ENT_NOQUOTES | ENT_HTML5)) . "\n";
                 $html .= "                </tr>\n";
             }
