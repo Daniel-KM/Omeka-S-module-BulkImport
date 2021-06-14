@@ -536,8 +536,8 @@ $sqlExclude
 WHERE
     `value`.`property_id` = $sourceId
     AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND (`value`.`value` <> "")
-    AND (`value`.`value` IS NOT NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
     AND `value_item_set`.`property_id` = $sourceIdentifierId
     AND (`value_item_set`.`type` = "literal" OR `value_item_set`.`type` = "" OR `value_item_set`.`type` IS NULL)
     AND `value`.`value` = `value_item_set`.`value`
@@ -923,7 +923,7 @@ SQL;
 # Create a new trimmed value with first part.
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
-SELECT
+SELECT DISTINCT
     `value`.`resource_id`,
     {$binds['property_id_1']},
     `value`.`value_resource_id`,
@@ -1395,8 +1395,8 @@ $sqlExclude
 WHERE
     `value`.`property_id` IN ($propertyIds)
     AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND (`value`.`value` <> "")
-    AND (`value`.`value` IS NOT NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
     $sqlExcludeWhere
 ;
 SQL;
@@ -1452,7 +1452,7 @@ SQL;
         $sql = <<<SQL
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT
+SELECT DISTINCT
     `value`.`resource_id`,
     `_temporary_mapper`.`property_id`,
     `_temporary_mapper`.`value_resource_id`,
@@ -1559,7 +1559,7 @@ SQL;
 # Create resources.
 INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
-SELECT
+SELECT DISTINCT
     $ownerIdOrNull,
     $resourceClass,
     $resourceTemplate,
@@ -1632,7 +1632,7 @@ SQL;
 # Create medias for created resources.
 INSERT INTO `media`
     (`id`, `item_id`, `ingester`, `renderer`, `has_original`, `has_tumbnails`)
-SELECT
+SELECT DISTINCT
     `resource`.`id`,
     0,
     "",
@@ -1650,7 +1650,7 @@ SQL;
 # Add values to new resources.
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT
+SELECT DISTINCT
     `resource`.`id`,
     `_temporary_mapper`.`property_id`,
     `_temporary_mapper`.`value_resource_id`,
