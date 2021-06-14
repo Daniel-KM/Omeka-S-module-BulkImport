@@ -99,6 +99,9 @@ class ManiocProcessor extends AbstractFullProcessor
         foreach ($this->prepareReader('etablissements') as $etablissement) {
             $this->map['etablissements'][$etablissement['id_etabl']] = $etablissement['nom_etabl'];
         }
+
+        $this->prepareInternalVocabularies();
+        $this->prepareInternalTemplates();
     }
 
     protected function postImport(): void

@@ -968,6 +968,17 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->map['by_id']['resource_classes'] = array_map('intval', array_column($this->map['resource_classes'], 'id', 'source'));
     }
 
+    /**
+     * When no template is imported, the mapping should be filled for templates
+     * to simplify resource filling.
+     *
+     * @see \BulkImport\Processor\VocabularyTrait::prepareVocabularyMembers()
+     */
+    protected function prepareInternalTemplates(): void
+    {
+        $this->map['resource_templates'] = $this->getResourceTemplateIds();
+    }
+
     protected function checkVocabularies(): void
     {
         // The clone is needed because the properties use the reader inside the
