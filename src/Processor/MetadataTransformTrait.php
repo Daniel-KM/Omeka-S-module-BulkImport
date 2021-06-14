@@ -29,6 +29,7 @@ trait MetadataTransformTrait
      *
      * The use case is to fill creators and contributors with the same endpoint.
      * It allows to use a manual user mapping or a previous mapping too.
+     * It is used to fill output too (ods and html).
      *
      * @var array
      */
@@ -45,6 +46,13 @@ trait MetadataTransformTrait
     protected $operationExcludes = [];
 
     protected $operationRandoms = [];
+
+    /**
+     * Maximum number of resources to display in ods/html output.
+     *
+     * @var integer
+     */
+    protected $outputByColumn = 10;
 
     protected function transformOperations(array $operations = []): void
     {
@@ -1582,12 +1590,27 @@ SQL;
         };
 
         $mapper = array_map(function ($v) use ($sourceId, $datatype) {
+            if (!isset($v['uri'])) {
+                $uri = null;
+            } else {
+                $uri = is_array($v['uri']) ? reset($v['uri']) : $v['uri'];
+            }
+            if (!isset($v['label'])) {
+                $label = null;
+            } else {
+                $label = is_array($v['label']) ? reset($v['label']) : $v['label'];
+            }
+            if (isset($v['type'])) {
+                $type = is_array($v['type']) && reset($v['type']) ? reset($v['type']) : $datatype;
+            } else {
+                $type = $datatype;
+            }
             return [
                 'source' => $v['source'],
                 'property_id' => $sourceId,
-                'type' => isset($v['type']) && reset($v['type']) ? reset($v['type']) : $datatype,
-                'value' => reset($v['label']) ?: null,
-                'uri' => reset($v['uri']),
+                'type' => $type,
+                'value' => $label,
+                'uri' => $uri,
                 // TODO Check and normalize property language.
                 'lang' => null,
                 'value_resource_id' => null,
@@ -1747,7 +1770,7 @@ SQL;
             if (empty($currentMapping[$value]['items'])) {
                 $ids = $resourceIds;
             } else {
-                $ids = array_filter(explode(' ', $currentMapping[$value]['items'] . ' ' . $resourceIds));
+                $ids = array_filter(explode(' ', str_replace('#', ' ', $currentMapping[$value]['items']) . ' ' . $resourceIds));
                 sort($ids);
                 $ids = implode(' ', array_unique($ids));
             }
@@ -1823,7 +1846,7 @@ SQL;
 
             if ($count % 100 === 0) {
                 $this->logger->info(
-                    'Operation "{action}": {count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
+                    'Operation "{action}": {count}/{total} unique values for term "{term}" processed, {singles} values with a single uri.', // @translate
                     ['action' => $this->operationName, 'count' => $count, 'total' => count($list), 'term' => $sourceTerm, 'singles' => $countSingle]
                 );
                 if ($this->isErrorOrStop()) {
@@ -2751,13 +2774,31 @@ SQL;
      */
     protected function saveValueSuggestMappings(): void
     {
+        $columns = [
+            'source',
+            'items',
+            'uri',
+            'label',
+            'type',
+            'info',
+        ];
         foreach ($this->valueSuggestMappings as $name => $mapper) {
-            $this->saveValueSuggestMappingToOds($name, $mapper);
-            $this->saveValueSuggestMappingToHtml($name, $mapper);
+            // Prepare the list of specific headers one time in order to save
+            // the fetched data and the ones from the original file.
+            $headers = [];
+            foreach ($mapper as $map) {
+                $headers = array_unique(array_merge($headers, array_keys($map)));
+            }
+            $headers = array_flip(array_diff($headers, $columns));
+            unset($headers['']);
+            unset($headers[0]);
+            $headers = array_keys($headers);
+            $this->saveValueSuggestMappingToOds($name, $mapper, $headers);
+            $this->saveValueSuggestMappingToHtml($name, $mapper, $headers);
         }
     }
 
-    protected function saveValueSuggestMappingToOds(string $name, array $mapper): void
+    protected function saveValueSuggestMappingToOds(string $name, array $mapper, array $extraColumns = []): void
     {
         $basePath = trim($this->job->getArg('base_path'), '/');
         $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
@@ -2802,8 +2843,15 @@ SQL;
             'type',
             'info',
         ];
+        $extraColumns = array_values(array_unique(array_filter(array_diff($extraColumns, $headers))));
+        $mostColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items']));
+        $tableHeaders = array_values(array_merge($headers, $extraColumns));
+        $emptyRow = array_fill_keys($tableHeaders, ['']);
+        $emptyRow['source'] = '';
+        $emptyRow['items'] = '';
+
         /** @var \Box\Spout\Common\Entity\Row $row */
-        $row = WriterEntityFactory::createRowFromArray($headers, (new StyleBuilder())->setFontBold()->build());
+        $row = WriterEntityFactory::createRowFromArray($tableHeaders, (new StyleBuilder())->setFontBold()->build());
         $spreadsheetWriter->addRow($row);
 
         $newStyle = (new StyleBuilder())->setBackgroundColor(Color::rgb(208, 228, 245))->build();
@@ -2815,23 +2863,34 @@ SQL;
                 continue;
             }
 
-            // In the case where a user mapped value was not updated.
-            if (!is_array($map['uri'])) {
-                $map['uri'] = array_filter([$map['uri']]);
-                $map['label'] = array_filter([$map['label']]);
-                $map['type'] = array_filter([$map['type']]);
-                $map['info'] = array_filter([$map['info']]);
+            // Fill the map with all columns.
+            // There should be at least one uri to keep the row below.
+            if (is_array($map['uri'])) {
+                foreach ($mostColumns as $column) {
+                    $map[$column] = isset($map[$column]) && count($map[$column])
+                        ? $map[$column]
+                        : [''];
+                }
             }
-            if (!count($map['uri'])) {
-                $map['uri'] = [''];
-                $map['label'] = [''];
-                $map['type'] = [''];
-                $map['info'] = [''];
+            // In the case where a user mapped value was not updated (not found
+            // in database or not migrated).
+            else {
+                foreach ($mostColumns as $column) {
+                    $map[$column] = isset($map[$column]) ? [$map[$column]] : [''];
+                }
             }
 
+            // The order should be always the same.
+            $map = array_replace($emptyRow, $map);
+
             $resources = '';
-            foreach (array_unique(array_filter(explode(' ', $map['items']))) as $id) {
-                $resources .= sprintf('%sadmin/item/%d', $baseUrl, $id) . "\n";
+            $list = array_unique(array_filter(explode(' ', str_replace('#', ' ', $map['items']))));
+            foreach (array_chunk($list, $this->outputByColumn) as $chunk) {
+                foreach ($chunk as $id) {
+                    // $resources .= sprintf('%sadmin/item/%d ', $baseUrl, $id);
+                    $resources .= "#$id ";
+                }
+                // $resources .= "\n";
             }
             $resources = trim($resources);
 
@@ -2841,12 +2900,11 @@ SQL;
             ];
 
             $dataBase = $data;
-            foreach ($map['uri'] as $key => $uri) {
+            foreach (array_keys($map['uri']) as $key) {
                 $data = $dataBase;
-                $data[] = $uri;
-                $data[] = $map['label'][$key] ?? '';
-                $data[] = $map['type'][$key] ?? '';
-                $data[] = $map['info'][$key] ?? '';
+                foreach ($mostColumns as $column) {
+                    $data[] = $map[$column][$key] ?? '';
+                }
                 $row = WriterEntityFactory::createRowFromArray($data);
                 if ($even) {
                     $row->setStyle($newStyle);
@@ -2868,14 +2926,30 @@ SQL;
         );
     }
 
-    protected function saveValueSuggestMappingToHtml(string $name, array $mapper): void
+    protected function saveValueSuggestMappingToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
         $basePath = trim($this->job->getArg('base_path'), '/');
         $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'html');
         $relativePath = $this->getOutputFilepath($name, 'html', true);
 
-        $this->prepareValueSuggestMappingToHtml($filepath, 'start', $name);
+        $headers = [
+            'source',
+            'items',
+            'uri',
+            'label',
+            'type',
+            'info',
+        ];
+        $extraColumns = array_values(array_unique(array_filter(array_diff($extraColumns, $headers))));
+        $mostColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items']));
+        $moreColumns = array_values(array_diff(array_merge($headers, $extraColumns), ['source', 'items', 'uri']));
+        $tableHeaders = array_values(array_merge($headers, $extraColumns));
+        $emptyRow = array_fill_keys($tableHeaders, ['']);
+        $emptyRow['source'] = '';
+        $emptyRow['items'] = '';
+
+        $this->prepareValueSuggestMappingToHtml($filepath, 'start', $name, $tableHeaders);
 
         $fp = fopen($filepath, 'ab');
 
@@ -2885,19 +2959,27 @@ SQL;
                 continue;
             }
 
-            // In the case where a user mapped value was not updated.
-            if (!is_array($map['uri'])) {
-                $map['uri'] = array_filter([$map['uri']]);
-                $map['label'] = array_filter([$map['label']]);
-                $map['info'] = array_filter([$map['info']]);
+            // Fill the map with all columns.
+            // There should be at least one uri to keep the row below.
+            if (is_array($map['uri'])) {
+                foreach ($mostColumns as $column) {
+                    $map[$column] = isset($map[$column]) && count($map[$column])
+                        ? $map[$column]
+                        : [''];
+                }
             }
-            if (!count($map['uri'])) {
-                $map['uri'] = [''];
-                $map['label'] = [''];
-                $map['info'] = [''];
+            // In the case where a user mapped value was not updated (not found
+            // in database or not migrated).
+            else {
+                foreach ($mostColumns as $column) {
+                    $map[$column] = isset($map[$column]) ? [$map[$column]] : [''];
+                }
             }
 
-            $this->appendValueSuggestMappingToHtml($fp, $map, $baseUrl);
+            // The order should be always the same.
+            $map = array_replace($emptyRow, $map);
+
+            $this->appendValueSuggestMappingToHtml($fp, $map, $baseUrl, $moreColumns);
         }
 
         fclose($fp);
@@ -2912,7 +2994,7 @@ SQL;
         );
     }
 
-    protected function prepareValueSuggestMappingToHtml(string $filepath, ?string $part = null, ?string $name = null): void
+    protected function prepareValueSuggestMappingToHtml(string $filepath, ?string $part = null, ?string $name = null, array $tableHeaders = []): void
     {
         if ($name) {
             $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
@@ -2921,7 +3003,13 @@ SQL;
             $title = '';
         }
 
-        $html = <<<HTML
+        $tableHeadersHtml = '';
+        foreach ($tableHeaders as $header) {
+            $tableHeadersHtml .= sprintf('                    <th scope="col">%s</th>', $header) . "\n";
+        }
+        $tableHeadersHtml = trim($tableHeadersHtml);
+
+       $html = <<<HTML
 <!DOCTYPE html>
 <html>
     <head>
@@ -2962,6 +3050,12 @@ SQL;
         table.blueTable thead th:first-child {
             border-left: none;
         }
+        table th,
+        table td {
+            min-width: 10%;
+            width: auto;
+            max-width: 25%;
+        }
         </style>
     </head>
     <body>
@@ -2969,12 +3063,7 @@ SQL;
         <table class="blueTable">
             <thead>
                 <tr>
-                    <th scope="col">source</th>
-                    <th scope="col">items</th>
-                    <th scope="col">uri</th>
-                    <th scope="col">label</th>
-                    <th scope="col">type</th>
-                    <th scope="col">info</th>
+                    $tableHeadersHtml
                 </tr>
             </thead>
             <tbody>
@@ -3006,43 +3095,39 @@ HTML;
         file_put_contents($filepath, $html);
     }
 
-    protected function appendValueSuggestMappingToHtml($fp, array $map, string $baseUrl): void
+    protected function appendValueSuggestMappingToHtml($fp, array $map, string $baseUrl, array $columns): void
     {
+        // Don't repeat same source and items.
         $count = count($map['uri']);
         $rowspan = $count <= 1 ? '' : sprintf(' rowspan="%d"', $count);
 
         $resources = '';
-        foreach (array_unique(array_filter(explode(' ', $map['items']))) as $id) {
+        $list = array_unique(array_filter(explode(' ', str_replace('#', ' ', $map['items']))));
+        foreach ($list as $id) {
             $resources .= sprintf(
-                '<a href="%sadmin/item/%d" target="_blank">#%d</a><br/>',
+                '<a href="%sadmin/item/%s" target="_blank">#%s</a>' . " \n",
                 $baseUrl, $id, $id
-            ) . "\n";
+            );
         }
 
         $html = "                <tr>\n";
         $html .= sprintf('                    <td scope="row"%s>%s</td>', $rowspan, htmlspecialchars($map['source'], ENT_NOQUOTES | ENT_HTML5)) . "\n";
         $html .= sprintf('                    <td%s>%s</td>', $rowspan, $resources) . "\n";
-        if (!reset($map['uri'])) {
-            $html .= str_repeat('                    <td></td>' . "\n", 4);
-            $html .= "                </tr>\n";
-        } else {
-            $first = true;
-            foreach ($map['uri'] as $key => $uri) {
-                if ($first) {
-                    $first = false;
-                } else {
-                    $html .= "                <tr>\n";
-                }
-                $code = (string) basename(rtrim($uri, '/'));
-                $label = $map['label'][$key] ?? '';
-                $type = $map['type'][$key] ?? '';
-                $info = $map['info'][$key] ?? '';
-                $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($label, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($type, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($info, ENT_NOQUOTES | ENT_HTML5)) . "\n";
-                $html .= "                </tr>\n";
+
+        $first = true;
+        foreach ($map['uri'] as $key => $uri) {
+            if ($first) {
+                $first = false;
+            } else {
+                $html .= "                <tr>\n";
             }
+            $code = (string) basename(rtrim($uri, '/'));
+            $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+            foreach ($columns as $column) {
+                $value = $map[$column][$key] ?? '';
+                $html .= sprintf('                    <td>%s</td>', htmlspecialchars($value, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+            }
+            $html .= "                </tr>\n";
         }
 
         fwrite($fp, $html);
