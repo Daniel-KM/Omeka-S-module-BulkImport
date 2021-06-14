@@ -314,6 +314,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'name' => 'media',
             'class' => \Omeka\Entity\Media::class,
             'table' => 'media',
+            'fill' => 'fillMediaItemMedia',
             'parent' => 'media_items',
         ],
         // Modules.
@@ -585,10 +586,28 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // TODO Finalize skip import of vocabularies, resource templates and custom vocabs.
         $args = $this->getParams();
+        $args['types_selected'] = $args['types'];
         $args['types'][] = 'vocabularies';
         $args['types'][] = 'resource_templates';
         $args['types'][] = 'custom_vocabs';
+
+        // Manage the case where the source manage media as items.
+        if (!empty($this->mapping['media_items']['source'])) {
+            $hasItem = array_search('items', $args['types']);
+            $hasMedia = array_search('media', $args['types']);
+            if ($hasItem !== false) {
+                unset($args['types'][$hasItem]);
+            }
+            if ($hasMedia !== false) {
+                unset($args['types'][$hasMedia]);
+            }
+            $args['types'][] = 'media_items';
+        }
+
         $args['types'] = array_unique($args['types']);
+
+        $args['fake_files'] = !empty($args['fake_files']);
+
         $this->setParams($args);
 
         $this->importables = array_replace($this->importables, $this->moreImportables);

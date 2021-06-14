@@ -28,9 +28,10 @@ class ManiocProcessor extends AbstractFullProcessor
         'types' => [
             'users',
             'items',
-            // 'media',
+            'media',
             'item_sets',
         ],
+        'fake_files' => true,
         'language' => null,
         'endpoint' => null,
     ];
@@ -41,13 +42,17 @@ class ManiocProcessor extends AbstractFullProcessor
             'key_id' => 'id',
         ],
         'items' => [
+            'source' => null,
+            'key_id' => 'id_fichier',
+        ],
+        'media' => [
+            'source' => null,
+            'key_id' => 'id_fichier',
+        ],
+        'media_items' => [
             'source' => 'fichiers',
             'key_id' => 'id_fichier',
         ],
-        // 'media' => [
-        //     'source' => 'media',
-        //     'key_id' => 'o:id',
-        // ],
         'item_sets' => [
             'source' => 'collections',
             'key_id' => 'id_collection',
@@ -94,6 +99,25 @@ class ManiocProcessor extends AbstractFullProcessor
             return;
         }
 
+        // TODO Remove these fixes.
+        $args = $this->getParams();
+
+        if (empty($args['types_selected'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The job cannot be restarted.' // @translate
+            );
+            return;
+        }
+
+        if (empty($args['types'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The job cannot be restarted. Restart import from the beginning.' // @translate
+            );
+            return;
+        }
+
         // TODO Check if the properties of the mapping are all presents.
 
         $this->logger->info(
@@ -114,6 +138,11 @@ class ManiocProcessor extends AbstractFullProcessor
 
         foreach ($this->prepareReader('etablissements') as $etablissement) {
             $this->map['etablissements'][$etablissement['id_etabl']] = $etablissement['nom_etabl'];
+        }
+
+        // Simplifie la création des urls pour les fichiers.
+        foreach ($this->prepareReader('item_sets') as $itemSet) {
+            $this->map['collections'][$itemSet['id_collection']] = $itemSet['code_collection'];
         }
 
         $this->prepareInternalVocabularies();
@@ -177,25 +206,41 @@ class ManiocProcessor extends AbstractFullProcessor
         $this->refreshMainResources();
     }
 
-    protected function fillItems(): void
+    protected function fillMediaItems(): void
     {
-        $this->fillResources($this->prepareReader('items'), 'items');
-        $this->fillValues($this->prepareReader('values'));
-    }
+        parent::fillMediaItems();
 
-    protected function fillItemSets(): void
-    {
-        $this->fillResources($this->prepareReader('item_sets'), 'item_sets');
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $this->fillValues($this->prepareReader('values'));
     }
 
     protected function fillOthers(): void
     {
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        // The media data are available only when values are set, even if it is
+        // possible to use the original tables.
+        foreach ($this->prepareReader('media_items') as $mediaItem) {
+            $this->entity = $this->entityManager
+                ->find(\Omeka\Entity\Item::class, $this->map['media_items'][$mediaItem['id_fichier']]);
+            $this->fillMediaItemMedia($mediaItem);
+        }
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
         $this->fillItemTemplates();
         $this->transformItemValues();
         parent::fillOthers();
     }
 
-    protected function fillItem(array $source): void
+    protected function fillMediaItem(array $source): void
     {
         $source = array_map('trim', array_map('strval', $source));
 
@@ -265,8 +310,146 @@ class ManiocProcessor extends AbstractFullProcessor
         }
 
         $this->appendValues($values);
+    }
 
-        // Media are updated separately in order to manage files.
+    /**
+     * Le chemin se trouve dans les métadonnées, pas encore disponible ici.
+     * Le media est donc importé dans un second temps, après les valeurs.
+     */
+    protected function fillMediaItemMedia(array $source): void
+    {
+        $propertyId = $this->bulk->getPropertyId('greenstone:sourceFilename');
+
+        /** @var \Omeka\Entity\Value $value */
+        $greenstoneFilename = null;
+        foreach ($this->entity->getValues() as $value) {
+            if ($value->getProperty()->getId() === $propertyId) {
+                $greenstoneFilename = $value->getValue();
+                break;
+            }
+        }
+        if (!$greenstoneFilename) {
+            $this->logger->warn(
+                'No filename to attach a media to item #{item_id}.', // @translate
+                ['item_id' => $this->entity->getId()]
+            );
+            return;
+        }
+
+        // Le fichier a forcément une collection, sinon on ne peut pas déterminer son nom.
+        if (empty($source['id_collection'])) {
+            $this->logger->warn(
+                'Pas de collection pour le contenu #{item_id}.', // @translate
+                ['item_id' => $this->entity->getId()]
+            );
+            return;
+        }
+        $itemSetCode = $this->map['collections'][$source['id_collection']];
+
+        /*
+        $identifier = null;
+        $propertyId = $this->bulk->getPropertyId('dcterms:identifier');
+        foreach ($this->entity->getValues() as $value) {
+            if ($value->getProperty()->getId() === $propertyId) {
+                $identifier = $value->getValue();
+                break;
+            }
+        }
+
+        $uri = null;
+        $propertyId = $this->bulk->getPropertyId('bibo:uri');
+        foreach ($this->entity->getValues() as $value) {
+            if ($value->getProperty()->getId() === $propertyId) {
+                $uri = $value->getValue();
+                break;
+            }
+        }
+        */
+
+        $title = $greenstoneFilename;
+
+        // Les fichiers sont gérés par collection.
+
+        // Images.
+        // http://www.manioc.org/gsdl/collect/images/index/assoc/BBX17011/-0304i1.dir/BBX17011-0304i1.jpg
+        //                                    /gsdl/collect/images/index/assoc/PAP11077/0018i4.dir/PAP110770018i4.jpg
+        // Fichier : #15559 / BBX17011-0304i1 / collection 4
+        // Identifiant : BBX17011-0304i1
+        // greenstoneFilename : import/2018/BBX17011/BBX17011-0304i1.jpg
+
+        // Audio-vidéo.
+        // http://www.manioc.org/telecharger.php?collect=patrimon&fichier=http://www.manioc.org/patrimon/PAP11186
+        // http://www.manioc.org/gsdl/collect/fichiers/import/video/2014/martinique/Hist-1205-8.mp4
+        // greenstoneFilename : import/video/2014/martinique/Hist-1205-8.flv
+
+        // Quand le fichier est un flv, un second fichier en mp4 se trouve dans
+        // dcterms:isFormatOf, qui est le même sauf l'extension "mp4".
+        if (strtolower(pathinfo($greenstoneFilename, PATHINFO_EXTENSION)) === 'flv') {
+            $greenstoneFilename = substr_replace($greenstoneFilename, 'mp4', -3);
+        }
+
+        $extension = pathinfo($greenstoneFilename, PATHINFO_EXTENSION);
+        $filenameBase = pathinfo($greenstoneFilename, PATHINFO_FILENAME);
+
+        // Le lien n'est pas migré.
+        switch ($itemSetCode) {
+            case 'images':
+                $filename = pathinfo($greenstoneFilename, PATHINFO_BASENAME);
+                // Dossier ou 8 premières lettres ?
+                $dossier = basename(dirname($greenstoneFilename));
+                $sousDossier = substr($filenameBase, strlen($dossier)) . '.dir';
+                $url = 'http://www.manioc.org/gsdl/collect/' . $itemSetCode . '/index/assoc/' . $dossier . '/' . $sousDossier . '/' . $filename;
+                break;
+            default:
+                $url = 'http://www.manioc.org/gsdl/collect/' . $itemSetCode . '/' . $greenstoneFilename;
+                break;
+        }
+
+        /** @var \Omeka\Entity\Media $media */
+        $media = $this->entityManager
+            ->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source[$this->mapping['media_items']['key_id']]]);
+        $media->setOwner($this->entity->getOwner());
+        $media->setItem($this->entity);
+        // $media->setResourceClass($this->main['classes'][$class]);
+        // $media->setResourceTemplate($this->main['templates']['Fichier']);
+        $media->setTitle($title);
+        $media->setIsPublic(true);
+        $media->setIngester('upload');
+        $media->setRenderer('file');
+        // $media->setData(null);
+        $media->setSource($source['fichier']);
+        $media->setPosition(1);
+        $media->setCreated($this->entity->getCreated());
+        $modified = $this->entity->getModified();
+        if ($modified) {
+            $media->setModified($modified);
+        }
+
+        // @see \Omeka\File\TempFile::getStorageId()
+        $storageId = $this->entity->getId() . '/' . $filenameBase;
+        $result = $this->fetchUrl('original', $greenstoneFilename, $greenstoneFilename, $storageId, $extension, $url);
+        if ($result['status'] !== 'success') {
+            $this->logger->err($result['message']);
+        }
+        // Continue in order to update other metadata, in particular item.
+        else {
+            $media->setStorageId($storageId);
+            $media->setExtension(mb_strtolower($extension));
+            $media->setSha256($result['data']['sha256']);
+            $media->setMediaType($result['data']['media_type']);
+            $media->setHasOriginal(true);
+            $media->setHasThumbnails($result['data']['has_thumbnails']);
+            $media->setSize($result['data']['size']);
+        }
+
+        $values = [];
+        $values[] = [
+            'term' => 'dcterms:title',
+            'lang' => null,
+            'value' => $title,
+            'is_public' => true,
+        ];
+        $this->appendValues($values, $media);
     }
 
     protected function fillItemSet(array $source): void
@@ -295,7 +478,7 @@ class ManiocProcessor extends AbstractFullProcessor
         $values[] = [
             'term' => 'dcterms:identifier',
             'lang' => null,
-            'value' => 'greenstone_id: ' . $source['id_collection'],
+            'value' => 'greenstone_collection_id: ' . $source['id_collection'],
             'is_public' => false,
         ];
 
@@ -327,7 +510,7 @@ class ManiocProcessor extends AbstractFullProcessor
             return;
         }
 
-        $resources = array_filter($this->map['items']);
+        $resources = array_filter($this->map['media_items']);
         if (!count($resources)) {
             $this->logger->warn(
                 'There is no resource for values.' // @translate
@@ -342,7 +525,7 @@ class ManiocProcessor extends AbstractFullProcessor
 
         // Copy the mapping of source ids and resource ids.
         // It's quicker to use a temp file and it avoids a large query.
-        $filepath = $this->saveKeyPairToTsv('items', true);
+        $filepath = $this->saveKeyPairToTsv('media_items', true);
         if (empty($filepath)) {
             return;
         }
@@ -385,7 +568,7 @@ SQL;
         // Don't use infile, because it may require infile global file rights,
         // that may be not set.
         // Warning: array_chunk() removes keys by default.
-        foreach (array_chunk(array_filter($this->map['items']), self::CHUNK_RECORD_IDS, true) as $chunk) {
+        foreach (array_chunk(array_filter($this->map['media_items']), self::CHUNK_RECORD_IDS, true) as $chunk) {
             array_walk($chunk, function (&$v, $k): void {
                 $v = "$k,$v";
             });
@@ -466,6 +649,10 @@ SQL;
             '{total} values have been copied from the source.', // @translate
             ['total' => $total]
         );
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
     }
 
     /**
@@ -741,6 +928,10 @@ SQL;
         $this->logger->notice(
             'Updated templates for resources.' // @translate
         );
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
     }
 
     protected function transformItemValues(): void

@@ -88,6 +88,18 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 ],
             ])
             ->add([
+                'name' => 'fake_files',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Fake files', // @translate
+                    'info' => 'This option avoids fetching and processing files.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'fake_files',
+                    'value' => '1',
+                ],
+            ])
+            ->add([
                 'name' => 'language',
                 'type' => Element\Text::class,
                 'options' => [
