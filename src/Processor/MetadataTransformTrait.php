@@ -46,335 +46,13 @@ trait MetadataTransformTrait
 
     protected $operationRandoms = [];
 
-    protected function transformResetProcess(): void
-    {
-        $this->operationSqls = [];
-        $this->operationExcludes = [];
-    }
-
-    protected function transformLiteralToVarious($term, array $options = []): void
-    {
-        $this->transformResetProcess();
-
-        if (!$this->checkTransformArguments($term, $options)) {
-            return;
-        }
-
-        if (empty($options['name'])) {
-            $options['name'] = str_replace(':', '-', $term);
-        }
-
-        $mapping = $this->loadTable($options['mapping']);
-        $this->transformLiteralValues($term, $mapping, $options);
-    }
-
-    protected function transformLiteralToValueSuggest($term, array $options = []): void
-    {
-        $this->transformResetProcess();
-
-        if (empty($options['name'])) {
-            $options['name'] = str_replace(':', '-', $term .'_' . ++$this->transformIndex);
-        }
-
-        if (empty($options['mapping']) || !empty($options['partial'])) {
-            $this->transformLiteralToValueSuggestWithApi($term, $options);
-            return;
-        }
-
-        if (!$this->checkTransformArguments($term, $options)) {
-            return;
-        }
-
-        $mapping = $this->loadTable($options['mapping']) ?: [];
-        $datatype = $options['datatype'] ?? null;
-        foreach ($mapping as &$map) {
-            $mapping['type'] = $datatype;
-        }
-        unset($map);
-
-        $this->transformLiteralValues($term, $mapping, $options);
-    }
-
-    /**
-     * The mapping should be already checked.
-     *
-     * @todo Merge with self::operationReplaceTable()
-     */
-    protected function transformLiteralValues($term, ?array $mapping, array $options = []): void
-    {
-        if (empty($mapping)) {
-            $this->logger->warn(
-                'No mapping or empty mapping in file "{file}" for operation "{operation}" (term "{term}").', // @translate
-                ['file' => $options['mapping'], 'operation' => 'transform', 'term' => $term]
-            );
-            return;
-        }
-
-        $propertyId = $this->getPropertyId($term);
-        $prefix = $options['prefix'] ?? false;
-
-        // Prepare the mapping. Cells are already trimmed strings.
-        $hasMultipleDestinations = false;
-        $mapper = [];
-        foreach ($mapping as $map) {
-            $source = $map['source'] ?? null;
-            $destination = $map['destination'] ?? null;
-            if (!$source || !$destination) {
-                continue;
-            }
-
-            // Manage the case where a single value is mapped to multiple ones,
-            // for example a value to explode into a list of languages.
-            $destination = array_filter(array_map('trim', explode('|', $destination)), 'strlen');
-            if (!count($destination)) {
-                continue;
-            }
-
-            $hasMultipleDestinations = $hasMultipleDestinations
-                || count($destination) > 1;
-
-            $type = empty($map['type']) ? 'literal' : $map['type'];
-            $value = empty($map['label']) ? null : $map['label'];
-            if ($type === 'literal' && (string) $value === '') {
-                // Unchanged or empty literal value?
-                $this->logger->warn(
-                    'Cannot convert source "{source}" into "{destination}": a literal value cannot be empty.', // @translate
-                    ['source' => $map['source'], 'destination' => $map['destination']]
-                );
-                continue;
-            }
-
-            // TODO Check and normalize property language.
-            $lang = empty($map['lang']) ? null : $map['lang'];
-
-            if ($prefix) {
-                foreach ($destination as &$dest) {
-                    if (strpos($dest, $prefix) !== 0) {
-                        $dest = $prefix . $dest;
-                    }
-                }
-            }
-            unset($dest);
-
-            foreach ($destination as $dest) {
-                $mapper[] = [
-                    'source' => $source,
-                    'property_id' => $propertyId,
-                    'type' => $type,
-                    'value' => $value,
-                    'uri' => $type === 'literal' ? null : $dest,
-                    'lang' => $lang,
-                    'value_resource_id' => null,
-                    // TODO Try to keep original is_public.
-                    'is_public' => 1,
-                ];
-            }
-        }
-
-        $this->storeMappingTable($mapper, $hasMultipleDestinations);
-
-        // TODO Add a stat message.
-    }
-
-    protected function transformLiteralToValueSuggestWithApi($term, array $options = []): void
-    {
-        $this->transformResetProcess();
-
-        // The mapping is optional, so not checked.
-        if (empty($options['mapping'])) {
-            unset($options['mapping']);
-        }
-        if (!$this->checkTransformArguments($term, $options)) {
-            return;
-        }
-
-        $propertyId = $this->getPropertyId($term);
-        $term = $this->getPropertyTerm($propertyId);
-        $datatype = $options['datatype'];
-
-        // Get the list of unique values.
-        // TODO Only literal: the already mapped values (label + uri) can be used as mapping, but useless for a new database.
-        $sql = <<<'SQL'
-SELECT DISTINCT
-    `value`.`value` AS `v`,
-    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
-FROM `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-JOIN `item`
-    ON `item`.`id` = `value`.`resource_id`
-WHERE
-    `value`.`type` = "literal"
-    AND `value`.`property_id` = :property_id
-GROUP BY `v`
-ORDER BY `v`;
-
-SQL;
-        $bind = ['property_id' => $propertyId];
-        $stmt = $this->connection->executeQuery($sql, $bind);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $list = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $list = array_column($list, 'r', 'v');
-
-        $this->logger->info(
-            'Processing {total} unique literal values for term "{term}" to map to "{datatype}".', // @translate
-            ['total' => count($list), 'term' => $term, 'datatype' => $datatype]
-        );
-        $totalList = count($list);
-        if (!$totalList) {
-            return;
-        }
-
-        $this->prepareValueSuggestMapping($options);
-        $currentMapping = &$this->valueSuggestMappings[$options['name']];
-
-        $count = 0;
-        $countSingle = 0;
-        foreach ($list as $value => $resourceIds) {
-            ++$count;
-            $value = trim((string) $value);
-
-            // In all cases, update the resource ids for future check.
-            if (empty($currentMapping[$value]['items'])) {
-                $ids = $resourceIds;
-            } else {
-                $ids = array_filter(explode(' ', $currentMapping[$value]['items'] . ' ' . $resourceIds));
-                sort($ids);
-                $ids = implode(' ', array_unique($ids));
-            }
-
-            // Check if the value is already mapped with one or multiple uris.
-            // It may have been checked in a previous step with an empty array.
-            // An empty string means a value missing in the user mapping.
-            if (isset($currentMapping[$value]['uri']) && $currentMapping[$value]['uri'] !== '') {
-                continue;
-            }
-
-            // Complete the new mapping.
-            $currentMapping[$value]['source'] = $value;
-            $currentMapping[$value]['items'] = $resourceIds;
-            $currentMapping[$value]['uri'] = [];
-            $currentMapping[$value]['label'] = [];
-            $currentMapping[$value]['info'] = [];
-
-            $result = $this->valueSuggestQuery($value, $datatype, $options);
-
-            if ($result === null) {
-                $this->logger->err(
-                    'Connection issue: skipping next requests for property {term}.', // @translate
-                    ['term' => $term]
-                );
-                break;
-            }
-
-            // Check if one of the value is exactly the queried value.
-            // Many results may be returned but only the good one is needed.
-            if (count($result) > 1) {
-                foreach ($result as $r) {
-                    if ($r['value'] === $value) {
-                        $result = [$r];
-                        break;
-                    }
-                }
-            }
-
-            // Store the results for future steps.
-            foreach ($result as $r) {
-                $currentMapping[$value]['uri'][] = $r['data']['uri'];
-                $currentMapping[$value]['label'][] = $r['value'];
-                $currentMapping[$value]['info'][] = $r['data']['info'];
-                if (isset($r['data']['datatype'])) {
-                    $currentMapping[$value]['datatype'][] = $r['data']['datatype'];
-                }
-            }
-
-            if (count($result) === 1) {
-                ++$countSingle;
-            }
-
-            if ($count % 100 === 0) {
-                $this->logger->info(
-                    '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
-                    ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
-                );
-                if ($this->isErrorOrStop()) {
-                    break;
-                }
-            }
-        }
-
-        if ($this->isErrorOrStop()) {
-            return;
-        }
-
-        // Save mapped values for the current values. It allows to manage
-        // multiple steps, for example to store some authors as creators, then as
-        // contributors. Only single values are updated.
-        $mapper = array_map(function ($v) use ($propertyId, $datatype) {
-            return [
-                'source' => $v['source'],
-                'property_id' => $propertyId,
-                'type' => $v['datatype'] ?? $datatype,
-                'value' => reset($v['label']) ?: null,
-                'uri' => reset($v['uri']),
-                // TODO Check and normalize property language.
-                'lang' => null,
-                'value_resource_id' => null,
-                // TODO Try to keep original is_public.
-                'is_public' => 1,
-            ];
-        }, array_filter($currentMapping, function ($v) {
-            return $v['source']
-                && is_array($v['uri'])
-                && count($v['uri']) === 1;
-        }));
-        $this->storeMappingTable($mapper, false);
-
-        $this->logger->notice(
-            '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
-            ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
-        );
-   }
-
-    protected function prepareValueSuggestMapping(array $options = []): void
-    {
-        // Create a mapping for checking and future reimport.
-        $table = $this->loadTable($options['mapping']) ?: [];
-
-        // Keep only the needed columns.
-        $columns = [
-            'source' => null,
-            'items' => null,
-            'uri' => null,
-            'label' => null,
-            'info' => null,
-        ];
-        $table = array_map(function ($v) use ($columns) {
-            return array_replace($columns, array_intersect_key($v, $columns));
-        }, $table);
-
-        if (!empty($options['prefix'])) {
-            $prefix = $options['prefix'];
-            $table = array_map(function ($v) use ($prefix) {
-                if (!empty($v['uri']) && strpos($v['uri'], $prefix) !== 0) {
-                    $v['uri'] = $prefix . $v['uri'];
-                }
-                return $v;
-            }, $table);
-        }
-
-        // Prepare the keys to search instantly in the mapping.
-        $this->valueSuggestMappings[$options['name']] = array_combine(array_column($table, 'source'), $table);
-    }
-
     protected function transformOperations(array $operations = []): void
     {
         $this->transformResetProcess();
 
         // TODO Move all check inside the preprocess.
         // TODO Use a transaction (implicit currently).
-        // TODO Move the term into the params.
-        // TODO Bind is not working currently with multiple queries, but only used for property id.
+        // TODO Bind is not working with multiple queries.
 
         foreach ($operations as $index => $operation) {
             $this->operationName = $operation['action'];
@@ -390,8 +68,8 @@ SQL;
                     }
                     break;
 
-                case 'attach_item_sets':
-                    $result = $this->operationAttachItemSets($operation['params']);
+                case 'attach_item_set':
+                    $result = $this->operationAttachItemSet($operation['params']);
                     if (!$result) {
                         return;
                     }
@@ -411,25 +89,48 @@ SQL;
                     }
                     break;
 
-                case 'copy_values_linked':
-                    $result = $this->operationCopyValuesLinked($operation['params']);
+                case 'copy_value_linked':
+                    $result = $this->operationCopyValueLinked($operation['params']);
                     if (!$result) {
                         return;
                     }
                     break;
 
-                case 'remove_values':
-                    $result = $this->operationRemoveValues($operation['params']);
+                case 'remove_value':
+                    $result = $this->operationRemoveValue($operation['params']);
                     if (!$result) {
                         return;
                     }
                     break;
 
-                case 'cut_values':
-                    $result = $this->operationCutValues($operation['params']);
+                case 'keep_private':
+                    $result = $this->operationKeepPrivate($operation['params']);
                     if (!$result) {
                         return;
                     }
+                    break;
+
+                case 'cut_value':
+                    $result = $this->operationCutValue($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
+                case 'convert_datatype':
+                    $result = $this->operationConvertDatatype($operation['params']);
+                    if (!$result) {
+                        return;
+                    }
+                    break;
+
+                case 'apply':
+                    $this->operationSqls = array_filter($this->operationSqls);
+                    if (count($this->operationSqls)) {
+                        $this->transformHelperExcludeEnd();
+                        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
+                    }
+                    $this->transformResetProcess();
                     break;
 
                 default:
@@ -453,11 +154,15 @@ SQL;
         $this->connection->executeUpdate(implode("\n", $this->operationSqls));
     }
 
+    protected function transformResetProcess(): void
+    {
+        $this->operationSqls = [];
+        $this->operationExcludes = [];
+    }
 
     protected function operationCreateResource(array $params): bool
     {
         $params['no_source'] = true;
-        $params['no_destination'] = true;
         if (!empty($params['properties'])) {
             $mapper = $this->prepareMappingTableFromValues($params);
             if (!$mapper) {
@@ -485,7 +190,7 @@ SQL;
         return true;
     }
 
-    protected function operationAttachItemSets(array $params): bool
+    protected function operationAttachItemSet(array $params): bool
     {
         if (empty($params['source'])) {
             $this->logger->err(
@@ -561,13 +266,13 @@ SQL;
 
         [$mapper, $hasMultipleDestinations] = $result;
 
-        $this->storeMappingTable($mapper, true);
+        $this->storeMappingTable($mapper);
 
         $hasMultipleDestinations
             ? $this->processValuesTransformInsert()
             : $this->processValuesTransformUpdate();
 
-        $this->removeMappingTable(true);
+        $this->removeMappingTable();
 
         return true;
     }
@@ -723,7 +428,7 @@ SQL;
      * For example, copy all values with properties dcterms:language and dcterms:audience
      * in the resources linked via the property dcterms:isPartOf.
      */
-    protected function operationCopyValuesLinked(array $params): bool
+    protected function operationCopyValueLinked(array $params): bool
     {
         if (empty($params['source'])) {
             $this->logger->err(
@@ -806,7 +511,7 @@ SQL;
         return true;
     }
 
-    protected function operationRemoveValues(array $params): bool
+    protected function operationRemoveValue(array $params): bool
     {
         if (empty($params['properties'])) {
             $this->logger->err(
@@ -881,7 +586,59 @@ SQL;
         return true;
     }
 
-    protected function operationCutValues(array $params): bool
+    protected function operationKeepPrivate(array $params): bool
+    {
+        if (empty($params['properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a list of properties.', // @translate
+                ['action' => $this->operationName]
+            );
+            return true;
+        }
+
+        if (!is_array($params['properties'])) {
+            $params['properties'] = [$params['properties']];
+        }
+
+        $properties = [];
+        $errors = [];
+        foreach ($params['properties'] as $property) {
+            $propertyId = $this->bulk->getPropertyId($property);
+            $propertyId
+                ? $properties[$property] = $propertyId
+                : $errors[] = $property;
+            }
+
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $propertyIds = implode(', ', $properties);
+
+        [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
+
+        $this->operationSqls[] = <<<SQL
+# Update values according to rules for each column.
+UPDATE `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+$sqlExclude
+SET
+    `value`.`is_public` = 0
+WHERE
+    `value`.`property_id` IN ($propertyIds)
+    $sqlExcludeWhere
+;
+SQL;
+
+        return true;
+    }
+
+    protected function operationCutValue(array $params): bool
     {
         if (empty($params['destination'])
             || count($params['destination']) !== 2
@@ -979,6 +736,75 @@ SQL;
         return true;
     }
 
+    protected function operationConvertDatatype(array $params): bool
+    {
+        if (empty($params['datatype'])) {
+            $this->logger->warn(
+                'The operation "{action}" requires a data type.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $dataTypeExceptions = [
+            'valuesuggest:idref:author',
+        ];
+        $dataTypeManager = $this->getServiceLocator()->get('Omeka\DataTypeManager');
+        if (!in_array($params['datatype'], $dataTypeExceptions) && !$dataTypeManager->has($params['datatype'])) {
+            $this->logger->warn(
+                'The operation "{action}" requires a valid data type ("{type}").', // @translate
+                ['action' => $this->operationName, 'type' => $params['datatype']]
+            );
+            return false;
+        }
+
+        $datatype = $params['datatype'];
+
+        if (substr($datatype, 0, 8) === 'numeric:') {
+            $this->logger->err(
+                'Operation "{action}": cannot convert into data type "{type}" for now.', // @translate
+                ['action' => $this->operationName, 'type' => $datatype]
+            );
+            return false;
+        }
+
+        if (empty($params['name'])) {
+            $params['name'] = str_replace(':', '-', $datatype .'_' . $this->transformIndex);
+        }
+
+        $isValueSuggest = substr($datatype, 0, 12) === 'valuesuggest';
+
+        if ($isValueSuggest
+            && (empty($params['mapping']) || !empty($params['partial_mapping']))
+        ) {
+            $result = $this->transformToValueSuggestWithApi($params);
+            if (!$result) {
+                return false;
+            }
+            $this->processValuesTransformUpdate();
+
+            $this->removeMappingTable();
+            return true;
+        }
+
+        if (!empty($params['mapping'])) {
+            $this->logger->err(
+                'Operation "{action}": Convert datatype without mapping keys is not supported currently. You should use "replace_table".', // @translate
+                ['action' => $this->operationName]
+            );
+            // TODO Check mapping key.
+            // return $this->operationReplaceTable($params);
+            return false;
+        }
+
+        // TODO Convert without mapping ("literal" to "uri", "customvocab", etc.).
+        $this->logger->err(
+            'Operation "{action}": cannot convert into data type "{type}" without mapping for now.', // @translate
+            ['action' => $this->operationName, 'type' => $datatype]
+        );
+        return false;
+    }
+
     protected function transformHelperExcludeStart(array $params): array
     {
         if (empty($params['exclude'])) {
@@ -1060,7 +886,6 @@ SQL;
 
         // When mapping table is used differently, there may be no source.
         $hasSource = empty($params['no_source']);
-        $hasDestination = empty($params['no_destination']);
 
         $firstKeys = array_keys($first);
         $sourceKey = array_search('source', $firstKeys);
@@ -1090,26 +915,6 @@ SQL;
             return null;
         }
 
-        // TODO The param "destination" is not used here, but in other steps, so move check.
-        if ($hasDestination && empty($params['destination'])) {
-            $this->logger->err(
-                'The operation "{action}" requires at least one destination.', // @translate
-                ['action' => $this->operationName]
-            );
-            return null;
-        }
-
-        /*
-        // Don't allow to map a partial table.
-        if ($hasDestination && array_diff_key(array_flip($params['destination']), $first)) {
-            $this->logger->warn(
-                'Mapping for operation "replace" requires destination terms "terms".', // @translate
-                ['terms' => implode('", "', $params['destination'])]
-            );
-            return null;
-        }
-        */
-
         if (!empty($params['source_term'])) {
             $saveSourceId = $this->getPropertyId($params['source_term']);
             if (empty($saveSourceId)) {
@@ -1124,9 +929,18 @@ SQL;
         }
 
         // Just fix messages.
-        if (!$hasSource) {
-            $params['source'] = 'spreadsheet';
+        $params['source'] = $hasSource
+            ? $this->bulk->getPropertyTerm($sourceId)
+            : 'spreadsheet';
+
+        $settings = $params['settings'] ?? [];
+        foreach ($settings as $term => &$setting) {
+            $setting['property_id'] = $this->bulk->getPropertyId($term);
+            if (empty($setting['property_id'])){
+                 unset($settings[$term]);
+            }
         }
+        unset($setting);
 
         unset($firstKeys[$sourceKey]);
 
@@ -1173,12 +987,25 @@ SQL;
             // Prepare a map for the row with one value at least.
             $maps = [];
             foreach ($destinations as $destination) {
-                $type = $destination['type'];
                 $value = $row[$destination['header']];
+                if (!strlen((string) $value)) {
+                    continue;
+                }
+
+                if (isset($settings[$destination['term']])) {
+                    $setting = &$settings[$destination['term']];
+                    if (isset($setting['prefix']) && strpos($value, $setting['prefix']) !== 0) {
+                        $value = $setting['prefix'] . $value;
+                    }
+                    unset($setting);
+                }
+
+                $type = $destination['type'];
                 $uri = null;
                 $valueResourceId = null;
                 $language = null;
                 $isPublic = null;
+
                 switch ($type) {
                     default:
                     // TODO Log unmanaged type.
@@ -1273,14 +1100,11 @@ SQL;
      *
      * The mapping table is like the table value with a column "source" and
      * without column "resource_id".
-     *
-     * @param array $mapper The mapper is already checked.
-     * @param bool $exec Exec (true), or append to the sql list.
      */
-    protected function storeMappingTable(array $mapper, bool $exec = false): void
+    protected function storeMappingTable(array $mapper): void
     {
         // Create a temporary table with the mapper.
-        $sqls = <<<'SQL'
+        $this->operationSqls[] = <<<'SQL'
 # Create a temporary table to map values.
 DROP TABLE IF EXISTS `_temporary_mapper`;
 CREATE TABLE `_temporary_mapper` LIKE `value`;
@@ -1289,11 +1113,9 @@ ALTER TABLE `_temporary_mapper`
     ADD `source` longtext COLLATE utf8mb4_unicode_ci
 ;
 SQL;
-        if (!$exec) {
-            $this->operationSqls[] = $sqls;
-        }
+
         foreach (array_chunk($mapper, self::CHUNK_ENTITIES, true) as $chunk) {
-            array_walk($chunk, function (&$v, $k) use ($exec): void {
+            array_walk($chunk, function (&$v): void {
                 $v = ((int) $v['property_id'])
                     . ",'" . $v['type'] . "'"
                     . ',' . (strlen((string) $v['value']) ? $this->connection->quote($v['value']) : 'NULL')
@@ -1307,20 +1129,12 @@ SQL;
                 ;
             });
             $chunkString = implode('),(', $chunk);
-            $sql = <<<SQL
+            $this->operationSqls[] = <<<SQL
 INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`value_resource_id`,`is_public`,`source`)
 VALUES($chunkString);
 
 SQL;
-            $exec
-                ? $sqls .= $sql
-                : $this->operationSqls[] = $sql;
         }
-
-        if (!$exec) {
-            return;
-        }
-        $this->connection->exec($sqls);
     }
 
     protected function prepareMappingTableFromValues(array $params): bool
@@ -1404,25 +1218,238 @@ SQL;
         return true;
     }
 
-    protected function removeMappingTable(bool $exec = false): void
+    protected function removeMappingTable(): void
     {
-        if ($exec) {
-            $sql = <<<'SQL'
-DROP TABLE IF EXISTS `_temporary_mapper`;
-SQL;
-            $this->connection->exec($sql);
-            return;
-        }
-
         // Remove operationExcludes.
         $this->operationSqls[] = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_mapper`;
 SQL;
     }
 
+    protected function transformToValueSuggestWithApi(array $params): bool
+    {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        $sourceId = $this->getPropertyId($params['source']);
+        if (empty($sourceId)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+
+        $term = $this->getPropertyTerm($sourceId);
+
+        // Data type is already checked.
+        $datatype = $params['datatype'];
+
+        // Get the list of unique values.
+        // Warning: the previous operation are not yet applied.
+        // TODO Only literal: the already mapped values (label + uri) can be used as mapping, but useless for a new database.
+        $sql = <<<'SQL'
+SELECT DISTINCT
+    `value`.`value` AS `v`,
+    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
+FROM `value`
+JOIN `_temporary_value_id`
+    ON `_temporary_value_id`.`id` = `value`.`id`
+JOIN `item`
+    ON `item`.`id` = `value`.`resource_id`
+WHERE
+    `value`.`property_id` IN (:property_ids)
+    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+    AND `value`.`value` <> ""
+    AND `value`.`value` IS NOT NULL
+GROUP BY `v`
+ORDER BY `v`;
+
+SQL;
+        $bind = [
+            'property_ids' => $properties,
+        ];
+        $types = [
+            'property_ids' => $this->connection::PARAM_INT_ARRAY,
+        ];
+        $stmt = $this->connection->executeQuery($sql, $bind, $types);
+        // Fetch by key pair is not supported by doctrine 2.0.
+        $list = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $list = array_column($list, 'r', 'v');
+        $totalList = count($list);
+
+        if (!$totalList) {
+            $this->logger->info(
+                'Operation "{action}": no value to map for terms "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', array_keys($properties))]
+            );
+            return [];
+        }
+
+        $this->logger->info(
+            'Operation "{action}": mapping {total} unique literal values for terms "{terms}".', // @translate
+            ['action' => $this->operationName, 'total' => count($list), 'terms' => implode('", "', array_keys($properties))]
+        );
+
+        // This mapping contains the one from params or previous steps if any.
+        $this->prepareValueSuggestMapping($params);
+        $currentMapping = &$this->valueSuggestMappings[$params['name']];
+
+        // Update the mapping for missing values, using the suggesters.
+        $count = 0;
+        $countSingle = 0;
+        foreach ($list as $value => $resourceIds) {
+            ++$count;
+            $value = trim((string) $value);
+
+            // In all cases, update the resource ids for future check.
+            if (empty($currentMapping[$value]['items'])) {
+                $ids = $resourceIds;
+            } else {
+                $ids = array_filter(explode(' ', $currentMapping[$value]['items'] . ' ' . $resourceIds));
+                sort($ids);
+                $ids = implode(' ', array_unique($ids));
+            }
+
+            // Check if the value is already mapped with one or multiple uris.
+            // It may have been checked in a previous step with an empty array.
+            // An empty string means a value missing in the mapping of the
+            // config, else it is an empty array.
+            if (isset($currentMapping[$value]['uri']) && $currentMapping[$value]['uri'] !== '') {
+                continue;
+            }
+
+            // Complete the new mapping.
+            $currentMapping[$value]['source'] = $value;
+            $currentMapping[$value]['items'] = $resourceIds;
+            $currentMapping[$value]['uri'] = [];
+            $currentMapping[$value]['label'] = [];
+            $currentMapping[$value]['info'] = [];
+
+            $result = $this->valueSuggestQuery($value, $datatype, $params);
+
+            if ($result === null) {
+                $this->logger->err(
+                    'Operation "{action}": connection issue: skipping next requests for data type "{type}" (term {term}).', // @translate
+                    ['action' => $this->operationName, 'type' => $datatype, 'term' => $term]
+                );
+                break;
+            }
+
+            // Check if one of the value is exactly the queried value.
+            // Many results may be returned but only the good one is needed.
+            if (count($result) > 1) {
+                foreach ($result as $r) {
+                    if ($r['value'] === $value) {
+                        $result = [$r];
+                        break;
+                    }
+                }
+            }
+
+            // Store the results for future steps.
+            foreach ($result as $r) {
+                $currentMapping[$value]['uri'][] = $r['data']['uri'];
+                $currentMapping[$value]['label'][] = $r['value'];
+                $currentMapping[$value]['info'][] = $r['data']['info'];
+                if (isset($r['data']['datatype'])) {
+                    $currentMapping[$value]['datatype'][] = $r['data']['datatype'];
+                }
+            }
+
+            if (count($result) === 1) {
+                ++$countSingle;
+            }
+
+            if ($count % 100 === 0) {
+                $this->logger->info(
+                    '{count}/{total} unique values for term "{term}" processed, {singles} new values updated with a single uri.', // @translate
+                    ['count' => $count, 'total' => $totalList, 'term' => $term, 'singles' => $countSingle]
+                );
+                if ($this->isErrorOrStop()) {
+                    break;
+                }
+            }
+        }
+
+        if ($this->isErrorOrStop()) {
+            return false;
+        }
+
+        // Save mapped values for the current values. It allows to manage
+        // multiple steps, for example to store some authors as creators, then as
+        // contributors. Only single values are updated.
+        $mapper = array_map(function ($v) use ($sourceId, $datatype) {
+            return [
+                'source' => $v['source'],
+                'property_id' => $sourceId,
+                'type' => $v['datatype'] ?? $datatype,
+                'value' => reset($v['label']) ?: null,
+                'uri' => reset($v['uri']),
+                // TODO Check and normalize property language.
+                'lang' => null,
+                'value_resource_id' => null,
+                // TODO Try to keep original is_public.
+                'is_public' => 1,
+            ];
+        }, array_filter($currentMapping, function ($v) {
+            return $v['source']
+            && is_array($v['uri'])
+            && count($v['uri']) === 1;
+        }));
+        $this->storeMappingTable($mapper);
+
+        $this->logger->notice(
+            'Operation "{action}": {count}/{total} unique values for data type "{type}" (term "{term}") processed, {singles} new values updated with a single uri.', // @translate
+            ['action' => $this->operationName, 'count' => $count, 'total' => $totalList, 'type' => $datatype, 'term' => $term, 'singles' => $countSingle]
+        );
+
+        return true;
+    }
+
+    protected function prepareValueSuggestMapping(array $params): void
+    {
+        // Create a mapping for checking and future reimport.
+        $table = $this->loadTable($params['mapping']) ?: [];
+
+        // Keep only the needed columns.
+        $columns = [
+            'source' => null,
+            'items' => null,
+            'uri' => null,
+            'label' => null,
+            'info' => null,
+        ];
+        $table = array_map(function ($v) use ($columns) {
+            return array_replace($columns, array_intersect_key($v, $columns));
+        }, $table);
+
+        if (isset($params['prefix']) && strlen($params['prefix'])) {
+            $prefix = $params['prefix'];
+            $table = array_map(function ($v) use ($prefix) {
+                if (!empty($v['uri']) && strpos($v['uri'], $prefix) !== 0) {
+                    $v['uri'] = $prefix . $v['uri'];
+                }
+                return $v;
+            }, $table);
+        }
+
+        // Prepare the keys to search instantly in the mapping.
+        $combined = array_combine(array_column($table, 'source'), $table);
+        empty($this->valueSuggestMappings[$params['name']])
+            ? $this->valueSuggestMappings[$params['name']] = $combined
+            : $this->valueSuggestMappings[$params['name']] = array_merge($this->valueSuggestMappings[$params['name']], $combined);
+    }
+
     protected function processValuesTransformUpdate(): void
     {
-        $sql = <<<'SQL'
+        $this->operationSqls[] = <<<'SQL'
+# Update values according to the temporary table.
 UPDATE `value`
 JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
@@ -1439,17 +1466,27 @@ SET
     `value`.`is_public` = `_temporary_mapper`.`is_public`
 ;
 SQL;
-        $this->connection->executeUpdate($sql);
     }
 
     protected function processValuesTransformInsert(): void
     {
-        $sql = <<<'SQL'
-SELECT MAX(`id`) FROM `value`;
+        // To store the previous max value id is the simplest way to remove
+        // updated values without removing other ones.
+        // This max value id is saved in the settings for simplicity.
+        $random = $this->operationRandoms[$this->operationIndex];
+        $this->operationSqls[] = <<<SQL
+# Explode values according to the temporary table (step 1/4).
+INSERT INTO `setting`
+    (`id`, `value`)
+SELECT
+    "bulkimport_max_value_id_$random",
+    MAX(`value`.`id`)
+FROM `value`
+;
 SQL;
-        $maxId = $this->connection->query($sql)->fetchColumn();
 
-        $sql = <<<SQL
+        $this->operationSqls[] = <<<SQL
+# Explode values according to the temporary table (step 2/4).
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
 SELECT DISTINCT
@@ -1466,12 +1503,12 @@ JOIN `_temporary_value_id`
     ON `_temporary_value_id`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`value`;
-
+    AND `_temporary_mapper`.`source` = `value`.`value`
+;
 SQL;
-        $this->connection->executeUpdate($sql);
 
-        $sql = <<<'SQL'
+        $this->operationSqls[] = <<<SQL
+# Explode values according to the temporary table (step 3/4).
 DELETE `value`
 FROM `value`
 JOIN `_temporary_value_id`
@@ -1479,48 +1516,23 @@ JOIN `_temporary_value_id`
 JOIN `_temporary_mapper`
     ON `_temporary_mapper`.`property_id` = `value`.`property_id`
     AND `_temporary_mapper`.`source` = `value`.`value`
+JOIN `setting`
 WHERE
-    `value`.`id` <= :value_id;
+    `value`.`id` <= `setting`.`value`
+    AND `setting`.`id` = "bulkimport_max_value_id_$random"
+    AND `setting`.`value` IS NOT NULL
+    AND `setting`.`value` > 0
+;
 
 SQL;
-        $this->connection->executeUpdate($sql, ['value_id' => $maxId]);
-    }
-
-    protected function processValuesTransformSingle(
-        int $propertyId,
-        string $datatype,
-        ?string $value = null,
-        ?string $uri = null,
-        ?string $valueResourceId = null,
-        ?string $lang = null
-    ): void {
-        $sql = <<<'SQL'
-UPDATE `value`
-JOIN `_temporary_value_id`
-    ON `_temporary_value_id`.`id` = `value`.`id`
-JOIN `resource`
-    ON `resource`.`id` = `value`.`resource_id`
-SET
-    `value`.`value_resource_id` = :value_resource_id,
-    `value`.`type` = :datatype,
-    `value`.`uri` = :uri,
-    `value`.`lang` = :lang
+        $this->operationSqls[] = <<<SQL
+# Explode values according to the temporary table (step 4/4).
+DELETE `setting`
+FROM `setting`
 WHERE
-    `resource`.`resource_type` = "Omeka\\Entity\\Item"
-    AND `property_id` = :property_id
-    AND `value`.`type` = "literal"
-    AND `value` = :value;
-
+    `setting`.`id` = "bulkimport_max_value_id_$random"
+;
 SQL;
-        $bind = [
-            'property_id' => $propertyId,
-            'value_resource_id' => $valueResourceId,
-            'datatype' => $datatype,
-            'lang' => $lang,
-            'value' => $value,
-            'uri' => $uri,
-        ];
-        $this->connection->executeUpdate($sql, $bind);
     }
 
     protected function processCreateResources(array $params): void
@@ -1666,47 +1678,6 @@ JOIN `_temporary_new_resource`
     ON `_temporary_new_resource`.`id` = `resource`.`id`
 ;
 SQL;
-    }
-
-    protected function checkTransformArguments($term = null, array $options = []): bool
-    {
-        if ($term) {
-            $propertyId = $this->bulk->getPropertyId($term);
-            if (!$propertyId) {
-                $this->logger->err(
-                    'The property "{property}" does not exist.', // @translate
-                    ['property' => $term]
-                );
-                return false;
-            }
-        }
-
-        if (!empty($options['datatype'])) {
-            $dataTypeExceptions = [
-                'valuesuggest:idref:author',
-            ];
-            $dataTypeManager = $this->getServiceLocator()->get('Omeka\DataTypeManager');
-            if (!in_array($options['datatype'], $dataTypeExceptions) && !$dataTypeManager->has($options['datatype'])) {
-                $this->logger->err(
-                    'The data type "{datatype}" does not exist.', // @translate
-                    ['datatype' => $options['datatype']]
-                );
-                return false;
-            }
-        }
-
-        if (!empty($options['mapping'])) {
-            $result =  (bool) $this->hasConfigFile($options['mapping']);
-            if (!$result) {
-                $this->logger->err(
-                    'There is no file "{filename}".', // @translate
-                    ['filename' => $options['mapping']]
-                );
-                return false;
-            }
-        }
-
-        return true;
     }
 
     protected function valueSuggestQuery(string $value, string $datatype, array $options = [], int $loop = 0): ?array

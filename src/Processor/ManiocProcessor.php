@@ -1127,19 +1127,19 @@ SQL;
 
         // Les règles varient selon les 4 types d'origine, qui ont été remplacés
         // par des modèles dans l'étape précédente.
-        $templates = $this->loadKeyValuePair('templates');
-
-        $templates = array_filter($templates);
+        $templates = $this->configs['templates'] ?? null;
         if (is_null($templates)) {
             $templates = [];
             $this->logger->warn(
                 'There is no mapping for old and new templates.' // @translate
             );
-        } elseif (!count($templates)) {
-            $this->logger->warn(
-                'The mapping for old and new templates is empty (file "{file}").', // @translate
-                ['file' => $this->configs['templates']['file']]
-            );
+        } else {
+            $templates = array_filter($templates);
+            if (!count($templates)) {
+                $this->logger->warn(
+                    'The mapping for old and new templates is empty.' // @translate
+                );
+            }
         }
 
         // Add the common transformation for all resources.
@@ -1363,6 +1363,7 @@ SQL;
             );
             return;
         }
+
         $action = $actions[$action];
         $value = trim(mb_substr($value, 1));
 
@@ -1383,63 +1384,22 @@ SQL;
             );
         }
 
-        switch ($action) {
-            case 'append':
-                // Nothing to do because already migrated in bulk.
-                break;
+        if ($action === 'append') {
+            // Nothing to do because already migrated in bulk.
+            return;
+        }
 
-            case 'remove':
-                $sql = <<<SQL
-DELETE `value`
-FROM `value`
-JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
-WHERE `value`.`property_id` = :property_id
-    $sqlAndWhere;
+        // To simplify process, a temporary table is created even when there is
+        // no filter.
+        $bind = $baseBind;
+        if (empty($map['property_id'])) {
+            $sqlAndProperty = '';
+        } else {
+            $sqlAndProperty = 'AND `value`.`property_id` = :property_id';
+            $bind['property_id'] = $map['property_id'];
+        }
 
-SQL;
-                $bind = $baseBind + [
-                    'property_id' => $map['property_id'],
-                ];
-                $result = $this->connection->executeUpdate($sql, $bind);
-                if ($result) {
-                    $this->stats['removed'] += $result;
-                    $this->logger->info(
-                        'Template "{template}": {total} values removed for source "{source}", mapped to property "{term}".', // @translate
-                        ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-                    );
-                }
-                break;
-
-            case 'keep private':
-                $sql = <<<SQL
-UPDATE `value`
-JOIN `resource` ON `resource`.`id` = `value`.`resource_id`
-SET `value`.`is_public` = 0
-WHERE `value`.`property_id` = :property_id
-    $sqlAndWhere;
-
-SQL;
-                $bind = $baseBind + [
-                    'property_id' => $map['property_id'],
-                ];
-                $this->connection->executeUpdate($sql, $bind);
-                break;
-
-            // Manage exceptions for values.
-            case 'transform':
-                // The exception applies to all values included in a
-                // temporary table.
-                // To simplify process, a temporary table is created even when
-                // there is no filter.
-                $bind = $baseBind;
-                if (empty($map['property_id'])) {
-                    $sqlAndProperty = '';
-                } else {
-                    $sqlAndProperty = 'AND `value`.`property_id` = :property_id';
-                    $bind['property_id'] = $map['property_id'];
-                }
-
-                $sql = <<<SQL
+        $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_value_id`;
 CREATE TABLE `_temporary_value_id` (
     `id` int(11) NOT NULL,
@@ -1455,308 +1415,389 @@ JOIN `resource`
 WHERE
     (`value`.`type` = 'literal' OR `value`.`type` = '' OR `value`.`type` IS NULL)
     $sqlAndProperty
-    $sqlAndWhere;
-
+    $sqlAndWhere
+;
 SQL;
-                // TODO Check why the count of the result is not good, but the table is good.
-                $this->connection->executeUpdate($sql, $bind);
-                $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
-                if ($result) {
-                    if (empty($map['source']) || empty($map['destination'])) {
-                        $this->logger->info(
-                            'Template "{template}": Updating {total} values.', // @translate
-                            ['template' => $templateLabel, 'total' => $result]
-                        );
-                    } else {
-                        $this->logger->info(
-                            'Template "{template}": Updating {total} values from source "{source}" to property "{term}".', // @translate
-                            ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-                        );
-                    }
-                    switch ($value) {
-                        // Effectue des modifications avant toute autre modification.
-                        case 'Pre':
-                            if ($header === 'all') {
-                                $this->transformOperations([
-                                    [
-                                        'action' => 'create_resource',
-                                        'params' => [
-                                            'properties' => [
-                                                'manioc:themeGeneral',
-                                            ],
-                                            'destination' => 'dcterms:title',
-                                            'resource_type' => 'item_sets',
-                                            'template' => 'Corpus et sélection documentaire',
-                                        ],
-                                    ],
-                                    [
-                                        'action' => 'attach_item_sets',
-                                        'params' => [
-                                            'source' => 'manioc:themeGeneral',
-                                            'identifier' => 'dcterms:title',
-                                        ],
-                                    ],
-                                ]);
-                            } elseif ($header === self::TYPE_AUDIO_VIDEO) {
-                                $this->transformOperations([
-                                    [
-                                        'action' => 'create_resource',
-                                        'params' => [
-                                            'mapping' => 'manifestations',
-                                            'template' => 'Manifestation',
-                                            // Simplifie la création des ressources ilées.
-                                            'source_term' => 'greenstone:unknownFile',
-                                        ],
-                                    ],
-                                    [
-                                        'action' => 'link_resource',
-                                        'params' => [
-                                            'source' => 'dcterms:isPartOf',
-                                            'identifier' => 'greenstone:unknownFile',
-                                            'destination' => 'dcterms:isPartOf',
-                                            'reciprocal' => 'dcterms:hasPart',
-                                            'keep_source' => false,
-                                        ],
-                                    ],
-                                    [
-                                        'action' => 'remove_values',
-                                        'params' => [
-                                            // Sur les nouvelles manifestations,
-                                            // pas les audio-vidéos.
-                                            'on' => [
-                                                'resource_random' => -2,
-                                            ],
-                                            'properties' => [
-                                                'greenstone:unknownFile',
-                                            ],
-                                        ],
-                                    ],
-                                ]);
-                            } else if ($header === self::TYPE_IMAGE) {
-                                // Cette opération ne dépend pas de la propriété en cours
-                                // mais des ressources.
-                                $this->transformOperations([
-                                    // Le titre est issu de la valeur dc.Relation^IsPartOf,
-                                    // mise à jour dans l'opération précédente, mais il
-                                    // est aussi disponible dans manioc:internalLink
-                                    // et dans manioc:etagere.
-                                    [
-                                        'action' => 'link_resource',
-                                        'params' => [
-                                            'source' => 'manioc:internalLink',
-                                            // "man.link" a été déplacé en bibo:uri.
-                                            'identifier' => 'bibo:uri',
-                                            'destination' => 'dcterms:isPartOf',
-                                            // Le titre est à rechercher dans les livres anciens,
-                                            // même s'il devrait être unique.
-                                            // 'filter' => [
-                                            //     'template' => 'Livre',
-                                            // ],
-                                            // Ajout des liens inverses dans la notice du livre
-                                            // dans dcterms:hasPart.
-                                            'reciprocal' => 'dcterms:hasPart',
-                                            'keep_source' => true,
-                                        ],
-                                    ],
-                                    [
-                                        // Il y aura de nombreux doublons, mais ils
-                                        // seron supprimés lors de la dernière étape
-                                        // via "DeduplicateValues".
-                                        'action' => 'link_resource',
-                                        'params' => [
-                                            'source' => 'manioc:etagere',
-                                            'identifier' => 'dcterms:title',
-                                            'destination' => 'dcterms:isPartOf',
-                                            'reciprocal' => 'dcterms:hasPart',
-                                            'keep_source' => true,
-                                        ],
-                                    ],
-                                ]);
-                            }
-                            break;
 
-                        case 'Auteur':
-                        case 'Auteur secondaire':
-                        case 'Personne (sujet)':
-                            $this->transformLiteralToValueSuggest($map['property_id'], [
-                                'mapping' => 'valuesuggest:idref:author',
-                                'partial' => true,
-                                'name' => 'auteurs',
-                                'datatype' => 'valuesuggest:idref:author',
-                                'prefix' => 'https://www.idref.fr/',
-                            ]);
-                            break;
+        $this->connection->executeUpdate($sql, $bind);
+        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value_id`;')->fetchColumn();
+        if (!$result) {
+            $this->logger->info(
+                'Template "{template}": no values to process.', // @translate
+                ['template' => $templateLabel]
+            );
+            return;
+        }
 
-                        case 'Droits':
-                            $this->transformLiteralToVarious($map['property_id'], [
-                                'mapping' => 'dcterms:rights',
-                                'name' => 'droits',
-                            ]);
-                            break;
+        if (empty($map['source']) || empty($map['destination'])) {
+            $this->logger->info(
+                'Template "{template}": Processing {total} values.', // @translate
+                ['template' => $templateLabel, 'total' => $result]
+            );
+        } else {
+            $this->logger->info(
+                'Template "{template}": Processing {total} values from source "{source}" to property "{term}".', // @translate
+                ['template' => $templateLabel, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
+            );
+        }
 
-                        case 'Editeur':
-                            switch ($header) {
-                                case self::TYPE_LIVRE:
-                                    // Lieu d’édition : éditeur
-                                    // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
-                                    // Mais certains éditeurs ne sont pas des lieux : "ANR : Agence Nationale de la Recherche".
-                                    $this->transformOperations([
-                                        [
-                                            'action' => 'cut_values',
-                                            'params' => [
-                                                'source' => $map['property_id'],
-                                                'exclude' => 'editeurs_sans_lieu',
-                                                'separator' => ':',
-                                                'destination' => [
-                                                    'bio:place',
-                                                    'dcterms:publisher',
-                                                ],
-                                            ],
-                                        ],
-                                    ]);
-                                    // Fonctionne car la liste des valeurs a été mise à jour dans l'opération précédente.
-                                    $this->transformLiteralToValueSuggest($this->getPropertyId('bio:place'), [
-                                        'mapping' => 'geonames',
-                                        'partial' => true,
-                                        'name' => 'lieux',
-                                        'datatype' => 'valuesuggest:geonames:geonames',
-                                        'prefix' => 'http://www.geonames.org/',
-                                    ]);
-                                    break;
-                                case self::TYPE_AUDIO_VIDEO:
-                                    // dcterms:publisher => dcterms:publisher (idref collectivité)
-                                    $this->transformLiteralToValueSuggest($map['property_id'],  [
-                                        'mapping' => 'dcterms:publisher',
-                                        'partial' => true,
-                                        'name' => 'editeurs',
-                                        'datatype' => 'valuesuggest:idref:corporation',
-                                        'prefix' => 'https://www.idref.fr/',
-                                    ]);
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
+        if ($action === 'remove') {
+            $this->transformOperations([
+                [
+                    'action' => 'remove_value',
+                    'params' => [
+                        'properties' => [
+                            $map['property_id'],
+                        ],
+                    ],
+                ],
+            ]);
+            return;
+        }
 
-                        case 'Fait partie de':
-                            if ($header === self::TYPE_IMAGE) {
-                                // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
-                                $this->transformOperations([
-                                    [
-                                        'action' => 'replace_table',
-                                        'params' => [
-                                            'source' => $map['property_id'],
-                                            'mapping' => 'partie_images',
-                                        ],
+        if ($action === 'keep private') {
+            $this->transformOperations([
+                [
+                    'action' => 'keep_private',
+                    'params' => [
+                        'properties' => [
+                            $map['property_id'],
+                        ],
+                    ],
+                ],
+            ]);
+            return;
+        }
+
+        // The action is "transform".
+        switch ($value) {
+            // Effectue des modifications avant toute autre modification.
+            case 'Pre':
+                if ($header === 'all') {
+                    $this->transformOperations([
+                        [
+                            'action' => 'create_resource',
+                            'params' => [
+                                'properties' => [
+                                    'manioc:themeGeneral',
+                                ],
+                                'destination' => 'dcterms:title',
+                                'resource_type' => 'item_sets',
+                                'template' => 'Corpus et sélection documentaire',
+                            ],
+                        ],
+                        [
+                            'action' => 'attach_item_set',
+                            'params' => [
+                                'source' => 'manioc:themeGeneral',
+                                'identifier' => 'dcterms:title',
+                            ],
+                        ],
+                    ]);
+                } elseif ($header === self::TYPE_AUDIO_VIDEO) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'create_resource',
+                            'params' => [
+                                'mapping' => 'manifestations',
+                                'template' => 'Manifestation',
+                                // Simplifie la création des ressources liées,
+                                // supprimées ci-dessous.
+                                'source_term' => 'greenstone:unknownFile',
+                            ],
+                        ],
+                        [
+                            'action' => 'link_resource',
+                            'params' => [
+                                'source' => 'dcterms:isPartOf',
+                                'identifier' => 'greenstone:unknownFile',
+                                'destination' => 'dcterms:isPartOf',
+                                'reciprocal' => 'dcterms:hasPart',
+                                'keep_source' => false,
+                            ],
+                        ],
+                        [
+                            'action' => 'remove_value',
+                            'params' => [
+                                // Sur les nouvelles manifestations,
+                                // pas les audio-vidéos.
+                                'on' => [
+                                    'resource_random' => -2,
+                                ],
+                                'properties' => [
+                                    'greenstone:unknownFile',
+                                ],
+                            ],
+                        ],
+                    ]);
+                } else if ($header === self::TYPE_IMAGE) {
+                    // Cette opération ne dépend pas de la propriété en cours
+                    // mais des ressources.
+                    $this->transformOperations([
+                        // Le titre est issu de la valeur dc.Relation^IsPartOf,
+                        // mise à jour dans l'opération précédente, mais il
+                        // est aussi disponible dans manioc:internalLink
+                        // et dans manioc:etagere.
+                        [
+                            'action' => 'link_resource',
+                            'params' => [
+                                'source' => 'manioc:internalLink',
+                                // "man.link" a été déplacé en bibo:uri.
+                                'identifier' => 'bibo:uri',
+                                'destination' => 'dcterms:isPartOf',
+                                // Le titre est à rechercher dans les livres anciens,
+                                // même s'il devrait être unique.
+                                // 'filter' => [
+                                //     'template' => 'Livre',
+                                // ],
+                                // Ajout des liens inverses dans la notice du livre
+                                // dans dcterms:hasPart.
+                                'reciprocal' => 'dcterms:hasPart',
+                                'keep_source' => true,
+                            ],
+                        ],
+                        [
+                            // Il y aura de nombreux doublons, mais ils
+                            // seron supprimés lors de la dernière étape
+                            // via "DeduplicateValues".
+                            'action' => 'link_resource',
+                            'params' => [
+                                'source' => 'manioc:etagere',
+                                'identifier' => 'dcterms:title',
+                                'destination' => 'dcterms:isPartOf',
+                                'reciprocal' => 'dcterms:hasPart',
+                                'keep_source' => true,
+                            ],
+                        ],
+                    ]);
+                }
+                break;
+
+            case 'Auteur':
+            case 'Auteur secondaire':
+            case 'Personne (sujet)':
+                $this->transformOperations([
+                    [
+                        'action' => 'convert_datatype',
+                        'params' => [
+                            'datatype' => 'valuesuggest:idref:author',
+                            'source' => $map['property_id'],
+                            'mapping' => 'valuesuggest:idref:author',
+                            'partial_mapping' => true,
+                            'name' => 'auteurs',
+                            'prefix' => 'https://www.idref.fr/',
+                        ],
+                    ],
+                ]);
+                break;
+
+            case 'Droits':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dcterms:rights',
+                        ],
+                    ],
+                ]);
+                break;
+
+            case 'Editeur':
+                switch ($header) {
+                    case self::TYPE_LIVRE:
+                        // Lieu d’édition : éditeur
+                        // dcterms:publisher => bio:place (geonames) / dcterms:publisher (literal)
+                        // Mais certains éditeurs ne sont pas des lieux : "ANR : Agence Nationale de la Recherche".
+                        $this->transformOperations([
+                            [
+                                'action' => 'cut_value',
+                                'params' => [
+                                    'source' => $map['property_id'],
+                                    'exclude' => 'editeurs_sans_lieu',
+                                    'separator' => ':',
+                                    'destination' => [
+                                        'bio:place',
+                                        'dcterms:publisher',
                                     ],
-                                ]);
-                            }
-                            break;
+                                ],
+                            ],
+                            // Fonctionne car la liste des valeurs a été mise à jour
+                            // dans l'opération précédente et que cette opération
+                            // applique les requêtes précédentes.
+                            [
+                                'action' => 'convert_datatype',
+                                'params' => [
+                                    'datatype' => 'valuesuggest:geonames:geonames',
+                                    'source' => $this->getPropertyId('bio:place'),
+                                    'mapping' => 'geonames',
+                                    'partial_mapping' => true,
+                                    'name' => 'lieux',
+                                    'prefix' => 'http://www.geonames.org/',
+                                ],
+                            ],
+                        ]);
+                        break;
+                    case self::TYPE_AUDIO_VIDEO:
+                        $this->transformOperations([
+                            // dcterms:publisher => dcterms:publisher (idref collectivité)
+                            [
+                                'action' => 'convert_datatype',
+                                'params' => [
+                                    'datatype' => 'valuesuggest:idref:corporation',
+                                    'source' => $map['property_id'],
+                                    'mapping' => 'dcterms:publisher',
+                                    'partial_mapping' => true,
+                                    'name' => 'editeurs',
+                                    'prefix' => 'https://www.idref.fr/',
+                                ],
+                            ],
+                        ]);
+                        break;
+                    default:
+                        break;
+                }
+                break;
 
-                        case 'Indice Dewey':
-                            $this->transformOperations([
+            case 'Fait partie de':
+                if ($header === self::TYPE_IMAGE) {
+                    // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
+                    $this->transformOperations([
+                        [
+                            'action' => 'replace_table',
+                            'params' => [
+                                'source' => $map['property_id'],
+                                'mapping' => 'partie_images',
+                            ],
+                        ],
+                    ]);
+                }
+                break;
+
+            case 'Indice Dewey':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dewey',
+                        ],
+                    ],
+                ]);
+                break;
+
+            case 'Langue':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dcterms:language',
+                            'settings' => [
+                                'dcterms:language' => [
+                                    'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
+                                ],
+                            ],
+                        ],
+                    ],
+                ]);
+                break;
+
+            case 'Pays|Ville (sujet)':
+                $this->transformOperations([
+                    [
+                        'action' => 'convert_datatype',
+                        'params' => [
+                            'datatype' => 'valuesuggest:geonames:geonames',
+                            'source' => $map['property_id'],
+                            'mapping' => 'geonames',
+                            'partial_mapping' => true,
+                            'name' => 'lieux',
+                            'prefix' => 'http://www.geonames.org/',
+                            'formats' => [
                                 [
-                                    'action' => 'replace_table',
-                                    'params' => [
-                                        'source' => $map['property_id'],
-                                        'mapping' => 'dewey',
-                                    ],
+                                    'arguments' => ['country', 'location'],
+                                    'separator' => '|',
                                 ],
-                            ]);
-                            break;
-
-                        case 'Langue':
-                            $this->transformLiteralToValueSuggest($map['property_id'], [
-                                'mapping' => 'dcterms:language',
-                                'datatype' => 'valuesuggest:lc:iso6392',
-                                'prefix' => 'http://id.loc.gov/vocabulary/iso639-2/',
-                            ]);
-                            break;
-
-                        case 'Pays|Ville (sujet)':
-                            $this->transformLiteralToValueSuggest($map['property_id'], [
-                                'mapping' => 'geonames',
-                                'partial' => true,
-                                'name' => 'lieux',
-                                'datatype' => 'valuesuggest:geonames:geonames',
-                                'prefix' => 'http://www.geonames.org/',
-                                'formats' => [
-                                    [
-                                        'arguments' => ['country', 'location'],
-                                        'separator' => '|',
-                                    ],
-                                    [
-                                        'arguments' => 'country',
-                                    ],
+                                [
+                                    'arguments' => 'country',
                                 ],
-                            ]);
-                            break;
+                            ],
+                        ],
+                    ],
+                ]);
+                break;
 
-                        case 'Sujet géographique':
-                            $this->transformLiteralToValueSuggest($map['property_id'], [
-                                'mapping' => 'geonames',
-                                'partial' => true,
-                                'name' => 'lieux',
-                                'datatype' => 'valuesuggest:geonames:geonames',
-                                'prefix' => 'http://www.geonames.org/',
-                            ]);
-                            break;
+            case 'Sujet géographique':
+                $this->transformOperations([
+                    [
+                        'action' => 'convert_datatype',
+                        'params' => [
+                            'datatype' => 'valuesuggest:geonames:geonames',
+                            'source' => $map['property_id'],
+                            'mapping' => 'geonames',
+                            'partial_mapping' => true,
+                            'name' => 'lieux',
+                            'prefix' => 'http://www.geonames.org/',
+                        ],
+                    ],
+                ]);
+                break;
 
-                        case 'Mot-clé':
-                        case 'Thématique audio-vidéo':
-                        case 'Thématique images':
-                        case 'Thématique ouvrages numérisés':
-                        case 'Thématique recherche':
-                            $this->transformLiteralToValueSuggest($map['property_id'], [
-                                'mapping' => 'valuesuggest:idref:rameau',
-                                'partial' => true,
-                                'name' => 'thematiques',
-                                'datatype' => 'valuesuggest:idref:rameau',
-                                'prefix' => 'https://www.idref.fr/',
-                            ]);
-                            break;
+            case 'Mot-clé':
+            case 'Thématique audio-vidéo':
+            case 'Thématique images':
+            case 'Thématique ouvrages numérisés':
+            case 'Thématique recherche':
+                $this->transformOperations([
+                    [
+                        'action' => 'convert_datatype',
+                        'params' => [
+                            'datatype' => 'valuesuggest:idref:rameau',
+                            'source' => $map['property_id'],
+                            'mapping' => 'valuesuggest:idref:rameau',
+                            'partial_mapping' => true,
+                            'name' => 'thematiques',
+                            'prefix' => 'https://www.idref.fr/',
+                        ],
+                    ],
+                ]);
+                break;
 
-                        case 'Titre':
-                            if ($header === self::TYPE_LIVRE) {
-                                // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
-                                $this->transformOperations([
-                                    [
-                                        'action' => 'replace_table',
-                                        'params' => [
-                                            'source' => $map['property_id'],
-                                            'mapping' => 'titres_livres_anciens',
-                                        ],
-                                    ],
-                                ]);
-                            }
-                            break;
+            case 'Titre':
+                if ($header === self::TYPE_LIVRE) {
+                    // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
+                    $this->transformOperations([
+                        [
+                            'action' => 'replace_table',
+                            'params' => [
+                                'source' => $map['property_id'],
+                                'mapping' => 'titres_livres_anciens',
+                            ],
+                        ],
+                    ]);
+                }
+                break;
 
-                        case 'Post':
-                            if ($header === self::TYPE_AUDIO_VIDEO) {
-                                $this->transformOperations([
-                                    [
-                                        'action' => 'copy_values_linked',
-                                        'params' => [
-                                            'source' => 'dcterms:isPartOf',
-                                            'properties' => [
-                                                'dcterms:language',
-                                                'dcterms:audience',
-                                            ],
-                                        ],
-                                    ],
-                                ]);
-                            }
-                            break;
-
-                        default:
-                            $this->stats['not_managed'][] = $value;
-                            break;
-                    }
+            case 'Post':
+                if ($header === self::TYPE_AUDIO_VIDEO) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'copy_value_linked',
+                            'params' => [
+                                'source' => 'dcterms:isPartOf',
+                                'properties' => [
+                                    'dcterms:language',
+                                    'dcterms:audience',
+                                ],
+                            ],
+                        ],
+                    ]);
                 }
                 break;
 
             default:
-                // Let empty values, probably none.
+                $this->stats['not_managed'][] = $value;
                 break;
         }
     }
