@@ -501,7 +501,7 @@ SQL;
 
     protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): string
     {
-        $relativePath = 'bulk_import/' . 'import_' . $this->job->getJobId() . '_' . str_replace(':', '-', $filename) . '.' . $extension;
+        $relativePath = 'bulk_import/' . 'import_' . $this->job->getImportId() . '_' . str_replace(':', '-', $filename) . '.' . $extension;
         if ($relative) {
             return 'files/' . $relativePath;
         }

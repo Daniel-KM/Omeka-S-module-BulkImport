@@ -1160,7 +1160,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // Save the map as a php array for future purpose (cf. lien rubrique spip).
         $config = $this->getServiceLocator()->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getJobId() . '.json';
+        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getImportId() . '.json';
         if (!is_dir(dirname($filepath))) {
             @mkdir(dirname($filepath, 0775, true));
         }

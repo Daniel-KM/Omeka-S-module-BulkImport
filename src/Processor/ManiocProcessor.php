@@ -156,7 +156,7 @@ class ManiocProcessor extends AbstractFullProcessor
     {
         $userSources = [];
         $emails = [];
-        $jobId = $this->job->getJobId();
+        $importId = $this->job->getImportId();
         foreach ($this->prepareReader('users') as $userSource) {
             $user = [];
             $userSource = array_map('trim', array_map('strval', $userSource));
@@ -165,7 +165,7 @@ class ManiocProcessor extends AbstractFullProcessor
             $user['name'] = $cleanName;
             $user['email'] = $email;
             if (isset($emails[$email])) {
-                $email = $userSource['id'] . '-' . $jobId . '-' . $email;
+                $email = $userSource['id'] . '-' . $importId . '-' . $email;
                 $user['email'] = $email;
             }
             $this->logger->warn(
