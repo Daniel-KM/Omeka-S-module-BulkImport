@@ -21,6 +21,11 @@ abstract class AbstractPaginatedReader extends AbstractReader
     const PAGE_LIMIT = 100;
 
     /**
+     * @var string
+     */
+    const USER_AGENT = 'Omeka S - module BulkImport version 3.3.24.0';
+
+    /**
      * @var array
      */
     protected $pageIterator;

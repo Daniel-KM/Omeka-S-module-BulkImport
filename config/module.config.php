@@ -68,6 +68,8 @@ return [
             Form\Processor\SpipProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderParamsForm::class => Service\Form\FormFactory::class,
+            Form\Reader\JsonReaderConfigForm::class => Service\Form\FormFactory::class,
+            Form\Reader\JsonReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\OmekaSReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\OmekaSReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\OpenDocumentSpreadsheetReaderParamsForm::class => Service\Form\FormFactory::class,
@@ -225,13 +227,14 @@ return [
     ],
     'bulk_import' => [
         'readers' => [
+            Reader\JsonReader::class => Reader\JsonReader::class,
             Reader\OmekaSReader::class => Reader\OmekaSReader::class,
             Reader\SqlReader::class => Reader\SqlReader::class,
+            Reader\XmlReader::class => Reader\XmlReader::class,
             Reader\SpreadsheetReader::class => Reader\SpreadsheetReader::class,
             Reader\CsvReader::class => Reader\CsvReader::class,
             Reader\TsvReader::class => Reader\TsvReader::class,
             Reader\OpenDocumentSpreadsheetReader::class => Reader\OpenDocumentSpreadsheetReader::class,
-            Reader\XmlReader::class => Reader\XmlReader::class,
             Reader\FakeReader::class => Reader\FakeReader::class,
         ],
         'processors' => [

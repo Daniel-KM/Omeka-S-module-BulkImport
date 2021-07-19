@@ -28,6 +28,12 @@ class ItemProcessor extends ResourceProcessor
         return $this;
     }
 
+    public function process(): void
+    {
+        $this->reader->setObjectType('items');
+        parent::process();
+    }
+
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
         switch ($target['target']) {

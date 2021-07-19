@@ -39,6 +39,10 @@ class Entry implements EntryInterface
 
     protected function init(): void
     {
+        if (!empty($this->options['is_formatted'])) {
+            return;
+        }
+
         // Don't keep data that are not attached to a field.
         // Avoid issue when number of data is greater than number of fields.
         // TODO Collect data without field as garbage (for empty field "")?
@@ -63,7 +67,9 @@ class Entry implements EntryInterface
         return !count(array_filter($this->data, function ($v) {
             return is_array($v)
                 ? count(array_filter($v, function ($w) {
-                    return strlen((string) $w) > 0;
+                    return is_array($w)
+                        ? count($w)
+                        : strlen((string) $w) > 0;
                 }))
                 : strlen((string) $v);
         }));
