@@ -5,8 +5,6 @@ namespace BulkImport\Reader;
 use ArrayIterator;
 use BulkImport\Form\Reader\OmekaSReaderConfigForm;
 use BulkImport\Form\Reader\OmekaSReaderParamsForm;
-use Laminas\Http\Client as HttpClient;
-use Laminas\Http\Request;
 use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
@@ -19,6 +17,8 @@ use Log\Stdlib\PsrMessage;
  */
 class OmekaSReader extends AbstractPaginatedReader
 {
+    use HttpClientTrait;
+
     protected $label = 'Omeka S api';
     protected $configFormClass = OmekaSReaderConfigForm::class;
     protected $paramsFormClass = OmekaSReaderParamsForm::class;
@@ -36,16 +36,6 @@ class OmekaSReader extends AbstractPaginatedReader
         'key_identity',
         'key_credential',
     ];
-
-    /**
-     * @var \Laminas\Http\Client
-     */
-    protected $httpClient;
-
-    /**
-     * @var string
-     */
-    protected $endpoint = '';
 
     /**
      * @var array
@@ -68,50 +58,14 @@ class OmekaSReader extends AbstractPaginatedReader
     protected $queryParams = [];
 
     /**
-     * @var int
+     * @var string
      */
     protected $baseUrl = '';
-
-    /**
-     * @var \Laminas\Http\Response
-     */
-    protected $currentResponse;
 
     public function setObjectType($objectType): \BulkImport\Interfaces\Reader
     {
         $this->path = $objectType;
         return parent::setObjectType($objectType);
-    }
-
-    /**
-     * This method is mainly used outside.
-     *
-     * @param HttpClient $httpClient
-     * @return self
-     */
-    public function setHttpClient(HttpClient $httpClient): \BulkImport\Interfaces\Reader
-    {
-        $this->httpClient = $httpClient;
-        return $this;
-    }
-
-    /**
-     * @return HttpClient
-     */
-    public function getHttpClient(): \Laminas\Http\Client
-    {
-        if (!$this->httpClient) {
-            $this->httpClient = new \Laminas\Http\Client(null, [
-                'timeout' => 30,
-            ]);
-        }
-        return $this->httpClient;
-    }
-
-    public function setEndpoint($endpoint): \BulkImport\Interfaces\Reader
-    {
-        $this->endpoint = $endpoint;
-        return $this;
     }
 
     public function setQueryCredentials(array $credentials): \BulkImport\Interfaces\Reader
@@ -145,37 +99,12 @@ class OmekaSReader extends AbstractPaginatedReader
     {
         $this->initArgs();
 
-        // Check the endpoint.
-        $check = ['path' => '-context', 'subpath' => '', 'params' => []];
-        try {
-            $response = $this->fetch($check['path'], $check['subpath'], $check['params']);
-        } catch (\Laminas\Http\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
-            return false;
-        } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
+        if (!$this->isValidUrl('-context', '', [])) {
             return false;
         }
-        if (!$response->isSuccess()) {
-            $this->lastErrorMessage = $response->renderStatusLine();
-            return false;
-        }
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($contentType->getMediaType() !== 'application/json'
-            || strtolower($contentType->getCharset()) !== 'utf-8'
-        ) {
-            $this->lastErrorMessage = new PsrMessage(
-                'Content-type "{content_type}" is invalid.', // @translate
-                ['content_type' => $contentType->toString()]
-            );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
-                $this->lastErrorMessage->getMessage(),
-                $this->lastErrorMessage->getContext()
-            );
-            return false;
-        }
-        $url = $this->getServiceLocator()->get('ViewHelperManager')->get('url');
-        if ($this->endpoint === $url('api', [], ['force_canonical' => true])) {
+
+        $urlHelper = $this->getServiceLocator()->get('ViewHelperManager')->get('url');
+        if ($this->endpoint === $urlHelper('api', [], ['force_canonical' => true])) {
             $this->lastErrorMessage = new PsrMessage(
                 'It is useless to import Omeka S itself. Check your endpoint.' // @translate
             );
@@ -183,7 +112,9 @@ class OmekaSReader extends AbstractPaginatedReader
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );
+            return false;
         }
+
         return true;
     }
 
@@ -314,64 +245,18 @@ class OmekaSReader extends AbstractPaginatedReader
         $this->isValid = true;
     }
 
-    /**
-     * Inverse of parse_url().
-     *
-     * @link https://stackoverflow.com/questions/4354904/php-parse-url-reverse-parsed-url/35207936#35207936
-     *
-     * @param array $parts
-     * @return string
-     */
-    protected function unparseUrl(array $parts): string
+    protected function fetchData(string $path = '', string $subpath = '', array $params = [], $page = 0): Response
     {
-        return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '')
-            . ((isset($parts['user']) || isset($parts['host'])) ? '//' : '')
-            . (isset($parts['user']) ? "{$parts['user']}" : '')
-            . (isset($parts['pass']) ? ":{$parts['pass']}" : '')
-            . (isset($parts['user']) ? '@' : '')
-            . (isset($parts['host']) ? "{$parts['host']}" : '')
-            . (isset($parts['port']) ? ":{$parts['port']}" : '')
-            . (isset($parts['path']) ? "{$parts['path']}" : '')
-            . (isset($parts['query']) ? "?{$parts['query']}" : '')
-            . (isset($parts['fragment']) ? "#{$parts['fragment']}" : '');
-    }
-
-    /**
-     * @return \Laminas\Http\Response
-     * @throws \Laminas\Http\Exception\RuntimeException
-     * @throws \Laminas\Http\Client\Exception\RuntimeException
-     * @return \Laminas\Http\Response
-     */
-    protected function fetchData($path, $subpath, array $params, $page = 0): Response
-    {
-        return $this->fetch('/' . $path, strlen($subpath) ? '/' . $subpath : '', $params, $page);
-    }
-
-    /**
-     * @param string $path To append to the endpoint, for example "-context" to
-     * get the api-context in Omeka..
-     * @param string $subpath
-     * @param array $params
-     * @param number $page
-     * @return \Laminas\Http\Response
-     * @throws \Laminas\Http\Exception\RuntimeException
-     * @throws \Laminas\Http\Client\Exception\RuntimeException
-     */
-    protected function fetch($path, $subpath, array $params, $page = 0): Response
-    {
-        $uri = $this->endpoint . $path . $subpath;
-        $args = array_merge(
+        $params = array_merge(
             $params,
             $this->queryCredentials
         );
         if ($page) {
-            $args['page'] = $page;
+            $params['page'] = $page;
         }
-        return $this->getHttpClient()
-            ->resetParameters()
-            ->setUri($uri)
-            ->setMethod(Request::METHOD_GET)
-            ->setParameterGet($args)
-            ->send();
+        $url = $this->endpoint
+            . (strlen($path) ? '/' . $path : '')
+            . (strlen($subpath) ? '/' . $subpath : '');
+        return $this->fetchUrl($url, $params);
     }
 }

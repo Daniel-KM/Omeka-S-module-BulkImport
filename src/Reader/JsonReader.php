@@ -6,14 +6,13 @@ use ArrayIterator;
 use BulkImport\Entry\Entry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
-use Laminas\Http\Client as HttpClient;
-use Laminas\Http\ClientStatic as HttpClientStatic;
-use Laminas\Http\Request;
 use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
 class JsonReader extends AbstractPaginatedReader
 {
+    use HttpClientTrait;
+
     protected $label = 'Json';
     protected $configFormClass = JsonReaderConfigForm::class;
     protected $paramsFormClass = JsonReaderParamsForm::class;
@@ -27,16 +26,6 @@ class JsonReader extends AbstractPaginatedReader
         'filename',
         'url',
     ];
-
-    /**
-     * @var \Laminas\Http\Client
-     */
-    protected $httpClient;
-
-    /**
-     * @var string
-     */
-    protected $endpoint = '';
 
     /**
      * @var string
@@ -62,37 +51,6 @@ class JsonReader extends AbstractPaginatedReader
      * @var \Laminas\Http\Response
      */
     protected $currentResponse;
-
-    /**
-     * This method is mainly used outside.
-     *
-     * @param HttpClient $httpClient
-     * @return self
-     */
-    public function setHttpClient(HttpClient $httpClient): \BulkImport\Interfaces\Reader
-    {
-        $this->httpClient = $httpClient;
-        return $this;
-    }
-
-    /**
-     * @return HttpClient
-     */
-    public function getHttpClient(): \Laminas\Http\Client
-    {
-        if (!$this->httpClient) {
-            $this->httpClient = new \Laminas\Http\Client(null, [
-                'timeout' => 30,
-            ]);
-        }
-        return $this->httpClient;
-    }
-
-    public function setEndpoint($endpoint): \BulkImport\Interfaces\Reader
-    {
-        $this->endpoint = $endpoint;
-        return $this;
-    }
 
     public function setPath($path): \BulkImport\Interfaces\Reader
     {
@@ -131,6 +89,9 @@ class JsonReader extends AbstractPaginatedReader
     {
         $this->initArgs();
 
+        if (!$this->isValidUrl()) {
+            return false;
+        }
         // Check the endpoint.
 
         $check = ['path' => '', 'subpath' => '', 'params' => []];
@@ -163,12 +124,6 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         return true;
-    }
-
-    protected function initArgs(): void
-    {
-        // FIXME Manage file, not only endpoint. See XmlImport (but with pagination).
-        $this->endpoint = $this->getParam('url');
     }
 
     protected function currentPage(): void
@@ -209,69 +164,15 @@ class JsonReader extends AbstractPaginatedReader
         $this->baseUrl = $this->endpoint;
 
         $body = json_decode($this->currentResponse->getBody(), true) ?: [];
-        $this->totalCount = empty($body['totalResults']) ? 0 : (int) $body['totalResults'];
-        $this->perPage = self::PAGE_LIMIT;
-        $this->firstPage = 1;
-        $this->lastPage = (int) ceil($this->totalCount / $this->perPage);
 
+        $this->perPage = self::PAGE_LIMIT;
+        $this->totalCount = empty($body['totalResults']) ? 0 : (int) $body['totalResults'];
+        $this->firstPage = 1;
+        // At least one page.
+        $this->lastPage = max((int) ceil($this->totalCount / $this->perPage), 1);
         // The page is 1-based, but the index is 0-based, more common in loops.
         $this->currentPage = 1;
         $this->currentIndex = 0;
         $this->isValid = true;
-    }
-
-    /**
-     * Inverse of parse_url().
-     *
-     * @link https://stackoverflow.com/questions/4354904/php-parse-url-reverse-parsed-url/35207936#35207936
-     *
-     * @param array $parts
-     * @return string
-     */
-    protected function unparseUrl(array $parts): string
-    {
-        return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '')
-            . ((isset($parts['user']) || isset($parts['host'])) ? '//' : '')
-            . (isset($parts['user']) ? "{$parts['user']}" : '')
-            . (isset($parts['pass']) ? ":{$parts['pass']}" : '')
-            . (isset($parts['user']) ? '@' : '')
-            . (isset($parts['host']) ? "{$parts['host']}" : '')
-            . (isset($parts['port']) ? ":{$parts['port']}" : '')
-            . (isset($parts['path']) ? "{$parts['path']}" : '')
-            . (isset($parts['query']) ? "?{$parts['query']}" : '')
-            . (isset($parts['fragment']) ? "#{$parts['fragment']}" : '');
-    }
-
-    /**
-     * @return \Laminas\Http\Response
-     * @throws \Laminas\Http\Exception\RuntimeException
-     * @throws \Laminas\Http\Client\Exception\RuntimeException
-     * @return \Laminas\Http\Response
-     */
-    protected function fetchData($path, $subpath, array $params, $page = 0): Response
-    {
-        return $this->fetch('/' . $path, strlen($subpath) ? '/' . $subpath : '', $params, $page);
-    }
-
-    /**
-     * @param string $path To append to the endpoint, for example "-context" to
-     * get the api-context in Omeka..
-     * @param string $subpath
-     * @param array $params
-     * @param number $page
-     * @return \Laminas\Http\Response
-     * @throws \Laminas\Http\Exception\RuntimeException
-     * @throws \Laminas\Http\Client\Exception\RuntimeException
-     */
-    protected function fetch($path, $subpath, array $params, $page = 0): Response
-    {
-        $uri = $this->endpoint . $path . $subpath;
-
-        return $this->getHttpClient()
-            ->resetParameters()
-            ->setUri($uri)
-            ->setMethod(Request::METHOD_GET)
-            ->setParameterGet($params)
-            ->send();
     }
 }

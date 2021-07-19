@@ -21,11 +21,6 @@ abstract class AbstractPaginatedReader extends AbstractReader
     const PAGE_LIMIT = 100;
 
     /**
-     * @var string
-     */
-    const USER_AGENT = 'Omeka S - module BulkImport version 3.3.24.0';
-
-    /**
      * @var array
      */
     protected $pageIterator;
@@ -187,6 +182,9 @@ abstract class AbstractPaginatedReader extends AbstractReader
         return true;
     }
 
+    /**
+     * This method is called from the method setObjectType() and isValid().
+     */
     protected function initArgs(): void
     {
     }
@@ -235,13 +233,13 @@ abstract class AbstractPaginatedReader extends AbstractReader
             return;
         }
 
-        // The page is 1-based, but the index is 0-based, more common in loops.
-        $this->isValid = true;
         $this->perPage = self::PAGE_LIMIT;
+        $this->totalCount = 0;
         $this->firstPage = 1;
         $this->lastPage = 1;
+        // The page is 1-based, but the index is 0-based, more common in loops.
         $this->currentPage = 1;
         $this->currentIndex = 0;
-        $this->totalCount = 0;
+        $this->isValid = true;
     }
 }
