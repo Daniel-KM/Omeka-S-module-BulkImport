@@ -4,7 +4,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 
 use Laminas\I18n\View\Helper\Translate;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Omeka\View\Helper\Api;
+use Omeka\Mvc\Controller\Plugin\Api;
 
 class AutomapFields extends AbstractPlugin
 {
@@ -45,21 +45,10 @@ class AutomapFields extends AbstractPlugin
      */
     protected $api;
 
-    /**
-     * @var Translate
-     */
-    protected $translate;
-
-    /**
-     * @param array $map
-     * @param Api $api
-     * @param Translate $translate
-     */
-    public function __construct(array $map, Api $api, Translate $translate)
+    public function __construct(array $map, Api $api)
     {
         $this->map = $map;
         $this->api = $api;
-        $this->translate = $translate;
     }
 
     /**
@@ -324,7 +313,7 @@ class AutomapFields extends AbstractPlugin
     {
         $result = [];
 
-        $vocabularies = $this->api()->search('vocabularies')->getContent();
+        $vocabularies = $this->api->search('vocabularies')->getContent();
         /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabulary */
         foreach ($vocabularies as $vocabulary) {
             $properties = $vocabulary->properties();
@@ -373,10 +362,5 @@ class AutomapFields extends AbstractPlugin
     protected function cleanUnicode($string): string
     {
         return trim(preg_replace('/[\s\h\v[:blank:][:space:]]+/u', ' ', (string) $string));
-    }
-
-    protected function api(): Api
-    {
-        return $this->api;
     }
 }

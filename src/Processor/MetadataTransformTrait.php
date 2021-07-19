@@ -1458,8 +1458,8 @@ SQL;
 
         unset($firstKeys[$sourceKey]);
 
-        /** @var \BulkImport\View\Helper\AutomapFields $automapFields */
-        $automapFields = $this->getServiceLocator()->get('ViewHelperManager')->get('automapFields');
+        /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
+        $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
 
         $destinations = [];
         $properties = [];

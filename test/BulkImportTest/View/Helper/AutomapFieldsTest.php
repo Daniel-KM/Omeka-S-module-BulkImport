@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 namespace BulkImportTest\View\Helper;
 
-use BulkImport\View\Helper\AutomapFields;
+use BulkImport\Mvc\Controller\Plugin\AutomapFields;
 use Omeka\Test\AbstractHttpControllerTestCase;
 
 class AutomapFieldsTest extends AbstractHttpControllerTestCase
@@ -17,11 +17,10 @@ class AutomapFieldsTest extends AbstractHttpControllerTestCase
         // Copy of the factory of the helper.
         $filepath = '/data/mappings/fields_to_metadata.php';
         $map = require dirname(__DIR__, 4) . $filepath;
-        $viewHelpers = $services->get('ViewHelperManager');
+        $plugins = $services->get('ControllerPluginManager');
         $this->automapFields = new AutomapFields(
             $map,
-            $viewHelpers->get('api'),
-            $viewHelpers->get('translate')
+            $plugins->get('api')
         );
     }
 
