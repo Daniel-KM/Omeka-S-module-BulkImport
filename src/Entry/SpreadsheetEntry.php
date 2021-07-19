@@ -13,7 +13,7 @@ class SpreadsheetEntry extends Entry
 
     protected function init(): void
     {
-        parent::init($this->fields, $this->data, $this->options);
+        parent::init();
 
         // The standard process is used when there is no separator.
         if (!isset($this->options['separator']) || !strlen((string) $this->options['separator'])) {

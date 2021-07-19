@@ -307,6 +307,9 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'resource:itemset' => \Omeka\Entity\ItemSet::class,
             'resource:media' => \Omeka\Entity\Media::class,
             // Avoid a check and make the plugin more flexible.
+            \Omeka\Api\Representation\ItemRepresentation::class => \Omeka\Entity\Item::class,
+            \Omeka\Api\Representation\ItemSetRepresentation::class => \Omeka\Entity\ItemSet::class,
+            \Omeka\Api\Representation\MediaRepresentation::class => \Omeka\Entity\Media::class,
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
             \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
@@ -379,6 +382,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         return array_replace(array_fill_keys($ids, null), array_combine($result, $result));
     }
 
+    /**
+     * Note: the identifiers are larger than module CleanUrl: they can be a uri
+     * (but not the label of a uri).
+     */
     protected function findResourcesFromValues(array $identifiers, array $propertyIds, $resourceType)
     {
         // The api manager doesn't manage this type of search.
