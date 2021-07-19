@@ -288,8 +288,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         }
 
         $services = $this->getServiceLocator();
-        /** @var \BulkImport\View\Helper\AutomapFields $automapFields */
-        $automapFields = $services->get('ViewHelperManager')->get('automapFields');
+        /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
+        $automapFields = $services->get('ControllerPluginManager')->get('automapFields');
 
         $this->add([
             'name' => 'mapping',

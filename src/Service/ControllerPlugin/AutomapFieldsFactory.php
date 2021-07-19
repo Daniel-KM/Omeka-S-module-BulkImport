@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Service\ViewHelper;
+namespace BulkImport\Service\ControllerPlugin;
 
-use BulkImport\View\Helper\AutomapFields;
+use BulkImport\Mvc\Controller\Plugin\AutomapFields;
 use Interop\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 

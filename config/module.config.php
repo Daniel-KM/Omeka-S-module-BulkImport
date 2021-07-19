@@ -39,11 +39,6 @@ return [
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
         ],
     ],
-    'view_helpers' => [
-        'factories' => [
-            'automapFields' => Service\ViewHelper\AutomapFieldsFactory::class,
-        ],
-    ],
     'form_elements' => [
         'invokables' => [
             Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
@@ -93,6 +88,7 @@ return [
     ],
     'controller_plugins' => [
         'factories' => [
+            'automapFields' => Service\ControllerPlugin\AutomapFieldsFactory::class,
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,

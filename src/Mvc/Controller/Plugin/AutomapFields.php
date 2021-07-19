@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\View\Helper;
+namespace BulkImport\Mvc\Controller\Plugin;
 
 use Laminas\I18n\View\Helper\Translate;
-use Laminas\View\Helper\AbstractHelper;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\View\Helper\Api;
 
-class AutomapFields extends AbstractHelper
+class AutomapFields extends AbstractPlugin
 {
     /**
      * @var array
@@ -54,7 +54,7 @@ class AutomapFields extends AbstractHelper
      * duration, geography, geometry.
      * Datatypes of other modules are supported too (Custom Vocab,
      * Value Suggest, DataTypeRdf, Numeric Data Types):
-     * - customvocab:xxx (where xxx is the id, or the label without spaces),
+     * - customvocab:xxx (where xxx is the id, or the label with or without spaces),
      * - valuesuggest:xxx,
      * - rdf:HTML,
      * - rdf:XMLLiteral

@@ -1288,7 +1288,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // The automap is only used for language, type and visibility:
         // the properties are the one that are set by the user.
-        $automapFields = $this->getServiceLocator()->get('ViewHelperManager')->get('automapFields');
+        /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
+        $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
         $sourceFields = $automapFields(array_keys($mapping), ['output_full_matches' => true]);
 
         $index = -1;
