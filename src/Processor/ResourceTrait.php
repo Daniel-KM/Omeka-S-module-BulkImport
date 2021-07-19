@@ -109,7 +109,7 @@ trait ResourceTrait
             return;
         }
 
-        $sourceTypeSub = $this->importables[$sourceType]['sub'];
+        $sourceTypeSub = $this->importables[$sourceType]['sub'] ?? null;
         $hasSub = !empty($sourceTypeSub);
         if ($hasSub) {
             $this->map[$sourceTypeSub] = $this->map[$sourceType];
@@ -310,7 +310,7 @@ SQL;
 
         // $resourceType = $this->importables[$sourceType]['name'];
         $class = $this->importables[$sourceType]['class'];
-        $method = $this->importables[$sourceType]['fill'];
+        $method = $this->importables[$sourceType]['fill'] ?? null;
         $keyId = $this->mapping[$sourceType]['key_id'];
         $this->sourceKeyId = $keyId;
 

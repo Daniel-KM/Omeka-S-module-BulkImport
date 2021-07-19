@@ -3279,7 +3279,7 @@ SQL;
         $filepath = $basePath . '/' . $relativePath;
         if (!file_exists($filepath)) {
             if (!is_dir(dirname($filepath))) {
-                @mkdir(dirname($filepath, 0775, true));
+                @mkdir(dirname($filepath), 0775, true);
             }
             touch($filepath);
         }

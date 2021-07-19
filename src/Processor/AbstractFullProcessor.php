@@ -1162,7 +1162,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getImportId() . '.json';
         if (!is_dir(dirname($filepath))) {
-            @mkdir(dirname($filepath, 0775, true));
+            @mkdir(dirname($filepath), 0775, true);
         }
         file_put_contents($filepath, json_encode($this->map, 448));
         $this->logger->notice(
@@ -1170,7 +1170,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             ['url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
         );
 
-        $this->logger->info('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
+        $this->logger->notice('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
 
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();
