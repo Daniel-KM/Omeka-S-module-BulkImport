@@ -21,6 +21,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use ConfigurableTrait;
     use CountEntitiesTrait;
     use CustomVocabTrait;
+    use DateTimeTrait;
     use FetchFileTrait;
     use InternalIntegrityTrait;
     use LanguageTrait;
@@ -38,6 +39,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * @var int
      */
     const CHUNK_ENTITIES = 100;
+
+    /**
+     * The max number of entities before a flush/clear.
+     *
+     * @var int
+     */
+    const CHUNK_SIMPLE_RECORDS = 1000;
 
     /**
      * The max number of the rows to build the temporary table of ids.
@@ -1178,6 +1186,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
 
+        // Process only new resource ids.
         $ids = array_merge(
             $this->map['items'] ?? [],
             $this->map['media'] ?? [],
@@ -1194,6 +1203,18 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
         $ids = array_values(array_unique(array_filter($ids)));
+
+        if ($plugins->has('deduplicateValues')) {
+            $plugins->get('deduplicateValues')->__invoke();
+        } else {
+            $this->logger->warn(
+                'To deduplicate metadata, run the job "Deduplicate values" with module Bulk Edit.' // @translate
+            );
+        }
+
+        // In all cases, index numeric timestamp with a single request.
+        $this->reindexNumericTimestamp($ids);
+
         if (count($ids)) {
             $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
         }
@@ -1202,14 +1223,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         if (!empty($this->modules['Thesaurus'])) {
             $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
-        }
-
-        if ($plugins->has('deduplicateValues')) {
-            $plugins->get('deduplicateValues')->__invoke();
-        } else {
-            $this->logger->warn(
-                'To deduplicate metadata, run the job "Deduplicate values" with module Bulk Edit.' // @translate
-            );
         }
 
         // TODO Reorder values according to template.
@@ -1298,56 +1311,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 $this->main['classes'][$name] = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => $localName]);
             }
         }
-    }
-
-    /**
-     * Strangely, the "timestamp" may have date time data.
-     *
-     * Furthermore, a check is done because mysql allows only 1000-9999, but
-     * there may be bad dates.
-     *
-     * @link https://dev.mysql.com/doc/refman/8.0/en/datetime.html
-     *
-     * @param string $date
-     * @return \DateTime
-     */
-    protected function getSqlDateTime($date): ?DateTime
-    {
-        if (empty($date)) {
-            return null;
-        }
-
-        try {
-            $date = (string) $date;
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        if (in_array(substr($date, 0, 10), [
-            '0000-00-00',
-            '2038-01-01',
-        ])) {
-            return null;
-        }
-
-        if (substr($date, 0, 10) === '1970-01-01'
-            && substr($date, 13, 6) === ':00:00'
-        ) {
-            return null;
-        }
-
-        try {
-            $dateTime = strpos($date, ':', 1) || strpos($date, '-', 1)
-                ? new \DateTime(substr(str_replace('T', ' ', $date), 0, 19))
-                : new \DateTime(date('Y-m-d H:i:s', $date));
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        $formatted = $dateTime->format('Y-m-d H:i:s');
-        return $formatted < '1000-01-01 00:00:00' || $formatted > '9999-12-31 23:59:59'
-            ? null
-            : $dateTime;
     }
 
     protected function logErrors($entity, $errorStore): void
