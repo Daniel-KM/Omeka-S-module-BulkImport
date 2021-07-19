@@ -9,6 +9,33 @@ use Omeka\View\Helper\Api;
 class AutomapFields extends AbstractPlugin
 {
     /**
+     * The pattern checks a field (term or keyword), then, in any order, a
+     * a @language, a ^^data type, and a §visibility, and finally a ~pattern.
+     * A pattern is allowed only when there is a single target field.
+     */
+    const PATTERN = '#'
+        // Check a term/keyword ("dcterms:title" or "Rights holder" or "Resource class"), required.
+        . '^\s*(?<field>[a-zA-Z][^@§^~|]*?)\s*'
+        // In any order:
+        . '(?:'
+        // Check a language + country (@fra or @fr-Fr or @en-GB-oed, etc.).
+        // See application/asset/js/admin.js for a complex check.
+        // @link http://stackoverflow.com/questions/7035825/regular-expression-for-a-language-tag-as-defined-by-bcp47
+        . '(?:\s*@\s*(?<language>(?:(?:[a-zA-Z0-9]+-)*[a-zA-Z]+|))\s*)'
+        // Check a data type (^^resource:item or ^^customvocab:Liste des établissements).
+        . '|(?:\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|)\s*)'
+        // Check visibility (§private).
+        . '|(?:\s*§\s*(?<visibility>public|private|)\s*)'
+        // Max three options, but no check for duplicates for now.
+        . '|){0,3}'
+        // A replacement pattern for optional transformation of the source.
+        . '(?:\s*~\s*(?<pattern>.+?|))'
+        // Remove final spaces too.
+        . '\s*$'
+        // Unicode is used for custom vocab labels.
+        . '#u';
+
+    /**
      * @var array
      */
     protected $map;
@@ -72,12 +99,16 @@ class AutomapFields extends AbstractPlugin
      *
      * The visibility of each data can be public or private, prefixed by "§".
      *
+     * See readme for more information.
+     *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
      *
      * @param array $fields
      * @param array $options Associative array of options:
-     * - map (array)
-     * - check_names_alone (boolean)
+     * - map (array) Complement for the default mapping.
+     * - check_field (boolean) Recommended, else it will be done later.
+     * - check_names_alone (boolean) Check property local name without prefix.
+     * - single_target (boolean) Allows to output multiple targets from one string.
      * - output_full_matches (boolean) Returns the language and datatype too.
      * - resource_type (string) Useless, except for quicker process.
      * @return array Associative array of all fields with the normalized name,
@@ -86,24 +117,34 @@ class AutomapFields extends AbstractPlugin
      */
     public function __invoke(array $fields, array $options = []): array
     {
-        // Return all values, even without matching normalized name, with the
-        // same keys in the same order.
-        $automaps = array_fill_keys(array_keys($fields), null);
-
         $defaultOptions = [
             'map' => [],
+            // TODO Use only "false" default options.
+            'check_field' => true,
             'check_names_alone' => true,
+            'single_target' => false,
             'output_full_matches' => false,
             'resource_type' => null,
         ];
         $options += $defaultOptions;
-        $this->map = array_merge($this->map, $options['map']);
-        unset($options['map']);
 
-        $checkNamesAlone = (bool) $options['check_names_alone'];
-        $outputFullMatches = (bool) $options['output_full_matches'];
+        $checkField = (bool) $options['check_field'];
+        if (!$checkField) {
+            return $this->automapNoCheckField($fields, $options);
+        }
+
+        // Return all values, even without matching normalized name, with the
+        // same keys in the same order.
+        $automaps = array_fill_keys(array_keys($fields), null);
 
         $fields = $this->cleanStrings($fields);
+
+        $checkNamesAlone = (bool) $options['check_names_alone'];
+        $singleTarget = (bool) $options['single_target'];
+        $outputFullMatches = (bool) $options['output_full_matches'];
+
+        $this->map = array_merge($this->map, $options['map']);
+        unset($options['map']);
 
         // Prepare the standard lists to check against.
         $lists = [];
@@ -157,43 +198,22 @@ class AutomapFields extends AbstractPlugin
             $lists['lower_local_labels'] = array_map('mb_strtolower', $lists['local_labels']);
         }
 
-        // The pattern checks a term or keyword, then, in any order, a @language,
-        // a ^^data type, and a §visibility.
-        $pattern = '~'
-            // Check a term/keyword ("dcterms:title" or "Rights holder" or
-            // "Resource class"), required.
-            . '^(?<term>[a-zA-Z][^@§^|]*?)'
-            // In any order:
-            . '(?:'
-            // Check a language + country (@fr-Fr).
-            . '(\s*@\s*(?<language>[a-zA-Z]+-[a-zA-Z]+|[a-zA-Z]+|))'
-            // Check a data type (^^resource:item or ^^customvocab:Liste des établissements).
-            . '|(\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|))'
-            // Check visibility (§private).
-            . '|(?:\s*§\s*(?<visibility>public|private|))'
-            // Max three options, but no check for duplicates. Remove final spaces too.
-            . '|){0,3}\s*$'
-            // A replacement pattern for optional transformation of the source.
-            . '(?:\s*~\s*(?<pattern>.+?|))'
-            // Unicode is used for custom vocab labels.
-            . '~u';
-
         $matches = [];
 
         foreach ($fields as $index => $fieldsMulti) {
-            $fieldsMulti = strpos($fieldsMulti, '~') !== false
+            $fieldsMulti = $singleTarget || strpos($fieldsMulti, '~') !== false
                 ? [$fieldsMulti]
                 : array_filter(array_map('trim', explode('|', $fieldsMulti)));
             foreach ($fieldsMulti as $field) {
-                $meta = preg_match($pattern, $field, $matches);
+                $meta = preg_match(self::PATTERN, $field, $matches);
                 if (!$meta) {
                     continue;
                 }
 
                 // TODO Add a check of the type with the list of data types.
 
-                $field = trim($matches['term']);
-                $lowerField = strtolower($field);
+                $field = trim($matches['field']);
+                $lowerField = mb_strtolower($field);
 
                 // Check first with the specific auto-mapping list.
                 foreach ($automapLists as $listName => $list) {
@@ -239,6 +259,49 @@ class AutomapFields extends AbstractPlugin
                         }
                         continue 2;
                     }
+                }
+            }
+        }
+
+        return $automaps;
+    }
+
+    protected function automapNoCheckField(array $fields, array $options): array
+    {
+        // Return all values, even without matching normalized name, with the
+        // same keys in the same order.
+        $automaps = array_fill_keys(array_keys($fields), null);
+
+        $fields = $this->cleanStrings($fields);
+
+        $singleTarget = (bool) $options['single_target'];
+        $outputFullMatches = (bool) $options['output_full_matches'];
+        unset($options['map']);
+
+        $matches = [];
+
+        foreach ($fields as $index => $fieldsMulti) {
+            $fieldsMulti = $singleTarget || strpos($fieldsMulti, '~') !== false
+                ? [$fieldsMulti]
+                : array_filter(array_map('trim', explode('|', $fieldsMulti)));
+            foreach ($fieldsMulti as $field) {
+                $meta = preg_match(self::PATTERN, $field, $matches);
+                if (!$meta) {
+                    continue;
+                }
+
+                $field = trim($matches['field']);
+
+                if ($outputFullMatches) {
+                    $result = [];
+                    $result['field'] = $field;
+                    $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                    $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                    $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
+                    $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                    $automaps[$index][] = $result;
+                } else {
+                    $automaps[$index][] = $field;
                 }
             }
         }
