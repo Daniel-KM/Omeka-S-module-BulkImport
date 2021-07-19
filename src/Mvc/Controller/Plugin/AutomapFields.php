@@ -44,6 +44,8 @@ class AutomapFields extends AbstractPlugin
      * It manages language and datatype, as in "dcterms:title @fr-fr ^^xsd:string §private",
      * following some convention, without the double quote.
      * Furthermore, user mappings are replaced by the file /data/mappings/fields_to_metadata.php.
+     * Finally, a pattern (prefixed with "~") can be appended to transform the
+     * value.
      *
      * Default supported datatypes are the ones managed by omeka (cf. config[data_types]:
      * literal, resource, uri, resource:item, resource:itemset, resource:media.
@@ -63,9 +65,11 @@ class AutomapFields extends AbstractPlugin
      * - numeric:integer,
      * - etc.
      * with or without prefix, etc. The datatypes are checked by the processor.
-     * Multiple targets can be mapped with the separator "|". Note that if there
-     * may be multiple properties, only the first language and type will be
-     * used.
+     *
+     * Multiple targets can be mapped with the separator `|`. Note that if there
+     * are multiple properties, only the first language and type will be used.
+     * There cannot be multiple targets when there is a pattern.
+     *
      * The visibility of each data can be public or private, prefixed by "§".
      *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
@@ -80,7 +84,7 @@ class AutomapFields extends AbstractPlugin
      * or with their normalized name, language and datatype when option
      * "output_full_matches" is set, or null.
      */
-    public function __invoke($fields, array $options = [])
+    public function __invoke(array $fields, array $options = []): array
     {
         // Return all values, even without matching normalized name, with the
         // same keys in the same order.
@@ -169,13 +173,17 @@ class AutomapFields extends AbstractPlugin
             . '|(?:\s*§\s*(?<visibility>public|private|))'
             // Max three options, but no check for duplicates. Remove final spaces too.
             . '|){0,3}\s*$'
+            // A replacement pattern for optional transformation of the source.
+            . '(?:\s*~\s*(?<pattern>.+?|))'
             // Unicode is used for custom vocab labels.
             . '~u';
 
         $matches = [];
 
         foreach ($fields as $index => $fieldsMulti) {
-            $fieldsMulti = array_filter(array_map('trim', explode('|', $fieldsMulti)));
+            $fieldsMulti = strpos($fieldsMulti, '~') !== false
+                ? [$fieldsMulti]
+                : array_filter(array_map('trim', explode('|', $fieldsMulti)));
             foreach ($fieldsMulti as $field) {
                 $meta = preg_match($pattern, $field, $matches);
                 if (!$meta) {
@@ -199,6 +207,7 @@ class AutomapFields extends AbstractPlugin
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
+                            $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
                         } else {
                             $automaps[$index][] = $automapList[$found];
@@ -222,6 +231,7 @@ class AutomapFields extends AbstractPlugin
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
+                            $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
                         } else {
                             $property = $propertyLists['names'][$found];
@@ -286,11 +296,8 @@ class AutomapFields extends AbstractPlugin
      * Clean and trim all whitespace, and remove spaces around colon.
      *
      * It fixes whitespaces added by some spreadsheets before or after a colon.
-     *
-     * @param array $strings
-     * @return array
      */
-    protected function cleanStrings(array $strings)
+    protected function cleanStrings(array $strings): array
     {
         return array_map(function ($string) {
             return preg_replace('~\s*:\s*~', ':', $this->cleanUnicode($string));
@@ -299,16 +306,13 @@ class AutomapFields extends AbstractPlugin
 
     /**
      * Clean and trim all whitespaces, included the unicode ones.
-     *
-     * @param string $string
-     * @return string
      */
-    protected function cleanUnicode($string)
+    protected function cleanUnicode($string): string
     {
-        return trim(preg_replace('/[\s\h\v[:blank:][:space:]]+/u', ' ', $string));
+        return trim(preg_replace('/[\s\h\v[:blank:][:space:]]+/u', ' ', (string) $string));
     }
 
-    protected function api()
+    protected function api(): Api
     {
         return $this->api;
     }
