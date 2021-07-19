@@ -1374,7 +1374,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * Prepare other internal data..
+     * Prepare other internal data.
      */
     protected function appendInternalParams(): \BulkImport\Interfaces\Processor
     {

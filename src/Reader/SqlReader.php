@@ -130,6 +130,165 @@ class SqlReader extends AbstractPaginatedReader
         return true;
     }
 
+    /**
+     * Check if the main database user has read privilege to this database.
+     *
+     * If not, try to grant Select before return.
+     */
+    public function canReadDirectly(): bool
+    {
+        if (!$this->isValid()) {
+            return false;
+        }
+
+        $database = $this->getParam('database');
+        $host = $this->getParam('host') ?? 'localhost';
+
+        /** @var \Doctrine\DBAL\Connection $connection */
+        $connection = $this->getServiceLocator()->get('Omeka\Connection');
+        $mainDbConfig = $connection->getParams();
+
+        if (empty($mainDbConfig['host']) || $mainDbConfig['host'] !== $host) {
+            $this->lastErrorMesage = 'The database should be on the same server to allow direct access by the main database user.'; // @translate
+            $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
+            return false;
+        }
+
+        // Skip checks when the user is the same.
+        if ($mainDbConfig['user'] === $this->getParam('username')
+            && $mainDbConfig['password'] === $this->getParam('password')
+        ) {
+            return true;
+        }
+
+        $mainUserDbConfig = $this->getDbConfig();
+        $mainUserDbConfig['username'] = $mainDbConfig['user'];
+        $mainUserDbConfig['password'] = $mainDbConfig['password'];
+        $mainUserDbAdapter = new DbAdapter($mainUserDbConfig);
+
+        // Check if the main db user has rights to read this database.
+        try {
+            $stmt = $mainUserDbAdapter->query('SELECT "test";');
+            $results = $stmt->execute();
+            if (empty($results->current())) {
+                $this->lastErrorMesage = 'The database seems empty: there is no data in a core table. You may add Grant Select to this database for the main database user.'; // @translate
+                $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
+                return false;
+            }
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        // Check grants of the main database user on this database.
+        $username = $connection->quote($mainDbConfig['user']);
+
+        $sql = <<<SQL
+SHOW GRANTS FOR $username@'$host';
+SQL;
+        try {
+            /** @uses \Laminas\Db\Adapter\Driver\Pdo\Statement */
+            $result = $this->dbAdapter->query($sql)->execute();
+        } catch (\Exception $e) {
+            try {
+                $result = $connection->query($sql)->fetchAll();
+            } catch (\Exception $e) {
+                $this->lastErrorMesage = 'Unable to check grants of a user.'; // @translate
+                $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
+                return false;
+            }
+        }
+
+        foreach ($result as $value) {
+            $value = reset($value);
+            if (strpos($value, 'GRANT ALL PRIVILEGES ON *.*') !== false
+                || strpos($value, 'GRANT SELECT ON *.*') !== false
+                || strpos($value, "GRANT ALL PRIVILEGES ON `$database`.*") !== false
+                || strpos($value, "GRANT SELECT ON `$database`.*") !== false
+            ) {
+                return true;
+            }
+        }
+
+        $sql = <<<SQL
+GRANT SELECT ON `$database`.* TO $username@'$host';
+SQL;
+        try {
+            $this->dbAdapter->query($sql)->execute();
+        } catch (\Exception $e) {
+            try {
+                $connection->exec($sql);
+            } catch (\Exception $e) {
+                return false;
+            }
+            return false;
+        }
+
+        try {
+            $this->dbAdapter->query('FLUSH PRIVILEGES;')->execute();
+        } catch (\Exception $e) {
+            try {
+                $connection->exec('FLUSH PRIVILEGES;');
+            } catch (\Exception $e) {
+                return false;
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    public function saveCsv(array $skip = []): ?string
+    {
+        if (!$this->objectType) {
+            return null;
+        }
+
+        $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
+        unlink($filepath);
+        if (file_exists($filepath . '.csv')) {
+            $filepath .= substr(uniqid(), 0, 8);
+        }
+        $filepath .= '.csv';
+
+        $skips = '';
+        if (count($skip)) {
+            $skips = 'WHERE 1 = 1';
+            foreach ($skip as $sk) {
+                $skips .= " AND (`$sk` != '' AND `$sk` IS NOT NULL) ";
+            }
+        }
+
+        // @see https://dev.mysql.com/doc/refman/8.0/en/load-data.html
+        // Default output is tab-separated values without enclosure.
+        $sql = <<<SQL
+SELECT *
+FROM `$this->objectType`
+$skips
+INTO OUTFILE "$filepath"
+CHARACTER SET utf8;
+
+SQL;
+        $stmt = $this->dbAdapter->query($sql);
+        $stmt->execute();
+        return $filepath;
+    }
+
+    public function sqlQueryCreateTable(): ?string
+    {
+        if (!$this->objectType) {
+            return null;
+        }
+
+        $stmt = $this->dbAdapter->query("SHOW CREATE TABLE `$this->objectType`;");
+        $result = $stmt->execute()->current();
+        return $result['Create Table'];
+    }
+
+    public function databaseName(): ?string
+    {
+        return $this->getParam('database');
+    }
+
     protected function initArgs(): void
     {
         $this->dbConfig = [];

@@ -247,6 +247,15 @@ class SpipProcessor extends AbstractFullProcessor
     {
         // TODO Remove these fixes.
         $args = $this->getParams();
+
+        if (empty($args['types_selected'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The job cannot be restarted.' // @translate
+            );
+            return;
+        }
+
         if (empty($args['types'])) {
             $this->hasError = true;
             $this->logger->err(
@@ -261,14 +270,12 @@ class SpipProcessor extends AbstractFullProcessor
                 unset($args['types'][$key]);
             }
         }
-        $key = array_search('media', $args['types']);
-        if ($key !== false) {
-            unset($args['types'][$key]);
-            $args['types'][] = 'media_items';
-        }
-        $args['types'] = array_unique($args['types']);
 
-        $args['fake_files'] = !empty($args['fake_files']);
+        // Import des articles.
+        if (array_search('items', $args['types_selected']) !== false) {
+            $args['types'][] = 'items';
+            $args['types'] = array_unique($args['types']);
+        }
 
         $endpoint = rtrim(trim($args['endpoint'] ?? ''), ' /');
         $args['endpoint'] = $endpoint ? $endpoint . '/' : '';
@@ -431,11 +438,6 @@ class SpipProcessor extends AbstractFullProcessor
         $this->prepareCustomVocabsProcess($sourceCustomVocabs);
     }
 
-    protected function prepareMedias(): void
-    {
-        // N'utilise pas les médias, mais les média items.
-    }
-
     protected function prepareOthers(): void
     {
         parent::prepareOthers();
@@ -471,11 +473,6 @@ class SpipProcessor extends AbstractFullProcessor
             $this->main['auteur']['item_set'] = $itemSet;
             $this->main['auteur']['item_set_id'] = $itemSet->getId();
         }
-    }
-
-    protected function fillMedias(): void
-    {
-        // N'utilise pas les médias, mais les média items.
     }
 
     protected function fillItem(array $source): void
@@ -693,10 +690,6 @@ class SpipProcessor extends AbstractFullProcessor
         $this->orderAndAppendValues($values);
     }
 
-    protected function fillMedia(array $source): void
-    {
-    }
-
     /**
      * La ressource Spip Document est convertie en item + media.
      *
@@ -732,7 +725,9 @@ class SpipProcessor extends AbstractFullProcessor
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
 
-        $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source['id_document']]);
+        /** @var \Omeka\Entity\Media $media */
+        $media = $this->entityManager
+            ->find(\Omeka\Entity\Media::class, $this->map['media_items_sub'][$source[$this->mapping['media_items']['key_id']]]);
 
         if ('mode' === 'vignette') {
             $this->entityManager->remove($media->getItem());

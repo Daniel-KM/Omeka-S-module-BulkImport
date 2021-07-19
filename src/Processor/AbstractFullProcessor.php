@@ -17,6 +17,7 @@ use Omeka\Entity\ItemSet;
 abstract class AbstractFullProcessor extends AbstractProcessor implements Parametrizable
 {
     use AssetTrait;
+    use ConfigTrait;
     use ConfigurableTrait;
     use CountEntitiesTrait;
     use CustomVocabTrait;
@@ -313,6 +314,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'name' => 'media',
             'class' => \Omeka\Entity\Media::class,
             'table' => 'media',
+            'fill' => 'fillMediaItemMedia',
             'parent' => 'media_items',
         ],
         // Modules.
@@ -568,16 +570,43 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // TODO Finalize skip import of vocabularies, resource templates and custom vocabs.
         $args = $this->getParams();
+        $args['types_selected'] = $args['types'];
         $args['types'][] = 'vocabularies';
         $args['types'][] = 'resource_templates';
         $args['types'][] = 'custom_vocabs';
+
+        // Manage the case where the source manage media as items.
+        if (!empty($this->mapping['media_items']['source'])) {
+            $hasItem = array_search('items', $args['types']);
+            $hasMedia = array_search('media', $args['types']);
+            if ($hasItem !== false) {
+                unset($args['types'][$hasItem]);
+            }
+            if ($hasMedia !== false) {
+                unset($args['types'][$hasMedia]);
+            }
+            $args['types'][] = 'media_items';
+        }
+
         $args['types'] = array_unique($args['types']);
+
+        $args['fake_files'] = !empty($args['fake_files']);
+
         $this->setParams($args);
 
         $this->importables = array_replace($this->importables, $this->moreImportables);
 
         $this->preImport();
         if ($this->isErrorOrStop()) {
+            return;
+        }
+
+        if ($this->hasConfigFile('properties') && !$this->loadTable('properties')) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Missing file "{filepath}" for the mapping of values.', // @translate
+                ['filepath' => $this->configs['properties']['file']]
+            );
             return;
         }
 
@@ -954,6 +983,17 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->map['by_id']['resource_classes'] = array_map('intval', array_column($this->map['resource_classes'], 'id', 'source'));
     }
 
+    /**
+     * When no template is imported, the mapping should be filled for templates
+     * to simplify resource filling.
+     *
+     * @see \BulkImport\Processor\VocabularyTrait::prepareVocabularyMembers()
+     */
+    protected function prepareInternalTemplates(): void
+    {
+        $this->map['resource_templates'] = $this->getResourceTemplateIds();
+    }
+
     protected function checkVocabularies(): void
     {
         // The clone is needed because the properties use the reader inside the
@@ -1120,17 +1160,21 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // Save the map as a php array for future purpose (cf. lien rubrique spip).
         $config = $this->getServiceLocator()->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getJobId() . '.json';
+        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getImportId() . '.json';
+        if (!is_dir(dirname($filepath))) {
+            @mkdir(dirname($filepath, 0775, true));
+        }
         file_put_contents($filepath, json_encode($this->map, 448));
         $this->logger->notice(
-            'Mapping saved in {filepath} inside directory "files/".', // @translate
-            ['filepath' => mb_substr($filepath, strlen($basePath))]
+            'Mapping saved in "{url}".', // @translate
+            ['url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
         );
 
         $this->logger->info('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate
 
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();
+        $plugins = $services->get('ControllerPluginManager');
         $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
 
@@ -1153,14 +1197,26 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (count($ids)) {
             $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
         }
+
         $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+
         if (!empty($this->modules['Thesaurus'])) {
             $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
         }
 
+        if ($plugins->has('deduplicateValues')) {
+            $plugins->get('deduplicateValues')->__invoke();
+        } else {
+            $this->logger->warn(
+                'To deduplicate metadata, run the job "Deduplicate values" with module Bulk Edit.' // @translate
+            );
+        }
+
+        // TODO Reorder values according to template.
+
         // TODO Run derivative files job.
         if (count($this->map['media'])) {
-            $this->logger->warning('Derivative files should be recreated with module Bulk Check.'); // @translate
+            $this->logger->warn('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
     }
 

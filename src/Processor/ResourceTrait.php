@@ -109,9 +109,9 @@ trait ResourceTrait
             return;
         }
 
-        $hasSub = !empty($this->importables[$sourceType]['sub']);
+        $sourceTypeSub = $this->importables[$sourceType]['sub'];
+        $hasSub = !empty($sourceTypeSub);
         if ($hasSub) {
-            $sourceTypeSub = $this->importables[$sourceType]['sub'];
             $this->map[$sourceTypeSub] = $this->map[$sourceType];
         }
 
@@ -193,10 +193,13 @@ SQL;
 
         // Get the mapping of source and destination ids without specific data.
         $sql = <<<SQL
-SELECT `resource`.`title` AS `s`, `resource`.`id` AS `d`
+SELECT
+    `resource`.`title` AS `s`,
+    `resource`.`id` AS `d`
 FROM `resource` AS `resource`
 LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
-WHERE `spec`.`id` IS NULL
+WHERE
+    `spec`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
         // Fetch by key pair is not supported by doctrine 2.0.
@@ -204,24 +207,20 @@ SQL;
 
         // Create the resource in the specific resource table.
         switch ($resourceType) {
+            default:
+                return;
+
             case 'items':
                 $sql = <<<SQL
 INSERT INTO `item`
 SELECT `resource`.`id`
+FROM `resource` AS `resource`
+LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
+WHERE `spec`.`id` IS NULL
+    AND `resource`.`resource_type` = $resourceClass;
 SQL;
-                break;
-
-            case 'media':
-                // Attach all media to first item id for now, updated below.
-                $parent = $this->importables[$sourceType]['parent'] ?? 'items';
-                $itemId = (int) reset($this->map[$parent]);
-                $sql = <<<SQL
-INSERT INTO `media`
-    (`id`, `item_id`, `ingester`, `renderer`, `data`, `source`, `media_type`, `storage_id`, `extension`, `sha256`, `has_original`, `has_thumbnails`, `position`, `lang`, `size`)
-SELECT
-    `resource`.`id`, $itemId, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
-SQL;
-                break;
+                $this->connection->query($sql);
+                return;
 
             case 'item_sets':
                 // Finalize custom vocabs early: item sets map is available.
@@ -229,47 +228,73 @@ SQL;
                 $sql = <<<SQL
 INSERT INTO `item_set`
 SELECT `resource`.`id`, 0
-SQL;
-                break;
-
-            default:
-                return;
-        }
-        $sql .= PHP_EOL . <<<SQL
 FROM `resource` AS `resource`
 LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
 WHERE `spec`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
-        $this->connection->query($sql);
+                $this->connection->query($sql);
+                return;
 
-        // Manage the exception for media, that require the good item id.
-        if ($sourceType === 'media_items_sub') {
-            foreach (array_chunk($this->map['media_items_sub'], self::CHUNK_RECORD_IDS, true) as $chunk) {
-                $sql = str_repeat("UPDATE `media` SET `item_id`=? WHERE `id`=?;\n", count($chunk));
-                $bind = [];
-                foreach ($chunk as $sourceMediaItemId => $mediaId) {
-                    $bind[] = $this->map[$parent][$sourceMediaItemId];
-                    $bind[] = $mediaId;
+            case 'media':
+                // The media require the good item id.
+                // These checks are normally used only in development.
+                // Sometime there is no media, so it may not be an error.
+                if (($sourceType === 'media' && empty($mediaItems))
+                    || ($sourceType === 'media_items_sub' && empty($this->map['media_items_sub']))
+                ) {
+                    $this->logger->warn(
+                        'Media item ids are required to create media resources.' // @translate
+                    );
+                    return;
                 }
-                $this->connection->executeUpdate($sql, $bind);
-            }
-        } elseif ($resourceType === 'media' && !empty($mediaItems)) {
-            foreach (array_chunk($mediaItems, self::CHUNK_RECORD_IDS, true) as $chunk) {
-                $sql = str_repeat("UPDATE `media` SET `item_id`=? WHERE `id`=?;\n", count($chunk));
-                $bind = [];
-                foreach ($chunk as $sourceMediaId => $sourceItemId) {
-                    $bind[] = $this->map[$parent][$sourceItemId];
-                    $bind[] = $this->map[$sourceType][$sourceMediaId];
+
+                // To update with a temporary table and without big bind is quicker.
+                $sql = <<<SQL
+# Copy the mapping of source ids and destination item ids.
+DROP TABLE IF EXISTS `_temporary_source_media`;
+CREATE TEMPORARY TABLE `_temporary_source_media` (
+    `id` INT unsigned NOT NULL,
+    `item_id` INT unsigned NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
+SQL;
+                $parent = $this->importables[$sourceType]['parent'] ?? 'items';
+
+                if ($sourceType === 'media_items_sub') {
+                    foreach (array_chunk($this->map['media_items_sub'], self::CHUNK_RECORD_IDS, true) as $chunk) {
+                        array_walk($chunk, function (&$sourceItemId, $sourceMediaItemId) use ($parent): void {
+                            $sourceItemId .= ',' . $this->map[$parent][$sourceMediaItemId];
+                        });
+                        $sql .= 'INSERT INTO `_temporary_source_media` (`id`,`item_id`) VALUES(' . implode('),(', $chunk) . ");\n";
+                    }
+                } else {
+                    foreach (array_chunk($mediaItems, self::CHUNK_RECORD_IDS, true) as $chunk) {
+                        array_walk($chunk, function (&$sourceItemId, $sourceMediaId) use ($parent, $sourceType): void {
+                            $sourceItemId = $this->map[$sourceType][$sourceMediaId] . ',' . $this->map[$parent][$sourceItemId];
+                        });
+                        $sql .= 'INSERT INTO `_temporary_source_media` (`id`,`item_id`) VALUES(' . implode('),(', $chunk) . ");\n";
+                    }
                 }
-                $this->connection->executeUpdate($sql, $bind);
-            }
+                $sql .= <<<'SQL'
+INSERT INTO `media`
+    (`id`, `item_id`, `ingester`, `renderer`, `data`, `source`, `media_type`, `storage_id`, `extension`, `sha256`, `has_original`, `has_thumbnails`, `position`, `lang`, `size`)
+SELECT
+    `resource`.`id`, `_temporary_source_media`.`item_id`, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
+FROM `resource` AS `resource`
+JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`id`;
+DROP TABLE IF EXISTS `_temporary_source_media`;
+
+SQL;
+                $this->connection->query($sql);
+                break;
         }
     }
 
     protected function keepSourceIds(string $sourceType): bool
     {
-        if (!in_array($sourceType, ['items', 'media', 'item_sets', 'annotations'])) {
+        if (!in_array($sourceType, ['items', 'media', 'item_sets', 'annotations', 'media_items'])) {
             return false;
         }
 
@@ -430,10 +455,10 @@ SQL;
             $this->entity->setModified($modified);
         }
 
-        $this->fillValues($source);
+        $this->fillResourceValues($source);
     }
 
-    protected function fillValues(array $source): void
+    protected function fillResourceValues(array $source): void
     {
         $classes = [
             'items' => \Omeka\Entity\Item::class,
@@ -671,7 +696,8 @@ SQL;
      * Append a list of value to a resource, ordered according the template.
      *
      * The existing values of the resource are not reordered.
-     * Use `fillValues()` if the values are already ordered.
+     * Use `fillResourceValues()` if values are Omeka values or `appendValues()` if the
+     * values are already ordered.
      *
      * @param array $values A list of values. Value is not a representation, but
      *   a simple mapping with the database table.
@@ -688,6 +714,29 @@ SQL;
         }
 
         $values = $this->reorderListOfValues($values, $source);
+        $this->appendValues($values, $source);
+    }
+
+    /**
+     * Append a list of value to a resource.
+     *
+     * The existing values of the resource are not reordered.
+     * Use `fillResourceValues()` if the values are already Omeka values.
+     *
+     * @param array $values A list of values. Value is not a representation, but
+     *   a simple mapping with the database table.
+     * @param \Omeka\Entity\Resource $source
+     */
+    protected function appendValues(array $values, ?Resource $source = null): void
+    {
+        if (!count($values)) {
+            return;
+        }
+
+        if (!$source) {
+            $source = $this->entity;
+        }
+
         foreach ($values as $value) {
             $this->appendValue($value, $source);
         }
@@ -865,7 +914,7 @@ SQL;
         }
         foreach ($source['o:item_set'] as $itemSet) {
             if (isset($this->map['item_sets'][$itemSet['o:id']])
-                // This check avoids a core bug.
+                // This check avoids a core bug (don't add the same item set twice).
                 && !in_array($this->map['item_sets'][$itemSet['o:id']], $itemSetIds)
             ) {
                 $itemSets->add($this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['item_sets'][$itemSet['o:id']]));
@@ -940,7 +989,12 @@ SQL;
 
     protected function fillMediaItem(array $source): void
     {
-        // TODO See spip.
+        // TODO See spip or manioc.
+    }
+
+    protected function fillMediaItemMedia(array $source): void
+    {
+        // TODO See spip or manioc.
     }
 
     protected function fillItemSet(array $source): void

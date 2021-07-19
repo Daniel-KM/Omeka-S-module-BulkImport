@@ -10,7 +10,7 @@ use Omeka\Form\Element\ResourceSelect;
 /**
  * @todo Factorize with Omeka S processor.
  */
-class SpipProcessorParamsForm extends SpipProcessorConfigForm
+class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
 {
     use ServiceLocatorAwareTrait;
 
@@ -72,15 +72,8 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                     'value_options' => [
                         'users' => 'Users', // @translate
                         'items' => 'Items', // @translate
-                        'media' => 'Media', // @translate
+                        // 'media' => 'Media', // @translate
                         'item_sets' => 'Item sets', // @translate
-                        'assets' => 'Assets', // @translate
-                        // 'vocabularies' => 'Vocabularies', // @translate
-                        // 'resource_templates' => 'Resource templates', // @translate
-                        // 'custom_vocabs' => 'Custom vocabs', // @translate
-                        'concepts' => 'Rubriques (thésaurus)', // @translate
-                        'breves' => 'Brèves', // @translate
-                        'auteurs' => 'Fiches auteurs', // @translate
                     ],
                 ],
                 'attributes' => [
@@ -88,15 +81,8 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                     'value' => [
                         'users',
                         'items',
-                        'media',
+                        // 'media',
                         'item_sets',
-                        'assets',
-                        // 'vocabularies',
-                        // 'resource_templates',
-                        // 'custom_vocabs',
-                        'concepts',
-                        'breves',
-                        'auteurs',
                     ],
                     'required' => false,
                 ],
@@ -110,6 +96,18 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 ],
                 'attributes' => [
                     'id' => 'fake_files',
+                    'value' => '1',
+                ],
+            ])
+            ->add([
+                'name' => 'endpoint',
+                'type' => OptionalUrl::class,
+                'options' => [
+                    'label' => 'Url of original site to fetch files', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'endpoint',
+                    'value' => 'http://manioc.org/',
                 ],
             ])
             ->add([
@@ -121,16 +119,34 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 'attributes' => [
                     'id' => 'language',
                     'placeholder' => 'fra',
+                    'value' => 'fra',
                 ],
             ])
             ->add([
-                'name' => 'endpoint',
-                'type' => OptionalUrl::class,
+                'name' => 'language_2',
+                'type' => Element\Text::class,
                 'options' => [
-                    'label' => 'Url of original site to fetch files', // @translate
+                    'label' => 'Two letters code of the default language', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'endpoint',
+                    'id' => 'language',
+                    'placeholder' => 'fr',
+                    'value' => 'fr',
+                ],
+            ])
+            ->add([
+                'name' => 'geonames_search',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Search for geonames', // @translate
+                    'value_options' => [
+                        'strict' => 'Strict', // @translate
+                        'fuzzy' => 'Fuzzy', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'geonames_search',
+                    'value' => 'strict',
                 ],
             ])
         ;

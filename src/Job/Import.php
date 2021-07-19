@@ -55,6 +55,11 @@ class Import extends AbstractJob
         $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
     }
 
+    public function getImportId()
+    {
+        return $this->import->id();
+    }
+
     public function getJobId()
     {
         return $this->job->getId();
