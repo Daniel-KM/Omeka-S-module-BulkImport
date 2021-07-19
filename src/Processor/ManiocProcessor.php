@@ -132,6 +132,24 @@ class ManiocProcessor extends AbstractFullProcessor
             return;
         }
 
+        // TODO Remove these fixes.
+        $args = $this->getParams();
+        if (empty($args['types_selected'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The job cannot be restarted.' // @translate
+            );
+            return;
+        }
+
+        if (empty($args['types'])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The job cannot be restarted. Restart import from the beginning.' // @translate
+            );
+            return;
+        }
+
         // TODO Check if the properties of the mapping are all presents.
 
         $this->logger->info(
