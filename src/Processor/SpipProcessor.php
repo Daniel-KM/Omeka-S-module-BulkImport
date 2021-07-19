@@ -2,7 +2,7 @@
 
 namespace BulkImport\Processor;
 
-use BulkImport\Form\Processor\OmekaSProcessorConfigForm;
+use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
 use DateTime;
 use Laminas\Validator\EmailAddress;
@@ -16,7 +16,7 @@ use Laminas\Validator\EmailAddress;
 class SpipProcessor extends AbstractFullProcessor
 {
     protected $resourceLabel = 'Spip'; // @translate
-    protected $configFormClass = OmekaSProcessorConfigForm::class;
+    protected $configFormClass = SpipProcessorConfigForm::class;
     protected $paramsFormClass = SpipProcessorParamsForm::class;
     protected $moduleAreRequired = true;
 
@@ -89,7 +89,7 @@ class SpipProcessor extends AbstractFullProcessor
             'key_id' => 'id_document',
         ],
         'media_items' => [
-            'source' => 'document',
+            'source' => 'documents',
             'key_id' => 'id_document',
         ],
         // TODO Convertir en item avec relations?
@@ -116,7 +116,7 @@ class SpipProcessor extends AbstractFullProcessor
         ],
         // Modules.
         'custom_vocabs' => [
-            'source' => 'groupe_mots',
+            'source' => 'groupes_mots',
             'key_id' => 'id_groupe',
         ],
         'custom_vocab_keywords' => [
@@ -485,7 +485,7 @@ class SpipProcessor extends AbstractFullProcessor
     /**
      * La ressource Spip Article est convertie en item.
      *
-     * La précédente version utilisiait les médias data html/article pour les
+     * La précédente version utilisait les médias data html/article pour les
      * champs sur-titre, sous-titre, chapeau, texte et post-scriptum.
      *
      * @param array $source
@@ -540,16 +540,13 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         // Cf. module Article.
+
         $fromTo = [
             'surtitre' => 'dcterms:coverage',
             'titre' => 'dcterms:title',
             'soustitre' => 'dcterms:alternative',
-            'descriptif' => 'bibo:shortDescription',
-            'chapo' => 'article:prescript',
-            'texte' => 'bibo:content',
-            'ps' => 'article:postscript',
-            // La langue est utilisée directement dans les valeurs.
-            // 'lang' => 'dcterms:language',
+            // Néanmoins, la langue est utilisée directement dans les valeurs.
+            'lang' => 'dcterms:language',
         ];
         foreach ($fromTo as $sourceName => $term) {
             if (!strlen($source[$sourceName])) {
@@ -560,6 +557,28 @@ class SpipProcessor extends AbstractFullProcessor
                     'term' => $term,
                     'lang' => $lang ? $this->isoCode3letters($lang) : $language,
                     'value' => $value,
+                ];
+            }
+        }
+
+        // Tout le contenu est converti en html + shortcodes.
+        $fromTo = [
+            'descriptif' => 'bibo:shortDescription',
+            'chapo' => 'article:prescript',
+            'texte' => 'bibo:content',
+            'ps' => 'article:postscript',
+        ];
+        foreach ($fromTo as $sourceName => $term) {
+            if (!strlen($source[$sourceName])) {
+                continue;
+            }
+            foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
+                $value = $this->majRaccourcisSpip($value);
+                $values[] = [
+                    'term' => $term,
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $language,
+                    'value' => $value,
+                    'type' => 'spip'
                 ];
             }
         }
@@ -605,26 +624,30 @@ class SpipProcessor extends AbstractFullProcessor
         if ($redacDate) {
             $values[] = [
                 'term' => 'dcterms:dateSubmitted',
-                'value' => $redacDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($redacDate),
+                'type' => 'numeric:timestamp',
             ];
         }
         if ($createdDate) {
             $values[] = [
                 'term' => 'dcterms:created',
-                'value' => $createdDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($createdDate),
+                'type' => 'numeric:timestamp',
             ];
         }
         $modifiedDate = $this->getSqlDateTime($source['date_modif']);
         if ($modifiedDate) {
             $values[] = [
                 'term' => 'dcterms:modified',
-                'value' => $modifiedDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($modifiedDate),
+                'type' => 'numeric:timestamp',
             ];
         }
         if ($majDate) {
             $values[] = [
                 'term' => 'dcterms:dateAccepted',
-                'value' => $majDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($majDate),
+                'type' => 'numeric:timestamp',
             ];
         }
 
@@ -877,20 +900,23 @@ class SpipProcessor extends AbstractFullProcessor
             if ($createdDate) {
                 $values[] = [
                     'term' => 'dcterms:created',
-                    'value' => $createdDate->format('Y-m-d H:i:s'),
+                    'value' => $this->literalFullDateOrDateTime($createdDate),
+                    'type' => 'numeric:timestamp',
                 ];
             }
             if ($majDate) {
                 $values[] = [
                     'term' => 'dcterms:dateAccepted',
-                    'value' => $majDate->format('Y-m-d H:i:s'),
+                    'value' => $this->literalFullDateOrDateTime($majDate),
+                    'type' => 'numeric:timestamp',
                 ];
             }
             $publicationDate = $this->getSqlDateTime($source['date_publication']);
             if ($publicationDate) {
                 $values[] = [
                     'term' => 'dcterms:issued',
-                    'value' => $publicationDate->format('Y-m-d H:i:s'),
+                    'value' => $this->literalFullDateOrDateTime($publicationDate),
+                    'type' => 'numeric:timestamp',
                 ];
             }
 
@@ -960,13 +986,15 @@ class SpipProcessor extends AbstractFullProcessor
         if ($createdDate) {
             $values[] = [
                 'term' => 'dcterms:created',
-                'value' => $createdDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($createdDate),
+                'type' => 'numeric:timestamp',
             ];
         }
         if ($majDate) {
             $values[] = [
                 'term' => 'dcterms:dateAccepted',
-                'value' => $majDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($majDate),
+                'type' => 'numeric:timestamp',
             ];
         }
 
@@ -1188,18 +1216,19 @@ class SpipProcessor extends AbstractFullProcessor
             ];
         }
 
-        // TODO Conserver toutes les dates en valeur ?
         if ($createdDate) {
             $values[] = [
                 'term' => 'dcterms:created',
-                'value' => $createdDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($createdDate),
+                'type' => 'numeric:timestamp',
             ];
         }
         $modifiedDate = $this->getSqlDateTime($source['maj']);
         if ($modifiedDate) {
             $values[] = [
                 'term' => 'dcterms:modified',
-                'value' => $modifiedDate->format('Y-m-d H:i:s'),
+                'value' => $this->literalFullDateOrDateTime($modifiedDate),
+                'type' => 'numeric:timestamp',
             ];
         }
 
@@ -1241,7 +1270,12 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
         // L'auteur de la ressource liée est le propriétaire et l'auteur.
-        $data['linked_resource']->setOwner($data['resource']);
+        if ($data['resource']) {
+            // FIXME Faire le lien entre les utilisateurs Omeka et les auteurs.
+            if ($data['resource'] instanceof \Omeka\Entity\User) {
+                $data['linked_resource']->setOwner($data['resource']);
+            }
+        }
         $this->appendValue([
             'term' => 'dcterms:creator',
             'type' => 'resource:item',
@@ -1574,18 +1608,14 @@ class SpipProcessor extends AbstractFullProcessor
      *
      * En l'absence de langue multiple, la chaine est renvoyée dans un tableau.
      *
-     * @link https://code.spip.net/autodoc/tree/ecrire/inc/filtres.php.html#function_extraire_trads
-     * @link https://git.spip.net/SPIP/spip/src/branch/master/ecrire/inc/filtres.php#L1610-L1746
-     * @link https://git.spip.net/SPIP/spip/src/branch/master/ecrire/base/abstract_sql.php#L1358-L1390
-     *
-     * @param string $value
-     * @return array
+     * @link https://code.spip.net/autodoc/tree/ecrire/inc/filtres.php.html#function_extraire_multi
+     * @link https://code.spip.net/autodoc/tree/ecrire/base/abstract_sql.php.html#function_sql_multi
      */
     protected function polyglotte($value): array
     {
         $value = trim((string) $value);
 
-        if (!strlen($value)
+        if (empty($value)
             || strpos($value, '<multi>') === false
             || strpos($value, '</multi>') === false
         ) {
@@ -1620,6 +1650,7 @@ class SpipProcessor extends AbstractFullProcessor
      *
      * @link https://git.spip.net/spip/spip
      * @see spip/ecrire/inc/filtres.php
+     * @link https://code.spip.net/autodoc/tree/ecrire/inc/filtres.php.html#function_extraire_trads
      *
      * Exemple de blocs.
      * - `texte par défaut [fr] en français [en] in English`
@@ -1630,7 +1661,7 @@ class SpipProcessor extends AbstractFullProcessor
      * @return array [code de langue => texte]
      *     Peut retourner un code de langue vide, lorsqu'un texte par défaut est indiqué.
      **/
-    protected function extraire_trads($bloc)
+    protected function extraire_trads($bloc): array
     {
         $lang = '';
         $regs = [];
@@ -1647,5 +1678,92 @@ class SpipProcessor extends AbstractFullProcessor
         $trads[$lang] = $bloc;
 
         return $trads;
+    }
+
+    /**
+     * Convertit les noms et numéros des ressources des raccourcis spip.
+     *
+     * Par exemple `<img1|right>` devient `<image243|right>`.
+     * Les règles spip ne sont pas appliquées, mais gérées par le type de
+     * données "spip" ou converties via une tâche.
+     *
+     * Les liens sans relation sont conservés tels quels, mais avec trois zéros
+     * devant l’identifiant pour pouvoir conserver les raccourcis originaux dans
+     * les contenus.
+     * "item", item_set", "collection", "media", "user", etc. ne sont pas
+     * utilisés par défaut (hors les plugins éventuellement).
+     *
+     * C’est une adaptation de traiter_modeles() dans liens.
+     *
+     * @see https://code.spip.net/@traiter_modeles
+     * @see https://www.spip.net/aide/?exec=aide_index&aide=raccourcis&frame=body&var_lang=fr
+     * @see https://info.spip.net/la-mise-en-forme-des-contenus-dans
+     */
+    protected function majRaccourcisSpip($texte): string
+    {
+        // Vérification rapide.
+        if (strpos($texte, '<') === false) {
+            return $texte;
+        }
+
+        $matches = [];
+        preg_match_all('~<(?<type>[a-z_-]{3,})\s*(?<id>[0-9]+)~iS', $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        if (!$matches) {
+            return $texte;
+        }
+
+        $normalizeds = [
+            'art' => 'article',
+            'article' => 'article',
+            'album' => 'item_set',
+            'br' => 'breve',
+            'breve' => 'breve',
+            'brève' => 'breve',
+            'bréve' => 'breve',
+            'brêve' => 'breve',
+            'rub' => 'concept',
+            'rubrique' => 'concept',
+            'doc' => 'document',
+            'document' => 'document',
+            'im' => 'image',
+            'img' => 'image',
+            'image' => 'image',
+            'emb' => 'embed',
+            'embed' => 'embed',
+            'aut' => 'auteur',
+            'auteur' => 'auteur',
+        ];
+
+        $importeds = [
+            'article' => 'items',
+            'album' => 'item_sets',
+            'breve' => 'breves',
+            'rubrique' => 'concepts',
+            'document' => 'media_items_sub',
+            'image' => 'media_items_sub',
+            'embed' => 'media_items_sub',
+            'auteur' => 'auteurs',
+        ];
+        // Commence par le dernier pour éviter les problèmes de position dans la
+        // nouvelle chaîne.
+        foreach (array_reverse($matches) as $match) {
+            $type = $match['type'][0];
+            $id = $match['id'][0];
+            $type = $normalizeds[$type] ?? $type;
+            $importedType = $importeds[$type] ?? null;
+            if (empty($this->map[$importedType][$id])) {
+                $resourceId = '000' . $id;
+            } else {
+                $resourceId = $this->map[$importedType][$id];
+            }
+            $newResource = '<' . $type . $resourceId;
+            $pos = $match[0][1];
+            // Don't use "mb_" functions: preg_match_all() returns byte offsets.
+            $texte = substr($texte, 0, $pos)
+                . $newResource
+                . substr($texte, $pos + strlen($match[0][0]));
+        }
+
+        return $texte;
     }
 }
