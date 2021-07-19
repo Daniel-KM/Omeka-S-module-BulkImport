@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport;
 
 /**
@@ -176,7 +177,7 @@ SQL;
     $connection->exec($sql);
 }
 
-if (version_compare($oldVersion, '3.3.22.0', '<')) {
+$migrate_3_3_22_0 = function () use ($services, $connection, $config) {
     /** @var \Omeka\Module\Manager $moduleManager */
     $moduleManager = $services->get('Omeka\ModuleManager');
     $module = $moduleManager->getModule('Log');
@@ -273,5 +274,18 @@ SQL;
         $connection->exec($sql);
     } catch (\Exception $e) {
         // The upgrade failed in previous step, but ok this time.
+    }
+};
+
+if (version_compare($oldVersion, '3.3.22.0', '<')) {
+    $migrate_3_3_22_0();
+}
+
+if (version_compare($oldVersion, '3.3.24.0', '<')) {
+    // In some cases, the update wasn't processed.
+    try {
+        $connection->exec('SELECT `undo_job_id` FROM `bulk_import` LIMIT 1;');
+    } catch (\Exception $e) {
+        $migrate_3_3_22_0();
     }
 }
