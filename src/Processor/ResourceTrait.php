@@ -148,15 +148,15 @@ trait ResourceTrait
         // The temporary table is not used any more in order to be able to check
         // quickly if source ids are all available for main items.
         $sql = <<<SQL
-DROP TABLE IF EXISTS `temporary_source_resource`;
-CREATE TABLE `temporary_source_resource` (
+DROP TABLE IF EXISTS `_temporary_source_resource`;
+CREATE TABLE `_temporary_source_resource` (
     `id` INT unsigned NOT NULL,
     UNIQUE (`id`)
 );
 
 SQL;
         foreach (array_chunk(array_keys($this->map[$sourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-            $sql .= 'INSERT INTO `temporary_source_resource` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+            $sql .= 'INSERT INTO `_temporary_source_resource` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
         }
 
         // Try to keep original source ids for items.
@@ -166,9 +166,9 @@ INSERT INTO `resource`
     (`id`, `owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
     id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceTypeClass, NULL, id
-FROM `temporary_source_resource`;
+FROM `_temporary_source_resource`;
 
-DROP TABLE IF EXISTS `temporary_source_resource`;
+DROP TABLE IF EXISTS `_temporary_source_resource`;
 SQL;
         } else {
             $sql .= <<<SQL
@@ -176,9 +176,9 @@ INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
     $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceTypeClass, NULL, id
-FROM `temporary_source_resource`;
+FROM `_temporary_source_resource`;
 
-DROP TABLE IF EXISTS `temporary_source_resource`;
+DROP TABLE IF EXISTS `_temporary_source_resource`;
 SQL;
         }
         $this->connection->query($sql);
