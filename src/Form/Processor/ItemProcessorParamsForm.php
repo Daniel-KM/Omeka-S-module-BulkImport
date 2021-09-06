@@ -57,7 +57,7 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
             $mapping['item']['options']['o-module-mapping:bounds'] = 'Mapping bounds'; // @translate
         }
 
-        if (!$this->isModuleActive('ImageServer') && !$this->isModuleActive('IiifServer')) {
+        if (!$this->isModuleActive('ImageServer')) {
             unset($mapping['media']['options']['tile']);
         }
 

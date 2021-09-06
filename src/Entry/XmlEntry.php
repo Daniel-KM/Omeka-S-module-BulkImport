@@ -185,8 +185,8 @@ class XmlEntry extends Entry
                 break;
 
             case 'iiif':
-                if (!$this->isUrl($value) && !empty($this->options['iiifserver_image_server'])) {
-                    $value = $this->options['iiifserver_image_server'] . $value;
+                if (!$this->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
+                    $value = $this->options['iiifserver_media_api_url'] . $value;
                 }
                 $resource += [
                     'resource_type' => 'media',

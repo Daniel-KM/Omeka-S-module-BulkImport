@@ -47,7 +47,7 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
             ],
         ]);
 
-        if (!$this->isModuleActive('ImageServer') && !$this->isModuleActive('IiifServer')) {
+        if (!$this->isModuleActive('ImageServer')) {
             unset($mapping['media']['options']['tile']);
         }
 

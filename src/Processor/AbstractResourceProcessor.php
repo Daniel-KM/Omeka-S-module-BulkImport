@@ -1380,11 +1380,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
         $internalParams = [];
-        $internalParams['iiifserver_image_server'] = $settings->get('iiifserver_image_server', '');
-        if ($internalParams['iiifserver_image_server']
-            && mb_substr($internalParams['iiifserver_image_server'], -1) !== '/'
+        $internalParams['iiifserver_media_api_url'] = $settings->get('iiifserver_media_api_url', '');
+        if ($internalParams['iiifserver_media_api_url']
+            && mb_substr($internalParams['iiifserver_media_api_url'], -1) !== '/'
         ) {
-            $internalParams['iiifserver_image_server'] .= '/';
+            $internalParams['iiifserver_media_api_url'] .= '/';
         }
         $this->setParams(array_merge($this->getParams() + $internalParams));
         return $this;
