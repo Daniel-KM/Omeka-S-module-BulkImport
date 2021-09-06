@@ -932,7 +932,8 @@ SQL;
             ['label' => 'Image', 'total' => $result]
         );
 
-        // Livre : collection ouvrage sauf vient d’une archive sauf type de document revue (2466 items).
+        // Livre : collection “livres anciens/patrimoine numérisé” moins “vient d’une archive”
+        // et moins types de document “numéros de revues” et “extraits de revues” (2466 items).
         /*
          SELECT id_fichier
          FROM fichiers
@@ -1467,17 +1468,15 @@ SQL;
             return;
         }
 
-        if (empty($map['source']) || empty($map['destination'])) {
-            $this->logger->info(
-                'Template group "{template_group}": Processing {total} values.', // @translate
-                ['template_group' => $group, 'total' => $result]
-            );
-        } else {
-            $this->logger->info(
-                'Template group "{template_group}": Processing {total} values from source "{source}" to property "{term}".', // @translate
-                ['template_group' => $group, 'total' => $result, 'source' => $map['source'], 'term' => $map['destination']]
-            );
-        }
+        $this->logger->info(
+            'Template group "{template_group}": Processing {total} values from source "{source}" to property "{term}".', // @translate
+            [
+                'template_group' => $group,
+                'total' => $result,
+                'source' => empty($map['source']) ? '[any]' : $map['source'],
+                'term' => empty($map['destination']) ? '[any]' : $map['destination'],
+            ]
+        );
 
         // ATTENTION : ne pas supprimer en amont les propriétés dont on a besoin en aval.
         if ($action === 'remove') {
@@ -1507,7 +1506,7 @@ SQL;
             return;
         }
 
-        // The action is "transform".
+        // Action "transform".
         switch ($value) {
             // Effectue des modifications avant toute autre modification.
             case 'Pre':
@@ -1645,10 +1644,11 @@ SQL;
                             'action' => 'append_value',
                             'params' => [
                                 'source' => 'foaf:name',
+                                // Faux type de données : personnes et organisations.
                                 'datatype' => 'valuesuggest:idref:author',
                                 'mapping' => 'valuesuggest:idref:author',
                                 'partial_mapping' => true,
-                                'name' => 'auteurs',
+                                'name' => 'auteurs_et_contributeurs',
                                 'prefix' => 'https://www.idref.fr/',
                                 // Dans le fichier original, il y a des espaces
                                 // et des différences entre le nom à chercher
@@ -1669,6 +1669,7 @@ SQL;
                                     'bio:birth' => 'bio:birth',
                                     'bio:death' => 'bio:death',
                                     'bio:biography' => 'bio:biography',
+                                    'dcterms:bibliographicCitation' => 'dcterms:bibliographicCitation',
                                 ],
                                 'identifier_to_templates_and_classes' => [
                                     'valuesuggest:idref:person' => 'Personne',
@@ -1686,20 +1687,34 @@ SQL;
                             'action' => 'append_value',
                             'params' => [
                                 'source' => 'bio:olb',
+                                // Faux type de données : personnes et organisations.
                                 'datatype' => 'valuesuggest:idref:author',
                                 'mapping' => 'valuesuggest:idref:author',
                                 'partial_mapping' => true,
-                                'name' => 'auteurs',
+                                'name' => 'auteurs_et_contributeurs',
                                 'prefix' => 'https://www.idref.fr/',
                                 // Les dates, lieux, etc. sont déjà ajoutés via la table.
                                 'properties' => [
                                     'identifier' => 'bibo:uri',
+                                    'dcterms:bibliographicCitation' => 'dcterms:bibliographicCitation',
                                 ],
                             ],
                         ],
                     ]);
                 }
             break;
+
+            case 'Audience':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dcterms:audience',
+                        ],
+                    ],
+                ]);
+                break;
 
             case 'Auteur':
             case 'Auteur secondaire':
@@ -1761,9 +1776,22 @@ SQL;
                 }
                 break;
 
+            case 'Etablissement':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dcterms:rightsHolder',
+
+                        ],
+                    ],
+                ]);
+                break;
+
             case 'Fait partie de':
                 if ($group === self::TYPE_IMAGE) {
-                    // dcterms:title : Titre. Tome n° => dcterms:title / bibo:volume
+                    // dcterms:title : Titre. Tome n° => dcterms:title / bibo:pages
                     $this->transformOperations([
                         [
                             'action' => 'replace_table',
@@ -1777,12 +1805,15 @@ SQL;
                 break;
 
             case 'Indice Dewey':
+                // dcterms:subject ^^customvocab:Thématiques
                 $this->transformOperations([
                     [
                         'action' => 'replace_table',
                         'params' => [
                             'source' => $map['property_id'],
-                            'mapping' => 'dewey',
+                            // Il est inutile d'indiquer la destination.
+                            'destination' => 'dcterms:subject',
+                            'mapping' => 'dewey_themes',
                             'settings' => [
                                 /*
                                 // dcterms:subject ^^uri
@@ -1791,10 +1822,6 @@ SQL;
                                      'remove_space_source' => true,
                                 ],
                                 */
-                                // dcterms:subject ^^customvocab:thematique-dewey
-                                'dcterms:subject' => [
-                                    'replace' => '{source} {destination}',
-                                ],
                             ],
                         ],
                     ],
@@ -1838,6 +1865,18 @@ SQL;
                                     'arguments' => 'country',
                                 ],
                             ],
+                        ],
+                    ],
+                ]);
+                break;
+
+            case 'Siècle (sujet)':
+                $this->transformOperations([
+                    [
+                        'action' => 'replace_table',
+                        'params' => [
+                            'source' => $map['property_id'],
+                            'mapping' => 'dcterms:temporal',
                         ],
                     ],
                 ]);
@@ -1928,7 +1967,12 @@ SQL;
                                 'properties' => [
                                     '/record/datafield[@tag="200"]/subfield[@code="a"][1]' => 'foaf:familyName',
                                     '/record/datafield[@tag="200"]/subfield[@code="b"][1]' => 'foaf:givenName',
+                                    '/record/datafield[@tag="900"]/subfield[@code="a"][1]' => 'dcterms:alternative',
                                     '/record/datafield[@tag="901"]/subfield[@code="a"][1]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="902"]/subfield[@code="a"][1]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="910"]/subfield[@code="a"][1]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="911"]/subfield[@code="a"][1]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="912"]/subfield[@code="a"][1]' => 'dcterms:alternative',
                                     // Dates are already updated with search query.
                                     '/record/datafield[@tag="103"]/subfield[@code="a"][1]' => 'bio:birth',
                                     '/record/datafield[@tag="103"]/subfield[@code="b"][1]' => 'bio:death',

@@ -581,7 +581,7 @@ SQL;
             // 'x' => 'non applicable',
         ];
         /** @link http://documentation.abes.fr/sudoc/formats/unma/zones/102.htm */
-        $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'URI');
+        $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'URI');
         $countries['XX'] = 'Pays inconnu';
         $countries['ZZ'] = 'Pays multiples';
 
@@ -1224,6 +1224,7 @@ SQL;
         }
 
         // Fix exception.
+        // Fake data type: person or corporation.
         if ($datatype === 'valuesuggest:idref:author') {
             $datatype = 'valuesuggest:idref:person';
         }
@@ -1298,6 +1299,7 @@ SQL;
             return false;
         }
 
+        // Fake data type: person or corporation.
         $dataTypeExceptions = [
             'valuesuggest:idref:author',
         ];
@@ -1443,8 +1445,8 @@ SQL;
         $first = reset($table);
         if (count($first) <= 1) {
             $this->logger->warn(
-                'Operation "{action}": mapping requires two columns at least.', // @translate
-                ['action' => $this->operationName]
+                'Operation "{action}": mapping requires two columns at least (file "{file}").', // @translate
+                ['action' => $this->operationName, 'file' => $params['mapping']]
             );
             return null;
         }
@@ -1456,8 +1458,8 @@ SQL;
         $sourceKey = array_search('source', $firstKeys);
         if ($hasSource && $sourceKey === false) {
             $this->logger->err(
-                'Operation "{action}": mapping requires a column "source".', // @translate
-                ['action' => $this->operationName]
+                'Operation "{action}": mapping requires a column "source" (file "{file}").', // @translate
+                ['action' => $this->operationName, 'file' => $params['mapping']]
             );
             return null;
         }
@@ -1465,8 +1467,8 @@ SQL;
         // TODO The param "source" is not used here, but in other steps, so move check.
         if ($hasSource && empty($params['source'])) {
             $this->logger->err(
-                'Operation "{action}": a source is required.', // @translate
-                ['action' => $this->operationName]
+                'Operation "{action}": a source is required (mapping file "{file}").', // @translate
+                ['action' => $this->operationName, 'file' => $params['mapping']]
             );
             return null;
         }
@@ -1474,8 +1476,8 @@ SQL;
         $sourceId = $this->getPropertyId($params['source']);
         if ($hasSource && empty($sourceId)) {
             $this->logger->err(
-                'Operation "{action}": a valid source is required: "{term}" does not exist.', // @translate
-                ['action' => $this->operationName, 'term' => $params['source']]
+                'Operation "{action}": a valid source is required: "{term}" does not exist (mapping file "{file}").', // @translate
+                ['action' => $this->operationName, 'term' => $params['source'], 'file' => $params['mapping']]
             );
             return null;
         }
@@ -1484,8 +1486,8 @@ SQL;
             $saveSourceId = $this->getPropertyId($params['source_term']);
             if (empty($saveSourceId)) {
                 $this->logger->err(
-                    'Operation "{action}": an invalid property is set to save source: "{term}".', // @translate
-                    ['action' => $this->operationName, 'term' => $params['source_term']]
+                    'Operation "{action}": an invalid property is set to save source: "{term}" (mapping file "{file}").', // @translate
+                    ['action' => $this->operationName, 'term' => $params['source_term'], 'file' => $params['mapping']]
                 );
                 return null;
             }
@@ -1548,15 +1550,15 @@ SQL;
 
         if (!count($destinations)) {
             $this->logger->warn(
-                'There are no mapped properties for destination: "{terms}".', // @translate
-                ['terms' => implode('", "', $firstKeys)]
+                'There are no mapped properties for destination: "{terms}" (mapping file "{file}").', // @translate
+                ['terms' => implode('", "', $firstKeys), 'file' => $params['mapping']]
             );
             return null;
         }
 
         $this->logger->notice(
-            'The source {term} is mapped with {count} properties: "{terms}".', // @translate
-            ['term' => $params['source'], 'count' => count($properties), 'terms' => implode('", "', array_keys($properties))]
+            'The source {term} is mapped with {count} properties: "{terms}" (mapping file "{file}").', // @translate
+            ['term' => $params['source'], 'count' => count($properties), 'terms' => implode('", "', array_keys($properties)), 'file' => $params['mapping']]
         );
 
         // Prepare the mapping. Cells are already trimmed strings.
@@ -1685,9 +1687,10 @@ SQL;
         $hasMultipleDestinations = count(array_column($mapper, 'source', 'source')) < count(array_column($mapper, 'source'));
         if ($hasMultipleDestinations) {
             $this->logger->info(
-                'Operation "{action}": Process a multi-destinaton for (first 10): {multi}.', // @translate
+                'Operation "{action}": Process a multi-destinaton via file "{file}" for (first 10): {multi}.', // @translate
                 [
                     'action' => $this->operationName,
+                    'file' => $params['mapping'],
                     'multi' => array_slice(array_diff(array_column($mapper, 'source'), array_column($mapper, 'source', 'source')), 0, 10),
                 ]
             );
@@ -2878,7 +2881,13 @@ SQL;
         if ($datatype === 'valuesuggest:geonames:geonames') {
             return $this->valueSuggestQueryGeonames($value, $datatype, $params);
         }
-        if (in_array($datatype, ['valuesuggest:idref:author', 'valuesuggest:idref:person', 'valuesuggest:idref:corporation', 'valuesuggest:idref:conference'])) {
+        if (in_array($datatype, [
+            // Fake data type: person or corporation (or conference here).
+            'valuesuggest:idref:author',
+            'valuesuggest:idref:person',
+            'valuesuggest:idref:corporation',
+            'valuesuggest:idref:conference',
+        ])) {
             return $this->valueSuggestQueryIdRefAuthor($value, $datatype, $params);
         }
         if ($datatype === 'valuesuggest:idref:rameau') {
@@ -2931,7 +2940,7 @@ SQL;
         static $searchType;
 
         if (is_null($language2)) {
-            $countries = $this->loadTableAsKeyValue('countries-iso-3166', 'ISO-2');
+            $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'ISO-2');
             $language2 = $this->getParam('language_2') ?: '';
             $searchType = $this->getParam('geonames_search') ?: 'strict';
         }
