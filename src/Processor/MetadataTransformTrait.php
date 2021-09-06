@@ -2436,7 +2436,7 @@ SQL;
     ): void {
         // To store the previous max value id is the simplest way to remove
         // updated values without removing other ones.
-        // This max value id is saved in the settings for simplicity.
+        // This max value id is saved temporary in the settings for simplicity.
         $random = $this->operationRandoms[$this->operationIndex];
         $this->operationSqls[] = <<<SQL
 # Explode values according to the temporary table (step 1/4).

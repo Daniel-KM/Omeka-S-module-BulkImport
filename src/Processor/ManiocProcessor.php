@@ -2079,7 +2079,7 @@ SQL;
         if (!$filepath) {
             $this->hasError = true;
             $this->logger->err(
-                'Cannot save table "table" to a temporary file.', // @translate
+                'Cannot save table "{table}" to a temporary file.', // @translate
                 ['table' => $table]
             );
             return false;
