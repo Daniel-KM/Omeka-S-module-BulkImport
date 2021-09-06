@@ -1733,7 +1733,7 @@ SQL;
             $this->storeMappingTablePrepare();
         }
 
-        foreach (array_chunk($mapper, self::CHUNK_ENTITIES, true) as $chunk) {
+        foreach (array_chunk($mapper, self::CHUNK_ENTITIES / 2, true) as $chunk) {
             array_walk($chunk, function (&$v): void {
                 $v = ((int) $v['property_id'])
                     . ",'" . $v['type'] . "'"
