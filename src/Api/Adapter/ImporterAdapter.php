@@ -3,7 +3,7 @@ namespace BulkImport\Api\Adapter;
 
 use BulkImport\Api\Representation\ImporterRepresentation;
 use BulkImport\Entity\Importer;
-use Doctrine\Common\Inflector\Inflector;
+use Doctrine\Inflector\InflectorFactory;
 use Doctrine\ORM\QueryBuilder;
 use Omeka\Api\Adapter\AbstractEntityAdapter;
 use Omeka\Api\Request;
@@ -56,10 +56,11 @@ class ImporterAdapter extends AbstractEntityAdapter
     public function hydrate(Request $request, EntityInterface $entity, ErrorStore $errorStore): void
     {
         $data = $request->getContent();
+        $inflector = InflectorFactory::create()->build();
         foreach ($data as $key => $value) {
             $posColon = strpos($key, ':');
             $keyName = $posColon === false ? $key : substr($key, $posColon + 1);
-            $method = 'set' . ucfirst(Inflector::camelize($keyName));
+            $method = 'set' . ucfirst($inflector->camelize($keyName));
             if (!method_exists($entity, $method)) {
                 continue;
             }
