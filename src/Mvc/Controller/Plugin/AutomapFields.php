@@ -15,21 +15,21 @@ class AutomapFields extends AbstractPlugin
      */
     const PATTERN = '#'
         // Check a term/keyword ("dcterms:title" or "Rights holder" or "Resource class"), required.
-        . '^\s*(?<field>[a-zA-Z][^@§^~|]*?)\s*'
+        . '^\s*(?<field>[a-zA-Z][^@§^~|]*?)'
         // In any order:
         . '(?:'
         // Check a language + country (@fra or @fr-Fr or @en-GB-oed, etc.).
         // See application/asset/js/admin.js for a complex check.
         // @link http://stackoverflow.com/questions/7035825/regular-expression-for-a-language-tag-as-defined-by-bcp47
-        . '(?:\s*@\s*(?<language>(?:(?:[a-zA-Z0-9]+-)*[a-zA-Z]+|))\s*)'
+        . '(?:\s*@\s*(?<language>(?:(?:[a-zA-Z0-9]+-)*[a-zA-Z]+|)))'
         // Check a data type (^^resource:item or ^^customvocab:Liste des établissements).
-        . '|(?:\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|)\s*)'
+        . '|(?:\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|))'
         // Check visibility (§private).
-        . '|(?:\s*§\s*(?<visibility>public|private|)\s*)'
+        . '|(?:\s*§\s*(?<visibility>public|private|))'
         // Max three options, but no check for duplicates for now.
-        . '|){0,3}'
+        . '){0,3}'
         // A replacement pattern for optional transformation of the source.
-        . '(?:\s*~\s*(?<pattern>.+?|))'
+        . '(?:\s*~\s*(?<pattern>.*))?'
         // Remove final spaces too.
         . '\s*$'
         // Unicode is used for custom vocab labels.
