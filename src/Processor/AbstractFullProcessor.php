@@ -1225,12 +1225,18 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
         }
 
+        $this->completionOtherJobs();
+
         // TODO Reorder values according to template.
 
         // TODO Run derivative files job.
         if (count($this->map['media'])) {
             $this->logger->warn('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
+    }
+
+    protected function completionOtherJobs()
+    {
     }
 
     protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Interfaces\Reader

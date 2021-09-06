@@ -1967,6 +1967,11 @@ SQL;
         $this->connection->executeStatement($sql);
     }
 
+    protected function completionOtherJobs()
+    {
+        // TODO Bulk Edit Géonames label et Rameau label.
+    }
+
     /**
      * The source table is prefixed with "_src_".
      */
