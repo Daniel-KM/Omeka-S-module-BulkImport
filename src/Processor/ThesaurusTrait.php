@@ -152,7 +152,7 @@ SET `resource_class_id` = {$this->main['scheme']['class_id']},
     `resource_template_id` = {$this->main['scheme']['template_id']}
 WHERE `id` = $id;
 SQL;
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
 
         $this->entityManager->flush();
         $this->entityManager->clear();

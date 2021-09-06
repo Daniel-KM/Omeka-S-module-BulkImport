@@ -190,7 +190,7 @@ SQL;
             $result = $this->dbAdapter->query($sql)->execute();
         } catch (\Exception $e) {
             try {
-                $result = $connection->query($sql)->fetchAll();
+                $result = $connection->executeQuery($sql)->fetchAll();
             } catch (\Exception $e) {
                 $this->lastErrorMesage = 'Unable to check grants of a user.'; // @translate
                 $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);

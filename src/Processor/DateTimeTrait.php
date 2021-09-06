@@ -159,7 +159,7 @@ JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `numeric_data_types_timestamp`.
 
 SQL;
 
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
 
         // Create timestamps.
         // Use static \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue()
@@ -185,12 +185,12 @@ WHERE
 ;
 SQL;
 
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
 
         $sql = <<<'SQL'
 SELECT `value` FROM `_temporary_date`;
 SQL;
-        $stmt = $this->connection->query($sql);
+        $stmt = $this->connection->executeQuery($sql);
         // TODO Add a loop for big source sizes or increase database and php memory.
         $result = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         if (count($result)) {
@@ -236,7 +236,7 @@ WHERE
     AND `_temporary_date`.`timestamp` IS NOT NULL
 ;
 SQL;
-                $this->connection->query($sql);
+                $this->connection->executeQuery($sql);
             }
 
             // Clean data type for numeric:timestamp.
@@ -253,7 +253,7 @@ WHERE
     AND `_temporary_date`.`timestamp` IS NULL
 ;
 SQL;
-                $this->connection->query($sql);
+                $this->connection->executeQuery($sql);
 
                 $this->logger->warn(
                     '{count}/{total} values are not valid dates.', // @translate
@@ -266,7 +266,7 @@ SQL;
 DROP TABLE IF EXISTS `_temporary_rid`;
 DROP TABLE IF EXISTS `_temporary_date`;
 SQL;
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
     }
 
     /**

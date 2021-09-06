@@ -200,7 +200,8 @@ trait MetadataTransformTrait
         }
 
         // Transaction is implicit.
-        $this->connection->executeUpdate(implode("\n", $this->operationSqls));
+        $this->connection->executeStatement(implode("\n", $this->operationSqls));
+
         if ($flush) {
             $this->operationSqls = [];
         }

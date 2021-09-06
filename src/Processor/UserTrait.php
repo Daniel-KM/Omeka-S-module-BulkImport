@@ -163,7 +163,7 @@ SQL;
             $sql = sprintf($sql, '"' . implode('","', $emails) . '"');
             // Fetch by key pair is not supported by doctrine 2.0.
             unset($users);
-            $destEmails = array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'email', 'id');
+            $destEmails = array_column($this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC), 'email', 'id');
             $destEmails = array_map('mb_strtolower', $destEmails);
             foreach ($emails as $id => $email) {
                 $destId = array_search($email, $destEmails);
@@ -344,6 +344,6 @@ SQL;
             return;
         }
 
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
     }
 }

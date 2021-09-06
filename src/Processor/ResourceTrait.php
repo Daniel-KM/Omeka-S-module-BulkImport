@@ -181,7 +181,7 @@ FROM `_temporary_source_resource`;
 DROP TABLE IF EXISTS `_temporary_source_resource`;
 SQL;
         }
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
     }
 
     protected function createEmptyResourcesSpecific(string $sourceType, ?array $mediaItems = null): void
@@ -203,7 +203,7 @@ WHERE
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
         // Fetch by key pair is not supported by doctrine 2.0.
-        $this->map[$sourceType] = array_map('intval', array_column($this->connection->query($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's'));
+        $this->map[$sourceType] = array_map('intval', array_column($this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's'));
 
         // Create the resource in the specific resource table.
         switch ($resourceType) {
@@ -219,7 +219,7 @@ LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
 WHERE `spec`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
-                $this->connection->query($sql);
+                $this->connection->executeQuery($sql);
                 return;
 
             case 'item_sets':
@@ -233,7 +233,7 @@ LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
 WHERE `spec`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
-                $this->connection->query($sql);
+                $this->connection->executeQuery($sql);
                 return;
 
             case 'media':
@@ -287,7 +287,7 @@ JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`i
 DROP TABLE IF EXISTS `_temporary_source_media`;
 
 SQL;
-                $this->connection->query($sql);
+                $this->connection->executeQuery($sql);
                 break;
         }
     }

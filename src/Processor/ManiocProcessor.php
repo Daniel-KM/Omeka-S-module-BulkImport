@@ -766,7 +766,7 @@ DROP TABLE IF EXISTS `_temporary_source_value`;
 
 SQL;
 
-        $this->connection->query($sql);
+        $this->connection->executeQuery($sql);
         unlink($filepath);
 
         if (!empty($this->modules['BulkEdit'])) {
@@ -775,7 +775,7 @@ SQL;
             $trimValues();
         }
 
-        $total = $this->connection->query('SELECT count(`id`) FROM `value`;')->fetchColumn();
+        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `value`;')->fetchColumn();
         $this->logger->notice(
             '{total} values have been copied from the source.', // @translate
             ['total' => $total]
@@ -833,7 +833,7 @@ SQL;
             'property_name' => 'sourceFilename',
             'value' => '%.mp3',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $bind = [
             'template_id' => $this->map['resource_templates']['Audio'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
@@ -841,7 +841,7 @@ SQL;
             'property_name' => 'format',
             'value' => 'audio/mp3',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -874,7 +874,7 @@ SQL;
             'vocabulary_prefix' => 'manioc',
             'property_name' => 'archive',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -925,7 +925,7 @@ SQL;
             'vocabulary_prefix_2' => 'manioc',
             'property_name_2' => 'archive',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1002,7 +1002,7 @@ SQL;
             'property_name_4' => 'type',
             'value_4' => 'Extraits de revues',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1023,7 +1023,7 @@ SQL;
             'property_name' => 'type',
             'value' => 'Mémoires, thèses',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1044,7 +1044,7 @@ SQL;
             'property_name' => 'type',
             'value' => 'Numéros de revues',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1065,7 +1065,7 @@ SQL;
             'property_name' => 'type',
             'value' => 'Extraits de revues',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1113,7 +1113,7 @@ SQL;
             'property_name' => 'identifier',
             'value' => 'greenstone_collection_id: 2',
         ];
-        $this->connection->executeUpdate($sql, $bind);
+        $this->connection->executeStatement($sql, $bind);
         $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
@@ -1195,7 +1195,7 @@ CREATE TABLE `_temporary_valuesuggest` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SQL;
-            $this->connection->executeUpdate($sql);
+            $this->connection->executeStatement($sql);
         }
 
         // Mettre à jour la colonne des éléments.
@@ -1453,8 +1453,8 @@ WHERE 1 = 1
 ;
 SQL;
 
-        $this->connection->executeUpdate($sql, $bind, $baseTypes);
-        $result = $this->connection->query('SELECT count(`id`) FROM `_temporary_value`;')->fetchColumn();
+        $this->connection->executeStatement($sql, $bind, $baseTypes);
+        $result = $this->connection->executeQuery('SELECT count(`id`) FROM `_temporary_value`;')->fetchColumn();
         if (!$result) {
             $this->logger->info(
                 'Template group "{template_group}": no values to process.', // @translate
@@ -1964,7 +1964,7 @@ WHERE
     )
 ;
 SQL;
-        $this->connection->executeUpdate($sql);
+        $this->connection->executeStatement($sql);
     }
 
     /**

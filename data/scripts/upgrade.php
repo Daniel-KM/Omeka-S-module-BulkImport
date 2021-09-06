@@ -225,7 +225,7 @@ WHERE
     OR `bulk_importer`.`processor_config` LIKE '%"identifier\_name":["dcterms:identifier","o:id"]%';
 SQL;
     try {
-        $connection->executeUpdate($sql);
+        $connection->executeStatement($sql);
     } catch (\Exception $e) {
         // The upgrade failed in previous step, but ok this time.
     }
