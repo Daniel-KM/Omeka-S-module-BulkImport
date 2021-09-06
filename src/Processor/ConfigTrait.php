@@ -340,6 +340,8 @@ trait ConfigTrait
         } elseif (class_exists(ReaderEntityFactory::class)) {
             /** @var \Box\Spout\Reader\ODS\Reader $spreadsheetReader */
             $spreadsheetReader = ReaderEntityFactory::createODSReader();
+            // Important, else next rows will be skipped.
+            $spreadsheetReader->setShouldPreserveEmptyRows(true);
         } else {
             $this->hasError = true;
             $this->logger->err(

@@ -187,6 +187,8 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->isOldBoxSpout = true;
         } elseif (class_exists(ReaderEntityFactory::class)) {
             $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
+            // Important, else next rows will be skipped.
+            $this->spreadsheetReader->setShouldPreserveEmptyRows(true);
         } else {
             throw new \Omeka\Service\Exception\RuntimeException(
                 (string) new PsrMessage(
