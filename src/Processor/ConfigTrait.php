@@ -240,8 +240,11 @@ trait ConfigTrait
      *
      * The config key is a key in the property "configs" of this trait.
      */
-    protected function loadTableFromFile(?string $configKey, bool $keyValuePair = false): ?array
-    {
+    protected function loadTableFromFile(
+        ?string $configKey,
+        bool $keyValuePair = false,
+        bool $keepEmptyRows = false
+    ): ?array {
         $filepath = $this->getConfigFilepath($configKey);
         if (!$filepath) {
             return null;
@@ -252,13 +255,13 @@ trait ConfigTrait
         if ($extension === 'php') {
             $mapper = include $filepath;
         } elseif ($extension === 'ods') {
-            $mapper = $this->odsToArray($filepath, $keyValuePair);
+            $mapper = $this->odsToArray($filepath, $keyValuePair, $keepEmptyRows);
         } elseif ($extension === 'tsv') {
-            $mapper = $this->tsvToArray($filepath, $keyValuePair);
+            $mapper = $this->tsvToArray($filepath, $keyValuePair, $keepEmptyRows);
         } elseif ($extension === 'csv'
             || $extension === 'txt'
         ) {
-            $mapper = $this->csvToArray($filepath, $keyValuePair);
+            $mapper = $this->csvToArray($filepath, $keyValuePair, $keepEmptyRows);
         } else {
             $this->hasError = true;
             $this->logger->err(
@@ -326,8 +329,11 @@ trait ConfigTrait
      *
      * @see \BulkImport\Reader\OpenDocumentSpreadsheetReader::initializeReader()
      */
-    private function odsToArray(string $filepath, bool $keyValuePair = false): ?array
-    {
+    private function odsToArray(
+        string $filepath,
+        bool $keyValuePair = false,
+        bool $keepEmptyRows = false
+    ): ?array {
         if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             return null;
         }
@@ -397,6 +403,8 @@ trait ConfigTrait
             return $data;
         }
 
+        $skipEmptyRows = !$keepEmptyRows;
+
         $first = true;
         $headers = [];
         foreach ($iterator as $row) {
@@ -408,10 +416,11 @@ trait ConfigTrait
                 $countHeaders = count($headers);
                 $emptyRow = array_fill(0, $countHeaders, '');
             } else {
-                $data[] = array_combine(
-                    $headers,
-                    array_slice(array_map('trim', array_map('strval', $cells)) + $emptyRow, 0, $countHeaders)
-                );
+                $rowData = array_slice(array_map('trim', array_map('strval', $cells)) + $emptyRow, 0, $countHeaders);
+                if ($skipEmptyRows && array_unique($rowData) === ['']) {
+                    continue;
+                }
+                $data[] = array_combine($headers, $rowData);
             }
         }
 
@@ -424,9 +433,12 @@ trait ConfigTrait
      *
      * Empty or partial rows are managed.
      */
-    private function tsvToArray(string $filepath, bool $keyValuePair = false): ?array
-    {
-        return $this->tcsvToArray($filepath, $keyValuePair, "\t", '"', '\\');
+    private function tsvToArray(
+        string $filepath,
+        bool $keyValuePair = false,
+        bool $keepEmptyRows = false
+    ): ?array {
+        return $this->tcsvToArray($filepath, $keyValuePair, $keepEmptyRows, "\t", '"', '\\');
     }
 
     /**
@@ -434,9 +446,12 @@ trait ConfigTrait
      *
      * Empty or partial rows are managed.
      */
-    private function csvToArray(string $filepath, bool $keyValuePair = false): ?array
-    {
-        return $this->tcsvToArray($filepath, $keyValuePair, ",", '"', '\\');
+    private function csvToArray(
+        string $filepath,
+        bool $keyValuePair = false,
+        bool $keepEmptyRows = false
+    ): ?array {
+        return $this->tcsvToArray($filepath, $keyValuePair, $keepEmptyRows, ",", '"', '\\');
     }
 
     /**
@@ -444,8 +459,14 @@ trait ConfigTrait
      *
      * Empty or partial rows are managed.
      */
-    private function tcsvToArray(string $filepath, bool $keyValuePair, string $delimiter, string $enclosure, string $escape): ?array
-    {
+    private function tcsvToArray(
+        string $filepath,
+        bool $keyValuePair,
+        bool $keepEmptyRows,
+        string $delimiter,
+        string $enclosure,
+        string $escape
+    ): ?array {
         if (!file_exists($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             return null;
         }
@@ -471,14 +492,17 @@ trait ConfigTrait
             return $data;
         }
 
+        $skipEmptyRows = !$keepEmptyRows;
+
         $headers = array_map('trim', str_getcsv(array_shift($rows), $delimiter, $enclosure, $escape));
         $countHeaders = count($headers);
         $emptyRow = array_fill(0, $countHeaders, '');
         foreach ($rows as $row) {
-            $data[] = array_combine(
-                $headers,
-                array_slice(array_map('trim', str_getcsv($row, $delimiter, $enclosure, $escape)) + $emptyRow, 0, $countHeaders)
-            );
+            $rowData = array_slice(array_map('trim', str_getcsv($row, $delimiter, $enclosure, $escape)) + $emptyRow, 0, $countHeaders);
+            if ($skipEmptyRows && array_unique($rowData) === ['']) {
+                continue;
+            }
+            $data[] = array_combine($headers, $rowData);
         }
         return $data;
     }
