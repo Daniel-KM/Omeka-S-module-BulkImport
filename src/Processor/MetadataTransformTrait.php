@@ -40,6 +40,16 @@ trait MetadataTransformTrait
      */
     protected $mappingsSourceUris = [];
 
+    /**
+     * Store all known unique mappings between unique sources and the sources.
+     *
+     * It allows to get quickly the source key for the table `mappingsSourceUris`
+     * with any known keys, for example in a prefilled table.
+     *
+     * @var array Associative array of single key and single source name.
+     */
+    protected $mappingsSourcesToSources = [];
+
     protected $mappingsSourceItems = [];
 
     protected $mappingsColumns = [];
@@ -315,6 +325,36 @@ SQL;
 
     protected function operationReplaceTable(array $params): bool
     {
+        if (empty($params['source'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a source.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+        $propertyIdSource = $this->getPropertyId($params['source']);
+        if (empty($propertyIdSource)) {
+            $this->logger->err(
+                'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
+                ['action' => $this->operationName, 'term' => $params['source']]
+            );
+            return false;
+        }
+        if (empty($params['destination'])) {
+            // When replace by a table, it may be a multi-columns, so there may
+            // be multiple destination properties.
+            $propertyIdDest = null;
+        } else {
+            $propertyIdDest = $this->getPropertyId($params['destination']);
+            if (empty($propertyIdDest)) {
+                $this->logger->err(
+                    'The operation "{action}" requires a valid destination or no destination: "{term}" does not exist.', // @translate
+                    ['action' => $this->operationName, 'term' => $params['destination']]
+                );
+                return false;
+            }
+        }
+
         $result = $this->prepareMappingTable($params);
         if (!$result) {
             return false;
@@ -325,8 +365,8 @@ SQL;
         $this->storeMappingTable($mapper);
 
         $hasMultipleDestinations
-            ? $this->processValuesTransformReplace()
-            : $this->processValuesTransformUpdate();
+            ? $this->processValuesTransformReplace('value', $propertyIdSource, $propertyIdDest)
+            : $this->processValuesTransformUpdate('value', $propertyIdSource, $propertyIdDest);
 
         $this->removeMappingTables();
 
@@ -1192,6 +1232,8 @@ SQL;
         // multiple steps, for example to store some authors as creators, then as
         // contributors.
         $mapper = [];
+        // Complete the mapper with second sources.
+        $currentMappingSourcesToSources = &$this->mappingsSourcesToSources[$params['name']];
         foreach ($currentMapping as $source => $rows) {
             // Only values with a source and a single uri can update resources.
             if (!$source || !count($rows) || count($rows) > 1) {
@@ -1202,30 +1244,34 @@ SQL;
                 continue;
             }
             $row = reset($rows);
-            foreach ($fromTo as $from => $propertyId) {
-                if ($from === 'identifier') {
-                    $uri = $uriRow;
-                    $label = isset($row['label']) && $row['label'] !== '' ? $row['label'] : null;
-                    $type= isset($row['type']) && $row['type'] !== '' ? $row['type'] : $datatype;
-                } elseif (isset($row[$from]) && $row[$from] !== '') {
-                    $uri = null;
-                    $label = $row[$from];
-                    $type = 'literal';
-                } else {
-                    continue;
+            // Create map for main source, but complete it with second sources.
+            $sourcesToMap = array_unique(array_merge([$source], array_keys($currentMappingSourcesToSources, $source)));
+            foreach ($sourcesToMap as $sourceToMap) {
+                foreach ($fromTo as $from => $propertyId) {
+                    if ($from === 'identifier') {
+                        $uri = $uriRow;
+                        $label = isset($row['label']) && $row['label'] !== '' ? $row['label'] : null;
+                        $type= isset($row['type']) && $row['type'] !== '' ? $row['type'] : $datatype;
+                    } elseif (isset($row[$from]) && $row[$from] !== '') {
+                        $uri = null;
+                        $label = $row[$from];
+                        $type = 'literal';
+                    } else {
+                        continue;
+                    }
+                    $mapper[] = [
+                        'source' => $sourceToMap,
+                        'property_id' => $propertyId,
+                        'value_resource_id' => null,
+                        'type' => $type,
+                        'value' => $label,
+                        'uri' => $uri,
+                        // TODO Check and normalize property language.
+                        'lang' => null,
+                        // TODO Try to keep original is_public.
+                        'is_public' => 1,
+                    ];
                 }
-                $mapper[] = [
-                    'source' => $source,
-                    'property_id' => $propertyId,
-                    'value_resource_id' => null,
-                    'type' => $type,
-                    'value' => $label,
-                    'uri' => $uri,
-                    // TODO Check and normalize property language.
-                    'lang' => null,
-                    // TODO Try to keep original is_public.
-                    'is_public' => 1,
-                ];
             }
         }
 
@@ -1288,7 +1334,11 @@ SQL;
                 return false;
             }
 
-            $this->processValuesTransformUpdate();
+            // TODO It's currently not possible to convert datatype and property at the same time.
+            $propertyIdSource = $params['source'];
+            $propertyIdDest = $params['source'];
+
+            $this->processValuesTransformUpdate('value', $propertyIdSource, $propertyIdDest);
 
             $this->removeMappingTables();
             return true;
@@ -1466,10 +1516,12 @@ SQL;
         $properties = [];
         $propertyIds = $this->getPropertyIds();
         $fields = $automapFields($firstKeys, ['output_full_matches' => true]);
-        foreach (array_filter($fields) as $index => $field) {
-            // Only one field is managed currently.
-            $field = reset($field);
-            if (isset($propertyIds[$field['field']])) {
+
+        foreach (array_filter($fields) as $index => $fieldData) {
+            foreach ($fieldData as $field) {
+                if (!isset($propertyIds[$field['field']])) {
+                    continue;
+                }
                 $field['header'] = $firstKeys[$index];
                 $field['term'] = $field['field'];
                 $field['property_id'] = $propertyIds[$field['field']];
@@ -1629,7 +1681,19 @@ SQL;
             }
         }
 
-        $hasMultipleDestinations = count($destinations) > 1;
+        // Manage the case where a source is mapped multiple times.
+        $hasMultipleDestinations = count(array_column($mapper, 'source', 'source')) < count(array_column($mapper, 'source'));
+        if ($hasMultipleDestinations) {
+            $this->logger->info(
+                'Operation "{action}": Process a multi-destinaton for (first 10): {multi}.', // @translate
+                [
+                    'action' => $this->operationName,
+                    'multi' => array_slice(array_diff(array_column($mapper, 'source'), array_column($mapper, 'source', 'source')), 0, 10),
+                ]
+            );
+        }
+
+        $hasMultipleDestinations = $hasMultipleDestinations || count($destinations) > 1;
 
         return [
             $mapper,
@@ -1753,7 +1817,7 @@ SQL;
             }
         }
 
-        $sourceIds = implode(', ', array_keys($properties));
+        $sourceIds = implode(',', array_keys($properties));
 
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
@@ -2013,6 +2077,18 @@ SQL;
         // issue doesn't occur here, because all values of the table are strings
         // and there is no floats, etc.
         $this->mappingsSourceUris[$params['name']] = array_fill_keys(array_column($table, 'source'), []);
+        $this->mappingsSourcesToSources[$params['name']] = [];
+        if (!empty($params['valid_sources'])) {
+            $validSources = is_array($params['valid_sources']) ? $params['valid_sources'] : [$params['valid_sources']];
+            foreach ($validSources as $validSource) {
+                $this->mappingsSourcesToSources[$params['name']] = array_replace(
+                    $this->mappingsSourcesToSources[$params['name']],
+                    array_column($table, 'source', $validSource)
+                );
+                // Remove sources without sources.
+                unset($this->mappingsSourcesToSources[$params['name']]['']);
+            }
+        }
 
         // Use references for simplicity.
         $storedSourceItems = &$this->mappingsSourceItems[$params['name']];
@@ -2105,6 +2181,7 @@ SQL;
 
         // Use references for simplicity.
         $currentMapping = &$this->mappingsSourceUris[$params['name']];
+        $currentMappingSourcesToSources = &$this->mappingsSourcesToSources[$params['name']];
         $currentItems = &$this->mappingsSourceItems[$params['name']];
 
         $datatype = $params['datatype'];
@@ -2164,20 +2241,26 @@ SQL;
             }
             $currentItems[$source] = $resourceIds;
 
-            // Check if the value is already mapped with one or multiple uris to
-            // avoid to repeat search.
-            // So check the keys (uris) in the sources (values): when there is
-            // no empty key, it means that the source is already checked.
-            if (isset($currentMapping[$source])
-                && (
-                    !count($currentMapping[$source])
-                    || count($currentMapping[$source]) > 1
-                    || (count($currentMapping[$source]) === 1
-                        && (key($currentMapping[$source]) !== '' || !empty($currentMapping[$source]['_chk']))
+            // Check if second sources can be used.
+            $sourcesToCheck = empty($currentMappingSourcesToSources[$source])
+                ? [$source]
+                : array_unique([$source, $currentMappingSourcesToSources[$source]]);
+            foreach ($sourcesToCheck as $sourceToCheck) {
+                // Check if the value is already mapped with one or multiple uris to
+                // avoid to repeat search.
+                // So check the keys (uris) in the sources (values): when there is
+                // no empty key, it means that the source is already checked.
+                if (isset($currentMapping[$sourceToCheck])
+                    && (
+                        !count($currentMapping[$sourceToCheck])
+                        || count($currentMapping[$sourceToCheck]) > 1
+                        || (count($currentMapping[$sourceToCheck]) === 1
+                            && (key($currentMapping[$sourceToCheck]) !== '' || !empty($currentMapping[$sourceToCheck]['_chk']))
+                        )
                     )
-                )
-            ) {
-                continue;
+                ) {
+                    continue 2;
+                }
             }
 
             // There is no value or there is one value without uri.
@@ -2271,16 +2354,32 @@ SQL;
         unset($currentItems);
     }
 
-    protected function processValuesTransformUpdate(string $joinColumn = 'value'): void
-    {
+    protected function processValuesTransformUpdate(
+        string $joinColumn = 'value',
+        ?int $propertyIdSource = null,
+        ?int $propertyIdDest = null
+    ): void {
+        $joinMapper = '';
+        $sqlProperty = '';
+        if ($propertyIdSource === $propertyIdDest) {
+            $joinMapper = '    AND `_temporary_mapper`.`property_id` = `value`.`property_id`';
+        } elseif ($propertyIdSource || $propertyIdDest) {
+            if ($propertyIdSource) {
+                $sqlProperty .= "AND `value`.`property_id` = $propertyIdSource\n";
+            }
+            if ($propertyIdDest) {
+                $sqlProperty .= "AND `_temporary_mapper`.`property_id` = $propertyIdDest\n";
+            }
+        }
+
         $this->operationSqls[] = <<<SQL
 # Update values according to the temporary table.
 UPDATE `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
+    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+    $joinMapper
 SET
     `value`.`property_id` = `_temporary_mapper`.`property_id`,
     `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
@@ -2289,6 +2388,8 @@ SET
     `value`.`value` = `_temporary_mapper`.`value`,
     `value`.`uri` = `_temporary_mapper`.`uri`,
     `value`.`is_public` = `_temporary_mapper`.`is_public`
+WHERE 1 = 1
+    $sqlProperty
 ;
 SQL;
     }
@@ -2325,14 +2426,18 @@ $properties
 SQL;
     }
 
-    protected function processValuesTransformReplace(string $joinColumn = 'value'): void
-    {
+    protected function processValuesTransformReplace(
+        string $joinColumn = 'value',
+        ?int $propertyIdSource = null,
+        ?int $propertyIdDest = null
+    ): void {
         // To store the previous max value id is the simplest way to remove
         // updated values without removing other ones.
         // This max value id is saved in the settings for simplicity.
         $random = $this->operationRandoms[$this->operationIndex];
         $this->operationSqls[] = <<<SQL
 # Explode values according to the temporary table (step 1/4).
+# Store the max value id to remove source values after copy.
 INSERT INTO `setting`
     (`id`, `value`)
 SELECT
@@ -2341,6 +2446,19 @@ SELECT
 FROM `value`
 ;
 SQL;
+
+        $joinMapper = '';
+        $sqlProperty = '';
+        if ($propertyIdSource === $propertyIdDest) {
+            $joinMapper = '    AND `_temporary_mapper`.`property_id` = `value`.`property_id`';
+        } elseif ($propertyIdSource || $propertyIdDest) {
+            if ($propertyIdSource) {
+                $sqlProperty .= "AND `value`.`property_id` = $propertyIdSource\n";
+            }
+            if ($propertyIdDest) {
+                $sqlProperty .= "AND `_temporary_mapper`.`property_id` = $propertyIdDest\n";
+            }
+        }
 
         $this->operationSqls[] = <<<SQL
 # Explode values according to the temporary table (step 2/4).
@@ -2359,9 +2477,12 @@ FROM `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
+    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+    $joinMapper
+WHERE 1 = 1
+    $sqlProperty
 ;
+
 SQL;
 
         $this->operationSqls[] = <<<SQL
@@ -2371,14 +2492,14 @@ FROM `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
 JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`$joinColumn`
+    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
 JOIN `setting`
 WHERE
     `value`.`id` <= `setting`.`value`
     AND `setting`.`id` = "bulkimport_max_value_id_$random"
     AND `setting`.`value` IS NOT NULL
     AND `setting`.`value` > 0
+    $sqlProperty
 ;
 
 SQL;

@@ -1420,6 +1420,10 @@ SQL;
         }
 
         if ($action === 'append') {
+            $this->logger->info(
+                'Template group "{template_group}": processing action "{action}" with value "{value}": already processed in bulk.', // @translate
+                ['template_group' => $group, 'action' => $action, 'value' => $value]
+            );
             // Nothing to do because already migrated in bulk.
             return;
         }
@@ -1510,6 +1514,7 @@ SQL;
                 if ($group === self::TYPE_ALL) {
                     $this->transformOperations([
                         [
+                            // Crée une ressource liée à partir du champ "auteur/contributeur".
                             'action' => 'create_resource',
                             'params' => [
                                 'mapping_properties' => [
@@ -1645,6 +1650,19 @@ SQL;
                                 'partial_mapping' => true,
                                 'name' => 'auteurs',
                                 'prefix' => 'https://www.idref.fr/',
+                                // Dans le fichier original, il y a des espaces
+                                // et des différences entre le nom à chercher
+                                // et le nom standard (exemple : Silva, Joaquim Caetano da  (1810-1873)),
+                                // notamment suite à des alignements manuels
+                                // qui n'ont pas été reportés dans le tableau,
+                                // ce qui fait qu'on ne peut le trouver, même s'il est bien
+                                // identifié. On utilise donc également la colonne
+                                // standard ou tout autre colonne unique pour
+                                // faire le rapprochement.
+                                'valid_sources' => [
+                                    'label',
+                                ],
+                                // Les dates, lieux, etc. sont déjà ajoutés via la table.
                                 'properties' => [
                                     'identifier' => 'bibo:uri',
                                     'info' => 'bio:biography',

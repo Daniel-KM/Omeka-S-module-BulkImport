@@ -237,7 +237,7 @@ SQL;
                 return;
 
             case 'media':
-                // The media require the good item id.
+                // Manage the exception for media, that requires the good item id.
                 // These checks are normally used only in development.
                 // Sometime there is no media, so it may not be an error.
                 if (($sourceType === 'media' && empty($mediaItems))
