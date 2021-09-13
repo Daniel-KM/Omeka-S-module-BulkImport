@@ -6,7 +6,6 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Reader\FakeReader;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
-use DateTime;
 use Laminas\Form\Form;
 use Omeka\Api\Representation\VocabularyRepresentation;
 use Omeka\Entity\ItemSet;
@@ -1235,7 +1234,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
-    protected function completionOtherJobs()
+    protected function completionOtherJobs(): void
     {
     }
 

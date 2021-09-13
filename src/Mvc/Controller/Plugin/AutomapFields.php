@@ -2,7 +2,6 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
-use Laminas\I18n\View\Helper\Translate;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Mvc\Controller\Plugin\Api;
 

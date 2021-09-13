@@ -6,7 +6,6 @@ use ArrayIterator;
 use BulkImport\Entry\Entry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
-use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
 class JsonReader extends AbstractPaginatedReader

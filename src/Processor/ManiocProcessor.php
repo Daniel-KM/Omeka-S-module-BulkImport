@@ -1182,7 +1182,7 @@ SQL;
 
         // Check if value suggest is available in order to prepare a temp table.
         if (!empty($this->modules['ValueSuggest'])) {
-        $sql = <<<SQL
+            $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 CREATE TABLE `_temporary_valuesuggest` (
     `id` int(11) NOT NULL,
@@ -1596,7 +1596,7 @@ SQL;
                         ],
                         */
                     ]);
-                } else if ($group === self::TYPE_IMAGE) {
+                } elseif ($group === self::TYPE_IMAGE) {
                     // Cette opération ne dépend pas de la propriété en cours
                     // mais des ressources.
                     // Attention: la source manioc:internalLink est supprimée
@@ -2029,7 +2029,7 @@ SQL;
         $this->connection->executeStatement($sql);
     }
 
-    protected function completionOtherJobs()
+    protected function completionOtherJobs(): void
     {
         // TODO Bulk Edit Géonames label et Rameau label.
     }

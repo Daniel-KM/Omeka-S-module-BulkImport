@@ -317,7 +317,7 @@ trait ConfigTrait
         $standardHeaders = $this->configs[$configKey]['headers'];
         return array_map(function ($map) use ($standardHeaders) {
             return array_combine(array_map(function ($oldKey) use ($standardHeaders) {
-                return isset($standardHeaders[$oldKey]) ? $standardHeaders[$oldKey] : $oldKey;
+                return $standardHeaders[$oldKey] ?? $oldKey;
             }, array_keys($map)), array_values($map));
         }, $mapper);
     }

@@ -578,7 +578,7 @@ class SpipProcessor extends AbstractFullProcessor
                     'term' => $term,
                     'lang' => $lang ? $this->isoCode3letters($lang) : $language,
                     'value' => $value,
-                    'type' => 'spip'
+                    'type' => 'spip',
                 ];
             }
         }

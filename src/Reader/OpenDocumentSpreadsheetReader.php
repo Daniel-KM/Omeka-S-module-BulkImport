@@ -300,7 +300,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             return $this;
         }
 
-        if ($this->isMultiSheet ) {
+        if ($this->isMultiSheet) {
             return $this->prepareAvailableFieldsMultiSheets();
         }
 
@@ -348,7 +348,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      */
     protected function prepareAvailableFieldsOld(): \BulkImport\Interfaces\Reader
     {
-        if ($this->isMultiSheet ) {
+        if ($this->isMultiSheet) {
             return $this->prepareAvailableFieldsMultiSheetsOld();
         }
 

@@ -126,7 +126,7 @@ trait DateTimeTrait
     /**
      * Create the timestamp with a quick sql query and numeric datatype methods.
      */
-    protected function reindexNumericTimestamp(array $ids)
+    protected function reindexNumericTimestamp(array $ids): void
     {
         if (!count($ids) || !$this->bulk->getDataType('numeric:timestamp')) {
             return;

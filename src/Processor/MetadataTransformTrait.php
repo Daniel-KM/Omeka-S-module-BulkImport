@@ -9,6 +9,7 @@ use DomDocument;
 use DOMXPath;
 use Laminas\Http\Client\Exception\ExceptionInterface as HttpExceptionInterface;
 use Laminas\Http\ClientStatic;
+
 // use SimpleXMLElement;
 
 /**
@@ -71,7 +72,7 @@ trait MetadataTransformTrait
     /**
      * Maximum number of resources to display in ods/html output.
      *
-     * @var integer
+     * @var int
      */
     protected $outputByColumn = 10;
 
@@ -647,7 +648,7 @@ SQL;
             $xpath = new DOMXPath($doc);
 
             $hasNew = false;
-            foreach  ($params['properties'] as $query => $property) {
+            foreach ($params['properties'] as $query => $property) {
                 $nodeList = $xpath->query($query);
                 if (!$nodeList || !$nodeList->length) {
                     continue;
@@ -1195,7 +1196,7 @@ SQL;
         }
 
         if (empty($params['name'])) {
-            $params['name'] = str_replace(':', '-', $datatype .'_' . $this->transformIndex);
+            $params['name'] = str_replace(':', '-', $datatype . '_' . $this->transformIndex);
         }
 
         // Only literal: the already mapped values (label + uri) can be used as
@@ -1252,7 +1253,7 @@ SQL;
                     if ($from === 'identifier') {
                         $uri = $uriRow;
                         $label = isset($row['label']) && $row['label'] !== '' ? $row['label'] : null;
-                        $type= isset($row['type']) && $row['type'] !== '' ? $row['type'] : $datatype;
+                        $type = isset($row['type']) && $row['type'] !== '' ? $row['type'] : $datatype;
                     } elseif (isset($row[$from]) && $row[$from] !== '') {
                         $uri = null;
                         $label = $row[$from];
@@ -1323,7 +1324,7 @@ SQL;
         }
 
         if (empty($params['name'])) {
-            $params['name'] = str_replace(':', '-', $datatype .'_' . $this->transformIndex);
+            $params['name'] = str_replace(':', '-', $datatype . '_' . $this->transformIndex);
         }
 
         $isValueSuggest = substr($datatype, 0, 12) === 'valuesuggest';
@@ -1503,8 +1504,8 @@ SQL;
         $settings = $params['settings'] ?? [];
         foreach ($settings as $term => &$setting) {
             $setting['property_id'] = $this->bulk->getPropertyId($term);
-            if (empty($setting['property_id'])){
-                 unset($settings[$term]);
+            if (empty($setting['property_id'])) {
+                unset($settings[$term]);
             }
         }
         unset($setting);
@@ -1925,7 +1926,7 @@ SQL;
             }
             $uri = key($row);
             $label = isset($row['label']) && mb_strlen($row['label']) ? $row['label'] : null;
-            $type= isset($row['type']) && mb_strlen($row['type']) ? $row['type'] : $datatype;
+            $type = isset($row['type']) && mb_strlen($row['type']) ? $row['type'] : $datatype;
             $mapper[] = [
                 'source' => $source,
                 'property_id' => $sourceId,
@@ -2278,7 +2279,7 @@ SQL;
                 $datatype = $originalDataType;
             }
 
-             $result = $this->valueSuggestQuery($source, $datatype, $params);
+            $result = $this->valueSuggestQuery($source, $datatype, $params);
 
             if ($result === null) {
                 $this->logger->err(
@@ -2671,8 +2672,8 @@ FROM `_temporary_mapper`
 ;
 SQL;
 
-    $position = strlen($random) + 2;
-    $this->operationSqls[] = <<<SQL
+        $position = strlen($random) + 2;
+        $this->operationSqls[] = <<<SQL
 # Store new resource ids to speed next steps. and to remove random titles.
 DROP TABLE IF EXISTS `_temporary_new_resource`;
 CREATE TABLE `_temporary_new_resource` (
@@ -2699,8 +2700,8 @@ WHERE
 
 SQL;
 
-    if ($resourceType === \Omeka\Entity\Item::class) {
-        $this->operationSqls[] = <<<SQL
+        if ($resourceType === \Omeka\Entity\Item::class) {
+            $this->operationSqls[] = <<<SQL
 # Create items for created resources.
 INSERT INTO `item`
     (`id`)
@@ -2711,8 +2712,8 @@ ON DUPLICATE KEY UPDATE
     `id` = `item`.`id`
 ;
 SQL;
-    } elseif ($resourceType === \Omeka\Entity\ItemSet::class) {
-        $this->operationSqls[] = <<<SQL
+        } elseif ($resourceType === \Omeka\Entity\ItemSet::class) {
+            $this->operationSqls[] = <<<SQL
 # Create item sets for created resources.
 INSERT INTO `item_set`
     (`id`, `is_open`)
@@ -2725,8 +2726,8 @@ ON DUPLICATE KEY UPDATE
     `is_open` = `item_set`.`is_open`
 ;
 SQL;
-    } elseif ($resourceType === \Omeka\Entity\Media::class) {
-        $this->operationSqls[] = <<<SQL
+        } elseif ($resourceType === \Omeka\Entity\Media::class) {
+            $this->operationSqls[] = <<<SQL
 # Create medias for created resources.
 INSERT INTO `media`
     (`id`, `item_id`, `ingester`, `renderer`, `has_original`, `has_tumbnails`)
@@ -2742,7 +2743,7 @@ ON DUPLICATE KEY UPDATE
     `id` = `media`.`id`
 ;
 SQL;
-    }
+        }
 
         $this->operationSqls[] = <<<SQL
 # Add the main value to new resources.
@@ -2764,7 +2765,6 @@ JOIN `_temporary_new_resource`
     ON `_temporary_new_resource`.`id` = `resource`.`id`
 ;
 SQL;
-
     }
 
     protected function processCreateLinkForCreatedResourcesFromValues(array $params): bool
@@ -3034,7 +3034,7 @@ SQL;
                     // Manage location like "France | Paris" or "Paris | France".
                     $valueList = array_map('trim', explode('|', $value));
                     $arguments = (array) $format['arguments'];
-                    foreach ($arguments as $argument)  {
+                    foreach ($arguments as $argument) {
                         $v = array_shift($valueList);
                         if (is_null($v)) {
                             break;
@@ -3355,7 +3355,7 @@ SQL;
             return [];
         }
 
-         // Check the result key.
+        // Check the result key.
         foreach ($results['response']['docs'] as $result) {
             if (empty($result['ppn_z'])) {
                 continue;
@@ -3624,7 +3624,7 @@ SQL;
         }
         $tableHeadersHtml = trim($tableHeadersHtml);
 
-       $html = <<<HTML
+        $html = <<<HTML
 <!DOCTYPE html>
 <html>
     <head>

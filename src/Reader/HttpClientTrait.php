@@ -117,12 +117,12 @@ trait HttpClientTrait
     {
         return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '')
             . ((isset($parts['user']) || isset($parts['host'])) ? '//' : '')
-            . (isset($parts['user']) ? $parts['user'] : '')
+            . ($parts['user'] ?? '')
             . (isset($parts['pass']) ? ":{$parts['pass']}" : '')
             . (isset($parts['user']) ? '@' : '')
-            . (isset($parts['host']) ? $parts['host'] : '')
+            . ($parts['host'] ?? '')
             . (isset($parts['port']) ? ":{$parts['port']}" : '')
-            . (isset($parts['path']) ? $parts['path'] : '')
+            . ($parts['path'] ?? '')
             . (isset($parts['query']) ? "?{$parts['query']}" : '')
             . (isset($parts['fragment']) ? "#{$parts['fragment']}" : '');
     }
@@ -159,7 +159,7 @@ trait HttpClientTrait
             ->send();
     }
 
-    protected function fetchUrlJson(string $url, array $query= [], ?array $headers = null): array
+    protected function fetchUrlJson(string $url, array $query = [], ?array $headers = null): array
     {
         // TODO See OaiPmhHarvester for user agent.
         $defaultHeaders = [

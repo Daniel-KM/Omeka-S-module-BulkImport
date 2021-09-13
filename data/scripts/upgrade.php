@@ -178,7 +178,7 @@ SQL;
     $connection->executeQuery($sql);
 }
 
-$migrate_3_3_22_0 = function () use ($services, $connection, $config) {
+$migrate_3_3_22_0 = function () use ($services, $connection, $config): void {
     /** @var \Omeka\Module\Manager $moduleManager */
     $moduleManager = $services->get('Omeka\ModuleManager');
     $module = $moduleManager->getModule('Log');
