@@ -12,7 +12,7 @@ class FindResourcesFromIdentifiersFactory implements FactoryInterface
     {
         return new FindResourcesFromIdentifiers(
             $services->get('Omeka\Connection'),
-            $services->get('ControllerPluginManager')->get('api'),
+            $services->get('ControllerPluginManager')->get('api')
         );
     }
 }
