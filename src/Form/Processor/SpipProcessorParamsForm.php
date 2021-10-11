@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Processor;
 
+use BulkImport\Form\Element\OptionalRadio;
 use BulkImport\Form\Element\OptionalUrl;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
@@ -116,13 +117,18 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ])
             ->add([
                 'name' => 'menu',
-                'type' => Element\Checkbox::class,
+                'type' => OptionalRadio::class,
                 'options' => [
                     'label' => 'Créer le menu (module Menu)', // @translate
+                    'value_options' => [
+                        'no' => 'Non', // @translate
+                        'single' => 'Unique', // @translate
+                        'top' => 'Par secteur', // @translate
+                    ],
                 ],
                 'attributes' => [
                     'id' => 'menu',
-                    'value' => '1',
+                    'value' => 'top',
                 ],
             ])
             ->add([

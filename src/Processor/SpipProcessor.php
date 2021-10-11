@@ -36,7 +36,7 @@ class SpipProcessor extends AbstractFullProcessor
         'o:owner' => null,
         'types' => [],
         'fake_files' => false,
-        'menu' => false,
+        'menu' => 'no',
         'language' => null,
         'endpoint' => null,
     ];
@@ -2349,7 +2349,8 @@ class SpipProcessor extends AbstractFullProcessor
 
     protected function completionShortJobs(array $resourceIds): void
     {
-        if ($this->getParam('menu')) {
+        $createMenu = $this->getParam('menu', 'no') ?: 'no';
+        if ($createMenu !== 'no') {
             $this->logger->notice(
                 'Attendre la finalisation des tâches finales pour utiliser le menu.' // @translate
             );
@@ -2360,11 +2361,14 @@ class SpipProcessor extends AbstractFullProcessor
         $this->createConceptArticles();
 
         // Les titres doivent être recrées auparavant de façon à les trier.
-        if ($this->getParam('menu')) {
+        if ($createMenu !== 'no') {
             $this->createMenu();
             $this->removeMenuTraductions();
             $this->sortMenu();
             $this->cleanMenu();
+            if ($createMenu === 'top') {
+                $this->createTopMenus();
+            }
         }
     }
 
@@ -2556,6 +2560,10 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
 
+        $this->logger->notice(
+            'Création du menu à partir du thésaurus.' // @translate
+        );
+
         // L'arborescence du module Thésaurus distingue l'élément et ses enfants :
         /*
         {
@@ -2654,7 +2662,7 @@ class SpipProcessor extends AbstractFullProcessor
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted);
         $menus = $siteSettings->get('menu_menus', []);
         $menus[$label] = $menu;
         ksort($menus);
@@ -2688,11 +2696,15 @@ class SpipProcessor extends AbstractFullProcessor
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted);
         $menus = $siteSettings->get('menu_menus', []);
         if (empty($menus[$label])) {
             return;
         }
+
+        $this->logger->notice(
+            'Suppression des traductions du menu.' // @translate
+        );
 
         $translationTerm = 'bibo:translationOf';
         $translationId = $this->bulk->getPropertyId($translationTerm);
@@ -2820,11 +2832,15 @@ class SpipProcessor extends AbstractFullProcessor
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions');
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions');
         $menus = $siteSettings->get('menu_menus', []);
         if (empty($menus[$label])) {
             return;
         }
+
+        $this->logger->notice(
+            'Tri du menu.' // @translate
+        );
 
         $orderMenu = null;
         $orderMenu = function (array $elements, int $level = 0) use (&$orderMenu): array {
@@ -2889,11 +2905,15 @@ class SpipProcessor extends AbstractFullProcessor
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri');
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri');
         $menus = $siteSettings->get('menu_menus', []);
         if (empty($menus[$label])) {
             return;
         }
+
+        $this->logger->notice(
+            'Nettoyage du menu.' // @translate
+        );
 
         $removedConcepts = [];
 
@@ -3033,6 +3053,42 @@ class SpipProcessor extends AbstractFullProcessor
         );
     }
 
+    protected function createTopMenus(): void
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri-simple');
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $newMenus = [];
+
+        $menu = $menus[$label];
+        foreach ($menu as $element) {
+            $id = $element['data']['id'];
+            try {
+                /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+            } catch (NotFoundException $e) {
+                continue;
+            }
+            $title = $this->slugify($resource->displayTitle());
+            $title = preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $title)));
+            $menus[$title] = $element['links'] ?? [];
+            $newMenus[] = $title;
+        }
+
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            'Des menus ont été ajoutés au niveau des secteurs : "{list}".', // @translate
+            ['list' => implode('", "', $newMenus)]
+        );
+    }
+
     private function lienArticle(?ItemRepresentation $item): ?ItemRepresentation
     {
         $resources = $this->lienArticles($item);
@@ -3140,5 +3196,27 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
         return null;
+    }
+
+    /**
+     * Transform the given string into a valid URL slug
+     *
+     * Copy from \Omeka\Api\Adapter\SiteSlugTrait::slugify().
+     */
+    protected function slugify(string $input): string
+    {
+        if (extension_loaded('intl')) {
+            $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+            $slug = $transliterator->transliterate($input);
+        } elseif (extension_loaded('iconv')) {
+            $slug = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $input);
+        } else {
+            $slug = $input;
+        }
+        $slug = mb_strtolower($slug, 'UTF-8');
+        $slug = preg_replace('/[^a-z0-9-]+/u', '-', $slug);
+        $slug = preg_replace('/-{2,}/', '-', $slug);
+        $slug = preg_replace('/-*$/', '', $slug);
+        return $slug;
     }
 }
