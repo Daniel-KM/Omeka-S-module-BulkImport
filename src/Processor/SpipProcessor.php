@@ -155,7 +155,7 @@ class SpipProcessor extends AbstractFullProcessor
             'key_scope_note' => 'texte',
             'key_created' => 'date',
             'key_modified' => 'maj',
-            'narrowers_sort' => 'id',
+            'narrowers_sort' => 'alpha',
         ],
         // Fiches mots-clés : mots + groupes_mots + mots_liens.
         'groupes_mots' => [
@@ -167,6 +167,7 @@ class SpipProcessor extends AbstractFullProcessor
             'key_scope_note' => 'texte',
             'key_created' => null,
             'key_modified' => 'maj',
+            // De toute façon géré spécifiquement.
             'narrowers_sort' => 'alpha',
         ],
         'mots' => [
@@ -566,13 +567,6 @@ class SpipProcessor extends AbstractFullProcessor
         ) {
             $this->configThesaurus = 'groupes_mots';
             $this->prepareThesaurus();
-            // Un seul thésaurus pour les deux tables.
-            $this->main['mot']['item'] = $this->main['groupe_mot']['item'];
-            $this->main['mot']['item_id'] = $this->main['groupe_mot']['item_id'];
-            $this->main['mot']['item_set'] = $this->main['groupe_mot']['item_set'];
-            $this->main['mot']['item_set_id'] = $this->main['groupe_mot']['item_set_id'];
-            $this->main['mot']['custom_vocab'] = $this->main['groupe_mot']['custom_vocab'];
-            $this->main['mot']['custom_vocab_id'] = $this->main['groupe_mot']['custom_vocab_id'];
             if ($this->isErrorOrStop()) {
                 return;
             }
@@ -584,6 +578,18 @@ class SpipProcessor extends AbstractFullProcessor
                 return;
             }
 
+            // Un seul thésaurus pour les deux tables.
+            $this->main['mot']['item'] = $this->main['groupe_mot']['item'];
+            $this->main['mot']['item_id'] = $this->main['groupe_mot']['item_id'];
+            $this->main['mot']['item_set'] = $this->main['groupe_mot']['item_set'];
+            $this->main['mot']['item_set_id'] = $this->main['groupe_mot']['item_set_id'];
+            $this->main['mot']['custom_vocab'] = $this->main['groupe_mot']['custom_vocab'];
+            $this->main['mot']['custom_vocab_id'] = $this->main['groupe_mot']['custom_vocab_id'];
+            $this->map['mots'] = [];
+            $this->thesaurus['mots']['tops'] = [];
+            $this->thesaurus['mots']['parents'] = [];
+            $this->thesaurus['mots']['narrowers'] = [];
+
             $this->configThesaurus = 'mots';
             $this->prepareImport('mots');
             $this->prepareConcepts($this->prepareReader('mots'));
@@ -591,6 +597,14 @@ class SpipProcessor extends AbstractFullProcessor
                 return;
             }
         }
+    }
+
+    protected function labelKeyForSort($labelKey, $id): string
+    {
+        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+        // Mais supprimer quand même le <multi> et le numéro qui le suit pour en
+        // conserver un s'il y en a un ou deux.
+        return sprintf('%s#%s', preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $labelKey))), $id);
     }
 
     protected function fillItem(array $source): void
@@ -632,8 +646,9 @@ class SpipProcessor extends AbstractFullProcessor
             $source['titre'] = sprintf($this->translator->translate('[Untitled article #%s]'), $source['id_article']); // @translate
         }
 
-        // Supprimer les numéros initiaux des rubriques.
-        $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
+        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+        // Tâche ajoutée séparément post-import.
+        // $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
 
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
@@ -1180,8 +1195,9 @@ class SpipProcessor extends AbstractFullProcessor
 
         $source = array_map('trim', array_map('strval', $source));
 
-        // Supprimer les numéros initiaux des rubriques.
-        $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
+        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+        // Tâche ajoutée séparément post-import.
+        // $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
 
         parent::fillConceptProcess($source);
 
@@ -1582,6 +1598,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Rien de particulier : c'est la première partie du thésaurus des mots.
         parent::fillConceptProcess($source);
+        $this->entity->setIsPublic(true);
     }
 
     /**
@@ -1605,6 +1622,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Dans ce thésaurus, la table des parents est separée.
         parent::fillConceptProcess($source);
+        $this->entity->setIsPublic(true);
     }
 
     protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
