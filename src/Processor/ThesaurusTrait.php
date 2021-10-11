@@ -187,9 +187,11 @@ trait ThesaurusTrait
         foreach ($sources as $source) {
             $id = (int) $source[$keyId];
             $this->map[$mappingName][$id] = null;
-            $parentId = (int) $source[$keyParentId];
-            $labelKey = sprintf('%s#%s', $source[$keyLabel] ?? '_', $id);
+            $parentId = empty($source[$keyParentId]) ? null : (int) $source[$keyParentId];
             if ($parentId) {
+                // The label allows to sort alphabetically, but some sources are
+                // more complex (cf. spip).
+                $labelKey = $this->labelKeyForSort($source[$keyLabel] ?? '', $id);
                 $this->thesaurus[$mappingName]['parents'][$id] = $parentId;
                 $this->thesaurus[$mappingName]['narrowers'][$parentId][$labelKey] = $id;
             } else {
@@ -225,6 +227,8 @@ trait ThesaurusTrait
                 $narrowers = array_flip($narrowers);
             }
             unset($narrowers);
+        } else {
+            $narrowers = $this->sortNarrowers($narrowers);
         }
         // Clean narrowers.
         foreach ($this->thesaurus[$mappingName]['narrowers'] as &$narrowers) {
@@ -256,6 +260,16 @@ trait ThesaurusTrait
             '{total} resources "{type}" have been created inside concept scheme #{item_id}.', // @translate
             ['total' => count($this->map[$mappingName]), 'type' => $mappingName, 'item_id' => $this->main[$mainName]['item_id']]
          );
+    }
+
+    protected function labelKeyForSort($labelKey, $id): string
+    {
+        return sprintf('%s#%s', $labelKey , $id);
+    }
+
+    protected function sortNarrowers(array $narrowers): array
+    {
+        return $narrowers;
     }
 
     protected function fillConcepts(): void
