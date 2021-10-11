@@ -33,6 +33,7 @@ class SpipProcessor extends AbstractFullProcessor
         'o:owner' => null,
         'types' => [],
         'fake_files' => false,
+        'menu' => false,
         'language' => null,
         'endpoint' => null,
     ];
@@ -42,12 +43,17 @@ class SpipProcessor extends AbstractFullProcessor
         'Article',
         // 'Comment',
         'CustomVocab',
-        'DataTypeRdf',
         'Log',
         'NumericDataTypes',
         'Spip',
+    ];
+
+    protected $optionalModules = [
+        'BulkCheck',
+        'BulkEdit',
+        'DataTypeRdf',
+        'Menu',
         'Thesaurus',
-        'UserProfile',
     ];
 
     protected $moreImportables = [
@@ -2332,5 +2338,133 @@ class SpipProcessor extends AbstractFullProcessor
         ));
 
         return str_replace(array_keys($replace), array_values($replace), $texte);
+    }
+
+    protected function completionShortJobs(array $resourceIds): void
+    {
+        parent::completionShortJobs($resourceIds);
+
+        if ($this->getParam('menu')) {
+            $this->createMenu();
+        }
+    }
+
+    /**
+     * Créer le menu à partir des rubriques, sommaires et listes d'articles.
+     */
+    protected function createMenu(): void
+    {
+        if (empty($this->modules['Menu'])) {
+            $this->logger->err(
+                'Le module "Menu" est nécessaire pour créer le menu' // @translate
+            );
+            return;
+        }
+
+        if (empty($this->main['concept']['item'])) {
+            $this->logger->err(
+                'Le thésaurus est vide.' // @translate
+            );
+            return;
+        }
+
+        if (empty($this->thesaurusConfigs['concepts']) || empty($this->modules['Thesaurus'])) {
+            $this->logger->err(
+                'Le thésaurus doit être créé à partir des rubriques (module "Thesaurus").' // @translate
+            );
+            return;
+        }
+
+        /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
+        $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
+
+        // Pour chaque rubrique, chercher l'article correspondant.
+        // S'il y en a un, le prendre sinon garder la rubrique.
+        $thesaurus = $thesaurus($this->main['concept']['item']);
+        if (!$thesaurus->isSkos()) {
+            $this->logger->err(
+                'Le thésaurus pour la création du menu est incorrect.' // @translate
+            );
+            return;
+        }
+
+        $tree = $thesaurus->tree();
+        if (!$tree) {
+            $this->logger->warn(
+                'Le thésaurus pour la création du menu est vide.' // @translate
+            );
+            return;
+        }
+
+        // L'arborescence du module Thésaurus distingue l'élément et ses enfants :
+        /*
+        {
+            "10631": {
+                "self": [
+                    "id": 10631,
+                    "title": "title",
+                    "top": true,
+                    "parent": null,
+                    "children": [
+                        10632
+                    ]
+                ],
+                "children": [
+                    "10632": {
+                    }
+                ]
+            }
+        }
+        */
+
+        // Le menu se présente comme suit ("structure" est le nom du premier menu et
+        // "links" permet d'imbriquer les sous-menus) :
+        /*
+        {
+            "structure": [
+                {
+                    "type": "resource",
+                    "data": {
+                        "label": null,
+                        "id": 10631
+                    },
+                    "links": [
+                    ]
+                }
+            ]
+        }
+        */
+
+        // array_walk_recursive() ne peut pas être utilisé car chaque élément
+        // est un array.
+        $buildMenu= null;
+        $buildMenu = function (array $branches) use (&$buildMenu) {
+            $menu = [];
+            foreach ($branches as $branch) {
+                $menu[] = [
+                    'type' => 'resource',
+                    'data' => [
+                        'label' => null,
+                        'id' => $branch['self']['id'],
+                    ],
+                    'links' => $branch['children'] ? $buildMenu($branch['children']) : [],
+                ];
+            }
+            return $menu;
+        };
+        $menu = $buildMenu($tree);
+
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $menus = $siteSettings->get('menu_menus', []);
+        $menus[$label] = $menu;
+        $siteSettings->set('menu_menus', $menus);
+
+        $this->logger->notice(
+            'Le menu a été créé sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
     }
 }

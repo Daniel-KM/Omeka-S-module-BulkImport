@@ -115,6 +115,17 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 ],
             ])
             ->add([
+                'name' => 'menu',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Créer le menu (module Menu)', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'menu',
+                    'value' => '1',
+                ],
+            ])
+            ->add([
                 'name' => 'language',
                 'type' => Element\Text::class,
                 'options' => [
