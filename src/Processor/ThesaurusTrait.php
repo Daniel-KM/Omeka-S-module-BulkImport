@@ -159,7 +159,12 @@ trait ThesaurusTrait
         $mappingName = $config['mapping_name'];
         $mainName = $config['main_name'];
 
-        $this->map[$mappingName] = [];
+        if (!isset($this->map[$mappingName])) {
+            $this->logger->err(
+                'The thesaurus "{label}" should be prepared first.', // @translate
+                ['label' => $label]
+            );
+        }
 
         $keyId = $config['key_id'];
         $keyLabel = $config['key_label'] ?? null;
@@ -176,19 +181,14 @@ trait ThesaurusTrait
             ['label' => $label, 'total' => $this->totals[$mappingName]]
         );
 
-        $this->prepareThesaurus();
-
         // Prepare the list of all ids.
 
         // Prepare the structure of the thesaurus during this first loop.
-        $this->thesaurus[$mappingName]['tops'] = [];
-        $this->thesaurus[$mappingName]['parents'] = [];
-        $this->thesaurus[$mappingName]['narrowers'] = [];
         foreach ($sources as $source) {
             $id = (int) $source[$keyId];
             $this->map[$mappingName][$id] = null;
             $parentId = (int) $source[$keyParentId];
-            $labelKey = sprintf('%s <%s>', $source[$keyLabel] ?? '_', $id);
+            $labelKey = sprintf('%s#%s', $source[$keyLabel] ?? '_', $id);
             if ($parentId) {
                 $this->thesaurus[$mappingName]['parents'][$id] = $parentId;
                 $this->thesaurus[$mappingName]['narrowers'][$parentId][$labelKey] = $id;
@@ -284,7 +284,7 @@ trait ThesaurusTrait
 
         // The title is needed, but sometime empty.
         if (!$keyLabel || !mb_strlen($source[$keyLabel])) {
-            $source[$keyLabel] = sprintf($this->translator->translate('[Untitled concept #%s]'), $source[$keyId]); // @translate
+            $source[$keyLabel] = sprintf($this->translator->translate('[Untitled %s #%s]'), $mainName, $source[$keyId]); // @translate
         }
 
         $createdDate = $keyCreated
@@ -339,7 +339,30 @@ trait ThesaurusTrait
             'value_resource' => $this->main[$mainName]['item'],
         ];
 
-        if ($keyParentId && $source['id_parent']) {
+        // $values is passed by reference.
+        $this->fillConceptProcessParent($values, $source, $mappingName, $mainName, $keyId, $keyParentId);
+        $this->fillConceptProcessNarrowers($values, $source, $mappingName, $mainName, $keyId, $keyParentId);
+
+        if ($keyCreated && $createdDate) {
+            $values[] = [
+                'term' => 'dcterms:created',
+                'value' => $createdDate->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        if ($keyModified && $modifiedDate) {
+            $values[] = [
+                'term' => 'dcterms:modified',
+                'value' => $modifiedDate->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        $this->orderAndAppendValues($values);
+    }
+
+    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        if ($keyParentId && $source[$keyParentId]) {
             $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
             if ($linked) {
                 $values[] = [
@@ -349,8 +372,8 @@ trait ThesaurusTrait
                 ];
             } else {
                 $this->logger->warn(
-                    'The broader concept #{identifier} of items #{item_id} (source {source}) was not found.', // @translate
-                    ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'source' => $source[$keyId]]
+                    'The broader concept #{identifier} of items #{item_id} (source {main} {source}) was not found.', // @translate
+                    ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'main' => $mainName, 'source' => $source[$keyId]]
                 );
             }
         } else {
@@ -360,39 +383,29 @@ trait ThesaurusTrait
                 'value_resource' => $this->main[$mainName]['item'],
             ];
         }
+    }
 
-        if (!empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
-            foreach ($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]] as $value) {
-                if (empty($this->map[$mappingName][$value])) {
-                    $values[] = [
-                        'term' => 'skos:narrower',
-                        'value' => $value,
-                    ];
-                } else {
-                    $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
-                    $values[] = [
-                        'term' => 'skos:narrower',
-                        'type' => 'resource:item',
-                        'value_resource' => $linked,
-                    ];
-                }
+    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        if (empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
+            return;
+        }
+        foreach ($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]] as $value) {
+            // A literal value when the narrower item does not exist.
+            if (empty($this->map[$mappingName][$value])) {
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'value' => $value,
+                ];
+            } else {
+                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
             }
         }
-
-        if ($keyCreated && $createdDate) {
-            $values[] = [
-                'term' => 'dcterms:created',
-                'value' => $createdDate->format('Y-m-d H:i:s'),
-            ];
-        }
-        if ($keyModified && $modifiedDate) {
-            $values[] = [
-                'term' => 'dcterms:modified',
-                'value' => $modifiedDate->format('Y-m-d H:i:s'),
-            ];
-        }
-
-        $this->orderAndAppendValues($values);
     }
 
     protected function toArrayValue($value): array

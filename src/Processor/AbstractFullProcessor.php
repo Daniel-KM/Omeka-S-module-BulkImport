@@ -1105,6 +1105,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             // to manage multiple thesaurus, before and after each step.
             $this->logger->info('Preparation of metadata of module Thesaurus.'); // @translate
             $this->configThesaurus = 'concepts';
+            $this->prepareThesaurus();
             $this->prepareConcepts($this->prepareReader('concepts'));
         }
     }
