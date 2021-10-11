@@ -65,6 +65,20 @@ class SpipProcessor extends AbstractFullProcessor
             'fill' => 'fillAuteur',
             'is_resource' => true,
         ],
+        'groupes_mots' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillMotCleGroup',
+            'is_resource' => true,
+        ],
+        'mots' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillMotCle',
+            'is_resource' => true,
+        ],
     ];
 
     protected $mapping = [
@@ -141,6 +155,29 @@ class SpipProcessor extends AbstractFullProcessor
             'key_scope_note' => 'texte',
             'key_created' => 'date',
             'key_modified' => 'maj',
+            'narrowers_sort' => 'id',
+        ],
+        // Fiches mots-clés : mots + groupes_mots + mots_liens.
+        'groupes_mots' => [
+            'source' => 'groupes_mots',
+            'key_id' => 'id_groupe',
+            'key_parent_id' => null,
+            'key_label' => 'titre',
+            'key_definition' => 'descriptif',
+            'key_scope_note' => 'texte',
+            'key_created' => null,
+            'key_modified' => 'maj',
+            'narrowers_sort' => 'alpha',
+        ],
+        'mots' => [
+            'source' => 'mots',
+            'key_id' => 'id_mot',
+            'key_parent_id' => 'id_groupe',
+            'key_label' => 'titre',
+            'key_definition' => 'descriptif',
+            'key_scope_note' => 'texte',
+            'key_created' => null,
+            'key_modified' => 'maj',
             'narrowers_sort' => 'alpha',
         ],
         // Module non géré actuellement.
@@ -179,6 +216,10 @@ class SpipProcessor extends AbstractFullProcessor
             'source' => 'auteurs_liens',
             'key_id' => 'id_auteur',
         ],
+        'mots_liens' => [
+            'source' => 'mots_liens',
+            'key_id' => 'id_mot',
+        ],
     ];
 
     protected $main = [
@@ -187,30 +228,36 @@ class SpipProcessor extends AbstractFullProcessor
             'class' => 'bibo:Article',
             'custom_vocab' => 'Article - Statuts',
         ],
-        // TODO Move to thesaurus.
         'concept' => [
             'template' => 'Thesaurus Concept',
             'class' => 'skos:Concept',
-            'item_set' => null,
-            'item_set_id' => null,
-        ],
-        'scheme' => [
-            'template' => 'Thesaurus Scheme',
-            'class' => 'skos:ConceptScheme',
             'item' => null,
+            'item_set' => null,
+            'custom_vocab' => null,
+        ],
+        'groupe_mot' => [
+            'template' => 'Thesaurus Concept',
+            'class' => 'skos:Concept',
+            'item' => null,
+            'item_set' => null,
+            'custom_vocab' => null,
+        ],
+        'mot' => [
+            'template' => 'Thesaurus Concept',
+            'class' => 'skos:Concept',
+            'item' => null,
+            'item_set' => null,
             'custom_vocab' => null,
         ],
         'breve' => [
             'template' => 'Brève',
             'class' => 'fabio:Micropost',
             'item_set' => null,
-            'item_set_id' => null,
         ],
         'auteur' => [
             'template' => 'Auteur',
             'class' => 'foaf:Person',
             'item_set' => null,
-            'item_set_id' => null,
             'custom_vocab' => 'Auteur - Statuts',
         ],
         'templates' => [
@@ -219,6 +266,8 @@ class SpipProcessor extends AbstractFullProcessor
             // 'Actualité' => null,
             'Brève' => null,
             'Fichier' => null,
+            'Thesaurus Concept' => null,
+            'Thesaurus Scheme' => null,
         ],
         'classes' => [
             'bibo:Document' => null,
@@ -229,6 +278,8 @@ class SpipProcessor extends AbstractFullProcessor
             'foaf:Person' => null,
             // 'fabio:NewsItem' => null,
             'fabio:Micropost' => null,
+            'skos:Concept' => null,
+            'skos:ConceptScheme' => null,
         ],
     ];
 
@@ -242,6 +293,24 @@ class SpipProcessor extends AbstractFullProcessor
         'audio' => 'dctype:Sound',
         'image' => 'dctype:StillImage',
         'text' => 'dctype:Text',
+    ];
+
+    protected $thesaurusConfigs = [
+        'concepts' => [
+            'label' => 'Thesaurus',
+            'mapping_name' => 'concepts',
+            'main_name' => 'concept',
+        ],
+        'groupes_mots' => [
+            'label' => 'Mots-clés',
+            'mapping_name' => 'groupes_mots',
+            'main_name' => 'groupe_mot',
+        ],
+        'mots' => [
+            'label' => 'Mots-clés',
+            'mapping_name' => 'mots',
+            'main_name' => 'mot',
+        ],
     ];
 
     protected function preImport(): void
@@ -287,6 +356,10 @@ class SpipProcessor extends AbstractFullProcessor
             : $this->isoCode3letters($args['language']);
 
         $this->setParams($args);
+
+        $this->thesaurusConfigs['concepts'] += $this->mapping['concepts'];
+        $this->thesaurusConfigs['groupes_mots'] += $this->mapping['groupes_mots'];
+        $this->thesaurusConfigs['mots'] += $this->mapping['mots'];
 
         $this->map['statuts'] = [
             'prepa' => 'en cours de rédaction',
@@ -392,11 +465,15 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
 
+        $toImport = $this->getParam('types') ?: [];
+        if (!in_array('custom_vocabs', $toImport)) {
+            return;
+        }
+
         $sourceCustomVocabs = [];
         // "id_groupe" et "titre" sont en doublon dans la table "mots", donc la
         // table est inutile actuellement, sauf pour avoir les vocabulaires
         // vides.
-        // TODO Les descriptions ne sont pas importés actuellement.
         foreach ($this->prepareReader('custom_vocabs') as $groupeMots) {
             $label = trim((string) $groupeMots['titre']);
             if (!strlen($label)) {
@@ -411,6 +488,9 @@ class SpipProcessor extends AbstractFullProcessor
                 'o:owner' => $this->owner,
             ];
         }
+
+        // TODO Les mots sont sauvegardés séparément actuellement.
+        $this->main['_mots'] = [];
 
         foreach ($this->prepareReader('custom_vocab_keywords') as $mot) {
             $keyword = trim((string) $mot['titre']);
@@ -434,6 +514,11 @@ class SpipProcessor extends AbstractFullProcessor
             strlen($sourceCustomVocabs[$mot['type']]['o:terms'])
                 ? $sourceCustomVocabs[$mot['type']]['o:terms'] .= "\n" . $keyword
                 : $sourceCustomVocabs[$mot['type']]['o:terms'] = $keyword;
+
+            $this->main['_mots'][$mot['id_mot']] = [
+                'titre' => $keyword,
+                'id_groupe' => $mot['id_groupe'],
+            ];
         }
 
         $this->prepareCustomVocabsProcess($sourceCustomVocabs);
@@ -473,6 +558,38 @@ class SpipProcessor extends AbstractFullProcessor
             $itemSet = $this->findOrCreateItemSet('Auteurs');
             $this->main['auteur']['item_set'] = $itemSet;
             $this->main['auteur']['item_set_id'] = $itemSet->getId();
+        }
+
+        if (in_array('mots', $toImport)
+            && $this->prepareImport('groupes_mots')
+            && $this->prepareImport('mots')
+        ) {
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareThesaurus();
+            // Un seul thésaurus pour les deux tables.
+            $this->main['mot']['item'] = $this->main['groupe_mot']['item'];
+            $this->main['mot']['item_id'] = $this->main['groupe_mot']['item_id'];
+            $this->main['mot']['item_set'] = $this->main['groupe_mot']['item_set'];
+            $this->main['mot']['item_set_id'] = $this->main['groupe_mot']['item_set_id'];
+            $this->main['mot']['custom_vocab'] = $this->main['groupe_mot']['custom_vocab'];
+            $this->main['mot']['custom_vocab_id'] = $this->main['groupe_mot']['custom_vocab_id'];
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareImport('groupes_mots');
+            $this->prepareConcepts($this->prepareReader('groupes_mots'));
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $this->configThesaurus = 'mots';
+            $this->prepareImport('mots');
+            $this->prepareConcepts($this->prepareReader('mots'));
+            if ($this->isErrorOrStop()) {
+                return;
+            }
         }
     }
 
@@ -592,7 +709,6 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
         // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
-        // Ils sont également mis en tant que mots-clés (dcterms:subject).
         // Cf. fillBreve().
         foreach ([
             'id_secteur' => 'curation:theme',
@@ -611,22 +727,10 @@ class SpipProcessor extends AbstractFullProcessor
                     'value' => $value,
                     'is_public' => false,
                 ];
-                $values[] = [
-                    'term' => 'dcterms:subject',
-                    'type' => 'literal',
-                    'lang' => null,
-                    'value' => $value,
-                    'is_public' => false,
-                ];
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
                 $values[] = [
                     'term' => $mainTerm,
-                    'type' => 'resource:item',
-                    'value_resource' => $linkedResource,
-                ];
-                $values[] = [
-                    'term' => 'dcterms:subject',
                     'type' => 'resource:item',
                     'value_resource' => $linkedResource,
                 ];
@@ -1045,18 +1149,33 @@ class SpipProcessor extends AbstractFullProcessor
 
     /**
      * La resource spip "rubrique" est convertie en item Concept.
-     *
-     * @todo Déplacer dans ThesaurusTrait.
-     * @param array $source
      */
     protected function fillConcept(array $source): void
     {
-        // TODO Id secteur ?
+        // TODO Id secteur ?  Ce sont les 4 modules de tête.
         /*
          * Id secteur
          * statut_tmp
          * date_tmp
          * profondeur // Inutile
+         */
+
+        // rubrique
+        /*
+         * id_rubrique
+         * id_parent
+         * titre
+         * descriptif
+         * texte
+         * id_secteur
+         * maj
+         * statut
+         * date
+         * lang
+         * langue_choisie
+         * statut_tmp
+         * date_tmp
+         * profondeur
          */
 
         $source = array_map('trim', array_map('strval', $source));
@@ -1067,7 +1186,7 @@ class SpipProcessor extends AbstractFullProcessor
         parent::fillConceptProcess($source);
 
         // Au cas où le titre est traduit, il faut choisir le premier.
-        $title = $this->polyglotte($source['titre'] ?: sprintf($this->translator->translate('[Untitled concept #%s]'), $source['id_rubrique'])); // @translate;
+        $title = $this->polyglotte($source['titre'] ?: sprintf($this->translator->translate('[Untitled %s #%s]'), $this->thesaurusConfigs[$this->configThesaurus]['main_name'], $source['id_rubrique'])); // @translate;
         $this->entity->setTitle(reset($title));
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
@@ -1146,6 +1265,36 @@ class SpipProcessor extends AbstractFullProcessor
                 if ($this->isErrorOrStop()) {
                     return;
                 }
+            }
+        }
+
+        if (in_array('mots', $toImport)
+            && $this->prepareImport('groupes_mots')
+            && $this->prepareImport('mots')
+        ) {
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareImport('groupes_mots');
+            $this->fillConcepts();
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $this->configThesaurus = 'mots';
+            $this->prepareImport('mots');
+            $this->fillConcepts();
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+            // Les relations sont ajoutées ci-dessous.
+        }
+
+        // Ajout des mots-clés via relation et custom vocab.
+        if ($this->prepareImport('mots_liens')) {
+            foreach ($this->prepareReader('mots_liens') as $source) {
+                $this->fillMotCleLien($source);
+            }
+            if ($this->isErrorOrStop()) {
+                return;
             }
         }
     }
@@ -1337,7 +1486,6 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
         // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
-        // Ils sont également mis en tant que mots-clés (dcterms:subject).
         // Cf. fillArticle().
         foreach ([
             'id_secteur' => 'curation:theme',
@@ -1356,22 +1504,10 @@ class SpipProcessor extends AbstractFullProcessor
                     'value' => $value,
                     'is_public' => false,
                 ];
-                $values[] = [
-                    'term' => 'dcterms:subject',
-                    'type' => 'literal',
-                    'lang' => null,
-                    'value' => $value,
-                    'is_public' => false,
-                ];
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
                 $values[] = [
                     'term' => $mainTerm,
-                    'type' => 'resource:item',
-                    'value_resource' => $linkedResource,
-                ];
-                $values[] = [
-                    'term' => 'dcterms:subject',
                     'type' => 'resource:item',
                     'value_resource' => $linkedResource,
                 ];
@@ -1421,12 +1557,130 @@ class SpipProcessor extends AbstractFullProcessor
         $this->orderAndAppendValues($values);
     }
 
+    /**
+     * Compléter les items groupes de mots-clés (thésaurus).
+     * Les groupes de mots sont des top-concepts. Les mots y sont liés.
+     */
+    protected function fillMotCleGroup(array $source): void
+    {
+        // groupes_mots
+        /*
+         * id_groupe
+         * titre
+         * descriptif
+         * texte
+         * unseul
+         * obligatoire
+         * tables_liees
+         * minirezo
+         * comite
+         * forum
+         * maj
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // Rien de particulier : c'est la première partie du thésaurus des mots.
+        parent::fillConceptProcess($source);
+    }
+
+    /**
+     * Compléter les items mots-clés (thésaurus).
+     * Les groupes de mots sont des top-concepts. Les mots y sont liés.
+     */
+    protected function fillMotCle(array $source): void
+    {
+        // mots
+        /*
+         * id_mot
+         * titre
+         * descriptif
+         * texte
+         * id_groupe
+         * type // Correspond au titre du groupe (groupes_mots)
+         * maj
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // Dans ce thésaurus, la table des parents est separée.
+        parent::fillConceptProcess($source);
+    }
+
+    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        // Ici, les parents sont dans une autre table.
+        if ($this->configThesaurus === 'mots') {
+            $mappingName = 'groupes_mots';
+        }
+
+        // Comme trait pour "concepts" (rubriques) et "groupes_mots".
+        // TODO Supprimer cette copie du trait.
+        if ($keyParentId && $source[$keyParentId]) {
+            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
+            if ($linked) {
+                $values[] = [
+                    'term' => 'skos:broader',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            } else {
+                $this->logger->warn(
+                    'The broader concept #{identifier} of items #{item_id} (source {main} {source}) was not found.', // @translate
+                    ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'main' => $mainName, 'source' => $source[$keyId]]
+                );
+            }
+        } else {
+            $values[] = [
+                'term' => 'skos:topConceptOf',
+                'type' => 'resource:item',
+                'value_resource' => $this->main[$mainName]['item'],
+            ];
+        }
+    }
+
+    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        if ($this->configThesaurus === 'mots') {
+            // Ici, pas d'enfants.
+            return;
+        }
+
+        if ($this->configThesaurus === 'groupes_mots') {
+            $mappingName = 'mots';
+        }
+
+        // Comme trait pour "concepts" (rubriques).
+        // TODO Supprimer cette copie du trait.
+        if (empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
+            return;
+        }
+
+        foreach ($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]] as $value) {
+            // A literal value when the narrower item does not exist.
+            if (empty($this->map[$mappingName][$value])) {
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'value' => $value,
+                ];
+            } else {
+                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            }
+        }
+    }
+
     protected function fillAlbumLien(array $source): void
     {
         $data = $this->mapSourceLienObjet($source, 'item_sets', 'id_album', \Omeka\Entity\ItemSet::class);
         if (!$data) {
             return;
         }
+
         // L'objet lié est un contenu de la collection (album).
         $itemSets = $data['linked_resource']->getItemSets();
         $itemSets->add($data['resource']);
@@ -1466,6 +1720,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (!$data) {
             return;
         }
+
         // Le document (fichier) lié est un media ou un item de la collection
         // (album) ou du contenu (article, article...).
         $media = $data['resource'];
@@ -1483,6 +1738,57 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
+    protected function fillMotCleLien(array $source): void
+    {
+        static $asCustomVocab;
+        static $asResourceLink;
+
+        if (is_null($asCustomVocab)) {
+            $toImport = $this->getParam('types') ?: [];
+            $asCustomVocab = in_array('custom_vocabs', $toImport);
+            $asResourceLink = in_array('mots', $toImport);
+        }
+
+        if (!$asCustomVocab && !$asResourceLink) {
+            return;
+        }
+
+        // mots_liens
+        /*
+         * id_mot
+         * id_objet
+         * objet // rubrique, article, etc.
+         */
+
+        $data = $this->mapSourceLienObjet($source, 'mots', 'id_mot', \Omeka\Entity\Item::class, true);
+        if (!$data) {
+            return;
+        }
+
+        if ($asCustomVocab
+            && !empty($this->main['_mots'][$source['id_mot']])
+            && !empty($this->map['custom_vocabs']['customvocab:' . $this->main['_mots'][$source['id_mot']]['id_groupe']])
+        ) {
+            $this->appendValue([
+                'term' => 'dcterms:subject',
+                'type' => $this->map['custom_vocabs']['customvocab:' . $this->main['_mots'][$source['id_mot']]['id_groupe']]['datatype'],
+                '@value' => $this->main['_mots'][$source['id_mot']]['titre'],
+            ], $data['linked_resource']);
+        }
+
+        if ($asResourceLink
+            && !empty($data['resource'])
+        ) {
+            $this->appendValue([
+                'term' => 'dcterms:subject',
+                'type' => 'resource:item',
+                'value_resource' => $data['resource'],
+            ], $data['linked_resource']);
+        }
+
+        $this->entityManager->persist($data['linked_resource']);
+    }
+
     /**
      * Récupère le sujet et l'objet d'une table de liens spip.
      * L'objet (ressource liée) est soit une collection, soit un contenu.
@@ -1491,7 +1797,8 @@ class SpipProcessor extends AbstractFullProcessor
         array $source,
         string $sourceMapType,
         string $sourceIdKey,
-        string $sourceClass
+        string $sourceClass,
+        ?bool $linkedResourceOnly = false
     ): ?array {
         // Pas de log spécifique : une table incomplète ne peut être récupérée.
 
@@ -1504,10 +1811,6 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         switch ($source['objet']) {
-            default:
-            case 'message':
-                // TODO Gérer les messages (commentaires internes).
-                return null;
             case 'album':
                 $linkedResourceMapType = 'item_sets';
                 $linkedResourceClass = \Omeka\Entity\ItemSet::class;
@@ -1520,6 +1823,19 @@ class SpipProcessor extends AbstractFullProcessor
                 $linkedResourceMapType = 'concepts';
                 $linkedResourceClass = \Omeka\Entity\Item::class;
                 break;
+            case 'groupes_mots':
+                $linkedResourceMapType = 'groupes_mots';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+            case 'mots':
+                $linkedResourceMapType = 'mots';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+            case 'message':
+                // TODO Gérer les messages (commentaires internes).
+                return null;
+            default:
+                return null;
         }
 
         if (empty($this->map[$linkedResourceMapType][$source['id_objet']])) {
@@ -1534,7 +1850,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $resourceId = $this->map[$sourceMapType][$source[$sourceIdKey]];
         $resource = $this->entityManager->find($sourceClass, $resourceId);
-        if (!$resource) {
+        if (!$resource && !$linkedResourceOnly) {
             return null;
         }
 

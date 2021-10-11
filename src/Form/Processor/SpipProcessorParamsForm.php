@@ -81,6 +81,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         'concepts' => 'Rubriques (thésaurus)', // @translate
                         'breves' => 'Brèves', // @translate
                         'auteurs' => 'Fiches auteurs', // @translate
+                        'mots' => 'Mots-clés en tant que thésaurus', // @translate
                     ],
                 ],
                 'attributes' => [
@@ -97,6 +98,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         'concepts',
                         'breves',
                         'auteurs',
+                        'mots',
                     ],
                     'required' => false,
                 ],
