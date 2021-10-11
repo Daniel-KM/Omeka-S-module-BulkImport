@@ -120,7 +120,7 @@ $('select[name=severity]').on('change', function() {
     <?php endif; ?>
 
     <p>
-        <?= $this->hyperlink(sprintf($translate('Manage logs')),
+        <?= $hyperlink(sprintf($translate('Manage logs')),
             $this->url('admin/log/default', [], ['query' => ['reference' => 'bulk/import/' . $import->id()]])) ?>
     </p>
 

@@ -1182,8 +1182,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();
         $plugins = $services->get('ControllerPluginManager');
-        $synchronous = $services->get('Omeka\Job\DispatchStrategy\Synchronous');
-        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
 
         // Process only new resource ids.
         $ids = array_merge(
@@ -1203,30 +1201,59 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
         $ids = array_values(array_unique(array_filter($ids)));
 
+        // Short job to deduplicate values.
         if ($plugins->has('deduplicateValues')) {
+            $this->logger->notice('Deduplicating values.'); // @translate
             $plugins->get('deduplicateValues')->__invoke();
+            $this->logger->notice('Values deduplicated.'); // @translate
         } else {
             $this->logger->warn(
                 'To deduplicate metadata, run the job "Deduplicate values" with module Bulk Edit.' // @translate
             );
         }
 
-        // In all cases, index numeric timestamp with a single request.
-        $this->reindexNumericTimestamp($ids);
-
+        // Short required job.
         if (count($ids)) {
-            $dispatcher->dispatch(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids], $synchronous);
+            $this->logger->notice(
+                'Updating titles for {total} resources.', // @translate
+                ['total'=> count($ids)]
+            );
+            $this->dispatchJob(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids]);
+            $this->logger->notice(
+                'Titles updated for {total} resources.', // @translate
+                ['total'=> count($ids)]
+            );
         }
 
-        $dispatcher->dispatch(\Omeka\Job\IndexFulltextSearch::class, [], $synchronous);
+        $this->completionShortJobs($ids);
 
-        if (!empty($this->modules['Thesaurus'])) {
-            $dispatcher->dispatch(\Thesaurus\Job\Indexing::class, [], $synchronous);
-        }
-
-        $this->completionOtherJobs();
+        $this->completionLongJobs($ids);
 
         // TODO Reorder values according to template.
+
+        // TODO Attach to sites.
+        $this->logger->warn('You may need to update the sites resources.'); // @translate
+    }
+
+    protected function completionShortJobs(array $resourceIds): void
+    {
+        if (!empty($this->modules['Thesaurus'])) {
+            $this->logger->notice('Reindexing thesaurus.'); // @translate
+            $this->dispatchJob(\Thesaurus\Job\Indexing::class, []);
+            $this->logger->notice('Thesaurus reindexed.'); // @translate
+        }
+    }
+
+    protected function completionLongJobs(array $resourceIds): void
+    {
+        // In all cases, index numeric timestamp with a single request.
+        $this->logger->notice('Reindexing numeric data. It may take a while.'); // @translate
+        $this->reindexNumericTimestamp($resourceIds);
+        $this->logger->notice('Numeric data reindexed.'); // @translate
+
+        $this->logger->notice('Reindexing full text search. It may take about some minutes to one hour.'); // @translate
+        $this->dispatchJob(\Omeka\Job\IndexFulltextSearch::class);
+        $this->logger->notice('Full text search reindexed.'); // @translate
 
         // TODO Run derivative files job.
         if (count($this->map['media'])) {
@@ -1234,8 +1261,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
-    protected function completionOtherJobs(): void
+    protected function dispatchJob(string $jobClass, ?array $args = null, bool $asynchronous = false)
     {
+        /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
+        $services = $this->getServiceLocator();
+        $strategy = $asynchronous ? null : $services->get('Omeka\Job\DispatchStrategy\Synchronous');
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher->dispatch($jobClass, $args, $strategy);
     }
 
     protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Interfaces\Reader

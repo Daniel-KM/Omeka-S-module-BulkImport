@@ -2029,9 +2029,10 @@ SQL;
         $this->connection->executeStatement($sql);
     }
 
-    protected function completionOtherJobs(): void
+    protected function completionShortJobs(array $resourceIds): void
     {
         // TODO Bulk Edit Géonames label et Rameau label.
+        parent::completionShortJobs($resourceIds);
     }
 
     /**

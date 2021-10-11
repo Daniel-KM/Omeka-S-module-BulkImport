@@ -1123,6 +1123,123 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
+    protected function fillAuteur(array $source): void
+    {
+        // Il est plus simple de remplir l'item auteur directement.
+        $source = array_map('trim', array_map('strval', $source));
+
+        $title = $source['nom'];
+        $isPublic = !empty($source['statut']) && $source['statut'] !== '5poubelle';
+        $createdDate = empty($source['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $source['maj']);
+
+        // Récupére le propriétaire de sa propre notice.
+        if (!empty($this->map['users'][$source['id_auteur']])) {
+            $ownerAuteur = $this->entityManager->find(\Omeka\Entity\User::class, $this->map['users'][$source['id_auteur']]);
+        }
+
+        $values = [];
+
+        // Omeka entities are not fluid.
+        /* @var \Omeka\Entity\Item */
+        $this->entity->setOwner($ownerAuteur ?? $this->owner);
+        $this->entity->setResourceClass($this->main['classes']['foaf:Person']);
+        $this->entity->setResourceTemplate($this->main['templates']['Auteur']);
+        $this->entity->setTitle($title);
+        $this->entity->setIsPublic($isPublic);
+        $this->entity->setCreated($createdDate) ?: $this->currentDateTime;
+        if ($createdDate) {
+            $this->entity->setModified($createdDate);
+        }
+
+        $itemSets = $this->entity->getItemSets();
+        $itemSets->add($this->main['auteur']['item_set']);
+
+        // Essai de distinguer le prénom et le nom.
+        // Le nom est toujours en majuscule dans la version importée.
+        $matches = [];
+        $nom = $source['nom'];
+        if (mb_strpos($nom, ' ') !== false && preg_match('~^(.*?)([A-ZÉ]{2}[\w -]*)$~mu', $nom, $matches)) {
+            $last = $matches[2];
+            $first = $matches[1];
+        } else {
+            $last = $source['nom'];
+            $first = '';
+        }
+
+        if (empty($last)) {
+            $last = $source['login'] ?: '[Inconnu]';
+            $this->logger->warn(
+                'The user #"{source_id}" has no name, so the login is used.', // @translate
+                ['source_id' => $source['id_auteur']]
+            );
+        }
+        $values[] = [
+            'term' => 'foaf:name',
+            'value' => $nom,
+        ];
+        $values[] = [
+            'term' => 'foaf:familyName',
+            'value' => $last,
+        ];
+        if ($first) {
+            $values[] = [
+                'term' => 'foaf:givenName',
+                'value' => $first,
+            ];
+        }
+
+        $fromTo = [
+            'email' => 'foaf:mbox',
+            'lang' => 'dcterms:language',
+        ];
+        foreach ($fromTo as $sourceName => $term) {
+            if (strlen($source[$sourceName])) {
+                $values[] = [
+                    'term' => $term,
+                    'value' => $source[$sourceName],
+                ];
+            }
+        }
+
+        if (strlen($source['bio'])) {
+            foreach ($this->polyglotte($source['bio']) as $lang => $value) {
+                $values[] = [
+                    'term' => 'bio:biography',
+                    'lang' => $lang ? $this->isoCode3letters($lang) : $this->params['language'],
+                    'value' => $value,
+                ];
+            }
+        }
+
+        // dcterms:references ou foaf:homepage ?
+        if ($source['url_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'uri',
+                '@id' => $source['url_site'],
+                '@label' => $source['nom_site'],
+            ];
+        } elseif ($source['nom_site']) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'literal',
+                'value' => $source['nom_site'],
+            ];
+        }
+
+        $status = $this->map['statuts_auteur'][$source['statut']] ?? $source['statut'];
+        if ($status) {
+            $values[] = [
+                'term' => ' foaf:membershipClass',
+                'type' => 'customvocab:' . $this->main['auteur']['custom_vocab_id'],
+                'value' => $status,
+                'is_public' => false,
+            ];
+        }
+
+        $this->orderAndAppendValues($values);
+    }
+
     protected function fillBreve(array $source): void
     {
         /*
@@ -1311,123 +1428,6 @@ class SpipProcessor extends AbstractFullProcessor
             $this->entityManager->remove($item);
             $this->map['media_items'][$sourceId] = $data['linked_resource']->getId();
         }
-    }
-
-    protected function fillAuteur(array $source): void
-    {
-        // Il est plus simple de remplir l'item auteur directement.
-        $source = array_map('trim', array_map('strval', $source));
-
-        $title = $source['nom'];
-        $isPublic = !empty($source['statut']) && $source['statut'] !== '5poubelle';
-        $createdDate = empty($source['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $source['maj']);
-
-        // Récupére le propriétaire de sa propre notice.
-        if (!empty($this->map['users'][$source['id_auteur']])) {
-            $ownerAuteur = $this->entityManager->find(\Omeka\Entity\User::class, $this->map['users'][$source['id_auteur']]);
-        }
-
-        $values = [];
-
-        // Omeka entities are not fluid.
-        /* @var \Omeka\Entity\Item */
-        $this->entity->setOwner($ownerAuteur ?? $this->owner);
-        $this->entity->setResourceClass($this->main['classes']['foaf:Person']);
-        $this->entity->setResourceTemplate($this->main['templates']['Auteur']);
-        $this->entity->setTitle($title);
-        $this->entity->setIsPublic($isPublic);
-        $this->entity->setCreated($createdDate) ?: $this->currentDateTime;
-        if ($createdDate) {
-            $this->entity->setModified($createdDate);
-        }
-
-        $itemSets = $this->entity->getItemSets();
-        $itemSets->add($this->main['auteur']['item_set']);
-
-        // Essai de distinguer le prénom et le nom.
-        // Le nom est toujours en majuscule dans la version importée.
-        $matches = [];
-        $nom = $source['nom'];
-        if (mb_strpos($nom, ' ') !== false && preg_match('~^(.*?)([A-ZÉ]{2}[\w -]*)$~mu', $nom, $matches)) {
-            $last = $matches[2];
-            $first = $matches[1];
-        } else {
-            $last = $source['nom'];
-            $first = '';
-        }
-
-        if (empty($last)) {
-            $last = $source['login'] ?: '[Inconnu]';
-            $this->logger->warn(
-                'The user #"{source_id}" has no name, so the login is used.', // @translate
-                ['source_id' => $source['id_auteur']]
-            );
-        }
-        $values[] = [
-            'term' => 'foaf:name',
-            'value' => $nom,
-        ];
-        $values[] = [
-            'term' => 'foaf:familyName',
-            'value' => $last,
-        ];
-        if ($first) {
-            $values[] = [
-                'term' => 'foaf:givenName',
-                'value' => $first,
-            ];
-        }
-
-        $fromTo = [
-            'email' => 'foaf:mbox',
-            'lang' => 'dcterms:language',
-        ];
-        foreach ($fromTo as $sourceName => $term) {
-            if (strlen($source[$sourceName])) {
-                $values[] = [
-                    'term' => $term,
-                    'value' => $source[$sourceName],
-                ];
-            }
-        }
-
-        if (strlen($source['bio'])) {
-            foreach ($this->polyglotte($source['bio']) as $lang => $value) {
-                $values[] = [
-                    'term' => 'bio:biography',
-                    'lang' => $lang ? $this->isoCode3letters($lang) : $this->params['language'],
-                    'value' => $value,
-                ];
-            }
-        }
-
-        // dcterms:references ou foaf:homepage ?
-        if ($source['url_site']) {
-            $values[] = [
-                'term' => 'dcterms:references',
-                'type' => 'uri',
-                '@id' => $source['url_site'],
-                '@label' => $source['nom_site'],
-            ];
-        } elseif ($source['nom_site']) {
-            $values[] = [
-                'term' => 'dcterms:references',
-                'type' => 'literal',
-                'value' => $source['nom_site'],
-            ];
-        }
-
-        $status = $this->map['statuts_auteur'][$source['statut']] ?? $source['statut'];
-        if ($status) {
-            $values[] = [
-                'term' => ' foaf:membershipClass',
-                'type' => 'customvocab:' . $this->main['auteur']['custom_vocab_id'],
-                'value' => $status,
-                'is_public' => false,
-            ];
-        }
-
-        $this->orderAndAppendValues($values);
     }
 
     /**
