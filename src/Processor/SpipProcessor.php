@@ -6,6 +6,10 @@ use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
 use DateTime;
 use Laminas\Validator\EmailAddress;
+use Omeka\Api\Exception\NotFoundException;
+use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
+use Omeka\Api\Representation\ItemRepresentation;
+use Omeka\Stdlib\Message;
 
 /**
  * Spip (Système de Publication pour un Internet Partagé)
@@ -32,6 +36,7 @@ class SpipProcessor extends AbstractFullProcessor
         'o:owner' => null,
         'types' => [],
         'fake_files' => false,
+        'menu' => 'no',
         'language' => null,
         'endpoint' => null,
     ];
@@ -41,12 +46,17 @@ class SpipProcessor extends AbstractFullProcessor
         'Article',
         // 'Comment',
         'CustomVocab',
-        'DataTypeRdf',
         'Log',
         'NumericDataTypes',
         'Spip',
+    ];
+
+    protected $optionalModules = [
+        'BulkCheck',
+        'BulkEdit',
+        'DataTypeRdf',
+        'Menu',
         'Thesaurus',
-        'UserProfile',
     ];
 
     protected $moreImportables = [
@@ -62,6 +72,20 @@ class SpipProcessor extends AbstractFullProcessor
             'class' => \Omeka\Entity\Item::class,
             'table' => 'item',
             'fill' => 'fillAuteur',
+            'is_resource' => true,
+        ],
+        'groupes_mots' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillMotCleGroup',
+            'is_resource' => true,
+        ],
+        'mots' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'table' => 'item',
+            'fill' => 'fillMotCle',
             'is_resource' => true,
         ],
     ];
@@ -142,6 +166,30 @@ class SpipProcessor extends AbstractFullProcessor
             'key_modified' => 'maj',
             'narrowers_sort' => 'alpha',
         ],
+        // Fiches mots-clés : mots + groupes_mots + mots_liens.
+        'groupes_mots' => [
+            'source' => 'groupes_mots',
+            'key_id' => 'id_groupe',
+            'key_parent_id' => null,
+            'key_label' => 'titre',
+            'key_definition' => 'descriptif',
+            'key_scope_note' => 'texte',
+            'key_created' => null,
+            'key_modified' => 'maj',
+            // De toute façon géré spécifiquement.
+            'narrowers_sort' => 'alpha',
+        ],
+        'mots' => [
+            'source' => 'mots',
+            'key_id' => 'id_mot',
+            'key_parent_id' => 'id_groupe',
+            'key_label' => 'titre',
+            'key_definition' => 'descriptif',
+            'key_scope_note' => 'texte',
+            'key_created' => null,
+            'key_modified' => 'maj',
+            'narrowers_sort' => 'alpha',
+        ],
         // Module non géré actuellement.
         'comments' => [
             'source' => 'messages',
@@ -178,38 +226,48 @@ class SpipProcessor extends AbstractFullProcessor
             'source' => 'auteurs_liens',
             'key_id' => 'id_auteur',
         ],
+        'mots_liens' => [
+            'source' => 'mots_liens',
+            'key_id' => 'id_mot',
+        ],
     ];
 
     protected $main = [
         'article' => [
-            'template' => 'Article éditorial',
+            'template' => 'Article',
             'class' => 'bibo:Article',
             'custom_vocab' => 'Article - Statuts',
         ],
-        // TODO Move to thesaurus.
         'concept' => [
             'template' => 'Thesaurus Concept',
             'class' => 'skos:Concept',
-            'item_set' => null,
-            'item_set_id' => null,
-        ],
-        'scheme' => [
-            'template' => 'Thesaurus Scheme',
-            'class' => 'skos:ConceptScheme',
             'item' => null,
+            'item_set' => null,
+            'custom_vocab' => null,
+        ],
+        'groupe_mot' => [
+            'template' => 'Thesaurus Concept',
+            'class' => 'skos:Concept',
+            'item' => null,
+            'item_set' => null,
+            'custom_vocab' => null,
+        ],
+        'mot' => [
+            'template' => 'Thesaurus Concept',
+            'class' => 'skos:Concept',
+            'item' => null,
+            'item_set' => null,
             'custom_vocab' => null,
         ],
         'breve' => [
             'template' => 'Brève',
             'class' => 'fabio:Micropost',
             'item_set' => null,
-            'item_set_id' => null,
         ],
         'auteur' => [
             'template' => 'Auteur',
             'class' => 'foaf:Person',
             'item_set' => null,
-            'item_set_id' => null,
             'custom_vocab' => 'Auteur - Statuts',
         ],
         'templates' => [
@@ -218,6 +276,8 @@ class SpipProcessor extends AbstractFullProcessor
             // 'Actualité' => null,
             'Brève' => null,
             'Fichier' => null,
+            'Thesaurus Concept' => null,
+            'Thesaurus Scheme' => null,
         ],
         'classes' => [
             'bibo:Document' => null,
@@ -228,6 +288,8 @@ class SpipProcessor extends AbstractFullProcessor
             'foaf:Person' => null,
             // 'fabio:NewsItem' => null,
             'fabio:Micropost' => null,
+            'skos:Concept' => null,
+            'skos:ConceptScheme' => null,
         ],
     ];
 
@@ -241,6 +303,24 @@ class SpipProcessor extends AbstractFullProcessor
         'audio' => 'dctype:Sound',
         'image' => 'dctype:StillImage',
         'text' => 'dctype:Text',
+    ];
+
+    protected $thesaurusConfigs = [
+        'concepts' => [
+            'label' => 'Thesaurus',
+            'mapping_name' => 'concepts',
+            'main_name' => 'concept',
+        ],
+        'groupes_mots' => [
+            'label' => 'Mots-clés',
+            'mapping_name' => 'groupes_mots',
+            'main_name' => 'groupe_mot',
+        ],
+        'mots' => [
+            'label' => 'Mots-clés',
+            'mapping_name' => 'mots',
+            'main_name' => 'mot',
+        ],
     ];
 
     protected function preImport(): void
@@ -286,6 +366,10 @@ class SpipProcessor extends AbstractFullProcessor
             : $this->isoCode3letters($args['language']);
 
         $this->setParams($args);
+
+        $this->thesaurusConfigs['concepts'] += $this->mapping['concepts'];
+        $this->thesaurusConfigs['groupes_mots'] += $this->mapping['groupes_mots'];
+        $this->thesaurusConfigs['mots'] += $this->mapping['mots'];
 
         $this->map['statuts'] = [
             'prepa' => 'en cours de rédaction',
@@ -391,11 +475,15 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
 
+        $toImport = $this->getParam('types') ?: [];
+        if (!in_array('custom_vocabs', $toImport)) {
+            return;
+        }
+
         $sourceCustomVocabs = [];
         // "id_groupe" et "titre" sont en doublon dans la table "mots", donc la
         // table est inutile actuellement, sauf pour avoir les vocabulaires
         // vides.
-        // TODO Les descriptions ne sont pas importés actuellement.
         foreach ($this->prepareReader('custom_vocabs') as $groupeMots) {
             $label = trim((string) $groupeMots['titre']);
             if (!strlen($label)) {
@@ -410,6 +498,9 @@ class SpipProcessor extends AbstractFullProcessor
                 'o:owner' => $this->owner,
             ];
         }
+
+        // TODO Les mots sont sauvegardés séparément actuellement.
+        $this->main['_mots'] = [];
 
         foreach ($this->prepareReader('custom_vocab_keywords') as $mot) {
             $keyword = trim((string) $mot['titre']);
@@ -433,6 +524,11 @@ class SpipProcessor extends AbstractFullProcessor
             strlen($sourceCustomVocabs[$mot['type']]['o:terms'])
                 ? $sourceCustomVocabs[$mot['type']]['o:terms'] .= "\n" . $keyword
                 : $sourceCustomVocabs[$mot['type']]['o:terms'] = $keyword;
+
+            $this->main['_mots'][$mot['id_mot']] = [
+                'titre' => $keyword,
+                'id_groupe' => $mot['id_groupe'],
+            ];
         }
 
         $this->prepareCustomVocabsProcess($sourceCustomVocabs);
@@ -473,6 +569,55 @@ class SpipProcessor extends AbstractFullProcessor
             $this->main['auteur']['item_set'] = $itemSet;
             $this->main['auteur']['item_set_id'] = $itemSet->getId();
         }
+
+        if (in_array('mots', $toImport)
+            && $this->prepareImport('groupes_mots')
+            && $this->prepareImport('mots')
+        ) {
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareThesaurus();
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareImport('groupes_mots');
+            $this->prepareConcepts($this->prepareReader('groupes_mots'));
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            // Un seul thésaurus pour les deux tables.
+            $this->main['mot']['item'] = $this->main['groupe_mot']['item'];
+            $this->main['mot']['item_id'] = $this->main['groupe_mot']['item_id'];
+            $this->main['mot']['item_set'] = $this->main['groupe_mot']['item_set'];
+            $this->main['mot']['item_set_id'] = $this->main['groupe_mot']['item_set_id'];
+            $this->main['mot']['custom_vocab'] = $this->main['groupe_mot']['custom_vocab'];
+            $this->main['mot']['custom_vocab_id'] = $this->main['groupe_mot']['custom_vocab_id'];
+            $this->map['mots'] = [];
+            $this->thesaurus['mots']['tops'] = [];
+            $this->thesaurus['mots']['parents'] = [];
+            $this->thesaurus['mots']['narrowers'] = [];
+
+            $this->configThesaurus = 'mots';
+            $this->prepareImport('mots');
+            $this->prepareConcepts($this->prepareReader('mots'));
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Tri special pour Spip.
+     *
+     * Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+     * Mais supprimer quand même le <multi> et le numéro qui le suit pour en
+     * conserver un s'il y en a un ou deux.
+     */
+    protected function labelKeyForSort($labelKey, $id): string
+    {
+        return sprintf('%s#%s', preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $labelKey))), $id);
     }
 
     protected function fillItem(array $source): void
@@ -513,6 +658,11 @@ class SpipProcessor extends AbstractFullProcessor
         if (!mb_strlen($source['titre'])) {
             $source['titre'] = sprintf($this->translator->translate('[Untitled article #%s]'), $source['id_article']); // @translate
         }
+
+        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+        // Tâche ajoutée séparément post-import.
+        // $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
+
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
 
@@ -573,7 +723,9 @@ class SpipProcessor extends AbstractFullProcessor
                 continue;
             }
             foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
-                $value = $this->majRaccourcisSpip($value);
+                $value = $this->majModelesSpip($value);
+                $value = $this->majLiensSourceSpip($value);
+                $value = $this->majFichiersSpip($value);
                 $values[] = [
                     'term' => $term,
                     'lang' => $lang ? $this->isoCode3letters($lang) : $language,
@@ -583,9 +735,13 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
-        // Le secteur est la rubrique de tête.
-        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
-        foreach (['id_secteur', 'id_rubrique'] as $keyId) {
+        // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
+        // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
+        // Cf. fillBreve().
+        foreach ([
+            'id_secteur' => 'curation:theme',
+            'id_rubrique' => 'curation:category',
+        ] as $keyId => $mainTerm) {
             $value = (int) $source[$keyId];
             if (!$value) {
                 continue;
@@ -593,7 +749,7 @@ class SpipProcessor extends AbstractFullProcessor
             // Le concept (numéro) est conservé même si vide, mais en privé.
             if (empty($this->map['concepts'][$value])) {
                 $values[] = [
-                    'term' => 'dcterms:subject',
+                    'term' => $mainTerm,
                     'type' => 'literal',
                     'lang' => null,
                     'value' => $value,
@@ -602,7 +758,7 @@ class SpipProcessor extends AbstractFullProcessor
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
                 $values[] = [
-                    'term' => 'dcterms:subject',
+                    'term' => $mainTerm,
                     'type' => 'resource:item',
                     'value_resource' => $linkedResource,
                 ];
@@ -1021,13 +1177,10 @@ class SpipProcessor extends AbstractFullProcessor
 
     /**
      * La resource spip "rubrique" est convertie en item Concept.
-     *
-     * @todo Déplacer dans ThesaurusTrait.
-     * @param array $source
      */
     protected function fillConcept(array $source): void
     {
-        // TODO Id secteur ?
+        // TODO Id secteur ?  Ce sont les 4 modules de tête.
         /*
          * Id secteur
          * statut_tmp
@@ -1035,12 +1188,34 @@ class SpipProcessor extends AbstractFullProcessor
          * profondeur // Inutile
          */
 
+        // rubrique
+        /*
+         * id_rubrique
+         * id_parent
+         * titre
+         * descriptif
+         * texte
+         * id_secteur
+         * maj
+         * statut
+         * date
+         * lang
+         * langue_choisie
+         * statut_tmp
+         * date_tmp
+         * profondeur
+         */
+
         $source = array_map('trim', array_map('strval', $source));
+
+        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+        // Tâche ajoutée séparément post-import.
+        // $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
 
         parent::fillConceptProcess($source);
 
         // Au cas où le titre est traduit, il faut choisir le premier.
-        $title = $this->polyglotte($source['titre'] ?: sprintf($this->translator->translate('[Untitled concept #%s]'), $source['id_rubrique'])); // @translate;
+        $title = $this->polyglotte($source['titre'] ?: sprintf($this->translator->translate('[Untitled %s #%s]'), $this->thesaurusConfigs[$this->configThesaurus]['main_name'], $source['id_rubrique'])); // @translate;
         $this->entity->setTitle(reset($title));
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
@@ -1119,6 +1294,36 @@ class SpipProcessor extends AbstractFullProcessor
                 if ($this->isErrorOrStop()) {
                     return;
                 }
+            }
+        }
+
+        if (in_array('mots', $toImport)
+            && $this->prepareImport('groupes_mots')
+            && $this->prepareImport('mots')
+        ) {
+            $this->configThesaurus = 'groupes_mots';
+            $this->prepareImport('groupes_mots');
+            $this->fillConcepts();
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+
+            $this->configThesaurus = 'mots';
+            $this->prepareImport('mots');
+            $this->fillConcepts();
+            if ($this->isErrorOrStop()) {
+                return;
+            }
+            // Les relations sont ajoutées ci-dessous.
+        }
+
+        // Ajout des mots-clés via relation et custom vocab.
+        if ($this->prepareImport('mots_liens')) {
+            foreach ($this->prepareReader('mots_liens') as $source) {
+                $this->fillMotCleLien($source);
+            }
+            if ($this->isErrorOrStop()) {
+                return;
             }
         }
     }
@@ -1207,6 +1412,7 @@ class SpipProcessor extends AbstractFullProcessor
                     'term' => 'bio:biography',
                     'lang' => $lang ? $this->isoCode3letters($lang) : $this->params['language'],
                     'value' => $value,
+                    'type' => 'spip',
                 ];
             }
         }
@@ -1226,6 +1432,12 @@ class SpipProcessor extends AbstractFullProcessor
                 'value' => $source['nom_site'],
             ];
         }
+
+        $values[] = [
+            'term' => 'menestrel:role',
+            'type' => 'literal',
+            'value' => 'Rédacteur',
+        ];
 
         $status = $this->map['statuts_auteur'][$source['statut']] ?? $source['statut'];
         if ($status) {
@@ -1302,14 +1514,21 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
-        // Le secteur est la rubrique de tête.
-        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
-        $value = (int) $source['id_rubrique'];
-        if ($value) {
+        // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
+        // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
+        // Cf. fillArticle().
+        foreach ([
+            'id_secteur' => 'curation:theme',
+            'id_rubrique' => 'curation:category',
+        ] as $keyId => $mainTerm) {
+            $value = (int) $source[$keyId];
+            if (!$value) {
+                continue;
+            }
             // Le concept (numéro) est conservé même si vide, mais en privé.
             if (empty($this->map['concepts'][$value])) {
                 $values[] = [
-                    'term' => 'dcterms:subject',
+                    'term' => $mainTerm,
                     'type' => 'literal',
                     'lang' => null,
                     'value' => $value,
@@ -1318,7 +1537,7 @@ class SpipProcessor extends AbstractFullProcessor
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
                 $values[] = [
-                    'term' => 'dcterms:subject',
+                    'term' => $mainTerm,
                     'type' => 'resource:item',
                     'value_resource' => $linkedResource,
                 ];
@@ -1368,12 +1587,132 @@ class SpipProcessor extends AbstractFullProcessor
         $this->orderAndAppendValues($values);
     }
 
+    /**
+     * Compléter les items groupes de mots-clés (thésaurus).
+     * Les groupes de mots sont des top-concepts. Les mots y sont liés.
+     */
+    protected function fillMotCleGroup(array $source): void
+    {
+        // groupes_mots
+        /*
+         * id_groupe
+         * titre
+         * descriptif
+         * texte
+         * unseul
+         * obligatoire
+         * tables_liees
+         * minirezo
+         * comite
+         * forum
+         * maj
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // Rien de particulier : c'est la première partie du thésaurus des mots.
+        parent::fillConceptProcess($source);
+        $this->entity->setIsPublic(true);
+    }
+
+    /**
+     * Compléter les items mots-clés (thésaurus).
+     * Les groupes de mots sont des top-concepts. Les mots y sont liés.
+     */
+    protected function fillMotCle(array $source): void
+    {
+        // mots
+        /*
+         * id_mot
+         * titre
+         * descriptif
+         * texte
+         * id_groupe
+         * type // Correspond au titre du groupe (groupes_mots)
+         * maj
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // Dans ce thésaurus, la table des parents est separée.
+        parent::fillConceptProcess($source);
+        $this->entity->setIsPublic(true);
+    }
+
+    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        // Ici, les parents sont dans une autre table.
+        if ($this->configThesaurus === 'mots') {
+            $mappingName = 'groupes_mots';
+        }
+
+        // Comme trait pour "concepts" (rubriques) et "groupes_mots".
+        // TODO Supprimer cette copie du trait.
+        if ($keyParentId && $source[$keyParentId]) {
+            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
+            if ($linked) {
+                $values[] = [
+                    'term' => 'skos:broader',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            } else {
+                $this->logger->warn(
+                    'The broader concept #{identifier} of items #{item_id} (source {main} {source}) was not found.', // @translate
+                    ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'main' => $mainName, 'source' => $source[$keyId]]
+                );
+            }
+        } else {
+            $values[] = [
+                'term' => 'skos:topConceptOf',
+                'type' => 'resource:item',
+                'value_resource' => $this->main[$mainName]['item'],
+            ];
+        }
+    }
+
+    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    {
+        if ($this->configThesaurus === 'mots') {
+            // Ici, pas d'enfants.
+            return;
+        }
+
+        if ($this->configThesaurus === 'groupes_mots') {
+            $mappingName = 'mots';
+        }
+
+        // Comme trait pour "concepts" (rubriques).
+        // TODO Supprimer cette copie du trait.
+        if (empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
+            return;
+        }
+
+        foreach ($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]] as $value) {
+            // A literal value when the narrower item does not exist.
+            if (empty($this->map[$mappingName][$value])) {
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'value' => $value,
+                ];
+            } else {
+                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
+                $values[] = [
+                    'term' => 'skos:narrower',
+                    'type' => 'resource:item',
+                    'value_resource' => $linked,
+                ];
+            }
+        }
+    }
+
     protected function fillAlbumLien(array $source): void
     {
         $data = $this->mapSourceLienObjet($source, 'item_sets', 'id_album', \Omeka\Entity\ItemSet::class);
         if (!$data) {
             return;
         }
+
         // L'objet lié est un contenu de la collection (album).
         $itemSets = $data['linked_resource']->getItemSets();
         $itemSets->add($data['resource']);
@@ -1387,12 +1726,11 @@ class SpipProcessor extends AbstractFullProcessor
         if (!$data) {
             return;
         }
-        // L'auteur de la ressource liée est le propriétaire et l'auteur.
-        if ($data['resource']) {
-            // FIXME Faire le lien entre les utilisateurs Omeka et les auteurs.
-            if ($data['resource'] instanceof \Omeka\Entity\User) {
-                $data['linked_resource']->setOwner($data['resource']);
-            }
+
+        // L'auteur de la ressource liée est à la fois propriétaire et auteur.
+        $user = $this->entityManager->getRepository(\Omeka\Entity\user::class)->find($this->map['users'][$source['id_auteur']]);
+        if ($user) {
+            $data['linked_resource']->setOwner($user);
         }
         $this->appendValue([
             'term' => 'dcterms:creator',
@@ -1413,6 +1751,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (!$data) {
             return;
         }
+
         // Le document (fichier) lié est un media ou un item de la collection
         // (album) ou du contenu (article, article...).
         $media = $data['resource'];
@@ -1430,6 +1769,57 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
+    protected function fillMotCleLien(array $source): void
+    {
+        static $asCustomVocab;
+        static $asResourceLink;
+
+        if (is_null($asCustomVocab)) {
+            $toImport = $this->getParam('types') ?: [];
+            $asCustomVocab = in_array('custom_vocabs', $toImport);
+            $asResourceLink = in_array('mots', $toImport);
+        }
+
+        if (!$asCustomVocab && !$asResourceLink) {
+            return;
+        }
+
+        // mots_liens
+        /*
+         * id_mot
+         * id_objet
+         * objet // rubrique, article, etc.
+         */
+
+        $data = $this->mapSourceLienObjet($source, 'mots', 'id_mot', \Omeka\Entity\Item::class, true);
+        if (!$data) {
+            return;
+        }
+
+        if ($asCustomVocab
+            && !empty($this->main['_mots'][$source['id_mot']])
+            && !empty($this->map['custom_vocabs']['customvocab:' . $this->main['_mots'][$source['id_mot']]['id_groupe']])
+        ) {
+            $this->appendValue([
+                'term' => 'dcterms:subject',
+                'type' => $this->map['custom_vocabs']['customvocab:' . $this->main['_mots'][$source['id_mot']]['id_groupe']]['datatype'],
+                '@value' => $this->main['_mots'][$source['id_mot']]['titre'],
+            ], $data['linked_resource']);
+        }
+
+        if ($asResourceLink
+            && !empty($data['resource'])
+        ) {
+            $this->appendValue([
+                'term' => 'dcterms:subject',
+                'type' => 'resource:item',
+                'value_resource' => $data['resource'],
+            ], $data['linked_resource']);
+        }
+
+        $this->entityManager->persist($data['linked_resource']);
+    }
+
     /**
      * Récupère le sujet et l'objet d'une table de liens spip.
      * L'objet (ressource liée) est soit une collection, soit un contenu.
@@ -1438,7 +1828,8 @@ class SpipProcessor extends AbstractFullProcessor
         array $source,
         string $sourceMapType,
         string $sourceIdKey,
-        string $sourceClass
+        string $sourceClass,
+        ?bool $linkedResourceOnly = false
     ): ?array {
         // Pas de log spécifique : une table incomplète ne peut être récupérée.
 
@@ -1451,10 +1842,6 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         switch ($source['objet']) {
-            default:
-            case 'message':
-                // TODO Gérer les messages (commentaires internes).
-                return null;
             case 'album':
                 $linkedResourceMapType = 'item_sets';
                 $linkedResourceClass = \Omeka\Entity\ItemSet::class;
@@ -1467,6 +1854,19 @@ class SpipProcessor extends AbstractFullProcessor
                 $linkedResourceMapType = 'concepts';
                 $linkedResourceClass = \Omeka\Entity\Item::class;
                 break;
+            case 'groupes_mots':
+                $linkedResourceMapType = 'groupes_mots';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+            case 'mots':
+                $linkedResourceMapType = 'mots';
+                $linkedResourceClass = \Omeka\Entity\Item::class;
+                break;
+            case 'message':
+                // TODO Gérer les messages (commentaires internes).
+                return null;
+            default:
+                return null;
         }
 
         if (empty($this->map[$linkedResourceMapType][$source['id_objet']])) {
@@ -1481,7 +1881,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $resourceId = $this->map[$sourceMapType][$source[$sourceIdKey]];
         $resource = $this->entityManager->find($sourceClass, $resourceId);
-        if (!$resource) {
+        if (!$resource && !$linkedResourceOnly) {
             return null;
         }
 
@@ -1615,6 +2015,12 @@ class SpipProcessor extends AbstractFullProcessor
     protected function polyglotte($value): array
     {
         $value = trim((string) $value);
+        if (!$value) {
+            return [$value];
+        }
+
+        // Corrige un bug dans certaines données sources.
+        $value = str_replace(['<multi<'], ['<multi>'], $value);
 
         if (empty($value)
             || strpos($value, '<multi>') === false
@@ -1700,7 +2106,7 @@ class SpipProcessor extends AbstractFullProcessor
      * @see https://www.spip.net/aide/?exec=aide_index&aide=raccourcis&frame=body&var_lang=fr
      * @see https://info.spip.net/la-mise-en-forme-des-contenus-dans
      */
-    protected function majRaccourcisSpip($texte): string
+    protected function majModelesSpip($texte): string
     {
         // Vérification rapide.
         if (strpos($texte, '<') === false) {
@@ -1708,7 +2114,8 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         $matches = [];
-        preg_match_all('~<(?<type>[a-z_-]{3,})\s*(?<id>[0-9]+)~iS', $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        $pattern = '~<(?<type>[a-z_-]{2,})\s*(?<id>[0-9]+)~iS';
+        preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
         if (!$matches) {
             return $texte;
         }
@@ -1716,7 +2123,7 @@ class SpipProcessor extends AbstractFullProcessor
         $normalizeds = [
             'art' => 'article',
             'article' => 'article',
-            'album' => 'item_set',
+            'album' => 'album',
             'br' => 'breve',
             'breve' => 'breve',
             'brève' => 'breve',
@@ -1745,6 +2152,7 @@ class SpipProcessor extends AbstractFullProcessor
             'embed' => 'media_items_sub',
             'auteur' => 'auteurs',
         ];
+
         // Commence par le dernier pour éviter les problèmes de position dans la
         // nouvelle chaîne.
         foreach (array_reverse($matches) as $match) {
@@ -1766,5 +2174,906 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         return $texte;
+    }
+
+    /**
+     * Convertit les liens du site source en raccourcis Omeka (shortcodes).
+     *
+     * Par exemple `http://www.menestrel.fr/ecrire/?exec=articles&id_article=2307` devient `[item id=2307]`.
+     *
+     * Les liens sans relation sont conservés tels quels.
+     *
+     * Gère les liens tels que :
+     * - http://www.menestrel.fr/ecrire/?exec=articles&id_article=2307
+     * - http://www.menestrel.fr/spip.php?rubrique378&lang=fr&art=en#128
+     * - http://www.menestrel.fr/spip.php?article196#bulletin
+     *
+     * @todo Les urls suivantes ne sont pas traitées.
+     * - http://www.menestrel.fr/?-croisade-et-guerre-sainte-
+     *
+     * Les urls vers les fichiers sont traitées séparément.
+     *
+     * @see https://www.spip.net/aide/?exec=aide_index&aide=raccourcis&frame=body&var_lang=fr
+     * @see https://info.spip.net/la-mise-en-forme-des-contenus-dans
+     */
+    protected function majLiensSourceSpip($texte): string
+    {
+        static $endpoint;
+        static $patterns;
+
+        if ($endpoint === null) {
+            $endpoint = $this->getParam('endpoint');
+            $endpoint = trim(str_replace(['http://', 'https://'], ['', ''], $endpoint), ' /');
+            if ($endpoint) {
+                $patterns = [
+                    '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/ecrire/\?exec=(?<type>article|album|breve|rubrique|document|image|embed|auteur)s&id_(?:article|album|breve|rubrique|document|image|embed|auteur)=(?<id>\d+)[\w&=#%-]*)\s*(?<raccourci>\])?~m',
+                    '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/spip\.php\?(?<type>article|album|breve|rubrique|document|image|embed|auteur)(?<id>\d+)[\w&=#%-]*)\s*(?<raccourci>\])?~m',
+                ];
+            }
+        }
+
+        // Vérification rapide.
+        if (!$endpoint || strpos($texte, $endpoint) === false) {
+            return $texte;
+        }
+
+        $importeds = [
+            'article' => 'items',
+            'album' => 'item_sets',
+            'breve' => 'breves',
+            'rubrique' => 'concepts',
+            'document' => 'media_items_sub',
+            'image' => 'media_items_sub',
+            'embed' => 'media_items_sub',
+            'auteur' => 'auteurs',
+        ];
+
+        $maps = [
+            'article' => 'items',
+            'album' => 'item_sets',
+            'breve' => 'items',
+            'rubrique' => 'items',
+            'document' => 'resources',
+            'image' => 'resources',
+            'embed' => 'resources',
+            'auteur' => 'items',
+        ];
+
+        $mapSingles = [
+            'article' => 'item',
+            'album' => 'item_set',
+            'breve' => 'item',
+            'rubrique' => 'item',
+            'document' => 'resource',
+            'image' => 'resource',
+            'embed' => 'resource',
+            'auteur' => 'item',
+        ];
+
+        $matches = [];
+        $replace = [];
+        foreach ($patterns as $pattern) {
+            preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+            if (!count($matches)) {
+                continue;
+            }
+            // Commence par le dernier pour éviter les problèmes de position dans la
+            // nouvelle chaîne.
+            foreach (array_reverse($matches) as $match) {
+                $type = $match['type'][0];
+                $id = $match['id'][0];
+                $isRaccourci = !empty($match['raccourci'][0]);
+                $importedType = $importeds[$type] ?? null;
+                if (empty($this->map[$importedType][$id])) {
+                    $resourceId = '000' . $id;
+                } else {
+                    $resourceId = $this->map[$importedType][$id];
+                }
+                // Si c'est un raccourci Spip, remplacer par l'url relative, car
+                // on ne connait pas les autres éléments du raccourci.
+                if ($isRaccourci) {
+                    $resourceType = $maps[$type] ?? 'resources';
+                    $replace[$match['url'][0]] = "/$resourceType/$resourceId";
+                } else {
+                    $resourceType = $mapSingles[$type] ?? 'resource' ;
+                    $replace[$match['url'][0]] = "[$resourceType id=$resourceId]";
+                }
+            }
+        }
+
+        if (!$replace) {
+            return $texte;
+        }
+
+        $this->logger->info(new Message(
+            'Renommage : %s', // @translate
+            json_encode($replace, 320)
+        ));
+
+        return str_replace(array_keys($replace), array_values($replace), $texte);
+    }
+
+    /**
+     * Convertit les liens vers les fichiers du site source en lien Omeka.
+     *
+     * Exemples :
+     * - http://www.menestrel.fr/IMG/jpg/w-921-f11.jpg
+     * - http://www.menestrel.fr/IMG/pdf/Charte_typographique-2.pdf
+     *
+     * Les liens sans relation sont conservés tels quels.
+     */
+    protected function majFichiersSpip($texte): string
+    {
+        static $endpoint;
+        static $pattern;
+
+        if ($endpoint === null) {
+            $endpoint = $this->getParam('endpoint');
+            $endpoint = trim(str_replace(['http://', 'https://'], ['', ''], $endpoint), ' /');
+            if ($endpoint) {
+                $pattern = '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/IMG/(?<filename>[^\n\]\"\']+))\b~m';
+            }
+        }
+
+        // Vérification rapide.
+        if (!$endpoint || strpos($texte, $endpoint) === false) {
+            return $texte;
+        }
+
+        $matches = [];
+        $replace = [];
+        preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        foreach ($matches as $match) {
+            $filename = $match['filename'][0];
+            // Api doesn't allow to search with "source", so use read.
+            try {
+                /** @var \Omeka\Api\Representation\MediaRepresentation $media */
+                $media = $this->api()->read('media', ['source' => $filename])->getContent();
+            } catch (\Exception $e) {
+                continue;
+            }
+            $replace[$match['url'][0]] = $media->originalUrl();
+        }
+
+        if (!$replace) {
+            return $texte;
+        }
+
+        $this->logger->info(new Message(
+            'Renommage : %s', // @translate
+            json_encode($replace, 320)
+        ));
+
+        return str_replace(array_keys($replace), array_values($replace), $texte);
+    }
+
+    protected function completionShortJobs(array $resourceIds): void
+    {
+        $createMenu = $this->getParam('menu', 'no') ?: 'no';
+        if ($createMenu !== 'no') {
+            $this->logger->notice(
+                'Attendre la finalisation des tâches finales pour utiliser le menu.' // @translate
+            );
+        }
+
+        parent::completionShortJobs($resourceIds);
+
+        // Les titres doivent être recrées auparavant de façon à les trier.
+        if ($createMenu !== 'no') {
+            $this->createMenu();
+            $this->removeMenuTraductions();
+            $this->sortMenu();
+            $this->cleanMenu();
+            if ($createMenu === 'top') {
+                $this->createTopMenus();
+            }
+        }
+    }
+
+    /**
+     * Créer le menu à partir des rubriques, sommaires et listes d'articles.
+     *
+     * Le menu est converti depuis le thésaurus, puis on ajoute les articles liés.
+     */
+    protected function createMenu(): void
+    {
+        if (empty($this->modules['Menu'])) {
+            $this->logger->err(
+                'Le module "Menu" est nécessaire pour créer le menu' // @translate
+            );
+            return;
+        }
+
+        if (empty($this->main['concept']['item'])) {
+            $this->logger->err(
+                'Le thésaurus est vide.' // @translate
+            );
+            return;
+        }
+
+        if (empty($this->thesaurusConfigs['concepts']) || empty($this->modules['Thesaurus'])) {
+            $this->logger->err(
+                'Le thésaurus doit être créé à partir des rubriques (module "Thesaurus").' // @translate
+            );
+            return;
+        }
+
+        /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
+        $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
+        $scheme = $this->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
+        $thesaurus = $thesaurus($scheme);
+        if (!$thesaurus->isSkos()) {
+            $this->logger->err(
+                'Le thésaurus pour la création du menu est incorrect.' // @translate
+            );
+            return;
+        }
+
+        $tree = $thesaurus->tree();
+        if (!$tree) {
+            $this->logger->warn(
+                'Le thésaurus pour la création du menu est vide.' // @translate
+            );
+            return;
+        }
+
+        $this->logger->notice(
+            'Création du menu à partir du thésaurus.' // @translate
+        );
+
+        // L'arborescence du module Thésaurus distingue l'élément et ses enfants :
+        /*
+        {
+            "10631": {
+                "self": [
+                    "id": 10631,
+                    "title": "title",
+                    "top": true,
+                    "parent": null,
+                    "children": [
+                        10632
+                    ]
+                ],
+                "children": [
+                    "10632": {
+                    }
+                ]
+            }
+        }
+        */
+
+        // Le menu se présente comme suit ("structure" est le nom du premier menu et
+        // "links" permet d'imbriquer les sous-menus) :
+        /*
+        {
+            "structure": [
+                {
+                    "type": "resource",
+                    "data": {
+                        "label": null,
+                        "id": 10631
+                    },
+                    "links": [
+                    ]
+                }
+            ]
+        }
+        */
+
+        // array_walk_recursive() ne peut pas être utilisé car chaque élément
+        // est un array.
+        $conceptsArticles = [];
+        $conceptsSansArticles = [];
+        $buildMenu= null;
+        $buildMenu = function (array $branches, int $level = 0) use (&$buildMenu, &$conceptsArticles, &$conceptsSansArticles): array {
+            $menu = [];
+            foreach ($branches as $branch) {
+                /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $concept */
+                $id = $branch['self']['id'];
+                $concept = $this->api()->read('resources', ['id' => $id])->getContent();
+                $children = $branch['children'] ?? [];
+                // Ajout des relations non présentes dans le menu (articles liés
+                // à un concept mais qui n'apparaissent pas dans la structure).
+                /** @var \Omeka\Api\Representation\ValueRepresentation[] $linkedResources */
+                $articles = $this->lienArticles($concept);
+                if (count($articles)) {
+                    $conceptsArticles[$id] = array_keys($articles);
+                } else {
+                    $class = $concept->resourceClass();
+                    if ($class && $class->term() === 'skos:Concept') {
+                        $conceptsSansArticles[] = $id;
+                    }
+                }
+                foreach ($articles as $article) {
+                    // Les articles n'ont pas d'enfant.
+                    $children[$article->id()] = [
+                        'self' => [
+                            'id' => $article->id(),
+                            'title' => $article->title(),
+                            'top' => false,
+                            'parent' => $id,
+                            'children' => [],
+                        ],
+                        'children' => [],
+                    ];
+                }
+                $element = [
+                    'type' => 'resource',
+                    'data' => [
+                        'label' => null,
+                        'id' => $id,
+                    ],
+                    // Création récursive de la structure.
+                    'links' => $buildMenu($children, $level + 1),
+                ];
+                $menu[] = $element;
+            }
+            return $menu;
+        };
+        $menu = $buildMenu($tree);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted);
+        $menus = $siteSettings->get('menu_menus', []);
+        $menus[$label] = $menu;
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+
+        $this->logger->notice(
+            'Le menu a été créé sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
+        if ($conceptsArticles) {
+            $this->logger->notice(
+                'Correspondance concepts ⬌ articles : {list}', // @translate
+                ['list' => str_replace(['{', '[', ']', ','], ["{\n", "[\n", "\n]", ",\n"], json_encode($conceptsArticles, 320))]
+            );
+        }
+        if ($conceptsSansArticles) {
+            $this->logger->warn(
+                'Les concepts suivants ne disposent pas d’articles associés : {item_ids}', // @translate
+                ['item_ids' => '' . implode(",\n", $conceptsSansArticles)]
+            );
+        }
+    }
+
+    /**
+     * Suppression des traductions du menu et remplacement par l'original.
+     *
+     * Les traductions sont gérées dans le module ou le thème.
+     */
+    protected function removeMenuTraductions()
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted);
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $this->logger->notice(
+            'Suppression des traductions du menu.' // @translate
+        );
+
+        $translationTerm = 'bibo:translationOf';
+        $translationId = $this->bulk->getPropertyId($translationTerm);
+
+        $countRemoved = 0;
+
+        $iterator = null;
+        $iterator = function (array $elements, int $level = 0) use (&$iterator, $translationTerm, $translationId, &$countRemoved): array {
+            $elementsById = [];
+            $k = 0;
+            foreach ($elements as $element) {
+                if (empty($element['data']['id'])) {
+                    $elementsById[--$k] = $element;
+                } else {
+                    $elementsById[$element['data']['id']] = $element;
+                }
+            }
+            $elements = $elementsById;
+            unset($elementsById);
+
+            $k = 0;
+            $unset = [];
+            $newElements = [];
+            foreach ($elements as $keyElement => $element) {
+                --$k;
+                if (in_array($keyElement, $unset)) {
+                    ++$countRemoved;
+                    continue;
+                }
+                $keyId = $k;
+                // Si l'article est une traduction, ajouter l'original si absent
+                // de la liste des éléments et supprimer la traduction.
+                if ($level
+                    // Normalement, tout le menu est item.
+                    && $element['type'] === 'resource'
+                ) {
+                    $id = $element['data']['id'];
+                    try {
+                        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                    } catch (NotFoundException $e) {
+                        $unset[] = $id;
+                        continue;
+                    }
+                    $class = $resource->resourceClass();
+                    $class = $class ? $class->term() : null;
+                    if ($class !== 'skos:Concept') {
+                        $linkeds = $this->deepLinkedResources($resource, $translationTerm, $translationId);
+                        $baseItem = $this->baseDeepLinkedResources($linkeds, $translationTerm);
+                        if ($baseItem) {
+                            $baseItemId = $baseItem->id();
+                            unset($linkeds[$baseItemId]);
+                            $unset = array_merge($unset, $linkeds);
+                            // Normalement pas le cas.
+                            if (in_array($baseItemId, $unset)) {
+                                $keyId = null;
+                                ++$countRemoved;
+                            } else {
+                                if ($baseItemId !== $resource->id()) {
+                                    ++$countRemoved;
+                                }
+                                // Le même item peut être ajouté plusieurs fois,
+                                // The same item can be added multiple times,
+                                // mais la clé est toujours la même.
+                                $keyId = $baseItemId;
+                                $newElements[$keyId] = [
+                                    'type' => 'resource',
+                                    'data' => [
+                                        'label' => null,
+                                        'id' => $baseItemId,
+                                    ],
+                                    'links' => [],
+                                ];
+                            }
+                        } else {
+                            $this->logger->notice(
+                                'Impossible de déterminer la ressource source des traductions pour item #{item}.', // @translate
+                                ['item' => $resource->id()]
+                            );
+                            $keyId = $id;
+                            $newElements[$keyId] = $element;
+                        }
+                    } else {
+                        $keyId = $id;
+                        $newElements[$keyId] = $element;
+                    }
+                } else {
+                    $newElements[$keyId] = $element;
+                }
+                if ($keyId && !empty($newElements[$keyId]['links'])) {
+                    $newElements[$keyId]['links'] = $iterator($newElements[$keyId]['links'], $level + 1);
+                }
+            }
+            return $newElements;
+        };
+        $menu = $menus[$label];
+        $menu = $iterator($menu);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $label .= '-sans-traductions';
+        $menus[$label] = $menu;
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            '{count} traductions ont été supprimées du menu.', // @translate
+            ['count' => $countRemoved]
+        );
+        $this->logger->notice(
+            'Le menu a été enregistré sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
+    }
+
+    /**
+     * Tri du menu (qui doit être complet).
+     *
+     * Le tri se fait avant la suppression des faux éléments structurels, car il
+     * faut connaître les numéros, qui ne sont pas dans les articles.
+     */
+    protected function sortMenu()
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions');
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $this->logger->notice(
+            'Tri du menu.' // @translate
+        );
+
+        $orderMenu = null;
+        $orderMenu = function (array $elements, int $level = 0) use (&$orderMenu): array {
+            foreach ($elements as &$element) {
+                // Normalement, tous le menu est item.
+                if ($element['type'] === 'resource'
+                    && !empty($element['links'])
+                    && count($element['links']) > 1
+                ) {
+                    $links = [];
+                    $titles = [];
+                    foreach ($element['links'] as $keyLink => $link) {
+                        $childId = $link['data']['id'];
+                        try {
+                            /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $childItem */
+                            $childItem = $this->api()->read('resources', ['id' => $childId])->getContent();
+                        } catch (NotFoundException $e) {
+                            unset($element['links'][$keyLink]);
+                            continue;
+                        }
+                        $links[$childId] = $link;
+                        $titles[$childId] = $this->labelKeyForSort($childItem->displayTitle(), $childItem->id());
+                    }
+                    natcasesort($titles);
+                    $element['links'] = array_values(array_replace($titles, $links));
+                }
+                $element['links'] = $orderMenu($element['links'], $level + 1);
+            }
+            return $elements;
+        };
+        $menu = $menus[$label];
+        $menu = $orderMenu($menu);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $label .= '-tri';
+        $menus[$label] = $menu;
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            'Le menu a été trié sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
+    }
+
+    /**
+     * Suppression des concepts non-rubriques (donc sous-rubriques ou sommaires)
+     * avec un seul article attaché : dans ce cas, la sous-rubrique est inutile.
+     * Les rubriques vides sont conservées.
+     *
+     * Le menu doit être complet et éventuellement trié.
+     * Les traductions doivent avoir été supprimées.
+     *
+     * Les sous-rubriques à conserver peuvent être indiquées dans le fichier "data/configs/spip/clean-menu-keep.php".
+     */
+    protected function cleanMenu()
+    {
+        $exceptions = include __DIR__ . '/../../data/configs/spip/clean-menu-keep.php';
+
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri');
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $this->logger->notice(
+            'Nettoyage du menu.' // @translate
+        );
+
+        $removedConcepts = [];
+
+        $cleanMenu = null;
+        $cleanMenu = function (array $elements, int $level = 0) use (&$cleanMenu, &$removedConcepts, $exceptions): array {
+            foreach ($elements as &$element) {
+                // On garde les modules et les rubriques dans tous les cas.
+                $isException = false;
+                $recursiveSub = true;
+                if ($level > 1
+                    // Normalement, tout le menu est item.
+                    && $element['type'] === 'resource'
+                ) {
+                    $id = $element['data']['id'];
+                    try {
+                        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                    } catch (NotFoundException $e) {
+                        continue;
+                    }
+                    $links = $element['links'] ?? [];
+                    $class = $resource->resourceClass();
+                    $class = $class ? $class->term() : null;
+                    $title = (string) $resource->value('dcterms:title', ['default' => (string) $resource->value('skos:prefLabel')]);
+                    if ($resource->title() !== $title) {
+                        $this->logger->warn(
+                            'Le titre de l’#{item} n’est pas à jour.', // @translate
+                            ['item' => $resource->id()]
+                        );
+                    }
+                    $isException = $exceptions
+                        && (in_array(trim($title), $exceptions)
+                            || in_array(trim($resource->title()), $exceptions)
+                        );
+                    // Supprimer si c'est un item "concept" (les autres n'ont
+                    // pas de relations) avec un unique article et qu'il n'est
+                    // pas une exception.
+                    if ($class === 'skos:Concept'
+                        && count($links) === 1
+                        && !$isException
+                    ) {
+                        $link = reset($links);
+                        $linkedResourceId = $link['data']['id'];
+                        try {
+                            $linkedResource = $this->api()->read('resources', ['id' => $linkedResourceId])->getContent();
+                        } catch (NotFoundException $e) {
+                            $element['links'] = [];
+                            $recursiveSub = false;
+                            continue;
+                        }
+                        $linkedClass = $linkedResource->resourceClass();
+                        $linkedClass = $linkedClass ? $linkedClass->term() : null;
+                        if ($linkedClass !== 'skos:Concept') {
+                            // Remplacer le concept par l'article unique.
+                            $recursiveSub = false;
+                            $removedConcepts[$id] = array_map(function ($v) {
+                                return $v['data']['id'];
+                            }, $element['links']);
+                            // $element est une référence : le remplacer
+                            // directement par l'article.
+                            $element = [
+                                'type' => 'resource',
+                                'data' => [
+                                    'label' => null,
+                                    'id' => $linkedResourceId,
+                                ],
+                                'links' => [],
+                            ];
+                        }
+                    }
+                }
+                if (!$isException && $recursiveSub && !empty($element['links'])) {
+                    $element['links'] = $cleanMenu($element['links'], $level + 1);
+                }
+            }
+            return $elements;
+        };
+        $menu = $menus[$label];
+        $menu = $cleanMenu($menu);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        if ($removedConcepts) {
+            $itemIds = [];
+            $curationCategoryId = $this->bulk->getPropertyId('curation:category');
+            foreach ($removedConcepts as $conceptId => $articleIds) {
+                $itemIds[$conceptId] = reset($articleIds);
+                try {
+                    $concept = $this->api()->read('resources', ['id' => $conceptId])->getContent();
+                } catch (NotFoundException $e) {
+                    continue;
+                }
+                $broader = $concept->value('skos:broader', ['type' => ['resource', 'resource:item']]);
+                // Normalement impossible.
+                if (!$broader) {
+                    $this->logger->notice(
+                        'Le concept #{item} ne peut pas être supprimé : il n’a pas de parent.', // @translate
+                        ['item' => $conceptId]
+                    );
+                } else {
+                    foreach ($articleIds as $articleId) {
+                        try {
+                            $article = $this->api()->read('resources', ['id' => $articleId])->getContent();
+                        } catch (NotFoundException $e) {
+                            continue;
+                        }
+                        $articleJson = json_decode(json_encode($article), true);
+                        $articleJson['curation:category'] = [[
+                            'property_id' => $curationCategoryId,
+                            'type' => 'resource:item',
+                            'value_resource_id' => $broader->valueResource()->id(),
+                        ]];
+                        $articleJson['clear_property_values'] = true;
+                        $this->api()->update('items', $articleId, $articleJson);
+                    }
+                }
+            }
+            $this->logger->notice(
+                'Les concepts suivants ont été remplacés par leurs articles : {list}', // @translate
+                ['list' => str_replace(['[', ']', ','], ["[\n", "\n]", ",\n"], json_encode($itemIds, 320))]
+            );
+        } else {
+            $this->logger->notice(
+                'Aucun concept n’a été supprimé.' // @translate
+            );
+        }
+
+        $label .= '-simple';
+        $menus[$label] = $menu;
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            'Le menu a été simplifié sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
+    }
+
+    protected function createTopMenus(): void
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = $this->slugify('Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri-simple');
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $newMenus = [];
+
+        $menu = $menus[$label];
+        foreach ($menu as $element) {
+            $id = $element['data']['id'];
+            try {
+                /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+            } catch (NotFoundException $e) {
+                continue;
+            }
+            $title = $this->slugify($resource->displayTitle());
+            $title = preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $title)));
+            $menus[$title] = $element['links'] ?? [];
+            $newMenus[] = $title;
+        }
+
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            'Des menus ont été ajoutés au niveau des secteurs : "{list}".', // @translate
+            ['list' => implode('", "', $newMenus)]
+        );
+    }
+
+    private function lienArticle(?ItemRepresentation $item): ?ItemRepresentation
+    {
+        $resources = $this->lienArticles($item);
+        return count($resources) ? reset($resources) : null;
+    }
+
+    private function lienArticles(?ItemRepresentation $item): array
+    {
+        static $propertyId;
+        if (!$item) {
+            return [];
+        }
+        if (is_null($propertyId)) {
+            $propertyId = $this->bulk->getPropertyId('curation:category');
+        }
+        $values = $item->subjectValues(null, null, $propertyId);
+        if (!count($values)) {
+            return [];
+        }
+        $result = [];
+        /** @var \Omeka\Api\Representation\ValueRepresentation $value */
+        foreach ($values['curation:category'] as $value) {
+            $resource = $value->resource();
+            $result[$resource->id()] = $resource;
+        }
+        return $result;
+    }
+
+    /**
+     * Get all linked resources, with indirect linked resources, included
+     * current resource.
+     *
+     * A resource may have linked resources, but the second resources may not be
+     * linked to all linked resources of the first one, so the relations are
+     * checked recursively.
+     *
+     * This is useful when relations are not reciprocal, like translations.
+     *
+     * The base item is set first, if not infinitely recursive, else it is the
+     * source.
+     *
+     * @return AbstractResourceEntityRepresentation[] By resource id.
+     */
+    private function deepLinkedResources(?AbstractResourceEntityRepresentation $resource, string $propertyTerm, int $propertyId): array
+    {
+        if (!$resource) {
+            return [];
+        }
+
+        $result = [$resource->id() => $resource];
+        $iterator = null;
+        $iterator = function (AbstractResourceEntityRepresentation $resource, $level = 0) use(&$iterator, &$result, $propertyTerm, $propertyId): void {
+            if ($level > 100) {
+                return;
+            }
+            $resourceId = $resource->id();
+            foreach ($resource->value($propertyTerm, ['all' => true, 'type' => ['resource', 'resource:item']]) as $value) {
+                $linkedResource = $value->valueResource();
+                $linkedResourceId = $linkedResource->id();
+                if ($linkedResourceId !== $resourceId && !isset($result[$linkedResourceId])) {
+                    $result[$linkedResourceId] = $linkedResource;
+                    $iterator($linkedResource, $level + 1);
+                }
+            }
+            $values = $resource->subjectValues(null, null, $propertyId);
+            foreach ($values[$propertyTerm] ?? [] as $value) {
+                $linkedResource = $value->resource();
+                $linkedResourceId = $linkedResource->id();
+                if ($linkedResourceId !== $resourceId && !isset($result[$linkedResourceId])) {
+                    $result[$linkedResourceId] = $linkedResource;
+                    $iterator($linkedResource, $level + 1);
+                }
+            }
+        };
+        $iterator($resource);
+        $base = $this->baseDeepLinkedResources($result, $propertyTerm);
+        return $base
+            ? array_replace([$base->id() => $base], $result)
+            : $result;
+    }
+
+    /**
+     * Get the only resource that is not linked to the other ones, so the base.
+     *
+     * When all the resources are recursive, return nothing.
+     * For example, if all resources are translations of other resources, there
+     * is no base.
+     */
+    private function baseDeepLinkedResources(?array $resources, $propertyTerm): ?AbstractResourceEntityRepresentation
+    {
+        if (!$resources) {
+            return null;
+        }
+        foreach ($resources as $resource) {
+            $linkeds = $resource->value($propertyTerm, ['all' => true, 'type' => ['resource', 'resource:item']]);
+            if (!count($linkeds)) {
+                return $resource;
+            }
+            // Check if the resource is linked to itself, whatever other links.
+            $resourceId = $resource->id();
+            foreach ($linkeds as $linked) {
+                if ($linked->valueResource()->id() === $resourceId) {
+                    return $resource;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Transform the given string into a valid URL slug
+     *
+     * Copy from \Omeka\Api\Adapter\SiteSlugTrait::slugify().
+     */
+    protected function slugify(string $input): string
+    {
+        if (extension_loaded('intl')) {
+            $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+            $slug = $transliterator->transliterate($input);
+        } elseif (extension_loaded('iconv')) {
+            $slug = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $input);
+        } else {
+            $slug = $input;
+        }
+        $slug = mb_strtolower($slug, 'UTF-8');
+        $slug = preg_replace('/[^a-z0-9-]+/u', '-', $slug);
+        $slug = preg_replace('/-{2,}/', '-', $slug);
+        $slug = preg_replace('/-*$/', '', $slug);
+        return $slug;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Processor;
 
+use BulkImport\Form\Element\OptionalRadio;
 use BulkImport\Form\Element\OptionalUrl;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
@@ -81,6 +82,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         'concepts' => 'Rubriques (thésaurus)', // @translate
                         'breves' => 'Brèves', // @translate
                         'auteurs' => 'Fiches auteurs', // @translate
+                        'mots' => 'Mots-clés en tant que thésaurus', // @translate
                     ],
                 ],
                 'attributes' => [
@@ -97,6 +99,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                         'concepts',
                         'breves',
                         'auteurs',
+                        'mots',
                     ],
                     'required' => false,
                 ],
@@ -110,6 +113,22 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 ],
                 'attributes' => [
                     'id' => 'fake_files',
+                ],
+            ])
+            ->add([
+                'name' => 'menu',
+                'type' => OptionalRadio::class,
+                'options' => [
+                    'label' => 'Créer le menu (module Menu)', // @translate
+                    'value_options' => [
+                        'no' => 'Non', // @translate
+                        'single' => 'Unique', // @translate
+                        'top' => 'Par secteur', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'menu',
+                    'value' => 'top',
                 ],
             ])
             ->add([
