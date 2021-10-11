@@ -32,6 +32,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Omeka\DataType\Manager as DataTypeManager;
 
 /**
  * Adapted from the controller plugin of the module Csv Import
@@ -49,6 +50,16 @@ class Bulk extends AbstractPlugin
      * @var Logger
      */
     protected $logger;
+
+    /**
+     * @var \Doctrine\DBAL\Connection
+     */
+    protected $connection;
+
+    /**
+     * @var \Omeka\DataType\Manager
+     */
+    protected $dataTypeManager;
 
     /**
      * @var \Omeka\Mvc\Controller\Plugin\Api
@@ -98,13 +109,12 @@ class Bulk extends AbstractPlugin
      */
     protected $dataTypes;
 
-    /**
-     * @param ServiceLocatorInterface $services
-     */
     public function __construct(ServiceLocatorInterface $services)
     {
         $this->services = $services;
         $this->logger = $services->get('Omeka\Logger');
+        $this->connection = $services->get('Omeka\Connection');
+        $this->dataTypeManager = $services->get('Omeka\DataTypeManager');
 
         // The controller is not yet available here.
         $pluginManager = $services->get('ControllerPluginManager');
@@ -163,12 +173,11 @@ class Bulk extends AbstractPlugin
             return $this->properties;
         }
 
-        $connection = $this->services->get('Omeka\Connection');
-        $qb = $connection->createQueryBuilder();
+        $qb = $this->connection->createQueryBuilder();
         $qb
             ->select([
-                'DISTINCT property.id AS id',
-                'CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
+                'DISTINCT CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
+                'property.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
                 'vocabulary.id',
@@ -180,10 +189,7 @@ class Bulk extends AbstractPlugin
             ->addOrderBy('property.id', 'asc')
             ->addGroupBy('property.id')
         ;
-        $stmt = $connection->executeQuery($qb);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $this->properties = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $this->properties = array_map('intval', array_column($this->properties, 'id', 'term'));
+        $this->properties = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
         return $this->properties;
     }
 
@@ -238,12 +244,11 @@ class Bulk extends AbstractPlugin
             return $this->resourceClasses;
         }
 
-        $connection = $this->services->get('Omeka\Connection');
-        $qb = $connection->createQueryBuilder();
+        $qb = $this->connection->createQueryBuilder();
         $qb
             ->select([
-                'DISTINCT resource_class.id AS id',
-                "CONCAT(vocabulary.prefix, ':', resource_class.local_name) AS term",
+                'DISTINCT CONCAT(vocabulary.prefix, ":", resource_class.local_name) AS term',
+                'resource_class.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
                 'vocabulary.id',
@@ -255,10 +260,7 @@ class Bulk extends AbstractPlugin
             ->addOrderBy('resource_class.id', 'asc')
             ->addGroupBy('resource_class.id')
         ;
-        $stmt = $connection->executeQuery($qb);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $this->resourceClasses = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $this->resourceClasses = array_map('intval', array_column($this->resourceClasses, 'id', 'term'));
+        $this->resourceClasses = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
         return $this->resourceClasses;
     }
 
@@ -326,20 +328,16 @@ class Bulk extends AbstractPlugin
             return $this->resourceTemplates;
         }
 
-        $connection = $this->services->get('Omeka\Connection');
-        $qb = $connection->createQueryBuilder();
+        $qb = $this->connection->createQueryBuilder();
         $qb
             ->select([
-                'resource_template.id AS id',
                 'resource_template.label AS label',
+                'resource_template.id AS id',
             ])
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.id', 'asc')
         ;
-        $stmt = $connection->executeQuery($qb);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $this->resourceTemplates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $this->resourceTemplates = array_map('intval', array_column($this->resourceTemplates, 'id', 'label'));
+        $this->resourceTemplates = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
         return $this->resourceTemplates;
     }
 
@@ -364,8 +362,7 @@ class Bulk extends AbstractPlugin
             return $this->resourceTemplateClassIds;
         }
 
-        $connection = $this->services->get('Omeka\Connection');
-        $qb = $connection->createQueryBuilder();
+        $qb = $this->connection->createQueryBuilder();
         $qb
             ->select([
                 'resource_template.label AS label',
@@ -374,12 +371,10 @@ class Bulk extends AbstractPlugin
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.label', 'asc')
         ;
-        $stmt = $connection->executeQuery($qb);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $this->resourceTemplateClassIds = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->resourceTemplateClassIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
         $this->resourceTemplateClassIds = array_map(function ($v) {
             return empty($v) ? null : (int) $v;
-        }, array_column($this->resourceTemplateClassIds, 'class_id', 'label'));
+        }, $this->resourceTemplateClassIds);
         return $this->resourceTemplateClassIds;
     }
 
@@ -388,6 +383,8 @@ class Bulk extends AbstractPlugin
      *
      * @param bool $fixed If fixed, the uri are returned without final "#" and "/".
      * @return array
+     *
+     * @todo Remove the fixed vocabularies.
      */
     public function getVocabularyUris($fixed = false): array
     {
@@ -397,8 +394,7 @@ class Bulk extends AbstractPlugin
             return $fixed ? $fixedVocabularies : $vocabularies;
         }
 
-        $connection = $this->services->get('Omeka\Connection');
-        $qb = $connection->createQueryBuilder();
+        $qb = $this->connection->createQueryBuilder();
         $qb
             ->select([
                 'vocabulary.prefix AS prefix',
@@ -407,10 +403,7 @@ class Bulk extends AbstractPlugin
             ->from('vocabulary', 'vocabulary')
             ->orderBy('vocabulary.prefix', 'asc')
         ;
-        $stmt = $connection->executeQuery($qb);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $vocabularies = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $vocabularies = array_column($vocabularies, 'uri', 'prefix');
+        $vocabularies = $this->connection->executeQuery($qb)->fetchAllKeyValue();
         $fixedVocabularies = array_map(function ($v) {
             return rtrim($v, '#/');
         }, $vocabularies);
@@ -427,26 +420,26 @@ class Bulk extends AbstractPlugin
 
     public function getDataType($dataType): ?string
     {
-        $dataTypes = $this->getDataTypes();
-        return $dataTypes[$dataType] ?? null;
+        return $this->getDataTypes()[$dataType] ?? null;
     }
 
     /**
      * @todo Remove the short data types.
      */
-    public function getDataTypes(): array
+    public function getDataTypes(bool $noShort = false): array
     {
+        static $dataTypesNoShort;
+
         if (isset($this->dataTypes)) {
-            return $this->dataTypes;
+            return $noShort ? $dataTypesNoShort : $this->dataTypes;
         }
 
-        $dataTypes = $this->services->get('Omeka\DataTypeManager')
-            ->getRegisteredNames();
+        $dataTypesNoShort = $this->dataTypeManager->getRegisteredNames();
+        $dataTypesNoShort = array_combine($dataTypesNoShort, $dataTypesNoShort);
 
         // Append the short data types for easier process.
-        $this->dataTypes = array_combine($dataTypes, $dataTypes);
-
-        foreach ($dataTypes as $dataType) {
+        $this->dataTypes = $dataTypesNoShort;
+        foreach ($dataTypesNoShort as $dataType) {
             $pos = strpos($dataType, ':');
             if ($pos === false) {
                 continue;
@@ -456,7 +449,8 @@ class Bulk extends AbstractPlugin
                 $this->dataTypes[$short] = $dataType;
             }
         }
-        return $this->dataTypes;
+
+        return $noShort ? $dataTypesNoShort : $this->dataTypes;
     }
 
     /**
