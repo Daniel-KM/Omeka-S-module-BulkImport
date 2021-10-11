@@ -129,6 +129,9 @@ abstract class AbstractPaginatedReader extends AbstractReader
         return $valid;
     }
 
+    /**
+     * @fixme There is an issue widht the sql iterator when there is no row.
+     */
     public function current()
     {
         return $this->getInnerIterator()->current();

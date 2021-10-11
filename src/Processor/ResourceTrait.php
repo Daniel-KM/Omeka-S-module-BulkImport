@@ -66,6 +66,14 @@ trait ResourceTrait
             return;
         }
 
+        if (empty($this->totals[$sourceType])) {
+            $this->logger->warn(
+                'There is no "{type}".', // @translate
+                ['type' => $sourceType]
+            );
+            return;
+        }
+
         $this->logger->notice(
             'Preparation of {total} resources "{type}".', // @translate
             ['total' => $this->totals[$sourceType], 'type' => $sourceType]
@@ -203,7 +211,10 @@ WHERE
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
         // Fetch by key pair is not supported by doctrine 2.0.
-        $this->map[$sourceType] = array_map('intval', array_column($this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's'));
+        $result = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $this->map[$sourceType] = $result
+            ? array_map('intval', array_column($result, 'd', 's'))
+            : [];
 
         // Create the resource in the specific resource table.
         switch ($resourceType) {
@@ -306,6 +317,10 @@ SQL;
 
     protected function fillResources(iterable $sources, string $sourceType): void
     {
+        if (empty($this->totals[$sourceType])) {
+            return;
+        }
+
         $this->refreshMainResources();
 
         // $resourceType = $this->importables[$sourceType]['name'];
