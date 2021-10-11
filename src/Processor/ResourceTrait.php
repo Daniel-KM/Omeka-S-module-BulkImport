@@ -884,6 +884,24 @@ SQL;
         }
     }
 
+    protected function moveValuesToProperty(?array $values, $termOrId): array
+    {
+        if (empty($values) || empty($termOrId)) {
+            return [];
+        }
+        $termId = $this->bulk->getPropertyId($termOrId);
+        if (!$termId) {
+            return [];
+        }
+        $termLabel = $this->bulk->getPropertyLabel($termId);
+        foreach ($values as &$value) {
+            $value['property_id'] = $termId;
+            $value['property_label'] = $termLabel;
+        }
+        unset($value);
+        return $values;
+    }
+
     /**
      * Get the list of used terms of the template of a resource.
      */
