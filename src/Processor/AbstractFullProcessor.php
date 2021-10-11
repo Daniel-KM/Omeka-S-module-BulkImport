@@ -1212,6 +1212,17 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
         $ids = array_values(array_unique(array_filter($ids)));
 
+        $this->logger->notice('Assigning items to sites.'); // @translate
+        $sitePools = $this->api()->search('sites', [], ['returnScalar' => 'itemPool'])->getContent();
+        $sitePools = array_map(function ($v) {
+            return is_array($v) ? $v : [];
+        }, $sitePools);
+        $this->dispatchJob(\Omeka\Job\UpdateSiteItems::class, [
+            'sites' => $sitePools,
+            'action' => 'add',
+        ]);
+        $this->logger->notice('Items assigned to sites.'); // @translate
+
         // Short job to deduplicate values.
         if ($plugins->has('deduplicateValues')) {
             $this->logger->notice('Deduplicating values.'); // @translate
@@ -1260,9 +1271,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->completionLongJobs($ids);
 
         // TODO Reorder values according to template.
-
-        // TODO Attach to sites.
-        $this->logger->warn('You may need to update the sites resources.'); // @translate
     }
 
     protected function completionShortJobs(array $resourceIds): void
