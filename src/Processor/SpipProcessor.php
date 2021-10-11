@@ -2879,9 +2879,13 @@ class SpipProcessor extends AbstractFullProcessor
      *
      * Le menu doit être complet et éventuellement trié.
      * Les traductions doivent avoir été supprimées.
+     *
+     * Les sous-rubriques à conserver peuvent être indiquées dans le fichier "data/configs/spip/clean-menu-keep.php".
      */
     protected function cleanMenu()
     {
+        $exceptions = include __DIR__ . '/../../data/configs/spip/clean-menu-keep.php';
+
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
@@ -2894,9 +2898,10 @@ class SpipProcessor extends AbstractFullProcessor
         $removedConcepts = [];
 
         $cleanMenu = null;
-        $cleanMenu = function (array $elements, int $level = 0) use (&$cleanMenu, $removedConcepts): array {
+        $cleanMenu = function (array $elements, int $level = 0) use (&$cleanMenu, &$removedConcepts, $exceptions): array {
             foreach ($elements as &$element) {
                 // On garde les modules et les rubriques dans tous les cas.
+                $isException = false;
                 $recursiveSub = true;
                 if ($level > 1
                     // Normalement, tout le menu est item.
@@ -2909,13 +2914,27 @@ class SpipProcessor extends AbstractFullProcessor
                     } catch (NotFoundException $e) {
                         continue;
                     }
-                    // On garde les concepts vides.
-                    // Seuls les concepts ont des relations.
                     $links = $element['links'] ?? [];
                     $class = $resource->resourceClass();
                     $class = $class ? $class->term() : null;
-                    // Supprimer si c'est un concept avec un unique article.
-                    if (count($links) === 1 && $class === 'skos:Concept') {
+                    $title = (string) $resource->value('dcterms:title', ['default' => (string) $resource->value('skos:prefLabel')]);
+                    if ($resource->title() !== $title) {
+                        $this->logger->warn(
+                            'Le titre de l’#{item} n’est pas à jour.', // @translate
+                            ['item' => $resource->id()]
+                        );
+                    }
+                    $isException = $exceptions
+                        && (in_array(trim($title), $exceptions)
+                            || in_array(trim($resource->title()), $exceptions)
+                        );
+                    // Supprimer si c'est un item "concept" (les autres n'ont
+                    // pas de relations) avec un unique article et qu'il n'est
+                    // pas une exception.
+                    if ($class === 'skos:Concept'
+                        && count($links) === 1
+                        && !$isException
+                    ) {
                         $link = reset($links);
                         $linkedResourceId = $link['data']['id'];
                         try {
@@ -2946,7 +2965,7 @@ class SpipProcessor extends AbstractFullProcessor
                         }
                     }
                 }
-                if ($recursiveSub && !empty($element['links'])) {
+                if (!$isException && $recursiveSub && !empty($element['links'])) {
                     $element['links'] = $cleanMenu($element['links'], $level + 1);
                 }
             }
