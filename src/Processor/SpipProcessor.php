@@ -1399,6 +1399,7 @@ class SpipProcessor extends AbstractFullProcessor
                     'term' => 'bio:biography',
                     'lang' => $lang ? $this->isoCode3letters($lang) : $this->params['language'],
                     'value' => $value,
+                    'type' => 'spip',
                 ];
             }
         }
@@ -1712,12 +1713,11 @@ class SpipProcessor extends AbstractFullProcessor
         if (!$data) {
             return;
         }
-        // L'auteur de la ressource liée est le propriétaire et l'auteur.
-        if ($data['resource']) {
-            // FIXME Faire le lien entre les utilisateurs Omeka et les auteurs.
-            if ($data['resource'] instanceof \Omeka\Entity\User) {
-                $data['linked_resource']->setOwner($data['resource']);
-            }
+
+        // L'auteur de la ressource liée est à la fois propriétaire et auteur.
+        $user = $this->entityManager->getRepository(\Omeka\Entity\user::class)->find($this->map['users'][$source['id_auteur']]);
+        if ($user) {
+            $data['linked_resource']->setOwner($user);
         }
         $this->appendValue([
             'term' => 'dcterms:creator',
