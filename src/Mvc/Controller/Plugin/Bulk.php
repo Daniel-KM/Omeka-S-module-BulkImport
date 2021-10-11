@@ -186,14 +186,14 @@ class Bulk extends AbstractPlugin
 
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select([
+            ->select(
                 'DISTINCT CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
                 'property.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
                 'vocabulary.id',
-                'property.id',
-            ])
+                'property.id'
+            )
             ->from('property', 'property')
             ->innerJoin('property', 'vocabulary', 'vocabulary', 'property.vocabulary_id = vocabulary.id')
             ->orderBy('vocabulary.id', 'asc')
@@ -304,14 +304,14 @@ class Bulk extends AbstractPlugin
 
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select([
+            ->select(
                 'DISTINCT CONCAT(vocabulary.prefix, ":", resource_class.local_name) AS term',
                 'resource_class.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
                 'vocabulary.id',
-                'resource_class.id',
-            ])
+                'resource_class.id'
+            )
             ->from('resource_class', 'resource_class')
             ->innerJoin('resource_class', 'vocabulary', 'vocabulary', 'resource_class.vocabulary_id = vocabulary.id')
             ->orderBy('vocabulary.id', 'asc')
@@ -421,10 +421,10 @@ class Bulk extends AbstractPlugin
 
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select([
+            ->select(
                 'resource_template.label AS label',
-                'resource_template.id AS id',
-            ])
+                'resource_template.id AS id'
+            )
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.id', 'asc')
         ;
@@ -455,10 +455,10 @@ class Bulk extends AbstractPlugin
 
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select([
+            ->select(
                 'resource_template.label AS label',
-                'resource_template.resource_class_id AS class_id',
-            ])
+                'resource_template.resource_class_id AS class_id'
+            )
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.label', 'asc')
         ;
@@ -487,10 +487,10 @@ class Bulk extends AbstractPlugin
 
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select([
+            ->select(
                 'vocabulary.prefix AS prefix',
-                'vocabulary.namespace_uri AS uri',
-            ])
+                'vocabulary.namespace_uri AS uri'
+            )
             ->from('vocabulary', 'vocabulary')
             ->orderBy('vocabulary.prefix', 'asc')
         ;
