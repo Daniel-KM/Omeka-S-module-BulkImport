@@ -513,6 +513,10 @@ class SpipProcessor extends AbstractFullProcessor
         if (!mb_strlen($source['titre'])) {
             $source['titre'] = sprintf($this->translator->translate('[Untitled article #%s]'), $source['id_article']); // @translate
         }
+
+        // Supprimer les numéros initiaux des rubriques.
+        $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
+
         $titles = $this->polyglotte($source['titre']);
         $title = reset($titles);
 
@@ -1053,6 +1057,9 @@ class SpipProcessor extends AbstractFullProcessor
          */
 
         $source = array_map('trim', array_map('strval', $source));
+
+        // Supprimer les numéros initiaux des rubriques.
+        $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
 
         parent::fillConceptProcess($source);
 
@@ -1658,6 +1665,9 @@ class SpipProcessor extends AbstractFullProcessor
     protected function polyglotte($value): array
     {
         $value = trim((string) $value);
+        if (!$value) {
+            return [$value];
+        }
 
         // Corrige un bug dans certaines données sources.
         $value = str_replace(['<multi<'], ['<multi>'], $value);
