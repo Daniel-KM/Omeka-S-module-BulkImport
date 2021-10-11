@@ -6,6 +6,7 @@ use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
 use DateTime;
 use Laminas\Validator\EmailAddress;
+use Omeka\Api\Representation\ItemRepresentation;
 use Omeka\Stdlib\Message;
 
 /**
@@ -2377,10 +2378,8 @@ class SpipProcessor extends AbstractFullProcessor
 
         /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
         $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
-
-        // Pour chaque rubrique, chercher l'article correspondant.
-        // S'il y en a un, le prendre sinon garder la rubrique.
-        $thesaurus = $thesaurus($this->main['concept']['item']);
+        $scheme = $this->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
+        $thesaurus = $thesaurus($scheme);
         if (!$thesaurus->isSkos()) {
             $this->logger->err(
                 'Le thésaurus pour la création du menu est incorrect.' // @translate
@@ -2437,18 +2436,51 @@ class SpipProcessor extends AbstractFullProcessor
 
         // array_walk_recursive() ne peut pas être utilisé car chaque élément
         // est un array.
+        $conceptsArticles = [];
+        $conceptsSansArticles = [];
         $buildMenu= null;
-        $buildMenu = function (array $branches) use (&$buildMenu) {
+        $buildMenu = function (array $branches, int $level = 0) use (&$buildMenu, &$conceptsArticles, &$conceptsSansArticles): array {
             $menu = [];
             foreach ($branches as $branch) {
-                $menu[] = [
+                /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $concept */
+                $id = $branch['self']['id'];
+                $concept = $this->api()->read('resources', ['id' => $id])->getContent();
+                $children = $branch['children'] ?? [];
+                // Ajout des relations non présentes dans le menu (articles liés
+                // à un concept mais qui n'apparaissent pas dans la structure).
+                /** @var \Omeka\Api\Representation\ValueRepresentation[] $linkedResources */
+                $articles = $this->lienArticles($concept);
+                if (count($articles)) {
+                    $conceptsArticles[$id] = array_keys($articles);
+                } else {
+                    $class = $concept->resourceClass();
+                    if ($class && $class->term() === 'skos:Concept') {
+                        $conceptsSansArticles[] = $id;
+                    }
+                }
+                foreach ($articles as $article) {
+                    // Les articles n'ont pas d'enfant.
+                    $children[$article->id()] = [
+                        'self' => [
+                            'id' => $article->id(),
+                            'title' => $article->title(),
+                            'top' => false,
+                            'parent' => $id,
+                            'children' => [],
+                        ],
+                        'children' => [],
+                    ];
+                }
+                $element = [
                     'type' => 'resource',
                     'data' => [
                         'label' => null,
-                        'id' => $branch['self']['id'],
+                        'id' => $id,
                     ],
-                    'links' => $branch['children'] ? $buildMenu($branch['children']) : [],
+                    // Création récursive de la structure.
+                    'links' => $buildMenu($children, $level + 1),
                 ];
+                $menu[] = $element;
             }
             return $menu;
         };
@@ -2466,5 +2498,44 @@ class SpipProcessor extends AbstractFullProcessor
             'Le menu a été créé sous le nom "{label}".', // @translate
             ['label' => $label]
         );
+        if ($conceptsArticles) {
+            $this->logger->notice(
+                'Correspondance concepts ⬌ articles : {list}', // @translate
+                ['list' => str_replace(['[', ']', ','], ["[\n", "\n]", ",\n"], json_encode($conceptsArticles, 320))]
+            );
+        }
+        if ($conceptsSansArticles) {
+            $this->logger->warn(
+                'Les concepts suivants ne disposent pas d’articles associés : {item_ids}', // @translate
+                ['item_ids' => '' . implode(",\n", $conceptsSansArticles)]
+            );
+        }
+    }
+
+    private function lienArticle(?ItemRepresentation $item): ?ItemRepresentation
+    {
+        $lienArticles = $this->lienArticles($item);
+        return count($lienArticles) ? reset($lienArticles) : null;
+    }
+
+    private function lienArticles(?ItemRepresentation $item): array
+    {
+        static $propertyId;
+        if (is_null($propertyId)) {
+            $propertyId = $this->bulk->getPropertyId('curation:category');
+        }
+        if (!$item) {
+            return [];
+        }
+        $itemArticles = $item->subjectValues(null, null, $propertyId);
+        if (!count($itemArticles)) {
+            return [];
+        }
+        $result = [];
+        foreach ($itemArticles['curation:category'] as $itemArticle) {
+            $itemArticle = $itemArticle->resource();
+            $result[$itemArticle->id()] = $itemArticle;
+        }
+        return $result;
     }
 }
