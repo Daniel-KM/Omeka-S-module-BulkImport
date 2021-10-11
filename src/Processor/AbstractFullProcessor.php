@@ -622,6 +622,17 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             return;
         }
 
+        /** @var \Laminas\EventManager\EventManager $eventManager */
+        $eventManager = $services->get('EventManager');
+        $args = $eventManager ->prepareArgs([
+            'job' => $this->job,
+            'processor' => $this,
+            'logger' => $this->logger,
+        ]);
+        // TODO Add a generic identifier for any processor?
+        $eventManager->setIdentifiers([get_class($this)]);
+        $eventManager->trigger('bulk.import.before', $this, $args);
+
         $this->importMetadata();
         if ($this->isErrorOrStop()) {
             return;
@@ -1226,6 +1237,25 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         $this->completionShortJobs($ids);
+
+        if ($this->isErrorOrStop()) {
+            return;
+        }
+
+        /** @var \Laminas\EventManager\EventManager $eventManager */
+        $eventManager = $services->get('EventManager');
+        $args = $eventManager ->prepareArgs([
+            'job' => $this->job,
+            'processor' => $this,
+            'logger' => $this->logger,
+        ]);
+        // TODO Add a generic identifier for any processor?
+        $eventManager->setIdentifiers([get_class($this)]);
+        $eventManager->trigger('bulk.import.after', $this, $args);
+
+        if ($this->isErrorOrStop()) {
+            return;
+        }
 
         $this->completionLongJobs($ids);
 
