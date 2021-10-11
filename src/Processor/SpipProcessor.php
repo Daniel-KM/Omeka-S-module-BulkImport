@@ -2349,10 +2349,153 @@ class SpipProcessor extends AbstractFullProcessor
     {
         parent::completionShortJobs($resourceIds);
 
+        $this->createConceptArticles();
+
         // Les titres doivent être recrées auparavant de façon à les trier.
         if ($this->getParam('menu')) {
             $this->createMenu();
             $this->sortMenu();
+        }
+    }
+
+    /**
+     * Ajouter des articles pour les sous-rubriques et sommaires qui ont du contenu.
+     */
+    protected function createConceptArticles(): void
+    {
+        if (empty($this->main['concept']['item'])) {
+            $this->logger->err(
+                'Le thésaurus est vide.' // @translate
+            );
+            return;
+        }
+
+        if (empty($this->thesaurusConfigs['concepts']) || empty($this->modules['Thesaurus'])) {
+            $this->logger->err(
+                'Le thésaurus doit être créé à partir des rubriques (module "Thesaurus").' // @translate
+            );
+            return;
+        }
+
+        /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
+        $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
+        $scheme = $this->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
+        $thesaurus = $thesaurus($scheme);
+        if (!$thesaurus->isSkos()) {
+            $this->logger->err(
+                'Le thésaurus pour la création du menu est incorrect.' // @translate
+            );
+            return;
+        }
+
+        $this->logger->notice(
+            'Création d’articles à partir des concepts ayant un contenu.' // @translate
+        );
+
+        $articleClassTerm = 'bibo:Article';
+        $articleClassId = $this->bulk->getResourceClassId($articleClassTerm);
+        $articleTemplateLabel = 'Article éditorial';
+        $articleTemplateId = $this->bulk->getResourceTemplateId($articleTemplateLabel);
+
+        $count = 0;
+        $created = 0;
+        $flatTree = $thesaurus->flatTree();
+        foreach ($flatTree as $itemId => $treeItem) {
+            ++$count;
+
+            // On ne traite pas les top-concepts.
+            if (empty($treeItem['self']['parent'])) {
+                continue;
+            }
+
+            if ($count % 100 === 0) {
+                $this->logger->info(new Message('%1$d/%2$d traités.', $count, count($flatTree)));
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+                $this->refreshMainResources();
+            }
+
+            $item = $thesaurus->itemFromData($itemId);
+
+            // Si le concept a une définition ou une note, créer un
+            // item avec le contenu et le rattacher à la rubrique.
+            $presentation = [];
+            $presentation[] = $item->value('skos:definition');
+            $presentation[] = $item->value('skos:scopeNote');
+            $presentation = array_filter($presentation);
+            if (!$presentation) {
+                continue;
+            }
+
+            $conceptJson = json_decode(json_encode($item), true);
+            $newItemJson = [
+                'o:is_public' => $conceptJson['o:is_public'],
+                'o:owner' => $conceptJson['o:owner'],
+                'o:resource_class' => ['o:id' => $articleClassId],
+                'o:resource_template' => ['o:id' => $articleTemplateId],
+                'o:created' => $conceptJson['o:created'],
+                'o:modified' => $conceptJson['o:modified'],
+                // 'o:item_sets' => [['o:id' => $articleItemSetId]],
+            ];
+            $newItemJson['dcterms:title'] = !empty($conceptJson['skos:prefLabel'])
+                ? $this->moveValuesToProperty($conceptJson['skos:prefLabel'], 'dcterms:title')
+                // Valeur requise par le modèle.
+                : [[
+                    'type' => 'literal',
+                    'property_id' => 1,
+                    '@value' => '[Concept sans titre #' . $item->id() . ']',
+                    'is_public' => 1,
+                ]];
+            if (count($presentation) > 1) {
+                $newItemJson['bibo:shortDescription'] = $this->moveValuesToProperty($conceptJson['skos:definition'], 'bibo:shortDescription');
+                $newItemJson['bibo:content'] = $this->moveValuesToProperty($conceptJson['skos:scopeNote'], 'bibo:content');
+            } else {
+                $newItemJson['bibo:content'] = $this->moveValuesToProperty(array_merge(
+                    array_values($conceptJson['skos:definition'] ?? []),
+                    array_values($conceptJson['skos:scopeNote'] ?? [])
+                ), 'bibo:content');
+            }
+            $newItemJson['dcterms:isPartOf'] = [[
+                'type' => 'resource:item',
+                'property_id' => 33,
+                'value_resource_id' => $item->id(),
+                'is_public' => 1,
+            ]];
+            $newItemJson['dcterms:created'] = $conceptJson['dcterms:created'] ?? [];
+            $newItemJson['dcterms:modified'] = $conceptJson['dcterms:modified'] ?? [];
+            $newItemJson['bibo:status'] = $conceptJson['bibo:status'] ?? [];
+            $newItemJson['dcterms:creator'] = $conceptJson['dcterms:creator'] ?? [];
+            $newItemJson['curation:theme'] = $conceptJson['curation:theme'] ?? [];
+            $newItemJson['bibo:section'] = $conceptJson['bibo:section'] ?? [];
+            // Ajout de "00. 00." au premier titre pour le placer en tête lors du tri.
+            if (!empty($newItemJson['dcterms:title'][0]['@value'])) {
+                $newItemJson['dcterms:title'][0]['@value'] = '00. 00. ' . $newItemJson['dcterms:title'][0]['@value'];
+                $newItemJson['o:title'] = $newItemJson['dcterms:title'][0]['@value'];
+            }
+            $newItemJson['clear_property_values'] = true;
+            $this->api()->create('items', $newItemJson);
+            ++$created;
+
+            // Suppression des défintions du concept.
+            $conceptJson['skos:definition'] = [];
+            $conceptJson['skos:scopeNote'] = [];
+            $conceptJson['clear_property_values'] = true;
+            $this->api()->update('items', $item->id(), $conceptJson);
+        }
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        if (empty($created)) {
+            $this->logger->notice(
+                'Aucune rubrique ne contient de descriptif ou de texte.' // @translate
+            );
+        } else {
+            $this->logger->notice(
+                'Le descriptif de {count} rubriques a été déplacé dans de nouveaux articles.', // @translate
+                ['count' => $created]
+            );
         }
     }
 
@@ -2601,6 +2744,7 @@ class SpipProcessor extends AbstractFullProcessor
             return [];
         }
         $result = [];
+        /** @var \Omeka\Api\Representation\ValueRepresentation $value */
         foreach ($values['curation:category'] as $value) {
             $resource = $value->resource();
             $result[$resource->id()] = $resource;
