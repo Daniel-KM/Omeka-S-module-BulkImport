@@ -6,6 +6,7 @@ use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
 use DateTime;
 use Laminas\Validator\EmailAddress;
+use Omeka\Stdlib\Message;
 
 /**
  * Spip (Système de Publication pour un Internet Partagé)
@@ -577,7 +578,9 @@ class SpipProcessor extends AbstractFullProcessor
                 continue;
             }
             foreach ($this->polyglotte($source[$sourceName]) as $lang => $value) {
-                $value = $this->majRaccourcisSpip($value);
+                $value = $this->majModelesSpip($value);
+                $value = $this->majLiensSourceSpip($value);
+                $value = $this->majFichiersSpip($value);
                 $values[] = [
                     'term' => $term,
                     'lang' => $lang ? $this->isoCode3letters($lang) : $language,
@@ -1756,7 +1759,7 @@ class SpipProcessor extends AbstractFullProcessor
      * @see https://www.spip.net/aide/?exec=aide_index&aide=raccourcis&frame=body&var_lang=fr
      * @see https://info.spip.net/la-mise-en-forme-des-contenus-dans
      */
-    protected function majRaccourcisSpip($texte): string
+    protected function majModelesSpip($texte): string
     {
         // Vérification rapide.
         if (strpos($texte, '<') === false) {
@@ -1764,7 +1767,8 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         $matches = [];
-        preg_match_all('~<(?<type>[a-z_-]{3,})\s*(?<id>[0-9]+)~iS', $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        $pattern = '~<(?<type>[a-z_-]{2,})\s*(?<id>[0-9]+)~iS';
+        preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
         if (!$matches) {
             return $texte;
         }
@@ -1772,7 +1776,7 @@ class SpipProcessor extends AbstractFullProcessor
         $normalizeds = [
             'art' => 'article',
             'article' => 'article',
-            'album' => 'item_set',
+            'album' => 'album',
             'br' => 'breve',
             'breve' => 'breve',
             'brève' => 'breve',
@@ -1801,6 +1805,7 @@ class SpipProcessor extends AbstractFullProcessor
             'embed' => 'media_items_sub',
             'auteur' => 'auteurs',
         ];
+
         // Commence par le dernier pour éviter les problèmes de position dans la
         // nouvelle chaîne.
         foreach (array_reverse($matches) as $match) {
@@ -1822,5 +1827,176 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         return $texte;
+    }
+
+    /**
+     * Convertit les liens du site source en raccourcis Omeka (shortcodes).
+     *
+     * Par exemple `http://www.menestrel.fr/ecrire/?exec=articles&id_article=2307` devient `[item id=2307]`.
+     *
+     * Les liens sans relation sont conservés tels quels.
+     *
+     * Gère les liens tels que :
+     * - http://www.menestrel.fr/ecrire/?exec=articles&id_article=2307
+     * - http://www.menestrel.fr/spip.php?rubrique378&lang=fr&art=en#128
+     * - http://www.menestrel.fr/spip.php?article196#bulletin
+     *
+     * @todo Les urls suivantes ne sont pas traitées.
+     * - http://www.menestrel.fr/?-croisade-et-guerre-sainte-
+     *
+     * Les urls vers les fichiers sont traitées séparément.
+     *
+     * @see https://www.spip.net/aide/?exec=aide_index&aide=raccourcis&frame=body&var_lang=fr
+     * @see https://info.spip.net/la-mise-en-forme-des-contenus-dans
+     */
+    protected function majLiensSourceSpip($texte): string
+    {
+        static $endpoint;
+        static $patterns;
+
+        if ($endpoint === null) {
+            $endpoint = $this->getParam('endpoint');
+            $endpoint = trim(str_replace(['http://', 'https://'], ['', ''], $endpoint), ' /');
+            if ($endpoint) {
+                $patterns = [
+                    '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/ecrire/\?exec=(?<type>article|album|breve|rubrique|document|image|embed|auteur)s&id_(?:article|album|breve|rubrique|document|image|embed|auteur)=(?<id>\d+)[\w&=#%-]*)\s*(?<raccourci>\])?~m',
+                    '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/spip\.php\?(?<type>article|album|breve|rubrique|document|image|embed|auteur)(?<id>\d+)[\w&=#%-]*)\s*(?<raccourci>\])?~m',
+                ];
+            }
+        }
+
+        // Vérification rapide.
+        if (!$endpoint || strpos($texte, $endpoint) === false) {
+            return $texte;
+        }
+
+        $importeds = [
+            'article' => 'items',
+            'album' => 'item_sets',
+            'breve' => 'breves',
+            'rubrique' => 'concepts',
+            'document' => 'media_items_sub',
+            'image' => 'media_items_sub',
+            'embed' => 'media_items_sub',
+            'auteur' => 'auteurs',
+        ];
+
+        $maps = [
+            'article' => 'items',
+            'album' => 'item_sets',
+            'breve' => 'items',
+            'rubrique' => 'items',
+            'document' => 'resources',
+            'image' => 'resources',
+            'embed' => 'resources',
+            'auteur' => 'items',
+        ];
+
+        $mapSingles = [
+            'article' => 'item',
+            'album' => 'item_set',
+            'breve' => 'item',
+            'rubrique' => 'item',
+            'document' => 'resource',
+            'image' => 'resource',
+            'embed' => 'resource',
+            'auteur' => 'item',
+        ];
+
+        $matches = [];
+        $replace = [];
+        foreach ($patterns as $pattern) {
+            preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+            if (!count($matches)) {
+                continue;
+            }
+            // Commence par le dernier pour éviter les problèmes de position dans la
+            // nouvelle chaîne.
+            foreach (array_reverse($matches) as $match) {
+                $type = $match['type'][0];
+                $id = $match['id'][0];
+                $isRaccourci = !empty($match['raccourci'][0]);
+                $importedType = $importeds[$type] ?? null;
+                if (empty($this->map[$importedType][$id])) {
+                    $resourceId = '000' . $id;
+                } else {
+                    $resourceId = $this->map[$importedType][$id];
+                }
+                // Si c'est un raccourci Spip, remplacer par l'url relative, car
+                // on ne connait pas les autres éléments du raccourci.
+                if ($isRaccourci) {
+                    $resourceType = $maps[$type] ?? 'resources';
+                    $replace[$match['url'][0]] = "/$resourceType/$resourceId";
+                } else {
+                    $resourceType = $mapSingles[$type] ?? 'resource' ;
+                    $replace[$match['url'][0]] = "[$resourceType id=$resourceId]";
+                }
+            }
+        }
+
+        if (!$replace) {
+            return $texte;
+        }
+
+        $this->logger->info(new Message(
+            'Renommage : %s', // @translate
+            json_encode($replace, 320)
+        ));
+
+        return str_replace(array_keys($replace), array_values($replace), $texte);
+    }
+
+    /**
+     * Convertit les liens vers les fichiers du site source en lien Omeka.
+     *
+     * Exemples :
+     * - http://www.menestrel.fr/IMG/jpg/w-921-f11.jpg
+     * - http://www.menestrel.fr/IMG/pdf/Charte_typographique-2.pdf
+     *
+     * Les liens sans relation sont conservés tels quels.
+     */
+    protected function majFichiersSpip($texte): string
+    {
+        static $endpoint;
+        static $pattern;
+
+        if ($endpoint === null) {
+            $endpoint = $this->getParam('endpoint');
+            $endpoint = trim(str_replace(['http://', 'https://'], ['', ''], $endpoint), ' /');
+            if ($endpoint) {
+                $pattern = '~(?<url>(?:https://|http://|//)?' . preg_quote($endpoint) . '/IMG/(?<filename>[^\n\]\"\']+))\b~m';
+            }
+        }
+
+        // Vérification rapide.
+        if (!$endpoint || strpos($texte, $endpoint) === false) {
+            return $texte;
+        }
+
+        $matches = [];
+        $replace = [];
+        preg_match_all($pattern, $texte, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        foreach ($matches as $match) {
+            $filename = $match['filename'][0];
+            // Api doesn't allow to search with "source", so use read.
+            try {
+                /** @var \Omeka\Api\Representation\MediaRepresentation $media */
+                $media = $this->api()->read('media', ['source' => $filename])->getContent();
+            } catch (\Exception $e) {
+                continue;
+            }
+            $replace[$match['url'][0]] = $media->originalUrl();
+        }
+
+        if (!$replace) {
+            return $texte;
+        }
+
+        $this->logger->info(new Message(
+            'Renommage : %s', // @translate
+            json_encode($replace, 320)
+        ));
+
+        return str_replace(array_keys($replace), array_values($replace), $texte);
     }
 }
