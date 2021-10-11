@@ -606,11 +606,15 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
+    /**
+     * Tri special pour Spip.
+     *
+     * Ne pas supprimer les numéros initiaux des rubriques avant le tri !
+     * Mais supprimer quand même le <multi> et le numéro qui le suit pour en
+     * conserver un s'il y en a un ou deux.
+     */
     protected function labelKeyForSort($labelKey, $id): string
     {
-        // Ne pas supprimer les numéros initiaux des rubriques avant le tri !
-        // Mais supprimer quand même le <multi> et le numéro qui le suit pour en
-        // conserver un s'il y en a un ou deux.
         return sprintf('%s#%s', preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $labelKey))), $id);
     }
 
@@ -2345,13 +2349,17 @@ class SpipProcessor extends AbstractFullProcessor
     {
         parent::completionShortJobs($resourceIds);
 
+        // Les titres doivent être recrées auparavant de façon à les trier.
         if ($this->getParam('menu')) {
             $this->createMenu();
+            $this->sortMenu();
         }
     }
 
     /**
      * Créer le menu à partir des rubriques, sommaires et listes d'articles.
+     *
+     * Le menu est converti depuis le thésaurus, puis on ajoute les articles liés.
      */
     protected function createMenu(): void
     {
@@ -2486,6 +2494,10 @@ class SpipProcessor extends AbstractFullProcessor
         };
         $menu = $buildMenu($tree);
 
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
@@ -2512,29 +2524,86 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
+    /**
+     * Tri du menu (qui doit être complet).
+     *
+     * Le tri se fait avant la suppression des faux éléments structurels, car il
+     * faut connaître les numéros, qui ne sont pas dans les articles.
+     */
+    protected function sortMenu()
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $orderMenu = null;
+        $orderMenu = function (array $elements, int $level = 0) use (&$orderMenu): array {
+            foreach ($elements as &$element) {
+                // Normalement, tous le menu est item.
+                if ($element['type'] === 'resource'
+                    && !empty($element['links'])
+                    && count($element['links']) > 1
+                ) {
+                    $links = [];
+                    $titles = [];
+                    foreach ($element['links'] as $link) {
+                        $childId = $link['data']['id'];
+                        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $childItem */
+                        $childItem = $this->api()->read('resources', ['id' => $childId])->getContent();
+                        $links[$childId] = $link;
+                        $titles[$childId] = $this->labelKeyForSort($childItem->displayTitle(), $childItem->id());
+                    }
+                    natcasesort($titles);
+                    $element['links'] = array_values(array_replace($titles, $links));
+                }
+                $element['links'] = $orderMenu($element['links'], $level + 1);
+            }
+            return $elements;
+        };
+        $menu = $menus[$label];
+        $menu = $orderMenu($menu);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $label .= '-tri';
+        $menus[$label] = $menu;
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            'Le menu a été trié sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
+    }
+
     private function lienArticle(?ItemRepresentation $item): ?ItemRepresentation
     {
-        $lienArticles = $this->lienArticles($item);
-        return count($lienArticles) ? reset($lienArticles) : null;
+        $resources = $this->lienArticles($item);
+        return count($resources) ? reset($resources) : null;
     }
 
     private function lienArticles(?ItemRepresentation $item): array
     {
         static $propertyId;
-        if (is_null($propertyId)) {
-            $propertyId = $this->bulk->getPropertyId('curation:category');
-        }
         if (!$item) {
             return [];
         }
-        $itemArticles = $item->subjectValues(null, null, $propertyId);
-        if (!count($itemArticles)) {
+        if (is_null($propertyId)) {
+            $propertyId = $this->bulk->getPropertyId('curation:category');
+        }
+        $values = $item->subjectValues(null, null, $propertyId);
+        if (!count($values)) {
             return [];
         }
         $result = [];
-        foreach ($itemArticles['curation:category'] as $itemArticle) {
-            $itemArticle = $itemArticle->resource();
-            $result[$itemArticle->id()] = $itemArticle;
+        foreach ($values['curation:category'] as $value) {
+            $resource = $value->resource();
+            $result[$resource->id()] = $resource;
         }
         return $result;
     }
