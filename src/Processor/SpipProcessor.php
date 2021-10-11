@@ -2349,6 +2349,12 @@ class SpipProcessor extends AbstractFullProcessor
 
     protected function completionShortJobs(array $resourceIds): void
     {
+        if ($this->getParam('menu')) {
+            $this->logger->notice(
+                'Attendre la finalisation des tâches finales pour utiliser le menu.' // @translate
+            );
+        }
+
         parent::completionShortJobs($resourceIds);
 
         $this->createConceptArticles();
@@ -2356,6 +2362,7 @@ class SpipProcessor extends AbstractFullProcessor
         // Les titres doivent être recrées auparavant de façon à les trier.
         if ($this->getParam('menu')) {
             $this->createMenu();
+            $this->removeMenuTraductions();
             $this->sortMenu();
             $this->cleanMenu();
         }
@@ -2650,6 +2657,7 @@ class SpipProcessor extends AbstractFullProcessor
         $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
         $menus = $siteSettings->get('menu_menus', []);
         $menus[$label] = $menu;
+        ksort($menus);
         $siteSettings->set('menu_menus', $menus);
 
         $this->logger->notice(
@@ -2659,7 +2667,7 @@ class SpipProcessor extends AbstractFullProcessor
         if ($conceptsArticles) {
             $this->logger->notice(
                 'Correspondance concepts ⬌ articles : {list}', // @translate
-                ['list' => str_replace(['[', ']', ','], ["[\n", "\n]", ",\n"], json_encode($conceptsArticles, 320))]
+                ['list' => str_replace(['{', '[', ']', ','], ["{\n", "[\n", "\n]", ",\n"], json_encode($conceptsArticles, 320))]
             );
         }
         if ($conceptsSansArticles) {
@@ -2668,6 +2676,137 @@ class SpipProcessor extends AbstractFullProcessor
                 ['item_ids' => '' . implode(",\n", $conceptsSansArticles)]
             );
         }
+    }
+
+    /**
+     * Suppression des traductions du menu et remplacement par l'original.
+     *
+     * Les traductions sont gérées dans le module ou le thème.
+     */
+    protected function removeMenuTraductions()
+    {
+        /** @var \Omeka\Settings\SiteSettings $siteSettings */
+        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings->setTargetId(1);
+        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $menus = $siteSettings->get('menu_menus', []);
+        if (empty($menus[$label])) {
+            return;
+        }
+
+        $translationTerm = 'bibo:translationOf';
+        $translationId = $this->bulk->getPropertyId($translationTerm);
+
+        $countRemoved = 0;
+
+        $iterator = null;
+        $iterator = function (array $elements, int $level = 0) use (&$iterator, $translationTerm, $translationId, &$countRemoved): array {
+            $elementsById = [];
+            $k = 0;
+            foreach ($elements as $element) {
+                if (empty($element['data']['id'])) {
+                    $elementsById[--$k] = $element;
+                } else {
+                    $elementsById[$element['data']['id']] = $element;
+                }
+            }
+            $elements = $elementsById;
+            unset($elementsById);
+
+            $k = 0;
+            $unset = [];
+            $newElements = [];
+            foreach ($elements as $keyElement => $element) {
+                --$k;
+                if (in_array($keyElement, $unset)) {
+                    ++$countRemoved;
+                    continue;
+                }
+                $keyId = $k;
+                // Si l'article est une traduction, ajouter l'original si absent
+                // de la liste des éléments et supprimer la traduction.
+                if ($level
+                    // Normalement, tout le menu est item.
+                    && $element['type'] === 'resource'
+                ) {
+                    $id = $element['data']['id'];
+                    try {
+                        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                    } catch (NotFoundException $e) {
+                        $unset[] = $id;
+                        continue;
+                    }
+                    $class = $resource->resourceClass();
+                    $class = $class ? $class->term() : null;
+                    if ($class !== 'skos:Concept') {
+                        $linkeds = $this->deepLinkedResources($resource, $translationTerm, $translationId);
+                        $baseItem = $this->baseDeepLinkedResources($linkeds, $translationTerm);
+                        if ($baseItem) {
+                            $baseItemId = $baseItem->id();
+                            unset($linkeds[$baseItemId]);
+                            $unset = array_merge($unset, $linkeds);
+                            // Normalement pas le cas.
+                            if (in_array($baseItemId, $unset)) {
+                                $keyId = null;
+                                ++$countRemoved;
+                            } else {
+                                if ($baseItemId !== $resource->id()) {
+                                    ++$countRemoved;
+                                }
+                                // Le même item peut être ajouté plusieurs fois,
+                                // The same item can be added multiple times,
+                                // mais la clé est toujours la même.
+                                $keyId = $baseItemId;
+                                $newElements[$keyId] = [
+                                    'type' => 'resource',
+                                    'data' => [
+                                        'label' => null,
+                                        'id' => $baseItemId,
+                                    ],
+                                    'links' => [],
+                                ];
+                            }
+                        } else {
+                            $this->logger->notice(
+                                'Impossible de déterminer la ressource source des traductions pour item #{item}.', // @translate
+                                ['item' => $resource->id()]
+                            );
+                            $keyId = $id;
+                            $newElements[$keyId] = $element;
+                        }
+                    } else {
+                        $keyId = $id;
+                        $newElements[$keyId] = $element;
+                    }
+                } else {
+                    $newElements[$keyId] = $element;
+                }
+                if ($keyId && !empty($newElements[$keyId]['links'])) {
+                    $newElements[$keyId]['links'] = $iterator($newElements[$keyId]['links'], $level + 1);
+                }
+            }
+            return $newElements;
+        };
+        $menu = $menus[$label];
+        $menu = $iterator($menu);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $label .= '-sans-traductions';
+        $menus[$label] = $menu;
+        ksort($menus);
+        $siteSettings->set('menu_menus', $menus);
+        $this->logger->notice(
+            '{count} traductions ont été supprimées du menu.', // @translate
+            ['count' => $countRemoved]
+        );
+        $this->logger->notice(
+            'Le menu a été enregistré sous le nom "{label}".', // @translate
+            ['label' => $label]
+        );
     }
 
     /**
@@ -2681,7 +2820,7 @@ class SpipProcessor extends AbstractFullProcessor
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted);
+        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions');
         $menus = $siteSettings->get('menu_menus', []);
         if (empty($menus[$label])) {
             return;
@@ -2725,6 +2864,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $label .= '-tri';
         $menus[$label] = $menu;
+        ksort($menus);
         $siteSettings->set('menu_menus', $menus);
         $this->logger->notice(
             'Le menu a été trié sous le nom "{label}".', // @translate
@@ -2734,30 +2874,27 @@ class SpipProcessor extends AbstractFullProcessor
 
     /**
      * Suppression des concepts non-rubriques (donc sous-rubriques ou sommaires)
-     * avec un seul article attaché, en prenant en compte les traductions : dans
-     * ce cas, la sous-rubrique est inutile.
+     * avec un seul article attaché : dans ce cas, la sous-rubrique est inutile.
      * Les rubriques vides sont conservées.
      *
      * Le menu doit être complet et éventuellement trié.
+     * Les traductions doivent avoir été supprimées.
      */
     protected function cleanMenu()
     {
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
         $siteSettings->setTargetId(1);
-        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted . '-tri');
+        $label = str_replace([' ', ':'], ['-', '-'], 'Menu Spip ' . $this->currentDateTimeFormatted . '-sans-traductions-tri');
         $menus = $siteSettings->get('menu_menus', []);
         if (empty($menus[$label])) {
             return;
         }
 
-        $translationTerm = 'bibo:translationOf';
-        $translationId = $this->bulk->getPropertyId($translationTerm);
-
         $removedConcepts = [];
 
         $cleanMenu = null;
-        $cleanMenu = function (array $elements, int $level = 0) use (&$cleanMenu, $removedConcepts, $translationTerm, $translationId): array {
+        $cleanMenu = function (array $elements, int $level = 0) use (&$cleanMenu, $removedConcepts): array {
             foreach ($elements as &$element) {
                 // On garde les modules et les rubriques dans tous les cas.
                 $recursiveSub = true;
@@ -2766,90 +2903,50 @@ class SpipProcessor extends AbstractFullProcessor
                     && $element['type'] === 'resource'
                 ) {
                     $id = $element['data']['id'];
-                    /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
-                    $resource = $this->api()->read('resources', ['id' => $id])->getContent();
-
+                    try {
+                        /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
+                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                    } catch (NotFoundException $e) {
+                        continue;
+                    }
                     // On garde les concepts vides.
                     // Seuls les concepts ont des relations.
                     $links = $element['links'] ?? [];
                     $class = $resource->resourceClass();
                     $class = $class ? $class->term() : null;
-                    if (count($links) && $class === 'skos:Concept') {
-                        // Supprimer si c'est un concept avec un unique article,
-                        // en prenant en compte les traductions.
-
-                        // On fait d'abord un test pour savoir s'il n'y a pas de
-                        // sous-concepts, auquel cas le concept principal est
-                        // toujours conservé.
-                        $hasSubConcept = false;
-                        foreach ($links as $link) {
-                            $linkedResourceId = $link['data']['id'];
+                    // Supprimer si c'est un concept avec un unique article.
+                    if (count($links) === 1 && $class === 'skos:Concept') {
+                        $link = reset($links);
+                        $linkedResourceId = $link['data']['id'];
+                        try {
                             $linkedResource = $this->api()->read('resources', ['id' => $linkedResourceId])->getContent();
-                            $linkedClass = $linkedResource->resourceClass();
-                            $linkedClass = $linkedClass ? $linkedClass->term() : null;
-                            if ($linkedClass === 'skos:Concept') {
-                                $hasSubConcept = true;
-                                break;
-                            }
+                        } catch (NotFoundException $e) {
+                            $element['links'] = [];
+                            $recursiveSub = false;
+                            continue;
                         }
-
-                        if (!$hasSubConcept) {
-                            // Pour savoir si la liste est un unique article, on
-                            // prend le premier, puis on liste tous les articles.
-                            // La liste complète doit être la même que la liste
-                            // du premier.
-                            $links = array_values($links);
-                            $firstArticleId = $links[0]['data']['id'];
-                            $firstArticle = $this->api()->read('resources', ['id' => $firstArticleId])->getContent();
-                            $firstArticles = $this->deepLinkedResources($firstArticle, $translationTerm, $translationId);
-                            // Pas besoin de chercher plus si le premier n'a pas de
-                            // traduction et qu'il y a plusieurs liens.
-                            if (!(count($firstArticles) <= 1 && count($links) > 1)) {
-                                $keep = false;
-                                $allArticles = [];
-                                foreach ($links as $link) {
-                                    $linkedResourceId = $link['data']['id'];
-                                    $linkedResource = $this->api()->read('resources', ['id' => $linkedResourceId])->getContent();
-                                    // Garder si l'une des sous-ressources liées
-                                    // est un concept. Le cas ne devrait pas se
-                                    // produire.
-                                    $linkedClass = $linkedResource->resourceClass();
-                                    $linkedClass = $linkedClass ? $linkedClass->term() : null;
-                                    if ($linkedClass === 'skos:Concept') {
-                                        $keep = true;
-                                        break;
-                                    }
-                                    $relateds = $this->deepLinkedResources($linkedResource, $translationTerm, $translationId);
-                                    $allArticles = array_replace($allArticles, $relateds);
-                                    if (count($allArticles) > count($firstArticles)) {
-                                        $keep = true;
-                                        break;
-                                    }
-                                }
-                                if (!$keep && count($allArticles) <= count($firstArticles)) {
-                                    // Un seul article est attaché, en une ou
-                                    // plusieurs traductions. Le rattacher au
-                                    // niveau supérieur et supprimer le concept.
-                                    // Pas besoin d'ajouter les traductions.
-                                    $recursiveSub = false;
-                                    $removedConcepts[$id] = array_map(function ($v) {
-                                        return $v['data']['id'];
-                                    }, $element['links']);
-                                    // $element est une référence, remplacé directement par l'article.
-                                    $element = [
-                                        'type' => 'resource',
-                                        'data' => [
-                                            'label' => null,
-                                            'id' => $firstArticleId,
-                                        ],
-                                        'links' => [],
-                                    ];
-                                }
-                            }
+                        $linkedClass = $linkedResource->resourceClass();
+                        $linkedClass = $linkedClass ? $linkedClass->term() : null;
+                        if ($linkedClass !== 'skos:Concept') {
+                            // Remplacer le concept par l'article unique.
+                            $recursiveSub = false;
+                            $removedConcepts[$id] = array_map(function ($v) {
+                                return $v['data']['id'];
+                            }, $element['links']);
+                            // $element est une référence : le remplacer
+                            // directement par l'article.
+                            $element = [
+                                'type' => 'resource',
+                                'data' => [
+                                    'label' => null,
+                                    'id' => $linkedResourceId,
+                                ],
+                                'links' => [],
+                            ];
                         }
                     }
                 }
-                if ($recursiveSub) {
+                if ($recursiveSub && !empty($element['links'])) {
                     $element['links'] = $cleanMenu($element['links'], $level + 1);
                 }
             }
@@ -2909,6 +3006,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $label .= '-simple';
         $menus[$label] = $menu;
+        ksort($menus);
         $siteSettings->set('menu_menus', $menus);
         $this->logger->notice(
             'Le menu a été simplifié sous le nom "{label}".', // @translate
@@ -2945,13 +3043,19 @@ class SpipProcessor extends AbstractFullProcessor
     }
 
     /**
-     * Get all linked resources, with indirect linked resources.
+     * Get all linked resources, with indirect linked resources, included
+     * current resource.
      *
      * A resource may have linked resources, but the second resources may not be
      * linked to all linked resources of the first one, so the relations are
      * checked recursively.
      *
      * This is useful when relations are not reciprocal, like translations.
+     *
+     * The base item is set first, if not infinitely recursive, else it is the
+     * source.
+     *
+     * @return AbstractResourceEntityRepresentation[] By resource id.
      */
     private function deepLinkedResources(?AbstractResourceEntityRepresentation $resource, string $propertyTerm, int $propertyId): array
     {
@@ -2965,20 +3069,57 @@ class SpipProcessor extends AbstractFullProcessor
             if ($level > 100) {
                 return;
             }
-            $values = $resource->subjectValues(null, null, $propertyId);
-            if (!count($values)) {
-                return;
+            $resourceId = $resource->id();
+            foreach ($resource->value($propertyTerm, ['all' => true, 'type' => ['resource', 'resource:item']]) as $value) {
+                $linkedResource = $value->valueResource();
+                $linkedResourceId = $linkedResource->id();
+                if ($linkedResourceId !== $resourceId && !isset($result[$linkedResourceId])) {
+                    $result[$linkedResourceId] = $linkedResource;
+                    $iterator($linkedResource, $level + 1);
+                }
             }
-            foreach ($values[$propertyTerm] as $value) {
+            $values = $resource->subjectValues(null, null, $propertyId);
+            foreach ($values[$propertyTerm] ?? [] as $value) {
                 $linkedResource = $value->resource();
                 $linkedResourceId = $linkedResource->id();
-                if (!isset($result[$linkedResourceId])) {
+                if ($linkedResourceId !== $resourceId && !isset($result[$linkedResourceId])) {
                     $result[$linkedResourceId] = $linkedResource;
                     $iterator($linkedResource, $level + 1);
                 }
             }
         };
         $iterator($resource);
-        return $result;
+        $base = $this->baseDeepLinkedResources($result, $propertyTerm);
+        return $base
+            ? array_replace([$base->id() => $base], $result)
+            : $result;
+    }
+
+    /**
+     * Get the only resource that is not linked to the other ones, so the base.
+     *
+     * When all the resources are recursive, return nothing.
+     * For example, if all resources are translations of other resources, there
+     * is no base.
+     */
+    private function baseDeepLinkedResources(?array $resources, $propertyTerm): ?AbstractResourceEntityRepresentation
+    {
+        if (!$resources) {
+            return null;
+        }
+        foreach ($resources as $resource) {
+            $linkeds = $resource->value($propertyTerm, ['all' => true, 'type' => ['resource', 'resource:item']]);
+            if (!count($linkeds)) {
+                return $resource;
+            }
+            // Check if the resource is linked to itself, whatever other links.
+            $resourceId = $resource->id();
+            foreach ($linkeds as $linked) {
+                if ($linked->valueResource()->id() === $resourceId) {
+                    return $resource;
+                }
+            }
+        }
+        return null;
     }
 }
