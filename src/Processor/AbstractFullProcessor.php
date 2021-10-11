@@ -356,8 +356,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      *
      * @var array
      */
-    protected $moreImportables = [
-    ];
+    protected $moreImportables = [];
 
     /**
      * Mapping of Omeka resources according to the reader.
@@ -1102,7 +1101,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             && in_array('concepts', $toImport)
             && $this->prepareImport('concepts')
         ) {
+            // It's possible to change the values in $this->thesaurusProcess
+            // to manage multiple thesaurus, before and after each step.
             $this->logger->info('Preparation of metadata of module Thesaurus.'); // @translate
+            $this->configThesaurus = 'concepts';
             $this->prepareConcepts($this->prepareReader('concepts'));
         }
     }
@@ -1140,6 +1142,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             && in_array('concepts', $toImport)
             && $this->prepareImport('concepts')
         ) {
+            $this->configThesaurus = 'concepts';
             $this->fillConcepts();
         }
 
@@ -1277,7 +1280,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         if (!empty($this->modules['Thesaurus'])) {
             $this->logger->notice('Reindexing thesaurus.'); // @translate
-            $this->dispatchJob(\Thesaurus\Job\Indexing::class, []);
+            foreach ($this->thesaurusConfigs as $config) {
+                if (!empty($this->main[$config['main_name']]['item_id'])) {
+                    $args = [
+                        'scheme' => $this->main[$config['main_name']]['item_id'],
+                    ];
+                    $this->dispatchJob(\Thesaurus\Job\Indexing::class, $args);
+                }
+            }
             $this->logger->notice('Thesaurus reindexed.'); // @translate
         }
     }

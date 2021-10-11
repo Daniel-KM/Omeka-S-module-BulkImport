@@ -109,7 +109,7 @@ trait ResourceTemplateTrait
             // Rename the label if it already exists.
             if (isset($resourceTemplates[$source['o:label']])) {
                 $sourceLabel = $source['o:label'];
-                $source['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
+                $source['o:label'] .= ' [' . $this->currentDateTime->format('Y-m-d H:i:s')
                     . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3) . ']';
                 $this->logger->notice(
                     'Resource template "{old_label}" has been renamed to "{label}".', // @translate

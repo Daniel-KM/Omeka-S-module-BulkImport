@@ -75,10 +75,14 @@ trait CustomVocabTrait
                 ) {
                     ++$skipped;
                     $this->map['custom_vocabs']['customvocab:' . $source['o:id']]['datatype'] = 'customvocab:' . $customVocab->getId();
+                    $this->logger->notice(
+                        'The custom vocab "{label}" exists with the same keywords and is reused.', // @translate
+                        ['label' => $source['o:label']]
+                    );
                     continue;
                 } else {
                     $label = $source['o:label'];
-                    $source['o:label'] .= ' [' . $this->currentDateTime->format('Ymd-His')
+                    $source['o:label'] .= ' [' . $this->currentDateTime->format('Y-m-d H:i:s')
                         . ' ' . substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3) . ']';
                     $this->logger->notice(
                         'Custom vocab "{old_label}" has been renamed to "{label}".', // @translate
@@ -117,6 +121,7 @@ trait CustomVocabTrait
             );
             ++$created;
 
+            // FIXME There can be multiple sources with the same id.
             $this->map['custom_vocabs']['customvocab:' . $sourceId] = [
                 'datatype' => 'customvocab:' . $response->getContent()->id(),
                 'source_item_set' => $sourceItemSet,

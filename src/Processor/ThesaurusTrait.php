@@ -4,224 +4,263 @@ namespace BulkImport\Processor;
 
 /**
  * @see Thesaurus
+ *
+ * @todo Better management of multiple thesaurus (temporary storage for now).
  */
 trait ThesaurusTrait
 {
     /**
-     * @var array
+     * Name of the current config of the thesaurus.
+     *
+     * In case of multiple thesaurus, it should be updated just before and just
+     * after each step.
      */
-    protected $mainThesaurus = [
-        'concept' => [
-            'template' => 'Thesaurus Concept',
-            'class' => 'skos:Concept',
-            'item_set' => null,
-        ],
-        'scheme' => [
-            'template' => 'Thesaurus Scheme',
-            'class' => 'skos:ConceptScheme',
-            'item' => null,
-            // Useless?
-            'custom_vocab' => null,
-        ],
-    ];
+    protected $configThesaurus = 'concepts';
 
-    // See Spip for an example.
     /**
      * @var array
      */
-    /*
-    protected $mapping = [
+    protected $thesaurusConfigs = [
         'concepts' => [
+            // New thesaurus.
+            'label' => 'Thesaurus',
+            // The source, main name and the source are the same, but in some
+            // cases, one is plural and the other one is singular.
+            'mapping_name' => 'concepts',
+            'main_name' => 'concept',
+            // Data from the source.
             'source' => 'concept',
             'key_id' => 'id',
-            'key_parent_id' => 'parent_id',
-            'key_label' => 'label',
-            'narrowers_sort' => '',
+            'key_parent_id' => null,
+            'key_label' => null,
+            'key_definition' => null,
+            'key_scope_note' => null,
+            'key_created' => null,
+            'key_modified' => null,
+            'narrowers_sort' => null,
         ],
     ];
-    */
 
     /**
+     * Storage (tops, broaders, narrowers) of each thesaurus.
+     *
+     * The scheme, item set, and custom vocab are stored in main for refreshing.
+     *
      * @var array
      */
-    protected $thesaurus = [
-        'tops' => [],
-        'broaders' => [],
-        'narrowers' => [],
-    ];
+    protected $thesaurus = [];
 
-    protected function prepareConcepts(iterable $sources): void
+    /**
+     * Create the scheme, the item set and the custom vocab for a thesaurus.
+     */
+    protected function prepareThesaurus(): void
     {
-        // See prepareAssets() or prepareResources().
+        $config = $this->thesaurusConfigs[$this->configThesaurus];
+        $mappingName = $config['mapping_name'];
+        $mainName = $config['main_name'];
 
-        // The concepts are not mixed with items.
-        $this->map['concepts'] = [];
+        $name = $config['label'] ?: sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate;
+        $randomName = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(64))), 0, 8);
 
-        $keyId = $this->mapping['concepts']['key_id'];
-        $keyParentId = $this->mapping['concepts']['key_parent_id'];
-        $keyLabel = $this->mapping['concepts']['key_label'];
-        $sourceResourceType = 'concepts';
+        // Custom vocab requires a single name.
+        $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name]);
+        $customVocabName = $customVocab
+            ? $name . ' ' . $this->currentDateTimeFormatted . ' ' . $randomName
+            : $name;
 
-        // Check the size of the import.
-        $this->countEntities($sources, 'concepts');
-        if ($this->hasError) {
-            return;
-        }
+        /**
+         * @var \Omeka\Entity\Vocabulary $vocabulary
+         * @var \Omeka\Entity\ResourceClass $resourceClass
+         * @var \Omeka\Entity\ResourceTemplate $resourceTemplate
+         */
+        $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => 'skos']);
+        $resourceClass = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
+        $resourceTemplate = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
 
-        $this->logger->notice(
-            'Preparation of a thesaurus scheme with {total} concepts.', // @translate
-            ['total' => $this->totals['concepts']]
-        );
-
-        $this->prepareItemSetAndCustomVocabForThesaurus();
-
-        // Prepare the list of all ids.
-        // Add the item for the scheme first.
-        $this->map['concepts'][0] = null;
-
-        // Prepare the structure of the thesaurus during this first loop.
-        $this->thesaurus['tops'] = [];
-        $this->thesaurus['parents'] = [];
-        $this->thesaurus['narrowers'] = [];
-        foreach ($sources as $source) {
-            $id = (int) $source[$keyId];
-            $this->map[$sourceResourceType][$id] = null;
-            $parentId = (int) $source[$keyParentId];
-            $label = sprintf('%s <%s>', $source[$keyLabel], $id);
-            if ($parentId) {
-                $this->thesaurus['parents'][$id] = $parentId;
-                $this->thesaurus['narrowers'][$parentId][$label] = $id;
-            } else {
-                // Warning: all concepts without a parent are not top concepts,
-                // but unstructured ones.
-                $this->thesaurus['tops'][] = $id;
-            }
-        }
-
-        if (!count($this->map[$sourceResourceType])) {
-            $this->logger->notice(
-                'No resource "{type}" available on the source.', // @translate
-                ['type' => $sourceResourceType]
-            );
-            return;
-        }
-
-        // Remove duplicate narrowers.
-        foreach ($this->thesaurus['narrowers'] as &$narrowers) {
-            $narrowers = array_flip(array_flip($narrowers));
-        }
-        // Sort narrowers by id or label.
-        if ($this->mapping['concepts']['narrowers_sort'] === 'id') {
-            foreach ($this->thesaurus['narrowers'] as &$narrowers) {
-                sort($narrowers);
-            }
-        } elseif ($this->mapping['concepts']['narrowers_sort'] === 'alpha') {
-            foreach ($this->thesaurus['narrowers'] as &$narrowers) {
-                $narrowers = array_flip($narrowers);
-                natcasesort($narrowers);
-                $narrowers = array_flip($narrowers);
-            }
-        }
-        // Clean narrowers.
-        foreach ($this->thesaurus['narrowers'] as &$narrowers) {
-            $narrowers = array_values($narrowers);
-        }
-
-        $templateId = $this->main['concept']['template_id'];
-        $classId = $this->main['concept']['class_id'];
-
-        $this->createEmptyResources($sourceResourceType, $classId, $templateId);
-        $this->createEmptyResourcesSpecific($sourceResourceType);
-
-        // Update the class and template id of the scheme.
-        $id = (int) $this->map[$sourceResourceType][0];
-        if (!$id) {
-            $this->hasError = true;
-            $this->logger->err(
-                 'Unable to set the class and template of the concept scheme.' // @translate
-             );
-            return;
-        }
-
-        // Unset the scheme from the list of concepts.
-        unset($this->map[$sourceResourceType][0]);
-
-        $sql = <<<SQL
-UPDATE `resource`
-SET `resource_class_id` = {$this->main['scheme']['class_id']},
-    `resource_template_id` = {$this->main['scheme']['template_id']}
-WHERE `id` = $id;
-SQL;
-        $this->connection->executeQuery($sql);
-
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-        $this->refreshMainResources();
-
-        $this->main['scheme']['item'] = $this->entityManager->find(\Omeka\Entity\Item::class, $id);
-        $this->main['scheme']['item_id'] = $id;
-
-        $name = sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate
-        $this->main['scheme']['item']->setTitle($name);
-        $this->main['scheme']['item']->isPublic(true);
+        $item = new \Omeka\Entity\Item;
+        $item->setOwner($this->owner);
+        $item->setTitle($randomName);
+        $item->setCreated($this->currentDateTime);
+        $item->setIsPublic(true);
+        $item->setResourceClass($resourceClass);
+        $item->setResourceTemplate($resourceTemplate);
         $this->appendValue([
             'term' => 'skos:prefLabel',
             'value' => $name,
-        ], $this->main['scheme']['item']);
-
-        // Set top themes.
-        foreach ($this->thesaurus['tops'] as $value) {
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
-            $this->appendValue([
-                'term' => 'skos:hasTopConcept',
-                'type' => 'resource:item',
-                'value_resource' => $linked,
-            ], $this->main['scheme']['item']);
-        }
-
-        $this->logger->notice(
-             '{total} resources "{type}" have been created inside concept scheme #{item_id}.', // @translate
-            ['total' => count($this->map[$sourceResourceType]), 'type' => $sourceResourceType, 'item_id' => $this->main['scheme']['item_id']]
-         );
-    }
-
-    protected function prepareItemSetAndCustomVocabForThesaurus(string $name = ''): void
-    {
-        if (!$name) {
-            $name = sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate
-        }
+        ], $item);
 
         $itemSet = new \Omeka\Entity\ItemSet;
         $itemSet->setOwner($this->owner);
-        $itemSet->setTitle($name); // @translate
+        $itemSet->setTitle($randomName);
         $itemSet->setCreated($this->currentDateTime);
+        $itemSet->setIsPublic(true);
         $itemSet->setIsOpen(true);
         $this->appendValue([
             'term' => 'dcterms:title',
             'value' => $name,
         ], $itemSet);
 
+        $item->getItemSets()->add($itemSet);
+
         $customVocab = new \CustomVocab\Entity\CustomVocab();
         $customVocab->setOwner($this->owner);
+        $customVocab->setLabel($randomName);
         $customVocab->setItemSet($itemSet);
-        $customVocab->setLabel($name);
 
+        $this->entityManager->persist($item);
         $this->entityManager->persist($itemSet);
         $this->entityManager->persist($customVocab);
         $this->entityManager->flush();
 
-        $itemSet = $this->entityManager->getRepository(\Omeka\Entity\ItemSet::class)->findOneBy(['title' => $name]);
-        $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name]);
+        // Get the ids and set real name.
 
-        $this->main['concept']['item_set'] = $itemSet;
-        $this->main['concept']['item_set_id'] = $itemSet->getId();
-        $this->main['scheme']['custom_vocab'] = $customVocab;
-        $this->main['scheme']['custom_vocab_id'] = $customVocab->getId();
+        /**
+         * @var \Omeka\Entity\Item $item
+         * @var \Omeka\Entity\ItemSet $itemSet
+         * @var \CustomVocab\Entity\CustomVocab $customVocab
+         */
+        $item = $this->entityManager->getRepository(\Omeka\Entity\Item::class)->findOneBy(['title' => $randomName]);
+        $itemSet = $this->entityManager->getRepository(\Omeka\Entity\ItemSet::class)->findOneBy(['title' => $randomName]);
+        $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $randomName]);
+
+        $item->setTitle($name);
+        $itemSet->setTitle($name);
+        $customVocab->setLabel($customVocabName);
+
+        $this->entityManager->persist($item);
+        $this->entityManager->persist($itemSet);
+        $this->entityManager->persist($customVocab);
+        $this->entityManager->flush();
+
+        $this->main[$mainName]['item'] = $item;
+        $this->main[$mainName]['item_id'] = $item->getId();
+        $this->main[$mainName]['item_set'] = $itemSet;
+        $this->main[$mainName]['item_set_id'] = $itemSet->getId();
+        $this->main[$mainName]['custom_vocab'] = $customVocab;
+        $this->main[$mainName]['custom_vocab_id'] = $customVocab->getId();
+        $this->refreshMainResources();
+
+        // Prepare the structure of the thesaurus during this first loop.
+        $this->map[$mappingName] = [];
+        $this->thesaurus[$mappingName]['tops'] = [];
+        $this->thesaurus[$mappingName]['parents'] = [];
+        $this->thesaurus[$mappingName]['narrowers'] = [];
+    }
+
+    protected function prepareConcepts(iterable $sources): void
+    {
+        // See prepareAssets() or prepareResources().
+
+        // The concepts are not mixed with items, but stored separately.
+
+        $config = $this->thesaurusConfigs[$this->configThesaurus];
+
+        $label = $config['label'];
+        $mappingName = $config['mapping_name'];
+        $mainName = $config['main_name'];
+
+        $this->map[$mappingName] = [];
+
+        $keyId = $config['key_id'];
+        $keyLabel = $config['key_label'] ?? null;
+        $keyParentId = $config['key_parent_id'] ?? null;
+
+        // Check the size of the import.
+        $this->countEntities($sources, $mappingName);
+        if ($this->hasError) {
+            return;
+        }
+
+        $this->logger->notice(
+            'Preparation of thesaurus scheme "{label}" with {total} concepts.', // @translate
+            ['label' => $label, 'total' => $this->totals[$mappingName]]
+        );
+
+        $this->prepareThesaurus();
+
+        // Prepare the list of all ids.
+
+        // Prepare the structure of the thesaurus during this first loop.
+        $this->thesaurus[$mappingName]['tops'] = [];
+        $this->thesaurus[$mappingName]['parents'] = [];
+        $this->thesaurus[$mappingName]['narrowers'] = [];
+        foreach ($sources as $source) {
+            $id = (int) $source[$keyId];
+            $this->map[$mappingName][$id] = null;
+            $parentId = (int) $source[$keyParentId];
+            $labelKey = sprintf('%s <%s>', $source[$keyLabel] ?? '_', $id);
+            if ($parentId) {
+                $this->thesaurus[$mappingName]['parents'][$id] = $parentId;
+                $this->thesaurus[$mappingName]['narrowers'][$parentId][$labelKey] = $id;
+            } else {
+                // Warning: all concepts without a parent are not top concepts,
+                // but unstructured ones.
+                $this->thesaurus[$mappingName]['tops'][] = $id;
+            }
+        }
+
+        if (!count($this->map[$mappingName])) {
+            $this->logger->notice(
+                'No resource "{type}" available on the source.', // @translate
+                ['type' => $mappingName]
+            );
+            return;
+        }
+
+        // Remove duplicate narrowers.
+        foreach ($this->thesaurus[$mappingName]['narrowers'] as &$narrowers) {
+            $narrowers = array_flip(array_flip($narrowers));
+        }
+        unset($narrowers);
+        // Sort narrowers by id or label.
+        if (($config['narrowers_sort'] ?? 'id') === 'id') {
+            foreach ($this->thesaurus[$mappingName]['narrowers'] as &$narrowers) {
+                sort($narrowers);
+            }
+            unset($narrowers);
+        } elseif ($config['narrowers_sort'] === 'alpha') {
+            foreach ($this->thesaurus[$mappingName]['narrowers'] as &$narrowers) {
+                $narrowers = array_flip($narrowers);
+                natcasesort($narrowers);
+                $narrowers = array_flip($narrowers);
+            }
+            unset($narrowers);
+        }
+        // Clean narrowers.
+        foreach ($this->thesaurus[$mappingName]['narrowers'] as &$narrowers) {
+            $narrowers = array_values($narrowers);
+        }
+        unset($narrowers);
+
+        $templateId = $this->main[$mainName]['template_id'];
+        $classId = $this->main[$mainName]['class_id'];
+
+        $this->createEmptyResources($mappingName, $classId, $templateId);
+        $this->createEmptyResourcesSpecific($mappingName);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        // Update scheme with top concepts.
+        foreach ($this->thesaurus[$mappingName]['tops'] as $value) {
+            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
+            $this->appendValue([
+                'term' => 'skos:hasTopConcept',
+                'type' => 'resource:item',
+                'value_resource' => $linked,
+            ], $this->main[$mainName]['item']);
+        }
+
+        $this->logger->notice(
+            '{total} resources "{type}" have been created inside concept scheme #{item_id}.', // @translate
+            ['total' => count($this->map[$mappingName]), 'type' => $mappingName, 'item_id' => $this->main[$mainName]['item_id']]
+         );
     }
 
     protected function fillConcepts(): void
     {
-        $this->fillResources($this->prepareReader('concepts'), 'concepts');
+        $this->fillResources($this->prepareReader($this->configThesaurus), $this->configThesaurus);
     }
 
     protected function fillConcept(array $source): void
@@ -231,27 +270,35 @@ SQL;
 
     protected function fillConceptProcess(array $source): void
     {
-        $keyId = $this->mapping['concepts']['key_id'];
-        $keyParentId = $this->mapping['concepts']['key_parent_id'];
-        $keyLabel = $this->mapping['concepts']['key_label'];
-        $keyDefinition = $this->mapping['concepts']['key_definition'];
-        $keyScopeNote = $this->mapping['concepts']['key_scope_note'];
-        $keyCreated = $this->mapping['concepts']['key_created'];
-        $keyModified = $this->mapping['concepts']['key_modified'];
+        $config = $this->thesaurusConfigs[$this->configThesaurus];
+        $mappingName = $config['mapping_name'];
+        $mainName = $config['main_name'];
 
-        // Le titre est nécessaire, mais parfois vide dans Spip.
-        if (!mb_strlen($source[$keyLabel])) {
+        $keyId = $config['key_id'];
+        $keyLabel = $config['key_label'] ?? null;
+        $keyParentId = $config['key_parent_id'] ?? null;
+        $keyDefinition = $config['key_definition'] ?? null;
+        $keyScopeNote = $config['key_scope_note'] ?? null;
+        $keyCreated = $config['key_created'] ?? null;
+        $keyModified = $config['key_modified'] ?? null;
+
+        // The title is needed, but sometime empty.
+        if (!$keyLabel || !mb_strlen($source[$keyLabel])) {
             $source[$keyLabel] = sprintf($this->translator->translate('[Untitled concept #%s]'), $source[$keyId]); // @translate
         }
 
-        $createdDate = $this->getSqlDateTime($source[$keyCreated] ?? null) ?? $this->currentDateTime;
-        $modifiedDate = $this->getSqlDateTime($source[$keyModified] ?? null);
+        $createdDate = $keyCreated
+            ? $this->getSqlDateTime($source[$keyCreated] ?? null) ?? $this->currentDateTime
+            : $this->currentDateTime;
+        $modifiedDate = $keyModified
+            ? $this->getSqlDateTime($source[$keyModified] ?? null)
+            : null;
 
         // Omeka entities are not fluid.
         /* @var \Omeka\Entity\Item */
         $this->entity->setOwner($this->owner);
-        $this->entity->setResourceClass($this->main['concept']['class']);
-        $this->entity->setResourceTemplate($this->main['concept']['template']);
+        $this->entity->setResourceClass($this->main[$mainName]['class']);
+        $this->entity->setResourceTemplate($this->main[$mainName]['template']);
         $this->entity->setTitle($source[$keyLabel]);
         $this->entity->setCreated($createdDate);
         if ($modifiedDate) {
@@ -259,15 +306,19 @@ SQL;
         }
 
         $itemSets = $this->entity->getItemSets();
-        $itemSets->add($this->main['concept']['item_set']);
+        $itemSets->add($this->main[$mainName]['item_set']);
 
         $values = [];
 
         $fromTo = [
             $keyLabel => 'skos:prefLabel',
-            $keyDefinition => 'skos:definition',
-            $keyScopeNote => 'skos:scopeNote',
         ];
+        if ($keyDefinition) {
+            $fromTo[$keyDefinition] = 'skos:definition';
+        }
+        if ($keyScopeNote) {
+            $fromTo[$keyScopeNote] = 'skos:scopeNote';
+        }
         foreach ($fromTo as $sourceName => $term) {
             $value = $source[$sourceName] ?? '';
             if (strlen($value)) {
@@ -285,11 +336,11 @@ SQL;
         $values[] = [
             'term' => 'skos:inScheme',
             'type' => 'resource:item',
-            'value_resource' => $this->main['scheme']['item'],
+            'value_resource' => $this->main[$mainName]['item'],
         ];
 
         if ($keyParentId && $source['id_parent']) {
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$source[$keyParentId]]);
+            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
             if ($linked) {
                 $values[] = [
                     'term' => 'skos:broader',
@@ -306,19 +357,19 @@ SQL;
             $values[] = [
                 'term' => 'skos:topConceptOf',
                 'type' => 'resource:item',
-                'value_resource' => $this->main['scheme']['item'],
+                'value_resource' => $this->main[$mainName]['item'],
             ];
         }
 
-        if (!empty($this->thesaurus['narrowers'][$source[$keyId]])) {
-            foreach ($this->thesaurus['narrowers'][$source[$keyId]] as $value) {
-                if (empty($this->map['concepts'][$value])) {
+        if (!empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
+            foreach ($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]] as $value) {
+                if (empty($this->map[$mappingName][$value])) {
                     $values[] = [
                         'term' => 'skos:narrower',
                         'value' => $value,
                     ];
                 } else {
-                    $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                    $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
                     $values[] = [
                         'term' => 'skos:narrower',
                         'type' => 'resource:item',
