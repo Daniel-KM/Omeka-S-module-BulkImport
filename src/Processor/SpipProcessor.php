@@ -583,15 +583,27 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
-        // Le secteur est la rubrique de tête.
-        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
-        foreach (['id_secteur', 'id_rubrique'] as $keyId) {
+        // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
+        // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
+        // Ils sont également mis en tant que mots-clés (dcterms:subject).
+        // Cf. fillBreve().
+        foreach ([
+            'id_secteur' => 'curation:theme',
+            'id_rubrique' => 'curation:category',
+        ] as $keyId => $mainTerm) {
             $value = (int) $source[$keyId];
             if (!$value) {
                 continue;
             }
             // Le concept (numéro) est conservé même si vide, mais en privé.
             if (empty($this->map['concepts'][$value])) {
+                $values[] = [
+                    'term' => $mainTerm,
+                    'type' => 'literal',
+                    'lang' => null,
+                    'value' => $value,
+                    'is_public' => false,
+                ];
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'literal',
@@ -601,6 +613,11 @@ class SpipProcessor extends AbstractFullProcessor
                 ];
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                $values[] = [
+                    'term' => $mainTerm,
+                    'type' => 'resource:item',
+                    'value_resource' => $linkedResource,
+                ];
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'resource:item',
@@ -1227,6 +1244,12 @@ class SpipProcessor extends AbstractFullProcessor
             ];
         }
 
+        $values[] = [
+            'term' => 'menestrel:role',
+            'type' => 'literal',
+            'value' => 'Rédacteur',
+        ];
+
         $status = $this->map['statuts_auteur'][$source['statut']] ?? $source['statut'];
         if ($status) {
             $values[] = [
@@ -1302,12 +1325,27 @@ class SpipProcessor extends AbstractFullProcessor
             }
         }
 
-        // Le secteur est la rubrique de tête.
-        // TODO Voir s'il faut conserver le secteur (rubrique principale) ou si on la détermine automatiquement.
-        $value = (int) $source['id_rubrique'];
-        if ($value) {
+        // Le secteur est la rubrique de tête = "module" = lieux & acteurs, thèmes & disciplines, etc.
+        // Le secteur est enregistré dans curation:theme et la rubrique dans curation:categorie.
+        // Ils sont également mis en tant que mots-clés (dcterms:subject).
+        // Cf. fillArticle().
+        foreach ([
+            'id_secteur' => 'curation:theme',
+            'id_rubrique' => 'curation:category',
+        ] as $keyId => $mainTerm) {
+            $value = (int) $source[$keyId];
+            if (!$value) {
+                continue;
+            }
             // Le concept (numéro) est conservé même si vide, mais en privé.
             if (empty($this->map['concepts'][$value])) {
+                $values[] = [
+                    'term' => $mainTerm,
+                    'type' => 'literal',
+                    'lang' => null,
+                    'value' => $value,
+                    'is_public' => false,
+                ];
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'literal',
@@ -1317,6 +1355,11 @@ class SpipProcessor extends AbstractFullProcessor
                 ];
             } else {
                 $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$value]);
+                $values[] = [
+                    'term' => $mainTerm,
+                    'type' => 'resource:item',
+                    'value_resource' => $linkedResource,
+                ];
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => 'resource:item',
@@ -1615,6 +1658,9 @@ class SpipProcessor extends AbstractFullProcessor
     protected function polyglotte($value): array
     {
         $value = trim((string) $value);
+
+        // Corrige un bug dans certaines données sources.
+        $value = str_replace(['<multi<'], ['<multi>'], $value);
 
         if (empty($value)
             || strpos($value, '<multi>') === false
