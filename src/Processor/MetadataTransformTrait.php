@@ -1133,11 +1133,7 @@ SQL;
     protected function operationAppendValue(array $params): bool
     {
         if (empty($params['source'])) {
-            $this->logger->err(
-                'The operation "{action}" requires a source.', // @translate
-                ['action' => $this->operationName]
-            );
-            return false;
+            return $this->operationAppendRawValue($params);
         }
 
         $sourceId = $this->getPropertyId($params['source']);
@@ -1289,6 +1285,104 @@ SQL;
         }
 
         $this->removeMappingTables();
+
+        return true;
+    }
+
+    protected function operationAppendRawValue(array $params): bool
+    {
+        if (empty($params['properties'])) {
+            $this->logger->err(
+                'The operation "{action}" requires a list of properties to fill.', // @translate
+                ['action' => $this->operationName]
+            );
+            return false;
+        }
+
+        if (!is_array($params['properties'])) {
+            $params['properties'] = [$params['properties']];
+        }
+        $propertyIds = [];
+        $errors = [];
+        foreach ($params['properties'] as $to) {
+            $toId = $this->bulk->getPropertyId($to);
+            if ($toId) {
+                $propertyIds[] = $toId;
+            } else {
+                $errors[] = $to;
+            }
+        }
+        if (count($errors)) {
+            $this->logger->err(
+                'The operation "{action}" has invalid properties: "{terms}".', // @translate
+                ['action' => $this->operationName, 'terms' => implode('", "', $errors)]
+            );
+            return false;
+        }
+
+        $quotedType = $this->connection->quote($params['datatype'] ?? 'literal');
+        $quotedValue = isset($params['value'])
+            ? $this->connection->quote($params['value'])
+            : 'NULL';
+        $quotedUri = isset($params['uri'])
+            ? $this->connection->quote($params['uri'])
+            : 'NULL';
+        $quotedLang = isset($params['lang'])
+            ? $this->connection->quote($params['lang'])
+            : 'NULL';
+        $isPublic = (int) (bool) ($params['is_public'] ?? true);
+
+        $sqlExclude = '';
+        if (!empty($params['filters'])) {
+            $sqlExclude = <<<'SQL'
+JOIN `resource`
+    ON `resource`.`id` = `value`.`resource_id`
+WHERE 1 = 1
+SQL;
+            foreach ($params['filters'] as $name => $value) {
+                $quotedVal = $this->connection->quote($value);
+                switch ($name) {
+                    case 'class_id':
+                    case 'resource_class_id':
+                        $sqlExclude .= "\n    AND `resource`.`resource_class_id` = $quotedVal";
+                        break;
+                    case 'template_id':
+                    case 'resource_template_id':
+                        $sqlExclude .= "\n    AND `resource`.`resource_template_id` = $quotedVal";
+                        break;
+                    default:
+                        // Nothing.
+                        $this->logger->warn(
+                            'Operation "{action}": The filter "{name}" is not managed to append a new value.', // @translate
+                            ['action' => $this->operationName, 'name' => $name]
+                        );
+                        break;
+                }
+            }
+        }
+
+        foreach ($propertyIds as $propertyId) {
+            // The "distinct" allows to add the value one time only.
+            $this->operationSqls[] = <<<SQL
+# Insert a raw value.
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
+SELECT DISTINCT
+    `value`.`resource_id`,
+    $propertyId,
+    NULL,
+    $quotedType,
+    $quotedValue,
+    $quotedUri,
+    $quotedLang,
+    $isPublic
+FROM `value`
+JOIN `_temporary_value`
+    ON `_temporary_value`.`id` = `value`.`id`
+$sqlExclude
+;
+SQL;
+        }
 
         return true;
     }
