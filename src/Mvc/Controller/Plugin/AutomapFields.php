@@ -54,7 +54,7 @@ class AutomapFields extends AbstractPlugin
      * Automap a list of field names with a standard Omeka metadata names.
      *
      * This is a simplified but improved version of the full automap of an old
-     * version of the automap of the module CSVImport. it returns all the input
+     * version of the automap of the module CSVImport. It returns all the input
      * fields, with field name, identified metadata, language and datatype.
      * It manages language and datatype, as in "dcterms:title @fr-fr ^^xsd:string §private",
      * following some convention, without the double quote.

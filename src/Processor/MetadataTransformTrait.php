@@ -1686,16 +1686,18 @@ SQL;
 
         // Manage the case where a source is mapped multiple times.
         $hasMultipleDestinations = count(array_column($mapper, 'source', 'source')) < count(array_column($mapper, 'source'));
-        if ($hasMultipleDestinations) {
-            $this->logger->info(
-                'Operation "{action}": Process a multi-destinaton via file "{file}" for (first 10): {multi}.', // @translate
-                [
-                    'action' => $this->operationName,
-                    'file' => $params['mapping'],
-                    'multi' => array_slice(array_diff(array_column($mapper, 'source'), array_column($mapper, 'source', 'source')), 0, 10),
-                ]
-            );
-        }
+        $message = $hasMultipleDestinations
+            ? 'Operation "{action}": Process a table multi-replacement via file "{file}" for {count} data (first 10): {list}.' // @translate
+            : 'Operation "{action}": Process a table simple replacement via file "{file}" for {count} data (first 10): {list}.'; // @translate;
+        $this->logger->info(
+            $message,
+            [
+                'action' => $this->operationName,
+                'file' => $params['mapping'],
+                'count' => count($mapper),
+                'list' => array_slice(array_diff(array_column($mapper, 'source'), array_column($mapper, 'source', 'source')), 0, 10),
+            ]
+        );
 
         $hasMultipleDestinations = $hasMultipleDestinations || count($destinations) > 1;
 

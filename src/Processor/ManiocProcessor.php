@@ -92,9 +92,12 @@ class ManiocProcessor extends AbstractFullProcessor
 
     protected function preImport(): void
     {
-        $this->logger->warn(
-            'Currently, this importer must be run on an empty database.', // @translate
-        );
+        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `resource`;')->fetchColumn();
+        if ($total) {
+            $this->logger->warn(
+                'Currently, this importer must be run on an empty database.', // @translate
+            );
+        }
 
         $this->prepareConfig('config.php', 'manioc');
 
@@ -109,6 +112,9 @@ class ManiocProcessor extends AbstractFullProcessor
             $this->logger->err(
                 'The Omeka database user should be able to read the source database, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
                 ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+            );
+            $this->logger->err(
+                'In some cases, the grants should be given to the omeka database user too.'  // @translate
             );
             return;
         }
@@ -1626,7 +1632,7 @@ SQL;
                         ],
                         [
                             // Il y aura de nombreux doublons, mais ils
-                            // seron supprimés lors de la dernière étape
+                            // seront supprimés lors de la dernière étape
                             // via "DeduplicateValues".
                             'action' => 'link_resource',
                             'params' => [
