@@ -653,55 +653,58 @@ SQL;
                 if (!$nodeList || !$nodeList->length) {
                     continue;
                 }
-                $value = trim((string) $nodeList->item(0)->nodeValue);
-                if ($value === '') {
-                    continue;
+                foreach ($nodeList as $item) {
+                    $value = trim((string) $item->nodeValue);
+                    if ($value === '') {
+                        continue;
+                    }
+
+                    // Fixes.
+                    $uri = null;
+                    $type = 'literal';
+                    $lang = null;
+                    switch ($property) {
+                        default:
+                            break;
+                        case 'dcterms:language':
+                            if ($value === 'fre') {
+                                $value = 'fra';
+                            }
+                            $uri = 'http://id.loc.gov/vocabulary/iso639-2/' . $value;
+                            $type = 'valuesuggest:lc:languages';
+                            break;
+                        case 'foaf:gender':
+                            $value = $unimarcGenders[substr($value, 0, 1)] ?? null;
+                            if (!$value) {
+                                continue 2;
+                            }
+                            break;
+                        case 'bio:birth':
+                        case 'bio:death':
+                            $value = mb_substr($value, 0, 1) === '-'
+                                ? rtrim(mb_substr($value, 0, 5) . '-' . mb_substr($value, 5, 2) . '-' . mb_substr($value, 7, 2), '- ')
+                                : rtrim(mb_substr($value, 0, 4) . '-' . mb_substr($value, 4, 2) . '-' . mb_substr($value, 6, 2), '- ');
+                            break;
+                        case 'bio:place':
+                            if (isset($countries[$value])) {
+                                $uri = $countries[$value];
+                                $type = 'valuesuggest:geonames:geonames';
+                            }
+                            break;
+                    }
+                    $mapper[] = [
+                        'source' => $source,
+                        'property_id' => $properties[$property],
+                        'value_resource_id' => null,
+                        'type' => $type,
+                        'value' => $value,
+                        'uri' => $uri,
+                        'lang' => $lang,
+                        'is_public' => 1,
+                    ];
+                    $hasNew = true;
+                    ++$totalNewData;
                 }
-                // Fixes.
-                $uri = null;
-                $type = 'literal';
-                $lang = null;
-                switch ($property) {
-                    default:
-                        break;
-                    case 'dcterms:language':
-                        if ($value === 'fre') {
-                            $value = 'fra';
-                        }
-                        $uri = 'http://id.loc.gov/vocabulary/iso639-2/' . $value;
-                        $type = 'valuesuggest:lc:languages';
-                        break;
-                    case 'foaf:gender':
-                        $value = $unimarcGenders[substr($value, 0, 1)] ?? null;
-                        if (!$value) {
-                            continue 2;
-                        }
-                        break;
-                    case 'bio:birth':
-                    case 'bio:death':
-                        $value = mb_substr($value, 0, 1) === '-'
-                            ? rtrim(mb_substr($value, 0, 5) . '-' . mb_substr($value, 5, 2) . '-' . mb_substr($value, 7, 2), '- ')
-                            : rtrim(mb_substr($value, 0, 4) . '-' . mb_substr($value, 4, 2) . '-' . mb_substr($value, 6, 2), '- ');
-                        break;
-                    case 'bio:place':
-                        if (isset($countries[$value])) {
-                            $uri = $countries[$value];
-                            $type = 'valuesuggest:geonames:geonames';
-                        }
-                        break;
-                }
-                $mapper[] = [
-                    'source' => $source,
-                    'property_id' => $properties[$property],
-                    'value_resource_id' => null,
-                    'type' => $type,
-                    'value' => $value,
-                    'uri' => $uri,
-                    'lang' => $lang,
-                    'is_public' => 1,
-                ];
-                $hasNew = true;
-                ++$totalNewData;
             }
 
             if ($hasNew) {
