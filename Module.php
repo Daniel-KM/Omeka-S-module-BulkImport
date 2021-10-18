@@ -71,7 +71,7 @@ class Module extends AbstractModule
 
         $directory = new \RecursiveDirectoryIterator(__DIR__ . '/data/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($directory);
-        foreach (array_keys($iterator) as $filepath) {
+        foreach (array_keys(iterator_to_array($iterator)) as $filepath) {
             $data = include $filepath;
             $data['owner'] = $user;
             $entity = new \BulkImport\Entity\Importer();
