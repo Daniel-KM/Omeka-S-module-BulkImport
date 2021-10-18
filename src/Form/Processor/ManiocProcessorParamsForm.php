@@ -16,12 +16,14 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
 
     public function init(): void
     {
-        $this->baseFieldset();
+        $this
+            ->baseFieldset();
 
-        $this->baseInputFilter();
+        $this
+            ->baseInputFilter();
     }
 
-    protected function baseFieldset(): void
+    protected function baseFieldset(): self
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -150,9 +152,10 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 ],
             ])
         ;
+        return $this;
     }
 
-    protected function baseInputFilter(): void
+    protected function baseInputFilter(): self
     {
         $this->getInputFilter()
             ->add([
@@ -164,5 +167,6 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 'required' => false,
             ])
         ;
+        return $this;
     }
 }

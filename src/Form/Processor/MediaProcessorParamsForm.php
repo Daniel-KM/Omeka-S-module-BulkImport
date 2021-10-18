@@ -12,20 +12,22 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
 
     public function init(): void
     {
-        $this->baseFieldset();
-        $this->addFieldsets();
-        $this->addEntriesToSkip();
-        $this->addEntriesByBatch();
-        $this->addMapping();
+        $this
+            ->baseFieldset()
+            ->addFieldsets()
+            ->addEntriesToSkip()
+            ->addEntriesByBatch()
+            ->addMapping();
 
-        $this->baseInputFilter();
-        $this->addInputFilter();
-        $this->addEntriesToSkipInputFilter();
-        $this->addEntriesByBatchInputFilter();
-        $this->addMappingFilter();
+        $this
+            ->baseInputFilter()
+            ->addInputFilter()
+            ->addEntriesToSkipInputFilter()
+            ->addEntriesByBatchInputFilter()
+            ->addMappingFilter();
     }
 
-    protected function prependMappingOptions()
+    protected function prependMappingOptions(): array
     {
         $mapping = parent::prependMappingOptions();
         $mapping = array_merge_recursive($mapping, [

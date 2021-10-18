@@ -2,11 +2,10 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\Element\OptionalRadio;
-use BulkImport\Form\Element\OptionalUrl;
+use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
-use Omeka\Form\Element\ResourceSelect;
+use Omeka\Form\Element as OmekaElement;
 
 /**
  * @todo Factorize with Omeka S processor.
@@ -17,12 +16,14 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
 
     public function init(): void
     {
-        $this->baseFieldset();
+        $this
+            ->baseFieldset();
 
-        $this->baseInputFilter();
+        $this
+            ->baseInputFilter();
     }
 
-    protected function baseFieldset(): void
+    protected function baseFieldset(): self
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -43,7 +44,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ])
             ->add([
                 'name' => 'o:owner',
-                'type' => ResourceSelect::class,
+                'type' => OmekaElement\ResourceSelect::class,
                 'options' => [
                     'label' => 'Owner', // @translate
                     'prepend_value_options' => [
@@ -117,7 +118,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ])
             ->add([
                 'name' => 'menu',
-                'type' => OptionalRadio::class,
+                'type' => BulkImportElement\OptionalRadio::class,
                 'options' => [
                     'label' => 'Créer le menu (module Menu)', // @translate
                     'value_options' => [
@@ -144,7 +145,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ])
             ->add([
                 'name' => 'endpoint',
-                'type' => OptionalUrl::class,
+                'type' => BulkImportElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'Url of original site to fetch files', // @translate
                 ],
@@ -153,9 +154,10 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 ],
             ])
         ;
+        return $this;
     }
 
-    protected function baseInputFilter(): void
+    protected function baseInputFilter(): self
     {
         $this->getInputFilter()
             ->add([
@@ -167,5 +169,6 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
                 'required' => false,
             ])
         ;
+        return $this;
     }
 }

@@ -2,7 +2,7 @@
 
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Form\Element\OptionalSelect;
+use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Form;
 
@@ -15,7 +15,7 @@ class XmlReaderConfigForm extends Form
         $this
             ->add([
                 'name' => 'xsl_sheet',
-                'type' => OptionalSelect::class,
+                'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'XSLT file used to convert source', // @translate
                     'info' => 'Default sheets are located in "modules/BulkImport/data/xsl" and user ones in "files/xsl".', // @translate

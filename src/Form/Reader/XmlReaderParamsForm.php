@@ -2,7 +2,7 @@
 
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Form\Element\OptionalUrl;
+use BulkImport\Form\Element as BulkImportElement;
 use Laminas\Form\Element;
 
 class XmlReaderParamsForm extends XmlReaderConfigForm
@@ -26,7 +26,7 @@ class XmlReaderParamsForm extends XmlReaderConfigForm
             ])
             ->add([
                 'name' => 'url',
-                'type' => OptionalUrl::class,
+                'type' => BulkImportElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'XML url', // @translate
                 ],

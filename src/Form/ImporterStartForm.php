@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Form;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -12,20 +13,20 @@ class ImporterStartForm extends Form
 
     public function init(): void
     {
-        $this->add([
-            'name' => 'start_submit',
-            'type' => Fieldset::class,
-        ]);
+        $this
+            ->add([
+                'name' => 'start_submit',
+                'type' => Fieldset::class,
+            ]);
 
-        $fieldset = $this->get('start_submit');
-
-        $fieldset->add([
-            'name' => 'submit',
-            'type' => Element\Submit::class,
-            'attributes' => [
-                'value' => 'Start import', // @translate
-                'required' => true,
-            ],
-        ]);
+        $this->get('start_submit')
+            ->add([
+                'name' => 'submit',
+                'type' => Element\Submit::class,
+                'attributes' => [
+                    'value' => 'Start import', // @translate
+                    'required' => true,
+                ],
+            ]);
     }
 }

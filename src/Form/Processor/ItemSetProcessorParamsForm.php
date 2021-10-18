@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
@@ -11,20 +12,22 @@ class ItemSetProcessorParamsForm extends ItemSetProcessorConfigForm
 
     public function init(): void
     {
-        $this->baseFieldset();
-        $this->addFieldsets();
-        $this->addEntriesToSkip();
-        $this->addEntriesByBatch();
-        $this->addMapping();
+        $this
+            ->baseFieldset()
+            ->addFieldsets()
+            ->addEntriesToSkip()
+            ->addEntriesByBatch()
+            ->addMapping();
 
-        $this->baseInputFilter();
-        $this->addInputFilter();
-        $this->addEntriesToSkipInputFilter();
-        $this->addEntriesByBatchInputFilter();
-        $this->addMappingFilter();
+        $this
+            ->baseInputFilter()
+            ->addInputFilter()
+            ->addEntriesToSkipInputFilter()
+            ->addEntriesByBatchInputFilter()
+            ->addMappingFilter();
     }
 
-    protected function prependMappingOptions()
+    protected function prependMappingOptions(): array
     {
         $mapping = parent::prependMappingOptions();
         return array_merge_recursive($mapping, [

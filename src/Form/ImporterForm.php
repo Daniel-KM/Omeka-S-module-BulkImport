@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Form;
 
 use BulkImport\Entity\Importer;
@@ -22,64 +23,65 @@ class ImporterForm extends Form
     {
         parent::init();
 
-        $this->add([
-            'name' => 'o:label',
-            'type' => Element\Text::class,
-            'options' => [
-                'label' => 'Label', // @translate
-            ],
-            'attributes' => [
-                'id' => 'o-label',
-            ],
-        ]);
+        $this
+            ->add([
+                'name' => 'o:label',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Label', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'o-label',
+                ],
+            ])
 
-        $this->add([
-            'name' => 'o-module-bulk:reader_class',
-            'type' => Element\Select::class,
-            'options' => [
-                'label' => 'Reader', // @translate
-                'value_options' => $this->getReaderOptions(),
-            ],
-            'attributes' => [
-                'id' => 'o-module-bulk-reader-class',
-            ],
-        ]);
+            ->add([
+                'name' => 'o-module-bulk:reader_class',
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Reader', // @translate
+                    'value_options' => $this->getReaderOptions(),
+                ],
+                'attributes' => [
+                    'id' => 'o-module-bulk-reader-class',
+                ],
+            ])
 
-        $this->add([
-            'name' => 'o-module-bulk:processor_class',
-            'type' => Element\Select::class,
-            'options' => [
-                'label' => 'Processor', // @translate
-                'value_options' => $this->getProcessorOptions(),
-            ],
-            'attributes' => [
-                'id' => 'o-module-bulk-processor-class',
-            ],
-        ]);
+            ->add([
+                'name' => 'o-module-bulk:processor_class',
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Processor', // @translate
+                    'value_options' => $this->getProcessorOptions(),
+                ],
+                'attributes' => [
+                    'id' => 'o-module-bulk-processor-class',
+                ],
+            ])
 
-        $this->add([
-            'name' => 'importer_submit',
-            'type' => Fieldset::class,
-        ]);
+            ->add([
+                'name' => 'importer_submit',
+                'type' => Fieldset::class,
+            ]);
 
-        $fieldset = $this->get('importer_submit');
-
-        $fieldset->add([
-            'name' => 'submit',
-            'type' => Element\Submit::class,
-            'attributes' => [
-                'id' => 'submitbutton',
-                'value' => 'Save', // @translate
-            ],
-        ]);
+        $this->get('importer_submit')
+                ->add([
+                'name' => 'submit',
+                'type' => Element\Submit::class,
+                'attributes' => [
+                    'id' => 'submitbutton',
+                    'value' => 'Save', // @translate
+                ],
+            ]);
     }
 
-    public function setImporter(Importer $importer): void
+    public function setImporter(Importer $importer): self
     {
         $this->importer = $importer;
+        return $this;
     }
 
-    protected function getReaderOptions()
+    protected function getReaderOptions(): array
     {
         $options = [];
         $readerManager = $this->getServiceLocator()->get(ReaderManager::class);
@@ -90,7 +92,7 @@ class ImporterForm extends Form
         return $options;
     }
 
-    protected function getProcessorOptions()
+    protected function getProcessorOptions(): array
     {
         $options = [];
         $processorManager = $this->getServiceLocator()->get(ProcessorManager::class);

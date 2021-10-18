@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Form;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -14,20 +15,20 @@ class ImporterDeleteForm extends Form
     {
         parent::init();
 
-        $this->add([
-            'name' => 'importer_submit',
-            'type' => Fieldset::class,
-        ]);
+        $this
+            ->add([
+                'name' => 'importer_submit',
+                'type' => Fieldset::class,
+            ]);
 
-        $fieldset = $this->get('importer_submit');
-
-        $fieldset->add([
-            'name' => 'submit',
-            'type' => Element\Submit::class,
-            'attributes' => [
-                'id' => 'submitbutton',
-                'value' => 'Delete importer', // @translate
-            ],
-        ]);
+        $this->get('importer_submit')
+            ->add([
+                'name' => 'submit',
+                'type' => Element\Submit::class,
+                'attributes' => [
+                    'id' => 'submitbutton',
+                    'value' => 'Delete importer', // @translate
+                ],
+            ]);
     }
 }

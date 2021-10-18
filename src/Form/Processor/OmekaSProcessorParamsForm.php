@@ -4,7 +4,7 @@ namespace BulkImport\Form\Processor;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
-use Omeka\Form\Element\ResourceSelect;
+use Omeka\Form\Element as OmekaElement;
 
 class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
 {
@@ -12,12 +12,14 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
 
     public function init(): void
     {
-        $this->baseFieldset();
+        $this
+            ->baseFieldset();
 
-        $this->baseInputFilter();
+        $this
+            ->baseInputFilter();
     }
 
-    protected function baseFieldset(): void
+    protected function baseFieldset(): \Laminas\Form\Form
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -38,7 +40,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
             ])
             ->add([
                 'name' => 'o:owner',
-                'type' => ResourceSelect::class,
+                'type' => OmekaElement\ResourceSelect::class,
                 'options' => [
                     'label' => 'Owner', // @translate
                     'prepend_value_options' => [
@@ -93,9 +95,10 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 ],
             ])
         ;
+        return $this;
     }
 
-    protected function baseInputFilter(): void
+    protected function baseInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
             ->add([
@@ -107,5 +110,6 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                 'required' => false,
             ])
         ;
+        return $this;
     }
 }
