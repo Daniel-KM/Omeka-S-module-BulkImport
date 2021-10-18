@@ -281,9 +281,8 @@ class Bulk extends AbstractPlugin
      * Get a resource class label by term or id.
      *
      * @param string|int $termOrId
-     * @return string|null
      */
-    public function getResourceClassLabel($termOrId)
+    public function getResourceClassLabel($termOrId): ?string
     {
         $term = $this->getResourceClassTerm($termOrId);
         return $term
@@ -387,7 +386,7 @@ class Bulk extends AbstractPlugin
     /**
      * Get a resource template label by label or id.
      */
-    public function getResourceTemplateLabel($labelOrId): string
+    public function getResourceTemplateLabel($labelOrId): ?string
     {
         $ids = $this->getResourceTemplateIds();
         return is_numeric($labelOrId)
