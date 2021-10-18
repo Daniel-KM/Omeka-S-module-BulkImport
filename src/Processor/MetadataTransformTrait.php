@@ -582,7 +582,7 @@ SQL;
             // 'x' => 'non applicable',
         ];
         /** @link http://documentation.abes.fr/sudoc/formats/unma/zones/102.htm */
-        $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'URI');
+        $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'URI', true);
         $countries['XX'] = 'Pays inconnu';
         $countries['ZZ'] = 'Pays multiples';
 
@@ -2945,7 +2945,7 @@ SQL;
         static $searchType;
 
         if (is_null($language2)) {
-            $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'ISO-2');
+            $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'ISO-2', true);
             $language2 = $this->getParam('language_2') ?: '';
             $searchType = $this->getParam('geonames_search') ?: 'strict';
         }

@@ -212,9 +212,9 @@ trait ConfigTrait
     }
 
     /**
-     * Merge columns of a table into a key-values array.
+     * Merge columns of a table into a key-value array.
      */
-    protected function loadTableAsKeyValue(?string $configKey, string $valueColumn): ?array
+    protected function loadTableAsKeyValue(?string $configKey, string $valueColumn, bool $appendLowerKey = false): ?array
     {
         $table = $this->loadTable($configKey);
         if (!$table) {
@@ -227,7 +227,9 @@ trait ConfigTrait
                 $value = $row[$valueColumn];
                 foreach ($row as $cell) {
                     $result[$cell] = $value;
-                    $result[mb_strtolower($cell)] = $value;
+                    if ($appendLowerKey) {
+                        $result[mb_strtolower($cell)] = $value;
+                    }
                 }
             }
         }
