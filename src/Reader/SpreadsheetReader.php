@@ -11,6 +11,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
         'application/vnd.oasis.opendocument.spreadsheet',
         'text/csv',
         'text/tab-separated-values',
+        'application/csv',
     ];
     protected $configFormClass = CsvReaderConfigForm::class;
     protected $paramsFormClass = SpreadsheetReaderParamsForm::class;
@@ -33,6 +34,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
 
     protected $mediaTypeReaders = [
         'application/vnd.oasis.opendocument.spreadsheet' => OpenDocumentSpreadsheetReader::class,
+        'application/csv' => CsvReader::class,
         'text/csv' => CsvReader::class,
         'text/tab-separated-values' => TsvReader::class,
     ];
