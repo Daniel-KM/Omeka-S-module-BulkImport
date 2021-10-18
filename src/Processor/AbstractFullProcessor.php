@@ -1300,6 +1300,41 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->reindexNumericTimestamp($resourceIds);
         $this->logger->notice('Numeric data reindexed.'); // @translate
 
+        // When data are created though sql, default events are not triggered,
+        // so run an empty update for each resource type.
+
+        // Use the same list for all resources types, because there may be
+        // special resources to merge. The job will filter them at first.
+        $ids = array_merge(
+            $this->map['items'] ?? [],
+            $this->map['media'] ?? [],
+            $this->map['item_sets'] ?? [],
+            $this->map['annotations'] ?? [],
+            $this->map['concepts'] ?? [],
+            $this->map['media_items'] ?? [],
+            $this->map['media_items_sub'] ?? []
+        );
+        // Add other resources.
+        foreach ($this->importables as $name => $importable) {
+            if (!empty($importable['is_resource']) && !empty($this->map[$name])) {
+                $ids = array_merge($ids, $this->map[$name]);
+            }
+        }
+        $ids = array_values(array_unique(array_filter($ids)));
+        foreach (['items', 'media', 'item_sets', 'annotations'] as $resourceName) {
+            if ($resourceName === 'annotations' && !$this->isModuleActive('Annotate')) {
+                continue;
+            }
+            $this->logger->notice(
+                'Reindexing "{resources}". It may take a while.', // @translate
+                ['resources' => $resourceName]
+            );
+            $this->dispatchJob(\Omeka\Job\BatchUpdate::class, [
+                'resource' => $resourceName,
+                'query' => ['id' => $ids],
+            ]);
+        }
+
         $this->logger->notice('Reindexing full text search. It may take about some minutes to one hour.'); // @translate
         $this->dispatchJob(\Omeka\Job\IndexFulltextSearch::class);
         $this->logger->notice('Full text search reindexed.'); // @translate
@@ -1354,6 +1389,18 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                     && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
             }
         }
+    }
+
+    /**
+     * Check if a module is active.
+     */
+    protected function isModuleActive(string $moduleName): bool
+    {
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $this->getServiceLocator()->get('Omeka\ModuleManager');
+        $module = $moduleManager->getModule($moduleName);
+        return $module
+            && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
     }
 
     /**
