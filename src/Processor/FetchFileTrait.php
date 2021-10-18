@@ -27,12 +27,23 @@ trait FetchFileTrait
         if (!$this->disableFileValidation
             && $type !== 'asset'
             && !in_array($extension, $this->allowedExtensions)
+            && in_array(strtolower($extension), $this->allowedExtensions)
+        ) {
+            $this->logger->err(
+                'In the current version of Omeka, only lower case extensions are managed. You should disable file validation to import files.', // @translate
+            );
+        }
+
+        // Quick check.
+        if (!$this->disableFileValidation
+            && $type !== 'asset'
+            && !in_array($extension, $this->allowedExtensions)
         ) {
             return [
                 'status' => 'error',
                 'message' => new PsrMessage(
-                    'File {url} has not an allowed extension.', // @translate
-                    ['url' => $url]
+                    'File {url} ({source}) don’t have an allowed extension: "{extension}".', // @translate
+                    ['url' => $url, 'source' => $sourceName, 'extension' => $extension]
                 ),
             ];
         }
