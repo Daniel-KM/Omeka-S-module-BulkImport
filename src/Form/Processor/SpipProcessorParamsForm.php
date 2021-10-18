@@ -23,7 +23,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
             ->baseInputFilter();
     }
 
-    protected function baseFieldset(): self
+    protected function baseFieldset(): \Laminas\Form\Form
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -157,7 +157,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
         return $this;
     }
 
-    protected function baseInputFilter(): self
+    protected function baseInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
             ->add([

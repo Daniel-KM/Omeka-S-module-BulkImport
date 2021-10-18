@@ -23,7 +23,7 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
             ->baseInputFilter();
     }
 
-    protected function baseFieldset(): self
+    protected function baseFieldset(): \Laminas\Form\Form
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -155,7 +155,7 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
         return $this;
     }
 
-    protected function baseInputFilter(): self
+    protected function baseInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
             ->add([

@@ -31,7 +31,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ->addEntriesByBatchInputFilter();
     }
 
-    protected function baseFieldset(): self
+    protected function baseFieldset(): \Laminas\Form\Form
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -273,12 +273,12 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         return $this;
     }
 
-    protected function addFieldsets(): self
+    protected function addFieldsets(): \Laminas\Form\Form
     {
         return $this;
     }
 
-    protected function addMapping(): self
+    protected function addMapping(): \Laminas\Form\Form
     {
         /** @var \BulkImport\Interfaces\Processor $processor */
         $processor = $this->getOption('processor');
@@ -361,7 +361,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         ];
     }
 
-    protected function baseInputFilter(): self
+    protected function baseInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
             ->add([
@@ -411,12 +411,12 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         return $this;
     }
 
-    protected function addInputFilter(): self
+    protected function addInputFilter(): \Laminas\Form\Form
     {
         return $this;
     }
 
-    protected function addMappingFilter(): self
+    protected function addMappingFilter(): \Laminas\Form\Form
     {
         $inputFilter = $this->getInputFilter();
         if (!$inputFilter->has('mapping')) {

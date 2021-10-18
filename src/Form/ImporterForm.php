@@ -75,7 +75,7 @@ class ImporterForm extends Form
             ]);
     }
 
-    public function setImporter(Importer $importer): self
+    public function setImporter(Importer $importer): \Laminas\Form\Form
     {
         $this->importer = $importer;
         return $this;
