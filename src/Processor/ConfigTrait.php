@@ -47,7 +47,7 @@ trait ConfigTrait
         if ($extension !== 'php') {
             $this->hasError = true;
             $this->logger->err(
-                'The main config file should be a php file.',  // @translate
+                'The main config file should be a php file.'  // @translate
             );
             return;
         }

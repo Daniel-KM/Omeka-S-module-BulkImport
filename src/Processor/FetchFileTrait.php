@@ -30,7 +30,7 @@ trait FetchFileTrait
             && in_array(strtolower($extension), $this->allowedExtensions)
         ) {
             $this->logger->err(
-                'In the current version of Omeka, only lower case extensions are managed. You should disable file validation to import files.', // @translate
+                'In the current version of Omeka, only lower case extensions are managed. You should disable file validation to import files.' // @translate
             );
         }
 

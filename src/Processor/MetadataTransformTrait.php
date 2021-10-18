@@ -3183,7 +3183,7 @@ SQL;
             // Allow to continue next processes.
             if (empty($e)) {
                 $this->logger->err(
-                    'Connection issue.', // @translate
+                    'Connection issue.' // @translate
                 );
             } else {
                 $this->logger->err(
@@ -3317,7 +3317,7 @@ SQL;
             // Allow to continue next processes.
             if (empty($e)) {
                 $this->logger->err(
-                    'Connection issue.', // @translate
+                    'Connection issue.' // @translate
                 );
             } else {
                 $this->logger->err(
@@ -3436,7 +3436,7 @@ SQL;
             // Allow to continue next processes.
             if (empty($e)) {
                 $this->logger->err(
-                    'Connection issue.', // @translate
+                    'Connection issue.' // @translate
                 );
             } else {
                 $this->logger->err(

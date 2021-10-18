@@ -95,7 +95,7 @@ class ManiocProcessor extends AbstractFullProcessor
         $total = $this->connection->executeQuery('SELECT count(`id`) FROM `resource`;')->fetchColumn();
         if ($total) {
             $this->logger->warn(
-                'Currently, this importer must be run on an empty database.', // @translate
+                'Currently, this importer must be run on an empty database.' // @translate
             );
         }
 
