@@ -535,6 +535,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         $hasDatatype = true;
                         break;
                     }
+                } elseif (substr($datatype, 0, 11) === 'customvocab') {
+                    if ($this->bulk->isCustomVocabMember($datatype, $value)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    } else {
+                        $id = $this->findResourceFromIdentifier($value, null, 'items');
+                        if ($this->bulk->isCustomVocabMember($datatype, $id)) {
+                            $this->fillPropertyForValue($resource, $target, $id);
+                            $hasDatatype = true;
+                            break;
+                        }
+                    }
                 } elseif (substr($datatype, 0, 3) === 'uri'
                     || substr($datatype, 0, 12) === 'valuesuggest'
                 ) {
@@ -603,6 +616,50 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $this->logger->err(
                         'Index #{index}: Resource id for value "{value}" cannot be found. The entry is skipped.', // @translate
                         ['index' => $this->indexResource, 'value' => $value]
+                    );
+                }
+                break;
+
+            case substr($datatype, 0, 11) === 'customvocab':
+                // It may be a simple list, a list of uri/label, or items
+                // from an item set.
+                $customVocabType = $this->bulk->getCustomVocabMode($datatype);
+                $result = $this->bulk->isCustomVocabMember($datatype, $value);
+                if (!$result && $customVocabType === 'itemset') {
+                    $value = $this->findResourceFromIdentifier($value, null, 'items');
+                    $result = $this->bulk->isCustomVocabMember($datatype, $value);
+                }
+                if ($result) {
+                    switch ($customVocabType) {
+                        default:
+                        case 'literal':
+                            $resourceValue['@value'] = $value;
+                            break;
+                        case 'uri':
+                            if (strpos($value, ' ')) {
+                                list($uri, $label) = explode(' ', $value, 2);
+                                $label = trim($label);
+                                if (!strlen($label)) {
+                                    $label = null;
+                                }
+                                $resourceValue['@id'] = $uri;
+                                $resourceValue['o:label'] = $label;
+                            } else {
+                                $resourceValue['@id'] = $value;
+                                // $resourceValue['o:label'] = null;
+                            }
+                            break;
+                        case 'itemset':
+                            // The id is checked in function isCustomVocabMember().
+                            $resourceValue['value_resource_id'] = $value;
+                            $resourceValue['@language'] = null;
+                            break;
+                    }
+                } else {
+                    $resource['has_error'] = true;
+                    $this->logger->err(
+                        'Index #{index}: The value "{value}" is not in custom vocab "{customvocab}". The entry is skipped.', // @translate
+                        ['index' => $this->indexResource, 'value' => $value, 'customvocab' => $datatype]
                     );
                 }
                 break;

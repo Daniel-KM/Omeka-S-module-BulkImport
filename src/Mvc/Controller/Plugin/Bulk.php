@@ -544,6 +544,99 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get the mode of the custom vocab: "literal", "uri" or "itemset".
+     */
+    public function getCustomVocabMode(string $name): ?string
+    {
+        static $customVocabTypes;
+
+        if (is_null($customVocabTypes)) {
+            $customVocabTypes = [];
+            foreach ($this->getDataTypes(true) as $datatype) {
+                if (substr($datatype, 0, 11) !== 'customvocab') {
+                    continue;
+                }
+                // TODO Check if label is managed.
+                $id = (int) substr($datatype, 12);
+                try {
+                    $customVocab = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
+                } catch (\Exception $e) {
+                    $customVocabTypes[$datatype] = null;
+                    continue;
+                }
+                if (method_exists($customVocab, 'uris') && $customVocab->uris()) {
+                    $customVocabTypes[$datatype] = 'uri';
+                } elseif (method_exists($customVocab, 'itemSet') && $itemSet = $customVocab->itemSet()) {
+                    $customVocabTypes[$datatype] = 'itemset';
+                } else {
+                    $customVocabTypes[$datatype] = 'literal';
+                }
+            }
+        }
+
+        return $customVocabTypes[$name] ?? null;
+    }
+
+    /**
+     * Check if a value is in a custom vocab.
+     *
+     * Value can be a string for literal and uri, or an item or item id for item
+     * set. It cannot be an identifier.
+     */
+    public function isCustomVocabMember(string $customVocabDataType, $value): bool
+    {
+        static $customVocabs = [];
+
+        if (substr($customVocabDataType, 0, 11) !== 'customvocab') {
+            return false;
+        }
+
+        if (!array_key_exists($customVocabDataType, $customVocabs)) {
+            $id = (int) substr($customVocabDataType, 12);
+            try {
+                $customVocabs[$customVocabDataType] = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
+            } catch (\Exception $e) {
+                $customVocabs[$customVocabDataType] = null;
+                return false;
+            }
+        }
+
+        if (empty($customVocabs[$customVocabDataType])) {
+            return false;
+        }
+
+        $customVocab = $customVocabs[$customVocabDataType];
+
+        if (method_exists($customVocab, 'uris') && $uris = $customVocab->uris()) {
+            $uris = array_filter(array_map('trim', explode("\n", $uris)));
+            $list = [];
+            foreach ($uris as $uriLabel) {
+                $list[] = $uriLabel;
+                $list[] = strtok($uriLabel, ' ');
+            }
+            return in_array($value, $list);
+        }
+
+        if (method_exists($customVocab, 'itemSet') && $itemSet = $customVocab->itemSet()) {
+            if (is_numeric($value)) {
+                try {
+                    $value = $this->api()->read('items', ['id' => $value])->getContent();
+                } catch (\Exception $e) {
+                    return false;
+                }
+            } elseif (!is_object($value) || !($value instanceof \Omeka\Api\Representation\ItemRepresentation)) {
+                return false;
+            }
+            // Check if the value is in the item set.
+            $itemSets = $value->itemSets();
+            return isset($itemSets[(int) $itemSet->id()]);
+        }
+
+        $terms = array_filter(array_map('trim', explode("\n", $customVocab->terms())), 'strlen');
+        return in_array($value, $terms);
+    }
+
+    /**
      * Get a user id by email or id or name.
      */
     public function getUserId($emailOrIdOrName): ?int
