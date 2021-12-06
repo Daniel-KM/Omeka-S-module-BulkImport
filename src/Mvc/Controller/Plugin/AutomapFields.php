@@ -9,7 +9,8 @@ class AutomapFields extends AbstractPlugin
 {
     /**
      * The pattern checks a field (term or keyword), then, in any order, a
-     * a @language, a ^^data type, and a §visibility, and finally a ~pattern.
+     * a @language, a ^^datatype or multiple data types (^^datatype1 ; datatype2),
+     * and a §visibility, and finally a ~pattern.
      * A pattern is allowed only when there is a single target field.
      */
     const PATTERN = '#'
@@ -21,8 +22,10 @@ class AutomapFields extends AbstractPlugin
         // See application/asset/js/admin.js for a complex check.
         // @link http://stackoverflow.com/questions/7035825/regular-expression-for-a-language-tag-as-defined-by-bcp47
         . '(?:\s*@\s*(?<language>(?:(?:[a-zA-Z0-9]+-)*[a-zA-Z]+|)))'
-        // Check a data type (^^resource:item or ^^customvocab:Liste des établissements).
-        . '|(?:\s*\^\^\s*(?<datatype>[a-zA-Z][a-zA-Z0-9]*:[[:alnum:]][\w:\s-]*?|[a-zA-Z][\w-]*|))'
+        // Check a data type (^^resource:item or ^^customvocab:Liste des établissements)
+        // or multiple data types (^^customvocab:xxx ; resource:item ; literal).
+        // The sub data type must not contain a ";".
+        . '|(?:\s*\^\^\s*(?<datatypes>(?:[a-zA-Z][\w;]*:[\w\p{L}][\w\p{L}:;\s-]*?|[a-zA-Z][\w;\s-]*)+))'
         // Check visibility (§private).
         . '|(?:\s*§\s*(?<visibility>public|private|))'
         // Max three options, but no check for duplicates for now.
@@ -56,8 +59,8 @@ class AutomapFields extends AbstractPlugin
      * This is a simplified but improved version of the full automap of an old
      * version of the automap of the module CSVImport. It returns all the input
      * fields, with field name, identified metadata, language and datatype.
-     * It manages language and datatype, as in "dcterms:title @fr-fr ^^xsd:string §private",
-     * following some convention, without the double quote.
+     * It manages language, datatype and visibility, as in "dcterms:title @fra ^^resource:item §private",
+     * following some conventions, without the double quote.
      * Furthermore, user mappings are replaced by the file /data/mappings/fields_to_metadata.php.
      * Finally, a pattern (prefixed with "~") can be appended to transform the
      * value.
@@ -71,15 +74,22 @@ class AutomapFields extends AbstractPlugin
      * duration, geography, geometry.
      * Datatypes of other modules are supported too (Custom Vocab,
      * Value Suggest, DataTypeRdf, Numeric Data Types):
-     * - customvocab:xxx (where xxx is the id, or the label with or without spaces),
+     * - customvocab:xxx (where xxx is the id, or the label (the punctuation,
+     *   included quote, should be removed, but space is allowed)
+     *   spaces,
      * - valuesuggest:xxx,
-     * - rdf:HTML,
-     * - rdf:XMLLiteral
-     * - xsd:boolean,
+     * - html,
+     * - xml,
+     * - boolean,
      * - numeric:timestamp,
      * - numeric:integer,
      * - etc.
-     * with or without prefix, etc. The datatypes are checked by the processor.
+     * with or without prefix, etc.
+     * There may be multiple data types, separated with a ";". So the data type
+     * itself must not contain a ";", or any special character anyway (no
+     * punctuation). When there are multiple data types, they are checked in the
+     * order they are. So take care of custom vocab with item sets.
+     * The datatypes are checked by the processor currently.
      *
      * Multiple targets can be mapped with the separator `|`. Note that if there
      * are multiple properties, only the first language and type will be used.
@@ -97,10 +107,10 @@ class AutomapFields extends AbstractPlugin
      * - check_field (boolean) Recommended, else it will be done later.
      * - check_names_alone (boolean) Check property local name without prefix.
      * - single_target (boolean) Allows to output multiple targets from one string.
-     * - output_full_matches (boolean) Returns the language and datatype too.
+     * - output_full_matches (boolean) Returns the language and data types too.
      * - resource_type (string) Useless, except for quicker process.
      * @return array Associative array of all fields with the normalized name,
-     * or with their normalized name, language and datatype when option
+     * or with their normalized name, language and data types when option
      * "output_full_matches" is set, or null.
      */
     public function __invoke(array $fields, array $options = []): array
@@ -198,7 +208,7 @@ class AutomapFields extends AbstractPlugin
                     continue;
                 }
 
-                // TODO Add a check of the type with the list of data types.
+                // TODO Add a check of the data types with the list of data types.
 
                 $field = trim($matches['field']);
                 $lowerField = mb_strtolower($field);
@@ -213,7 +223,7 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $automapList[$found];
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                            $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
@@ -237,7 +247,7 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $propertyLists['names'][$found];
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                            $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
@@ -284,7 +294,7 @@ class AutomapFields extends AbstractPlugin
                     $result = [];
                     $result['field'] = $field;
                     $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
-                    $result['type'] = empty($matches['datatype']) ? null : trim($matches['datatype']);
+                    $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                     $automaps[$index][] = $result;

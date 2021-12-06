@@ -72,6 +72,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $hasMapping = false;
 
     /**
+     * @todo Rename this variable, that is used in AbstractFullProcessor with a different meaning.
      * @var array
      */
     protected $mapping;
@@ -503,55 +504,113 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     protected function fillProperty(ArrayObject $resource, $target, array $values): bool
     {
+        // Return true in all other cases, when this is a property process, with
+        // or without issue.
         if (!isset($target['value']['property_id'])) {
             return false;
         }
 
-        foreach ($values as $value) {
-            $resourceValue = $target['value'];
-            switch ($resourceValue['type']) {
-                default:
-                // Currently, most of the datatypes are literal.
-                case 'literal':
-                // case strpos($resourceValue['type'], 'customvocab:') === 0:
-                    $resourceValue['@value'] = $value;
-                    break;
-                case 'uri-label':
-                    // Deprecated.
-                case 'uri':
-                case substr($resourceValue['type'], 0, 12) === 'valuesuggest':
-                    if (strpos($value, ' ')) {
-                        list($uri, $label) = explode(' ', $value, 2);
-                        $label = trim($label);
-                        if (!strlen($label)) {
-                            $label = null;
-                        }
-                        $resourceValue['@id'] = $uri;
-                        $resourceValue['o:label'] = $label;
-                    } else {
-                        $resourceValue['@id'] = $value;
-                        // $resourceValue['o:label'] = null;
-                    }
-                    break;
-                case 'resource':
-                case 'resource:item':
-                case 'resource:itemset':
-                case 'resource:media':
-                    $id = $this->findResourceFromIdentifier($value, null, $resourceValue['type']);
-                    if ($id) {
-                        $resourceValue['value_resource_id'] = $id;
-                        $resourceValue['@language'] = null;
-                    } else {
-                        $resource['has_error'] = true;
-                        $this->logger->err(
-                            'Index #{index}: Resource id for value "{value}" cannot be found. The entry is skipped.', // @translate
-                            ['index' => $this->indexResource, 'value' => $value]
-                        );
-                    }
-                    break;
+        if (!empty($target['value']['type'])) {
+            foreach ($values as $value) {
+                $this->fillPropertyForValue($resource, $target, $value);
             }
-            $resource[$target['target']][] = $resourceValue;
+            return true;
         }
+
+        if (empty($target['datatypes'])) {
+            return true;
+        }
+
+        // The datatype should be checked for each value. The value is checked
+        // against each datatype and get the first valid one.
+        // TODO Factorize instead of doing check twice.
+        foreach ($values as $value) {
+            $hasDatatype = false;
+            foreach ($target['datatypes'] as $datatype) {
+                $target['value']['type'] = $datatype;
+                if (substr($datatype, 0, 8) === 'resource') {
+                    $id = $this->findResourceFromIdentifier($value, null, $datatype);
+                    if ($id) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
+                } elseif (substr($datatype, 0, 3) === 'uri'
+                    || substr($datatype, 0, 12) === 'valuesuggest'
+                ) {
+                    if ($this->bulk->isUrl($value)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
+                } else {
+                    $this->fillPropertyForValue($resource, $target, $value);
+                    $hasDatatype = true;
+                    break;
+                }
+            }
+            if (!$hasDatatype) {
+                $resource['has_error'] = true;
+                $this->logger->err(
+                    'Index #{index}: The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it. The entry is skipped.', // @translate
+                    ['index' => $this->indexResource, 'value' => $value]
+                );
+            }
+        }
+
+        return true;
+    }
+
+    protected function fillPropertyForValue(ArrayObject $resource, $target, $value): bool
+    {
+        // Prepare the new resource value from the target.
+        $resourceValue = $target['value'];
+        $datatype = $resourceValue['type'];
+        switch ($datatype) {
+            default:
+            case 'literal':
+                $resourceValue['@value'] = $value;
+                break;
+
+            case 'uri-label':
+                // Deprecated.
+            case 'uri':
+            case substr($datatype, 0, 12) === 'valuesuggest':
+                if (strpos($value, ' ')) {
+                    list($uri, $label) = explode(' ', $value, 2);
+                    $label = trim($label);
+                    if (!strlen($label)) {
+                        $label = null;
+                    }
+                    $resourceValue['@id'] = $uri;
+                    $resourceValue['o:label'] = $label;
+                } else {
+                    $resourceValue['@id'] = $value;
+                    // $resourceValue['o:label'] = null;
+                }
+                break;
+
+            case 'resource':
+            case 'resource:item':
+            case 'resource:itemset':
+            case 'resource:media':
+                $id = $this->findResourceFromIdentifier($value, null, $datatype);
+                if ($id) {
+                    $resourceValue['value_resource_id'] = $id;
+                    $resourceValue['@language'] = null;
+                } else {
+                    $resource['has_error'] = true;
+                    $this->logger->err(
+                        'Index #{index}: Resource id for value "{value}" cannot be found. The entry is skipped.', // @translate
+                        ['index' => $this->indexResource, 'value' => $value]
+                    );
+                }
+                break;
+
+            // TODO Support other special data types for geometry, numeric, etc.
+        }
+        $resource[$target['target']][] = $resourceValue;
+
         return true;
     }
 
@@ -1278,15 +1337,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * Prepare full mapping to simplify process.
+     * Prepare full mapping one time to simplify and speed process.
      *
-     * Add automapped metadata for properties (language and datatype).
+     * Add automapped metadata for properties (language and datatypes).
      */
     protected function prepareMapping(): \BulkImport\Interfaces\Processor
     {
         $mapping = $this->getParam('mapping', []);
 
-        // The automap is only used for language, type and visibility:
+        // The automap is only used for language, datatypes and visibility:
         // the properties are the one that are set by the user.
         /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
         $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
@@ -1311,7 +1370,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
             }
 
-            // Default metadata (type, language and visibility).
+            // Default metadata (datatypes, language and visibility).
             // For consistency, only the first metadata is used.
             $metadatas = $sourceFields[$index];
             $metadata = reset($metadatas);
@@ -1319,7 +1378,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $fullTargets = [];
             foreach ($targets as $target) {
                 $result = [];
-                // Field is the property found by automap. Not used, but possible for messages.
+                // Field is the property found by automap.
+                // This value is not used, but may be useful for messages.
                 $result['field'] = $metadata['field'];
 
                 // Manage the property of a target when it is a resource type,
@@ -1348,16 +1408,32 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
                 $propertyId = $this->getPropertyId($target);
                 if ($propertyId) {
+                    $datatypes = [];
+                    foreach ($metadata['datatypes'] ?? [] as $datatype) {
+                        $datatypes[] = $this->getDataType($datatype);
+                    }
+                    $datatypes = array_filter(array_unique($datatypes));
+                    if (empty($datatypes)) {
+                        $datatype = 'literal';
+                    } elseif (count($datatypes) === 1) {
+                        $datatype = reset($datatypes);
+                    } else {
+                        $datatype = null;
+                    }
                     $result['value']['property_id'] = $propertyId;
-                    $result['value']['type'] = $this->getDataType($metadata['type']) ?: 'literal';
+                    $result['value']['type'] = $datatype;
                     $result['value']['@language'] = $metadata['@language'];
                     $result['value']['is_public'] = $metadata['is_public'] !== 'private';
+                    if (is_null($datatype)) {
+                        $result['datatypes'] = $datatypes;
+                    }
                 }
                 // A specific or module field. These fields may be useless.
+                // TODO Check where this exception is used.
                 else {
                     $result['full_field'] = $sourceField;
                     $result['@language'] = $metadata['@language'];
-                    $result['type'] = $metadata['type'];
+                    $result['datatypes'] = $metadata['datatypes'];
                     $result['is_public'] = $metadata['is_public'] !== 'private';
                 }
 
@@ -1370,6 +1446,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->mapping = array_filter($mapping);
         // Some readers don't need a mapping (xml reader do the process itself).
         $this->hasMapping = (bool) $this->mapping;
+
         return $this;
     }
 

@@ -514,7 +514,7 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * @todo Remove the short data types.
+     * @todo Remove the short data types here.
      */
     public function getDataTypes(bool $noShort = false): array
     {
@@ -581,7 +581,7 @@ class Bulk extends AbstractPlugin
             'o:item' => \Omeka\Entity\Item::class,
             'o:item_set' => \Omeka\Entity\ItemSet::class,
             'o:media' => \Omeka\Entity\Media::class,
-            // Other resource types.
+            // Other resource types or badly written types.
             'item' => \Omeka\Entity\Item::class,
             'item_set' => \Omeka\Entity\ItemSet::class,
             'item-set' => \Omeka\Entity\ItemSet::class,
