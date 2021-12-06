@@ -1684,154 +1684,161 @@ SQL;
                     continue;
                 }
 
-                // Unlike operation "modify_value", this is the mapping that is
-                // modified, so the cell value. The Omeka value is set below.
-                if (isset($settings[$destination['term']])) {
-                    $setting = &$settings[$destination['term']];
-                    if (isset($setting['prefix'])) {
-                        $value = $setting['prefix'] . $value;
-                    }
-                    if (isset($setting['suffix'])) {
-                        $value .= $setting['suffix'];
-                    }
-                    if (isset($setting['replace']) && mb_strlen($setting['replace'])) {
-                        $sourceForValue = empty($setting['remove_space_source'])
-                            ? $source
-                            : str_replace(' ', '', $source);
-                        $value = str_replace(['{source}', '{destination}'], [$sourceForValue, $value], $value);
-                    }
-                    unset($setting);
+                $values = array_filter(array_map('trim', explode('|', $value)), 'strlen');
+                if (!count($values)) {
+                    continue;
                 }
 
-                $type = $destination['type'];
-                $uri = null;
-                $valueResourceId = null;
-                $language = null;
-                $isPublic = null;
-
-                switch ($type) {
-                    default:
-                    // TODO Log unmanaged type.
-                    // case 'literal':
-                    // case 'html':
-                    // case 'rdf:HTML':
-                    // case 'xml':
-                    // case 'rdf:XMLLiteral':
-                    // case mb_substr($type, 0, 12) === 'customvocab:':
-                        // Nothing to do.
-                        break;
-
-                    case 'uri':
-                    case 'dcterms:URI':
-                    case substr($type, 0, 12) === 'valuesuggest':
-                        $posSpace = mb_strpos($value, ' ');
-                        if ($posSpace === false) {
-                            $uri = $value;
-                            $value = null;
-                        } else {
-                            $uri = mb_substr($value, 0, $posSpace);
-                            $value = trim(mb_substr($value, $posSpace + 1));
+                foreach ($values as $value) {
+                    // Unlike operation "modify_value", this is the mapping that is
+                    // modified, so the cell value. The Omeka value is set below.
+                    if (isset($settings[$destination['term']])) {
+                        $setting = &$settings[$destination['term']];
+                        if (isset($setting['prefix'])) {
+                            $value = $setting['prefix'] . $value;
                         }
-                        break;
-
-                    case substr($type, 0, 8) === 'resource':
-                        $vvalue = (int) $value;
-                        if ($vvalue) {
-                            $valueResourceId = $vvalue;
-                            $value = null;
-                        } else {
-                            // TODO Manage resource id with identifier.
-                            $this->logger->err(
-                                'For "{term}", the value "{value}" is not a valid resource id.', // @translate
-                                ['term' => $params['source'], 'value' => $value]
-                            );
+                        if (isset($setting['suffix'])) {
+                            $value .= $setting['suffix'];
                         }
-                        break;
-
-                    case 'numeric:integer':
-                    case 'xsd:integer':
-                        if (!is_numeric($value) || ((int) $value) != $value) {
-                            $this->logger->err(
-                                'For term "{term}", value "{value}" is not an integer.', // @translate
-                                ['term' => $params['source'], 'value' => $value]
-                            );
+                        if (isset($setting['replace']) && mb_strlen($setting['replace'])) {
+                            $sourceForValue = empty($setting['remove_space_source'])
+                                ? $source
+                                : str_replace(' ', '', $source);
+                            $value = str_replace(['{source}', '{destination}'], [$sourceForValue, $value], $value);
                         }
-                        break;
+                        unset($setting);
+                    }
 
-                    case 'numeric:timestamp':
-                        // As a mapping table is used, we may assume clean data.
-                        if (class_exists(\NumericDataTypes\DataType\Timestamp::class)) {
-                            try {
-                                $vvalue = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value);
-                            } catch (\InvalidArgumentException $e) {
+                    $type = $destination['type'];
+                    $uri = null;
+                    $valueResourceId = null;
+                    $language = null;
+                    $isPublic = null;
+
+                    switch ($type) {
+                        default:
+                        case 'literal':
+                        // TODO Log unmanaged type.
+                        // case 'html':
+                        // case 'rdf:HTML':
+                        // case 'xml':
+                        // case 'rdf:XMLLiteral':
+                        // case mb_substr($type, 0, 12) === 'customvocab:':
+                            // Nothing to do.
+                            break;
+
+                        case 'uri':
+                        case 'dcterms:URI':
+                        case substr($type, 0, 12) === 'valuesuggest':
+                            $posSpace = mb_strpos($value, ' ');
+                            if ($posSpace === false) {
+                                $uri = $value;
+                                $value = null;
+                            } else {
+                                $uri = mb_substr($value, 0, $posSpace);
+                                $value = trim(mb_substr($value, $posSpace + 1));
+                            }
+                            break;
+
+                        case substr($type, 0, 8) === 'resource':
+                            $vvalue = (int) $value;
+                            if ($vvalue) {
+                                $valueResourceId = $vvalue;
+                                $value = null;
+                            } else {
+                                // TODO Manage resource id with identifier.
                                 $this->logger->err(
-                                    'For term "{term}", value "{value}" is not a valid iso 8601 date time.', // @translate
+                                    'For "{term}", the value "{value}" is not a valid resource id.', // @translate
                                     ['term' => $params['source'], 'value' => $value]
                                 );
                             }
-                        }
-                        break;
+                            break;
 
-                    case 'numeric:interval':
-                        // As a mapping table is used, we may assume clean data.
-                        if (class_exists(\NumericDataTypes\DataType\Interval::class)) {
-                            // See \NumericDataTypes\DataType\Interval.
-                            $intervalPoints = explode('/', $value);
-                            if (2 !== count($intervalPoints)) {
-                                // There must be a <start> point and an <end> point.
+                        case 'numeric:integer':
+                        case 'xsd:integer':
+                            if (!is_numeric($value) || ((int) $value) != $value) {
                                 $this->logger->err(
-                                    'For term "{term}", value "{value}" is not a valid iso 8601 date time interval, with a start point and a end point separated by a "/".', // @translate
+                                    'For term "{term}", value "{value}" is not an integer.', // @translate
                                     ['term' => $params['source'], 'value' => $value]
                                 );
-                            } else {
+                            }
+                            break;
+
+                        case 'numeric:timestamp':
+                            // As a mapping table is used, we may assume clean data.
+                            if (class_exists(\NumericDataTypes\DataType\Timestamp::class)) {
                                 try {
-                                    $dateStart = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[0]);
-                                    $dateEnd = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[1], false);
+                                    \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value);
                                 } catch (\InvalidArgumentException $e) {
+                                    $this->logger->err(
+                                        'For term "{term}", value "{value}" is not a valid iso 8601 date time.', // @translate
+                                        ['term' => $params['source'], 'value' => $value]
+                                    );
+                                }
+                            }
+                            break;
+
+                        case 'numeric:interval':
+                            // As a mapping table is used, we may assume clean data.
+                            if (class_exists(\NumericDataTypes\DataType\Interval::class)) {
+                                // See \NumericDataTypes\DataType\Interval.
+                                $intervalPoints = explode('/', $value);
+                                if (2 !== count($intervalPoints)) {
+                                    // There must be a <start> point and an <end> point.
                                     $this->logger->err(
                                         'For term "{term}", value "{value}" is not a valid iso 8601 date time interval, with a start point and a end point separated by a "/".', // @translate
                                         ['term' => $params['source'], 'value' => $value]
                                     );
-                                }
-                                if ($dateStart && $dateEnd) {
-                                    $timestampStart = $dateStart['date']->getTimestamp();
-                                    $timestampEnd = $dateEnd['date']->getTimestamp();
-                                    if ($timestampStart >= $timestampEnd) {
+                                } else {
+                                    try {
+                                        $dateStart = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[0]);
+                                        $dateEnd = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[1], false);
+                                    } catch (\InvalidArgumentException $e) {
                                         $this->logger->err(
-                                            'For term "{term}", value "{value}" is invalid: the start date time should be before the end date time.', // @translate
+                                            'For term "{term}", value "{value}" is not a valid iso 8601 date time interval, with a start point and a end point separated by a "/".', // @translate
                                             ['term' => $params['source'], 'value' => $value]
                                         );
                                     }
+                                    if ($dateStart && $dateEnd) {
+                                        $timestampStart = $dateStart['date']->getTimestamp();
+                                        $timestampEnd = $dateEnd['date']->getTimestamp();
+                                        if ($timestampStart >= $timestampEnd) {
+                                            $this->logger->err(
+                                                'For term "{term}", value "{value}" is invalid: the start date time should be before the end date time.', // @translate
+                                                ['term' => $params['source'], 'value' => $value]
+                                            );
+                                        }
+                                    }
                                 }
                             }
-                        }
-                        break;
+                            break;
 
-                    case 'numeric:duration':
-                        // As a mapping table is used, we may assume clean data.
-                        if (class_exists(\NumericDataTypes\DataType\Duration::class)) {
-                            try {
-                                $vvalue = \NumericDataTypes\DataType\Duration::getDurationFromValue($value);
-                            } catch (\InvalidArgumentException $e) {
-                                $this->logger->err(
-                                    'For term "{term}", value "{value}" is not a valid iso 8601 duration.', // @translate
-                                    ['term' => $params['source'], 'value' => $value]
-                                );
+                        case 'numeric:duration':
+                            // As a mapping table is used, we may assume clean data.
+                            if (class_exists(\NumericDataTypes\DataType\Duration::class)) {
+                                try {
+                                    \NumericDataTypes\DataType\Duration::getDurationFromValue($value);
+                                } catch (\InvalidArgumentException $e) {
+                                    $this->logger->err(
+                                        'For term "{term}", value "{value}" is not a valid iso 8601 duration.', // @translate
+                                        ['term' => $params['source'], 'value' => $value]
+                                    );
+                                }
                             }
-                        }
-                        break;
-                }
+                            break;
+                    }
 
-                $maps[] = [
-                    'source' => $source,
-                    'property_id' => $destination['property_id'],
-                    'type' => $type,
-                    'value' => $value,
-                    'uri' => $uri,
-                    'value_resource_id' => $valueResourceId,
-                    'lang' => $language,
-                    'is_public' => $isPublic,
-                ];
+                    $maps[] = [
+                        'source' => $source,
+                        'property_id' => $destination['property_id'],
+                        'type' => $type,
+                        'value' => $value,
+                        'uri' => $uri,
+                        'value_resource_id' => $valueResourceId,
+                        'lang' => $language,
+                        'is_public' => $isPublic,
+                    ];
+                }
             }
 
             if ($saveSourceId) {
