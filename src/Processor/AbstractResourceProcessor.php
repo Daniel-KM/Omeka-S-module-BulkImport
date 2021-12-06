@@ -1466,6 +1466,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $propertyId = $this->getPropertyId($target);
                 if ($propertyId) {
                     $datatypes = [];
+                    // Normally already checked.
                     foreach ($metadata['datatypes'] ?? [] as $datatype) {
                         $datatypes[] = $this->getDataType($datatype);
                     }

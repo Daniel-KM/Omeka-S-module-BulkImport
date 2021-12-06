@@ -1625,22 +1625,12 @@ SQL;
                 $field['header'] = $firstKeys[$index];
                 $field['term'] = $field['field'];
                 $field['property_id'] = $propertyIds[$field['field']];
-                // TODO Check the type from the header in the automapping.
-                $type = $field['type'] ?: 'literal';
-                if (mb_substr($type, 0, 12) === 'customvocab:') {
-                    if (empty($this->map['custom_vocabs'][$type]['datatype'])) {
-                        $typeResult = $this->getCustomVocabDataType($type);
-                        if (!$typeResult) {
-                            $this->logger->err(
-                                'The data type "{type}" is not valid.', // @translate
-                                ['term' => $params['source'], 'value' => $type]
-                            );
-                            return null;
-                        }
-                        $type = $typeResult;
-                    }
+                if (empty($field['datatypes'])) {
+                    $field['type'] = 'literal';
+                } else {
+                    // TODO Ideally, the value should be checked according to a list of datatypes.
+                    $field['type'] = reset($field['datatypes']);
                 }
-                $field['type'] = $type;
                 $destinations[] = $field;
                 $properties[$field['field']] = $field['property_id'];
             }

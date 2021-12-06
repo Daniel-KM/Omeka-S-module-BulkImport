@@ -14,7 +14,8 @@ class AutomapFieldsFactory implements FactoryInterface
         $plugins = $services->get('ControllerPluginManager');
         return new AutomapFields(
             $map,
-            $plugins->get('api')
+            $plugins->get('api'),
+            $plugins->get('bulk')
         );
     }
 }

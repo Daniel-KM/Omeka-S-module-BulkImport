@@ -47,10 +47,16 @@ class AutomapFields extends AbstractPlugin
      */
     protected $api;
 
-    public function __construct(array $map, Api $api)
+    /**
+     * @var Bulk
+     */
+    protected $bulk;
+
+    public function __construct(array $map, Api $api, Bulk $bulk)
     {
         $this->map = $map;
         $this->api = $api;
+        $this->bulk = $bulk;
     }
 
     /**
@@ -126,6 +132,7 @@ class AutomapFields extends AbstractPlugin
         ];
         $options += $defaultOptions;
 
+        // TODO Check if this option not to check fields is still really used.
         $checkField = (bool) $options['check_field'];
         if (!$checkField) {
             return $this->automapNoCheckField($fields, $options);
@@ -223,7 +230,9 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $automapList[$found];
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
+                            $result['datatypes'] = empty($matches['datatypes'])
+                                ? []
+                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
@@ -247,7 +256,9 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $propertyLists['names'][$found];
                             $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
+                            $result['datatypes'] = empty($matches['datatypes'])
+                                ? []
+                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $automaps[$index][] = $result;
@@ -351,6 +362,25 @@ class AutomapFields extends AbstractPlugin
         }
 
         return $result;
+    }
+
+    /**
+     * Normalize datatypes (full standard name).
+     *
+     * It converts custom vocab labels into id.
+     */
+    protected function normalizeDatatypes(array $datatypes): array
+    {
+        if (!count($datatypes)) {
+            return [];
+        }
+
+        foreach ($datatypes as &$datatype) {
+            $datatype = $this->bulk->getDataType($datatype);
+        }
+        unset($datatype);
+
+        return array_filter(array_unique($datatypes));
     }
 
     /**
