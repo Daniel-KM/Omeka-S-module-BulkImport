@@ -1730,17 +1730,79 @@ SQL;
                         break;
 
                     case 'numeric:integer':
-                    case 'numeric:timestamp':
-                    case 'numeric:interval':
-                    case 'numeric:duration':
                     case 'xsd:integer':
-                        // TODO Not managed: store data in the second table (so convert and insert all non-mapped values).
-                        $this->logger->err(
-                            'Cannot convert source "{term}" into a numeric data type for now.', // @translate
-                            ['term' => $params['source']]
-                        );
+                        if (!is_numeric($value) || ((int) $value) != $value) {
+                            $this->logger->err(
+                                'For term "{term}", value "{value}" is not an integer.', // @translate
+                                ['term' => $params['source'], 'value' => $value]
+                            );
+                        }
+                        break;
+
+                    case 'numeric:timestamp':
+                        // As a mapping table is used, we may assume clean data.
+                        if (class_exists(\NumericDataTypes\DataType\Timestamp::class)) {
+                            try {
+                                $vvalue = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value);
+                            } catch (\InvalidArgumentException $e) {
+                                $this->logger->err(
+                                    'For term "{term}", value "{value}" is not a valid iso 8601 date time.', // @translate
+                                    ['term' => $params['source'], 'value' => $value]
+                                );
+                            }
+                        }
+                        break;
+
+                    case 'numeric:interval':
+                        // As a mapping table is used, we may assume clean data.
+                        if (class_exists(\NumericDataTypes\DataType\Interval::class)) {
+                            // See \NumericDataTypes\DataType\Interval.
+                            $intervalPoints = explode('/', $value);
+                            if (2 !== count($intervalPoints)) {
+                                // There must be a <start> point and an <end> point.
+                                $this->logger->err(
+                                    'For term "{term}", value "{value}" is not a valid iso 8601 date time interval, with a start point and a end point separated by a "/".', // @translate
+                                    ['term' => $params['source'], 'value' => $value]
+                                );
+                            } else {
+                                try {
+                                    $dateStart = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[0]);
+                                    $dateEnd = \NumericDataTypes\DataType\Interval::getDateTimeFromValue($intervalPoints[1], false);
+                                } catch (\InvalidArgumentException $e) {
+                                    $this->logger->err(
+                                        'For term "{term}", value "{value}" is not a valid iso 8601 date time interval, with a start point and a end point separated by a "/".', // @translate
+                                        ['term' => $params['source'], 'value' => $value]
+                                    );
+                                }
+                                if ($dateStart && $dateEnd) {
+                                    $timestampStart = $dateStart['date']->getTimestamp();
+                                    $timestampEnd = $dateEnd['date']->getTimestamp();
+                                    if ($timestampStart >= $timestampEnd) {
+                                        $this->logger->err(
+                                            'For term "{term}", value "{value}" is invalid: the start date time should be before the end date time.', // @translate
+                                            ['term' => $params['source'], 'value' => $value]
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
+                    case 'numeric:duration':
+                        // As a mapping table is used, we may assume clean data.
+                        if (class_exists(\NumericDataTypes\DataType\Duration::class)) {
+                            try {
+                                $vvalue = \NumericDataTypes\DataType\Duration::getDurationFromValue($value);
+                            } catch (\InvalidArgumentException $e) {
+                                $this->logger->err(
+                                    'For term "{term}", value "{value}" is not a valid iso 8601 duration.', // @translate
+                                    ['term' => $params['source'], 'value' => $value]
+                                );
+                            }
+                        }
                         break;
                 }
+
                 $maps[] = [
                     'source' => $source,
                     'property_id' => $destination['property_id'],
