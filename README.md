@@ -18,10 +18,10 @@ it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
 Default readers are Omeka S reader (via the api json endpoint), xml (via
-transformation with xsl), [Spip] reader (via a dump of the database), and
-spreadsheet reader (via ods, tsv or csv). The spreadsheet uses a processor that
-creates resources based on a user-defined based on a specific header format,
-unlike the module [CSV Import].
+transformation with xslt), sql (to adapt to each database), [Spip] reader (via a
+dump of the database), and spreadsheet reader (via ods, tsv or csv). The
+spreadsheet uses a processor that creates resources based on a specific header
+format, but don't have a pretty manual ui like the module [CSV Import].
 
 
 Installation
@@ -142,27 +142,71 @@ To import a spreadsheet, choose its format and the multivalue separator if any.
 Then do the mapping. The mapping is automatic when the header are properties
 label, or existing terms, or Omeka metadata names, or existing keywords.
 
-The header can have a language (with `@language`), a datatype (with `^^datatype`)
-and a visibility (with `§private`).
+Unlike CSV Import, there is no UI mapper except for the properties, but it
+manages advanced headers names to manage data types, languages and visibility
+automatically, so it is recommended to use them, for example `dcterms:title @fra ^^resource:item §private`.
+
+Furthermore, there is a configurable automatic mapping in [data/mappings/fields_to_metadata.php],
+and standard property terms are already managed.
+
+So the header of each column can have a language (with `@language`), a datatype
+(with `^^datatype`), and a visibility (with `§private`). Furthermore, a pattern
+(prefixed with "~") can be appended to transform the value.
+
 For example to import a French title, use header `Title @fr` or `dcterms:title @fr`.
+
 To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation ^^uri`.
-To import an uri with a label, the value should be the uri, a space and the label.
-To import a value as an Omeka resource, use header `Relation ^^resource`. The
-value should be the internal id or a resource identifier (generally dcterms:identifier).
+To import an uri with a label, the header is the same, but the value should be
+the uri, a space and the label.
+To import a value as an Omeka resource, use header `dcterms:relation ^^resource`.
+The value should be the internal id (recommended) or a resource identifier
+(generally dcterms:identifier), but it should be unique in all the database.
 To import a custom vocab value, the header should contain `^^customvocab:xxx`,
-where "xxx" is the identifier of the vocab or its label without spaces.
+where "xxx" is the identifier of the vocab or its label without punctuation.
+
+Default supported datatypes are the ones managed by omeka:
+- `literal` (default)
+- `uri`
+- `resource`
+- `resource:item`
+- `resource:itemset`
+- `resource:media`
+
+Datatypes of other modules are supported too (Custom Vocab, Value Suggest, DataTypeRdf,
+Numeric Data Types) if modules are present:
+- `numeric:timestamp`
+- `numeric:integer`
+- `numeric:duration`
+- `geometry:geography`
+- `geometry:geometry`
+- `customvocab:xxx` (where xxx is the id, or the label without punctuation, but space is allowed)
+- `valuesuggest:xxx`
+- `html`
+- `xml`
+- `boolean`
+
+The prefixes can be omitted when they are simple: `item`, `itemset`, `media`,
+`timestamp`, `integer`, `duration`, `geography`, `geometry`.
+
+Multiple datatypes can be set for one column, separated with a `;`: `dcterms:relation ^^customvocab:15 ; resource:item ; resource ; literal`.
+The datatype is checked for each value and if it is not valid, the next datatype
+is tried. It is useful when some data are normalized and some not, for example
+with a list of dates or subjects: `dcterms:date ^^numeric:timestamp ; literal`,
+or `dcterms:subject ^^valuesuggest:idref:rameau ; literal`.
+
 To import multiple targets for a column, use the separator "|" in the header.
 Note that if there may be multiple properties, only the first language and type
-will be used. It allows to keep consistency in the metadata.
+will be used for now: `dcterms:creator ^^resource ; literal | foaf:name`.
+
+The visibility of each data can be "public" (default) or "private", prefixed by `§`.
 
 Media can be imported with the item. The mapping is automatic with headers `Media url`,
 `Media html`, etc.
 
-
 ### Internal differences with Csv Import
 
 - Two columns with the same headers should be mapped the same.
-- Empty values for boolean metadata (is_public…) in spreadsheet reader are
+- Empty values for boolean metadata (`is_public`…) in spreadsheet reader are
   skipped and they don't mean "false" or "true".
 - In case of insensitive duplicate, the first one is always returned.
 
@@ -242,7 +286,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2020 (see [Daniel-KM] on GitLab)
+* Copyright Daniel Berthereau, 2017-2021 (see [Daniel-KM] on GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code from Spip)
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
@@ -262,6 +306,7 @@ by [BibLibre].
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
 [this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
 [Spip]: https://spip.net
+[data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
 [Article]: https://gitlab.com/Daniel-KM/Omeka-S-module-Article
 [Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
