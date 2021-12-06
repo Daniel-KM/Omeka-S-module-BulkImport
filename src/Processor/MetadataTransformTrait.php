@@ -882,6 +882,24 @@ SQL;
             return true;
         }
 
+        $sqlFilters = '';
+        if (!empty($params['filters'])) {
+            $filters = &$params['filters'];
+            if (!empty($filters['datatypes'])) {
+                $datatypes = (array) $filters['datatypes'];
+                if (count($datatypes)) {
+                    $sqlFilters = 'AND (`value`.`type` IN (' . implode(', ', array_map([$this->connection, 'quote'], $datatypes)) . ')';
+                    if (in_array('valuesuggest', $datatypes)) {
+                        $sqlFilters .= ' OR `value`.`type` LIKE "valuesuggest%"';
+                    }
+                    if (in_array('', $datatypes)) {
+                        $sqlFilters .= ' OR `value`.`type` IS NULL';
+                    }
+                    $sqlFilters .= ')';
+                }
+            }
+        }
+
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
@@ -893,6 +911,7 @@ JOIN `_temporary_value`
 $sqlExclude
 WHERE
     `value`.`property_id` IN ($propertyIds)
+    $sqlFilters
     $sqlExcludeWhere
 ;
 SQL;
