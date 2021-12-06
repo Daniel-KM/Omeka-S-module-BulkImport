@@ -510,7 +510,10 @@ class Bulk extends AbstractPlugin
 
     public function getDataType($dataType): ?string
     {
-        return $this->getDataTypes()[$dataType] ?? null;
+        $datatypes =  $this->getDataTypes();
+        return $datatypes[$dataType]
+            // Manage exception for customvocab, that may use label as name.
+            ?? $this->getCustomVocabDataType($dataType);
     }
 
     /**
@@ -544,7 +547,48 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Normalize custom vocab data type from a "customvocab:label".
+     *
+     *  The check is done against the destination data types.
+     */
+    public function getCustomVocabDataType(?string $dataType): ?string
+    {
+        static $customVocabs;
+
+        if (empty($dataType) || mb_substr($dataType, 0, 12) !== 'customvocab:') {
+            return null;
+        }
+
+        if (is_null($customVocabs)) {
+            $customVocabs = [];
+            try {
+                $result = $this->api()
+                    ->search('custom_vocabs', [], ['returnScalar' => 'label'])->getContent();
+                foreach ($result  as $id => $label) {
+                    $lowerLabel = mb_strtolower($label);
+                    $cleanLabel = preg_replace('/[\W]/u', '', $lowerLabel);
+                    $customVocabs['customvocab:' . $id] = 'customvocab:' . $id;
+                    $customVocabs['customvocab:' . $label] = 'customvocab:' . $id;
+                    $customVocabs['customvocab' . $cleanLabel] = 'customvocab:' . $id;
+                }
+            } catch (\Exception $e) {
+                // Nothing.
+            }
+        }
+
+        if (empty($customVocabs)) {
+            return null;
+        }
+
+        return $customVocabs[$dataType]
+            ?? $customVocabs[preg_replace('/[\W]/u', '', mb_strtolower($dataType))]
+            ?? null;
+    }
+
+    /**
      * Get the mode of the custom vocab: "literal", "uri" or "itemset".
+     *
+     * The name should be
      */
     public function getCustomVocabMode(string $name): ?string
     {
