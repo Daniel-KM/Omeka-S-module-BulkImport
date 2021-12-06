@@ -14,6 +14,10 @@
  *
  * Les noms de clés servent uniquement comme référence dans le code. Ils peuvent
  * être une propriété, un type de donnée ou tout autre chose.
+ *
+ * Attention : dans les tableaux annexes, seules les destinations doivent
+ * commencer par des noms valides de métadonnées. En particulier, les colonnes à
+ * ne pas importer ne doivent pas commencer par un nom de propriété.
  */
 
 return [
@@ -50,7 +54,8 @@ return [
     'migration' => [
         'file'    => 'migration',
         'headers' => [
-            'Tous'                      => 'all',
+            'Tous Pre'                  => 'tout / pre',
+            'Tous Post'                 => 'tout / post',
             'Elément'                   => 'source',
             'Intitulé Audio-vidéo'      => 'audio-vidéo',
             'Intitulé Images'           => 'images',
@@ -80,6 +85,11 @@ return [
     // Conversion des lieux et sujets géographiques en géonames.
     'countries_iso-3166' => [
         'file'    => 'countries_iso-3166',
+    ],
+
+    // Conversion des lieux et sujets géographiques en géonames.
+    'languages_iso-639-2' => [
+        'file'    => 'languages_iso-639-2',
     ],
 
     /**
@@ -164,6 +174,14 @@ return [
         ],
     ],
 
+    // Normalisation des dates.
+    'dates' => [
+        'file'    => 'dates',
+        'headers' => [
+            'Source'        => 'source',
+        ],
+    ],
+
     /**
      * Correspondances spécifiques Audio-video.
      */
@@ -194,7 +212,7 @@ return [
      * Correspondances spécifiques Livres anciens.
      */
 
-     // Conversion des titres avec des tomes ou volumes pour les livres anciens.
+    // Conversion des titres avec des tomes ou volumes pour les livres anciens.
     'titres_livres_anciens' => [
         'file'    => 'titres_livres_anciens',
         'headers' => [

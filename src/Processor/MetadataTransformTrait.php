@@ -2177,8 +2177,8 @@ WHERE
     AND `value`.`$column` <> ""
     AND `value`.`$column` IS NOT NULL
 GROUP BY `v`
-ORDER BY `v`;
-
+ORDER BY `v`
+;
 SQL;
         $bind = [
             'property_ids' => $properties,

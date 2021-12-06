@@ -8,12 +8,17 @@ use BulkImport\Form\Processor\ManiocProcessorParamsForm;
 /**
  * FIXME Some sql queries apply on all the database: limit them to the item mapping.
  * TODO Remove hard coded data (templates).
+ *
+ * Attention à l'ordre des process migration : par colonne, et donc ne pas
+ * utiliser des données créées après dans un autre processus.
  */
 class ManiocProcessor extends AbstractFullProcessor
 {
     use MetadataTransformTrait;
 
-    const TYPE_ALL = 'all';
+    // Les noms doivent correspondre aux fichiers de configuration et de migration.
+    const TYPE_ALL_PRE = 'tout / pre';
+    const TYPE_ALL_POST = 'tout / post';
     const TYPE_AUDIO_VIDEO = 'audio-vidéo';
     const TYPE_IMAGE = 'images';
     const TYPE_LIVRE = 'livres anciens';
@@ -605,7 +610,7 @@ class ManiocProcessor extends AbstractFullProcessor
         $sql = '';
 
         // Store the mapping in database (source name => property id).
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Store the mapping in database (source name => property id).
 DROP TABLE IF EXISTS `_temporary_map_property`;
 CREATE TEMPORARY TABLE `_temporary_map_property` (
@@ -663,7 +668,7 @@ WHERE (`_src_metadata`.`id_fichier` <> 0 AND `_src_metadata`.`id_fichier` IS NOT
 SQL;
 
         // Remove metadata without file.
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Remove metadata without file.
 DELETE `_temporary_source_value`
 FROM `_temporary_source_value`
@@ -675,7 +680,7 @@ SQL;
         // Decode html entities in values (only common ones).
         // Some values (description) may be html, so keep "<" and ">" in that
         // case. Some values with entities may be remaining.
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Decode common html entities.
 UPDATE `_temporary_source_value`
 SET `_temporary_source_value`.`valeur` =
@@ -697,8 +702,10 @@ SET `_temporary_source_value`.`valeur` =
     REPLACE(
     REPLACE(
     REPLACE(
+    REPLACE(
         `_temporary_source_value`.`valeur`,
     '""', '"'),
+    char(160), " "),
     "&quot;", '"'),
     "&apos;", "'"),
     "&#034;", '"'),
@@ -738,33 +745,33 @@ WHERE
 SQL;
 
         // Replace source id by destination id.
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Replace source id by destination id.
 UPDATE `_temporary_source_value`
 JOIN `_temporary_source_resource` ON `_temporary_source_resource`.`id_fichier` = `_temporary_source_value`.`id_fichier`
-SET `_temporary_source_value`.`id_fichier` = `_temporary_source_resource`.`resource_id`;
-
+SET `_temporary_source_value`.`id_fichier` = `_temporary_source_resource`.`resource_id`
+;
 SQL;
 
         // Replace source field id by property id.
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Replace source field id by property id.
 UPDATE `_temporary_source_value`
 INNER JOIN `_temporary_map_property` ON `_temporary_map_property`.`nom` = `_temporary_source_value`.`nom`
-SET `_temporary_source_value`.`nom` = `_temporary_map_property`.`property_id`;
-
+SET `_temporary_source_value`.`nom` = `_temporary_map_property`.`property_id`
+;
 SQL;
 
         // Copy all source values into destination table "value" with a simple
         // and single request.
-        $sql .= <<<SQL
+        $sql .= <<<'SQL'
 # Copy all source values into destination table "value".
 INSERT INTO `value`
     (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
 SELECT
     `id_fichier`, `nom`, NULL, "literal", NULL, `valeur`, NULL, 1
-FROM `_temporary_source_value`;
-
+FROM `_temporary_source_value`
+;
 # Clean temp tables.
 DROP TABLE IF EXISTS `_temporary_map_property`;
 DROP TABLE IF EXISTS `_temporary_source_resource`;
@@ -825,7 +832,7 @@ SET
     `resource`.`resource_template_id` = :template_id,
     `resource`.`resource_class_id` = :class_id
 WHERE
-    `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    `resource`.`resource_type` = :resource_type
     AND `vocabulary`.`prefix` = :vocabulary_prefix
     AND `property`.`local_name` = :property_name
     AND `value`.`value` LIKE :value;
@@ -835,6 +842,7 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Audio'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'greenstone',
             'property_name' => 'sourceFilename',
             'value' => '%.mp3',
@@ -843,6 +851,7 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Audio'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'format',
             'value' => 'audio/mp3',
@@ -869,7 +878,7 @@ SET
     `resource`.`resource_template_id` = :template_id,
     `resource`.`resource_class_id` = :class_id
 WHERE
-    `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    `resource`.`resource_type` = :resource_type
     AND `vocabulary`.`prefix` = :vocabulary_prefix
     AND `property`.`local_name` = :property_name;
 
@@ -877,6 +886,7 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']["Document d'archives"],
             'class_id' => $this->bulk->getResourceTemplateClassId("Document d'archives"),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'manioc',
             'property_name' => 'archive',
         ];
@@ -905,7 +915,7 @@ SET
     `resource`.`resource_template_id` = :template_id,
     `resource`.`resource_class_id` = :class_id
 WHERE
-    `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    `resource`.`resource_type` = :resource_type
     AND (
         `vocabulary`.`prefix` = :vocabulary_prefix
         AND `property`.`local_name` = :property_name
@@ -925,6 +935,7 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Image'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Image'),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
             'value' => 'greenstone_collection_id: 4',
@@ -957,7 +968,7 @@ SET
     `resource`.`resource_template_id` = :template_id,
     `resource`.`resource_class_id` = :class_id
 WHERE
-    `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    `resource`.`resource_type` = :resource_type
     AND (
         `vocabulary`.`prefix` = :vocabulary_prefix
         AND `property`.`local_name` = :property_name
@@ -997,15 +1008,16 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Livre'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Livre'),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
             'value' => 'greenstone_collection_id: 1',
             'vocabulary_prefix_2' => 'manioc',
             'property_name_2' => 'archive',
-            'vocabulary_prefix_3' => 'manioc',
+            'vocabulary_prefix_3' => 'dcterms',
             'property_name_3' => 'type',
             'value_3' => 'Numéros de revues',
-            'vocabulary_prefix_4' => 'manioc',
+            'vocabulary_prefix_4' => 'dcterms',
             'property_name_4' => 'type',
             'value_4' => 'Extraits de revues',
         ];
@@ -1026,7 +1038,8 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Mémoire et thèse'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Mémoire et thèse'),
-            'vocabulary_prefix' => 'manioc',
+            'resource_type' => \Omeka\Entity\Item::class,
+            'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
             'value' => 'Mémoires, thèses',
         ];
@@ -1047,7 +1060,8 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Numéro de revue'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Numéro de revue'),
-            'vocabulary_prefix' => 'manioc',
+            'resource_type' => \Omeka\Entity\Item::class,
+            'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
             'value' => 'Numéros de revues',
         ];
@@ -1068,7 +1082,8 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Extrait de revue'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Extrait de revue'),
-            'vocabulary_prefix' => 'manioc',
+            'resource_type' => \Omeka\Entity\Item::class,
+            'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
             'value' => 'Extraits de revues',
         ];
@@ -1104,7 +1119,7 @@ SET
     `resource`.`resource_template_id` = :template_id,
     `resource`.`resource_class_id` = :class_id
 WHERE
-    `resource`.`resource_type` = 'Omeka\\Entity\\Item'
+    `resource`.`resource_type` = :resource_type
     AND (
         `vocabulary`.`prefix` = :vocabulary_prefix
         AND `property`.`local_name` = :property_name
@@ -1116,6 +1131,7 @@ SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Vidéo'],
             'class_id' => $this->bulk->getResourceTemplateClassId('Vidéo'),
+            'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
             'value' => 'greenstone_collection_id: 2',
@@ -1155,7 +1171,7 @@ SQL;
 
         // Prepare the template groups.
         // The process for all should be the first.
-        $templateGroups = [self::TYPE_ALL => self::TYPE_ALL];
+        $templateGroups = [self::TYPE_ALL_PRE => self::TYPE_ALL_PRE];
 
         // Les règles varient selon les 4 types d'origine, qui ont été remplacés
         // par des modèles dans l'étape précédente.
@@ -1188,7 +1204,7 @@ SQL;
 
         // Check if value suggest is available in order to prepare a temp table.
         if (!empty($this->modules['ValueSuggest'])) {
-            $sql = <<<SQL
+            $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 CREATE TABLE `_temporary_valuesuggest` (
     `id` int(11) NOT NULL,
@@ -1245,10 +1261,20 @@ SQL;
             return;
         }
 
+        // The process for all-post should be the last.
+        if (isset($templateGroups[self::TYPE_ALL_POST])) {
+            $v = $templateGroups[self::TYPE_ALL_POST];
+            unset($templateGroups[self::TYPE_ALL_POST]);
+            $templateGroups[self::TYPE_ALL_POST] = $v;
+        } else {
+            $templateGroups[self::TYPE_ALL_POST] = null;
+        }
+
         $this->stats['removed'] = 0;
         $this->stats['not_managed'] = [];
         foreach ($templateGroups as $group => $templateLabels) {
-            $processAll = $group === self::TYPE_ALL;
+            $processAll = $group === self::TYPE_ALL_PRE
+                || $group === self::TYPE_ALL_POST;
             if ($processAll) {
                 $templateId = null;
                 $this->logger->notice(
@@ -1305,7 +1331,11 @@ SQL;
                     continue;
                 }
                 // All is the first process, so skip next ones when all is set.
-                if ($group !== self::TYPE_ALL && !empty($map['map'][self::TYPE_ALL])) {
+                if ($group !== self::TYPE_ALL_PRE && !empty($map['map'][self::TYPE_ALL_PRE])) {
+                    continue;
+                }
+                // All-post is the only process, so skip next ones when set.
+                if ($group !== self::TYPE_ALL_POST && !empty($map['map'][self::TYPE_ALL_POST])) {
                     continue;
                 }
                 if ($this->isErrorOrStop()) {
@@ -1341,13 +1371,13 @@ SQL;
         // Check if value suggest is available in order to prepare a temp table.
         if (!empty($this->modules['ValueSuggest'])) {
             $this->saveMappingsSourceUris();
-            $sql = <<<SQL
+            $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 SQL;
             $this->connection->exec($sql);
         }
 
-        $sql = <<<SQL
+        $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_value`;
 SQL;
         $this->connection->exec($sql);
@@ -1484,7 +1514,8 @@ SQL;
             ]
         );
 
-        // ATTENTION : ne pas supprimer en amont les propriétés dont on a besoin en aval.
+        // ATTENTION : ne pas supprimer en amont les propriétés dont on a besoin
+        // en aval : les mettre dans le groupe "Tous Post".
         if ($action === 'remove') {
             $this->transformOperations([
                 [
@@ -1516,7 +1547,7 @@ SQL;
         switch ($value) {
             // Effectue des modifications avant toute autre modification.
             case 'Pre':
-                if ($group === self::TYPE_ALL) {
+                if ($group === self::TYPE_ALL_PRE) {
                     $this->transformOperations([
                         [
                             // Crée une ressource liée à partir du champ "auteur/contributeur".
@@ -1630,6 +1661,7 @@ SQL;
                                 'keep_source' => true,
                             ],
                         ],
+                        /* // Inutile car apparemment tous des doublons.
                         [
                             // Il y aura de nombreux doublons, mais ils
                             // seront supprimés lors de la dernière étape
@@ -1643,6 +1675,7 @@ SQL;
                                 'keep_source' => true,
                             ],
                         ],
+                        */
                     ]);
                 } elseif ($group === self::TYPE_PERSONNE_COLLECTIVITE) {
                     $this->transformOperations([
@@ -1742,6 +1775,7 @@ SQL;
                 break;
 
             case 'Editeur':
+            case 'Éditeur':
                 switch ($group) {
                     case self::TYPE_LIVRE:
                         // Lieu d’édition : éditeur
@@ -1782,7 +1816,31 @@ SQL;
                 }
                 break;
 
+            case 'Est constitué de':
+                if ($group === self::TYPE_LIVRE) {
+                    // Ne pas supprimer les valeurs créées automatiquement
+                    // auparavant (dcterms:hasPart).
+                    $this->transformOperations([
+                        [
+                            'action' => 'remove_value',
+                            'params' => [
+                                'properties' => [
+                                    $map['property_id'],
+                                ],
+                                'filters' => [
+                                    'datatypes' => [
+                                        'literal',
+                                        '',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]);
+                }
+                break;
+
             case 'Etablissement':
+            case 'Établissement':
                 $this->transformOperations([
                     [
                         'action' => 'replace_table',
@@ -1797,7 +1855,8 @@ SQL;
 
             case 'Fait partie de':
                 if ($group === self::TYPE_IMAGE) {
-                    // dcterms:title : Titre. Tome n° => dcterms:title / bibo:pages
+                    // dcterms:title : Titre. Tome n°
+                    // => dcterms:isPartOf (ressource liée) / bibo:locator / bibo:number
                     $this->transformOperations([
                         [
                             'action' => 'replace_table',
@@ -1808,6 +1867,7 @@ SQL;
                         ],
                     ]);
                 }
+                // TODO Audio-video : actuellement ajouté plus bas.
                 break;
 
             case 'Indice Dewey':
@@ -1941,7 +2001,64 @@ SQL;
                 break;
 
             case 'Post':
-                if ($group === self::TYPE_AUDIO_VIDEO) {
+                if ($group === self::TYPE_ALL_PRE) {
+                    global $allop;
+                    $allop = true;
+                    $this->transformOperations([
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:themeAudioVideo',
+                                'destination' => 'dcterms:subject',
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:themeGeneral',
+                                'destination' => 'dcterms:subject',
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:themeImages',
+                                'destination' => 'dcterms:subject',
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:themePatrimoine',
+                                'destination' => 'dcterms:subject',
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:themeTravaux',
+                                'destination' => 'dcterms:subject',
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:personne',
+                                'destination' => 'dcterms:subject',
+                                'is_public' => true,
+                            ],
+                        ],
+                        [
+                            'action' => 'append_value',
+                            'params' => [
+                                'properties' => [
+                                    'dcterms:provenance',
+                                ],
+                                'value' => 'Bibliothèque numérique Manioc',
+                            ],
+                        ],
+                    ]);
+                } elseif ($group === self::TYPE_AUDIO_VIDEO) {
                     $this->transformOperations([
                         [
                             'action' => 'copy_value_linked',
@@ -1951,6 +2068,39 @@ SQL;
                                     'dcterms:language',
                                     'dcterms:audience',
                                 ],
+                            ],
+                        ],
+                        [
+                            'action' => 'append_value',
+                            'params' => [
+                                'properties' => [
+                                    'dcterms:rightsHolder',
+                                ],
+                                'value' => 'Université des Antilles et de la Guyane',
+                                // TODO Use exclude?
+                                'filters' => [
+                                    'template_id' => $this->bulk->getResourceTemplateId('Audio'),
+                                ],
+                            ],
+                        ],
+                        [
+                            'action' => 'modify_value',
+                            'params' => [
+                                'source' => 'manioc:etagere',
+                                'destination' => 'bibo:number',
+                                'is_public' => true,
+                            ],
+                        ],
+                    ]);
+                } elseif ($group === self::TYPE_IMAGE) {
+                    $this->transformOperations([
+                        [
+                            'action' => 'append_value',
+                            'params' => [
+                                'properties' => [
+                                    'dcterms:rights',
+                                ],
+                                'value' => 'Domaine public',
                             ],
                         ],
                     ]);
@@ -1973,13 +2123,13 @@ SQL;
                                 'properties' => [
                                     '/record/datafield[@tag="200"]/subfield[@code="a"][1]' => 'foaf:familyName',
                                     '/record/datafield[@tag="200"]/subfield[@code="b"][1]' => 'foaf:givenName',
-                                    '/record/datafield[@tag="900"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    '/record/datafield[@tag="901"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    '/record/datafield[@tag="902"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    '/record/datafield[@tag="910"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    '/record/datafield[@tag="911"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    '/record/datafield[@tag="912"]/subfield[@code="a"][1]' => 'dcterms:alternative',
-                                    // Dates are already updated with search query.
+                                    // '/record/datafield[@tag="900"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="901"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="902"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    // '/record/datafield[@tag="910"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="911"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    '/record/datafield[@tag="912"]/subfield[@code="a"]' => 'dcterms:alternative',
+                                    // Les dates sont déjà prise en compte.
                                     '/record/datafield[@tag="103"]/subfield[@code="a"][1]' => 'bio:birth',
                                     '/record/datafield[@tag="103"]/subfield[@code="b"][1]' => 'bio:death',
                                     '/record/datafield[@tag="120"]/subfield[@code="a"][1]' => 'foaf:gender',
@@ -1988,8 +2138,8 @@ SQL;
                                     '/record/datafield[@tag="200"]/subfield[@code="c"][1]' => 'bio:biography',
                                     '/record/datafield[@tag="300"]/subfield[@code="a"][1]' => 'bio:biography',
                                     '/record/datafield[@tag="340"]/subfield[@code="a"][1]' => 'bio:biography',
-                                    '/record/datafield[@tag="810"]/subfield[@code="a"][1]' => 'dcterms:bibliographicCitation',
-                                    '/record/datafield[@tag="810"]/subfield[@code="b"][1]' => 'dcterms:bibliographicCitation',
+                                    '/record/datafield[@tag="810"]/subfield[@code="a"]' => 'dcterms:bibliographicCitation',
+                                    '/record/datafield[@tag="810"]/subfield[@code="b"]' => 'dcterms:bibliographicCitation',
                                 ],
                             ],
                         ],
@@ -2007,6 +2157,20 @@ SQL;
                             ],
                         ],
                     ]);
+                } elseif ($group === self::TYPE_ALL_POST) {
+                    // Normaliser les dates issues de tous les précédents traitements.
+                    $this->transformOperations([
+                        // dcterms:date => normalisation en dates ou périodes.
+                        [
+                            'action' => 'replace_table',
+                            'params' => [
+                                // Il n'y a pas de source prédéfinie.
+                                // 'source' => $map['property_id'],
+                                'source' => 'dcterms:date',
+                                'mapping' => 'dates',
+                            ],
+                        ],
+                   ]);
                 }
                 break;
 
@@ -2033,12 +2197,517 @@ WHERE
 ;
 SQL;
         $this->connection->executeStatement($sql);
+
+        // Gère certaines exceptions.
+
+        // Mettre abstract en description pour les audio.
+        $sql = <<<'SQL'
+UPDATE `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+SET
+    `value`.`property_id` = :property_id_new
+WHERE
+    `value`.`property_id` = :property_id_old
+    AND `resource`.`resource_class_id` = :class_id
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id_new' => $this->bulk->getPropertyId('dcterms:abstract'),
+            'property_id_old' => $this->bulk->getPropertyId('dcterms:description'),
+            'class_id' => $this->bulk->getResourceClassId('dctype:Sound'),
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $this->connection->executeStatement($sql, $bind);
+        $this->logger->notice(
+            'The values of property "{property}" has been moved to property "{property_2}" for class "{resource_class}".',  // @translate
+            ['property' => 'dcterms:description', 'property_2' => 'dcterms:abstract', 'resource_class' => 'dctype:Sound']
+        );
+
+        // Correction de la langue pour "da" => "dan".
+        $sql = <<<'SQL'
+UPDATE `value`
+SET
+    `value`.`value` = :value_new,
+    `value`.`uri` = :uri
+WHERE
+    `value`.`value` = :value_old
+    AND `value`.`property_id` = :property_id
+;
+SQL;
+        $bind = [
+            'value_new' => 'dan',
+            'uri' => 'http://id.loc.gov/vocabulary/iso639-2/dan',
+            'value_old' => 'da',
+            'property_id' => $this->bulk->getPropertyId('dcterms:language'),
+        ];
+        $this->connection->executeStatement($sql, $bind);
+
+        // Ajout du label pour dcterms:language.
+        $table = $this->loadTableAsKeyValue('languages_iso-639-2', 'label', true) ?: [];
+        if ($table) {
+            $this->updateValueTable($table, 'dcterms:language');
+        }
+
+        // Ajout du pays pour bio:place.
+        $table = $this->loadTable('countries_iso-3166');
+        if ($table) {
+            $table = array_column($table, 'URI', 'Français');
+            $this->updateValueTable($table, 'bio:place');
+        }
+
+        // Forçage de toutes les vidéos en "video/mp4".
+        $sql = <<<'SQL'
+UPDATE `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+SET
+    `value`.`value` = "video/mp4"
+WHERE
+    `value`.`property_id` = :property_id
+    AND `resource`.`resource_template_id` = :template_id
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:format'),
+            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $this->connection->executeStatement($sql, $bind);
+
+        // Ajout de video/mp4 pour toutes les vidéos (doublons supprimés après).
+        $sql = <<<'SQL'
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value`, `type`, `is_public`)
+SELECT DISTINCT
+    `resource_id`, :property_id, "video/mp4", "literal", 1
+FROM `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+WHERE
+    `resource`.`resource_template_id` = :template_id
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:format'),
+            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $this->connection->executeStatement($sql, $bind);
+
+        // Pour les contenus video :
+        // Récupérer la valeur Lieu de la Manifestation pour toutes les vidéos
+        // relevant d'une manifestation ; pas de valeur pour les autres vidéos.
+        $this->insertValueFromParentByTemplate([
+            'property_parent' => 'dcterms:isPartOf',
+            'property_parent_fetch' => 'bio:place',
+            'property_parent_fill' => 'dcterms:rightsHolder',
+            'template' => 'Vidéo',
+        ]);
+
+        // Pour les contenus images :
+        // Récupérer la valeur Etablissement du livre d'où provient l'image
+        $this->insertValueFromParentByTemplate([
+            'property_parent' => 'dcterms:isPartOf',
+            'property_parent_fetch' => 'dcterms:rightsHolder',
+            'property_parent_fill' => 'dcterms:rightsHolder',
+            'template' => 'Image',
+        ]);
+
+        // Pour bibo:uri dans : Personne, Collectivité, Manifestation.
+        // - déplacer les liens idref en bibo:identifier.
+        // - créer le permalien (ok via batchupdate).
+        $sql = <<<'SQL'
+UPDATE `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+SET
+    `value`.`property_id` = :property_id_new
+WHERE
+    `value`.`property_id` = :property_id_old
+    AND `resource`.`resource_template_id` IN (:template_ids)
+    AND `resource`.`resource_type` = :resource_type
+    AND (
+        `value`.`uri` LIKE "https://idref.fr%"
+        OR `value`.`uri` LIKE "https://www.idref.fr%"
+    );
+SQL;
+        $bind = [
+            'property_id_new' => $this->bulk->getPropertyId('bibo:identifier'),
+            'property_id_old' => $this->bulk->getPropertyId('bibo:uri'),
+            'resource_type' => \Omeka\Entity\Item::class,
+            'template_ids' => [
+                $this->bulk->getResourceTemplateId('Personne'),
+                $this->bulk->getResourceTemplateId('Collectivité'),
+                $this->bulk->getResourceTemplateId('Manifestation'),
+            ],
+        ];
+        $types = ['template_ids' => $this->connection::PARAM_INT_ARRAY];
+        $this->connection->executeStatement($sql, $bind, $types);
+
+        // Récupérer les liens pour les vidéos.
+        // Si la relation est un lien html ou une url, récupérer le code, puis
+        // trouver la ressource correspondante et faire le lien.
+        // Exemple : <a hrf="http://www.manioc.org/recherch/T15004">Voir la présentation</a>
+        // récupérer item avec dcterms:identifer = T15004
+        $sql = <<<'SQL'
+SELECT `value`.*
+FROM `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+WHERE
+    `value`.`property_id` = :property_id
+    AND `resource`.`resource_template_id` = :template_id
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:relation'),
+            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $videos = $this->connection->executeQuery($sql, $bind)->fetchAllAssociative();
+        foreach ($videos as $video) {
+            $url = $video['value'] ?? $video['uri'];
+            if (!$url) {
+                continue;
+            }
+            $url = preg_replace('~.*((http|https|ftp|ftps)\://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/[^\s"\',;.:]+)?).*~', '$1', $url);
+            $name = basename($url);
+            if (!$url || !$name) {
+                continue;
+            }
+            $sql = <<<'SQL'
+SELECT `value`.`resource_id`
+FROM `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+WHERE
+    `value`.`property_id` = :property_id
+    AND `value`.`value` = :value
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+            $bind = [
+                'property_id' => $this->bulk->getPropertyId('dcterms:identifier'),
+                'value' => $name,
+                'resource_type' => \Omeka\Entity\Item::class,
+            ];
+            $resourceId = (int) $this->connection->executeQuery($sql, $bind)->fetchColumn();
+            if ($resourceId) {
+                $sql = <<<'SQL'
+UPDATE `value`
+SET
+    `value`.`value` = NULL,
+    `value`.`type` = "resource:item",
+    `value`.`uri` = NULL,
+    `value`.`lang` = NULL,
+    `value`.`value_resource_id` = :value_resource_id
+WHERE
+    `value`.`id` = :value_id
+;
+SQL;
+                $bind = [
+                    'value_resource_id' => $resourceId,
+                    'value_id' => (int) $video['id'],
+                ];
+                $this->connection->executeStatement($sql, $bind);
+
+                // Créer la relation réciproque.
+                $sql = <<<'SQL'
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+VALUES (:resource_id, :property_id, :value_resource_id, "resource:item", 1)
+;
+SQL;
+                $bind = [
+                    'resource_id' => $resourceId,
+                    'value_resource_id' => (int) $video['resource_id'],
+                    'property_id' => $this->bulk->getPropertyId('dcterms:relation'),
+                ];
+                $this->connection->executeStatement($sql, $bind);
+            } else {
+                $sql = <<<'SQL'
+UPDATE `value`
+SET
+    `value`.`value` = NULL,
+    `value`.`type` = "uri",
+    `value`.`uri` = :uri,
+    `value`.`lang` = NULL,
+    `value`.`value_resource_id` = NULL
+WHERE
+    `value`.`id` = :value_id
+;
+SQL;
+                $bind = [
+                    'uri' => $url,
+                    'value_id' => (int) $video['id'],
+                ];
+                $this->connection->executeStatement($sql, $bind);
+            }
+        }
+
+        // Vidéo, livre, images
+        // Déplacer les noms de personnes en sujet.
+        $sql = <<<'SQL'
+UPDATE `value`
+SET
+    `value`.`property_id` = :property_id,
+    `value`.`is_public` = 1
+WHERE
+    `value`.`property_id` = :property_id_old
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:subject'),
+            'property_id_old' => $this->bulk->getPropertyId('manioc:personne'),
+        ];
+        $this->connection->executeStatement($sql, $bind);
+
+        // Mettre en public les hasPart.
+        // Cela n'est possible que pour les valeurs réciproques déjà créées.
+        $sql = <<<'SQL'
+UPDATE `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+SET
+    `value`.`is_public` = 1
+WHERE
+    `value`.`property_id` = :property_id
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:hasPart'),
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $result = $this->connection->executeStatement($sql, $bind);
+
+        // Déplacer les anciens thèmes dans sujets si besoin.
+        $sql = <<<'SQL'
+UPDATE `value`
+INNER JOIN `resource` ON `value`.`resource_id` = `resource`.`id`
+SET
+    `value`.`property_id` = :property_id
+WHERE
+    `value`.`property_id` IN (:property_ids)
+    AND `resource`.`resource_type` = :resource_type
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('dcterms:subject'),
+            'property_ids' => [
+                $this->bulk->getPropertyId('manioc:themeAudioVideo'),
+                $this->bulk->getPropertyId('manioc:themeImages'),
+                $this->bulk->getPropertyId('manioc:themePatrimoine'),
+                $this->bulk->getPropertyId('manioc:themeTravaux'),
+            ],
+            'resource_type' => \Omeka\Entity\Item::class,
+        ];
+        $types = ['property_ids' => $this->connection::PARAM_INT_ARRAY];
+        $this->connection->executeStatement($sql, $bind, $types);
+    }
+
+    protected function insertValueFromParentByTemplate(array $data): void
+    {
+        $templateId = $this->bulk->getResourceTemplateId($data['template']);
+        $propertyParent = $this->bulk->getPropertyId($data['property_parent']);
+        $propertyParentFetch = $this->bulk->getPropertyId($data['property_parent_fetch']);
+        $propertyFill = $this->bulk->getPropertyId($data['property_parent_fill']);
+        if (!$templateId || !$propertyParent || !$propertyParentFetch || !$propertyFill) {
+            return;
+        }
+
+        // TODO Créer une requête unique.
+
+        $sql = <<<'SQL'
+SELECT DISTINCT
+    `value`.`resource_id`,
+    `value`.`value_resource_id`
+FROM `value`
+JOIN `resource`
+    ON `resource`.`id` = `value`.`resource_id`
+JOIN `item`
+    ON `item`.`id` = `value`.`resource_id`
+WHERE
+    `resource`.`resource_template_id` = :template_id
+    AND `value`.`property_id` = :property_id
+    AND `value`.`type` IN ("resource", "resource:item")
+;
+SQL;
+        $bind = [
+            'template_id' => $templateId,
+            'property_id' => $propertyParent,
+        ];
+        $sourcesToItems = $this->connection->executeQuery($sql, $bind)->fetchAllKeyValue();
+        if (!count($sourcesToItems)) {
+            return;
+        }
+
+        $sql = <<<'SQL'
+SELECT DISTINCT
+    `value`.`resource_id`,
+    `value`.`value`
+FROM `value`
+JOIN `resource`
+    ON `resource`.`id` = `value`.`resource_id`
+JOIN `item`
+    ON `item`.`id` = `value`.`resource_id`
+WHERE
+    `resource`.`id` IN (:resource_ids)
+    AND `value`.`property_id` = :property_id
+;
+SQL;
+        $bind = [
+            'resource_ids' => $sourcesToItems,
+            'property_id' => $propertyParentFetch,
+        ];
+        $types = [
+            'resource_ids' => $this->connection::PARAM_INT_ARRAY,
+        ];
+        $parentItems = $this->connection->executeQuery($sql, $bind, $types)->fetchAllKeyValue();
+        if (!count($parentItems)) {
+            return;
+        }
+
+        // Ajouter des valeurs aux sources qui ont un parent avec une valeur.
+        $sourcesToItems = array_intersect($sourcesToItems, array_keys($parentItems));
+        $propertyId = $this->bulk->getPropertyId($propertyFill);
+        foreach (array_chunk($sourcesToItems, self::CHUNK_ENTITIES, true) as $chunk) {
+            $sql = <<<'SQL'
+INSERT INTO `value`
+    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+VALUES
+SQL;
+            foreach ($chunk as $sourceId => $itemId) {
+                $quotedValue = $this->connection->quote($parentItems[$itemId]);
+                $sql .= " ($sourceId, $propertyId, NULL, 'literal', NULL, $quotedValue, NULL, 1),";
+            }
+            $sql = trim($sql, ',');
+            $this->connection->executeStatement($sql, $bind, $types);
+        }
+
+        // Supprimer les pays inconnus et multiples (xx et zz).
+        $sql = <<<'SQL'
+DELETE `value`
+FROM `value`
+WHERE
+    `value`.`property_id` = :property_id
+    AND (
+        `value`.`uri` = "Pays multiples"
+        OR `value`.`uri` = "Pays inconnu"
+    )
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('bio:place'),
+        ];
+        $this->connection->executeStatement($sql, $bind);
+
+        // Utiliser les noms français comme label des geonames.
+        $sql = <<<'SQL'
+SELECT id, id
+FROM `value`
+WHERE
+    `value`.`property_id` = :property_id
+    AND `value`.`type` = "valuesuggest:geonames:geonames"
+    AND LENGTH(`value`.`value`) = 2
+;
+SQL;
+        $bind = [
+            'property_id' => $this->bulk->getPropertyId('bio:place'),
+        ];
+        $ids = $this->connection->executeQuery($sql, $bind)->fetchAllKeyValue();
+        if ($ids) {
+            $this->dispatchJob(\Omeka\Job\BatchUpdate::class, [
+                'resource' => 'items',
+                'query' => ['id' => $ids],
+                'data' => [
+                    'bulkedit' => [
+                        'fill_values' => [
+                            // Forcer le traitement.
+                            'mode' => 'all',
+                            'properties' => [
+                                'bio:place',
+                            ],
+                            'datatypes' => [
+                                'valuesuggest:geonames:geonames',
+                            ],
+                            'language_code' => 'fr',
+                            'featured_subject' => false,
+                        ],
+                    ],
+                ],
+            ]);
+        }
+    }
+
+    protected function updateValueTable($table, $property): void
+    {
+        $sql = 'UPDATE `value` SET `value` = CASE ';
+        foreach ($table as $uri => $value) {
+            $uri = $this->connection->quote($uri);
+            $value = $this->connection->quote($value);
+            $sql .= "\nWHEN `uri` = $uri THEN $value ";
+        }
+        $sql .= "\nELSE `value`";
+        $sql .= "\nEND\nWHERE `property_id` = :property_id;";
+        $this->connection->executeStatement($sql, [
+            'property_id' => $this->bulk->getPropertyId($property),
+        ]);
+        $this->logger->notice(
+            'Added label to {property}.',  // @translate
+            ['property' => $property]
+        );
     }
 
     protected function completionShortJobs(array $resourceIds): void
     {
         // TODO Bulk Edit Géonames label et Rameau label.
         parent::completionShortJobs($resourceIds);
+
+        // Mettre à jour des labels idref.
+        if ($this->isModuleActive('BulkEdit')) {
+            $this->logger->notice('Adding labels to ValueSuggest uris.'); // @translate
+            $this->dispatchJob(\Omeka\Job\BatchUpdate::class, [
+                'resource' => 'items',
+                'query' => [],
+                'data' => [
+                    'bulkedit' => [
+                        'fill_values' => [
+                            'mode' => 'empty',
+                            'properties' => [
+                                'dcterms:spatial',
+                                'dcterms:subject',
+                                'bibo:identifier',
+                                'bio:place',
+                                // Normalement déjà déplacé en dcterms:subject.
+                                'manioc:themeAudioVideo',
+                                'manioc:themeGeneral',
+                                'manioc:themeImages',
+                                'manioc:themePatrimoine',
+                                'manioc:themeTravaux',
+                            ],
+                            'datatypes' => [
+                                'valuesuggest:geonames:geonames',
+                                'valuesuggest:idref:all',
+                                'valuesuggest:idref:person',
+                                'valuesuggest:idref:corporation',
+                                'valuesuggest:idref:conference',
+                                'valuesuggest:idref:subject',
+                                'valuesuggest:idref:rameau',
+                                // 'valuesuggest:idref:fmesh',
+                                // 'valuesuggest:idref:geo',
+                                // 'valuesuggest:idref:family',
+                                // 'valuesuggest:idref:title',
+                                // 'valuesuggest:idref:authorTitle',
+                                // 'valuesuggest:idref:trademark',
+                                // 'valuesuggest:idref:ppn',
+                                // 'valuesuggest:idref:library',
+                            ],
+                            'language_code' => 'fr',
+                            'featured_subject' => false,
+                        ],
+                    ],
+                ],
+            ]);
+        }
     }
 
     /**
