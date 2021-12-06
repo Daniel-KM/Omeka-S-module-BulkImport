@@ -2286,7 +2286,7 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         $this->logger->info(new Message(
-            'Renommage : %s', // @translate
+            'Renaming : %s', // @translate
             json_encode($replace, 320)
         ));
 
@@ -2340,7 +2340,7 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         $this->logger->info(new Message(
-            'Renommage : %s', // @translate
+            'Renaming : %s', // @translate
             json_encode($replace, 320)
         ));
 
