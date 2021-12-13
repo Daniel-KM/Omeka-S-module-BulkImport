@@ -399,18 +399,18 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             // Results are the same, because the "Where" condition returns only
             // duplicate values.
             // In sql, « <> "" » includes « is not null », but « = "" » does not return « is null ».
-            ->select([
+            ->select(
                 'CASE WHEN MIN(value.uri) <> "" THEN MIN(value.uri) ELSE MIN(value.value) END AS "identifier"',
                 'MIN(value.resource_id) AS "id"',
-                'COUNT(DISTINCT(value.resource_id)) AS "count"',
-            ])
+                'COUNT(DISTINCT(value.resource_id)) AS "count"'
+            )
             ->from('value', 'value')
             ->leftJoin('value', 'resource', 'resource', 'value.resource_id = resource.id')
             // ->andWhere($expr->in('value.property_id', $propertyIds))
             // ->andWhere($expr->in('value.value', $identifiers))
             ->addGroupBy('value.value')
             ->addOrderBy('MIN(value.resource_id)', 'ASC')
-            ->addOrderBy('value.id', 'ASC');
+            ->addOrderBy('MIN(value.id)', 'ASC');
 
         $parameters = [];
         if (count($identifiers) === 1) {
