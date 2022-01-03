@@ -61,6 +61,25 @@ abstract class AbstractProcessor implements Processor
     protected $job;
 
     /**
+     * @var \Omeka\Permissions\Acl
+     */
+    protected $acl;
+
+    /**
+     * @var \Omeka\Api\Adapter\Manager
+     */
+    protected $adapterManager;
+
+    /**
+     * The api is available through bulk->api() too.
+     * Api manager doesn't manage ValidationException, but has more public
+     * methods.
+     *
+     * @var \Omeka\Api\Manager
+     */
+    protected $apiManager;
+
+    /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk;
      */
     protected $bulk;
@@ -83,6 +102,9 @@ abstract class AbstractProcessor implements Processor
     public function __construct(ServiceLocatorInterface $services)
     {
         $this->setServiceLocator($services);
+        $this->acl = $services->get('Omeka\Acl');
+        $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
+        $this->apiManager = $services->get('Omeka\ApiManager');
         $this->bulk = $services->get('ControllerPluginManager')->get('bulk');
         $this->translator = $services->get('MvcTranslator');
         $config = $services->get('Config');
