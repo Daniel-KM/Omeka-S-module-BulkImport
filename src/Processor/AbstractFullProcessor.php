@@ -918,7 +918,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected function prepareMainResource(string $name): void
     {
         if (!empty($this->main[$name]['template'])) {
-            $entity = $this->api()->searchOne('resource_templates', ['label' => $this->main[$name]['template']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            $entity = $this->bulk->api()->searchOne('resource_templates', ['label' => $this->main[$name]['template']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -932,7 +932,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if (!empty($this->main[$name]['class'])) {
-            $entity = $this->api()->searchOne('resource_classes', ['term' => $this->main[$name]['class']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            $entity = $this->bulk->api()->searchOne('resource_classes', ['term' => $this->main[$name]['class']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -946,7 +946,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if (!empty($this->main[$name]['custom_vocab'])) {
-            $entity = $this->api()->searchOne('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            $entity = $this->bulk->api()->searchOne('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -975,7 +975,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function prepareInternalVocabularies(): void
     {
-        foreach ($this->getPropertyIds() as $term => $id) {
+        foreach ($this->bulk->getPropertyIds() as $term => $id) {
             $this->map['properties'][$term] = [
                 'term' => $term,
                 'source' => $id,
@@ -984,7 +984,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
         $this->map['by_id']['properties'] = array_map('intval', array_column($this->map['properties'], 'id', 'source'));
 
-        foreach ($this->getResourceClassIds() as $term => $id) {
+        foreach ($this->bulk->getResourceClassIds() as $term => $id) {
             $this->map['resource_classes'][$term] = [
                 'term' => $term,
                 'source' => $id,
@@ -1002,7 +1002,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function prepareInternalTemplates(): void
     {
-        $this->map['resource_templates'] = $this->getResourceTemplateIds();
+        $this->map['resource_templates'] = $this->bulk->getResourceTemplateIds();
     }
 
     protected function checkVocabularies(): void
@@ -1209,7 +1209,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $ids = array_values(array_unique(array_filter($ids)));
 
         $this->logger->notice('Assigning items to sites.'); // @translate
-        $sitePools = $this->api()->search('sites', [], ['returnScalar' => 'itemPool'])->getContent();
+        $sitePools = $this->bulk->api()->search('sites', [], ['returnScalar' => 'itemPool'])->getContent();
         $sitePools = array_map(function ($v) {
             return is_array($v) ? $v : [];
         }, $sitePools);

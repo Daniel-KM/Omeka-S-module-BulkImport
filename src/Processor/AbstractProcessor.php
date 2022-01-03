@@ -32,8 +32,8 @@ abstract class AbstractProcessor implements Processor
      * Processor actions
      *
      * The various update actions are probably too much related to spreadsheet
-     * (what is the meaning of an empty cell?), and may be replaced with a more
-     * simpler second option or automatic determination.
+     * (what is the meaning of an empty cell or a missing column?), and may be
+     * replaced with a simpler second option or automatic determination.
      */
     const ACTION_CREATE = 'create'; // @translate
     const ACTION_APPEND = 'append'; // @translate
@@ -112,265 +112,6 @@ abstract class AbstractProcessor implements Processor
     }
 
     /**
-     * Check if a string or a id is a managed term.
-     *
-     * @param string|int $termOrId
-     * @return bool
-     */
-    protected function isPropertyTerm($termOrId): bool
-    {
-        return $this->bulk->isPropertyTerm($termOrId);
-    }
-
-    /**
-     * Get a property id by term or id.
-     *
-     * @param string|int $termOrId
-     * @return int|null
-     */
-    protected function getPropertyId($termOrId): ?int
-    {
-        return $this->bulk->getPropertyId($termOrId);
-    }
-
-    /**
-     * Get a property term by term or id.
-     *
-     * @param string|int $termOrId
-     * @return string|null
-     */
-    protected function getPropertyTerm($termOrId): ?string
-    {
-        return $this->bulk->getPropertyTerm($termOrId);
-    }
-
-    /**
-     * Get all property ids by term.
-     */
-    protected function getPropertyIds(): array
-    {
-        return $this->bulk->getPropertyIds();
-    }
-
-    /**
-     * Check if a string or a id is a resource class.
-     *
-     * @param string|int $termOrId
-     * @return bool
-     */
-    protected function isResourceClass($termOrId): bool
-    {
-        return $this->bulk->isResourceClass($termOrId);
-    }
-
-    /**
-     * Get a resource class by term or by id.
-     *
-     * @param string|int $termOrId
-     * @return int|null
-     */
-    protected function getResourceClassId($termOrId): ?int
-    {
-        return $this->bulk->getResourceClassId($termOrId);
-    }
-
-    /**
-     * Get all resource classes ids by term.
-     */
-    protected function getResourceClassIds(): array
-    {
-        return $this->bulk->getResourceClassIds();
-    }
-
-    /**
-     * Check if a string or a id is a resource template.
-     *
-     * @param string|int $labelOrId
-     * @return bool
-     */
-    protected function isResourceTemplate($labelOrId): bool
-    {
-        return $this->bulk->isResourceTemplate($labelOrId);
-    }
-
-    /**
-     * Get a resource template by label or by id.
-     *
-     * @param string|int $labelOrId
-     * @return int|null
-     */
-    protected function getResourceTemplateId($labelOrId): ?int
-    {
-        return $this->bulk->getResourceTemplateId($labelOrId);
-    }
-
-    /**
-     * Get all resource templates ids by label.
-     */
-    protected function getResourceTemplateIds(): array
-    {
-        return $this->bulk->getResourceTemplateIds();
-    }
-
-    protected function getDataType($type): ?string
-    {
-        return $this->bulk->getDataType((string) $type);
-    }
-
-    /**
-     * @return array
-     */
-    protected function getDataTypes(): array
-    {
-        return $this->bulk->getDataTypes();
-    }
-
-    /**
-     * Get a user id by email or id or name.
-     *
-     * @param string|int $emailOrIdOrName
-     * @return int|null
-     */
-    protected function getUserId($emailOrIdOrName): ?int
-    {
-        return $this->bulk->getUserId($emailOrIdOrName);
-    }
-
-    /**
-     * Trim all whitespaces.
-     */
-    protected function trimUnicode($string): string
-    {
-        return $this->bulk->trimUnicode((string) $string);
-    }
-
-    /**
-     * Check if a string seems to be an url.
-     *
-     * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.
-     */
-    protected function isUrl($string): bool
-    {
-        return $this->bulk->isUrl((string) $string);
-    }
-
-    /**
-     * Allows to log resources with a singular name from the resource type, that
-     * is plural in Omeka.
-     */
-    protected function label($resourceType): string
-    {
-        return $this->bulk->label((string) $resourceType);
-    }
-
-    /**
-     * Allows to log resources with a singular name from the resource type, that
-     * is plural in Omeka.
-     */
-    protected function labelPlural($resourceType): string
-    {
-        return $this->bulk->labelPlural((string) $resourceType);
-    }
-
-    /**
-     * Find a list of resource ids from a list of identifiers (or one id).
-     *
-     * When there are true duplicates and case insensitive duplicates, the first
-     * case sensitive is returned, else the first case insensitive resource.
-     *
-     * @todo Manage Media source html.
-     *
-     * @uses\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
-     *
-     * @param array|string $identifiers Identifiers should be unique. If a
-     * string is sent, the result will be the resource.
-     * @param string|int|array $identifierName Property as integer or term,
-     * "o:id", a media ingester (url or file), or an associative array with
-     * multiple conditions (for media source). May be a list of identifier
-     * metadata names, in which case the identifiers are searched in a list of
-     * properties and/or in internal ids.
-     * @param string $resourceType The resource type if any.
-     * @return array|int|null|Object Associative array with the identifiers as key
-     * and the ids or null as value. Order is kept, but duplicate identifiers
-     * are removed. If $identifiers is a string, return directly the resource
-     * id, or null. Returns standard object when there is at least one duplicated
-     * identifiers in resource and the option "$uniqueOnly" is set.
-     *
-     * Note: The option uniqueOnly is not taken in account. The object or the
-     * boolean are not returned, but logged.
-     * Furthermore, the identifiers without id are not returned.
-     */
-    protected function findResourcesFromIdentifiers($identifiers, $identifierName = null, $resourceType = null)
-    {
-        return $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType);
-    }
-
-    /**
-     * Find a resource id from a an identifier.
-     *
-     * @uses self::findResourcesFromIdentifiers()
-     * @param string $identifier
-     * @param string|int|array $identifierName Property as integer or term,
-     * media ingester or "o:id", or an array with multiple conditions.
-     * @param string $resourceType The resource type if any.
-     * @return int|null|false
-     */
-    protected function findResourceFromIdentifier($identifier, $identifierName = null, $resourceType = null)
-    {
-        return $this->bulk->findResourceFromIdentifier($identifier, $identifierName, $resourceType);
-    }
-
-    /**
-     * @param \Laminas\Form\Form $form Unused, but kept for compatibility with
-     * default api.
-     * @param bool $throwValidationException
-     * @return \Omeka\Mvc\Controller\Plugin\Api
-     */
-    protected function api(\Laminas\Form\Form $form = null, $throwValidationException = false): \Omeka\Mvc\Controller\Plugin\Api
-    {
-        return $this->bulk->api($form, $throwValidationException);
-    }
-
-    /**
-     * Set the default param to allow duplicate identifiers.
-     *
-     * @param bool $allowDuplicateIdentifiers
-     * @return self
-     */
-    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): \BulkImport\Processor\Processor
-    {
-        $this->bulk->setAllowDuplicateIdentifiers($allowDuplicateIdentifiers);
-        return $this;
-    }
-
-    /**
-     * Get the default param to allow duplicate identifiers.
-     *
-     * @return bool
-     */
-    protected function getAllowDuplicateIdentifiers(): bool
-    {
-        return $this->bulk->getAllowDuplicateIdentifiers();
-    }
-
-    /**
-     * Set the default identifier names.
-     */
-    public function setIdentifierNames(array $identifierNames): \BulkImport\Processor\Processor
-    {
-        $this->bulk->setIdentifierNames($identifierNames);
-        return $this;
-    }
-
-    /**
-     * Get the default identifier names.
-     */
-    public function getIdentifierNames(): array
-    {
-        return $this->bulk->getIdentifierNames();
-    }
-
-    /**
      * Check the id of a resource.
      *
      * The action should be checked separately, else the result may have no
@@ -394,7 +135,7 @@ abstract class AbstractProcessor implements Processor
                 );
                 $resource['has_error'] = true;
             } else {
-                $id = $this->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceType);
+                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceType);
                 if (!$id) {
                     $this->logger->err(
                         'Index #{index}: The id of this resource doesn’t exist.', // @translate
@@ -435,13 +176,13 @@ abstract class AbstractProcessor implements Processor
             $resource['has_error'] = true;
         }
 
-        $identifierNames = $this->getIdentifierNames();
+        $identifierNames = $this->bulk->getIdentifierNames();
         $key = array_search('o:id', $identifierNames);
         if ($key !== false) {
             unset($identifierNames[$key]);
         }
         if (empty($identifierNames)) {
-            if ($this->getAllowDuplicateIdentifiers()) {
+            if ($this->bulk->getAllowDuplicateIdentifiers()) {
                 $this->logger->notice(
                     'Index #{index}: The resource has no identifier.', // @translate
                     ['index' => $this->indexResource]
@@ -487,7 +228,7 @@ abstract class AbstractProcessor implements Processor
                 continue;
             }
 
-            $ids = $this->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType);
+            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType);
             if (!$ids) {
                 continue;
             }
@@ -498,7 +239,7 @@ abstract class AbstractProcessor implements Processor
                     'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
                     ['index' => $this->indexResource]
                 );
-                if (!$this->getAllowDuplicateIdentifiers()) {
+                if (!$this->bulk->getAllowDuplicateIdentifiers()) {
                     $this->logger->err(
                         'Index #{index}: Duplicate identifiers are not allowed.', // @translate
                         ['index' => $this->indexResource]
@@ -513,7 +254,7 @@ abstract class AbstractProcessor implements Processor
                     'index' => $this->indexResource,
                     'identifier' => key($ids),
                     'metadata' => $identifierName,
-                    'resource_name' => $this->label($resourceType),
+                    'resource_name' => $this->bulk->label($resourceType),
                     'resource_id' => $resource['o:id'],
                 ]
             );
@@ -570,6 +311,6 @@ abstract class AbstractProcessor implements Processor
             ];
         }
 
-        $this->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
+        $this->bulk->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
     }
 }

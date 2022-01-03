@@ -30,7 +30,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function handleFormItem(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (isset($values['o:item_set'])) {
-            $ids = $this->findResourcesFromIdentifiers($values['o:item_set'], 'o:id', 'item_sets');
+            $ids = $this->bulk->findResourcesFromIdentifiers($values['o:item_set'], 'o:id', 'item_sets');
             foreach ($ids as $id) {
                 $args['o:item_set'][] = ['o:id' => $id];
             }
@@ -49,7 +49,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function handleFormMedia(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (!empty($values['o:item'])) {
-            $id = $this->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
+            $id = $this->bulk->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
             if ($id) {
                 $args['o:item'] = ['o:id' => $id];
             }
@@ -158,8 +158,8 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:item_set':
-                $identifierName = $target['target_data'] ?? $this->getIdentifierNames();
-                $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'item_sets');
+                $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
+                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'item_sets');
                 foreach ($ids as $id) {
                     $resource['o:item_set'][] = [
                         'o:id' => $id,
@@ -179,7 +179,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'file':
                 foreach ($values as $value) {
                     $media = [];
-                    if ($this->isUrl($value)) {
+                    if ($this->bulk->isUrl($value)) {
                         $media['o:ingester'] = 'url';
                         $media['ingest_url'] = $value;
                     } else {
@@ -203,7 +203,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $media = [];
                     $media['o:ingester'] = 'iiif';
                     $media['ingest_url'] = null;
-                    if (!$this->isUrl($value)) {
+                    if (!$this->bulk->isUrl($value)) {
                         $value = $this->getParam('iiifserver_media_api_url', '') . $value;
                     }
                     $media['o:source'] = $value;
@@ -311,7 +311,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (!$value) {
                     return true;
                 }
-                $id = $this->findResourceFromIdentifier($value, $target['target'], 'media');
+                $id = $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media');
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
@@ -325,8 +325,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return true;
             case 'o:item':
                 // $value = array_pop($values);
-                $identifierName = $target['target_data'] ?? $this->getIdentifierNames();
-                $ids = $this->findResourcesFromIdentifiers($values, $identifierName, 'items');
+                $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
+                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items');
                 $id = $ids ? array_pop($ids) : null;
                 $resource['o:item'] = [
                     'o:id' => $id,
@@ -341,7 +341,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return true;
             case 'file':
                 $value = array_pop($values);
-                if ($this->isUrl($value)) {
+                if ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
                     $resource['ingest_url'] = $value;
                 } else {
@@ -359,7 +359,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $value = array_pop($values);
                 $resource['o:ingester'] = 'iiif';
                 $resource['ingest_url'] = null;
-                if (!$this->isUrl($value)) {
+                if (!$this->bulk->isUrl($value)) {
                     $value = $this->getParam('iiifserver_media_api_url', '') . $value;
                 }
                 $resource['o:source'] = $value;
@@ -486,7 +486,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $identifierProperties = [];
                 $identifierProperties['o:ingester'] = $media['o:ingester'];
                 $identifierProperties['o:item']['o:id'] = $resource['o:id'];
-                $resource['o:media'][$key]['o:id'] = $this->findResourceFromIdentifier(
+                $resource['o:media'][$key]['o:id'] = $this->bulk->findResourceFromIdentifier(
                     $media['o:source'],
                     $identifierProperties,
                     'media'

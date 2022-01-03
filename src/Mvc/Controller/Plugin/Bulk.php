@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2021 Daniel Berthereau
+ * Copyright 2017-2022 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -191,8 +191,7 @@ class Bulk extends AbstractPlugin
                 'property.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
-                'vocabulary.id',
-                'property.id'
+                'vocabulary.id'
             )
             ->from('property', 'property')
             ->innerJoin('property', 'vocabulary', 'vocabulary', 'property.vocabulary_id = vocabulary.id')
@@ -308,8 +307,7 @@ class Bulk extends AbstractPlugin
                 'resource_class.id AS id',
                 // Only the two first selects are needed, but some databases
                 // require "order by" or "group by" value to be in the select.
-                'vocabulary.id',
-                'resource_class.id'
+                'vocabulary.id'
             )
             ->from('resource_class', 'resource_class')
             ->innerJoin('resource_class', 'vocabulary', 'vocabulary', 'resource_class.vocabulary_id = vocabulary.id')
@@ -829,11 +827,10 @@ class Bulk extends AbstractPlugin
      * boolean are not returned, but logged.
      * Furthermore, the identifiers without id are not returned.
      */
-    public function findResourcesFromIdentifiers($identifiers, $identifierName = null, $resourceType = null)
+    public function findResourcesFromIdentifiers($identifiers, $identifierName = null, $resourceName = null)
     {
-        $findResourcesFromIdentifiers = $this->findResourcesFromIdentifiers;
         $identifierName = $identifierName ?: $this->getIdentifierNames();
-        $result = $findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType, true);
+        $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
 
         $isSingle = !is_array($identifiers);
 
@@ -912,6 +909,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Proxy to api() to get the errors even without form.
+     *
+     * Most of the time, form is empty.
      */
     public function api(\Laminas\Form\Form $form = null, $throwValidationException = false): \Omeka\Mvc\Controller\Plugin\Api
     {

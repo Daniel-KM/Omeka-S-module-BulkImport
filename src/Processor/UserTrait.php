@@ -42,7 +42,7 @@ trait UserTrait
         // Keep the emails to map ids.
         $emails = [];
 
-        $users = $this->api()
+        $users = $this->bulk->api()
             ->search('users', [], ['initialize' => false, 'returnScalar' => 'email'])->getContent();
         $users = array_map('mb_strtolower', $users);
 

@@ -1801,7 +1801,7 @@ SQL;
                                 'action' => 'convert_datatype',
                                 'params' => [
                                     'datatype' => 'valuesuggest:geonames:geonames',
-                                    'source' => $this->getPropertyId('bio:place'),
+                                    'source' => $this->bulk->getPropertyId('bio:place'),
                                     'mapping' => 'geonames',
                                     'partial_mapping' => true,
                                     'name' => 'lieux',

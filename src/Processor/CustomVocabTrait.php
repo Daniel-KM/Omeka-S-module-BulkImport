@@ -21,7 +21,7 @@ trait CustomVocabTrait
      */
     protected function prepareCustomVocabCleanIds(): void
     {
-        $result = $this->api()
+        $result = $this->bulk->api()
             ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
         foreach ($result as $customVocab) {
             $cleanLabel = preg_replace('/[\W]/u', '', mb_strtolower($customVocab->getLabel()));
@@ -45,7 +45,7 @@ trait CustomVocabTrait
             return;
         }
 
-        $result = $this->api()
+        $result = $this->bulk->api()
             ->search('custom_vocabs', [], ['responseContent' => 'resource'])->getContent();
 
         $customVocabs = [];
@@ -109,7 +109,7 @@ trait CustomVocabTrait
             unset($source['@id'], $source['o:id']);
             $source['o:owner'] = $this->userOIdOrDefaultOwner($source['o:owner']);
             // TODO Use orm.
-            $response = $this->api()->create('custom_vocabs', $source);
+            $response = $this->bulk->api()->create('custom_vocabs', $source);
             if (!$response) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -146,7 +146,7 @@ trait CustomVocabTrait
      */
     protected function prepareCustomVocabsFinalize(): void
     {
-        $api = $this->api();
+        $api = $this->bulk->api();
         foreach ($this->map['custom_vocabs'] as &$customVocab) {
             if (empty($customVocab['source_item_set'])) {
                 unset($customVocab['is_empty']);

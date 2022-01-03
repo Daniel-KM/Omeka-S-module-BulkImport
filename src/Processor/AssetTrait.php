@@ -126,7 +126,7 @@ SQL;
 
             // Api can't be used because the asset should be downloaded locally.
             // unset($source['@id'], $source[$keyId]);
-            // $response = $this->api()->create('assets', $source);
+            // $response = $this->bulk->api()->create('assets', $source);
 
             // TODO Keep the original storage id of assets (so check existing one as a whole).
             // $storageId = substr($source['o:filename'], 0, $pos);

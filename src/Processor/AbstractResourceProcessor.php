@@ -207,7 +207,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             ->prepareMapping();
 
-        $this->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
+        $this->bulk->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
 
         $this->totalToProcess = method_exists($this->reader, 'count')
             ? $this->reader->count()
@@ -419,7 +419,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Clean the property id in all cases.
-        $properties = $this->getPropertyIds();
+        $properties = $this->bulk->getPropertyIds();
         foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
             foreach (array_keys($values) as $key) {
                 $resource[$term][$key]['property_id'] = $properties[$term];
@@ -579,7 +579,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($target['datatypes'] as $datatype) {
                 $target['value']['type'] = $datatype;
                 if (substr($datatype, 0, 8) === 'resource') {
-                    $id = $this->findResourceFromIdentifier($value, null, $datatype);
+                    $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype);
                     if ($id) {
                         $this->fillPropertyForValue($resource, $target, $value);
                         $hasDatatype = true;
@@ -591,7 +591,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         $hasDatatype = true;
                         break;
                     } else {
-                        $id = $this->findResourceFromIdentifier($value, null, 'items');
+                        $id = $this->bulk->findResourceFromIdentifier($value, null, 'items');
                         if ($this->bulk->isCustomVocabMember($datatype, $id)) {
                             $this->fillPropertyForValue($resource, $target, $id);
                             $hasDatatype = true;
@@ -657,7 +657,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'resource:item':
             case 'resource:itemset':
             case 'resource:media':
-                $id = $this->findResourceFromIdentifier($value, null, $datatype);
+                $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype);
                 if ($id) {
                     $resourceValue['value_resource_id'] = $id;
                     $resourceValue['@language'] = null;
@@ -676,7 +676,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $customVocabType = $this->bulk->getCustomVocabMode($datatype);
                 $result = $this->bulk->isCustomVocabMember($datatype, $value);
                 if (!$result && $customVocabType === 'itemset') {
-                    $value = $this->findResourceFromIdentifier($value, null, 'items');
+                    $value = $this->bulk->findResourceFromIdentifier($value, null, 'items');
                     $result = $this->bulk->isCustomVocabMember($datatype, $value);
                 }
                 if ($result) {
@@ -730,7 +730,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     return true;
                 }
                 $resourceName = $resource['resource_name'] ?? null;
-                $id = $this->findResourceFromIdentifier($value, 'o:id', $resourceName);
+                $id = $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName);
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
@@ -753,7 +753,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $label = empty($value['o:label']) ? null : $value['o:label'];
                     $value = $id ?? $label ?? reset($value);
                 }
-                $id = $this->getResourceTemplateId($value);
+                $id = $this->bulk->getResourceTemplateId($value);
                 if ($id) {
                     $resource['o:resource_template'] = empty($label)
                         ? ['o:id' => $id]
@@ -776,7 +776,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $term = empty($value['o:term']) ? null : $value['o:term'];
                     $value = $id ?? $term ?? reset($value);
                 }
-                $id = $this->getResourceClassId($value);
+                $id = $this->bulk->getResourceClassId($value);
                 if ($id) {
                     $resource['o:resource_class'] = empty($term)
                         ? ['o:id' => $id]
@@ -799,7 +799,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $email = empty($value['o:email']) ? null : $value['o:email'];
                     $value = $id ?? $email ?? reset($value);
                 }
-                $id = $this->getUserId($value);
+                $id = $this->bulk->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -817,7 +817,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if (!$value) {
                     return true;
                 }
-                $id = $this->getUserId($value);
+                $id = $this->bulk->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
                 } else {
@@ -876,7 +876,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $label = empty($value['o:label']) ? null : $value['o:label'];
                     $value = $id ?? $label ?? reset($value);
                 }
-                $id = $this->getResourceTemplateId($value);
+                $id = $this->bulk->getResourceTemplateId($value);
                 if ($id) {
                     $resource['o:resource_template'] = empty($label)
                         ? ['o:id' => $id]
@@ -896,7 +896,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $term = empty($value['o:term']) ? null : $value['o:term'];
                     $value = $id ?? $term ?? reset($value);
                 }
-                $id = $this->getResourceClassId($value);
+                $id = $this->bulk->getResourceClassId($value);
                 if ($id) {
                     $resource['o:resource_class'] = empty($term)
                         ? ['o:id' => $id]
@@ -916,7 +916,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $email = empty($value['o:email']) ? null : $value['o:email'];
                     $value = $id ?? $email ?? reset($value);
                 }
-                $id = $this->getUserId($value);
+                $id = $this->bulk->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -936,7 +936,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $value = $id ?? reset($value);
                 }
-                $id = $this->findResourceFromIdentifier($value);
+                $id = $this->bulk->findResourceFromIdentifier($value);
                 if ($id) {
                     $resource['o:item'] = ['o:id' => $id];
                 } else {
@@ -964,7 +964,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         if ($resource['o:id']) {
             if (!$this->actionRequiresId()) {
-                if ($this->getAllowDuplicateIdentifiers()) {
+                if ($this->bulk->getAllowDuplicateIdentifiers()) {
                     // Action is create or skip.
                     if ($this->action === self::ACTION_CREATE) {
                         unset($resource['o:id']);
@@ -982,7 +982,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // No resource id, so it is an error, so add message if choice is skip.
         elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
             $identifier = $this->extractIdentifierOrTitle($resource);
-            if ($this->getAllowDuplicateIdentifiers()) {
+            if ($this->bulk->getAllowDuplicateIdentifiers()) {
                 $this->logger->err(
                     'Index #{index}: The action "{action}" requires an identifier ({identifier}).', // @translate
                     ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier]
@@ -1045,13 +1045,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         try {
             if (count($data) === 1) {
-                $response = $this->api(null, true)
+                $response = $this->bulk->api(null, true)
                     ->create($resourceName, reset($data));
                 $resource = $response->getContent();
                 $resources = [$resource];
             } else {
                 // TODO Clarify continuation on exception for batch.
-                $resources = $this->api(null, true)
+                $resources = $this->bulk->api(null, true)
                     ->batchCreate($resourceName, $data, [], ['continueOnError' => true])->getContent();
             }
         } catch (ValidationException $e) {
@@ -1081,7 +1081,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } else {
                 $this->logger->info(
                     'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->label($resourceName), 'resource_id' => $resource->id()]
+                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $resource->id()]
                 );
             }
         }
@@ -1128,7 +1128,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Clone is required to keep option to throw issue. The api plugin may
         // be used by other methods.
-        $api = clone $this->api(null, true);
+        $api = clone $this->bulk->api(null, true);
         foreach ($data as $dataResource) {
             $options = [];
             $fileData = [];
@@ -1152,7 +1152,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $response = $api->update($resourceName, $dataResource['o:id'], $dataResource, $fileData, $options);
                 $this->logger->notice(
                     'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->label($resourceName), 'resource_id' => $dataResource['o:id']]
+                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
                 );
             } catch (ValidationException $e) {
                 $messages = $this->listValidationMessages($e);
@@ -1212,10 +1212,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         try {
             if (count($ids) === 1) {
-                $this->api(null, true)
+                $this->bulk->api(null, true)
                     ->delete($resourceName, reset($ids))->getContent();
             } else {
-                $this->api(null, true)
+                $this->bulk->api(null, true)
                     ->batchDelete($resourceName, $ids, [], ['continueOnError' => true])->getContent();
             }
         } catch (ValidationException $e) {
@@ -1239,7 +1239,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         foreach ($ids as $id) {
             $this->logger->notice(
                 'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->label($resourceName), 'resource_id' => $id]
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $id]
             );
         }
         return $this;
@@ -1359,9 +1359,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // For quicker search, prepare the ids of the properties.
         $result = [];
         foreach ($identifierNames as $identifierName) {
-            $id = $this->getPropertyId($identifierName);
+            $id = $this->bulk->getPropertyId($identifierName);
             if ($id) {
-                $result[$this->getPropertyTerm($id)] = $id;
+                $result[$this->bulk->getPropertyTerm($id)] = $id;
             } else {
                 $result[$identifierName] = $identifierName;
             }
@@ -1500,7 +1500,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $target = trim(substr($target, $pos));
                     $result['target'] = $target;
                     $result['target_data'] = $targetData;
-                    $propertyId = $this->getPropertyId($targetData);
+                    $propertyId = $this->bulk->getPropertyId($targetData);
                     if ($propertyId) {
                         $subValue = [];
                         $subValue['property_id'] = $propertyId;
@@ -1513,12 +1513,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $result['target'] = $target;
                 }
 
-                $propertyId = $this->getPropertyId($target);
+                $propertyId = $this->bulk->getPropertyId($target);
                 if ($propertyId) {
                     $datatypes = [];
                     // Normally already checked.
                     foreach ($metadata['datatypes'] ?? [] as $datatype) {
-                        $datatypes[] = $this->getDataType($datatype);
+                        $datatypes[] = $this->bulk->getDataType($datatype);
                     }
                     $datatypes = array_filter(array_unique($datatypes));
                     if (empty($datatypes)) {

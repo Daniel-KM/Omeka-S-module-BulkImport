@@ -267,7 +267,7 @@ trait MetadataTransformTrait
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -277,7 +277,7 @@ trait MetadataTransformTrait
         }
 
         $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
-        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
+        $sourceIdentifierId = $this->bulk->getPropertyId($sourceIdentifier);
         if (empty($sourceIdentifierId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
@@ -333,7 +333,7 @@ SQL;
             );
             return false;
         }
-        $propertyIdSource = $this->getPropertyId($params['source']);
+        $propertyIdSource = $this->bulk->getPropertyId($params['source']);
         if (empty($propertyIdSource)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -346,7 +346,7 @@ SQL;
             // be multiple destination properties.
             $propertyIdDest = null;
         } else {
-            $propertyIdDest = $this->getPropertyId($params['destination']);
+            $propertyIdDest = $this->bulk->getPropertyId($params['destination']);
             if (empty($propertyIdDest)) {
                 $this->logger->err(
                     'The operation "{action}" requires a valid destination or no destination: "{term}" does not exist.', // @translate
@@ -384,7 +384,7 @@ SQL;
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -396,7 +396,7 @@ SQL;
         if (empty($params['destination'])) {
             $destinationId = $sourceId;
         } else {
-            $destinationId = $this->getPropertyId($params['destination']);
+            $destinationId = $this->bulk->getPropertyId($params['destination']);
             if (empty($destinationId)) {
                 $this->logger->err(
                     'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
@@ -407,7 +407,7 @@ SQL;
         }
 
         $sourceIdentifier = $params['identifier'] ?? 'dcterms:identifier';
-        $sourceIdentifierId = $this->getPropertyId($sourceIdentifier);
+        $sourceIdentifierId = $this->bulk->getPropertyId($sourceIdentifier);
         if (empty($sourceIdentifierId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source identifier term: "{term}" does not exist.', // @translate
@@ -419,7 +419,7 @@ SQL;
         if (empty($params['reciprocal'])) {
             $reciprocalId = null;
         } else {
-            $reciprocalId = $this->getPropertyId($params['reciprocal']);
+            $reciprocalId = $this->bulk->getPropertyId($params['reciprocal']);
             if (empty($reciprocalId)) {
                 $this->logger->err(
                     'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate
@@ -529,7 +529,7 @@ SQL;
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -537,7 +537,7 @@ SQL;
             );
             return false;
         }
-        $sourceTerm = $this->getPropertyTerm($sourceId);
+        $sourceTerm = $this->bulk->getPropertyTerm($sourceId);
 
         if (empty($params['properties'])) {
             $this->logger->err(
@@ -756,7 +756,7 @@ SQL;
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -929,7 +929,7 @@ SQL;
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -941,7 +941,7 @@ SQL;
         if (empty($params['destination'])) {
             $destinationId = $sourceId;
         } else {
-            $destinationId = $this->getPropertyId($params['destination']);
+            $destinationId = $this->bulk->getPropertyId($params['destination']);
             if (empty($destinationId)) {
                 $this->logger->err(
                     'The operation "{action}" requires a valid destination: "{term}" does not exist.', // @translate
@@ -1080,8 +1080,8 @@ SQL;
         // TODO Bind is not working currently with multiple queries, but only used for property id.
         // value => bio:place : dcterms:publisher
         $binds = [];
-        $binds['property_id_1'] = $this->getPropertyId($params['destination'][0]);
-        $binds['property_id_2'] = $this->getPropertyId($params['destination'][1]);
+        $binds['property_id_1'] = $this->bulk->getPropertyId($params['destination'][0]);
+        $binds['property_id_2'] = $this->bulk->getPropertyId($params['destination'][1]);
 
         $random = $this->operationRandoms[$this->operationIndex];
 
@@ -1155,7 +1155,7 @@ SQL;
             return $this->operationAppendRawValue($params);
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -1164,7 +1164,7 @@ SQL;
             return false;
         }
 
-        $sourceTerm = $params['source'] = $this->getPropertyTerm($sourceId);
+        $sourceTerm = $params['source'] = $this->bulk->getPropertyTerm($sourceId);
 
         if (empty($params['datatype'])) {
             $this->logger->err(
@@ -1590,7 +1590,7 @@ SQL;
             return null;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if ($hasSource && empty($sourceId)) {
             $this->logger->err(
                 'Operation "{action}": a valid source is required: "{term}" does not exist (mapping file "{file}").', // @translate
@@ -1600,7 +1600,7 @@ SQL;
         }
 
         if (!empty($params['source_term'])) {
-            $saveSourceId = $this->getPropertyId($params['source_term']);
+            $saveSourceId = $this->bulk->getPropertyId($params['source_term']);
             if (empty($saveSourceId)) {
                 $this->logger->err(
                     'Operation "{action}": an invalid property is set to save source: "{term}" (mapping file "{file}").', // @translate
@@ -1633,7 +1633,7 @@ SQL;
 
         $destinations = [];
         $properties = [];
-        $propertyIds = $this->getPropertyIds();
+        $propertyIds = $this->bulk->getPropertyIds();
         $fields = $automapFields($firstKeys, ['output_full_matches' => true]);
 
         foreach (array_filter($fields) as $index => $fieldData) {
@@ -2052,7 +2052,7 @@ SQL;
             return false;
         }
 
-        $sourceId = $this->getPropertyId($params['source']);
+        $sourceId = $this->bulk->getPropertyId($params['source']);
         if (empty($sourceId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid source: "{term}" does not exist.', // @translate
@@ -2061,7 +2061,7 @@ SQL;
             return false;
         }
 
-        $sourceTerm = $params['source'] = $this->getPropertyTerm($sourceId);
+        $sourceTerm = $params['source'] = $this->bulk->getPropertyTerm($sourceId);
 
         // Only literal: the already mapped values (label + uri) can be used as
         // mapping, but useless for a new database.
@@ -2702,7 +2702,7 @@ SQL;
     protected function processUpdateTemplatesFromDataTypes(array $params): void
     {
         $term = empty($params['properties']['identifier']) ? 'dcterms:identifier' : $params['properties']['identifier'];
-        $propertyId = $this->getPropertyId($term);
+        $propertyId = $this->bulk->getPropertyId($term);
         if (empty($propertyId)) {
             $this->logger->err(
                 'The operation "{action}" requires a valid property to set templates: "{term}" does not exist.', // @translate
@@ -2982,7 +2982,7 @@ SQL;
         if (empty($params['reciprocal'])) {
             $reciprocalId = null;
         } else {
-            $reciprocalId = $this->getPropertyId($params['reciprocal']);
+            $reciprocalId = $this->bulk->getPropertyId($params['reciprocal']);
             if (empty($reciprocalId)) {
                 $this->logger->err(
                     'The operation "{action}" specifies an invalid reciprocal property: "{term}".', // @translate

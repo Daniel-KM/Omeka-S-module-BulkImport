@@ -29,9 +29,9 @@ trait ResourceTemplateTrait
             return;
         }
 
-        $resourceTemplates = $this->getResourceTemplateIds();
+        $resourceTemplates = $this->bulk->getResourceTemplateIds();
 
-        $result = $this->api()
+        $result = $this->bulk->api()
             ->search('resource_templates')->getContent();
         $rts = [];
         foreach ($result as $resourceTemplate) {
@@ -118,7 +118,7 @@ trait ResourceTemplateTrait
             }
 
             // TODO Use orm.
-            $response = $this->api()->create('resource_templates', $source);
+            $response = $this->bulk->api()->create('resource_templates', $source);
             if (!$response) {
                 $this->logger->err(
                     'Unable to create resource template "{label}".', // @translate

@@ -29,7 +29,7 @@ trait ResourceUpdateTrait
         if (!$resourceType || !$resourceId) {
             $this->resourceToUpdate = null;
         } elseif (!$this->resourceToUpdate || $this->resourceToUpdate->id() != $resourceId) {
-            $this->resourceToUpdate = $this->api()->read($resourceType, $resourceId)->getContent();
+            $this->resourceToUpdate = $this->bulk->api()->read($resourceType, $resourceId)->getContent();
         }
     }
 
@@ -70,7 +70,7 @@ trait ResourceUpdateTrait
                     ? $this->removeEmptyData($data)
                     : $this->fillEmptyData($data);
                 if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
-                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->getIdentifierNames());
+                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->bulk->getIdentifierNames());
                 }
                 if ($resourceType === 'items') {
                     if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
@@ -104,13 +104,13 @@ trait ResourceUpdateTrait
 
         // To keep the markers during update, they must be developed.
         if (!empty($newData['o-module-mapping:mapping']['o:id']) && empty($newData['o-module-mapping:mapping']['o-module-mapping:bounds'])) {
-            $newData['o-module-mapping:mapping'] = $this->api()->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
+            $newData['o-module-mapping:mapping'] = $this->bulk->api()->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
             $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
         }
         if (!empty($newData['o-module-mapping:marker'][0]['o:id']) && !isset($newData['o-module-mapping:marker'][0]['o-module-mapping:lat'])) {
             $markers = [];
             foreach ($newData['o-module-mapping:marker'] as $value) {
-                $value = $this->api()->read('mapping_markers', ['id' => $value['o:id']])->getContent();
+                $value = $this->bulk->api()->read('mapping_markers', ['id' => $value['o:id']])->getContent();
                 $markers[$value->id()] = json_decode(json_encode($value), true);
             }
             $newData['o-module-mapping:marker'] = $markers;
@@ -405,7 +405,7 @@ trait ResourceUpdateTrait
      */
     protected function extractPropertyValuesFromResource($resourceJson)
     {
-        return array_intersect_key($resourceJson, $this->getPropertyIds());
+        return array_intersect_key($resourceJson, $this->bulk->getPropertyIds());
     }
 
     /**

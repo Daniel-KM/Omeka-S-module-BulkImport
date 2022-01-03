@@ -29,7 +29,7 @@ trait VocabularyTrait
         $prefix = array_search(rtrim($vocabulary['o:namespace_uri'], '#/'), $vocabularies);
         if ($prefix) {
             /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
-            $vocabularyRepresentation = $this->api()
+            $vocabularyRepresentation = $this->bulk->api()
                 // Api "search" uses "namespace_uri", but "read" uses "namespaceUri".
                 ->read('vocabularies', ['prefix' => $prefix])->getContent();
             if ($vocabularyRepresentation->prefix() !== $vocabulary['o:prefix']) {
@@ -68,7 +68,7 @@ trait VocabularyTrait
 
         try {
             /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
-            $vocabularyRepresentation = $this->api()
+            $vocabularyRepresentation = $this->bulk->api()
                 ->read('vocabularies', ['prefix' => $vocabulary['o:prefix']])->getContent();
             if (rtrim($vocabularyRepresentation->namespaceUri(), '#/') !== rtrim($vocabulary['o:namespace_uri'], '#/')) {
                 $vocabulary['o:prefix'] .= '_' . $this->currentDateTime->format('Ymd-His');
@@ -145,7 +145,7 @@ trait VocabularyTrait
                 $vocab['o:owner'] = $this->userOIdOrDefaultOwner($vocabulary['o:owner']);
                 $vocab['o:prefix'] = trim($vocab['o:prefix']);
                 // TODO Use orm.
-                $response = $this->api()->create('vocabularies', $vocab);
+                $response = $this->bulk->api()->create('vocabularies', $vocab);
                 $result['data']['destination'] = $response->getContent();
                 $this->logger->notice(
                     'Vocabulary {prefix} has been created.', // @translate
@@ -187,11 +187,11 @@ trait VocabularyTrait
 
         switch ($resourceType) {
             case 'properties':
-                $memberIdsByTerm = $this->getPropertyIds();
+                $memberIdsByTerm = $this->bulk->getPropertyIds();
                 $class = \Omeka\Entity\Property::class;
                 break;
             case 'resource_classes':
-                $memberIdsByTerm = $this->getResourceClassIds();
+                $memberIdsByTerm = $this->bulk->getResourceClassIds();
                 $class = \Omeka\Entity\ResourceClass::class;
                 break;
             default:
@@ -218,7 +218,7 @@ trait VocabularyTrait
                 ++$skipped;
                 $this->logger->warn(
                     'The vocabulary of the {member} {term} does not exist.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $sourceTerm]
+                    ['member' => $this->bulk->label($resourceType), 'term' => $sourceTerm]
                 );
                 continue;
             }
@@ -245,7 +245,7 @@ trait VocabularyTrait
             if (!$vocabulary) {
                 $this->logger->err(
                     'Unable to find vocabulary for {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+                    ['member' => $this->bulk->label($resourceType), 'term' => $member['o:term']]
                 );
                 $this->hasError = true;
                 return;
@@ -265,7 +265,7 @@ trait VocabularyTrait
                 ++$skipped;
                 $this->logger->err(
                     'Unable to create {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+                    ['member' => $this->bulk->label($resourceType), 'term' => $member['o:term']]
                 );
                 $this->logErrors($this->entity, $errorStore);
                 continue;
@@ -280,13 +280,13 @@ trait VocabularyTrait
                 $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => $this->totals[$resourceType], 'existing' => $existing, 'member' => $this->label($resourceType), 'skipped' => $skipped]
+                    ['count' => $created, 'total' => $this->totals[$resourceType], 'existing' => $existing, 'member' => $this->bulk->label($resourceType), 'skipped' => $skipped]
                 );
             }
 
             $this->logger->notice(
                 'Vocabulary {member} {term} has been created.', // @translate
-                ['member' => $this->label($resourceType), 'term' => $member['o:term']]
+                ['member' => $this->bulk->label($resourceType), 'term' => $member['o:term']]
             );
             ++$created;
         }
@@ -297,7 +297,7 @@ trait VocabularyTrait
         $this->refreshMainResources();
 
         // Fill the missing new member ids.
-        $api = $this->api();
+        $api = $this->bulk->api();
         foreach ($this->map[$resourceType] as $sourceTerm => $data) {
             if ($data['id']) {
                 continue;
@@ -307,7 +307,7 @@ trait VocabularyTrait
                 $this->hasError = true;
                 $this->logger->err(
                     'Unable to find {member} {term}.', // @translate
-                    ['member' => $this->label($resourceType), 'term' => $data['term']]
+                    ['member' => $this->bulk->label($resourceType), 'term' => $data['term']]
                 );
                 continue;
             }

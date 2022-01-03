@@ -2330,7 +2330,7 @@ class SpipProcessor extends AbstractFullProcessor
             // Api doesn't allow to search with "source", so use read.
             try {
                 /** @var \Omeka\Api\Representation\MediaRepresentation $media */
-                $media = $this->api()->read('media', ['source' => $filename])->getContent();
+                $media = $this->bulk->api()->read('media', ['source' => $filename])->getContent();
             } catch (\Exception $e) {
                 continue;
             }
@@ -2402,7 +2402,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
         $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
-        $scheme = $this->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
+        $scheme = $this->bulk->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
         $thesaurus = $thesaurus($scheme);
         if (!$thesaurus->isSkos()) {
             $this->logger->err(
@@ -2472,7 +2472,7 @@ class SpipProcessor extends AbstractFullProcessor
             foreach ($branches as $branch) {
                 /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $concept */
                 $id = $branch['self']['id'];
-                $concept = $this->api()->read('resources', ['id' => $id])->getContent();
+                $concept = $this->bulk->api()->read('resources', ['id' => $id])->getContent();
                 $children = $branch['children'] ?? [];
                 // Ajout des relations non présentes dans le menu (articles liés
                 // à un concept mais qui n'apparaissent pas dans la structure).
@@ -2603,7 +2603,7 @@ class SpipProcessor extends AbstractFullProcessor
                     $id = $element['data']['id'];
                     try {
                         /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
-                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                        $resource = $this->bulk->api()->read('resources', ['id' => $id])->getContent();
                     } catch (NotFoundException $e) {
                         $unset[] = $id;
                         continue;
@@ -2715,7 +2715,7 @@ class SpipProcessor extends AbstractFullProcessor
                         $childId = $link['data']['id'];
                         try {
                             /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $childItem */
-                            $childItem = $this->api()->read('resources', ['id' => $childId])->getContent();
+                            $childItem = $this->bulk->api()->read('resources', ['id' => $childId])->getContent();
                         } catch (NotFoundException $e) {
                             unset($element['links'][$keyLink]);
                             continue;
@@ -2789,7 +2789,7 @@ class SpipProcessor extends AbstractFullProcessor
                     $id = $element['data']['id'];
                     try {
                         /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
-                        $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                        $resource = $this->bulk->api()->read('resources', ['id' => $id])->getContent();
                     } catch (NotFoundException $e) {
                         continue;
                     }
@@ -2817,7 +2817,7 @@ class SpipProcessor extends AbstractFullProcessor
                         $link = reset($links);
                         $linkedResourceId = $link['data']['id'];
                         try {
-                            $linkedResource = $this->api()->read('resources', ['id' => $linkedResourceId])->getContent();
+                            $linkedResource = $this->bulk->api()->read('resources', ['id' => $linkedResourceId])->getContent();
                         } catch (NotFoundException $e) {
                             $element['links'] = [];
                             $recursiveSub = false;
@@ -2863,7 +2863,7 @@ class SpipProcessor extends AbstractFullProcessor
             foreach ($removedConcepts as $conceptId => $articleIds) {
                 $itemIds[$conceptId] = reset($articleIds);
                 try {
-                    $concept = $this->api()->read('resources', ['id' => $conceptId])->getContent();
+                    $concept = $this->bulk->api()->read('resources', ['id' => $conceptId])->getContent();
                 } catch (NotFoundException $e) {
                     continue;
                 }
@@ -2877,7 +2877,7 @@ class SpipProcessor extends AbstractFullProcessor
                 } else {
                     foreach ($articleIds as $articleId) {
                         try {
-                            $article = $this->api()->read('resources', ['id' => $articleId])->getContent();
+                            $article = $this->bulk->api()->read('resources', ['id' => $articleId])->getContent();
                         } catch (NotFoundException $e) {
                             continue;
                         }
@@ -2888,7 +2888,7 @@ class SpipProcessor extends AbstractFullProcessor
                             'value_resource_id' => $broader->valueResource()->id(),
                         ]];
                         $articleJson['clear_property_values'] = true;
-                        $this->api()->update('items', $articleId, $articleJson);
+                        $this->bulk->api()->update('items', $articleId, $articleJson);
                     }
                 }
             }
@@ -2930,7 +2930,7 @@ class SpipProcessor extends AbstractFullProcessor
             $id = $element['data']['id'];
             try {
                 /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation $resource */
-                $resource = $this->api()->read('resources', ['id' => $id])->getContent();
+                $resource = $this->bulk->api()->read('resources', ['id' => $id])->getContent();
             } catch (NotFoundException $e) {
                 continue;
             }
