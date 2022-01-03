@@ -352,6 +352,15 @@ SQL;
             $row = array_replace($columnKeys, array_intersect_key($row, $columnKeys));
         }
 
+        // Remove end of lines for each cell.
+        $row = array_map(function ($v) {
+            $v = str_replace(["\r\n", "\n\r", "\r", "\n"], ['  ', '  ', '  ', '  '], (string) $v);
+            if (($pos = strpos($v, 'Stack trace:')) > 0) {
+                $v = substr($v, 0, $pos);
+            }
+            return $v;
+        }, $row);
+
         fputcsv($this->handle, $row, $this->options['delimiter'], $this->options['enclosure'], $this->options['escape']);
         return $this;
     }
