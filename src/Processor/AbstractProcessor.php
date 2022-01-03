@@ -142,7 +142,7 @@ abstract class AbstractProcessor implements Processor
                     $resource['has_error'] = true;
                 }
             } else {
-                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName);
+                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
                 if (!$id) {
                     if (isset($resource['messageStore'])) {
                         $resource['messageStore']->addError('resource_id', new PsrMessage(
@@ -261,7 +261,7 @@ abstract class AbstractProcessor implements Processor
                 continue;
             }
 
-            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName);
+            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
             if (!$ids) {
                 continue;
             }

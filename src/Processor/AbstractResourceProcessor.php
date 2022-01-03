@@ -756,7 +756,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($target['datatypes'] as $datatype) {
                 $target['value']['type'] = $datatype;
                 if (substr($datatype, 0, 8) === 'resource') {
-                    $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype);
+                    $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype, $resource['messageStore']);
                     if ($id) {
                         $this->fillPropertyForValue($resource, $target, $value);
                         $hasDatatype = true;
@@ -768,7 +768,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         $hasDatatype = true;
                         break;
                     } else {
-                        $id = $this->bulk->findResourceFromIdentifier($value, null, 'items');
+                        $id = $this->bulk->findResourceFromIdentifier($value, null, 'items', $resource['messageStore']);
                         if ($this->bulk->isCustomVocabMember($datatype, $id)) {
                             $this->fillPropertyForValue($resource, $target, $id);
                             $hasDatatype = true;
@@ -834,7 +834,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'resource:item':
             case 'resource:itemset':
             case 'resource:media':
-                $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype);
+                $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype, $resource['messageStore']);
                 if ($id) {
                     $resourceValue['value_resource_id'] = $id;
                     $resourceValue['@language'] = null;
@@ -852,7 +852,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $customVocabType = $this->bulk->getCustomVocabMode($datatype);
                 $result = $this->bulk->isCustomVocabMember($datatype, $value);
                 if (!$result && $customVocabType === 'itemset') {
-                    $value = $this->bulk->findResourceFromIdentifier($value, null, 'items');
+                    $value = $this->bulk->findResourceFromIdentifier($value, null, 'items', $resource['messageStore']);
                     $result = $this->bulk->isCustomVocabMember($datatype, $value);
                 }
                 if ($result) {
@@ -905,7 +905,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     return true;
                 }
                 $resourceName = $resource['resource_name'] ?? null;
-                $id = $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName);
+                $id = $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName, $resource['messageStore']);
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
@@ -1110,7 +1110,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $value = $id ?? reset($value);
                 }
-                $id = $this->bulk->findResourceFromIdentifier($value);
+                $id = $this->bulk->findResourceFromIdentifier($value, null, null, $resource['messageStore']);
                 if ($id) {
                     $resource['o:item'] = ['o:id' => $id];
                 } else {

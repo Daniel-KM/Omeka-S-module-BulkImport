@@ -32,6 +32,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Log\Stdlib\PsrMessage;
 use Omeka\DataType\Manager as DataTypeManager;
 
 /**
@@ -817,6 +818,7 @@ class Bulk extends AbstractPlugin
      * metadata names, in which case the identifiers are searched in a list of
      * properties and/or in internal ids.
      * @param string $resourceName The resource type, name or class, if any.
+     * @param MessageStore $messageStore
      * @return array|int|null|Object Associative array with the identifiers as key
      * and the ids or null as value. Order is kept, but duplicate identifiers
      * are removed. If $identifiers is a string, return directly the resource
@@ -827,8 +829,13 @@ class Bulk extends AbstractPlugin
      * boolean are not returned, but logged.
      * Furthermore, the identifiers without id are not returned.
      */
-    public function findResourcesFromIdentifiers($identifiers, $identifierName = null, $resourceName = null)
-    {
+    public function findResourcesFromIdentifiers(
+        $identifiers,
+        $identifierName = null,
+        $resourceName = null,
+        // TODO Remove message store.
+        ?\BulkImport\Stdlib\MessageStore $messageStore = null
+    ) {
         $identifierName = $identifierName ?: $this->getIdentifierNames();
         $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
 
@@ -844,12 +851,21 @@ class Bulk extends AbstractPlugin
 
             // Remove empty identifiers.
             $result['result'] = array_filter($result['result']);
+
+            // TODO Remove the logs from here.
             foreach (array_keys($result['result']) as $identifier) {
                 if ($result['count'][$identifier] > 1) {
-                    $this->logger->warn(
-                        'Identifier "{identifier}" is not unique ({count} values).', // @translate
-                        ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
-                    );
+                    if ($messageStore) {
+                        $messageStore->addWarning('identifier', new PsrMessage(
+                            'Identifier "{identifier}" is not unique ({count} values).', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
+                        ));
+                    } else {
+                        $this->logger->warn(
+                            'Identifier "{identifier}" is not unique ({count} values).', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
+                        );
+                    }
                     // if (!$this->getAllowDuplicateIdentifiers() {
                     //     unset($result['result'][$identifier]);
                     // }
@@ -857,9 +873,15 @@ class Bulk extends AbstractPlugin
             }
 
             if (!$this->getAllowDuplicateIdentifiers()) {
-                $this->logger->err(
-                    'Duplicate identifiers are not allowed.' // @translate
-                );
+                if ($messageStore) {
+                    $messageStore->addError('identifier', new PsrMessage(
+                        'Duplicate identifiers are not allowed.' // @translate
+                    ));
+                } else {
+                    $this->logger->err(
+                        'Duplicate identifiers are not allowed.' // @translate
+                    );
+                }
                 return $isSingle ? null : [];
             }
 
@@ -882,11 +904,17 @@ class Bulk extends AbstractPlugin
      * @param string|int|array $identifierName Property as integer or term,
      * media ingester or "o:id", or an array with multiple conditions.
      * @param string $resourceName The resource type, name or class, if any.
+     * @param MessageStore $messageStore
      * @return int|null|false
      */
-    public function findResourceFromIdentifier($identifier, $identifierName = null, $resourceName = null)
-    {
-        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName);
+    public function findResourceFromIdentifier(
+        $identifier,
+        $identifierName = null,
+        $resourceName = null,
+        // TODO Remove message store.
+        ?\BulkImport\Stdlib\MessageStore $messageStore = null
+    ) {
+        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName, $messageStore);
     }
 
     /**
@@ -929,7 +957,7 @@ class Bulk extends AbstractPlugin
     /**
      * Set the default param to allow duplicate identifiers.
      */
-    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): self
+    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers): self
     {
         $this->allowDuplicateIdentifiers = (bool) $allowDuplicateIdentifiers;
         return $this;

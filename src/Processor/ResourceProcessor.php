@@ -160,7 +160,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         switch ($target['target']) {
             case 'o:item_set':
                 $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
-                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'item_sets');
+                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'item_sets', $resource['messageStore']);
                 foreach ($ids as $id) {
                     $resource['o:item_set'][] = [
                         'o:id' => $id,
@@ -308,7 +308,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (!$value) {
                     return true;
                 }
-                $id = $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media');
+                $id = $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media', $resource['messageStore']);
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
@@ -322,7 +322,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'o:item':
                 // $value = array_pop($values);
                 $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
-                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items');
+                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
                 $id = $ids ? array_pop($ids) : null;
                 $resource['o:item'] = [
                     'o:id' => $id,
@@ -478,11 +478,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $identifierProperties = [];
                 $identifierProperties['o:ingester'] = $media['o:ingester'];
                 $identifierProperties['o:item']['o:id'] = $resource['o:id'];
-                $resource['o:media'][$key]['o:id'] = $this->bulk->findResourceFromIdentifier(
-                    $media['o:source'],
-                    $identifierProperties,
-                    'media'
-                );
+                $resource['o:media'][$key]['o:id'] = $this->bulk
+                    ->findResourceFromIdentifier($media['o:source'], $identifierProperties, 'media', $resource['messageStore']);
             }
         }
 
