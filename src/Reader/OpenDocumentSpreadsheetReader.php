@@ -5,6 +5,7 @@ namespace BulkImport\Reader;
 use Box\Spout\Common\Type;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Box\Spout\Reader\ReaderInterface;
+use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
@@ -93,7 +94,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return parent::isValid();
     }
 
-    protected function currentEntry()
+    protected function currentEntry(): Entry
     {
         return new SpreadsheetEntry(
             $this->currentData,

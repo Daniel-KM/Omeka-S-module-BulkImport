@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use BulkImport\Entry\BaseEntry;
 use BulkImport\Entry\Entry;
 use Iterator;
 use Laminas\Form\Form;
@@ -116,12 +117,10 @@ abstract class AbstractFileReader extends AbstractReader
      * Helper to manage the current entry.
      *
      * May be overridden with a different entry sub-class.
-     *
-     * @return \BulkImport\Entry\Entry
      */
-    protected function currentEntry()
+    protected function currentEntry(): Entry
     {
-        return new Entry($this->currentData, $this->availableFields, $this->getParams());
+        return new BaseEntry($this->currentData, $this->availableFields, $this->getParams());
     }
 
     public function key()

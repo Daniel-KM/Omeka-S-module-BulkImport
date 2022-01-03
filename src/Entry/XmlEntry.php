@@ -4,7 +4,7 @@ namespace BulkImport\Entry;
 
 use SimpleXMLElement;
 
-class XmlEntry extends Entry
+class XmlEntry extends BaseEntry
 {
     private $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed'];
 

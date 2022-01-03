@@ -3,8 +3,8 @@
 namespace BulkImport\Processor;
 
 use ArrayObject;
+use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Configurable;
-use BulkImport\Interfaces\Entry;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;

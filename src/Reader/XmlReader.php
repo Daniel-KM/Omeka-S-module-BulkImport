@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use BulkImport\Entry\Entry;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
@@ -109,7 +110,7 @@ class XmlReader extends AbstractFileReader
         return null;
     }
 
-    protected function currentEntry()
+    protected function currentEntry(): Entry
     {
         return new XmlEntry($this->currentData, $this->availableFields, $this->getParams());
     }

@@ -7,7 +7,7 @@ namespace BulkImport\Entry;
  *
  * @todo Make Entry and SpreadsheetEntry output only Omeka array data, like XmlEntry (so move some processor process into reader).
  */
-class SpreadsheetEntry extends Entry
+class SpreadsheetEntry extends BaseEntry
 {
     const SIMPLE_DATA = true;
 

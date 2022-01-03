@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
 
 abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
@@ -35,7 +36,7 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
         return $this->currentEntry();
     }
 
-    protected function currentEntry()
+    protected function currentEntry(): Entry
     {
         // TODO Use the Box Spout Row as current data? Probably useless.
         return new SpreadsheetEntry($this->currentData, $this->availableFields, $this->getParams());

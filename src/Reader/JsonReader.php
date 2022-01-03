@@ -76,7 +76,7 @@ class JsonReader extends AbstractPaginatedReader
 
         $resource = $current;
 
-        return new Entry($resource, [], [
+        return new BaseEntry($resource, [], [
             'is_formatted' => true,
         ]);
     }
