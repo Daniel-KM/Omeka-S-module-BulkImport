@@ -6,6 +6,7 @@ use ArrayObject;
 use BulkImport\Form\Processor\ResourceProcessorConfigForm;
 use BulkImport\Form\Processor\ResourceProcessorParamsForm;
 use Log\Stdlib\PsrMessage;
+use Omeka\Api\Request;
 
 class ResourceProcessor extends AbstractResourceProcessor
 {
@@ -401,6 +402,9 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
+    /**
+     * @todo Use only core validations. Just remove flush in fact, but it may occurs anywhere or in modules.
+     */
     protected function checkEntity(ArrayObject $resource): bool
     {
         if (empty($resource['resource_name'])) {
@@ -439,7 +443,82 @@ class ResourceProcessor extends AbstractResourceProcessor
                     return false;
                 }
                 break;
+            default:
+                // Never.
+                return !$resource['messageStore']->hasErrors();
         }
+
+        // Don't do more check for deletion, check only for update or create.
+        $operation = $this->standardOperation($this->action);
+        if (!$operation) {
+            return !$resource['messageStore']->hasErrors();
+        }
+
+        // Check through hydration and standard api.
+        $adapter = $this->adapterManager->get($resource['resource_name']);
+
+        // Some options are useless here, but added anyway.
+        /** @see \Omeka\Api\Request::setOption() */
+        $requestOptions = [
+            'continueOnError' => true,
+            'flushEntityManager' => false,
+            'responseContent' => 'resource',
+        ];
+
+        $request = new Request($operation, $resource['resource_name']);
+        $request
+            ->setContent($resource->getArrayCopy())
+            ->setOption($requestOptions);
+
+        if ($operation === Request::CREATE) {
+            $entityClass = $adapter->getEntityClass();
+            $entity = new $entityClass;
+        } else {
+            // The id is already checked.
+            $request
+                ->setId($resource['o:id']);
+
+            $entity = $adapter->findEntity($resource['o:id']);
+
+            // For deletion, just check rights.
+            if ($operation === Request::DELETE) {
+                return !$resource['messageStore']->hasErrors();
+            }
+        }
+
+        // Complete from api modules (api.execute/create/update.pre).
+        /** @see \Omeka\Api\Manager::initialize() */
+        try {
+            $this->apiManager->initialize($adapter, $request);
+        } catch (\Exception $e) {
+            $resource['messageStore']->addError('modules', new PsrMessage(
+                'Initialization exception: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            return false;
+        }
+
+        // Process hydration checks (template, data type, media item, etc.).
+        // This is the same operation than api create/update, but without
+        // persisting entity.
+        $errorStore = new \Omeka\Stdlib\ErrorStore;
+        try {
+            $adapter->hydrateEntity($request, $entity, $errorStore);
+        } catch (\Exception $e) {
+            $resource['messageStore']->addError('validation', new PsrMessage(
+                'Validation exception: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            return false;
+        }
+
+        // Merge error store with resource message store.
+        $resource['messageStore']->mergeErrors($errorStore, 'validation');
+        if ($resource['messageStore']->hasErrors()) {
+            return false;
+        }
+
+        // TODO Check finalize (post) api process. Note: some modules flush results.
 
         return !$resource['messageStore']->hasErrors();
     }

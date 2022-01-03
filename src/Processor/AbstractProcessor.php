@@ -345,6 +345,20 @@ abstract class AbstractProcessor implements Processor
         return false;
     }
 
+    protected function standardOperation(string $action): ?string
+    {
+        $actionsToOperations = [
+            self::ACTION_CREATE => \Omeka\Api\Request::CREATE,
+            self::ACTION_APPEND => \Omeka\Api\Request::UPDATE,
+            self::ACTION_REVISE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_UPDATE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_REPLACE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_DELETE => \Omeka\Api\Request::DELETE,
+            self::ACTION_SKIP => null,
+        ];
+        return $actionsToOperations[$action] ?? null;
+    }
+
     protected function listValidationMessages(ValidationException $e): array
     {
         $messages = [];

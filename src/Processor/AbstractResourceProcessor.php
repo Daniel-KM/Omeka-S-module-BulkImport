@@ -379,13 +379,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ++$this->processing;
             ++$this->totalProcessed;
 
-            // Only resources with messages are logged.
-            // TODO Add a specific message when no error?
-
-            // Process api checks (template, data type, media item).
-            // $this->processEntities([$resource->getArrayCopy()]);
             $this->processing = 0;
 
+            // Only resources with messages are logged.
             if (!$resource['messageStore']->hasErrors()) {
                 $this->storeCheckedResource($resource);
             }
