@@ -53,6 +53,149 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ])
 
             ->add([
+                'name' => 'action',
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Action', // @translate
+                    'info' => 'In addition to the default "Create" and to the common "Delete", to manage most of the common cases, four modes of update are provided:
+    - append: add new data to complete the resource;
+    - revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
+    - update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
+    - replace: remove all properties of the resource, and fill new ones from the entry.', // @translate
+                    'value_options' => [
+                        \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create new resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Append data to resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_REVISE => 'Revise data of resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Update data of resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE => 'Replace all data of resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_DELETE => 'Delete resources', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_SKIP => 'Skip entries (dry run)', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'action',
+                    'multiple' => false,
+                    'required' => false,
+                    'class' => 'chosen-select',
+                ],
+            ])
+
+            ->add([
+                'name' => 'action_unidentified',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Action on unidentified resources', // @translate
+                    'info' => 'What to do when a resource to update does not exist.', // @translate
+                    'value_options' => [
+                        \BulkImport\Processor\AbstractProcessor::ACTION_SKIP => 'Skip entry', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create a new resource', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'action_unidentified',
+                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_SKIP,
+                ],
+            ])
+
+            ->add([
+                'name' => 'identifier_name',
+                'type' => OmekaElement\PropertySelect::class,
+                'options' => [
+                    'label' => 'Identifier to use for linked resources or update', // @translate
+                    'info' => 'Allows to identify existing resources, for example to attach a media to an existing item or to update a resource. It is always recommended to set one ore more unique identifiers to all resources, with a prefix.', // @translate
+                    'empty_option' => '',
+                    'prepend_value_options' => [
+                        'o:id' => 'Internal id', // @translate
+                        'media_identifier' => [
+                            'label' => 'Media identifier', // @translate
+                            'options' => [
+                                'o:source' => 'Source', // @translate
+                                'o:filename' => 'File name', // @translate
+                                // When used with module Archive Repertory.
+                                'o:basename' => 'Base file name', // @translate
+                                'o:storage_id' => 'Storage id', // @translate
+                                'o:sha256' => 'Hash', // @translate
+                            ],
+                        ],
+                    ],
+                    'term_as_value' => true,
+                ],
+                'attributes' => [
+                    'id' => 'identifier_name',
+                    'multiple' => true,
+                    'required' => false,
+                    'value' => [
+                        'o:id',
+                    ],
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select an identifier name…', // @translate
+                ],
+            ])
+
+            ->add([
+                'name' => 'allow_duplicate_identifiers',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Allow duplicate identifiers', // @translate
+                    'info' => 'Not recommended, but needed to be compliant with old databases. Duplicates are logged.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'allow_duplicate_identifiers',
+                ],
+            ])
+
+            ->add([
+                'name' => 'action_identifier_update',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Action on identifier', // @translate
+                    'info' => 'When a "revise" or an "update" is done, the identifier may be updated, but you may want to keep existing identifiers if all of them are not provided.', // @translate
+                    'value_options' => [
+                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep and append new identifiers', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'action_identifier_update',
+                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+                ],
+            ])
+
+            ->add([
+                'name' => 'action_media_update',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Action on media', // @translate
+                    'info' => 'When a "revise" or an "update" is done, the media may be updated, but you may want to keep existing ones.', // @translate
+                    'value_options' => [
+                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep media', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'action_media_update',
+                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+                ],
+            ])
+
+            ->add([
+                'name' => 'action_item_set_update',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Action on item set', // @translate
+                    'info' => 'When a "revise" or an "update" is done, the item set may be updated, but you may want to keep existing ones.', // @translate
+                    'value_options' => [
+                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep item sets', // @translate
+                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'action_item_set_update',
+                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+                ],
+            ])
+
+            ->add([
                 'name' => 'o:resource_template',
                 'type' => OmekaElement\ResourceSelect::class,
                 'options' => [
@@ -129,148 +272,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 ],
             ])
 
-            ->add([
-                'name' => 'action',
-                'type' => Element\Select::class,
-                'options' => [
-                    'label' => 'Action', // @translate
-                    'info' => 'In addition to the default "Create" and to the common "Delete", to manage most of the common cases, four modes of update are provided:
-    - append: add new data to complete the resource;
-    - revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
-    - update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
-    - replace: remove all properties of the resource, and fill new ones from the entry.', // @translate
-                    'value_options' => [
-                        \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create new resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Append data to resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_REVISE => 'Revise data of resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Update data of resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE => 'Replace all data of resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_DELETE => 'Delete resources', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_SKIP => 'Skip entries (dry run)', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'action',
-                    'multiple' => false,
-                    'required' => false,
-                    'class' => 'chosen-select',
-                ],
-            ])
-
-            ->add([
-                'name' => 'action_unidentified',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Action on unidentified resources', // @translate
-                    'info' => 'What to do when a resource to update does not exist.', // @translate
-                    'value_options' => [
-                        \BulkImport\Processor\AbstractProcessor::ACTION_SKIP => 'Skip entry', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create a new resource', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'action_unidentified',
-                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_SKIP,
-                ],
-            ])
-
-            ->add([
-                'name' => 'identifier_name',
-                'type' => OmekaElement\PropertySelect::class,
-                'options' => [
-                    'label' => 'Identifier name', // @translate
-                    'info' => 'Allows to identify existing resources, for example to attach a media to an existing item or to update a resource. It is always recommended to set one ore more unique identifiers to all resources, with a prefix.', // @translate
-                    'empty_option' => '',
-                    'prepend_value_options' => [
-                        'o:id' => 'Internal id', // @translate
-                        'media_identifier' => [
-                            'label' => 'Media identifier', // @translate
-                            'options' => [
-                                'o:source' => 'Source', // @translate
-                                'o:filename' => 'File name', // @translate
-                                // When used with module Archive Repertory.
-                                'o:basename' => 'Base file name', // @translate
-                                'o:storage_id' => 'Storage id', // @translate
-                                'o:sha256' => 'Hash', // @translate
-                            ],
-                        ],
-                    ],
-                    'term_as_value' => true,
-                ],
-                'attributes' => [
-                    'id' => 'identifier_name',
-                    'multiple' => true,
-                    'required' => false,
-                    'value' => [
-                        'o:id',
-                    ],
-                    'class' => 'chosen-select',
-                    'data-placeholder' => 'Select an identifier name…', // @translate
-                ],
-            ])
-
-            ->add([
-                'name' => 'action_identifier_update',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Action on identifier', // @translate
-                    'info' => 'When a "revise" or an "update" is done, the identifier may be updated, but you may want to keep existing identifiers if all of them are not provided.', // @translate
-                    'value_options' => [
-                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep and append new identifiers', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'action_identifier_update',
-                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-                ],
-            ])
-
-            ->add([
-                'name' => 'action_media_update',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Action on media', // @translate
-                    'info' => 'When a "revise" or an "update" is done, the media may be updated, but you may want to keep existing ones.', // @translate
-                    'value_options' => [
-                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep media', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'action_media_update',
-                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-                ],
-            ])
-
-            ->add([
-                'name' => 'action_item_set_update',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Action on item set', // @translate
-                    'info' => 'When a "revise" or an "update" is done, the item set may be updated, but you may want to keep existing ones.', // @translate
-                    'value_options' => [
-                        \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Keep item sets', // @translate
-                        \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE => 'Process as main action above', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'action_item_set_update',
-                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-                ],
-            ])
-
-            ->add([
-                'name' => 'allow_duplicate_identifiers',
-                'type' => Element\Checkbox::class,
-                'options' => [
-                    'label' => 'Allow duplicate identifiers', // @translate
-                    'info' => 'Not recommended, but needed to be compliant with old databases. Duplicates are logged.', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'allow_duplicate_identifiers',
-                ],
-            ])
         ;
         return $this;
     }

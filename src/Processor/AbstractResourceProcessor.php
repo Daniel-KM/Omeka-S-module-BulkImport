@@ -156,17 +156,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         $defaults = [
+            'action' => null,
+            'action_unidentified' => null,
+            'identifier_name' => null,
+            'allow_duplicate_identifiers' => false,
+            'action_identifier_update' => null,
+            'action_media_update' => null,
+            'action_item_set_update' => null,
+
             'o:resource_template' => null,
             'o:resource_class' => null,
             'o:owner' => null,
             'o:is_public' => null,
-            'action' => null,
-            'action_unidentified' => null,
-            'identifier_name' => null,
-            'action_identifier_update' => null,
-            'action_media_update' => null,
-            'action_item_set_update' => null,
-            'allow_duplicate_identifiers' => false,
+
             'entries_to_skip' => 0,
             'entries_by_batch' => null,
         ];
