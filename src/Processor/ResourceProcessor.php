@@ -8,7 +8,7 @@ use BulkImport\Form\Processor\ResourceProcessorParamsForm;
 
 class ResourceProcessor extends AbstractResourceProcessor
 {
-    protected $resourceType = 'resources';
+    protected $resourceName = 'resources';
 
     protected $resourceLabel = 'Mixed resources'; // @translate
 
@@ -18,8 +18,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
-        if (isset($values['resource_type'])) {
-            $args['resource_type'] = $values['resource_type'];
+        if (isset($values['resource_name'])) {
+            $args['resource_name'] = $values['resource_name'];
         }
         $this->handleFormItem($args, $values);
         $this->handleFormItemSet($args, $values);
@@ -64,13 +64,13 @@ class ResourceProcessor extends AbstractResourceProcessor
         $this->baseItem($resource);
         $this->baseItemSet($resource);
         $this->baseMedia($resource);
-        $resource['resource_type'] = $this->getParam('resource_type');
+        $resource['resource_name'] = $this->getParam('resource_name');
         return $this;
     }
 
     protected function baseItem(ArrayObject $resource): \BulkImport\Processor\Processor
     {
-        $resource['resource_type'] = 'items';
+        $resource['resource_name'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
         $resource['o:media'] = [];
         return $this;
@@ -78,7 +78,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function baseItemSet(ArrayObject $resource): \BulkImport\Processor\Processor
     {
-        $resource['resource_type'] = 'item_sets';
+        $resource['resource_name'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
         $resource['o:is_open'] = $isOpen;
         return $this;
@@ -86,18 +86,18 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function baseMedia(ArrayObject $resource): \BulkImport\Processor\Processor
     {
-        $resource['resource_type'] = 'media';
+        $resource['resource_name'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
         return $this;
     }
 
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
-        static $resourceTypes;
+        static $resourceNames;
 
-        if (is_null($resourceTypes)) {
+        if (is_null($resourceNames)) {
             $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
-            $resourceTypes = [
+            $resourceNames = [
                 'o:Item' => 'items',
                 'o:ItemSet' => 'item_sets',
                 'o:Media' => 'media',
@@ -127,26 +127,26 @@ class ResourceProcessor extends AbstractResourceProcessor
             ];
         }
 
-        // When the resource type is known, don't fill other resources. But if
+        // When the resource name is known, don't fill other resources. But if
         // is not known yet, fill the item first. It fixes the issues with the
         // target that are the same for media of item and media (that is a
         // special case where two or more resources are created from one
         // entry).
-        $resourceType = empty($resource['resource_type']) ? true : $resource['resource_type'];
+        $resourceName = empty($resource['resource_name']) ? true : $resource['resource_name'];
 
         switch ($target['target']) {
-            case 'resource_type':
+            case 'resource_name':
                 $value = array_pop($values);
-                $resourceType = preg_replace('~[^a-z]~', '', strtolower((string) $value));
-                if (isset($resourceTypes[$resourceType])) {
-                    $resource['resource_type'] = $resourceTypes[$resourceType];
+                $resourceName = preg_replace('~[^a-z]~', '', strtolower((string) $value));
+                if (isset($resourceNames[$resourceName])) {
+                    $resource['resource_name'] = $resourceNames[$resourceName];
                 }
                 return true;
-            case $resourceType == 'items' && $this->fillItem($resource, $target, $values):
+            case $resourceName === 'items' && $this->fillItem($resource, $target, $values):
                 return true;
-            case $resourceType == 'item_sets' && $this->fillItemSet($resource, $target, $values):
+            case $resourceName === 'item_sets' && $this->fillItemSet($resource, $target, $values):
                 return true;
-            case $resourceType == 'media' && $this->fillMedia($resource, $target, $values):
+            case $resourceName === 'media' && $this->fillMedia($resource, $target, $values):
                 return true;
             default:
                 return false;
@@ -407,7 +407,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function checkEntity(ArrayObject $resource): bool
     {
-        if (empty($resource['resource_type'])) {
+        if (empty($resource['resource_name'])) {
             $this->logger->err(
                 'Index #{index} skipped: no resource type set',  // @translate
                 ['index' => $this->indexResource]
@@ -415,12 +415,12 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
-        if (!in_array($resource['resource_type'], ['items', 'item_sets', 'media'])) {
+        if (!in_array($resource['resource_name'], ['items', 'item_sets', 'media'])) {
             $this->logger->err(
-                'Index #{index} skipped: resource type "{resource_type}" not managed', // @translate
+                'Index #{index} skipped: Resource type "{resource_name}" not managed', // @translate
                 [
                     'index' => $this->indexResource,
-                    'resource_type' => $resource['resource_type'],
+                    'resource_name' => $resource['resource_name'],
                 ]
             );
             return false;
@@ -431,7 +431,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
-        switch ($resource['resource_type']) {
+        switch ($resource['resource_name']) {
             case 'items':
                 if (!$this->checkItem($resource)) {
                     return false;
@@ -559,8 +559,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function processEntities(array $data): \BulkImport\Processor\Processor
     {
-        $resourceType = $this->getResourceType();
-        if ($resourceType !== 'resources') {
+        $resourceName = $this->getResourceName();
+        if ($resourceName !== 'resources') {
             parent::processEntities($data);
             return $this;
         }
@@ -573,21 +573,21 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Useless when the batch is 1.
         // TODO Create an option for full order by id for items, then media.
         $datas = [];
-        $previousResourceType = $data[0]['resource_type'];
+        $previousResourceName = $data[0]['resource_name'];
         foreach ($data as $dataResource) {
-            if ($previousResourceType !== $dataResource['resource_type']) {
-                $this->resourceType = $previousResourceType;
+            if ($previousResourceName !== $dataResource['resource_name']) {
+                $this->resourceName = $previousResourceName;
                 parent::processEntities($datas);
-                $this->resourceType = 'resources';
-                $previousResourceType = $dataResource['resource_type'];
+                $this->resourceName = 'resources';
+                $previousResourceName = $dataResource['resource_name'];
                 $datas = [];
             }
             $datas[] = $dataResource;
         }
         if ($datas) {
-            $this->resourceType = $previousResourceType;
+            $this->resourceName = $previousResourceName;
             parent::processEntities($datas);
-            $this->resourceType = 'resources';
+            $this->resourceName = 'resources';
         }
         return $this;
     }

@@ -128,7 +128,7 @@ class AutomapFields extends AbstractPlugin
             'check_names_alone' => true,
             'single_target' => false,
             'output_full_matches' => false,
-            'resource_type' => null,
+            'resource_name' => null,
         ];
         $options += $defaultOptions;
 

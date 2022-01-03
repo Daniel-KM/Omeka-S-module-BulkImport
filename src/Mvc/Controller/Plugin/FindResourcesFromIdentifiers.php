@@ -368,7 +368,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         if ($resourceType) {
             $qb
                 ->andWhere($expr->eq('resource.resource_type', ':resource_type'));
-            $parameters['resource_type'] = $resourceType;
+            $parameters['resource_name'] = $resourceType;
         }
 
         $qb
@@ -462,7 +462,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         if ($resourceType) {
             $qb
                 ->andWhere($expr->eq('resource.resource_type', ':resource_type'));
-            $parameters['resource_type'] = $resourceType;
+            $parameters['resource_name'] = $resourceType;
         }
 
         // Add a performance filter.

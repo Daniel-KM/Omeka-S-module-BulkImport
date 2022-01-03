@@ -35,7 +35,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                 'options' => [
                     // Id is only for update.
                     'o:id' => 'Internal id', // @translate
-                    'resource_type' => 'Resource type', // @translate
+                    'resource_name' => 'Resource type', // @translate
                     'o:resource_template' => 'Resource template', // @translate
                     'o:resource_class' => 'Resource class', // @translate
                     'o:owner' => 'Owner', // @translate

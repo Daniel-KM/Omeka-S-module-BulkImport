@@ -41,10 +41,10 @@ class ImportedAdapter extends AbstractEntityAdapter
                 $this->createNamedParameter($qb, $query['entity_id']))
             );
         }
-        if (isset($query['resource_type'])) {
+        if (isset($query['resource_name'])) {
             $qb->andWhere($qb->expr()->eq(
                 'omeka_root.resource_type',
-                $this->createNamedParameter($qb, $query['resource_type']))
+                $this->createNamedParameter($qb, $query['resource_name']))
             );
         }
     }
@@ -63,8 +63,8 @@ class ImportedAdapter extends AbstractEntityAdapter
             $entity->setEntityId($data['entity_id']);
         }
 
-        if (isset($data['resource_type'])) {
-            $entity->setResourceType($data['resource_type']);
+        if (isset($data['resource_name'])) {
+            $entity->setResourceType($data['resource_name']);
         }
     }
 }

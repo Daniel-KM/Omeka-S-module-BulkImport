@@ -13,7 +13,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
 
         $this
             ->add([
-                'name' => 'resource_type',
+                'name' => 'resource_name',
                 'type' => Element\Select::class,
                 'options' => [
                     'label' => 'Resource type', // @translate
@@ -121,7 +121,7 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
 
         $this->getInputFilter()
             ->add([
-                'name' => 'resource_type',
+                'name' => 'resource_name',
                 'required' => false,
             ]);
 

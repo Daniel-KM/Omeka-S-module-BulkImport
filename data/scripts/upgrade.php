@@ -326,3 +326,26 @@ WHERE
 SQL;
     $connection->executeQuery($sql);
 }
+
+if (version_compare($oldVersion, '3.3.28.0', '<')) {
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `processor_config` = REPLACE(`processor_config`, '"resource_type":', '"resource_name":')
+WHERE
+    `processor_config` IS NOT NULL
+    AND `processor_config` LIKE '%"resource#_type":%' ESCAPE '#'
+;
+SQL;
+    $connection->executeQuery($sql);
+    $sql = <<<'SQL'
+UPDATE `bulk_import`
+SET
+    `processor_params` = REPLACE(`processor_params`, '"resource_type":', '"resource_name":')
+WHERE
+    `processor_params` IS NOT NULL
+    AND `processor_params` LIKE '%"resource#_type":%' ESCAPE '#'
+;
+SQL;
+    $connection->executeQuery($sql);
+}

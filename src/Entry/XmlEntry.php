@@ -150,7 +150,7 @@ class XmlEntry extends BaseEntry
             default:
             case 'url':
                 $resource += [
-                    'resource_type' => 'media',
+                    'resource_name' => 'media',
                     'o:ingester' => 'url',
                     'ingest_url' => $value,
                     'o:source' => $value,
@@ -160,14 +160,14 @@ class XmlEntry extends BaseEntry
             case 'file':
                 if ($this->isUrl($value)) {
                     $resource += [
-                        'resource_type' => 'media',
+                        'resource_name' => 'media',
                         'o:ingester' => 'url',
                         'ingest_url' => $value,
                         'o:source' => $value,
                     ];
                 } else {
                     $resource += [
-                        'resource_type' => 'media',
+                        'resource_name' => 'media',
                         'o:ingester' => 'sideload',
                         'ingest_filename' => $value,
                         'o:source' => $value,
@@ -177,7 +177,7 @@ class XmlEntry extends BaseEntry
 
             case 'html':
                 $resource += [
-                    'resource_type' => 'media',
+                    'resource_name' => 'media',
                     'o:ingester' => 'html',
                     'html' => $value,
                     'o:source' => null,
@@ -189,7 +189,7 @@ class XmlEntry extends BaseEntry
                     $value = $this->options['iiifserver_media_api_url'] . $value;
                 }
                 $resource += [
-                    'resource_type' => 'media',
+                    'resource_name' => 'media',
                     'o:ingester' => 'iiif',
                     'ingest_url' => $value,
                     'o:source' => $value,
@@ -198,7 +198,7 @@ class XmlEntry extends BaseEntry
 
             case 'tile':
                 $resource += [
-                    'resource_type' => 'media',
+                    'resource_name' => 'media',
                     'o:ingester' => 'tile',
                     'ingest_url' => $value,
                     'o:source' => $value,

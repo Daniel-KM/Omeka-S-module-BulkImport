@@ -414,7 +414,7 @@ SQL;
                 'o:resource_template' => '1',
                 'o:resource_class' => '',
                 'o:is_public' => 'true',
-                'resource_type' => 'items',
+                'resource_name' => 'items',
                 'o:item_set' => [],
                 'o:item' => '',
             ],
@@ -441,7 +441,7 @@ SQL;
                 'o:resource_template' => '1',
                 'o:resource_class' => '',
                 'o:is_public' => 'true',
-                'resource_type' => 'items',
+                'resource_name' => 'items',
                 'o:item_set' => [],
                 'o:item' => '',
                 'mapping' => [

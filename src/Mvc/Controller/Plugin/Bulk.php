@@ -699,9 +699,9 @@ class Bulk extends AbstractPlugin
         return $users ? (reset($users))->getId() : null;
     }
 
-    public function normalizeResourceType($resourceType): ?string
+    public function getEntityClass($name): ?string
     {
-        $resourceTypes = [
+        $entityClasses = [
             'items' => \Omeka\Entity\Item::class,
             'item_sets' => \Omeka\Entity\ItemSet::class,
             'media' => \Omeka\Entity\Media::class,
@@ -726,21 +726,18 @@ class Bulk extends AbstractPlugin
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
         ];
-        return $resourceTypes[$resourceType] ?? null;
+        return $entityClasses[$name] ?? null;
     }
 
-    public function tableResource($resourceType): ?string
+    public function tableResource($name): ?string
     {
-        $resourceType = $this->normalizeResourceType($resourceType);
-        if (empty($resourceType)) {
-            return null;
-        }
+        $entityClass = $this->getEntityClass($name);
         $tableResources = [
             \Omeka\Entity\Item::class => 'item',
             \Omeka\Entity\ItemSet::class => 'item_set',
             \Omeka\Entity\Media::class => 'media',
         ];
-        return $tableResources[$resourceType];
+        return $tableResources[$entityClass] ?? null;
     }
 
     /**

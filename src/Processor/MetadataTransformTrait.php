@@ -2815,9 +2815,9 @@ SQL;
         if (isset($params['class'])) {
             $classId = $this->bulk->getResourceClassId($params['class']) ?? 'NULL';
         }
-        $resourceType = empty($params['resource_type'])
+        $resourceType = empty($params['resource_name'])
             ? \Omeka\Entity\Item::class
-            : $this->bulk->normalizeResourceType($params['resource_type']) ?? \Omeka\Entity\Item::class;
+            : $this->bulk->getEntityClass($params['resource_name']) ?? \Omeka\Entity\Item::class;
         if ($resourceType === \Omeka\Entity\Media::class) {
             $this->logger->err(
                 'The operation "{action}" cannot create media currently.', // @translate

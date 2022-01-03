@@ -1574,7 +1574,7 @@ SQL;
                                 'mapping_properties' => [
                                     'manioc:themeGeneral' => 'dcterms:title',
                                 ],
-                                'resource_type' => 'item_sets',
+                                'resource_name' => 'item_sets',
                                 'template' => 'Corpus et sélection documentaire',
                             ],
                         ],

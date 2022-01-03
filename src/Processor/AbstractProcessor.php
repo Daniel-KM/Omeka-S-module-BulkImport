@@ -383,10 +383,10 @@ abstract class AbstractProcessor implements Processor
         }
         // The id is set, but not checked. So check it.
         if ($resource['o:id']) {
-            // TODO getResourceType() is only in child AbstractResourceProcessor.
-            $resourceType = empty($resource['resource_type'])
-                ? $this->getResourceType()
-                : $resource['resource_type'];
+            // TODO getResourceName() is only in child AbstractResourceProcessor.
+            $resourceType = empty($resource['resource_name'])
+                ? $this->getResourceName()
+                : $resource['resource_name'];
             if (empty($resourceType) || $resourceType === 'resources') {
                 $this->logger->err(
                     'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
@@ -423,10 +423,10 @@ abstract class AbstractProcessor implements Processor
             return true;
         }
 
-        // TODO getResourceType() is only in child AbstractResourceProcessor.
-        $resourceType = empty($resource['resource_type'])
-            ? $this->getResourceType()
-            : $resource['resource_type'];
+        // TODO getResourceName() is only in child AbstractResourceProcessor.
+        $resourceType = empty($resource['resource_name'])
+            ? $this->getResourceName()
+            : $resource['resource_name'];
         if (empty($resourceType) || $resourceType === 'resources') {
             $this->logger->err(
                 'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
@@ -508,12 +508,12 @@ abstract class AbstractProcessor implements Processor
             }
             $resource['o:id'] = reset($ids);
             $this->logger->info(
-                'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_type} #{resource_id}.', // @translate
+                'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
                 [
                     'index' => $this->indexResource,
                     'identifier' => key($ids),
                     'metadata' => $identifierName,
-                    'resource_type' => $this->label($resourceType),
+                    'resource_name' => $this->label($resourceType),
                     'resource_id' => $resource['o:id'],
                 ]
             );
@@ -566,7 +566,7 @@ abstract class AbstractProcessor implements Processor
             $importeds[] = [
                 'o:job' => ['o:id' => $jobId],
                 'entity_id' => $resource->id(),
-                'resource_type' => $classes[$class],
+                'resource_name' => $classes[$class],
             ];
         }
 

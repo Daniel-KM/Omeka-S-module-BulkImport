@@ -12,7 +12,7 @@ class ImportedRepresentation extends AbstractEntityRepresentation
         return [
             'o:job' => $this->job()->getReference(),
             'entity_id' => $this->entityId(),
-            'resource_type' => $this->resourceType(),
+            'resource_name' => $this->resourceType(),
         ];
     }
 
