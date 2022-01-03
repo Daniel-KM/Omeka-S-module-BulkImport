@@ -664,7 +664,7 @@ class SpipProcessor extends AbstractFullProcessor
         // $source['titre'] = preg_replace('~^(\d+\.\s+)(\d+\.\s+)~', '', $source['titre']);
 
         $titles = $this->polyglotte($source['titre']);
-        $title = reset($titles);
+        $title = str_replace("\n", ' ', (string) reset($titles));
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
@@ -902,7 +902,7 @@ class SpipProcessor extends AbstractFullProcessor
             $source['titre'] = sprintf($this->translator->translate('[Untitled document #%s]'), $source['id_document']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
-        $title = reset($titles);
+        $title = str_replace("\n", ' ', (string) reset($titles));
 
         /** @var \Omeka\Entity\Media $media */
         $media = $this->entityManager
@@ -1091,7 +1091,7 @@ class SpipProcessor extends AbstractFullProcessor
             $source['titre'] = sprintf($this->translator->translate('[Untitled album #%s]'), $source['id_album']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
-        $title = reset($titles);
+        $title = str_replace("\n", ' ', (string) reset($titles));
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
@@ -1393,17 +1393,19 @@ class SpipProcessor extends AbstractFullProcessor
             ];
         }
 
-        $fromTo = [
-            'email' => 'foaf:mbox',
-            'lang' => 'dcterms:language',
-        ];
-        foreach ($fromTo as $sourceName => $term) {
-            if (strlen($source[$sourceName])) {
-                $values[] = [
-                    'term' => $term,
-                    'value' => $source[$sourceName],
-                ];
-            }
+        if (strlen($source['email'])) {
+            $values[] = [
+                'term' => 'foaf:mbox',
+                'value' => $source['email'],
+                'is_public' => false,
+            ];
+        }
+
+        if (strlen($source['lang'])) {
+            $values[] = [
+                'term' => 'dcterms:language',
+                'value' => $source['lang'],
+            ];
         }
 
         if (strlen($source['bio'])) {
@@ -1469,7 +1471,7 @@ class SpipProcessor extends AbstractFullProcessor
             $source['titre'] = sprintf($this->translator->translate('[Untitled post #%s]'), $source['id_breve']); // @translate
         }
         $titles = $this->polyglotte($source['titre']);
-        $title = reset($titles);
+        $title = str_replace("\n", ' ', (string) reset($titles));
 
         $status = $this->map['statuts'][$source['statut']] ?? $source['statut'];
         $isPublic = $source['statut'] === 'publie';
