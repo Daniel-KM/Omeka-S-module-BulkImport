@@ -11,6 +11,7 @@ use Laminas\Log\Logger;
 use Laminas\Router\Http\RouteMatch;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
+use Omeka\Entity\Job;
 use Omeka\Job\AbstractJob;
 
 class Import extends AbstractJob
@@ -43,7 +44,7 @@ class Import extends AbstractJob
             ->setReader($reader)
             ->setLogger($this->logger)
             // This is not the job entity, but the job itself, so it has no id.
-            // TODO Clarify name of job for job id/import id.
+            // FIXME Clarify name of job for job id/import id.
             ->setJob($this);
 
         $this->prepareDefaultSite();
@@ -63,6 +64,29 @@ class Import extends AbstractJob
     public function getJobId()
     {
         return $this->job->getId();
+    }
+
+    /**
+     * @todo Remove this direct access to job to set status.
+     */
+    public function getJob(): Job
+    {
+        return $this->job;
+    }
+
+    /**
+     * @todo Remove this direct access to job to get arg.
+     */
+    public function getJobArg($name, $default = null)
+    {
+        $args = $this->job->getArgs();
+        if (!is_array($args)) {
+            return $default;
+        }
+        if (!array_key_exists($name, $args)) {
+            return $default;
+        }
+        return $args[$name];
     }
 
     /**

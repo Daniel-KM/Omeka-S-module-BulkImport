@@ -70,6 +70,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $actionItemSet;
 
     /**
+     * @var array
+     */
+    protected $identifiers;
+
+    /**
      * @var bool
      */
     protected $hasMapping = false;
@@ -83,22 +88,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * @var int
      */
-    protected $indexResource = 0;
-
-    /**
-     * @var int
-     */
-    protected $processing = 0;
-
-    /**
-     * @var int
-     */
     protected $totalToProcess = 0;
 
     /**
      * @var int
      */
     protected $totalIndexResources = 0;
+
+    /**
+     * @var int
+     */
+    protected $indexResource = 0;
+
+    /**
+     * @var int
+     */
+    protected $processing = 0;
 
     /**
      * @var int
@@ -159,6 +164,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         $defaults = [
+            'dry_run' => false,
             'action' => null,
             'action_unidentified' => null,
             'identifier_name' => null,
@@ -228,13 +234,139 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
+        // Prepare the file where the checks will be saved.
+        $this->initializeCheckOutput();
+
+        $this->prepareFullRun();
+
+        $dryRun = (bool) $this->getParam('dry_run');
+        if ($dryRun) {
+            return;
+        }
+
         $this->totalIndexResources = 0;
+        $this->indexResource = 0;
+        $this->processing = 0;
+        $this->totalIndexResources = 0;
+        $this->totalSkipped = 0;
+        $this->totalProcessed = 0;
+        $this->totalErrors = 0;
 
         $this->processFullRun();
+
+        $this->finalizeCheckOutput();
     }
 
-    protected function processFullRun(): void
+    /**
+     * Check all source data (dry run).
+     *
+     * Check:
+     * - identifiers,
+     * - linked resources,
+     * - template values,
+     * - files presence.
+     *
+     * Prepare the list of identifiers one time too (existing and new ones).
+     */
+    protected function prepareFullRun(): \BulkImport\Processor\Processor
     {
+        $this->logger->notice(
+            'Start checking of source data.' // @translate
+        );
+
+        $toSkip = (int) $this->getParam('entries_to_skip', 0);
+
+        // Manage the case where the reader is zero-based or one-based.
+        $firstIndexBase = null;
+        foreach ($this->reader as $index => $entry) {
+            if (is_null($firstIndexBase)) {
+                $firstIndexBase = (int) empty($index);
+            }
+            if ($this->job->shouldStop()) {
+                $this->logger->warn(
+                    'Index #{index}: The job "Import" was stopped during initial checks.', // @translate
+                    ['index' => $this->indexResource]
+                );
+                break;
+            }
+
+            // The first entry is #1, but the iterator (array) numbered it 0.
+            $this->indexResource = $index + $firstIndexBase;
+
+            if ($toSkip) {
+                $this->logCheckedResource(null, null);
+                --$toSkip;
+                continue;
+            }
+
+            ++$this->totalIndexResources;
+            $resource = $this->processEntry($entry);
+            if (!$resource) {
+                $this->logCheckedResource(null, $entry);
+                continue;
+            }
+
+            if (!$this->checkEntity($resource)) {
+                ++$this->totalErrors;
+                $this->logCheckedResource($resource, $entry);
+                continue;
+            }
+
+            ++$this->processing;
+            ++$this->totalProcessed;
+
+            // Only resources with messages are logged.
+            // TODO Add a specific message when no error?
+
+            // Process api checks (template, data type, media item).
+            // $this->processEntities([$resource->getArrayCopy()]);
+            $this->processing = 0;
+
+            $this->logCheckedResource($resource, $entry);
+
+            if ($this->totalProcessed % 100 === 0) {
+                if ($this->totalToProcess) {
+                    $this->logger->notice(
+                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_resources' => $this->totalToProcess,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                } else {
+                    $this->logger->notice(
+                        '{total_processed} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                }
+            }
+        }
+
+        $this->logger->notice(
+            'End of global check: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+            [
+                'total_resources' => $this->totalIndexResources,
+                'total_skipped' => $this->totalSkipped,
+                'total_processed' => $this->totalProcessed,
+                'total_errors' => $this->totalErrors,
+            ]
+        );
+
+        return $this;
+    }
+
+    protected function processFullRun(): \BulkImport\Processor\Processor
+    {
+        $this->logger->notice(
+            'Start actual import of source data.' // @translate
+        );
+
         $toSkip = (int) $this->getParam('entries_to_skip', 0);
         $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
 
@@ -258,7 +390,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             if ($toSkip) {
-                $this->logCheckedResource(null, null);
                 --$toSkip;
                 continue;
             }
@@ -273,21 +404,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             $resource = $this->processEntry($entry);
             if (!$resource) {
-                $this->logCheckedResource(null, $entry);
                 continue;
             }
 
             if ($this->checkEntity($resource)) {
                 ++$this->processing;
                 ++$this->totalProcessed;
+                // Don't repeat errors messages.
+                unset($resource['errorStore'], $resource['warningStore'], $resource['infoStore']);
                 $dataToProcess[] = $resource->getArrayCopy();
             } else {
+                unset($resource['errorStore'], $resource['warningStore'], $resource['infoStore']);
                 ++$this->totalErrors;
             }
-
-            // Only resources with messages are logged.
-            // TODO Add a specific message when no error?
-            $this->logCheckedResource($resource, $entry);
 
             // Only add every X for batch import.
             if ($this->processing >= $batch) {
@@ -343,6 +472,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'total_errors' => $this->totalErrors,
             ]
         );
+
+        return $this;
     }
 
     /**

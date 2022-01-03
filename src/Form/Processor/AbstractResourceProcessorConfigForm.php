@@ -53,6 +53,18 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ])
 
             ->add([
+                'name' => 'dry_run',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Dry run', // @translate
+                    'info' => 'In all cases, the check of identifiers, linked resources, template values, and files presence is done during a first loop. This option allows to stop after checks.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'dry_run',
+                ],
+            ])
+
+            ->add([
                 'name' => 'action',
                 'type' => Element\Select::class,
                 'options' => [
