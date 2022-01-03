@@ -67,9 +67,25 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return $this->resource->getReaderParams();
     }
 
+    public function readerParam(string $name, $default = null)
+    {
+        $params = $this->resource->getReaderParams() ?: [];
+        return array_key_exists($name, $params)
+            ? $params[$name]
+            : $default;
+    }
+
     public function processorParams(): ?array
     {
         return $this->resource->getProcessorParams();
+    }
+
+    public function processorParam(string $name, $default = null)
+    {
+        $params = $this->resource->getProcessorParams() ?: [];
+        return array_key_exists($name, $params)
+            ? $params[$name]
+            : $default;
     }
 
     public function status(): string
@@ -122,10 +138,13 @@ class ImportRepresentation extends AbstractEntityRepresentation
      * Check if an import is undoable.
      *
      * An import is undoable only if the job process is not running and if it is
-     * not a creation process.
+     * not a creation process, and if it is not a dry run.
      */
     public function isUndoable(): bool
     {
+        if ($this->isDryRun()) {
+            return false;
+        }
         $job = $this->undoJob();
         if ($job) {
             return false;
@@ -197,7 +216,13 @@ class ImportRepresentation extends AbstractEntityRepresentation
      */
     public function isProcessStoppable(): bool
     {
-        return $this->isStoppable() || $this->isUndoStoppable();
+        return $this->isStoppable()
+            || $this->isUndoStoppable();
+    }
+
+    public function isDryRun(): bool
+    {
+        return $this->processorParam('processing') === 'dry_run';
     }
 
     public function logCount(): int

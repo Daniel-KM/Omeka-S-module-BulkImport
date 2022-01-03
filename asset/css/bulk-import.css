@@ -24,4 +24,10 @@
     .bulk-imports.log.browse th:first-child {
         width: 67%;
     }
+
+    .bulk-imports .actions .dry-run {
+        font-style: italic;
+        font-size: 0.8em;
+        padding-right: 8px;
+    }
 }
