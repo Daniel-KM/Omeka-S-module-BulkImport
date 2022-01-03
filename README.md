@@ -69,9 +69,16 @@ your system. It is until ten times slower than xslt 2.0 and sheets are more
 complex to write.
 
 So it’s recommended to install an xslt 2 processor, that can process xslt 1.0
-and xslt 2.0 sheets. The command can be configured in the configuration page of
-the plugin. Use "%1$s", "%2$s", "%3$s", without escape, for the file input, the
-stylesheet, and the output.
+and xslt 2.0 sheets.
+
+To intall xslt 2 on Debian / Ubuntu :
+```sh
+sudo apt install --reinstall default-jre libsaxonhe-java
+```
+
+Then, the command can be configured in the configuration page of the module.
+Use "%1$s", "%2$s", "%3$s", without escape, for the file input, the stylesheet,
+and the output.
 
 Examples for Debian 6+ / Ubuntu / Mint (with the package "libsaxonb-java"):
 ```
@@ -142,6 +149,23 @@ To import a spreadsheet, choose its format and the multivalue separator if any.
 Then do the mapping. The mapping is automatic when the header are properties
 label, or existing terms, or Omeka metadata names, or existing keywords.
 
+When importing an ODS file with formulas, try to set `string` or `general` as
+the default format of cells to avoid an issue when a formula returns a string,
+but the format requires something else, for example a `float`, in which case an
+empty string will be returned as `0` during import even if it is not displayed
+in some spreadheets.
+
+More largely, it's not recommended to use formulas and formatted cells, since it
+is not possible to be sure what are the actual data (the real ones or the
+displayed ones?). Even if it is well managed in most of the case, this is
+particularly important for dates, because they are often different between
+spreadsheets and version of the spreadsheets too. Some versions of Excel on
+Apple have does not display the same dates than the equivalent versions for
+Windows. You can do select all cells (ctrl + A), then copy (ctrl + C), then
+special paste (ctrl + shift + V), then choose "Values only", and save it in
+another file (or do copy on a new sheet), else you will lose previous formulas,
+styles and formats.
+
 Unlike CSV Import, there is no UI mapper except for the properties, but it
 manages advanced headers names to manage data types, languages and visibility
 automatically, so it is recommended to use them, for example `dcterms:title @fra ^^resource:item §private`.
@@ -153,7 +177,7 @@ So the header of each column can have a language (with `@language`), a datatype
 (with `^^datatype`), and a visibility (with `§private`). Furthermore, a pattern
 (prefixed with "~") can be appended to transform the value.
 
-For example to import a French title, use header `Title @fr` or `dcterms:title @fr`.
+For example to import a French title, use header `Title @fr` or `dcterms:title @fra`.
 
 To import a relation as an uri, use header `Relation ^^uri` or `dcterms:relation ^^uri`.
 To import an uri with a label, the header is the same, but the value should be
@@ -286,7 +310,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2021 (see [Daniel-KM] on GitLab)
+* Copyright Daniel Berthereau, 2017-2022 (see [Daniel-KM] on GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code from Spip)
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
