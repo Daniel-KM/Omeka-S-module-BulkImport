@@ -50,6 +50,87 @@ trait CheckTrait
     protected $filepathCheck;
 
     /**
+     * @var \Omeka\Settings\UserSettings
+     */
+    protected $userSettings;
+
+    /**
+     * @var string
+     */
+    protected $keyStore;
+
+    /**
+     * Prepare storage for checked resources to avoid to redo preparation.
+     *
+     * Use an internal user setting, because data can be big and main settings
+     * may be all loaded in memory by Omeka.
+     *
+     * @todo Use a temporary table or a static table.
+     */
+    protected function initializeCheckStore(): \BulkImport\Processor\Processor
+    {
+        $this->purgeCheckStore();
+
+        $services = $this->getServiceLocator();
+        $identity = $services->get('ControllerPluginManager')->get('identity');
+        $this->userSettings = $services->get('Omeka\Settings\User');
+        $this->userSettings->setTargetId($identity()->getId());
+
+        $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->getLabel());
+        $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
+        $date = (new \DateTime())->format('Ymd-His');
+        $random = substr(base64_encode(random_bytes(24)), 0, 8);
+        $this->keyStore = sprintf('_cache_bulkimport_%s%s_%s', $base, $date, $random);
+
+        return $this;
+    }
+
+    /**
+     * Store a resource to avoid to redo checks and preparation for next step.
+     */
+    protected function storeCheckedResource(?ArrayObject $resource, ?int $index = null): \BulkImport\Processor\Processor
+    {
+        if (is_null($index)) {
+            $index = $this->indexResource;
+        }
+        if ($resource) {
+            $data = $resource->getArrayCopy();
+            // There should not be any object except message store.
+            unset($data['messageStore']);
+        } else {
+            $data = null;
+        }
+        $this->userSettings->set($this->keyStore . '_' . $index, $data);
+        return $this;
+    }
+
+    /**
+     * Load a stored resource.
+     */
+    protected function loadCheckedResource(?int $index = null): ?array
+    {
+        if (is_null($index)) {
+            $index = $this->indexResource;
+        }
+        return $this->userSettings->get($this->keyStore . '_' . $index) ?: null;
+    }
+
+    /**
+     * Purge all stored resources, even from previous imports.
+     */
+    protected function purgeCheckStore(): \BulkImport\Processor\Processor
+    {
+        $connection = $this->getServiceLocator()->get('Omeka\Connection');
+        $sql = <<<'SQL'
+DELETE FROM `user_setting`
+WHERE `id` LIKE "#_cache#_bulkimport#_%" ESCAPE "#"
+;
+SQL;
+        $connection->executeStatement($sql);
+        return $this;
+    }
+
+    /**
      * Log and store infos on an entry and conversion to one or more resources.
      *
      * One log or row by message, and one or more specific rows by sub-resource
@@ -349,7 +430,7 @@ trait CheckTrait
         $destinationDir = $this->basePath . '/bulk_import';
 
         $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->getLabel());
-        $base = $base ? preg_replace('/_+/', '_', $base) . '-' : '';
+        $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
         $date = (new \DateTime())->format('Ymd-His');
         $extension = 'tsv';
 

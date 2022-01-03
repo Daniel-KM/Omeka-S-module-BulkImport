@@ -235,7 +235,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Prepare the file where the checks will be saved.
-        $this->initializeCheckOutput();
+        $this
+            ->initializeCheckStore()
+            ->initializeCheckOutput();
 
         $this->prepareFullRun();
 
@@ -245,6 +247,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->logger->notice(
                 'Processing is ended: dry run.' // @translate
             );
+            $this
+                ->purgeCheckStore()
+                ->finalizeCheckOutput();
             return;
         }
 
@@ -259,9 +264,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->logger->notice(
                     'Processing is stopped because of error. No source was imported.' // @translate
                 );
-                $this->finalizeCheckOutput();
+                $this
+                    ->purgeCheckStore()
+                    ->finalizeCheckOutput();
                 return;
             }
+        }
+
+        // A stop may occur during dry run. Message is already logged.
+        if ($this->job->shouldStop()) {
+            $this
+                ->purgeCheckStore()
+                ->finalizeCheckOutput();
+            return;
         }
 
         $this->totalIndexResources = 0;
@@ -274,7 +289,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->processFullRun();
 
-        $this->finalizeCheckOutput();
+        $this
+            ->purgeCheckStore()
+            ->finalizeCheckOutput();
     }
 
     /**
@@ -287,6 +304,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * - files presence.
      *
      * Prepare the list of identifiers one time too (existing and new ones).
+     *
+     * Store resources without errors for next step.
      */
     protected function prepareFullRun(): \BulkImport\Processor\Processor
     {
@@ -308,6 +327,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource]
                 );
                 break;
+            }
+
+            if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
+                if ($this->totalToProcess) {
+                    $this->logger->notice(
+                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_resources' => $this->totalToProcess,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                } else {
+                    $this->logger->notice(
+                        '{total_processed} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                }
             }
 
             // The first entry is #1, but the iterator (array) numbered it 0.
@@ -342,30 +384,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // $this->processEntities([$resource->getArrayCopy()]);
             $this->processing = 0;
 
-            $this->logCheckedResource($resource, $entry);
-
-            if ($this->totalProcessed % 100 === 0) {
-                if ($this->totalToProcess) {
-                    $this->logger->notice(
-                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_resources' => $this->totalToProcess,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                } else {
-                    $this->logger->notice(
-                        '{total_processed} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                }
+            if (!$resource['errorStore']->hasErrors()) {
+                $this->storeCheckedResource($resource);
             }
+
+            $this->logCheckedResource($resource, $entry);
         }
 
         $this->logger->notice(
@@ -409,48 +432,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 break;
             }
 
-            if ($toSkip) {
-                --$toSkip;
-                continue;
-            }
-
-            ++$this->totalIndexResources;
-            // The first entry is #1, but the iterator (array) numbered it 0.
-            $this->indexResource = $index + $firstIndexBase;
-            $this->logger->info(
-                'Index #{index}: Process started', // @translate
-                ['index' => $this->indexResource]
-            );
-
-            $resource = $this->processEntry($entry);
-            if (!$resource) {
-                continue;
-            }
-
-            if ($this->checkEntity($resource)) {
-                ++$this->processing;
-                ++$this->totalProcessed;
-                // Don't repeat errors messages.
-                unset($resource['errorStore'], $resource['warningStore'], $resource['infoStore']);
-                $dataToProcess[] = $resource->getArrayCopy();
-            } else {
-                unset($resource['errorStore'], $resource['warningStore'], $resource['infoStore']);
-                ++$this->totalErrors;
-            }
-
-            // Only add every X for batch import.
-            if ($this->processing >= $batch) {
-                $this->processEntities($dataToProcess);
-                // Avoid memory issue.
-                unset($dataToProcess);
-                $entityManager->flush();
-                $entityManager->clear();
-                // Reset for next batch.
-                $dataToProcess = [];
-                $this->processing = 0;
-            }
-
-            if ($this->totalProcessed % 100 === 0) {
+            if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
                 if ($this->totalToProcess) {
                     $this->logger->notice(
                         '{total_processed}/{total_resources} resources processed, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
@@ -471,6 +453,44 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ]
                     );
                 }
+            }
+
+            if ($toSkip) {
+                --$toSkip;
+                continue;
+            }
+
+            ++$this->totalIndexResources;
+            // The first entry is #1, but the iterator (array) numbered it 0.
+            $this->indexResource = $index + $firstIndexBase;
+
+            // TODO Clarify computation of total errors.
+            $resource = $this->loadCheckedResource();
+            if (!$resource) {
+                ++$this->totalErrors;
+                continue;
+            }
+
+            $this->logger->info(
+                'Index #{index}: Process started', // @translate
+                ['index' => $this->indexResource]
+            );
+
+            ++$this->processing;
+            ++$this->totalProcessed;
+
+            $dataToProcess[] = $resource;
+
+            // Only add every X for batch import (1 by default anyway).
+            if ($this->processing >= $batch) {
+                $this->processEntities($dataToProcess);
+                // Avoid memory issue.
+                unset($dataToProcess);
+                $entityManager->flush();
+                $entityManager->clear();
+                // Reset for next batch.
+                $dataToProcess = [];
+                $this->processing = 0;
             }
         }
 
@@ -1314,25 +1334,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
                 );
             } catch (ValidationException $e) {
-                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                $r = $this->baseEntity();
+                $r['errorStore']->addError('resource', new PsrMessage(
                     'Error during validation of the data before update.' // @translate
                 ));
                 $messages = $this->listValidationMessages($e);
-                $dataResource['errorStore']->addError('resource', $messages);
-                $this->logCheckedResource($dataResource);
+                $r['errorStore']->addError('resource', $messages);
+                $this->logCheckedResource($r);
                 ++$this->totalErrors;
                 return $this;
             } catch (\Exception $e) {
-                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                $r = $this->baseEntity();
+                $r['errorStore']->addError('resource', new PsrMessage(
                     'Core error during update: {exception}', // @translate
                     ['exception' => $e]
                 ));
-                $this->logCheckedResource($dataResource);
+                $this->logCheckedResource($r);
                 ++$this->totalErrors;
                 return $this;
             }
             if (!$response) {
-                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                $r = $this->baseEntity();
+                $r['errorStore']->addError('resource', new PsrMessage(
                     'Unknown error occured during update.' // @translate
                 ));
                 ++$this->totalErrors;
