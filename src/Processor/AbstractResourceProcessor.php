@@ -164,7 +164,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         $defaults = [
-            'dry_run' => false,
+            'processing' => 'stop_on_error',
             'action' => null,
             'action_unidentified' => null,
             'identifier_name' => null,
@@ -239,9 +239,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->prepareFullRun();
 
-        $dryRun = (bool) $this->getParam('dry_run');
+        $processingType = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
+        $dryRun = $processingType === 'dry_run';
         if ($dryRun) {
+            $this->logger->notice(
+                'Processing is ended: dry run.' // @translate
+            );
             return;
+        }
+
+        if ($this->totalErrors) {
+            $this->logger->notice(
+                $this->totalErrors <= 1
+                    ? '{total} error has been found during checks.' // @translate
+                    : '{total} errors have been found during checks.', // @translate
+                ['total' => $this->totalErrors]
+            );
+            if ($processingType === 'stop_on_error') {
+                $this->logger->notice(
+                    'Processing is stopped because of error. No source was imported.' // @translate
+                );
+                $this->finalizeCheckOutput();
+                return;
+            }
         }
 
         $this->totalIndexResources = 0;

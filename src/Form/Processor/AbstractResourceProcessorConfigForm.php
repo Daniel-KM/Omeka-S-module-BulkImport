@@ -53,14 +53,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ])
 
             ->add([
-                'name' => 'dry_run',
-                'type' => Element\Checkbox::class,
+                'name' => 'processing',
+                'type' => BulkImportElement\OptionalRadio::class,
                 'options' => [
-                    'label' => 'Dry run', // @translate
-                    'info' => 'In all cases, the check of identifiers, linked resources, template values, and files presence is done during a first loop. This option allows to stop after checks.', // @translate
+                    'label' => 'Processing', // @translate
+                    'info' => 'In all cases, the check of identifiers, linked resources, template values, and files presence is done during a first loop.', // @translate
+                    'value_options' => [
+                        'dry_run' => 'Dry run', // @translate
+                        'stop_on_error' => 'Stop on error', // @translate
+                        'continue_on_error' => 'Continue on error', // @translate
+                    ],
                 ],
                 'attributes' => [
-                    'id' => 'dry_run',
+                    'id' => 'processing',
+                    'value' => 'stop_on_error',
                 ],
             ])
 
@@ -70,10 +76,10 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'options' => [
                     'label' => 'Action', // @translate
                     'info' => 'In addition to the default "Create" and to the common "Delete", to manage most of the common cases, four modes of update are provided:
-    - append: add new data to complete the resource;
-    - revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
-    - update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
-    - replace: remove all properties of the resource, and fill new ones from the entry.', // @translate
+- append: add new data to complete the resource;
+- revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
+- update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
+- replace: remove all properties of the resource, and fill new ones from the entry.', // @translate
                     'value_options' => [
                         \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create new resources', // @translate
                         \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Append data to resources', // @translate
