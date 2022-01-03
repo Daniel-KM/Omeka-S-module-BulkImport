@@ -4,11 +4,21 @@
  * @var \BulkImport\Api\Representation\ImportRepresentation[] $imports
  */
 
-$translate = $this->plugin('translate');
-$escape = $this->plugin('escapeHtml');
-$hyperlink = $this->plugin('hyperlink');
-$url = $this->plugin('url');
+$plugins = $this->getHelperPluginManager();
+$url = $plugins->get('url');
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
+$hyperlink = $plugins->get('hyperlink');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
 ?>
+
+<script>
+$(document).ready(function(){
+    $('.confirm-action').click(function(){
+        return window.confirm(<?= json_encode($translate('Remove imported resources?')) ?>);
+    });
+});
+</script>
 
 <table class="tablesaw" data-tablesaw-mode="stack">
     <thead>
@@ -39,7 +49,7 @@ $url = $this->plugin('url');
                         <?php endif; ?>
                         <?php if ($import->isUndoable()): ?>
                         <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'undo', 'id' => $import->id()]), [
-                            'class' => 'fas fa-undo',
+                            'class' => 'fas fa-undo confirm-action',
                             'title' => $translate('Remove imported data'), // @translate
                         ]) ?></li>
                         <?php endif; ?>
