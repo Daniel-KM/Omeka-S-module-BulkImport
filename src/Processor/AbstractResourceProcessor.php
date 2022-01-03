@@ -90,6 +90,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * @var int
      */
+    protected $totalToProcess = 0;
+
+    /**
+     * @var int
+     */
     protected $totalIndexResources = 0;
 
     /**
@@ -211,6 +216,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
+        $this->totalToProcess = method_exists($this->reader, 'count')
+            ? $this->reader->count()
+            : null;
+
         $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
 
         $this->base = $this->baseEntity();
@@ -270,6 +279,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // Reset for next batch.
                 $dataToProcess = [];
                 $this->processing = 0;
+            }
+
+            if ($this->totalProcessed % 100 === 0) {
+                if ($this->totalToProcess) {
+                    $this->logger->notice(
+                        '{total_processed}/{total_resources} resources processed, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_resources' => $this->totalToProcess,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                } else {
+                    $this->logger->notice(
+                        '{total_processed} resources processed, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        [
+                            'total_processed' => $this->totalProcessed,
+                            'total_skipped' => $this->totalSkipped,
+                            'total_errors' => $this->totalErrors,
+                        ]
+                    );
+                }
             }
         }
 
