@@ -173,6 +173,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'action_media_update' => null,
             'action_item_set_update' => null,
 
+            'value_datatype_literal' => false,
+
             'o:resource_template' => null,
             'o:resource_class' => null,
             'o:owner' => null,
@@ -791,10 +793,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
             // TODO Add an option for literal data-type by default.
             if (!$hasDatatype) {
-                $resource['messageStore']->addError('values', new PsrMessage(
-                    'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it.', // @translate
-                    ['value' => $value]
-                ));
+                if ($this->getParam('value_datatype_literal')) {
+                    $targetLiteral = $target;
+                    $targetLiteral['value']['type'] = 'literal';
+                    $this->fillPropertyForValue($resource, $targetLiteral, $value);
+                    $resource['messageStore']->addNotice('values', new PsrMessage(
+                        'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Data type "literal" is used.', // @translate
+                        ['value' => $value]
+                    ));
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it.', // @translate
+                        ['value' => $value]
+                    ));
+                }
             }
         }
 
@@ -882,10 +894,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             break;
                     }
                 } else {
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The value "{value}" is not in custom vocab "{customvocab}".', // @translate
-                        ['value' => $value, 'customvocab' => $datatype]
-                    ));
+                    if ($this->getParam('value_datatype_literal')) {
+                        $resourceValue['@value'] = $value;
+                        $resourceValue['type'] = 'literal';
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not in custom vocab "{customvocab}". A literal value is used instead.', // @translate
+                            ['value' => $value, 'customvocab' => $datatype]
+                        ));
+                    } else {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not in custom vocab "{customvocab}".', // @translate
+                            ['value' => $value, 'customvocab' => $datatype]
+                        ));
+                    }
                 }
                 break;
 

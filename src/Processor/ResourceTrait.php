@@ -499,6 +499,7 @@ SQL;
                         if ($datatypeResult) {
                             $datatype = $value['type'] = $datatypeResult;
                         } else {
+                            // TODO Use new option to force "literal".
                             $this->logger->warn(
                                 'Value with datatype "{type}" for resource #{id} is changed to "literal".', // @translate
                                 ['type' => $datatype, 'id' => $this->entity->getId()]
@@ -605,6 +606,7 @@ SQL;
                     }
 
                     if ($toInstall) {
+                        // TODO Use new option to force "literal".
                         $this->logger->warn(
                             'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
                             ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]

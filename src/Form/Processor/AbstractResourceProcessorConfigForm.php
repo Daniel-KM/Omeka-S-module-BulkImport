@@ -214,6 +214,18 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ])
 
             ->add([
+                'name' => 'value_datatype_literal',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Use data type "literal" when a value is invalid', // @translate
+                    'info' => 'The mapping can be used for more precise process with "^^xxx; literal".', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'value_datatype_literal',
+                ],
+            ])
+
+            ->add([
                 'name' => 'o:resource_template',
                 'type' => OmekaElement\ResourceSelect::class,
                 'options' => [
