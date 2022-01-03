@@ -454,6 +454,15 @@ class ResourceProcessor extends AbstractResourceProcessor
             return !$resource['messageStore']->hasErrors();
         }
 
+        /** @see \Omeka\Api\Manager::execute() */
+        if (!$this->checkAdapter($resource['resource_name'], $operation)) {
+            $resource['messageStore']->addError('rights', new PsrMessage(
+                'User has no rights to "{action}" {resource_name}.', // @translate
+                ['action' => $operation, 'resource_name' => $resource['resource_name']]
+            ));
+            return false;
+        }
+
         // Check through hydration and standard api.
         $adapter = $this->adapterManager->get($resource['resource_name']);
 
@@ -479,6 +488,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 ->setId($resource['o:id']);
 
             $entity = $adapter->findEntity($resource['o:id']);
+            // \Omeka\Api\Adapter\AbstractEntityAdapter::authorize() is protected.
+            if (!$this->acl->authorize($entity, $operation)) {
+                $resource['messageStore']->addError('rights', new PsrMessage(
+                    'User has no rights to "{action}" {resource_name} {resource_id}.', // @translate
+                    ['action' => $operation, 'resource_name' => $resource['resource_name'], 'resource_id' => $resource['o:id']]
+                ));
+                return false;
+            }
 
             // For deletion, just check rights.
             if ($operation === Request::DELETE) {

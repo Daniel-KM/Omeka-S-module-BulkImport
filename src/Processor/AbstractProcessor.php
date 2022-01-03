@@ -359,6 +359,16 @@ abstract class AbstractProcessor implements Processor
         return $actionsToOperations[$action] ?? null;
     }
 
+    protected function checkAdapter(string $resourceName, string $operation): bool
+    {
+        static $checks = [];
+        if (!isset($checks[$resourceName][$operation])) {
+            $adapter = $this->adapterManager->get($resourceName);
+            $checks[$resourceName][$operation] = $this->acl->userIsAllowed($adapter, $operation);
+        }
+        return $checks[$resourceName][$operation];
+    }
+
     protected function listValidationMessages(ValidationException $e): array
     {
         $messages = [];
