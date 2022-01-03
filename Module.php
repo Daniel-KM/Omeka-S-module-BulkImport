@@ -94,14 +94,14 @@ class Module extends AbstractModule
         );
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
-            'api.create.pre',
-            [$this, 'handleBeforeCreateItem'],
+            'api.create.post',
+            [$this, 'handleAfterSaveItem'],
             -10
         );
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
-            'api.update.pre',
-            [$this, 'handleBeforeCreateItem'],
+            'api.update.post',
+            [$this, 'handleAfterSaveItem'],
             -10
         );
         $sharedEventManager->attach(
@@ -130,50 +130,30 @@ class Module extends AbstractModule
         $event->setParam('registered_names', $names);
     }
 
-    public function handleBeforeCreateItem(Event $event): void
+    public function handleAfterSaveItem(Event $event): void
     {
-        /** @var \Omeka\Api\Request $request */
-        $request = $event->getParam('request');
-
-        // This is the item representation array of the filtered post when the
-        // user save an item directly edited, but not during a batch edit.
-        // During a batch edit or some other process, the content may be empty,
-        // so there is no process to do.
-        $item = $request->getContent();
-        if (is_array($item) && !count($item) || empty($item['o:media'])) {
-            return;
+        $item = $event->getParam('response')->getContent();
+        foreach ($item->getMedia() as $media) {
+            $this->afterSaveMedia($media);
         }
-
-        $filesData = $request->getFileData();
-
-        foreach ($item['o:media'] as $mediaIndex => $media) {
-            $html = $this->convertToHtml($media, $filesData);
-            if (is_null($html)) {
-                continue;
-            }
-
-            // Remove only temp files, not sideload files.
-            if (in_array($media['o:ingester'], ['upload', 'url'])) {
-                unlink($filesData['file'][$media['file_index']]['tmp_name']);
-            }
-            $item['o:media'][$mediaIndex]['html'] = $html;
-            $item['o:media'][$mediaIndex]['o:ingester'] = 'html';
-            unset($item['o:media'][$mediaIndex]['file_index']);
-            unset($filesData['file'][$media['file_index']]);
-        }
-
-        $request->setContent($item);
-        $request->setFileData($filesData);
     }
 
     public function handleAfterCreateMedia(Event $event): void
     {
-        /**
-         * @var \Omeka\Api\Response $response
-         * @var \Omeka\Entity\Media $media
-         */
-        $response = $event->getParam('response');
-        $media = $response->getContent();
+        $media = $event->getParam('response')->getContent();
+        $this->afterSaveMedia($media);
+    }
+
+    protected function afterSaveMedia(Media $media): void
+    {
+        static $processedMedia = [];
+
+        $mediaId = $media->getId();
+        if (isset($processedMedia[$mediaId])) {
+            return;
+        }
+        $processedMedia[$mediaId] = true;
+
         $html = $this->convertToHtml($media);
         if (is_null($html)) {
             return;
@@ -200,7 +180,7 @@ class Module extends AbstractModule
         $entityManager->flush();
     }
 
-    protected function convertToHtml($media, array $filesData = []): ?string
+    protected function convertToHtml(Media $media): ?string
     {
         static $settingsTypes;
         static $basePath;
@@ -225,48 +205,19 @@ class Module extends AbstractModule
             return null;
         }
 
-        $isItemMedia = is_array($media);
-
-        if ($isItemMedia) {
-            if ($filesData) {
-                if (empty($filesData['file'])) {
-                    return null;
-                }
-                if (!isset($media['file_index'])
-                    || empty($filesData['file'][$media['file_index']])
-                ) {
-                    return null;
-                }
-                $mediaFileData = $filesData['file'][$media['file_index']];
-                if (!empty($mediaFileData['error'])
-                    || empty($mediaFileData['name'])
-                    || empty($mediaFileData['type'])
-                    || empty($mediaFileData['size'])
-                    || empty($mediaFileData['tmp_name'])
-                ) {
-                    return null;
-                }
-                $mediaType = $mediaFileData['type'];
-                $extension = strtolower(pathinfo($mediaFileData['name'], PATHINFO_EXTENSION));
-                $filepath = $mediaFileData['tmp_name'];
-            } else {
-                // TODO Manage sideload and url ingesters.
-                return null;
-            }
-        } else {
-            /** @var \Omeka\Entity\Media $media */
-            // Api create post: the media is already saved.
-            $filename = $media->getFilename();
-            if (!$filename) {
-                return null;
-            }
-            // TODO Manage cloud paths.
-            $filepath = $basePath . '/original/' . $filename;
-            $mediaType = $media->getMediaType();
-            $extension = $media->getExtension();
+        /** @var \Omeka\Entity\Media $media */
+        // Api create post: the media is already saved.
+        $filename = $media->getFilename();
+        if (!$filename) {
+            return null;
         }
 
-        if (!$filepath || !file_exists($filepath) || !is_readable($filepath)) {
+        // TODO Manage cloud paths.
+        $filepath = $basePath . '/original/' . $filename;
+        $mediaType = $media->getMediaType();
+        $extension = $media->getExtension();
+
+        if (!file_exists($filepath) || !is_readable($filepath)) {
             return null;
         }
 
