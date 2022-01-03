@@ -13,6 +13,7 @@ use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
 use Log\Stdlib\PsrMessage;
+use Omeka\Entity\Media;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 
 class Module extends AbstractModule
@@ -94,7 +95,20 @@ class Module extends AbstractModule
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
             'api.create.pre',
-            [$this, 'handleItemCreatePre']
+            [$this, 'handleBeforeCreateItem'],
+            -10
+        );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.update.pre',
+            [$this, 'handleBeforeCreateItem'],
+            -10
+        );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\MediaAdapter::class,
+            'api.create.post',
+            [$this, 'handleAfterCreateMedia'],
+            -10
         );
         $sharedEventManager->attach(
             \Omeka\Form\SettingForm::class,
@@ -116,7 +130,7 @@ class Module extends AbstractModule
         $event->setParam('registered_names', $names);
     }
 
-    public function handleItemCreatePre(Event $event): void
+    public function handleBeforeCreateItem(Event $event): void
     {
         /** @var \Omeka\Api\Request $request */
         $request = $event->getParam('request');
@@ -130,25 +144,130 @@ class Module extends AbstractModule
             return;
         }
 
-        $fileData = $request->getFileData();
-        if (!$fileData || empty($fileData['file'])) {
+        $filesData = $request->getFileData();
+
+        foreach ($item['o:media'] as $mediaIndex => $media) {
+            $html = $this->convertToHtml($media, $filesData);
+            if (is_null($html)) {
+                continue;
+            }
+
+            // Remove only temp files, not sideload files.
+            if (in_array($media['o:ingester'], ['upload', 'url'])) {
+                unlink($filesData['file'][$media['file_index']]['tmp_name']);
+            }
+            $item['o:media'][$mediaIndex]['html'] = $html;
+            $item['o:media'][$mediaIndex]['o:ingester'] = 'html';
+            unset($item['o:media'][$mediaIndex]['file_index']);
+            unset($filesData['file'][$media['file_index']]);
+        }
+
+        $request->setContent($item);
+        $request->setFileData($filesData);
+    }
+
+    public function handleAfterCreateMedia(Event $event): void
+    {
+        /**
+         * @var \Omeka\Api\Response $response
+         * @var \Omeka\Entity\Media $media
+         */
+        $response = $event->getParam('response');
+        $media = $response->getContent();
+        $html = $this->convertToHtml($media);
+        if (is_null($html)) {
             return;
         }
 
         $services = $this->getServiceLocator();
-        $settings = $services->get('Omeka\Settings');
-        $convertTypes = $settings->get('bulkimport_convert_html', []);
-        $settingsTypes = [
-            'doc' => 'MsDoc',
-            'docx' => 'Word2007',
-            'html' => 'HTML',
-            'htm' => 'HTML',
-            'odt' => 'ODText',
-            'rtf' => 'RTF',
-        ];
-        $settingsTypes = array_intersect_key($settingsTypes, array_flip($convertTypes));
+        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $entityManager = $services->get('Omeka\EntityManager');
+
+        // There is no thumbnails, else keep them anyway.
+        @unlink($basePath . '/original/' . $media->getFilename());
+
+        $mediaData = $media->getData($data) ?: [];
+        $mediaData['html'] = $html;
+        $media->setData($mediaData);
+        $media->setRenderer('html');
+        $media->setExtension(null);
+        $media->setMediaType(null);
+        $media->setHasOriginal(false);
+        $media->setSha256(null);
+        $media->setStorageId(null);
+
+        $entityManager->persist($media);
+        $entityManager->flush();
+    }
+
+    protected function convertToHtml($media, array $filesData = []): ?string
+    {
+        static $settingsTypes;
+        static $basePath;
+
+        if (is_null($settingsTypes)) {
+            $services = $this->getServiceLocator();
+            $settings = $services->get('Omeka\Settings');
+            $convertTypes = $settings->get('bulkimport_convert_html', []);
+            $settingsTypes = [
+                'doc' => 'MsDoc',
+                'docx' => 'Word2007',
+                'html' => 'HTML',
+                'htm' => 'HTML',
+                'odt' => 'ODText',
+                'rtf' => 'RTF',
+            ];
+            $settingsTypes = array_intersect_key($settingsTypes, array_flip($convertTypes));
+            $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        }
+
         if (!$settingsTypes) {
-            return;
+            return null;
+        }
+
+        $isItemMedia = is_array($media);
+
+        if ($isItemMedia) {
+            if ($filesData) {
+                if (empty($filesData['file'])) {
+                    return null;
+                }
+                if (!isset($media['file_index'])
+                    || empty($filesData['file'][$media['file_index']])
+                ) {
+                    return null;
+                }
+                $mediaFileData = $filesData['file'][$media['file_index']];
+                if (!empty($mediaFileData['error'])
+                    || empty($mediaFileData['name'])
+                    || empty($mediaFileData['type'])
+                    || empty($mediaFileData['size'])
+                    || empty($mediaFileData['tmp_name'])
+                ) {
+                    return null;
+                }
+                $mediaType = $mediaFileData['type'];
+                $extension = strtolower(pathinfo($mediaFileData['name'], PATHINFO_EXTENSION));
+                $filepath = $mediaFileData['tmp_name'];
+            } else {
+                // TODO Manage sideload and url ingesters.
+                return null;
+            }
+        } else {
+            /** @var \Omeka\Entity\Media $media */
+            // Api create post: the media is already saved.
+            $filename = $media->getFilename();
+            if (!$filename) {
+                return null;
+            }
+            // TODO Manage cloud paths.
+            $filepath = $basePath . '/original/' . $filename;
+            $mediaType = $media->getMediaType();
+            $extension = $media->getExtension();
+        }
+
+        if (!$filepath || !file_exists($filepath) || !is_readable($filepath)) {
+            return null;
         }
 
         $types = [
@@ -164,53 +283,24 @@ class Module extends AbstractModule
             'odt' => 'ODText',
             'rtf' => 'RTF',
         ];
-        foreach ($item['o:media'] as $mediaIndex => $media) {
-            if (!isset($media['file_index'])
-                || empty($fileData['file'][$media['file_index']])
-            ) {
-                continue;
-            }
-            $mediaFileData = $fileData['file'][$media['file_index']];
-            if (!empty($mediaFileData['error'])
-                || empty($mediaFileData['name'])
-                || empty($mediaFileData['type'])
-                || empty($mediaFileData['size'])
-                || empty($mediaFileData['tmp_name'])
-            ) {
-                continue;
-            }
-            $mediaType = $mediaFileData['type'];
-            $extension = strtolower(pathinfo($mediaFileData['name'], PATHINFO_EXTENSION));
-            $phpWordType = $types[$mediaType] ?? $types[$extension] ?? null;
-            if (empty($phpWordType)
-                || !in_array($phpWordType, $settingsTypes)
-            ) {
-                continue;
-            }
-            $phpWord = \PhpOffice\PhpWord\IOFactory::load($mediaFileData['tmp_name'], $phpWordType);
-            $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
-            $html = $htmlWriter->getContent();
-            if (!$html) {
-                continue;
-            }
-            $startBody = mb_strpos($html, '<body>') + 6;
-            $endBody = mb_strrpos($html, '</body>');
-            $html = trim(mb_substr($html, $startBody, $endBody - $startBody));
-            if (!$html) {
-                continue;
-            }
-            // Remove only temp files, not sideload files.
-            if (in_array($media['o:ingester'], ['upload', 'url'])) {
-                unlink($mediaFileData['tmp_name']);
-            }
-            $item['o:media'][$mediaIndex]['html'] = $html;
-            $item['o:media'][$mediaIndex]['o:ingester'] = 'html';
-            unset($item['o:media'][$mediaIndex]['file_index']);
-            unset($fileData['file'][$media['file_index']]);
+        $phpWordType = $types[$mediaType] ?? $types[$extension] ?? null;
+        if (empty($phpWordType)
+            || !in_array($phpWordType, $settingsTypes)
+        ) {
+            return null;
         }
 
-        $request->setContent($item);
-        $request->setFileData($fileData);
+        $phpWord = \PhpOffice\PhpWord\IOFactory::load($filepath, $phpWordType);
+        $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+        $html = $htmlWriter->getContent();
+        if (!$html) {
+            return null;
+        }
+
+        $startBody = mb_strpos($html, '<body>') + 6;
+        $endBody = mb_strrpos($html, '</body>');
+        return trim(mb_substr($html, $startBody, $endBody - $startBody))
+            ?: null;
     }
 
     /**
