@@ -196,19 +196,26 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return;
         }
 
-        $this->prepareIdentifierNames();
+        $this
+            ->prepareIdentifierNames()
 
-        $this->prepareActionIdentifier();
-        $this->prepareActionMedia();
-        $this->prepareActionItemSet();
+            ->prepareActionIdentifier()
+            ->prepareActionMedia()
+            ->prepareActionItemSet()
 
-        $this->appendInternalParams();
+            ->appendInternalParams()
 
-        $this->prepareMapping();
+            ->prepareMapping();
 
         $this->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
 
-        $toSkip = $this->getParam('entries_to_skip', 0);
+        $this->totalToProcess = method_exists($this->reader, 'count')
+            ? $this->reader->count()
+            : null;
+
+        $this->base = $this->baseEntity();
+
+        $toSkip = (int) $this->getParam('entries_to_skip', 0);
         if ($toSkip) {
             $this->logger->notice(
                 $toSkip <= 1
@@ -218,13 +225,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
-        $this->totalToProcess = method_exists($this->reader, 'count')
-            ? $this->reader->count()
-            : null;
+        $this->totalIndexResources = 0;
 
+        $this->processFullRun();
+    }
+
+    protected function processFullRun(): void
+    {
+        $toSkip = (int) $this->getParam('entries_to_skip', 0);
         $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
-
-        $this->base = $this->baseEntity();
 
         /** @var \Doctrine\ORM\EntityManager $entityManager */
         $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
@@ -837,7 +846,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             default:
                 return false;
         }
-        return false;
     }
 
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
@@ -845,18 +853,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return false;
     }
 
-    protected function fillBoolean(ArrayObject $resource, $key, $value): void
+    protected function fillBoolean(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
     {
         $resource[$key] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private', 'closed'], true)
             ? false
             : (bool) $value;
+        return $this;
     }
 
-    protected function fillSingleEntity(ArrayObject $resource, $key, $value): void
+    protected function fillSingleEntity(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
     {
         if (empty($value)) {
             $resource[$key] = null;
-            return;
+            return $this;
         }
 
         // Get the entity id.
@@ -879,7 +888,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ['index' => $this->indexResource, 'source' => $value]
                     );
                 }
-                return;
+                return $this;
 
             case 'o:resource_class':
                 if (is_array($value)) {
@@ -899,7 +908,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ['index' => $this->indexResource, 'source' => $value]
                     );
                 }
-                return;
+                return $this;
 
             case 'o:owner':
                 if (is_array($value)) {
@@ -919,7 +928,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ['index' => $this->indexResource, 'source' => $value]
                     );
                 }
-                return;
+                return $this;
 
             case 'o:item':
                 // For media.
@@ -937,10 +946,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ['index' => $this->indexResource, 'source' => $value]
                     );
                 }
-                return;
+                return $this;
 
             default:
-                return;
+                return $this;
         }
     }
 
