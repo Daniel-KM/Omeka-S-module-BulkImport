@@ -8,6 +8,9 @@ use Iterator;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 
+/**
+ * @todo Factorize with FileTrait.
+ */
 abstract class AbstractFileReader extends AbstractReader
 {
     /**
@@ -245,7 +248,7 @@ abstract class AbstractFileReader extends AbstractReader
     }
 
     /**
-     * @todo Merge with FetchFileTrait::fetchUrl().
+     * @todo Merge with FileTrait::fetchUrl().
      */
     protected function fetchUrlToTempFile(string $url): ?string
     {
@@ -262,7 +265,7 @@ abstract class AbstractFileReader extends AbstractReader
         $ch = curl_init($url);
         $fp = fopen($tempname, 'wb');
         curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_exec($ch);
         curl_close($ch);

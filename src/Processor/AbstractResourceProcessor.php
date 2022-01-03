@@ -17,6 +17,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 {
     use ConfigurableTrait, ParametrizableTrait;
     use CheckTrait;
+    use FileTrait;
     use ResourceUpdateTrait;
 
     /**
@@ -197,6 +198,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     public function process(): void
     {
+        $this->initFileTrait();
+
         $this->prepareAction();
         if (empty($this->action)) {
             return;
@@ -1182,6 +1185,43 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     'The action "{action}" requires a unique identifier ({identifier}).', // @translate
                     ['action' => $this->action, 'identifier' => $identifier]
                 ));
+            }
+        }
+
+        return !$resource['messageStore']->hasErrors();
+    }
+
+    /**
+     * Check if new files (local system and urls) are available and allowed.
+     *
+     * By construction, it's not possible to check or modify existing files.
+     */
+    protected function checkNewFiles(ArrayObject $resource): bool
+    {
+        if (!in_array($resource['resource_name'], ['items', 'media'])) {
+            return true;
+        }
+
+        if ($resource['resource_name'] === 'media') {
+            $medias = [$resource];
+        } else {
+            $medias = $resource['o:media'] ?? [];
+            if (!$medias) {
+                return true;
+            }
+        }
+
+        foreach ($medias as $media) {
+            if (!empty($media['o:id'])) {
+                continue;
+            }
+            if (!empty($media['ingest_url'])) {
+                $this->checkUrl($media['ingest_url'], $resource['messageStore']);
+            } elseif (!empty($media['ingest_filename'])) {
+                $this->checkFile($media['ingest_filename'], $resource['messageStore']);
+            } else {
+                // Add a warning: cannot be checked for other media type?
+                continue;
             }
         }
 

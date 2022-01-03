@@ -179,6 +179,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 return true;
             case 'file':
+                // A file may be a url for end-user simplicity.
                 foreach ($values as $value) {
                     $media = [];
                     if ($this->bulk->isUrl($value)) {
@@ -512,6 +513,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                 'Initialization exception: {exception}', // @translate
                 ['exception' => $e]
             ));
+            return false;
+        }
+
+        // Check new files for items and media before hydration to speed process
+        // because files are checked during hydration too, but with a full
+        // download.
+        $this->checkNewFiles($resource);
+
+        // TODO Process hydration checks except files or use an event to check files differently during hydration or store loaded url in order to get all results one time.
+        // TODO In that case, check iiif image or other media that may have a file or url too.
+
+        if ($resource['messageStore']->hasErrors()) {
             return false;
         }
 

@@ -8,12 +8,15 @@ use Laminas\Http\Request;
 use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
+/**
+ * @todo Factorize with FileTrait.
+ */
 trait HttpClientTrait
 {
     /**
      * @var string
      */
-    protected $userAgent = 'Omeka S - module BulkImport version 3.3.24.0';
+    protected $userAgent = 'Omeka S - module BulkImport version 3.3.28.0';
 
     /**
      * @var \Laminas\Http\Client

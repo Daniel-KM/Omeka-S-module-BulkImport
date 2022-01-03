@@ -21,7 +21,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use CountEntitiesTrait;
     use CustomVocabTrait;
     use DateTimeTrait;
-    use FetchFileTrait;
+    use FileTrait;
     use InternalIntegrityTrait;
     use LanguageTrait;
     use MappingTrait;
@@ -195,21 +195,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * @var string
      */
     protected $tempPath;
-
-    /**
-     * @var bool
-     */
-    protected $disableFileValidation = false;
-
-    /**
-     * @var array
-     */
-    protected $allowedMediaTypes = [];
-
-    /**
-     * @var array
-     */
-    protected $allowedExtensions = [];
 
     /**
      * @var int
@@ -532,11 +517,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->currentDateTime = new \DateTime();
         $this->currentDateTimeFormatted = $this->currentDateTime->format('Y-m-d H:i:s');
 
-        $settings = $services->get('Omeka\Settings');
-        $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
-        $this->allowedMediaTypes = $settings->get('media_type_whitelist', []);
-        $this->allowedExtensions = $settings->get('extension_whitelist', []);
+        $this->initFileTrait();
 
+        $settings = $services->get('Omeka\Settings');
         $this->srid = $settings->get('datatypegeometry_locate_srid', 4326);
 
         $this->checkAvailableModules();
