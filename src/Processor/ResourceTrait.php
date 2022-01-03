@@ -495,7 +495,7 @@ SQL;
                     if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
                         $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
                     } else {
-                        $datatypeResult = $this->getCustomVocabDataType($datatype);
+                        $datatypeResult = $this->getCustomVocabDataTypeName($datatype);
                         if ($datatypeResult) {
                             $datatype = $value['type'] = $datatypeResult;
                         } else {

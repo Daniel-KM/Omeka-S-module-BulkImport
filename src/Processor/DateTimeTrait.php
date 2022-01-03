@@ -128,7 +128,7 @@ trait DateTimeTrait
      */
     protected function reindexNumericTimestamp(array $ids): void
     {
-        if (!count($ids) || !$this->bulk->getDataType('numeric:timestamp')) {
+        if (!count($ids) || !$this->bulk->isDataType('numeric:timestamp')) {
             return;
         }
 

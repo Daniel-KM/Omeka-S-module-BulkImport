@@ -376,7 +376,7 @@ class AutomapFields extends AbstractPlugin
         }
 
         foreach ($datatypes as &$datatype) {
-            $datatype = $this->bulk->getDataType($datatype);
+            $datatype = $this->bulk->getDataTypeName($datatype);
         }
         unset($datatype);
 

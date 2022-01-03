@@ -504,21 +504,37 @@ class Bulk extends AbstractPlugin
      */
     public function isDataType($dataType): bool
     {
-        return array_key_exists($dataType, $this->getDataTypes());
-    }
-
-    public function getDataType($dataType): ?string
-    {
-        $datatypes =  $this->getDataTypes();
-        return $datatypes[$dataType]
-            // Manage exception for customvocab, that may use label as name.
-            ?? $this->getCustomVocabDataType($dataType);
+        return array_key_exists($dataType, $this->getDataTypeNames());
     }
 
     /**
+     * Get a data type object.
+     */
+    public function getDataType($dataType): ?\Omeka\DataType\DataTypeInterface
+    {
+        $dataType = $this->getDataTypeName($dataType);
+        return $dataType
+            ? $this->dataTypeManager->get($dataType)
+            : null;
+    }
+
+    /**
+     * Check if a datatype exists and normalize its name.
+     */
+    public function getDataTypeName($dataType): ?string
+    {
+        $datatypes =  $this->getDataTypeNames();
+        return $datatypes[$dataType]
+            // Manage exception for customvocab, that may use label as name.
+            ?? $this->getCustomVocabDataTypeName($dataType);
+    }
+
+    /**
+     * Get the list of datatype names.
+     *
      * @todo Remove the short data types here.
      */
-    public function getDataTypes(bool $noShort = false): array
+    public function getDataTypeNames(bool $noShort = false): array
     {
         static $dataTypesNoShort;
 
@@ -549,8 +565,9 @@ class Bulk extends AbstractPlugin
      * Normalize custom vocab data type from a "customvocab:label".
      *
      *  The check is done against the destination data types.
+     *  @todo Factorize with CustomVocabTrait::getCustomVocabDataTypeName().
      */
-    public function getCustomVocabDataType(?string $dataType): ?string
+    public function getCustomVocabDataTypeName(?string $dataType): ?string
     {
         static $customVocabs;
 

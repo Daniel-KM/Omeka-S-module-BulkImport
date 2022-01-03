@@ -17,7 +17,7 @@ trait CustomVocabTrait
     }
 
     /**
-     *  @todo Factorize with \BulkImport\Mvc\Controller\Plugin\Bulk::getCustomVocabDataType().
+     *  @todo Factorize with \BulkImport\Mvc\Controller\Plugin\Bulk::getCustomVocabDataTypeName().
      */
     protected function prepareCustomVocabCleanIds(): void
     {
@@ -198,9 +198,9 @@ trait CustomVocabTrait
      * Normalize custom vocab data type from a "customvocab:label".
      *
      *  The check is done against the destination data types.
-     *  @todo Factorize with \BulkImport\Mvc\Controller\Plugin\Bulk::getCustomVocabDataType().
+     *  @todo Factorize with \BulkImport\Mvc\Controller\Plugin\Bulk::getCustomVocabDataTypeName().
      */
-    protected function getCustomVocabDataType(?string $dataType): ?string
+    protected function getCustomVocabDataTypeName(?string $dataType): ?string
     {
         if (empty($dataType) || mb_substr($dataType, 0, 12) !== 'customvocab:') {
             return null;

@@ -77,7 +77,7 @@ trait ResourceTemplateTrait
                     foreach ($rtProperty['o:data_type'] as &$dataType) {
                         if (mb_substr($dataType, 0, 12) === 'customvocab:') {
                             if (empty($this->map['custom_vocabs'][$dataType]['datatype'])) {
-                                $dataType = $this->getCustomVocabDataType($dataType) ?? 'literal';
+                                $dataType = $this->getCustomVocabDataTypeName($dataType) ?? 'literal';
                             } else {
                                 $dataType = $this->map['custom_vocabs'][$dataType]['datatype'];
                             }

@@ -1759,7 +1759,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $datatypes = [];
                     // Normally already checked.
                     foreach ($metadata['datatypes'] ?? [] as $datatype) {
-                        $datatypes[] = $this->bulk->getDataType($datatype);
+                        $datatypes[] = $this->bulk->getDataTypeName($datatype);
                     }
                     $datatypes = array_filter(array_unique($datatypes));
                     if (empty($datatypes)) {
