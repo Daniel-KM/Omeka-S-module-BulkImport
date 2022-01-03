@@ -17,19 +17,19 @@ trait MappingTrait
         $this->map['mappings'] = [];
         $this->map['mapping_markers'] = [];
 
-        foreach ($mappingsAndMarkers as $resourceType => $iterable) {
-            $this->prepareImport($resourceType);
-            $class = $this->importables[$resourceType]['class'];
+        foreach ($mappingsAndMarkers as $resourceName => $iterable) {
+            $this->prepareImport($resourceName);
+            $class = $this->importables[$resourceName]['class'];
 
-            $this->map[$resourceType] = [];
-            $this->totals[$resourceType] = $iterable->count();
+            $this->map[$resourceName] = [];
+            $this->totals[$resourceName] = $iterable->count();
 
             /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
-            $adapter = $this->adapterManager->get($resourceType);
+            $adapter = $this->adapterManager->get($resourceName);
             $index = 0;
             $created = 0;
             $skipped = 0;
-            $method = $this->importables[$resourceType]['fill'];
+            $method = $this->importables[$resourceName]['fill'];
             foreach ($iterable as $source) {
                 ++$index;
 
@@ -53,7 +53,7 @@ trait MappingTrait
                     $this->entityManager->clear();
                     $this->logger->notice(
                         '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
-                        ['count' => $created, 'total' => $this->totals[$resourceType], 'type' => $resourceType, 'skipped' => $skipped]
+                        ['count' => $created, 'total' => $this->totals[$resourceName], 'type' => $resourceName, 'skipped' => $skipped]
                     );
                 }
             }
@@ -63,7 +63,7 @@ trait MappingTrait
             $this->entityManager->clear();
             $this->logger->notice(
                 '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
-                ['count' => $created, 'total' => count($this->map[$resourceType]), 'type' => $resourceType, 'skipped' => $skipped]
+                ['count' => $created, 'total' => count($this->map[$resourceName]), 'type' => $resourceName, 'skipped' => $skipped]
             );
         }
     }

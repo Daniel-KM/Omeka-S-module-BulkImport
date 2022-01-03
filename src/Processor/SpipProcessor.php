@@ -1939,19 +1939,19 @@ class SpipProcessor extends AbstractFullProcessor
         switch ($sourceType) {
             case 'article':
                 $mapType = 'items';
-                $linkedResourceType = 'resource:item';
+                $linkedResourceName = 'resource:item';
                 break;
             case 'breve':
                 $mapType = 'news';
-                $linkedResourceType = 'resource:item';
+                $linkedResourceName = 'resource:item';
                 break;
             case 'rubrique':
                 $mapType = 'concepts';
-                $linkedResourceType = 'resource:item';
+                $linkedResourceName = 'resource:item';
                 break;
             case 'auteur':
                 $mapType = 'auteurs';
-                $linkedResourceType = 'resource:item';
+                $linkedResourceName = 'resource:item';
                 break;
             case 'document':
                 // Le document peut être un item ou un media (media_items ou
@@ -1960,16 +1960,16 @@ class SpipProcessor extends AbstractFullProcessor
                 // item/media.
                 if (!empty($this->map['media_items'][$sourceId])) {
                     $mapType = 'media_items';
-                    $linkedResourceType = 'resource:item';
+                    $linkedResourceName = 'resource:item';
                 } elseif (!empty($this->map['items'][$sourceId])) {
                     $mapType = 'items';
-                    $linkedResourceType = 'resource:item';
+                    $linkedResourceName = 'resource:item';
                 } elseif (!empty($this->map['media_items_sub'][$sourceId])) {
                     $mapType = 'media_items_sub';
-                    $linkedResourceType = 'resource:media';
+                    $linkedResourceName = 'resource:media';
                 } elseif (!empty($this->map['media'][$sourceId])) {
                     $mapType = 'media';
-                    $linkedResourceType = 'resource:media';
+                    $linkedResourceName = 'resource:media';
                 } else {
                     return null;
                 }
@@ -1982,7 +1982,7 @@ class SpipProcessor extends AbstractFullProcessor
             return null;
         }
 
-        $class = $linkedResourceType === 'resource:media'
+        $class = $linkedResourceName === 'resource:media'
             ? \Omeka\Entity\Media::class
             : \Omeka\Entity\Item::class;
 
@@ -1995,7 +1995,7 @@ class SpipProcessor extends AbstractFullProcessor
         return [
             'source_type' => $sourceType,
             'source_id' => $sourceId,
-            'type' => $linkedResourceType,
+            'type' => $linkedResourceName,
             'value_resource_id' => $linkedResourceId,
             'value_resource' => $linkedResource,
         ];
@@ -2274,11 +2274,11 @@ class SpipProcessor extends AbstractFullProcessor
                 // Si c'est un raccourci Spip, remplacer par l'url relative, car
                 // on ne connait pas les autres éléments du raccourci.
                 if ($isRaccourci) {
-                    $resourceType = $maps[$type] ?? 'resources';
-                    $replace[$match['url'][0]] = "/$resourceType/$resourceId";
+                    $resourceName = $maps[$type] ?? 'resources';
+                    $replace[$match['url'][0]] = "/$resourceName/$resourceId";
                 } else {
-                    $resourceType = $mapSingles[$type] ?? 'resource' ;
-                    $replace[$match['url'][0]] = "[$resourceType id=$resourceId]";
+                    $resourceName = $mapSingles[$type] ?? 'resource' ;
+                    $replace[$match['url'][0]] = "[$resourceName id=$resourceId]";
                 }
             }
         }

@@ -26,7 +26,7 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     /**
      * @var boolean flag indicating if this object was already initialized
      *
-     * @see \Doctrine\Common\Persistence\Proxy::__isInitialized
+     * @see \Doctrine\Persistence\Proxy::__isInitialized
      */
     public $__isInitialized__ = false;
 
@@ -66,10 +66,10 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'readerParams', 'processorParams'];
+            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'readerParams', 'processorParams'];
         }
 
-        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'readerParams', 'processorParams'];
+        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'readerParams', 'processorParams'];
     }
 
     /**
@@ -255,6 +255,28 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getJob', []);
 
         return parent::getJob();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setUndoJob(?\Omeka\Entity\Job $undoJob): \BulkImport\Entity\Import
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setUndoJob', [$undoJob]);
+
+        return parent::setUndoJob($undoJob);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getUndoJob(): ?\Omeka\Entity\Job
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getUndoJob', []);
+
+        return parent::getUndoJob();
     }
 
     /**

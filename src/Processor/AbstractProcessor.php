@@ -125,17 +125,17 @@ abstract class AbstractProcessor implements Processor
         // The id is set, but not checked. So check it.
         if ($resource['o:id']) {
             // TODO getResourceName() is only in child AbstractResourceProcessor.
-            $resourceType = empty($resource['resource_name'])
+            $resourceName = empty($resource['resource_name'])
                 ? $this->getResourceName()
                 : $resource['resource_name'];
-            if (empty($resourceType) || $resourceType === 'resources') {
+            if (empty($resourceName) || $resourceName === 'resources') {
                 $this->logger->err(
                     'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
                     ['index' => $this->indexResource]
                 );
                 $resource['has_error'] = true;
             } else {
-                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceType);
+                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName);
                 if (!$id) {
                     $this->logger->err(
                         'Index #{index}: The id of this resource doesn’t exist.', // @translate
@@ -165,10 +165,10 @@ abstract class AbstractProcessor implements Processor
         }
 
         // TODO getResourceName() is only in child AbstractResourceProcessor.
-        $resourceType = empty($resource['resource_name'])
+        $resourceName = empty($resource['resource_name'])
             ? $this->getResourceName()
             : $resource['resource_name'];
-        if (empty($resourceType) || $resourceType === 'resources') {
+        if (empty($resourceName) || $resourceName === 'resources') {
             $this->logger->err(
                 'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
                 ['index' => $this->indexResource]
@@ -228,7 +228,7 @@ abstract class AbstractProcessor implements Processor
                 continue;
             }
 
-            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceType);
+            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName);
             if (!$ids) {
                 continue;
             }
@@ -254,7 +254,7 @@ abstract class AbstractProcessor implements Processor
                     'index' => $this->indexResource,
                     'identifier' => key($ids),
                     'metadata' => $identifierName,
-                    'resource_name' => $this->bulk->label($resourceType),
+                    'resource_name' => $this->bulk->label($resourceName),
                     'resource_id' => $resource['o:id'],
                 ]
             );
@@ -307,7 +307,7 @@ abstract class AbstractProcessor implements Processor
             $importeds[] = [
                 'o:job' => ['o:id' => $jobId],
                 'entity_id' => $resource->id(),
-                'resource_name' => $classes[$class],
+                'entity_name' => $classes[$class],
             ];
         }
 

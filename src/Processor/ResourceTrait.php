@@ -147,7 +147,7 @@ trait ResourceTrait
         $resourceClass = $resourceClassId ?: 'NULL';
         $resourceTemplate = $resourceTemplateId ?: 'NULL';
         $class = $this->importables[$sourceType]['class'];
-        $resourceTypeClass = $this->connection->quote($class);
+        $resourceNameClass = $this->connection->quote($class);
 
         // For compatibility with old databases, a temporary table is used in
         // order to create a generator of enough consecutive rows.
@@ -173,7 +173,7 @@ SQL;
 INSERT INTO `resource`
     (`id`, `owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
-    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceTypeClass, NULL, id
+    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, NULL, id
 FROM `_temporary_source_resource`;
 
 DROP TABLE IF EXISTS `_temporary_source_resource`;
@@ -183,7 +183,7 @@ SQL;
 INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
-    $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceTypeClass, NULL, id
+    $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, NULL, id
 FROM `_temporary_source_resource`;
 
 DROP TABLE IF EXISTS `_temporary_source_resource`;
@@ -194,7 +194,7 @@ SQL;
 
     protected function createEmptyResourcesSpecific(string $sourceType, ?array $mediaItems = null): void
     {
-        $resourceType = $this->importables[$sourceType]['name'];
+        $resourceName = $this->importables[$sourceType]['name'];
         $class = $this->importables[$sourceType]['class'];
         $table = $this->importables[$sourceType]['table'];
         $resourceClass = $this->connection->quote($class);
@@ -217,7 +217,7 @@ SQL;
             : [];
 
         // Create the resource in the specific resource table.
-        switch ($resourceType) {
+        switch ($resourceName) {
             default:
                 return;
 
@@ -323,7 +323,7 @@ SQL;
 
         $this->refreshMainResources();
 
-        // $resourceType = $this->importables[$sourceType]['name'];
+        // $resourceName = $this->importables[$sourceType]['name'];
         $class = $this->importables[$sourceType]['class'];
         $method = $this->importables[$sourceType]['fill'] ?? null;
         $keyId = $this->mapping[$sourceType]['key_id'];
@@ -480,7 +480,7 @@ SQL;
             'media' => \Omeka\Entity\Media::class,
             'item_sets' => \Omeka\Entity\ItemSet::class,
         ];
-        $resourceType = array_search(get_class($this->entity), $classes);
+        $resourceName = array_search(get_class($this->entity), $classes);
 
         // Terms that don't exist can't be imported, or data that are not terms.
         $sourceValues = array_intersect_key($source, $this->map['properties']);
@@ -559,7 +559,7 @@ SQL;
                                     $value['type'] = 'literal';
                                     $this->logger->warn(
                                         'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
-                                        ['type' => $resourceType, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
+                                        ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
                                     );
                                 }
                                 break;
@@ -607,7 +607,7 @@ SQL;
                     if ($toInstall) {
                         $this->logger->warn(
                             'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                            ['type' => $resourceType, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
+                            ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
                         );
                         $this->logger->info(
                             'It’s recommended to install module {module}.', // @translate
@@ -643,7 +643,7 @@ SQL;
                     if (!$valueResource) {
                         $this->logger->warn(
                             'Value of resource {type} #{id} with linked resource for term {term} is not found.', // @translate
-                            ['type' => $resourceType, 'id' => $source[$this->sourceKeyId], 'term' => $term]
+                            ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'term' => $term]
                         );
                         continue;
                     }

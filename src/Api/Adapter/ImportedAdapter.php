@@ -29,23 +29,26 @@ class ImportedAdapter extends AbstractEntityAdapter
 
     public function buildQuery(QueryBuilder $qb, array $query): void
     {
+        $expr = $qb->expr();
+
         if (isset($query['job_id'])) {
-            $qb->andWhere($qb->expr()->eq(
+            $qb->andWhere($expr->eq(
                 'omeka_root.job',
-                $this->createNamedParameter($qb, $query['job_id']))
-            );
+                $this->createNamedParameter($qb, $query['job_id'])
+            ));
         }
         if (isset($query['entity_id'])) {
-            $qb->andWhere($qb->expr()->eq(
+            $qb->andWhere($expr->eq(
                 'omeka_root.entity_id',
-                $this->createNamedParameter($qb, $query['entity_id']))
-            );
+                $this->createNamedParameter($qb, $query['entity_id'])
+            ));
         }
-        if (isset($query['resource_name'])) {
-            $qb->andWhere($qb->expr()->eq(
-                'omeka_root.resource_type',
-                $this->createNamedParameter($qb, $query['resource_name']))
-            );
+
+        if (isset($query['entity_name'])) {
+            $qb->andWhere($expr->eq(
+                'omeka_root.entity_name',
+                $this->createNamedParameter($qb, $query['entity_name'])
+            ));
         }
     }
 
@@ -63,8 +66,8 @@ class ImportedAdapter extends AbstractEntityAdapter
             $entity->setEntityId($data['entity_id']);
         }
 
-        if (isset($data['resource_name'])) {
-            $entity->setResourceType($data['resource_name']);
+        if (isset($data['entity_name'])) {
+            $entity->setEntityName($data['entity_name']);
         }
     }
 }

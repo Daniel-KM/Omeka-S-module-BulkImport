@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -7,7 +8,7 @@ use BulkImport\Form\Processor\ItemSetProcessorParamsForm;
 
 class ItemSetProcessor extends ResourceProcessor
 {
-    protected $resourceType = 'item_sets';
+    protected $resourceName = 'item_sets';
 
     protected $resourceLabel = 'Item sets'; // @translate
 

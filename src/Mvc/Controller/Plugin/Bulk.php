@@ -760,10 +760,10 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Allows to log resources with a singular name from the resource type, that
+     * Allows to log resources with a singular name from the resource name, that
      * is plural in Omeka.
      */
-    public function label($resourceType): ?string
+    public function label($resourceName): ?string
     {
         $labels = [
             'items' => 'item', // @translate
@@ -776,14 +776,14 @@ class Bulk extends AbstractPlugin
             'resource_classes' => 'resource class', // @translate
             'resource_templates' => 'resource template', // @translate
         ];
-        return $labels[$resourceType] ?? $resourceType;
+        return $labels[$resourceName] ?? $resourceName;
     }
 
     /**
-     * Allows to log resources with a singular name from the resource type, that
+     * Allows to log resources with a singular name from the resource name, that
      * is plural in Omeka.
      */
-    public function labelPlural($resourceType): ?string
+    public function labelPlural($resourceName): ?string
     {
         $labels = [
             'items' => 'items', // @translate
@@ -796,7 +796,7 @@ class Bulk extends AbstractPlugin
             'resource_classes' => 'resource classes', // @translate
             'resource_templates' => 'resource templates', // @translate
         ];
-        return $labels[$resourceType] ?? $resourceType;
+        return $labels[$resourceName] ?? $resourceName;
     }
 
     /**
@@ -816,7 +816,7 @@ class Bulk extends AbstractPlugin
      * multiple conditions (for media source). May be a list of identifier
      * metadata names, in which case the identifiers are searched in a list of
      * properties and/or in internal ids.
-     * @param string $resourceType The resource type if any.
+     * @param string $resourceName The resource type, name or class, if any.
      * @return array|int|null|Object Associative array with the identifiers as key
      * and the ids or null as value. Order is kept, but duplicate identifiers
      * are removed. If $identifiers is a string, return directly the resource
@@ -881,12 +881,12 @@ class Bulk extends AbstractPlugin
      * @param string $identifier
      * @param string|int|array $identifierName Property as integer or term,
      * media ingester or "o:id", or an array with multiple conditions.
-     * @param string $resourceType The resource type if any.
+     * @param string $resourceName The resource type, name or class, if any.
      * @return int|null|false
      */
-    public function findResourceFromIdentifier($identifier, $identifierName = null, $resourceType = null)
+    public function findResourceFromIdentifier($identifier, $identifierName = null, $resourceName = null)
     {
-        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceType);
+        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName);
     }
 
     /**

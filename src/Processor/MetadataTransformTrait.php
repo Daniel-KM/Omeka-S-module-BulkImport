@@ -2815,10 +2815,10 @@ SQL;
         if (isset($params['class'])) {
             $classId = $this->bulk->getResourceClassId($params['class']) ?? 'NULL';
         }
-        $resourceType = empty($params['resource_name'])
+        $resourceName = empty($params['resource_name'])
             ? \Omeka\Entity\Item::class
             : $this->bulk->getEntityClass($params['resource_name']) ?? \Omeka\Entity\Item::class;
-        if ($resourceType === \Omeka\Entity\Media::class) {
+        if ($resourceName === \Omeka\Entity\Media::class) {
             $this->logger->err(
                 'The operation "{action}" cannot create media currently.', // @translate
                 ['action' => $this->operationName]
@@ -2827,7 +2827,7 @@ SQL;
         }
         $isPublic = (int) (bool) ($params['is_public'] ?? 1);
 
-        $quotedResourceType = $this->connection->quote($resourceType);
+        $quotedResourceName = $this->connection->quote($resourceName);
 
         $random = $this->operationRandoms[$this->operationIndex];
 
@@ -2842,7 +2842,7 @@ SELECT DISTINCT
     $isPublic,
     "$this->currentDateTimeFormatted",
     NULL,
-    $quotedResourceType,
+    $quotedResourceName,
     NULL,
     CONCAT("$random ", `_temporary_mapper`.`source`)
 FROM `_temporary_mapper`
@@ -2877,7 +2877,7 @@ WHERE
 
 SQL;
 
-        if ($resourceType === \Omeka\Entity\Item::class) {
+        if ($resourceName === \Omeka\Entity\Item::class) {
             $this->operationSqls[] = <<<SQL
 # Create items for created resources.
 INSERT INTO `item`
@@ -2889,7 +2889,7 @@ ON DUPLICATE KEY UPDATE
     `id` = `item`.`id`
 ;
 SQL;
-        } elseif ($resourceType === \Omeka\Entity\ItemSet::class) {
+        } elseif ($resourceName === \Omeka\Entity\ItemSet::class) {
             $this->operationSqls[] = <<<SQL
 # Create item sets for created resources.
 INSERT INTO `item_set`
@@ -2903,7 +2903,7 @@ ON DUPLICATE KEY UPDATE
     `is_open` = `item_set`.`is_open`
 ;
 SQL;
-        } elseif ($resourceType === \Omeka\Entity\Media::class) {
+        } elseif ($resourceName === \Omeka\Entity\Media::class) {
             $this->operationSqls[] = <<<SQL
 # Create medias for created resources.
 INSERT INTO `media`

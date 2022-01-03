@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Processor;
 
 use ArrayObject;
@@ -7,7 +8,7 @@ use BulkImport\Form\Processor\MediaProcessorParamsForm;
 
 class MediaProcessor extends ResourceProcessor
 {
-    protected $resourceType = 'media';
+    protected $resourceName = 'media';
 
     protected $resourceLabel = 'Media'; // @translate
 

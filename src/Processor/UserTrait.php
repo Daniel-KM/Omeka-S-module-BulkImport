@@ -23,16 +23,16 @@ trait UserTrait
      */
     protected function prepareUsersProcess(iterable $sources): void
     {
-        $resourceType = 'users';
+        $resourceName = 'users';
         $this->map['users'] = [];
 
         // Check the size of the import.
-        $this->countEntities($sources, $resourceType);
+        $this->countEntities($sources, $resourceName);
         if ($this->hasError) {
             return;
         }
 
-        if (!$this->totals[$resourceType]) {
+        if (!$this->totals[$resourceName]) {
             $this->logger->notice(
                 'No users importable from source. You may check rights.' // @translate
             );
@@ -141,7 +141,7 @@ trait UserTrait
                 $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => count($this->map[$resourceType]), 'type' => $resourceType, 'skipped' => $skipped]
+                    ['count' => $created, 'total' => count($this->map[$resourceName]), 'type' => $resourceName, 'skipped' => $skipped]
                 );
             }
         }

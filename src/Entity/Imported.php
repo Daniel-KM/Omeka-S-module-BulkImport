@@ -39,6 +39,8 @@ class Imported extends AbstractEntity
     protected $job;
 
     /**
+     * API resource id (not necessarily an Omeka main Resource).
+     *
      * @var int
      *
      * @Column(
@@ -48,14 +50,16 @@ class Imported extends AbstractEntity
     protected $entityId;
 
     /**
+     * API resource name (not necessarily an Omeka main Resource).
+
      * @var string
-     * API resource type (not neccesarily a Resource class)
      *
      * @Column(
-     *     type="string"
+     *     type="string",
+     *     length=190
      * )
      */
-    protected $resourceType;
+    protected $entityName;
 
     public function getId()
     {
@@ -84,14 +88,14 @@ class Imported extends AbstractEntity
         return $this->entityId;
     }
 
-    public function setResourceType(string $resourceType): self
+    public function setEntityName(string $entityName): self
     {
-        $this->resourceType = $resourceType;
+        $this->entityName = $entityName;
         return $this;
     }
 
-    public function getResourceType(): string
+    public function getEntityName(): string
     {
-        return $this->resourceType;
+        return $this->entityName;
     }
 }

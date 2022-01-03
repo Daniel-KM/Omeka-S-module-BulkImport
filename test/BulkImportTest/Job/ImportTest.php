@@ -137,11 +137,11 @@ SQL;
 
         $this->performProcessForFile($filepath);
 
-        foreach ($totals as $resourceType => $total) {
-            $result = $this->api->search($resourceType)->getContent();
+        foreach ($totals as $resourceName => $total) {
+            $result = $this->api->search($resourceName)->getContent();
             $this->assertEquals($total, count($result));
             foreach ($result as $key => $resource) {
-                $expectedFile = $filebase . '.' . $resourceType . '-' . ($key + 1) . '.api.json';
+                $expectedFile = $filebase . '.' . $resourceName . '-' . ($key + 1) . '.api.json';
                 if (!file_exists($expectedFile)) {
                     continue;
                 }
@@ -178,12 +178,12 @@ SQL;
 
         $resources = [];
         $totals = ['item_sets' => 3, 'items' => 3, 'media' => 4];
-        foreach ($totals as $resourceType => $total) {
-            $response = $this->api->search($resourceType);
-            $this->assertEquals($total, $response->getTotalResults(), 'Resource type: ' . $resourceType);
+        foreach ($totals as $resourceName => $total) {
+            $response = $this->api->search($resourceName);
+            $this->assertEquals($total, $response->getTotalResults(), 'Resource type: ' . $resourceName);
             $result = $response->getContent();
             foreach ($result as $key => $resource) {
-                $resources[$resourceType][$key + 1] = $resource;
+                $resources[$resourceName][$key + 1] = $resource;
             }
         }
         return $resources;
@@ -219,21 +219,21 @@ SQL;
     {
         $filepath = $this->basepath . $filepath;
         $filebase = substr($filepath, 0, -4);
-        list($resourceType, $index) = $options;
+        list($resourceName, $index) = $options;
 
-        $resource = $resources[$resourceType][$index];
+        $resource = $resources[$resourceName][$index];
         $resourceId = $resource->id();
-        $resource = $this->api->read($resourceType, $resourceId)->getContent();
+        $resource = $this->api->read($resourceName, $resourceId)->getContent();
         $this->assertNotEmpty($resource);
 
         $this->performProcessForFile($filepath);
 
-        $resource = $this->api->search($resourceType, ['id' => $resourceId])->getContent();
+        $resource = $this->api->search($resourceName, ['id' => $resourceId])->getContent();
         $this->assertNotEmpty($resource);
 
         $resource = reset($resource);
 
-        $expectedFile = $filebase . '.' . $resourceType . '-' . ($index) . '.api.json';
+        $expectedFile = $filebase . '.' . $resourceName . '-' . ($index) . '.api.json';
         if (!file_exists($expectedFile)) {
             return;
         }
@@ -265,16 +265,16 @@ SQL;
 
         $filepath = $this->basepath . $filepath;
         // $filebase = substr($filepath, 0, -4);
-        list($resourceType, $index) = $options;
+        list($resourceName, $index) = $options;
 
-        $resource = $resources[$resourceType][$index];
+        $resource = $resources[$resourceName][$index];
         $resourceId = $resource->id();
-        $resource = $this->api->read($resourceType, $resourceId)->getContent();
-        $this->assertNotEmpty($resource, sprintf('Error before testing deletion: %s #%d does not exist.', $resourceType, $resourceId));
+        $resource = $this->api->read($resourceName, $resourceId)->getContent();
+        $this->assertNotEmpty($resource, sprintf('Error before testing deletion: %s #%d does not exist.', $resourceName, $resourceId));
 
         $this->performProcessForFile($filepath);
 
-        $resource = $this->api->search($resourceType, ['id' => $resourceId])->getContent();
+        $resource = $this->api->search($resourceName, ['id' => $resourceId])->getContent();
         $this->assertEmpty($resource);
     }
 

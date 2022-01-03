@@ -69,7 +69,7 @@ class Undo extends AbstractJob
             foreach ($importedsChunk as $imported) {
                 try {
                     $api->delete('bulk_importeds', $imported->id());
-                    $api->delete($imported->resourceType(), $imported->entityId());
+                    $api->delete($imported->entityName(), $imported->entityId());
                 } catch (\Exception $e) {
                     // Nothing to do: already deleted.
                     // TODO Implement on delete cascade in the entity Imported.

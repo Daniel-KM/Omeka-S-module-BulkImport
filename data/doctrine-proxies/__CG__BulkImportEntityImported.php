@@ -26,7 +26,7 @@ class Imported extends \BulkImport\Entity\Imported implements \Doctrine\ORM\Prox
     /**
      * @var boolean flag indicating if this object was already initialized
      *
-     * @see \Doctrine\Common\Persistence\Proxy::__isInitialized
+     * @see \Doctrine\Persistence\Proxy::__isInitialized
      */
     public $__isInitialized__ = false;
 
@@ -66,10 +66,10 @@ class Imported extends \BulkImport\Entity\Imported implements \Doctrine\ORM\Prox
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'job', 'entityId', 'resourceType'];
+            return ['__isInitialized__', 'id', 'job', 'entityId', 'entityName'];
         }
 
-        return ['__isInitialized__', 'id', 'job', 'entityId', 'resourceType'];
+        return ['__isInitialized__', 'id', 'job', 'entityId', 'entityName'];
     }
 
     /**
@@ -238,23 +238,23 @@ class Imported extends \BulkImport\Entity\Imported implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setResourceType(string $resourceType): \BulkImport\Entity\Imported
+    public function setEntityName(string $entityName): \BulkImport\Entity\Imported
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setResourceType', [$resourceType]);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setEntityName', [$entityName]);
 
-        return parent::setResourceType($resourceType);
+        return parent::setEntityName($entityName);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getResourceType(): string
+    public function getEntityName(): string
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getResourceType', []);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getEntityName', []);
 
-        return parent::getResourceType();
+        return parent::getEntityName();
     }
 
     /**

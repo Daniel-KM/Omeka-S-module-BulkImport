@@ -8,7 +8,7 @@ use BulkImport\Form\Processor\ItemProcessorParamsForm;
 
 class ItemProcessor extends ResourceProcessor
 {
-    protected $resourceType = 'items';
+    protected $resourceName = 'items';
 
     protected $resourceLabel = 'Items'; // @translate
 

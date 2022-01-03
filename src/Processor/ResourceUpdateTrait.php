@@ -21,15 +21,15 @@ trait ResourceUpdateTrait
     protected $resourceToUpdate;
 
     /**
-     * @param string $resourceType
+     * @param string $resourceName
      * @param int $resourceId
      */
-    protected function prepareResourceToUpdate($resourceType, $resourceId): void
+    protected function prepareResourceToUpdate($resourceName, $resourceId): void
     {
-        if (!$resourceType || !$resourceId) {
+        if (!$resourceName || !$resourceId) {
             $this->resourceToUpdate = null;
         } elseif (!$this->resourceToUpdate || $this->resourceToUpdate->id() != $resourceId) {
-            $this->resourceToUpdate = $this->bulk->api()->read($resourceType, $resourceId)->getContent();
+            $this->resourceToUpdate = $this->bulk->api()->read($resourceName, $resourceId)->getContent();
         }
     }
 
@@ -48,13 +48,13 @@ trait ResourceUpdateTrait
      *
      * @todo What to do with external data?
      *
-     * @param string $resourceType
+     * @param string $resourceName
      * @param array $data Should have an existing and checked "o:id".
      * @return array
      */
-    protected function updateData($resourceType, $data)
+    protected function updateData($resourceName, $data)
     {
-        $this->prepareResourceToUpdate($resourceType, $data['o:id']);
+        $this->prepareResourceToUpdate($resourceName, $data['o:id']);
 
         // Use arrays to simplify process.
         $currentData = json_decode(json_encode($this->resourceToUpdate), true);
@@ -72,7 +72,7 @@ trait ResourceUpdateTrait
                 if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
                     $data = $this->keepExistingIdentifiers($currentData, $data, $this->bulk->getIdentifierNames());
                 }
-                if ($resourceType === 'items') {
+                if ($resourceName === 'items') {
                     if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
                         $data = $this->keepExistingMedia($currentData, $data);
                     }
@@ -84,7 +84,7 @@ trait ResourceUpdateTrait
                 $newData = array_replace($data, $replaced);
                 break;
             case \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE:
-                if ($resourceType === 'items') {
+                if ($resourceName === 'items') {
                     if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
                         $newData = $this->keepExistingMedia($currentData, $data);
                     }
