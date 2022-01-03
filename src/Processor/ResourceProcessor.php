@@ -521,16 +521,23 @@ class ResourceProcessor extends AbstractResourceProcessor
         // download.
         $this->checkNewFiles($resource);
 
+        // The entity is checked here to store error when there is a file issue.
+        $errorStore = new \Omeka\Stdlib\ErrorStore;
+        $adapter->validateRequest($request, $errorStore);
+        $adapter->validateEntity($entity, $errorStore);
+
         // TODO Process hydration checks except files or use an event to check files differently during hydration or store loaded url in order to get all results one time.
         // TODO In that case, check iiif image or other media that may have a file or url too.
 
-        if ($resource['messageStore']->hasErrors()) {
+        if ($resource['messageStore']->hasErrors() || $errorStore->hasErrors()) {
+            $resource['messageStore']->mergeErrors($errorStore);
             return false;
         }
 
-        // Process hydration checks (template, data type, media item, etc.).
+        // Process hydration checks for remaining checks, in particular media.
         // This is the same operation than api create/update, but without
         // persisting entity.
+        // Normally, all data are already checked, except actual medias.
         $errorStore = new \Omeka\Stdlib\ErrorStore;
         try {
             $adapter->hydrateEntity($request, $entity, $errorStore);
