@@ -3,8 +3,7 @@
 namespace BulkImport\Processor;
 
 use ArrayObject;
-use BulkImport\Interfaces\Processor;
-use BulkImport\Interfaces\Reader;
+use BulkImport\Reader\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
@@ -82,24 +81,24 @@ abstract class AbstractProcessor implements Processor
         $this->translator = $services->get('MvcTranslator');
     }
 
-    public function setReader(Reader $reader): \BulkImport\Interfaces\Processor
+    public function setReader(Reader $reader): \BulkImport\Processor\Processor
     {
         $this->reader = $reader;
         return $this;
     }
 
-    public function getReader(): \BulkImport\Interfaces\Reader
+    public function getReader(): \BulkImport\Reader\Reader
     {
         return $this->reader;
     }
 
-    public function setLogger(Logger $logger): \BulkImport\Interfaces\Processor
+    public function setLogger(Logger $logger): \BulkImport\Processor\Processor
     {
         $this->logger = $logger;
         return $this;
     }
 
-    public function setJob(Job $job): \BulkImport\Interfaces\Processor
+    public function setJob(Job $job): \BulkImport\Processor\Processor
     {
         $this->job = $job;
         return $this;
@@ -331,7 +330,7 @@ abstract class AbstractProcessor implements Processor
      * @param bool $allowDuplicateIdentifiers
      * @return self
      */
-    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): \BulkImport\Interfaces\Processor
+    protected function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers = false): \BulkImport\Processor\Processor
     {
         $this->bulk->setAllowDuplicateIdentifiers($allowDuplicateIdentifiers);
         return $this;
@@ -350,7 +349,7 @@ abstract class AbstractProcessor implements Processor
     /**
      * Set the default identifier names.
      */
-    public function setIdentifierNames(array $identifierNames): \BulkImport\Interfaces\Processor
+    public function setIdentifierNames(array $identifierNames): \BulkImport\Processor\Processor
     {
         $this->bulk->setIdentifierNames($identifierNames);
         return $this;

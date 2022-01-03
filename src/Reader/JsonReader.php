@@ -51,19 +51,19 @@ class JsonReader extends AbstractPaginatedReader
      */
     protected $currentResponse;
 
-    public function setPath($path): \BulkImport\Interfaces\Reader
+    public function setPath($path): \BulkImport\Reader\Reader
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath($subpath): \BulkImport\Interfaces\Reader
+    public function setSubPath($subpath): \BulkImport\Reader\Reader
     {
         $this->subpath = $subpath;
         return $this;
     }
 
-    public function setQueryParams(array $queryParams): \BulkImport\Interfaces\Reader
+    public function setQueryParams(array $queryParams): \BulkImport\Reader\Reader
     {
         $this->queryParams = $queryParams;
         return $this;

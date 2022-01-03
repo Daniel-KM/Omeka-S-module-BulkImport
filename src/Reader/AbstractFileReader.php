@@ -157,7 +157,7 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * Reset the iterator to allow to use it with different params.
      */
-    protected function reset(): \BulkImport\Interfaces\Reader
+    protected function reset(): \BulkImport\Reader\Reader
     {
         parent::reset();
         $this->iterator = null;
@@ -169,7 +169,7 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function prepareIterator(): \BulkImport\Interfaces\Reader
+    protected function prepareIterator(): \BulkImport\Reader\Reader
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -188,12 +188,12 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * Initialize the reader iterator.
      */
-    abstract protected function initializeReader(): \BulkImport\Interfaces\Reader;
+    abstract protected function initializeReader(): \BulkImport\Reader\Reader;
 
     /**
      * Called only by prepareIterator() after opening reader.
      */
-    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
+    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
     {
         $this->totalEntries = iterator_count($this->iterator);
         $this->iterator->rewind();
@@ -203,7 +203,7 @@ abstract class AbstractFileReader extends AbstractReader
     /**
      * The fields are an array.
      */
-    protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
+    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
     {
         return $this;
     }

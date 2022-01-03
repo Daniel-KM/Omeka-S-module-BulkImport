@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Interfaces;
+namespace BulkImport\Reader;
 
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
@@ -39,17 +39,17 @@ interface Reader extends \Iterator, \Countable
     /**
      * @param string $objectType An Omeka api key like "items", "vocabularies"…
      */
-    public function setObjectType($objectType): \BulkImport\Interfaces\Reader;
+    public function setObjectType($objectType): \BulkImport\Reader\Reader;
 
     /**
      * Allow to limit results.
      */
-    public function setFilters(?array $filters): \BulkImport\Interfaces\Reader;
+    public function setFilters(?array $filters): \BulkImport\Reader\Reader;
 
     /**
      * Prepare the order of  the result, for example a column for sql.
      */
-    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Interfaces\Reader;
+    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Reader\Reader;
 
     /**
      * List of fields used in the input, for example the first spreadsheet row.

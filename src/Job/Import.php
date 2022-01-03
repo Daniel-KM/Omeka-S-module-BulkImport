@@ -118,7 +118,7 @@ class Import extends AbstractJob
 
     /**
      * @throws \Omeka\Job\Exception\InvalidArgumentException
-     * @return \BulkImport\Interfaces\Reader
+     * @return \BulkImport\Reader\Reader
      */
     protected function getReader()
     {
@@ -148,7 +148,7 @@ class Import extends AbstractJob
 
     /**
      * @throws \Omeka\Job\Exception\InvalidArgumentException
-     * @return \BulkImport\Interfaces\Processor
+     * @return \BulkImport\Processor\Processor
      */
     protected function getProcessor()
     {

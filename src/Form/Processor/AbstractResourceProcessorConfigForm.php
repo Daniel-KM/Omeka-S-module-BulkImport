@@ -281,9 +281,9 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
     protected function addMapping(): \Laminas\Form\Form
     {
-        /** @var \BulkImport\Interfaces\Processor $processor */
+        /** @var \BulkImport\Processor\Processor $processor */
         $processor = $this->getOption('processor');
-        /** @var \BulkImport\Interfaces\Reader $reader */
+        /** @var \BulkImport\Reader\Reader $reader */
         $reader = $processor->getReader();
 
         // Add all columns from file as inputs.

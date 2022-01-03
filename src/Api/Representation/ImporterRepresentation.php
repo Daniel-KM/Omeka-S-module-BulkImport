@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Api\Representation;
 
 use BulkImport\Interfaces\Configurable;
@@ -19,12 +20,12 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     protected $processorManager;
 
     /**
-     * @var \BulkImport\Interfaces\Reader
+     * @var \BulkImport\Reader\Reader
      */
     protected $reader;
 
     /**
-     * @var \BulkImport\Interfaces\Processor
+     * @var \BulkImport\Processor\Processor
      */
     protected $processor;
 
@@ -92,7 +93,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             ->getRepresentation($this->resource->getOwner());
     }
 
-    public function reader(): ?\BulkImport\Interfaces\Reader
+    public function reader(): ?\BulkImport\Reader\Reader
     {
         if ($this->reader) {
             return $this->reader;
@@ -111,7 +112,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->reader;
     }
 
-    public function processor(): ?\BulkImport\Interfaces\Processor
+    public function processor(): ?\BulkImport\Processor\Processor
     {
         if ($this->processor) {
             return $this->processor;

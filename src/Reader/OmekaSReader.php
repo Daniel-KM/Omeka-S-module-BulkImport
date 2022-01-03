@@ -62,31 +62,31 @@ class OmekaSReader extends AbstractPaginatedReader
      */
     protected $baseUrl = '';
 
-    public function setObjectType($objectType): \BulkImport\Interfaces\Reader
+    public function setObjectType($objectType): \BulkImport\Reader\Reader
     {
         $this->path = $objectType;
         return parent::setObjectType($objectType);
     }
 
-    public function setQueryCredentials(array $credentials): \BulkImport\Interfaces\Reader
+    public function setQueryCredentials(array $credentials): \BulkImport\Reader\Reader
     {
         $this->queryCredentials = $credentials;
         return $this;
     }
 
-    public function setPath($path): \BulkImport\Interfaces\Reader
+    public function setPath($path): \BulkImport\Reader\Reader
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath($subpath): \BulkImport\Interfaces\Reader
+    public function setSubPath($subpath): \BulkImport\Reader\Reader
     {
         $this->subpath = $subpath;
         return $this;
     }
 
-    public function setQueryParams(array $queryParams): \BulkImport\Interfaces\Reader
+    public function setQueryParams(array $queryParams): \BulkImport\Reader\Reader
     {
         $this->queryParams = $queryParams;
         return $this;

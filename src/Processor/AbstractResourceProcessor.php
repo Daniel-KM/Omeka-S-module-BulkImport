@@ -153,7 +153,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         $defaults = [
             'o:resource_template' => null,
@@ -177,7 +177,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         return $this;
     }
@@ -497,7 +497,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function baseGeneric(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseGeneric(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         $resourceTemplateId = $this->getParam('o:resource_template');
         if ($resourceTemplateId) {
@@ -518,12 +518,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         return $this;
     }
 
-    protected function fillResource(ArrayObject $resource, array $targets, array $values): \BulkImport\Interfaces\Processor
+    protected function fillResource(ArrayObject $resource, array $targets, array $values): \BulkImport\Processor\Processor
     {
         foreach ($targets as $target) {
             switch ($target['target']) {
@@ -991,7 +991,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process entities.
      */
-    protected function processEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function processEntities(array $data): \BulkImport\Processor\Processor
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
@@ -1016,7 +1016,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of entities.
      */
-    protected function createEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function createEntities(array $data): \BulkImport\Processor\Processor
     {
         $resourceType = $this->getResourceType();
         $this->createResources($resourceType, $data);
@@ -1026,7 +1026,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of resources.
      */
-    protected function createResources($resourceType, array $data): \BulkImport\Interfaces\Processor
+    protected function createResources($resourceType, array $data): \BulkImport\Processor\Processor
     {
         if (!count($data)) {
             return $this;
@@ -1083,7 +1083,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of entities.
      */
-    protected function updateEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function updateEntities(array $data): \BulkImport\Processor\Processor
     {
         $resourceType = $this->getResourceType();
 
@@ -1105,7 +1105,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of resources.
      */
-    protected function updateResources($resourceType, array $data): \BulkImport\Interfaces\Processor
+    protected function updateResources($resourceType, array $data): \BulkImport\Processor\Processor
     {
         if (!count($data)) {
             return $this;
@@ -1175,7 +1175,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of entities.
      */
-    protected function deleteEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function deleteEntities(array $data): \BulkImport\Processor\Processor
     {
         $resourceType = $this->getResourceType();
         $this->deleteResources($resourceType, $data);
@@ -1185,7 +1185,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of resources.
      */
-    protected function deleteResources($resourceType, array $data): \BulkImport\Interfaces\Processor
+    protected function deleteResources($resourceType, array $data): \BulkImport\Processor\Processor
     {
         if (!count($data)) {
             return $this;
@@ -1237,7 +1237,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of entities.
      */
-    protected function skipEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function skipEntities(array $data): \BulkImport\Processor\Processor
     {
         $resourceType = $this->getResourceType();
         $this->skipResources($resourceType, $data);
@@ -1247,7 +1247,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of resources.
      */
-    protected function skipResources($resourceType, array $data): \BulkImport\Interfaces\Processor
+    protected function skipResources($resourceType, array $data): \BulkImport\Processor\Processor
     {
         return $this;
     }
@@ -1295,7 +1295,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return in_array($action, $actionsUpdate);
     }
 
-    protected function prepareAction(): \BulkImport\Interfaces\Processor
+    protected function prepareAction(): \BulkImport\Processor\Processor
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
@@ -1315,7 +1315,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareActionUnidentified(): \BulkImport\Interfaces\Processor
+    protected function prepareActionUnidentified(): \BulkImport\Processor\Processor
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
@@ -1330,7 +1330,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareIdentifierNames(): \BulkImport\Interfaces\Processor
+    protected function prepareIdentifierNames(): \BulkImport\Processor\Processor
     {
         $identifierNames = $this->getParam('identifier_name', ['dcterms:identifier']);
         if (empty($identifierNames)) {
@@ -1365,7 +1365,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareActionIdentifier(): \BulkImport\Interfaces\Processor
+    protected function prepareActionIdentifier(): \BulkImport\Processor\Processor
     {
         if (!in_array($this->action, [
             self::ACTION_REVISE,
@@ -1400,7 +1400,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareActionMedia(): \BulkImport\Interfaces\Processor
+    protected function prepareActionMedia(): \BulkImport\Processor\Processor
     {
         $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionMedia, [
@@ -1416,7 +1416,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareActionItemSet(): \BulkImport\Interfaces\Processor
+    protected function prepareActionItemSet(): \BulkImport\Processor\Processor
     {
         $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionItemSet, [
@@ -1437,7 +1437,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Add automapped metadata for properties (language and datatypes).
      */
-    protected function prepareMapping(): \BulkImport\Interfaces\Processor
+    protected function prepareMapping(): \BulkImport\Processor\Processor
     {
         $mapping = $this->getParam('mapping', []);
 
@@ -1550,7 +1550,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Prepare other internal data.
      */
-    protected function appendInternalParams(): \BulkImport\Interfaces\Processor
+    protected function appendInternalParams(): \BulkImport\Processor\Processor
     {
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
         $internalParams = [];

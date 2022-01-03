@@ -1354,7 +1354,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $dispatcher->dispatch($jobClass, $args, $strategy);
     }
 
-    protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Interfaces\Reader
+    protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Reader\Reader
     {
         if (empty($this->mapping[$resourceName]['source'])) {
             $this->logger->debug(

@@ -36,7 +36,7 @@ trait HttpClientTrait
      * @param HttpClient $httpClient
      * @return self
      */
-    public function setHttpClient(HttpClient $httpClient): \BulkImport\Interfaces\Reader
+    public function setHttpClient(HttpClient $httpClient): \BulkImport\Reader\Reader
     {
         $this->httpClient = $httpClient;
         return $this;
@@ -55,7 +55,7 @@ trait HttpClientTrait
         return $this->httpClient;
     }
 
-    public function setEndpoint($endpoint): \BulkImport\Interfaces\Reader
+    public function setEndpoint($endpoint): \BulkImport\Reader\Reader
     {
         $this->endpoint = $endpoint;
         return $this;

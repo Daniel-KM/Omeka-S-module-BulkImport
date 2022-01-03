@@ -15,13 +15,13 @@ class MediaProcessor extends ResourceProcessor
 
     protected $paramsFormClass = MediaProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         $this->handleFormMedia($args, $values);
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         $this->baseMedia($resource);
         return $this;

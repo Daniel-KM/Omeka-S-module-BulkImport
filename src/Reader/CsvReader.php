@@ -87,7 +87,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $this->next();
     }
 
-    protected function reset(): \BulkImport\Interfaces\Reader
+    protected function reset(): \BulkImport\Reader\Reader
     {
         parent::reset();
         $this->delimiter = self::DEFAULT_DELIMITER;
@@ -96,7 +96,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function prepareIterator(): \BulkImport\Interfaces\Reader
+    protected function prepareIterator(): \BulkImport\Reader\Reader
     {
         parent::prepareIterator();
         // Skip headers, already stored.
@@ -104,7 +104,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function initializeReader(): \BulkImport\Interfaces\Reader
+    protected function initializeReader(): \BulkImport\Reader\Reader
     {
         $filepath = $this->getParam('filename');
         $this->iterator = new SplFileObject($filepath);
@@ -122,14 +122,14 @@ class CsvReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
+    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
     {
         // Warning: it should skip last empty rows, but it is rare for csv.
         $this->totalEntries = iterator_count($this->iterator) - 1;
         return $this;
     }
 
-    protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
+    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
     {
         $this->iterator->rewind();
         $fields = $this->iterator->current();

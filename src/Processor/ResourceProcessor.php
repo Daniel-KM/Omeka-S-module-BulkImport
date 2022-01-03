@@ -16,7 +16,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected $paramsFormClass = ResourceProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (isset($values['resource_type'])) {
             $args['resource_type'] = $values['resource_type'];
@@ -27,7 +27,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormItem(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormItem(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (isset($values['o:item_set'])) {
             $ids = $this->findResourcesFromIdentifiers($values['o:item_set'], 'o:id', 'item_sets');
@@ -38,7 +38,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormItemSet(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormItemSet(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (isset($values['o:is_open'])) {
             $args['o:is_open'] = $values['o:is_open'] !== 'false';
@@ -46,7 +46,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormMedia(ArrayObject $args, array $values): \BulkImport\Interfaces\Processor
+    protected function handleFormMedia(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
         if (!empty($values['o:item'])) {
             $id = $this->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
@@ -57,7 +57,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         // Determined by the entry, but prepare all possible types in the case
         // there is a mapping.
@@ -68,7 +68,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItem(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseItem(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         $resource['resource_type'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
@@ -76,7 +76,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItemSet(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseItemSet(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         $resource['resource_type'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
@@ -84,7 +84,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseMedia(ArrayObject $resource): \BulkImport\Interfaces\Processor
+    protected function baseMedia(ArrayObject $resource): \BulkImport\Processor\Processor
     {
         $resource['resource_type'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
@@ -391,7 +391,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         array $related,
         $metadata = 'o:media',
         $check = 'o:ingester'
-    ): \BulkImport\Interfaces\Processor {
+    ): \BulkImport\Processor\Processor {
         if (!empty($resource[$metadata])) {
             foreach ($resource[$metadata] as $key => $values) {
                 if (!array_key_exists($check, $values)) {
@@ -557,7 +557,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return true;
     }
 
-    protected function processEntities(array $data): \BulkImport\Interfaces\Processor
+    protected function processEntities(array $data): \BulkImport\Processor\Processor
     {
         $resourceType = $this->getResourceType();
         if ($resourceType !== 'resources') {

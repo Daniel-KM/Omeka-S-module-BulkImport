@@ -45,7 +45,7 @@ class TsvReader extends CsvReader
         return $this;
     }
 
-    protected function reset(): \BulkImport\Interfaces\Reader
+    protected function reset(): \BulkImport\Reader\Reader
     {
         parent::reset();
         $this->delimiter = "\t";

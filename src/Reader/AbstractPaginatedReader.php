@@ -73,7 +73,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
      */
     protected $currentResponse;
 
-    public function setObjectType($objectType): \BulkImport\Interfaces\Reader
+    public function setObjectType($objectType): \BulkImport\Reader\Reader
     {
         $this->objectType = $objectType;
         $this->initArgs();

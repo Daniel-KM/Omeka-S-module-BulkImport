@@ -46,12 +46,12 @@ class FakeReader extends AbstractReader
     {
     }
 
-    protected function reset(): \BulkImport\Interfaces\Reader
+    protected function reset(): \BulkImport\Reader\Reader
     {
         return $this;
     }
 
-    protected function prepareIterator(): \BulkImport\Interfaces\Reader
+    protected function prepareIterator(): \BulkImport\Reader\Reader
     {
         return $this;
     }

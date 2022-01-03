@@ -131,7 +131,7 @@ class XmlReader extends AbstractFileReader
         return (bool) $this->iterator->valid();
     }
 
-    protected function initializeReader(): \BulkImport\Interfaces\Reader
+    protected function initializeReader(): \BulkImport\Reader\Reader
     {
         $xmlpath = $this->getParam('filename');
 
@@ -162,14 +162,14 @@ class XmlReader extends AbstractFileReader
     /**
      * Called only by prepareIterator() after opening reader.
      */
-    protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
+    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
     {
         $this->totalEntries = iterator_count($this->iterator);
         $this->initializeXmlReader();
         return $this;
     }
 
-    protected function initializeXmlReader(): \BulkImport\Interfaces\Reader
+    protected function initializeXmlReader(): \BulkImport\Reader\Reader
     {
         $reader = new XMLReaderCore();
         $reader->open($this->normalizedXmlpath);

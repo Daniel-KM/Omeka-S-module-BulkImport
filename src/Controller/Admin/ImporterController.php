@@ -137,7 +137,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
-        /** @var \BulkImport\Interfaces\Reader $reader */
+        /** @var \BulkImport\Reader\Reader $reader */
         $reader = $entity->reader();
         $form = $this->getForm($reader->getConfigFormClass());
         $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
@@ -193,7 +193,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
-        /** @var \BulkImport\Interfaces\Processor $processor */
+        /** @var \BulkImport\Processor\Processor $processor */
         $processor = $entity->processor();
         $form = $this->getForm($processor->getConfigFormClass());
         $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];

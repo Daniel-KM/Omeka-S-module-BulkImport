@@ -9,7 +9,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
     protected $mediaTypeReaders = [];
 
     /**
-     * @var \BulkImport\Interfaces\Reader
+     * @var \BulkImport\Reader\Reader
      */
     protected $reader;
 
@@ -89,7 +89,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->isReady;
     }
 
-    protected function prepareIterator(): \BulkImport\Interfaces\Reader
+    protected function prepareIterator(): \BulkImport\Reader\Reader
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -100,7 +100,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this;
     }
 
-    protected function initializeReader(): \BulkImport\Interfaces\Reader
+    protected function initializeReader(): \BulkImport\Reader\Reader
     {
         $file = $this->getParam('file');
         $readerClass = $this->mediaTypeReaders[$file['type']];

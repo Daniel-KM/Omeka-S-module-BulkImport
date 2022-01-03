@@ -4,7 +4,6 @@ namespace BulkImport\Reader;
 
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
-use BulkImport\Interfaces\Reader;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -134,19 +133,19 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function setObjectType($objectType): \BulkImport\Interfaces\Reader
+    public function setObjectType($objectType): \BulkImport\Reader\Reader
     {
         $this->objectType = $objectType;
         return $this;
     }
 
-    public function setFilters(?array $filters): \BulkImport\Interfaces\Reader
+    public function setFilters(?array $filters): \BulkImport\Reader\Reader
     {
         $this->filters = $filters ?? [];
         return $this;
     }
 
-    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Interfaces\Reader
+    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Reader\Reader
     {
         $this->order = [
             'by' => $by,
@@ -171,7 +170,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Reset the iterator to allow to use it with different params.
      */
-    protected function reset(): \BulkImport\Interfaces\Reader
+    protected function reset(): \BulkImport\Reader\Reader
     {
         $this->availableFields = [];
         $this->objectType = null;
@@ -183,7 +182,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function prepareIterator(): \BulkImport\Interfaces\Reader
+    protected function prepareIterator(): \BulkImport\Reader\Reader
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -197,7 +196,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Prepare other internal data.
      */
-    protected function appendInternalParams(): \BulkImport\Interfaces\Reader
+    protected function appendInternalParams(): \BulkImport\Reader\Reader
     {
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
         $internalParams = [];
