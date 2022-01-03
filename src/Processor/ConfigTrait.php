@@ -108,12 +108,10 @@ trait ConfigTrait
             $baseFilename = $filename;
         }
 
-        $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-
         foreach ($extensions as $extension) {
             $file = "$baseFilename.$extension";
-            if (file_exists($basePath . '/' . $file)) {
-                $filepath = $basePath . '/' . $file;
+            if (file_exists($this->basePath . '/' . $file)) {
+                $filepath = $this->basePath . '/' . $file;
                 break;
             } elseif (file_exists(dirname(__DIR__, 2) . '/data/configs/' . $file)) {
                 $filepath = dirname(__DIR__, 2) . '/data/configs/' . $file;

@@ -225,8 +225,7 @@ class XmlReader extends AbstractFileReader
             return null;
         }
         if (mb_substr($filepath, 0, 6) === 'user: ') {
-            $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-            $filepath = $basePath . '/xsl/' . mb_substr($filepath, 6);
+            $filepath = $this->basePath . '/xsl/' . mb_substr($filepath, 6);
         } else {
             $filepath = dirname(__DIR__, 2) . '/data/xsl/' . $filepath;
         }

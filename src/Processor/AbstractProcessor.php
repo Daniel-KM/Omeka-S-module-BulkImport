@@ -70,6 +70,11 @@ abstract class AbstractProcessor implements Processor
     protected $translator;
 
     /**
+     * @var string
+     */
+    protected $basePath;
+
+    /**
      * Processor constructor.
      *
      * @param ServiceLocatorInterface $services
@@ -79,6 +84,8 @@ abstract class AbstractProcessor implements Processor
         $this->setServiceLocator($services);
         $this->bulk = $services->get('ControllerPluginManager')->get('bulk');
         $this->translator = $services->get('MvcTranslator');
+        $config = $services->get('Config');
+        $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
     }
 
     public function setReader(Reader $reader): \BulkImport\Processor\Processor

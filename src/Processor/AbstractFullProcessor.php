@@ -194,11 +194,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * @var string
      */
-    protected $basePath;
-
-    /**
-     * @var string
-     */
     protected $tempPath;
 
     /**
@@ -533,7 +528,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->ownerOId = $this->owner ? ['o:id' => $this->owner->getId()] : null;
 
         $config = $services->get('Config');
-        $this->basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
         $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
         $this->currentDateTime = new \DateTime();
         $this->currentDateTimeFormatted = $this->currentDateTime->format('Y-m-d H:i:s');
@@ -1180,9 +1174,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected function completionJobs(): void
     {
         // Save the map as a php array for future purpose (cf. lien rubrique spip).
-        $config = $this->getServiceLocator()->get('Config');
-        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $filepath = $basePath . '/bulk_import/' . 'import_' . $this->job->getImportId() . '.json';
+        $filepath = $this->basePath . '/bulk_import/' . 'import_' . $this->job->getImportId() . '.json';
         if (!is_dir(dirname($filepath))) {
             @mkdir(dirname($filepath), 0775, true);
         }

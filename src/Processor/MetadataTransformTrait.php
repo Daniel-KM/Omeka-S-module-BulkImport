@@ -3583,8 +3583,7 @@ SQL;
         if ($relative) {
             return 'files/' . $relativePath;
         }
-        $basePath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $filepath = $basePath . '/' . $relativePath;
+        $filepath = $this->basePath . '/' . $relativePath;
         if (!file_exists($filepath)) {
             if (!is_dir(dirname($filepath))) {
                 @mkdir(dirname($filepath), 0775, true);
@@ -3631,8 +3630,8 @@ SQL;
 
     protected function saveMappingSourceUrisToOds(string $name, array $mapper, array $extraColumns = []): void
     {
-        $basePath = trim($this->job->getArg('base_path'), '/');
-        $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
+        $baseUrlPath = trim($this->job->getArg('base_path'), '/');
+        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'ods');
         $relativePath = $this->getOutputFilepath($name, 'ods', true);
 
@@ -3735,8 +3734,8 @@ SQL;
 
     protected function saveMappingSourceUrisToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
-        $basePath = trim($this->job->getArg('base_path'), '/');
-        $baseUrl = $this->job->getArg('base_url') . '/' . ($basePath ? $basePath . '/' : '');
+        $baseUrlPath = trim($this->job->getArg('base_path'), '/');
+        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $basePath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'html');
         $relativePath = $this->getOutputFilepath($name, 'html', true);
 

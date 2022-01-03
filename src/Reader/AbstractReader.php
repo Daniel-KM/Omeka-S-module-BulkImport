@@ -18,6 +18,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @var string
      */
+    protected $basePath;
+
+    /**
+     * @var string
+     */
     protected $label;
 
     /**
@@ -81,6 +86,8 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     public function __construct(ServiceLocatorInterface $services)
     {
         $this->setServiceLocator($services);
+        $config = $services->get('Config');
+        $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
     }
 
     public function getLabel(): string
