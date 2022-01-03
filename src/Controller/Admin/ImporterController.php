@@ -312,12 +312,31 @@ class ImporterController extends AbstractActionController
             if ($form->isValid()) {
                 // Execute file filters.
                 $data = $form->getData();
+
+                $removeNotes = function (array $data) {
+                    // Remove the notes.
+                    foreach ($data as $key => $value) {
+                        if (substr($key, 0, 5) === 'note_') {
+                            unset($data[$key]);
+                        } elseif (is_array($value)) {
+                            foreach (array_keys($value) as $vkey) {
+                                if (is_string($vkey) && substr($vkey, 0, 5) === 'note_') {
+                                    unset($data[$key][$vkey]);
+                                }
+                            }
+                        }
+                    }
+                    return $data;
+                };
+
+                $data = $removeNotes($data);
+
                 $session->{$currentForm} = $data;
                 switch ($currentForm) {
                     default:
                     case 'reader':
                         $reader->handleParamsForm($form);
-                        $session->reader = $reader->getParams();
+                        $session->reader = $removeNotes($reader->getParams());
                         if (!$reader->isValid()) {
                             $this->messenger()->addError($reader->getLastErrorMessage());
                             $next = 'reader';
@@ -330,7 +349,7 @@ class ImporterController extends AbstractActionController
                     case 'processor':
                         $processor->handleParamsForm($form);
                         $session->comment = trim((string) $data['comment']);
-                        $session->processor = $processor->getParams();
+                        $session->processor = $removeNotes($processor->getParams());
                         $next = 'start';
                         $formCallback = $formsCallbacks['start'];
                         break;

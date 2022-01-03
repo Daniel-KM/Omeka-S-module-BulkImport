@@ -43,6 +43,11 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $sheetIndex = null;
 
     /**
+     * @var ?string
+     */
+    protected $sheetName = null;
+
+    /**
      * @var array
      */
     protected $availableFieldsMultiSheets = [];
@@ -121,6 +126,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // Disable check isReady().
         // $this->isReady();
         $this->sheetIndex = null;
+        $this->sheetName = null;
         $this->initializeReader();
         $this->next();
         // TODO Why two next() here, not in csv (init and headers)?
@@ -163,12 +169,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
         // When the row is false (invalid), prepare next sheet until last one.
         $this->sheetIndex = null;
+        $this->sheetName = null;
         do {
             $this->sheetIterator->next();
             if (!$this->sheetIterator->valid()) {
                 return false;
             }
-            /** @var \\Box\Spout\Reader\SheetInterface $sheet */
+            /** @var \Box\Spout\Reader\SheetInterface $sheet */
             $sheet = $this->sheetIterator->current();
             if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
                 continue;
@@ -185,11 +192,61 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         } while (true);
 
         $this->sheetIndex = $sheet->getIndex();
+        $this->sheetName = $sheet->getName();
 
         // Reset the iterator.
         $this->prepareIterator();
 
         return true;
+    }
+
+    /**
+     * Get the current sheet index (0-based).
+     */
+    public function currentSheetIndex(): ?int
+    {
+        if (!$this->valid()) {
+            $this->sheetIndex = null;
+            $this->sheetName = null;
+        } elseif (is_null($this->sheetIndex)) {
+            $sheet = $this->sheetIterator->current();
+            $this->sheetIndex = $sheet->getIndex();
+            $this->sheetName = $sheet->getName();
+        }
+        return $this->sheetIndex;
+    }
+
+    /**
+     * Get the current sheet name.
+     */
+    public function currentSheetName(): ?string
+    {
+        if (!$this->valid()) {
+            $this->sheetIndex = null;
+            $this->sheetName = null;
+        } elseif (is_null($this->sheetIndex)) {
+            $sheet = $this->sheetIterator->current();
+            $this->sheetIndex = $sheet->getIndex();
+            $this->sheetName = $sheet->getName();
+        }
+        return $this->sheetName;
+    }
+
+    /**
+     * Get current sheet row count, header excluded.
+     */
+    public function currentSheetRowCount(): ?int
+    {
+        if (!$this->valid()) {
+            return null;
+        } elseif (is_null($this->sheetIndex) || !isset($this->sheetsRowCount[$this->sheetIndex])) {
+            $sheet = $this->sheetIterator->current();
+            $this->sheetIndex = $sheet->getIndex();
+            $this->sheetName = $sheet->getName();
+            $total = $this->countSheetRows($sheet->getRowIterator());
+            $this->sheetsRowCount[$this->sheetIndex] = max(0, $total - 1);
+        }
+        return $this->sheetsRowCount[$this->sheetIndex];
     }
 
     protected function reset(): \BulkImport\Interfaces\Reader
@@ -281,7 +338,6 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
                 foreach ($this->sheetIterator as $currentSheet) {
                     if ($this->isOldBoxSpout || $currentSheet->isVisible()) {
                         $sheet = $currentSheet;
-                        $this->sheetIndex = $sheet->getIndex();
                         break;
                     }
                 }
@@ -302,6 +358,9 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
 
         $this->iterator = $sheet->getRowIterator();
+
+        $this->sheetIndex = $sheet->getIndex();
+        $this->sheetName = $sheet->getName();
 
         return $this;
     }
