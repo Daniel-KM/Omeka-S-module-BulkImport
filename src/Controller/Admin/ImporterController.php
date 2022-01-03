@@ -313,30 +313,30 @@ class ImporterController extends AbstractActionController
                 // Execute file filters.
                 $data = $form->getData();
 
-                $removeNotes = function (array $data) {
-                    // Remove the notes.
-                    foreach ($data as $key => $value) {
-                        if (substr($key, 0, 5) === 'note_') {
-                            unset($data[$key]);
-                        } elseif (is_array($value)) {
-                            foreach (array_keys($value) as $vkey) {
-                                if (is_string($vkey) && substr($vkey, 0, 5) === 'note_') {
-                                    unset($data[$key][$vkey]);
-                                }
-                            }
-                        }
-                    }
-                    return $data;
-                };
-
-                $data = $removeNotes($data);
-
                 $session->{$currentForm} = $data;
                 switch ($currentForm) {
                     default:
                     case 'reader':
                         $reader->handleParamsForm($form);
-                        $session->reader = $removeNotes($reader->getParams());
+                        $session->reader = $reader->getParams();
+                        if (method_exists($reader, 'currentSheetName')) {
+                            $sheetName = $reader->currentSheetName();
+                            if ($sheetName) {
+                                $this->messenger()->addSuccess(new PsrMessage(
+                                    'Current sheet: "{name}"', // @translate
+                                    ['name' => $sheetName]
+                                ));
+                            }
+                        }
+                        if (method_exists($reader, 'count')) {
+                            $count = $reader->count();
+                            if ($count) {
+                                $this->messenger()->addSuccess(new PsrMessage(
+                                    'Total resources or rows: {total}', // @translate
+                                    ['total' => $count]
+                                ));
+                            }
+                        }
                         if (!$reader->isValid()) {
                             $this->messenger()->addError($reader->getLastErrorMessage());
                             $next = 'reader';
@@ -349,7 +349,7 @@ class ImporterController extends AbstractActionController
                     case 'processor':
                         $processor->handleParamsForm($form);
                         $session->comment = trim((string) $data['comment']);
-                        $session->processor = $removeNotes($processor->getParams());
+                        $session->processor = $processor->getParams();
                         $next = 'start';
                         $formCallback = $formsCallbacks['start'];
                         break;

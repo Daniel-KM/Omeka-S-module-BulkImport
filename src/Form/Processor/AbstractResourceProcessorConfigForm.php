@@ -307,40 +307,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
         $fieldset = $this->get('mapping');
 
-        if (method_exists($reader, 'currentSheetName')) {
-            $sheetName = $reader->currentSheetName();
-            if ($sheetName) {
-                $fieldset
-                    ->add([
-                        'name' => 'note_current_sheet',
-                        'type' => BulkImportElement\Note::class,
-                        'options' => [
-                            'label' => sprintf('Current sheet: "%s"', $sheetName), // @translate
-                        ],
-                        'attributes' => [
-                            'id' => 'note_current_sheet', // @translate
-                        ],
-                    ]);
-            }
-        }
-
-        if (method_exists($reader, 'count')) {
-            $count = $reader->count();
-            if ($count) {
-                $fieldset
-                    ->add([
-                        'name' => 'note_total_elements',
-                        'type' => BulkImportElement\Note::class,
-                        'options' => [
-                            'label' => sprintf('Total resources or rows: %d', $count), // @translate
-                        ],
-                        'attributes' => [
-                            'id' => 'note_total_elements', // @translate
-                        ],
-                    ]);
-            }
-        }
-
         $fields = $automapFields($availableFields);
         foreach ($availableFields as $index => $name) {
             if (!strlen(trim($name))) {
