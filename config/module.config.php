@@ -47,6 +47,7 @@ return [
             Form\Element\OptionalRadio::class => Form\Element\OptionalRadio::class,
             Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
             Form\Element\OptionalUrl::class => Form\Element\OptionalUrl::class,
+            Form\SettingsFieldset::class => Form\SettingsFieldset::class,
         ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
@@ -225,6 +226,9 @@ return [
             'bulkimport_local_path' => OMEKA_PATH . '/files/import',
             'bulkimport_xslt_processor' => '',
             'bulkimport_pdftk' => '',
+        ],
+        'settings' => [
+            'bulkimport_convert_html' => [],
         ],
     ],
     'bulk_import' => [

@@ -270,7 +270,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'attributes' => [
                     'id' => 'allow_duplicate_identifiers',
                 ],
-            ]);
+            ])
+        ;
         return $this;
     }
 

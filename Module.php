@@ -91,6 +91,16 @@ class Module extends AbstractModule
             'service.registered_names',
             [$this, 'handleMediaIngesterRegisteredNames']
         );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.create.pre',
+            [$this, 'handleItemCreatePre']
+        );
+        $sharedEventManager->attach(
+            \Omeka\Form\SettingForm::class,
+            'form.add_elements',
+            [$this, 'handleMainSettings']
+        );
     }
 
     /**
@@ -104,6 +114,103 @@ class Module extends AbstractModule
         $key = array_search('bulk', $names);
         unset($names[$key]);
         $event->setParam('registered_names', $names);
+    }
+
+    public function handleItemCreatePre(Event $event): void
+    {
+        /** @var \Omeka\Api\Request $request */
+        $request = $event->getParam('request');
+
+        // This is the item representation array of the filtered post when the
+        // user save an item directly edited, but not during a batch edit.
+        // During a batch edit or some other process, the content may be empty,
+        // so there is no process to do.
+        $item = $request->getContent();
+        if (is_array($item) && !count($item) || empty($item['o:media'])) {
+            return;
+        }
+
+        $fileData = $request->getFileData();
+        if (!$fileData || empty($fileData['file'])) {
+            return;
+        }
+
+        $services = $this->getServiceLocator();
+        $settings = $services->get('Omeka\Settings');
+        $convertTypes = $settings->get('bulkimport_convert_html', []);
+        $settingsTypes = [
+            'doc' => 'MsDoc',
+            'docx' => 'Word2007',
+            'html' => 'HTML',
+            'htm' => 'HTML',
+            'odt' => 'ODText',
+            'rtf' => 'RTF',
+        ];
+        $settingsTypes = array_intersect_key($settingsTypes, array_flip($convertTypes));
+        if (!$settingsTypes) {
+            return;
+        }
+
+        $types = [
+            'application/msword' => 'MsDoc',
+            'application/rtf' => 'RTF',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
+            'application/vnd.oasis.opendocument.text' => 'ODText',
+            'text/html' => 'HTML',
+            'doc' => 'MsDoc',
+            'docx' => 'Word2007',
+            'html' => 'HTML',
+            'htm' => 'HTML',
+            'odt' => 'ODText',
+            'rtf' => 'RTF',
+        ];
+        foreach ($item['o:media'] as $mediaIndex => $media) {
+            if (!isset($media['file_index'])
+                || empty($fileData['file'][$media['file_index']])
+            ) {
+                continue;
+            }
+            $mediaFileData = $fileData['file'][$media['file_index']];
+            if (!empty($mediaFileData['error'])
+                || empty($mediaFileData['name'])
+                || empty($mediaFileData['type'])
+                || empty($mediaFileData['size'])
+                || empty($mediaFileData['tmp_name'])
+            ) {
+                continue;
+            }
+            $mediaType = $mediaFileData['type'];
+            $extension = strtolower(pathinfo($mediaFileData['name'], PATHINFO_EXTENSION));
+            $phpWordType = $types[$mediaType] ?? $types[$extension] ?? null;
+            if (empty($phpWordType)
+                || !in_array($phpWordType, $settingsTypes)
+            ) {
+                continue;
+            }
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($mediaFileData['tmp_name'], $phpWordType);
+            $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+            $html = $htmlWriter->getContent();
+            if (!$html) {
+                continue;
+            }
+            $startBody = mb_strpos($html, '<body>') + 6;
+            $endBody = mb_strrpos($html, '</body>');
+            $html = trim(mb_substr($html, $startBody, $endBody - $startBody));
+            if (!$html) {
+                continue;
+            }
+            // Remove only temp files, not sideload files.
+            if (in_array($media['o:ingester'], ['upload', 'url'])) {
+                unlink($mediaFileData['tmp_name']);
+            }
+            $item['o:media'][$mediaIndex]['html'] = $html;
+            $item['o:media'][$mediaIndex]['o:ingester'] = 'html';
+            unset($item['o:media'][$mediaIndex]['file_index']);
+            unset($fileData['file'][$media['file_index']]);
+        }
+
+        $request->setContent($item);
+        $request->setFileData($fileData);
     }
 
     /**
