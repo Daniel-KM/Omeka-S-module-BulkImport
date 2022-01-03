@@ -130,8 +130,8 @@ abstract class AbstractProcessor implements Processor
                 ? $this->getResourceName()
                 : $resource['resource_name'];
             if (empty($resourceName) || $resourceName === 'resources') {
-                if (isset($resource['errorStore'])) {
-                    $resource['errorStore']->addError('resource_name', new PsrMessage(
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addError('resource_name', new PsrMessage(
                         'The resource id cannot be checked: the resource type is undefined.' // @translate
                     ));
                 } else {
@@ -144,8 +144,8 @@ abstract class AbstractProcessor implements Processor
             } else {
                 $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName);
                 if (!$id) {
-                    if (isset($resource['errorStore'])) {
-                        $resource['errorStore']->addError('resource_id', new PsrMessage(
+                    if (isset($resource['messageStore'])) {
+                        $resource['messageStore']->addError('resource_id', new PsrMessage(
                             'The id of this resource doesn’t exist.' // @translate
                         ));
                     } else {
@@ -182,8 +182,8 @@ abstract class AbstractProcessor implements Processor
             ? $this->getResourceName()
             : $resource['resource_name'];
         if (empty($resourceName) || $resourceName === 'resources') {
-            if (isset($resource['errorStore'])) {
-                $resource['errorStore']->addError('resource_name', new PsrMessage(
+            if (isset($resource['messageStore'])) {
+                $resource['messageStore']->addError('resource_name', new PsrMessage(
                     'The resource id cannot be filled: the resource type is undefined.' // @translate
                 ));
             } else {
@@ -202,8 +202,8 @@ abstract class AbstractProcessor implements Processor
         }
         if (empty($identifierNames)) {
             if ($this->bulk->getAllowDuplicateIdentifiers()) {
-                if (isset($resource['errorStore'])) {
-                    $resource['warningStore']->addError('identifier', new PsrMessage(
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
                         'The resource has no identifier.' // @translate
                     ));
                 } else {
@@ -213,8 +213,8 @@ abstract class AbstractProcessor implements Processor
                     );
                 }
             } else {
-                if (isset($resource['errorStore'])) {
-                    $resource['errorStore']->addError('identifier', new PsrMessage(
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addError('identifier', new PsrMessage(
                         'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
                     ));
                 } else {
@@ -230,7 +230,7 @@ abstract class AbstractProcessor implements Processor
 
         // Don't try to fill id when resource has an error, but allow warnings.
         if (!empty($resource['has_error'])
-            || (isset($resource['errorStore']) && $resource['errorStore']->hasErrors())
+            || (isset($resource['messageStore']) && $resource['messageStore']->hasErrors())
         ) {
             return false;
         }
@@ -268,8 +268,8 @@ abstract class AbstractProcessor implements Processor
 
             $flipped = array_flip($ids);
             if (count($flipped) > 1) {
-                if (isset($resource['errorStore'])) {
-                    $resource['warningStore']->addError('identifier', new PsrMessage(
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
                         'Resource doesn’t have a unique identifier.' // @translate
                     ));
                 } else {
@@ -279,8 +279,8 @@ abstract class AbstractProcessor implements Processor
                     );
                 }
                 if (!$this->bulk->getAllowDuplicateIdentifiers()) {
-                    if (isset($resource['errorStore'])) {
-                        $resource['errorStore']->addError('identifier', new PsrMessage(
+                    if (isset($resource['messageStore'])) {
+                        $resource['messageStore']->addError('identifier', new PsrMessage(
                             'Duplicate identifiers are not allowed.' // @translate
                         ));
                     } else {
@@ -294,8 +294,8 @@ abstract class AbstractProcessor implements Processor
                 }
             }
             $resource['o:id'] = reset($ids);
-            if (isset($resource['errorStore'])) {
-                $resource['infoStore']->addError('identifier', new PsrMessage(
+            if (isset($resource['messageStore'])) {
+                $resource['messageStore']->addInfo('identifier', new PsrMessage(
                     'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
                     [
                         'identifier' => key($ids),

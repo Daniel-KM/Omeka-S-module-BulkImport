@@ -250,7 +250,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (null !== $bounds
                     && 4 !== count(array_filter(explode(',', $bounds), 'is_numeric'))
                 ) {
-                    $resource['errorStore']->addError('values', new PsrMessage(
+                    $resource['messageStore']->addError('values', new PsrMessage(
                         'The mapping bounds requires four numeric values separated by a comma.'  // @translate
                     ));
                     return true;
@@ -266,7 +266,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 foreach ($values as $value) {
                     list($lat, $lng) = array_filter(array_map('trim', explode('/', $value, 2)), 'is_numeric');
                     if (!strlen($lat) || !strlen($lng)) {
-                        $resource['errorStore']->addError('values', new PsrMessage(
+                        $resource['messageStore']->addError('values', new PsrMessage(
                             'The mapping marker requires a latitude and a longitude separated by a "/".'  // @translate
                         ));
                         return true;
@@ -313,7 +313,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
                 } else {
-                    $resource['errorStore']->addError('identifier', new PsrMessage(
+                    $resource['messageStore']->addError('identifier', new PsrMessage(
                         'Media with metadata "{target}" "{identifier}" cannot be found. The entry is skipped.', // @translate
                         ['target' => $target['target'], 'identifier' => $value]
                     ));
@@ -404,14 +404,14 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function checkEntity(ArrayObject $resource): bool
     {
         if (empty($resource['resource_name'])) {
-            $resource['errorStore']->addError('resource_name', new PsrMessage(
+            $resource['messageStore']->addError('resource_name', new PsrMessage(
                 'No resource type set.'  // @translate
             ));
             return false;
         }
 
         if (!in_array($resource['resource_name'], ['items', 'item_sets', 'media'])) {
-            $resource['errorStore']->addError('resource_name', new PsrMessage(
+            $resource['messageStore']->addError('resource_name', new PsrMessage(
                 'Resource type "{resource_name}" not managed.', // @translate
                 ['resource_name' => $resource['resource_name']]
             ));
@@ -441,7 +441,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 break;
         }
 
-        return !$resource['errorStore']->hasErrors();
+        return !$resource['messageStore']->hasErrors();
     }
 
     protected function checkItem(ArrayObject $resource): bool
@@ -522,7 +522,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         if (empty($resource['o:id']) && $this->actionRequiresId()) {
-            $resource['errorStore']->addError('resource_id', new PsrMessage(
+            $resource['messageStore']->addError('resource_id', new PsrMessage(
                 'No internal id can be found for the media' // @translate
             ));
             return false;
@@ -530,7 +530,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         if (empty($resource['o:id']) && empty($resource['o:item']['o:id'])) {
             if ($this->action !== self::ACTION_DELETE) {
-                $resource['errorStore']->addError('resource_id', new PsrMessage(
+                $resource['messageStore']->addError('resource_id', new PsrMessage(
                     'No item is set for the media.' // @translate
                 ));
                 return false;

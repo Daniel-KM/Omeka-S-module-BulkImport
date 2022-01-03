@@ -49,6 +49,6 @@ class ItemProcessor extends ResourceProcessor
     {
         parent::checkEntity($resource);
         $this->checkItem($resource);
-        return !$resource['errorStore']->hasErrors();
+        return !$resource['messageStore']->hasErrors();
     }
 }

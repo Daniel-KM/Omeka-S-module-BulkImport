@@ -43,6 +43,6 @@ class MediaProcessor extends ResourceProcessor
     {
         parent::checkEntity($resource);
         $this->checkMedia($resource);
-        return !$resource['errorStore']->hasErrors();
+        return !$resource['messageStore']->hasErrors();
     }
 }

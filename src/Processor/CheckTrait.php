@@ -4,6 +4,7 @@ namespace BulkImport\Processor;
 
 use ArrayObject;
 use BulkImport\Entry\Entry;
+use Laminas\Log\Logger;
 use Log\Stdlib\PsrMessage;
 use Omeka\Stdlib\ErrorStore;
 
@@ -64,6 +65,8 @@ trait CheckTrait
      *
      * Use an internal user setting, because data can be big and main settings
      * may be all loaded in memory by Omeka.
+     *
+     * Normally, a resource is not stored when it has errors.
      *
      * @todo Use a temporary table or a static table.
      */
@@ -133,17 +136,34 @@ SQL;
     /**
      * Log and store infos on an entry and conversion to one or more resources.
      *
+     * Note: an entry may be multiple resources.
+     *
      * One log or row by message, and one or more specific rows by sub-resource
-     * (media for item).
+     * (media for item, etc.).
      */
     protected function logCheckedResource(?ArrayObject $resource, ?Entry $entry = null): \BulkImport\Processor\Processor
     {
+        static $severities;
+
+        if (is_null($severities)) {
+            $severities = [
+                Logger::EMERG => $this->translator->translate('Emergency'), // @translate
+                Logger::ALERT => $this->translator->translate('Alert'), // @translate
+                Logger::CRIT => $this->translator->translate('Critical'), // @translate
+                Logger::ERR => $this->translator->translate('Error'), // @translate
+                Logger::WARN => $this->translator->translate('Warning'), // @translate
+                Logger::NOTICE => $this->translator->translate('Notice'), // @translate
+                Logger::INFO => $this->translator->translate('Info'), // @translate
+                Logger::DEBUG => $this->translator->translate('Debug'), // @translate
+            ];
+        }
+
         $row['index'] = $this->indexResource;
 
         $indexMessage = 0;
 
         if (!$resource && !$entry) {
-            $this->logger->log(\Laminas\Log\Logger::INFO,
+            $this->logger->log(Logger::INFO,
                 'Index #{index}: Skipped', // @translate
                 ['index' => $this->indexResource]
             );
@@ -156,7 +176,7 @@ SQL;
         }
 
         if ($entry && $entry->isEmpty()) {
-            $this->logger->log(\Laminas\Log\Logger::NOTICE,
+            $this->logger->log(Logger::NOTICE,
                 'Index #{index}: Empty source', // @translate
                 ['index' => $this->indexResource]
             );
@@ -169,7 +189,7 @@ SQL;
         }
 
         if (!$resource) {
-            $this->logger->log(\Laminas\Log\Logger::ERR,
+            $this->logger->log(Logger::ERR,
                 'Index #{index}: Source cannot be converted', // @translate
                 ['index' => $this->indexResource]
             );
@@ -182,18 +202,23 @@ SQL;
             return $this;
         }
 
-        if ($resource['errorStore']->hasErrors()) {
-            $this->logger->log(\Laminas\Log\Logger::ERR,
+        if ($resource['messageStore']->hasErrors()) {
+            $this->logger->log(Logger::ERR,
                 'Index #{index}: Error processing data.', // @translate
                 ['index' => $this->indexResource]
             );
-        } elseif ($resource['warningStore']->hasErrors()) {
-            $this->logger->log(\Laminas\Log\Logger::WARN,
+        } elseif ($resource['messageStore']->hasWarnings()) {
+            $this->logger->log(Logger::WARN,
                 'Index #{index}: Warning about data processed.', // @translate
                 ['index' => $this->indexResource]
             );
-        } elseif ($resource['infoStore']->hasErrors()) {
-            $this->logger->log(\Laminas\Log\Logger::INFO,
+        } elseif ($resource['messageStore']->hasNotices()) {
+            $this->logger->log(Logger::NOTICE,
+                'Index #{index}: Notices about data processed.', // @translate
+                ['index' => $this->indexResource]
+            );
+        } elseif ($resource['messageStore']->hasMessages()) {
+            $this->logger->log(Logger::INFO,
                 'Index #{index}: Info about data processed.', // @translate
                 ['index' => $this->indexResource]
             );
@@ -227,74 +252,26 @@ SQL;
         $row['resource_name'] = $resource['resource_name'] ?? '';
         $baseRow = $row;
 
-        $messages = $this->flatMessages($resource['errorStore']->getErrors());
-        foreach ($messages as $name => $messagess) {
-            foreach ($messagess as $message) {
-                [$msg, $context] = $logging($message);
-                $this->logger->log(\Laminas\Log\Logger::ERR, $msg, $context);
-                $row = $baseRow;
-                $row['errors'] = count($messagess);
-                $row['index_message'] = ++$indexMessage;
-                $row['severity'] = $this->translator->translate('Error');
-                $row['type'] = $name;
-                $row['message'] = $translating($message);
-                $this->writeRow($row);
-            }
-        }
-
-        $messages = $this->flatMessages($resource['warningStore']->getErrors());
-        foreach ($messages as $name => $messagess) {
-            foreach ($messagess as $message) {
-                [$msg, $context] = $logging($message);
-                $this->logger->log(\Laminas\Log\Logger::WARN, $msg, $context);
-                $row = $baseRow;
-                $row['index_message'] = ++$indexMessage;
-                $row['severity'] = $this->translator->translate('Warning');
-                $row['type'] = $name;
-                $row['message'] = $translating($message);
-                $this->writeRow($row);
-            }
-        }
-
-        $messages = $this->flatMessages($resource['infoStore']->getErrors());
-        foreach ($messages as $messagess) {
-            foreach ($messagess as $message) {
-                [$msg, $context] = $logging($message);
-                $this->logger->log(\Laminas\Log\Logger::INFO, $msg, $context);
-                $row = $baseRow;
-                $row['index_message'] = ++$indexMessage;
-                $row['severity'] = $this->translator->translate('Info');
-                $row['type'] = $name;
-                $row['message'] = $translating($message);
-                $this->writeRow($row);
+        $resource['messageStore']->flatMessages();
+        foreach ($resource['messageStore']->getMessages() as $severity => $messages) {
+            foreach ($messages as $name => $messagess) {
+                foreach ($messagess as $message) {
+                    [$msg, $context] = $logging($message);
+                    $this->logger->log($severity, $msg, $context);
+                    $row = $baseRow;
+                    if ($severity === Logger::ERR) {
+                        $row['errors'] = count($messagess);
+                    }
+                    $row['index_message'] = ++$indexMessage;
+                    $row['severity'] = $severities[$severity];
+                    $row['type'] = $name;
+                    $row['message'] = $translating($message);
+                    $this->writeRow($row);
+                }
             }
         }
 
         return $this;
-    }
-
-    /**
-     * Error store is recursive, so merge all sub-levels into a flat array.
-     *
-     * Normally useless, but some message may be added indirectly.
-     *
-     * @see \Omeka\Stdlib\ErrorStore::mergeErrors()
-     * @todo Move this into a new class wrapping or replacing ErrorStore.
-     */
-    protected function flatMessages($messages): array
-    {
-        // The keys of the first level should be kept, but not the sub-ones.
-        $flatArray = [];
-        foreach ($messages as $key => $message) {
-            if (is_array($message)) {
-                array_walk_recursive($message, function($data) use(&$flatArray, $key) {
-                    $flatArray[$key][] = $data;
-                });
-            } else {
-                $flatArray[$key][] = $message;
-            }
-        }
-        return $flatArray;
     }
 
     /**
