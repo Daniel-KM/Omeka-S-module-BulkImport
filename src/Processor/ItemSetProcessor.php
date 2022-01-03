@@ -43,6 +43,6 @@ class ItemSetProcessor extends ResourceProcessor
     {
         parent::checkEntity($resource);
         $this->checkItemSet($resource);
-        return !$resource['has_error'];
+        return !$resource['errorStore']->hasErrors();
     }
 }

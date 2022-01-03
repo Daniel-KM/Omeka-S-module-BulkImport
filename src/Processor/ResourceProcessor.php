@@ -5,6 +5,7 @@ namespace BulkImport\Processor;
 use ArrayObject;
 use BulkImport\Form\Processor\ResourceProcessorConfigForm;
 use BulkImport\Form\Processor\ResourceProcessorParamsForm;
+use Log\Stdlib\PsrMessage;
 
 class ResourceProcessor extends AbstractResourceProcessor
 {
@@ -249,11 +250,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (null !== $bounds
                     && 4 !== count(array_filter(explode(',', $bounds), 'is_numeric'))
                 ) {
-                    $this->logger->err(
-                        'Index #{index} skipped: the mapping bounds requires four numeric values separated by a comma.',  // @translate
-                        ['index' => $this->indexResource]
-                    );
-                    $resource['has_error'] = true;
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The mapping bounds requires four numeric values separated by a comma.'  // @translate
+                    ));
                     return true;
                 }
                 // TODO Manage the update of a mapping.
@@ -267,11 +266,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                 foreach ($values as $value) {
                     list($lat, $lng) = array_filter(array_map('trim', explode('/', $value, 2)), 'is_numeric');
                     if (!strlen($lat) || !strlen($lng)) {
-                        $this->logger->err(
-                            'Index #{index} skipped: the mapping marker requires a latitude and a longitude separated by a "/".',  // @translate
-                            ['index' => $this->indexResource]
-                        );
-                        $resource['has_error'] = true;
+                        $resource['errorStore']->addError('values', new PsrMessage(
+                            'The mapping marker requires a latitude and a longitude separated by a "/".'  // @translate
+                        ));
                         return true;
                     }
                     $resource['o-module-mapping:marker'][] = [
@@ -316,11 +313,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
                 } else {
-                    $resource['has_error'] = true;
-                    $this->logger->err(
-                        'Index #{index}: Media with metadata "{target}" "{identifier}" cannot be found. The entry is skipped.', // @translate
-                        ['index' => $this->indexResource, 'target' => $target['target'], 'identifier' => $value]
-                    );
+                    $resource['errorStore']->addError('identifier', new PsrMessage(
+                        'Media with metadata "{target}" "{identifier}" cannot be found. The entry is skipped.', // @translate
+                        ['target' => $target['target'], 'identifier' => $value]
+                    ));
                 }
                 return true;
             case 'o:item':
@@ -408,21 +404,17 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function checkEntity(ArrayObject $resource): bool
     {
         if (empty($resource['resource_name'])) {
-            $this->logger->err(
-                'Index #{index} skipped: no resource type set',  // @translate
-                ['index' => $this->indexResource]
-            );
+            $resource['errorStore']->addError('resource_name', new PsrMessage(
+                'No resource type set.'  // @translate
+            ));
             return false;
         }
 
         if (!in_array($resource['resource_name'], ['items', 'item_sets', 'media'])) {
-            $this->logger->err(
-                'Index #{index} skipped: Resource type "{resource_name}" not managed', // @translate
-                [
-                    'index' => $this->indexResource,
-                    'resource_name' => $resource['resource_name'],
-                ]
-            );
+            $resource['errorStore']->addError('resource_name', new PsrMessage(
+                'Resource type "{resource_name}" not managed.', // @translate
+                ['resource_name' => $resource['resource_name']]
+            ));
             return false;
         }
 
@@ -449,7 +441,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 break;
         }
 
-        return !$resource['has_error'];
+        return !$resource['errorStore']->hasErrors();
     }
 
     protected function checkItem(ArrayObject $resource): bool
@@ -530,19 +522,17 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         if (empty($resource['o:id']) && $this->actionRequiresId()) {
-            $this->logger->err(
-                'Index #{index} skipped: no internal id can be found for the media', // @translate
-                ['index' => $this->indexResource]
-            );
+            $resource['errorStore']->addError('resource_id', new PsrMessage(
+                'No internal id can be found for the media' // @translate
+            ));
             return false;
         }
 
         if (empty($resource['o:id']) && empty($resource['o:item']['o:id'])) {
             if ($this->action !== self::ACTION_DELETE) {
-                $this->logger->err(
-                    'Index #{index} skipped: no item is set for the media', // @translate
-                    ['index' => $this->indexResource]
-                );
+                $resource['errorStore']->addError('resource_id', new PsrMessage(
+                    'No item is set for the media.' // @translate
+                ));
                 return false;
             }
         }

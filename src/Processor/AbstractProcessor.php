@@ -7,6 +7,7 @@ use BulkImport\Reader\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
 use Omeka\Job\AbstractJob as Job;
 
@@ -129,19 +130,31 @@ abstract class AbstractProcessor implements Processor
                 ? $this->getResourceName()
                 : $resource['resource_name'];
             if (empty($resourceName) || $resourceName === 'resources') {
-                $this->logger->err(
-                    'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                $resource['has_error'] = true;
-            } else {
-                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName);
-                if (!$id) {
+                if (isset($resource['errorStore'])) {
+                    $resource['errorStore']->addError('resource_name', new PsrMessage(
+                        'The resource id cannot be checked: the resource type is undefined.' // @translate
+                    ));
+                } else {
                     $this->logger->err(
-                        'Index #{index}: The id of this resource doesn’t exist.', // @translate
+                        'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
                         ['index' => $this->indexResource]
                     );
                     $resource['has_error'] = true;
+                }
+            } else {
+                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName);
+                if (!$id) {
+                    if (isset($resource['errorStore'])) {
+                        $resource['errorStore']->addError('resource_id', new PsrMessage(
+                            'The id of this resource doesn’t exist.' // @translate
+                        ));
+                    } else {
+                        $this->logger->err(
+                            'Index #{index}: The id of this resource doesn’t exist.', // @translate
+                            ['index' => $this->indexResource]
+                        );
+                        $resource['has_error'] = true;
+                    }
                 }
             }
         }
@@ -169,11 +182,17 @@ abstract class AbstractProcessor implements Processor
             ? $this->getResourceName()
             : $resource['resource_name'];
         if (empty($resourceName) || $resourceName === 'resources') {
-            $this->logger->err(
-                'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
-                ['index' => $this->indexResource]
-            );
-            $resource['has_error'] = true;
+            if (isset($resource['errorStore'])) {
+                $resource['errorStore']->addError('resource_name', new PsrMessage(
+                    'The resource id cannot be filled: the resource type is undefined.' // @translate
+                ));
+            } else {
+                $this->logger->err(
+                    'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
+                    ['index' => $this->indexResource]
+                );
+                $resource['has_error'] = true;
+            }
         }
 
         $identifierNames = $this->bulk->getIdentifierNames();
@@ -183,22 +202,36 @@ abstract class AbstractProcessor implements Processor
         }
         if (empty($identifierNames)) {
             if ($this->bulk->getAllowDuplicateIdentifiers()) {
-                $this->logger->notice(
-                    'Index #{index}: The resource has no identifier.', // @translate
-                    ['index' => $this->indexResource]
-                );
+                if (isset($resource['errorStore'])) {
+                    $resource['warningStore']->addError('identifier', new PsrMessage(
+                        'The resource has no identifier.' // @translate
+                    ));
+                } else {
+                    $this->logger->notice(
+                        'Index #{index}: The resource has no identifier.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                }
             } else {
-                $this->logger->err(
-                    'Index #{index}: The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                $resource['has_error'] = true;
+                if (isset($resource['errorStore'])) {
+                    $resource['errorStore']->addError('identifier', new PsrMessage(
+                        'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
+                    ));
+                } else {
+                    $this->logger->err(
+                        'Index #{index}: The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                    $resource['has_error'] = true;
+                }
             }
             return false;
         }
 
-        // Don't try to fill id of a resource that has an error.
-        if ($resource['has_error']) {
+        // Don't try to fill id when resource has an error, but allow warnings.
+        if (!empty($resource['has_error'])
+            || (isset($resource['errorStore']) && $resource['errorStore']->hasErrors())
+        ) {
             return false;
         }
 
@@ -235,29 +268,55 @@ abstract class AbstractProcessor implements Processor
 
             $flipped = array_flip($ids);
             if (count($flipped) > 1) {
-                $this->logger->warn(
-                    'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                if (!$this->bulk->getAllowDuplicateIdentifiers()) {
-                    $this->logger->err(
-                        'Index #{index}: Duplicate identifiers are not allowed.', // @translate
+                if (isset($resource['errorStore'])) {
+                    $resource['warningStore']->addError('identifier', new PsrMessage(
+                        'Resource doesn’t have a unique identifier.' // @translate
+                    ));
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
                         ['index' => $this->indexResource]
                     );
+                }
+                if (!$this->bulk->getAllowDuplicateIdentifiers()) {
+                    if (isset($resource['errorStore'])) {
+                        $resource['errorStore']->addError('identifier', new PsrMessage(
+                            'Duplicate identifiers are not allowed.' // @translate
+                        ));
+                    } else {
+                        $this->logger->err(
+                            'Index #{index}: Duplicate identifiers are not allowed.', // @translate
+                            ['index' => $this->indexResource]
+                        );
+                        $resource['has_error'] = true;
+                    }
                     break;
                 }
             }
             $resource['o:id'] = reset($ids);
-            $this->logger->info(
-                'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
-                [
-                    'index' => $this->indexResource,
-                    'identifier' => key($ids),
-                    'metadata' => $identifierName,
-                    'resource_name' => $this->bulk->label($resourceName),
-                    'resource_id' => $resource['o:id'],
-                ]
-            );
+            if (isset($resource['errorStore'])) {
+                $resource['infoStore']->addError('identifier', new PsrMessage(
+                    'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                    [
+                        'identifier' => key($ids),
+                        'metadata' => $identifierName,
+                        'resource_name' => $this->bulk->label($resourceName),
+                        'resource_id' => $resource['o:id'],
+                    ]
+                ));
+            } else {
+                $this->logger->info(
+                    'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                    [
+                        'index' => $this->indexResource,
+                        'identifier' => key($ids),
+                        'metadata' => $identifierName,
+                        'resource_name' => $this->bulk->label($resourceName),
+                        'resource_id' => $resource['o:id'],
+                    ]
+                );
+                $resource['has_error'] = true;
+            }
             return true;
         }
 

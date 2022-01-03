@@ -9,11 +9,14 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use Laminas\Form\Form;
+use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
+use Omeka\Stdlib\ErrorStore;
 
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
 {
     use ConfigurableTrait, ParametrizableTrait;
+    use CheckTrait;
     use ResourceUpdateTrait;
 
     /**
@@ -255,6 +258,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             if ($toSkip) {
+                $this->logCheckedResource(null, null);
                 --$toSkip;
                 continue;
             }
@@ -269,6 +273,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             $resource = $this->processEntry($entry);
             if (!$resource) {
+                $this->logCheckedResource(null, $entry);
                 continue;
             }
 
@@ -279,6 +284,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } else {
                 ++$this->totalErrors;
             }
+
+            // Only resources with messages are logged.
+            // TODO Add a specific message when no error?
+            $this->logCheckedResource($resource, $entry);
 
             // Only add every X for batch import.
             if ($this->processing >= $batch) {
@@ -342,10 +351,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function processEntry(Entry $entry): ?ArrayObject
     {
         if ($entry->isEmpty()) {
-            $this->logger->warn(
-                'Index #{index}: the entry is empty and is skipped.', // @translate
-                ['index' => $this->indexResource]
-            );
             ++$this->totalSkipped;
             return null;
         }
@@ -369,7 +374,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Added for security.
         $skipKeys = [
             'checked_id' => null,
-            'has_error' => null,
+            'errorStore' => null,
+            'warningStore' => null,
+            'infoStore' => null,
         ];
 
         // List of keys that can have only one value.
@@ -474,10 +481,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 /*
                 // TODO Warn when it is not a multisheet. Check updates with a multisheet.
                 if (!$entry->offsetExists($sourceField)) {
-                    $this->logger->warn(
-                        'Index #{index}: The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
-                        ['index' => $this->indexResource, 'field' => $sourceField]
-                    );
+                    $resource['warningStore']->addError('values', new PsrMessage(
+                        'The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
+                        ['field' => $sourceField]
+                    ));
                 }
                 */
                 $this->skippedSourceFields[] = $sourceField;
@@ -502,7 +509,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource = new ArrayObject;
         $resource['o:id'] = null;
         $resource['checked_id'] = false;
-        $resource['has_error'] = false;
+        $resource['errorStore'] = new ErrorStore();
+        $resource['warningStore'] = new ErrorStore();
+        $resource['infoStore'] = new ErrorStore();
         $this->baseGeneric($resource);
         $this->baseSpecific($resource);
         return $resource;
@@ -612,12 +621,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     break;
                 }
             }
+            // TODO Add an option for literal data-type by default.
             if (!$hasDatatype) {
-                $resource['has_error'] = true;
-                $this->logger->err(
-                    'Index #{index}: The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it. The entry is skipped.', // @translate
-                    ['index' => $this->indexResource, 'value' => $value]
-                );
+                $resource['errorStore']->addError('values', new PsrMessage(
+                    'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it.', // @translate
+                    ['value' => $value]
+                ));
             }
         }
 
@@ -662,11 +671,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resourceValue['value_resource_id'] = $id;
                     $resourceValue['@language'] = null;
                 } else {
-                    $resource['has_error'] = true;
-                    $this->logger->err(
-                        'Index #{index}: Resource id for value "{value}" cannot be found. The entry is skipped.', // @translate
-                        ['index' => $this->indexResource, 'value' => $value]
-                    );
+                    $resource['errorStore']->addError('linked resource', new PsrMessage(
+                        'Resource id for value "{value}" cannot be found.', // @translate
+                        ['value' => $value]
+                    ));
                 }
                 break;
 
@@ -706,11 +714,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             break;
                     }
                 } else {
-                    $resource['has_error'] = true;
-                    $this->logger->err(
-                        'Index #{index}: The value "{value}" is not in custom vocab "{customvocab}". The entry is skipped.', // @translate
-                        ['index' => $this->indexResource, 'value' => $value, 'customvocab' => $datatype]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The value "{value}" is not in custom vocab "{customvocab}".', // @translate
+                        ['value' => $value, 'customvocab' => $datatype]
+                    ));
                 }
                 break;
 
@@ -735,11 +742,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
                 } else {
-                    $resource['has_error'] = true;
-                    $this->logger->err(
-                        'Index #{index}: Internal id #{id} cannot be found. The entry is skipped.', // @translate
-                        ['index' => $this->indexResource, 'id' => $id]
-                    );
+                    $resource['errorStore']->addError('resource', new PsrMessage(
+                        'Internal id #{id} cannot be found. The entry is skipped.', // @translate
+                        ['id' => $id]
+                    ));
                 }
                 return true;
 
@@ -759,10 +765,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ? ['o:id' => $id]
                         : ['o:id' => $id, 'o:label' => $label];
                 } else {
-                    $this->logger->warn(
-                        'Index #{index}: The resource template "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('template', new PsrMessage(
+                        'The resource template "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return true;
 
@@ -782,10 +788,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ? ['o:id' => $id]
                         : ['o:id' => $id, 'o:term' => $term];
                 } else {
-                    $this->logger->warn(
-                        'Index #{index}: The resource class "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The resource class "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return true;
 
@@ -805,10 +811,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ? ['o:id' => $id]
                         : ['o:id' => $id, 'o:email' => $email];
                 } else {
-                    $this->logger->warn(
-                        'Index #{index}: The user "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return true;
 
@@ -821,10 +827,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if ($id) {
                     $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
                 } else {
-                    $this->logger->warn(
-                        'Index #{index}: The user "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return true;
 
@@ -883,10 +889,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         : ['o:id' => $id, 'o:label' => $label];
                 } else {
                     $resource['o:resource_template'] = null;
-                    $this->logger->warn(
-                        'Index #{index}: The resource template "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The resource template "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return $this;
 
@@ -903,10 +909,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         : ['o:id' => $id, 'o:term' => $term];
                 } else {
                     $resource['o:resource_class'] = null;
-                    $this->logger->warn(
-                        'Index #{index}: The resource class "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('values', new PsrMessage(
+                        'The resource class "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return $this;
 
@@ -923,10 +929,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         : ['o:id' => $id, 'o:email' => $email];
                 } else {
                     $resource['o:owner'] = null;
-                    $this->logger->warn(
-                        'Index #{index}: The user "{source}" does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('resource', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return $this;
 
@@ -941,10 +947,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resource['o:item'] = ['o:id' => $id];
                 } else {
                     $resource['o:item'] = null;
-                    $this->logger->warn(
-                        'Index #{index}: The item "{source}" for media does not exist.', // @translate
-                        ['index' => $this->indexResource, 'source' => $value]
-                    );
+                    $resource['errorStore']->addError('resource', new PsrMessage(
+                        'The item "{source}" for media does not exist.', // @translate
+                        ['source' => $value]
+                    ));
                 }
                 return $this;
 
@@ -971,11 +977,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                 } else {
                     $identifier = $this->extractIdentifierOrTitle($resource);
-                    $this->logger->err(
-                        'Index #{index}: The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
-                        ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
-                    );
-                    $resource['has_error'] = true;
+                    $resource['errorStore']->addError('resource', new PsrMessage(
+                        'The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
+                        ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
+                    ));
                 }
             }
         }
@@ -983,20 +988,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
             $identifier = $this->extractIdentifierOrTitle($resource);
             if ($this->bulk->getAllowDuplicateIdentifiers()) {
-                $this->logger->err(
-                    'Index #{index}: The action "{action}" requires an identifier ({identifier}).', // @translate
-                    ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier]
-                );
+                $resource['errorStore']->addError('identifier', new PsrMessage(
+                    'The action "{action}" requires an identifier ({identifier}).', // @translate
+                    ['action' => $this->action, 'identifier' => $identifier]
+                ));
             } else {
-                $this->logger->err(
-                    'Index #{index}: The action "{action}" requires a unique identifier ({identifier}).', // @translate
-                    ['index' => $this->indexResource, 'action' => $this->action, 'identifier' => $identifier]
-                );
+                $resource['errorStore']->addError('identifier', new PsrMessage(
+                    'The action "{action}" requires a unique identifier ({identifier}).', // @translate
+                    ['action' => $this->action, 'identifier' => $identifier]
+                ));
             }
-            $resource['has_error'] = true;
         }
 
-        return !$resource['has_error'];
+        return !$resource['errorStore']->hasErrors();
     }
 
     /**
@@ -1055,18 +1059,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ->batchCreate($resourceName, $data, [], ['continueOnError' => true])->getContent();
             }
         } catch (ValidationException $e) {
+            $r = $this->baseEntity();
+            $r['errorStore']->addError('resource', new PsrMessage(
+                'Error during validation of the data before creation.' // @translate
+            ));
             $messages = $this->listValidationMessages($e);
-            $this->logger->err(
-                "Index #{index}: Error during validation of the data before creation:\n{messages}", // @translate
-                ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
-            );
+            $r['errorStore']->addError('resource', $messages);
+            $this->logCheckedResource($r);
             ++$this->totalErrors;
             return $this;
         } catch (\Exception $e) {
-            $this->logger->err(
-                'Index #{index}: Core error during creation: {exception}', // @translate
-                ['index' => $this->indexResource, 'exception' => $e]
-            );
+            $r = $this->baseEntity();
+            $r['errorStore']->addError('resource', new PsrMessage(
+                'Core error during creation: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            $this->logCheckedResource($r);
             ++$this->totalErrors;
             return $this;
         }
@@ -1155,26 +1163,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
                 );
             } catch (ValidationException $e) {
+                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                    'Error during validation of the data before update.' // @translate
+                ));
                 $messages = $this->listValidationMessages($e);
-                $this->logger->err(
-                    "Index #{index}: Error during validation of the data before update:\n{messages}", // @translate
-                    ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
-                );
+                $dataResource['errorStore']->addError('resource', $messages);
+                $this->logCheckedResource($dataResource);
                 ++$this->totalErrors;
                 return $this;
             } catch (\Exception $e) {
-                $this->logger->err(
-                    'Index #{index}: Core error during update: {exception}', // @translate
-                    ['index' => $this->indexResource, 'exception' => $e]
-                );
+                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                    'Core error during update: {exception}', // @translate
+                    ['exception' => $e]
+                ));
+                $this->logCheckedResource($dataResource);
                 ++$this->totalErrors;
                 return $this;
             }
             if (!$response) {
-                $this->logger->err(
-                    'Index #{index}: Unknown error occured during update.', // @translate
-                    ['index' => $this->indexResource]
-                );
+                $dataResource['errorStore']->addError('resource', new PsrMessage(
+                    'Unknown error occured during update.' // @translate
+                ));
                 ++$this->totalErrors;
                 return $this;
             }
@@ -1219,19 +1228,23 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ->batchDelete($resourceName, $ids, [], ['continueOnError' => true])->getContent();
             }
         } catch (ValidationException $e) {
+            $r = $this->baseEntity();
+            $r['errorStore']->addError('resource', new PsrMessage(
+                'Error during validation of the data before deletion.' // @translate
+            ));
             $messages = $this->listValidationMessages($e);
-            $this->logger->err(
-                "Index #{index}: Error during validation of the data before deletion:\n{messages}", // @translate
-                ['index' => $this->indexResource, 'messages' => implode("\n", $messages)]
-            );
+            $r['errorStore']->addError('resource', $messages);
+            $this->logCheckedResource($r);
             ++$this->totalErrors;
             return $this;
         } catch (\Exception $e) {
+            $r = $this->baseEntity();
             // There is no error, only ids already deleted, so continue.
-            $this->logger->err(
-                'Index #{index}: Core error during deletion: {exception}', // @translate
-                ['index' => $this->indexResource, 'exception' => $e]
-            );
+            $r['warningStore']->addError('resource', new PsrMessage(
+                'Core error during deletion: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            $this->logCheckedResource($r);
             ++$this->totalErrors;
             return $this;
         }
