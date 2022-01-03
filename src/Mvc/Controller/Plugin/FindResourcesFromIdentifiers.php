@@ -80,7 +80,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * multiple conditions. May be a list of identifier metadata names, in which
      * case the identifiers are searched in a list of properties and/or in
      * internal ids.
-     * @param string $resourceType The resource type if any.
+     * @param string $resourceName The resource name, type or class if any.
      * @param bool $uniqueOnly When true and there are duplicate identifiers,
      * returns an object with the list of identifiers and their count. When the
      * option is false, when there are true duplicates, it returns the first and
@@ -94,7 +94,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * id, or null. Returns standard object when there is at least one duplicated
      * identifiers in resource and the option "$uniqueOnly" is set.
      */
-    public function __invoke($identifiers, $identifierName, $resourceType = null, $uniqueOnly = false)
+    public function __invoke($identifiers, $identifierName, $resourceName = null, $uniqueOnly = false)
     {
         $isSingle = !is_array($identifiers);
 
@@ -110,11 +110,11 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             return $isSingle ? null : [];
         }
 
-        $args = $this->normalizeArgs($identifierName, $resourceType);
+        $args = $this->normalizeArgs($identifierName, $resourceName);
         if (empty($args)) {
             return $isSingle ? null : [];
         }
-        list($identifierTypeNames, $resourceType, $itemId) = $args;
+        list($identifierTypeNames, $entityClass, $itemId) = $args;
 
         $results = [
             'result' => [],
@@ -123,7 +123,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         ];
 
         foreach ($identifierTypeNames as $identifierType => $identifierName) {
-            $result = $this->findResources($identifierType, $identifiers, $identifierName, $resourceType, $itemId);
+            $result = $this->findResources($identifierType, $identifiers, $identifierName, $entityClass, $itemId);
             if (empty($result['result'])) {
                 continue;
             }
@@ -155,11 +155,11 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         return $isSingle ? reset($results['result']) : $results['result'];
     }
 
-    protected function findResources($identifierType, array $identifiers, $identifierName, $resourceType, $itemId)
+    protected function findResources($identifierType, array $identifiers, $identifierName, $entityClass, $itemId)
     {
         switch ($identifierType) {
             case 'o:id':
-                $result = $this->findResourcesFromInternalIds($identifiers, $resourceType);
+                $result = $this->findResourcesFromInternalIds($identifiers, $entityClass);
                 $count = array_map(function ($v) {
                     return empty($v) ? 0 : 1;
                 }, $result);
@@ -172,7 +172,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 if (!is_array($identifierName)) {
                     $identifierName = [$identifierName];
                 }
-                return $this->findResourcesFromValues($identifiers, $identifierName, $resourceType);
+                return $this->findResourcesFromValues($identifiers, $identifierName, $entityClass);
             case 'media_metadata':
                 if (is_array($identifierName)) {
                     $identifierName = reset($identifierName);
@@ -190,11 +190,12 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         }
     }
 
-    protected function normalizeArgs($identifierName, $resourceType)
+    protected function normalizeArgs($identifierName, $resourceName)
     {
         $identifierType = null;
         $identifierTypeName = null;
         $itemId = null;
+        $entityClass = null;
 
         // Process identifier metadata names as an array.
         if (is_array($identifierName)) {
@@ -205,10 +206,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 }
                 $identifierType = 'media_source';
                 $identifierTypeName = $identifierName['o:ingester'];
-                $resourceType = 'media';
+                $resourceName = 'media';
                 $itemId = empty($identifierName['o:item']['o:id']) ? null : $identifierName['o:item']['o:id'];
             } else {
-                return $this->normalizeMultipleIdentifierMetadata($identifierName, $resourceType);
+                return $this->normalizeMultipleIdentifierMetadata($identifierName, $resourceName);
             }
         }
         // Next, identifierName is a string or an integer.
@@ -222,12 +223,12 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         } elseif (in_array($identifierName, ['o:filename', 'o:basename', 'o:storage_id', 'o:source', 'o:sha256'])) {
             $identifierType = 'media_metadata';
             $identifierTypeName = $identifierName;
-            $resourceType = 'media';
+            $resourceName = 'media';
             $itemId = null;
         } elseif (in_array($identifierName, ['url', 'file', 'tile', 'iiif'])) {
             $identifierType = 'media_source';
             $identifierTypeName = $identifierName;
-            $resourceType = 'media';
+            $resourceName = 'media';
             $itemId = null;
         } else {
             $property = $this->api
@@ -242,25 +243,25 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             return null;
         }
 
-        if ($resourceType) {
-            $resourceType = $this->normalizeResourceType($resourceType);
-            if (is_null($resourceType)) {
+        if ($resourceName) {
+            $entityClass = $this->getEntityClass($resourceName);
+            if (is_null($entityClass)) {
                 return null;
             }
         }
 
         return [
             [$identifierType => $identifierTypeName],
-            $resourceType,
+            $entityClass,
             $itemId,
         ];
     }
 
-    protected function normalizeMultipleIdentifierMetadata($identifierNames, $resourceType)
+    protected function normalizeMultipleIdentifierMetadata($identifierNames, $resourceName)
     {
         $identifierTypeNames = [];
         foreach ($identifierNames as $identifierName) {
-            $args = $this->normalizeArgs($identifierName, $resourceType);
+            $args = $this->normalizeArgs($identifierName, $resourceName);
             if ($args) {
                 list($identifierTypeName) = $args;
                 $identifierName = reset($identifierTypeName);
@@ -281,23 +282,25 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             return null;
         }
 
-        if ($resourceType) {
-            $resourceType = $this->normalizeResourceType($resourceType);
-            if (is_null($resourceType)) {
+        if ($resourceName) {
+            $entityClass = $this->getEntityClass($resourceName);
+            if (is_null($entityClass)) {
                 return null;
             }
+        } else {
+            $entityClass = null;
         }
 
         return [
             $identifierTypeNames,
-            $resourceType,
+            $entityClass,
             null,
         ];
     }
 
-    protected function normalizeResourceType($resourceType)
+    protected function getEntityClass($name): ?string
     {
-        $resourceTypes = [
+        $entityClasses = [
             'items' => \Omeka\Entity\Item::class,
             'item_sets' => \Omeka\Entity\ItemSet::class,
             'media' => \Omeka\Entity\Media::class,
@@ -325,10 +328,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
         ];
-        return $resourceTypes[$resourceType] ?? null;
+        return $entityClasses[$name] ?? null;
     }
 
-    protected function findResourcesFromInternalIds(array $ids, $resourceType)
+    protected function findResourcesFromInternalIds(array $ids, $entityClass)
     {
         $ids = array_filter(array_map('intval', $ids));
         if (empty($ids)) {
@@ -365,17 +368,16 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->andWhere($expr->in('resource.id', $placeholders));
         }
 
-        if ($resourceType) {
+        if ($entityClass) {
             $qb
-                ->andWhere($expr->eq('resource.resource_type', ':resource_type'));
-            $parameters['resource_name'] = $resourceType;
+                ->andWhere($expr->eq('resource.resource_type', ':entity_class'));
+            $parameters['entity_class'] = $entityClass;
         }
 
         $qb
             ->setParameters($parameters);
 
-        $stmt = $conn->executeQuery($qb, $qb->getParameters());
-        $result = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchFirstColumn();
 
         // Reorder the result according to the input (simpler in php and there
         // is no duplicated identifiers).
@@ -386,7 +388,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * Note: the identifiers are larger than module CleanUrl: they can be a uri
      * (but not the label of a uri).
      */
-    protected function findResourcesFromValues(array $identifiers, array $propertyIds, $resourceType)
+    protected function findResourcesFromValues(array $identifiers, array $propertyIds, $entityClass)
     {
         // The api manager doesn't manage this type of search.
         $conn = $this->connection;
@@ -459,10 +461,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
                 ->andWhere($expr->in('value.property_id', $placeholders));
         }
 
-        if ($resourceType) {
+        if ($entityClass) {
             $qb
-                ->andWhere($expr->eq('resource.resource_type', ':resource_type'));
-            $parameters['resource_name'] = $resourceType;
+                ->andWhere($expr->eq('resource.resource_type', ':entity_class'));
+            $parameters['entity_class'] = $entityClass;
         }
 
         // Add a performance filter.
