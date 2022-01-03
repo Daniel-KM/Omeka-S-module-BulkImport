@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Reader;
 
 use Box\Spout\Common\Type;
@@ -67,7 +68,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
 
     public function key()
     {
-        // The first row is the headers, not the data.
+        // The first row should be numbered 0 for the data, not the headers.
         return parent::key() - 1;
     }
 
@@ -82,6 +83,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
     {
         $this->isReady();
         $this->iterator->rewind();
+        // Skip headers, already stored.
         $this->next();
     }
 
@@ -97,6 +99,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
     protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         parent::prepareIterator();
+        // Skip headers, already stored.
         $this->next();
         return $this;
     }
@@ -121,6 +124,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
 
     protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
+        // Warning: it should skip last empty rows, but it is rare for csv.
         $this->totalEntries = iterator_count($this->iterator) - 1;
         return $this;
     }

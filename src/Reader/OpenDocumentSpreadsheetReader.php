@@ -48,6 +48,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $availableFieldsMultiSheets = [];
 
     /**
+     * Total of rows of each sheet, excluding headers.
+     *
+     * @var array
+     */
+    protected $sheetsRowCount = [];
+
+    /**
      * @var \Box\Spout\Reader\ODS\Reader
      */
     protected $iterator;
@@ -85,16 +92,18 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     {
         return new SpreadsheetEntry(
             $this->currentData,
-            $this->isMultiSheet ? $this->availableFieldsMultiSheets[$this->sheetIndex] : $this->availableFields,
+            $this->processAllSheets
+                ? $this->availableFieldsMultiSheets[$this->sheetIndex]
+                : $this->availableFields,
             $this->getParams()
         );
     }
 
     public function key()
     {
-        // The first row is the headers, not the data, and it's numbered from 1,
-        // not 0.
-        return parent::key() - 2;
+        // The first row should be numbered 0 for the data, not the headers.
+        // TODO Check key() for multisheets.
+        return parent::key() - 1;
     }
 
     /**
@@ -114,16 +123,41 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->sheetIndex = null;
         $this->initializeReader();
         $this->next();
+        // TODO Why two next() here, not in csv (init and headers)?
+        $this->next();
     }
 
     public function valid(): bool
     {
         $this->isReady();
+
+        // In some cases (false empty rows), the iterator doesn't stop until
+        // last row of the spreadsheet, so check the number of processed rows.
+        $sheet = $this->sheetIterator->current();
+        // There should be at least one filled row, excluding the header.
+        $index = $sheet->getIndex();
+        if (empty($this->sheetsRowCount[$index])
+            || ($this->processAllSheets && empty($this->availableFieldsMultiSheets[$index]))
+        ) {
+            return false;
+        }
+
+        // The check is done with the zero-based key.
+        if ($this->iterator->key() - 1 > $this->sheetsRowCount[$index]) {
+            if (!$this->processAllSheets) {
+                return false;
+            }
+        }
+
+        // Check if current row is really valid.
         if ($this->iterator->valid()) {
             return true;
         }
 
-        if (!$this->isMultiSheet) {
+        // Don't check all sheets if processing only one sheet.
+        // So return false because the iterator above should be valid.
+        // Or compare the current count.
+        if (!$this->processAllSheets) {
             return false;
         }
 
@@ -139,20 +173,21 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
                 continue;
             }
-            $rowIterator = $sheet->getRowIterator();
-            // There should be at least one row, excluding the header.
-            $totalRows = iterator_count($rowIterator) - 1;
-            if ($totalRows < 1) {
+
+            // There should be at least one filled row, excluding the header.
+            $index = $sheet->getIndex();
+            if (empty($this->availableFieldsMultiSheets[$index])
+                || empty($this->sheetsRowCount[$index])
+            ) {
                 continue;
             }
             break;
         } while (true);
 
         $this->sheetIndex = $sheet->getIndex();
-        $this->prepareIterator();
 
-        // Go on the second row, headers are already stored.
-        $this->next();
+        // Reset the iterator.
+        $this->prepareIterator();
 
         return true;
     }
@@ -169,6 +204,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected function prepareIterator(): \BulkImport\Interfaces\Reader
     {
         parent::prepareIterator();
+        // Skip headers, already stored.
         $this->next();
         return $this;
     }
@@ -188,6 +224,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         } elseif (class_exists(ReaderEntityFactory::class)) {
             $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
             // Important, else next rows will be skipped.
+            // Nevertheless, the count should remove all last empty rows.
             $this->spreadsheetReader->setShouldPreserveEmptyRows(true);
         } else {
             throw new \Omeka\Service\Exception\RuntimeException(
@@ -220,7 +257,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->sheetIterator->rewind();
         $sheet = null;
         $multisheet = $this->getParam('multisheet', 'active');
-        $this->isMultiSheet = $multisheet === 'all';
+        $this->processAllSheets = $multisheet === 'all';
         if ($multisheet === 'active') {
             /** @var \Box\Spout\Reader\ODS\Sheet $currentSheet */
             foreach ($this->sheetIterator as $currentSheet) {
@@ -263,6 +300,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->lastErrorMessage = 'No sheet.'; // @translate
             throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
+
         $this->iterator = $sheet->getRowIterator();
 
         return $this;
@@ -270,11 +308,15 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
     protected function finalizePrepareIterator(): \BulkImport\Interfaces\Reader
     {
-        if ($this->isMultiSheet) {
+        if ($this->processAllSheets) {
             return $this->finalizePrepareIteratorMultiSheets();
         }
 
-        $this->totalEntries = iterator_count($this->iterator) - 1;
+        // Don't count the header.
+        $total = $this->countSheetRows($this->iterator);
+        $this->totalEntries = max(0, $total - 1);
+        $this->sheetsRowCount[$this->sheetIndex] = $this->totalEntries;
+
         $this->initializeReader();
         return $this;
     }
@@ -282,15 +324,53 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected function finalizePrepareIteratorMultiSheets(): \BulkImport\Interfaces\Reader
     {
         $this->totalEntries = 0;
+        $this->sheetsRowCount = [];
         /** @var \Box\Spout\Reader\ODS\Sheet $sheet */
         foreach ($this->sheetIterator as $sheet) {
             if (!$this->isOldBoxSpout && !$sheet->isVisible()) {
                 continue;
             }
-            $this->totalEntries += iterator_count($sheet->getRowIterator()) - 1;
+            // Don't count the header.
+            $total = $this->countSheetRows($sheet->getRowIterator());
+            $total = max(0, $total - 1);
+            $this->sheetsRowCount[$sheet->getIndex()] = $total;
+            $this->totalEntries += $total;
         }
+
         $this->initializeReader();
         return $this;
+    }
+
+    /**
+     * Count rows of a sheet, skipping all last empty rows but headers included.
+     *
+     * Blank rows before a filled row are included.
+     */
+    protected function countSheetRows($rowIterator): int
+    {
+        // Iterator count cannot be used: empty rows are included since a
+        // previous issue.
+        // @link https://github.com/omeka-s-modules/CSVImport/pull/190
+        // So simply remove all empty last empty rows.
+        // Do it manually, because row method "isEmptyRow()" is not public.
+
+        // $this->totalEntries = iterator_count($this->iterator) - 1;
+        $total = 0;
+        // TODO Why in some cases, the index starts from 0 or 1?
+        $firstIndexIsOneBased = null;
+        foreach ($rowIterator as $index => $row) {
+            if (is_null($firstIndexIsOneBased)) {
+                $firstIndexIsOneBased = (int) empty($index);
+            }
+            $data = array_filter($row->getCells(), function(\Box\Spout\Common\Entity\Cell $cell) {
+                return $cell->getValue() !== '';
+            });
+            if (count($data)) {
+                // Index is 0-based, but the header should be included.
+                $total = $index + $firstIndexIsOneBased;
+            }
+        }
+        return $total;
     }
 
     protected function prepareAvailableFields(): \BulkImport\Interfaces\Reader
@@ -300,7 +380,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             return $this;
         }
 
-        if ($this->isMultiSheet) {
+        if ($this->processAllSheets) {
             return $this->prepareAvailableFieldsMultiSheets();
         }
 
@@ -336,7 +416,8 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
                 throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
             }
             // The data should be cleaned, since it's not an entry.
-            $this->availableFieldsMultiSheets[$sheet->getIndex()] = $this->cleanData($row->toArray());
+            $index = $sheet->getIndex();
+            $this->availableFieldsMultiSheets[$index] = $this->cleanData($row->toArray());
         }
         $this->availableFields = array_values(array_unique(array_merge(...$this->availableFieldsMultiSheets)));
         $this->initializeReader();
@@ -348,7 +429,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      */
     protected function prepareAvailableFieldsOld(): \BulkImport\Interfaces\Reader
     {
-        if ($this->isMultiSheet) {
+        if ($this->processAllSheets) {
             return $this->prepareAvailableFieldsMultiSheetsOld();
         }
 

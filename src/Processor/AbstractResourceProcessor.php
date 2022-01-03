@@ -204,8 +204,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $toSkip = $this->getParam('entries_to_skip', 0);
         if ($toSkip) {
             $this->logger->notice(
-                'The first {skip} entries are skipped by user.', // @translate
-                ['skip' => $toSkip]
+                $toSkip <= 1
+                    ? 'The first {count} entry is skipped by user.' // @translate
+                    : 'The first {count} entries are skipped by user.', // @translate
+                ['count' => $toSkip]
             );
         }
 
@@ -218,7 +220,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $shouldStop = false;
         $dataToProcess = [];
+        // Manage the case where the reader is zero-based or one-based.
+        $firstIndexBase = null;
         foreach ($this->reader as $index => $entry) {
+            if (is_null($firstIndexBase)) {
+                $firstIndexBase = (int) empty($index);
+            }
             if ($shouldStop = $this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped.', // @translate
@@ -234,7 +241,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             ++$this->totalIndexResources;
             // The first entry is #1, but the iterator (array) numbered it 0.
-            $this->indexResource = $index + 1;
+            $this->indexResource = $index + $firstIndexBase;
             $this->logger->info(
                 'Index #{index}: Process started', // @translate
                 ['index' => $this->indexResource]

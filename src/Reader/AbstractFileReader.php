@@ -20,6 +20,8 @@ abstract class AbstractFileReader extends AbstractReader
     protected $iterator;
 
     /**
+     * For spreadsheets, the total entries should not include headers.
+     *
      * @var int
      */
     protected $totalEntries;
