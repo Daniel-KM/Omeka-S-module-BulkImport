@@ -225,6 +225,20 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return $this->processorParam('processing') === 'dry_run';
     }
 
+    public function checkFileUrl(): ?string
+    {
+        $job = $this->job();
+        if (!$job) {
+            return null;
+        }
+        $jobArgs = $job->args();
+        if (empty($jobArgs['filename_check'])) {
+            return null;
+        }
+        $baseUrl = $this->getServiceLocator()->get('Config')['file_store']['local']['base_uri'] ?: $jobArgs['base_path'] . '/files';
+        return $baseUrl . '/bulk_import/' . $jobArgs['filename_check'];
+    }
+
     public function logCount(): int
     {
         $job = $this->job();

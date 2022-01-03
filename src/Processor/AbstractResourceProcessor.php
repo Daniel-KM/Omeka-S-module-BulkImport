@@ -244,6 +244,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->initializeCheckStore()
             ->initializeCheckOutput();
 
+        // Store the file in params to get it in user interface and next.
+        $jobJob = $this->job->getJob();
+        $jobJobArgs = $jobJob->getArgs();
+        $jobJobArgs['filename_check'] = basename($this->filepathCheck);
+        $jobJob->setArgs($jobJobArgs);
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $entityManager->persist($jobJob);
+        $entityManager->flush();
+
         $this->prepareFullRun();
 
         $processingType = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';

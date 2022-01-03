@@ -66,6 +66,12 @@ $(document).ready(function(){
                         'class' => 'fas fa-list',
                         'title' => $translate('See logs'), // @translate
                     ]) ?></li>
+                    <?php if ($checkFileUrl = $import->checkFileUrl()): ?>
+                    <li><?= $hyperlink('', $checkFileUrl, [
+                        'class' => 'fas fa-solid fa-check',
+                        'title' => $translate('Check file'), // @translate
+                    ]) ?></li>
+                    <?php endif; ?>
                 </ul>
             </td>
             <?php if ($import->undoJob()): ?>
