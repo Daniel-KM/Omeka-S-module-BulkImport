@@ -814,12 +814,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
                     $resource['messageStore']->addNotice('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                        ['value' => $value, 'datatypes' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 } else {
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Try adding "literal" to datatypes or default to it.', // @translate
-                        ['value' => $value, 'datatypes' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 }
             }
@@ -868,7 +868,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } else {
                     $resource['messageStore']->addError('linked resource', new PsrMessage(
                         'Resource id for value "{value}" cannot be found.', // @translate
-                        ['value' => $value]
+                        ['value' => mb_substr((string) $value, 0, 50)]
                     ));
                 }
                 break;
@@ -914,12 +914,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         $resourceValue['type'] = 'literal';
                         $resource['messageStore']->addNotice('values', new PsrMessage(
                             'The value "{value}" is not in custom vocab "{customvocab}". A literal value is used instead.', // @translate
-                            ['value' => $value, 'customvocab' => $datatype]
+                            ['value' => mb_substr((string) $value, 0, 50), 'customvocab' => $datatype]
                         ));
                     } else {
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not in custom vocab "{customvocab}".', // @translate
-                            ['value' => $value, 'customvocab' => $datatype]
+                            ['value' => mb_substr((string) $value, 0, 50), 'customvocab' => $datatype]
                         ));
                     }
                 }
