@@ -97,7 +97,7 @@ class ManiocProcessor extends AbstractFullProcessor
 
     protected function preImport(): void
     {
-        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `resource`;')->fetchColumn();
+        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `resource`;')->fetchOne();
         if ($total) {
             $this->logger->warn(
                 'Currently, this importer must be run on an empty database.' // @translate
@@ -788,7 +788,7 @@ SQL;
             $trimValues();
         }
 
-        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `value`;')->fetchColumn();
+        $total = $this->connection->executeQuery('SELECT count(`id`) FROM `value`;')->fetchOne();
         $this->logger->notice(
             '{total} values have been copied from the source.', // @translate
             ['total' => $total]
@@ -857,7 +857,7 @@ SQL;
             'value' => 'audio/mp3',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Audio', 'total' => $result]
@@ -891,7 +891,7 @@ SQL;
             'property_name' => 'archive',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => "Document d'archives", 'total' => $result]
@@ -943,7 +943,7 @@ SQL;
             'property_name_2' => 'archive',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Image', 'total' => $result]
@@ -1022,7 +1022,7 @@ SQL;
             'value_4' => 'Extraits de revues',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Livre', 'total' => $result]
@@ -1044,7 +1044,7 @@ SQL;
             'value' => 'Mémoires, thèses',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Mémoire et thèse', 'total' => $result]
@@ -1066,7 +1066,7 @@ SQL;
             'value' => 'Numéros de revues',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Numéro de revue', 'total' => $result]
@@ -1088,7 +1088,7 @@ SQL;
             'value' => 'Extraits de revues',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Extrait de revue', 'total' => $result]
@@ -1137,7 +1137,7 @@ SQL;
             'value' => 'greenstone_collection_id: 2',
         ];
         $this->connection->executeStatement($sql, $bind);
-        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchColumn();
+        $result = $this->connection->executeQuery($sqlTotal, ['template_id' => $bind['template_id']])->fetchOne();
         $this->logger->notice(
             'The template "{label}" has been set for {total} resources.',  // @translate
             ['label' => 'Vidéo', 'total' => $result]
@@ -1495,7 +1495,7 @@ WHERE 1 = 1
 SQL;
 
         $this->connection->executeStatement($sql, $bind, $baseTypes);
-        $result = $this->connection->executeQuery('SELECT count(`id`) FROM `_temporary_value`;')->fetchColumn();
+        $result = $this->connection->executeQuery('SELECT count(`id`) FROM `_temporary_value`;')->fetchOne();
         if (!$result) {
             $this->logger->info(
                 'Template group "{template_group}": no values to process.', // @translate
@@ -2390,7 +2390,7 @@ SQL;
                 'value' => $name,
                 'resource_type' => \Omeka\Entity\Item::class,
             ];
-            $resourceId = (int) $this->connection->executeQuery($sql, $bind)->fetchColumn();
+            $resourceId = (int) $this->connection->executeQuery($sql, $bind)->fetchOne();
             if ($resourceId) {
                 $sql = <<<'SQL'
 UPDATE `value`
