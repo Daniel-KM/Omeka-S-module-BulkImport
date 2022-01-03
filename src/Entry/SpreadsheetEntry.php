@@ -23,11 +23,23 @@ class SpreadsheetEntry extends Entry
         // Explode each value.
         $separator = (string) $this->options['separator'];
         foreach ($this->data as $key => $values) {
-            foreach ($values as $value) {
+            if (!count($values)) {
+                continue;
+            }
+            if (count($values) === 1) {
+                $value = reset($values);
                 if (mb_strpos($value, $separator) !== false) {
                     $this->data[$key] = array_map([$this, 'trimUnicode'], explode($separator, $value));
                 }
+                continue;
             }
+            $vs = [];
+            foreach ($values as $value) {
+                $vs[] = mb_strpos($value, $separator) === false
+                    ? [$value]
+                    : array_map([$this, 'trimUnicode'], explode($separator, $value));
+            }
+            $this->data[$key] = array_merge(...$vs);
         }
 
         // Filter duplicated and null values.
