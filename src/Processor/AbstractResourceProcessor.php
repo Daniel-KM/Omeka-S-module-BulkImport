@@ -739,14 +739,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         if (!empty($target['value']['type'])) {
-            foreach ($values as $value) {
-                $this->fillPropertyForValue($resource, $target, $value);
-            }
-            return true;
-        }
-
-        if (empty($target['datatypes'])) {
-            return true;
+            $datatypeNames = [$target['value']['type']];
+        } elseif (!empty($target['datatypes'])) {
+            $datatypeNames = $target['datatypes'];
+        } else {
+            // Normally not possible, so use "literal", whatever the option is.
+            $datatypeNames = ['literal'];
         }
 
         // The datatype should be checked for each value. The value is checked
@@ -754,30 +752,41 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Factorize instead of doing check twice.
         foreach ($values as $value) {
             $hasDatatype = false;
-            foreach ($target['datatypes'] as $datatype) {
-                $target['value']['type'] = $datatype;
-                if (substr($datatype, 0, 8) === 'resource') {
-                    $id = $this->bulk->findResourceFromIdentifier($value, null, $datatype, $resource['messageStore']);
+            // The data type name is normally already checked, but may be empty.
+            foreach ($datatypeNames as $datatypeName) {
+                /** @var \Omeka\DataType\DataTypeInterface $datatype */
+                $datatype = $this->bulk->getDataType($datatypeName);
+                if (!$datatype) {
+                    continue;
+                }
+                $datatypeName = $datatype->getName();
+                $target['value']['type'] = $datatypeName;
+                if ($datatypeName === 'literal') {
+                    $this->fillPropertyForValue($resource, $target, $value);
+                    $hasDatatype = true;
+                    break;
+                } elseif (substr($datatypeName, 0, 8) === 'resource') {
+                    $id = $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
                     if ($id) {
                         $this->fillPropertyForValue($resource, $target, $value);
                         $hasDatatype = true;
                         break;
                     }
-                } elseif (substr($datatype, 0, 11) === 'customvocab') {
-                    if ($this->bulk->isCustomVocabMember($datatype, $value)) {
+                } elseif (substr($datatypeName, 0, 11) === 'customvocab') {
+                    if ($this->bulk->isCustomVocabMember($datatypeName, $value)) {
                         $this->fillPropertyForValue($resource, $target, $value);
                         $hasDatatype = true;
                         break;
                     } else {
                         $id = $this->bulk->findResourceFromIdentifier($value, null, 'items', $resource['messageStore']);
-                        if ($this->bulk->isCustomVocabMember($datatype, $id)) {
+                        if ($this->bulk->isCustomVocabMember($datatypeName, $id)) {
                             $this->fillPropertyForValue($resource, $target, $id);
                             $hasDatatype = true;
                             break;
                         }
                     }
-                } elseif (substr($datatype, 0, 3) === 'uri'
-                    || substr($datatype, 0, 12) === 'valuesuggest'
+                } elseif (substr($datatypeName, 0, 3) === 'uri'
+                    || substr($datatypeName, 0, 12) === 'valuesuggest'
                 ) {
                     if ($this->bulk->isUrl($value)) {
                         $this->fillPropertyForValue($resource, $target, $value);
@@ -785,9 +794,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         break;
                     }
                 } else {
-                    $this->fillPropertyForValue($resource, $target, $value);
-                    $hasDatatype = true;
-                    break;
+                    // Some data types may be more complex than "@value", but it
+                    // manages most of the common other modules.
+                    $valueArray = [
+                        '@value' => $value,
+                    ];
+                    if ($datatype->isValid($valueArray)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
                 }
             }
             // TODO Add an option for literal data-type by default.
@@ -797,13 +813,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $targetLiteral['value']['type'] = 'literal';
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
                     $resource['messageStore']->addNotice('values', new PsrMessage(
-                        'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Data type "literal" is used.', // @translate
-                        ['value' => $value]
+                        'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
+                        ['value' => $value, 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 } else {
                     $resource['messageStore']->addError('values', new PsrMessage(
-                        'The datatype for value "{value}" cannot be determined or the value is not compatible with the datatype. Try adding "literal" to it.', // @translate
-                        ['value' => $value]
+                        'The value "{value}" is not compatible with datatypes "{datatypes}". Try adding "literal" to datatypes or default to it.', // @translate
+                        ['value' => $value, 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 }
             }
