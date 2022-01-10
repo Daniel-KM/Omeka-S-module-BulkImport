@@ -615,7 +615,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         // Simplify next steps
-        $this->prepareCustomVocabCleanIds();
+        if ($this->isModuleActive('CustomVocab')) {
+            $this->prepareCustomVocabCleanIds();
+        }
 
         $this->importData();
         if ($this->isErrorOrStop()) {
