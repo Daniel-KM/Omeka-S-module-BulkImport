@@ -117,7 +117,7 @@ class OmekaSReader extends AbstractPaginatedReader
 
     protected function initArgs(): void
     {
-        $this->endpoint = $this->getParam('endpoint');
+        $this->endpoint = rtrim($this->getParam('endpoint'), '/ ');
         $this->queryCredentials = [];
         $keyIdentity = $this->getParam('key_identity');
         $keyCredential = $this->getParam('key_credential');
@@ -252,7 +252,8 @@ class OmekaSReader extends AbstractPaginatedReader
             $params['page'] = $page;
         }
         $url = $this->endpoint
-            . (strlen((string) $path) ? '/' . $path : '')
+            // Manage exception for api-context.
+            . (strlen((string) $path) && $path !== '-context' ? '/' . $path : $path)
             . (strlen((string) $subpath) ? '/' . $subpath : '');
         return $this->fetchUrl($url, $params);
     }
