@@ -28,6 +28,9 @@ return [
         'invokables' => [
             'bulk' => Media\Ingester\Bulk::class,
         ],
+        'factories' => [
+            'bulk_upload' => Service\Ingester\BulkUploadFactory::class,
+        ],
     ],
     'view_manager' => [
         'template_path_stack' => [

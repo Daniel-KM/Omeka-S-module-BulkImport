@@ -92,6 +92,26 @@ class Module extends AbstractModule
             'service.registered_names',
             [$this, 'handleMediaIngesterRegisteredNames']
         );
+
+        // Add js for the item add/edit pages to manage ingester "bulk_upload".
+        $sharedEventManager->attach(
+            'Omeka\Controller\Admin\Item',
+            'view.add.before',
+            [$this, 'addHeadersAdmin']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Controller\Admin\Item',
+            'view.edit.before',
+            [$this, 'addHeadersAdmin']
+        );
+        // Manage the special media ingester "bulk_upload".
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.hydrate.pre',
+            [$this, 'handleItemApiHydratePre']
+        );
+
+        // Manage the conversion of documents to html.
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
             'api.create.post',
@@ -110,6 +130,7 @@ class Module extends AbstractModule
             [$this, 'handleAfterCreateMedia'],
             -10
         );
+
         $sharedEventManager->attach(
             \Omeka\Form\SettingForm::class,
             'form.add_elements',
@@ -128,6 +149,86 @@ class Module extends AbstractModule
         $key = array_search('bulk', $names);
         unset($names[$key]);
         $event->setParam('registered_names', $names);
+    }
+
+    public function handleItemApiHydratePre(Event $event)
+    {
+        /** @var \Omeka\Api\Request $request */
+        $request = $event->getParam('request');
+        $data = $request->getContent();
+        $filesData = $request->getFileData();
+        if (empty($data['o:media']) || empty($filesData)) {
+            return;
+        }
+
+        $errorStore = $event->getParam('errorStore');
+
+        $uploadErrorCodes = [
+            UPLOAD_ERR_OK => 'File successfuly uploaded.', // @translate
+            UPLOAD_ERR_INI_SIZE => 'The total of file sizes exceeds the the server limit directive.', // @translate
+            UPLOAD_ERR_FORM_SIZE => 'The file size exceeds the specified limit.', // @translate
+            UPLOAD_ERR_PARTIAL => 'The file was only partially uploaded.', // @translate
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded.', // @translate
+            UPLOAD_ERR_NO_TMP_DIR => 'The temporary folder to store the file is missing.', // @translate
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.', // @translate
+            UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.', // @translate
+        ];
+
+        $newDataMedias = [];
+        foreach ($data['o:media'] as $dataMedia) {
+            $newDataMedias[] = $dataMedia;
+
+            if (empty($dataMedia['o:ingester']) || $dataMedia['o:ingester'] !== 'bulk_upload') {
+                continue;
+            }
+
+            $index = $dataMedia['file_index'] ?? null;
+            if (is_null($index) || !isset($filesData['file'][$index])) {
+                $errorStore->addError('upload', 'There is no uploaded files.'); // @translate
+                continue;
+            }
+
+            if (empty($filesData['file'][$index])) {
+                $errorStore->addError('upload', 'There is no uploaded files.'); // @translate
+                continue;
+            }
+
+            // Convert the media to a list of media for the item hydration.
+            // Check errors first to indicate issues to user early.
+            $listFiles = [];
+            $hasError = false;
+            foreach ($filesData['file'][$index] as $subIndex => $fileData) {
+                if ($fileData['error']) {
+                    $errorStore->addError('upload', new PsrMessage(
+                        'File #{index} "{filename}" has an error: {error}.',  // @translate
+                        ['index' => ++$subIndex, 'filename' => $fileData['name'], 'error' => $uploadErrorCodes[$fileData['error']]]
+                    ));
+                    $hasError = true;
+                    continue;
+                } elseif (!$fileData['size']) {
+                    $errorStore->addError('upload', new PsrMessage(
+                        'File #{index} "{filename}" is an empty file.', // @translate
+                        ['index' => ++$subIndex, 'filename' => $fileData['name']]
+                    ));
+                    $hasError = true;
+                    continue;
+                }
+                $listFiles[] = $fileData;
+            }
+            if ($hasError) {
+                continue;
+            }
+
+            // Remove the added media directory from list of media.
+            array_pop($newDataMedias);
+            foreach ($listFiles as $index => $fileData) {
+                $dataMedia['file_index_sub'] = $index;
+                $newDataMedias[] = $dataMedia;
+            }
+        }
+
+        $data['o:media'] = $newDataMedias;
+        $request->setContent($data);
     }
 
     public function handleAfterSaveItem(Event $event): void
@@ -166,7 +267,7 @@ class Module extends AbstractModule
         // There is no thumbnails, else keep them anyway.
         @unlink($basePath . '/original/' . $media->getFilename());
 
-        $mediaData = $media->getData($data) ?: [];
+        $mediaData = $media->getData() ?: [];
         $mediaData['html'] = $html;
         $media->setData($mediaData);
         $media->setRenderer('html');
@@ -252,6 +353,16 @@ class Module extends AbstractModule
         $endBody = mb_strrpos($html, '</body>');
         return trim(mb_substr($html, $startBody, $endBody - $startBody))
             ?: null;
+    }
+
+    public function addHeadersAdmin(Event $event)
+    {
+        $view = $event->getTarget();
+        $assetUrl = $view->plugin('assetUrl');
+        $view->headLink()
+            ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+        $view->headScript()
+            ->appendFile($assetUrl('js/bulk-import.js', 'BulkImport'), 'text/javascript', ['defer' => 'defer']);
     }
 
     /**
