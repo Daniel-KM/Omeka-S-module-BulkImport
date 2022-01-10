@@ -398,7 +398,7 @@ SQL;
      */
     protected function messageResultFile(): \BulkImport\Processor\Processor
     {
-        $baseUrl = $this->config['file_store']['local']['base_uri'] ?: $this->job->getJobArg('base_path') . '/files';
+        $baseUrl = $this->getServiceLocator()->get('Config')['file_store']['local']['base_uri'] ?: $this->job->getJobArg('base_path') . '/files';
         $this->logger->notice(
             'Results are available in this spreadsheet: {url}.', // @translate
             ['url' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathCheck, mb_strlen($this->basePath . '/bulk_import/'))]

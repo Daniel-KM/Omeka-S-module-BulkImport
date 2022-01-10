@@ -90,6 +90,8 @@ abstract class AbstractProcessor implements Processor
     protected $translator;
 
     /**
+     * Base path of the files.
+     *
      * @var string
      */
     protected $basePath;

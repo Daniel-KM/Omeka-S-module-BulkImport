@@ -305,7 +305,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         }
 
         $this->spreadsheetReader
-            // ->setTempFolder($this->config['temp_dir'])
+            // ->setTempFolder($this->getServiceLocator()->get('Config')['temp_dir'])
             // Read the dates as text. See fix #179 in CSVImport.
             // TODO Read the good format in spreadsheet entry.
             ->setShouldFormatDates(true);
