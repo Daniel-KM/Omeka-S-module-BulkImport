@@ -22,4 +22,16 @@ trait ConfigurableTrait
     {
         return $this->config;
     }
+
+    /**
+     * @param string $name
+     * @param mixed $default
+     * @return mixed
+     */
+    public function getConfigParam($name, $default = null)
+    {
+        return array_key_exists($name, $this->config)
+            ? $this->config[$name]
+            : $default;
+    }
 }
