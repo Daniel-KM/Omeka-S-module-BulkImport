@@ -24,7 +24,7 @@ class BulkUpload implements IngesterInterface
 
     public function getLabel()
     {
-        return 'Files and folders'; // @translate
+        return 'Files'; // @translate
     }
 
     public function getRenderer()
@@ -73,6 +73,16 @@ class BulkUpload implements IngesterInterface
 
     public function form(PhpRenderer $view, array $options = [])
     {
+        $fileInput = $this->getFileInput($view, $options);
+        return $view->formRow($fileInput)
+            . <<<'HTML'
+<input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
+<div class="media-files-input-preview"></div>
+HTML;
+    }
+
+    protected function getFileInput($view, $options): File
+    {
         if ($view->setting('disable_file_validation', false)) {
             $allowedMediaTypes = '';
             $allowedExtensions = '';
@@ -86,7 +96,7 @@ class BulkUpload implements IngesterInterface
         }
 
         $fileInput = new File('file[__index__]');
-        $fileInput
+        return $fileInput
             ->setOptions([
                 'label' => 'Upload files', // @translate
                 'info' => $view->uploadLimit(),
@@ -105,11 +115,6 @@ class BulkUpload implements IngesterInterface
                 'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
                 'data-translate-max-size-post' => $view->translate('The total size of the upload files is greater than the server limit. Remove some new files.'), // @translate
             ]);
-        return $view->formRow($fileInput)
-            . <<<HTML
-<input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
-<div class="media-files-input-preview"></div>
-HTML;
     }
 
     /**

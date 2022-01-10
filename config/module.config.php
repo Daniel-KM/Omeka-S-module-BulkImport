@@ -30,6 +30,7 @@ return [
         ],
         'factories' => [
             'bulk_upload' => Service\Ingester\BulkUploadFactory::class,
+            'bulk_upload_dir' => Service\Ingester\BulkUploadDirFactory::class,
         ],
     ],
     'view_manager' => [

@@ -188,7 +188,9 @@ class Module extends AbstractModule
         foreach ($data['o:media'] as $dataMedia) {
             $newDataMedias[] = $dataMedia;
 
-            if (empty($dataMedia['o:ingester']) || $dataMedia['o:ingester'] !== 'bulk_upload') {
+            if (empty($dataMedia['o:ingester'])
+                || !in_array($dataMedia['o:ingester'], ['bulk_upload', 'bulk_upload_dir'])
+            ) {
                 continue;
             }
 
