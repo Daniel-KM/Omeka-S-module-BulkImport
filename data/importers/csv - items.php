@@ -19,7 +19,7 @@ return [
         'action' => 'create',
         'action_unidentified' => 'skip',
         'identifier_name' => [
-            'dcterms:identifier',
+            'o:id',
         ],
         'allow_duplicate_identifiers' => false,
         'entries_to_skip' => 0,
