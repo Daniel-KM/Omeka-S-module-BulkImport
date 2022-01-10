@@ -1164,7 +1164,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         file_put_contents($filepath, json_encode($this->map, 448));
         $this->logger->notice(
             'Mapping saved in "{url}".', // @translate
-            ['url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($basePath) + 1)]
+            ['url' => $this->job->getArg('base_path') . '/files/' . mb_substr($filepath, strlen($this->basePath) + 1)]
         );
 
         $this->logger->notice('Running jobs for reindexation and finalization. Check next jobs in admin interface.'); // @translate

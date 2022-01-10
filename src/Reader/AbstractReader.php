@@ -16,6 +16,8 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     use ConfigurableTrait, ParametrizableTrait, ServiceLocatorAwareTrait;
 
     /**
+     * This is the base path of the files, not the base path of the url.
+     *
      * @var string
      */
     protected $basePath;
