@@ -161,7 +161,17 @@ class Module extends AbstractModule
             return;
         }
 
+        /**
+         * @var \Omeka\Stdlib\ErrorStore $errorStore
+         * @var \Omeka\File\TempFileFactory $tempFileFactory
+         * @var \Omeka\File\Validator $validator
+         */
+        $services = $this->getServiceLocator();
         $errorStore = $event->getParam('errorStore');
+        $settings = $services->get('Omeka\Settings');
+        $validator = $services->get(\Omeka\File\Validator::class);
+        $tempFileFactory = $services->get(\Omeka\File\TempFileFactory::class);
+        $validateFile = (bool) $settings->get('disable_file_validation', false);
 
         $uploadErrorCodes = [
             UPLOAD_ERR_OK => 'File successfuly uploaded.', // @translate
@@ -206,12 +216,27 @@ class Module extends AbstractModule
                     $hasError = true;
                     continue;
                 } elseif (!$fileData['size']) {
-                    $errorStore->addError('upload', new PsrMessage(
-                        'File #{index} "{filename}" is an empty file.', // @translate
-                        ['index' => ++$subIndex, 'filename' => $fileData['name']]
-                    ));
-                    $hasError = true;
-                    continue;
+                    if ($validateFile) {
+                        $errorStore->addError('upload', new PsrMessage(
+                            'File #{index} "{filename}" is an empty file.', // @translate
+                            ['index' => ++$subIndex, 'filename' => $fileData['name']]
+                        ));
+                        $hasError = true;
+                        continue;
+                    }
+                } else {
+                    // Don't use uploader::upload(), because the file would be
+                    // renamed, so use temp file validator directly.
+                    // Don't check media-type directly, because it should manage
+                    // derivative media-types ("application/tei+xml", etc.) that
+                    // may not be extracted by system.
+                    $tempFile = $tempFileFactory->build();
+                    $tempFile->setSourceName($fileData['name']);
+                    $tempFile->setTempPath($fileData['tmp_name']);
+                    if (!$validator->validate($tempFile, $errorStore)) {
+                        // Errors are already stored.
+                        continue;
+                    }
                 }
                 $listFiles[] = $fileData;
             }
