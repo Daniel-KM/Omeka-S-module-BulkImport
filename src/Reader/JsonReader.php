@@ -27,14 +27,14 @@ class JsonReader extends AbstractPaginatedReader
     ];
 
     /**
-     * @var string
+     * @var ?string
      */
-    protected $path = '';
+    protected $path = null;
 
     /**
-     * @var string
+     * @var ?string
      */
-    protected $subpath = '';
+    protected $subpath = null;
 
     /**
      * @var array
@@ -47,17 +47,24 @@ class JsonReader extends AbstractPaginatedReader
     protected $baseUrl = '';
 
     /**
+     * @var array
+     */
+    protected $importParams = [];
+
+    /**
      * @var \Laminas\Http\Response
      */
     protected $currentResponse;
 
-    public function setPath($path): \BulkImport\Reader\Reader
+    // TODO Remove path and sub-path, mainly used for Omeka?
+
+    public function setPath(?string $path): \BulkImport\Reader\Reader
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath($subpath): \BulkImport\Reader\Reader
+    public function setSubPath(?string $subpath): \BulkImport\Reader\Reader
     {
         $this->subpath = $subpath;
         return $this;
@@ -167,7 +174,7 @@ class JsonReader extends AbstractPaginatedReader
         $this->perPage = self::PAGE_LIMIT;
         $this->totalCount = empty($body['totalResults']) ? 0 : (int) $body['totalResults'];
         $this->firstPage = 1;
-        // At least one page.
+        // At least the first page.
         $this->lastPage = max((int) ceil($this->totalCount / $this->perPage), 1);
         // The page is 1-based, but the index is 0-based, more common in loops.
         $this->currentPage = 1;

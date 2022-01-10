@@ -56,7 +56,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'name' => 'processing',
                 'type' => BulkImportElement\OptionalRadio::class,
                 'options' => [
-                    'label' => 'Processing', // @translate
+                    'label' => 'Process control', // @translate
                     'info' => 'In all cases, the check of identifiers, linked resources, template values, and files presence is done during a first loop.', // @translate
                     'value_options' => [
                         'dry_run' => 'Dry run', // @translate

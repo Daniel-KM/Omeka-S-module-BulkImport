@@ -239,6 +239,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
         $this->perPage = self::PAGE_LIMIT;
         $this->totalCount = 0;
         $this->firstPage = 1;
+        // At least the first page.
         $this->lastPage = 1;
         // The page is 1-based, but the index is 0-based, more common in loops.
         $this->currentPage = 1;

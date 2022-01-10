@@ -134,21 +134,18 @@ trait HttpClientTrait
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    protected function fetchData(string $path = '', string $subpath = '', array $params = [], $page = 0): Response
+    protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
     {
         if ($page) {
             $params['page'] = $page;
         }
         $url = $this->endpoint
-            . (strlen($path) ? '/' . $path : '')
-            . (strlen($subpath) ? '/' . $subpath : '');
+            . (strlen((string) $path) ? '/' . $path : '')
+            . (strlen((string) $subpath) ? '/' . $subpath : '');
         return $this->fetchUrl($url, $params);
     }
 
     /**
-     * @param string $url
-     * @param array $query
-     * @return \Laminas\Http\Response
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */

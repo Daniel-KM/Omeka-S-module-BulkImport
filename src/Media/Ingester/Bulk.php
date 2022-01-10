@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Media\Ingester;
 
 use Laminas\View\Renderer\PhpRenderer;

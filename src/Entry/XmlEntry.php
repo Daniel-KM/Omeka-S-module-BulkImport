@@ -6,8 +6,6 @@ use SimpleXMLElement;
 
 class XmlEntry extends BaseEntry
 {
-    private $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed'];
-
     protected function init(): void
     {
         /** @var \XMLReaderNode $data */

@@ -43,14 +43,14 @@ class OmekaSReader extends AbstractPaginatedReader
     protected $queryCredentials;
 
     /**
-     * @var string
+     * @var ?string
      */
-    protected $path = '';
+    protected $path = null;
 
     /**
-     * @var string
+     * @var ?string
      */
-    protected $subpath = '';
+    protected $subpath = null;
 
     /**
      * @var array
@@ -74,13 +74,13 @@ class OmekaSReader extends AbstractPaginatedReader
         return $this;
     }
 
-    public function setPath($path): \BulkImport\Reader\Reader
+    public function setPath(?string $path): \BulkImport\Reader\Reader
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath($subpath): \BulkImport\Reader\Reader
+    public function setSubPath(?string $subpath): \BulkImport\Reader\Reader
     {
         $this->subpath = $subpath;
         return $this;
@@ -92,14 +92,11 @@ class OmekaSReader extends AbstractPaginatedReader
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isValid(): bool
     {
         $this->initArgs();
 
-        if (!$this->isValidUrl('-context', '', [])) {
+        if (!$this->isValidUrl('-context', '', [], 'application/json', 'utf-8')) {
             return false;
         }
 
@@ -245,7 +242,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $this->isValid = true;
     }
 
-    protected function fetchData(string $path = '', string $subpath = '', array $params = [], $page = 0): Response
+    protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
     {
         $params = array_merge(
             $params,
@@ -255,8 +252,8 @@ class OmekaSReader extends AbstractPaginatedReader
             $params['page'] = $page;
         }
         $url = $this->endpoint
-            . (strlen($path) ? '/' . $path : '')
-            . (strlen($subpath) ? '/' . $subpath : '');
+            . (strlen((string) $path) ? '/' . $path : '')
+            . (strlen((string) $subpath) ? '/' . $subpath : '');
         return $this->fetchUrl($url, $params);
     }
 }
