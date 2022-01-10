@@ -95,6 +95,10 @@ HTML;
             $allowedExtensions = implode(',', $allowedExtensions);
         }
 
+        $maxSizeFile = $this->parseSize(ini_get('upload_max_filesize'));
+        $maxSizePost = $this->parseSize(ini_get('post_max_size'));
+        $maxFileUploads = (int) ini_get('max_file_uploads');
+
         $fileInput = new File('file[__index__]');
         return $fileInput
             ->setOptions([
@@ -109,11 +113,13 @@ HTML;
                 'accept' => $accept,
                 'data-allowed-media-types' => $allowedMediaTypes,
                 'data-allowed-extensions' => $allowedExtensions,
-                'data-max-size-file' => $this->parseSize(ini_get('upload_max_filesize')),
-                'data-max-size-post' => $this->parseSize(ini_get('post_max_size')),
+                'data-max-size-file' => $maxSizeFile,
+                'data-max-size-post' => $maxSizePost,
+                'data-max-file-uploads' => $maxFileUploads,
                 'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
                 'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
-                'data-translate-max-size-post' => $view->translate('The total size of the upload files is greater than the server limit. Remove some new files.'), // @translate
+                'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
+                'data-translate-max-file-uploads' => sprintf($view->translate('The maximum number of files to post is greater than the server limit (%d files). Remove some new files.'), $maxFileUploads), // @translate
             ]);
     }
 

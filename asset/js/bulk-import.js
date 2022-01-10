@@ -30,6 +30,7 @@
                 const allowedExtensions = inputUpload.data('allowed-extensions').split(',');
                 const maxSizeFile = parseInt(inputUpload.data('max-size-file'));
                 const maxSizePost = parseInt(inputUpload.data('max-size-post'));
+                const maxFileUploads = parseInt(inputUpload.data('max-file-uploads'));
                 const list = document.createElement('ol');
                 var total = 0;
                 preview.appendChild(list);
@@ -69,6 +70,15 @@
                     const div = document.createElement('div');
                     const pError = document.createElement('p');
                     pError.textContent = inputUpload.data('translate-max-size-post');
+                    pError.classList.add('error');
+                    div.appendChild(pError);
+                    div.classList.add('messages');
+                    preview.prepend(div);
+                }
+                if (curFiles.length > maxFileUploads) {
+                    const div = document.createElement('div');
+                    const pError = document.createElement('p');
+                    pError.textContent = inputUpload.data('translate-max-file-uploads');
                     pError.classList.add('error');
                     div.appendChild(pError);
                     div.classList.add('messages');
