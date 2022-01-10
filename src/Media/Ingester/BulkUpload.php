@@ -73,6 +73,18 @@ class BulkUpload implements IngesterInterface
 
     public function form(PhpRenderer $view, array $options = [])
     {
+        if ($view->setting('disable_file_validation', false)) {
+            $allowedMediaTypes = '';
+            $allowedExtensions = '';
+            $accept = '';
+        } else {
+            $allowedMediaTypes = $view->setting('media_type_whitelist', []);
+            $allowedExtensions = $view->setting('extension_whitelist', []);
+            $accept = implode(',', array_merge($allowedMediaTypes, $allowedExtensions));
+            $allowedMediaTypes = implode(',', $allowedMediaTypes);
+            $allowedExtensions = implode(',', $allowedExtensions);
+        }
+
         $fileInput = new File('file[__index__]');
         $fileInput
             ->setOptions([
@@ -84,6 +96,9 @@ class BulkUpload implements IngesterInterface
                 'class' => 'media-files-input',
                 'required' => true,
                 'multiple' => true,
+                'accept' => $accept,
+                'data-allowed-media-types' => $allowedMediaTypes,
+                'data-allowed-extensions' => $allowedExtensions,
             ]);
         return $view->formRow($fileInput)
             . <<<HTML
