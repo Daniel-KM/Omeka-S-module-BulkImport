@@ -99,11 +99,39 @@ class BulkUpload implements IngesterInterface
                 'accept' => $accept,
                 'data-allowed-media-types' => $allowedMediaTypes,
                 'data-allowed-extensions' => $allowedExtensions,
+                'data-max-size-file' => $this->parseSize(ini_get('upload_max_filesize')),
+                'data-max-size-post' => $this->parseSize(ini_get('post_max_size')),
+                'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
+                'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
+                'data-translate-max-size-post' => $view->translate('The total size of the upload files is greater than the server limit. Remove some new files.'), // @translate
             ]);
         return $view->formRow($fileInput)
             . <<<HTML
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
 <div class="media-files-input-preview"></div>
 HTML;
+    }
+
+    /**
+     * Get the size in bytes represented by the given php ini config string.
+     *
+     * @see \Omeka\View\Helper\UploadLimit::parseSize()
+     */
+    protected function parseSize($sizeString): int
+    {
+        $value = intval($sizeString);
+        $lastChar = strtolower(substr($sizeString, -1));
+        // Note: these cases fall through purposely
+        switch ($lastChar) {
+            case 'g':
+                $value *= 1024;
+                // No break.
+            case 'm':
+                $value *= 1024;
+                // No break.
+            case 'k':
+                $value *= 1024;
+        }
+        return $value;
     }
 }

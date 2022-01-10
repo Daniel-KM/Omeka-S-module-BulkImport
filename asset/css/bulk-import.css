@@ -38,6 +38,14 @@
         max-width: 100%;
         min-width: 0;
     }
+    .media-files-input-preview .media-info.messages .error {
+        background-color: #f4b4b4;
+        border-radius: 3px;
+        padding: 6px 10px;
+        margin-top: 6px;
+        display: block;
+        width: 100%;
+    }
     .media-files-input-preview .media-info .resource-thumbnail {
         height: 64px;
         width: 64px;
@@ -46,6 +54,10 @@
     .media-files-input-preview .media-info .resource-thumbnail img {
         max-height: 64px;
         max-width: 64px;
+    }
+    .media-files-input-preview .media-info .resource-name {
+        flex: 1;
+        min-width: 0;
     }
     .media-files-input-preview .media-info .resource-name {
         flex: 1;

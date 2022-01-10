@@ -215,6 +215,13 @@ class Module extends AbstractModule
                     ));
                     $hasError = true;
                     continue;
+                } elseif (substr($fileData['name'], 0, 1) === '.') {
+                    $errorStore->addError('upload', new PsrMessage(
+                        'File #{index} "{filename}" must not start with a ".".', // @translate
+                        ['index' => ++$subIndex, 'filename' => $fileData['name']]
+                    ));
+                    $hasError = true;
+                    continue;
                 } elseif (!$fileData['size']) {
                     if ($validateFile) {
                         $errorStore->addError('upload', new PsrMessage(

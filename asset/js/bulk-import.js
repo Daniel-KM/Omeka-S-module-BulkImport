@@ -22,25 +22,29 @@
             const curFiles = input.files;
             if (curFiles.length === 0) {
                 const para = document.createElement('p');
-                para.textContent = 'No files currently selected for upload';
+                para.textContent = inputUpload.data('translate-no-file');
                 preview.appendChild(para);
             } else {
                 // Is vanilla js really simpler here?
                 const allowedMediaTypes = inputUpload.data('allowed-media-types').split(',');
                 const allowedExtensions = inputUpload.data('allowed-extensions').split(',');
+                const maxSizeFile = parseInt(inputUpload.data('max-size-file'));
+                const maxSizePost = parseInt(inputUpload.data('max-size-post'));
                 const list = document.createElement('ol');
+                var total = 0;
                 preview.appendChild(list);
                 for (const file of curFiles) {
+                    total += file.size;
                     const listItem = document.createElement('li');
                     const div = document.createElement('div');
                     div.classList.add('media-info');
-                    if (validateFile(file, allowedMediaTypes, allowedExtensions)) {
+                    if (validateFile(file, allowedMediaTypes, allowedExtensions, maxSizeFile)) {
                         const divImage = document.createElement('div');
                         divImage.classList.add('resource-thumbnail');
                         const image = document.createElement('img');
                         const mainType = file.type.split('/')[0];
                         const subType = file.type.split('/')[1];
-                        image.src = file.size < 10000000
+                        image.src = file.size < 20000000
                             && mainType === 'image' && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
                             ? URL.createObjectURL(file)
                             : defaultThumbnailUrl(file);
@@ -52,18 +56,34 @@
                         div.appendChild(span);
                         listItem.appendChild(div);
                     } else {
-                        div.textContent = `${file.name}: Not a valid file type. Update your selection.`;
+                        const pError = document.createElement('p');
+                        pError.textContent = file.name + ': ' + inputUpload.data('translate-invalid-file');
+                        pError.classList.add('error');
+                        div.appendChild(pError);
+                        div.classList.add('messages');
                         listItem.appendChild(div);
                     }
                     list.appendChild(listItem);
                 }
+                if (total > maxSizePost) {
+                    const div = document.createElement('div');
+                    const pError = document.createElement('p');
+                    pError.textContent = inputUpload.data('translate-max-size-post');
+                    pError.classList.add('error');
+                    div.appendChild(pError);
+                    div.classList.add('messages');
+                    preview.prepend(div);
+                }
             }
         }
 
-        function validateFile(file, allowedMediaTypes, allowedExtensions) {
+        function validateFile(file, allowedMediaTypes, allowedExtensions, maxSizeFile) {
             const extension = file.name.slice((file.name.lastIndexOf('.') - 1 >>> 0) + 2);
             const isForbidden = (allowedMediaTypes.length && !allowedMediaTypes.includes(file.type))
-                || (allowedExtensions.length && !allowedExtensions.includes(extension));
+                || (allowedExtensions.length && !allowedExtensions.includes(extension))
+                || file.name.substr(0, 1) === '.'
+                || file.size === 0
+                || file.size > maxSizeFile;
             return !isForbidden;
         }
 
