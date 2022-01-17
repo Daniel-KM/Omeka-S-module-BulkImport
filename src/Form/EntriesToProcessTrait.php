@@ -27,6 +27,23 @@ trait EntriesToProcessTrait
                 ],
             ])
             ->add([
+                'name' => 'entries_max',
+                'type' => Element\Number::class,
+                'options' => [
+                    'label' => 'Max number of entries to process', // @translate
+                    'info' => 'This option is mainly for testing or checking purpose.', // @translate
+                ],
+                'attributes' => [
+                    'attributes' => [
+                        'id' => 'entries_max',
+                        'min' => '0',
+                        'step' => '1',
+                        'placeholder' => '1',
+                        'aria-label' => 'Max number of entries to process', // @translate
+                    ],
+                ],
+            ])
+            ->add([
                 'name' => 'entries_by_batch',
                 'type' => Element\Number::class,
                 'options' => [
@@ -52,6 +69,10 @@ trait EntriesToProcessTrait
         $this->getInputFilter()
             ->add([
                 'name' => 'entries_to_skip',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'entries_max',
                 'required' => false,
             ])
             ->add([

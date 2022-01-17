@@ -184,6 +184,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'o:is_public' => null,
 
             'entries_to_skip' => 0,
+            'entries_max' => 0,
             'entries_by_batch' => null,
         ];
 
@@ -238,6 +239,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     ? 'The first {count} entry is skipped by user.' // @translate
                     : 'The first {count} entries are skipped by user.', // @translate
                 ['count' => $toSkip]
+            );
+        }
+
+        $maxEntries = (int) $this->getParam('entries_max', 0);
+        if ($maxEntries) {
+            $this->logger->notice(
+                $maxEntries <= 1
+                    ? 'Only {count} entry will be processed.' // @translate
+                    : 'Only {count} entries will be processed.', // @translate
+                ['count' => $maxEntries]
             );
         }
 
@@ -298,7 +309,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
         $this->processing = 0;
-        $this->totalIndexResources = 0;
         $this->totalSkipped = 0;
         $this->totalProcessed = 0;
         $this->totalErrors = 0;
@@ -330,6 +340,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         );
 
         $toSkip = (int) $this->getParam('entries_to_skip', 0);
+        $maxEntries = (int) $this->getParam('entries_max', 0);
+        $maxRemaining = $maxEntries;
 
         // Manage the case where the reader is zero-based or one-based.
         $firstIndexBase = null;
@@ -375,6 +387,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->logCheckedResource(null, null);
                 --$toSkip;
                 continue;
+            }
+
+            if ($maxEntries) {
+                --$maxRemaining;
+                if ($maxRemaining < 0) {
+                    $this->logger->warn(
+                        'Index #{index}: The job "Import" was stopped during initial checks: max {count} entries checked.', // @translate
+                        ['index' => $this->indexResource, 'count' => $maxEntries]
+                    );
+                    break;
+                }
             }
 
             ++$this->totalIndexResources;
@@ -423,6 +446,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         );
 
         $toSkip = (int) $this->getParam('entries_to_skip', 0);
+        $maxEntries = (int) $this->getParam('entries_max', 0);
+        $maxRemaining = $maxEntries;
         $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
 
         /** @var \Doctrine\ORM\EntityManager $entityManager */
@@ -476,6 +501,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // The first entry is #1, but the iterator (array) numbered it 0.
             $this->indexResource = $index + $firstIndexBase;
 
+            if ($maxEntries) {
+                --$maxRemaining;
+                if ($maxRemaining < 0) {
+                    break;
+                }
+            }
+
             // TODO Clarify computation of total errors.
             $resource = $this->loadCheckedResource();
             if (!$resource) {
@@ -513,6 +545,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             unset($dataToProcess);
             $entityManager->flush();
             $entityManager->clear();
+        }
+
+        if ($maxEntries && $maxRemaining < 0) {
+            $this->logger->warn(
+                'Index #{index}: The job "Import" was stopped: max {count} entries processed.', // @translate
+                ['index' => $this->indexResource, 'count' => $maxEntries]
+            );
         }
 
         $this->logger->notice(

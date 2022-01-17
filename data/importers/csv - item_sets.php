@@ -23,7 +23,7 @@ return [
         ],
         'allow_duplicate_identifiers' => false,
         'entries_to_skip' => 0,
-        'entries_by_batch' => '',
+        'entries_max' => null,
         'resource_name' => '',
     ],
 ];

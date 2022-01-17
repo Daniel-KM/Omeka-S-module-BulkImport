@@ -19,13 +19,11 @@ abstract class AbstractResourceProcessorConfigForm extends Form
     {
         $this
             ->baseFieldset()
-            ->addFieldsets()
-            ->addEntriesToProcess();
+            ->addFieldsets();
 
         $this
             ->baseInputFilter()
-            ->addInputFilter()
-            ->addEntriesToProcessInputFilter();
+            ->addInputFilter();
     }
 
     protected function baseFieldset(): \Laminas\Form\Form
@@ -65,6 +63,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                     'value' => 'stop_on_error',
                 ],
             ])
+
+            ->add([
+                'name' => 'value_datatype_literal',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Use data type "literal" when a value is invalid', // @translate
+                    'info' => 'The mapping can be used for more precise process with "^^xxx; literal".', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'value_datatype_literal',
+                ],
+            ])
+
+            ->addEntriesToProcess()
 
             ->add([
                 'name' => 'action',
@@ -206,18 +218,6 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'attributes' => [
                     'id' => 'action_item_set_update',
                     'value' => \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
-                ],
-            ])
-
-            ->add([
-                'name' => 'value_datatype_literal',
-                'type' => Element\Checkbox::class,
-                'options' => [
-                    'label' => 'Use data type "literal" when a value is invalid', // @translate
-                    'info' => 'The mapping can be used for more precise process with "^^xxx; literal".', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'value_datatype_literal',
                 ],
             ])
 
@@ -393,7 +393,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 
     protected function baseInputFilter(): \Laminas\Form\Form
     {
-        $this->getInputFilter()
+        $this
+            ->getInputFilter()
             ->add([
                 'name' => 'o:resource_template',
                 'required' => false,
@@ -438,7 +439,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'name' => 'allow_duplicate_identifiers',
                 'required' => false,
             ]);
-        return $this;
+        return $this
+            ->addEntriesToProcessInputFilter();
     }
 
     protected function addInputFilter(): \Laminas\Form\Form

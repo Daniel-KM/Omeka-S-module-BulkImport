@@ -2,24 +2,18 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\EntriesToProcessTrait;
-
 class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
 {
-    use EntriesToProcessTrait;
-
     public function init(): void
     {
         $this
             ->baseFieldset()
             ->addFieldsets()
-            ->addEntriesToProcess()
             ->addMapping();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
-            ->addEntriesToProcessInputFilter()
             ->addMappingFilter();
     }
 
