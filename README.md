@@ -31,7 +31,7 @@ This module requires the module [Log] and optionnaly [Generic]. An external xslt
 processor may be needed if you import xml files that are not importable with
 xlt 1. Some specific readers or processors may need some other modules.
 
-**Important**: If you use the module [CSVImport] in parallel, you should apply
+**Important**: If you use the module [CSV Import] in parallel, you should apply
 [this patch] or use [this version].
 
 See general end user documentation for [installing a module].
@@ -227,6 +227,8 @@ The visibility of each data can be "public" (default) or "private", prefixed by 
 Media can be imported with the item. The mapping is automatic with headers `Media url`,
 `Media html`, etc.
 
+For more details about the possible values, see the [config above].
+
 ### Internal differences with Csv Import
 
 - Two columns with the same headers should be mapped the same.
@@ -238,7 +240,9 @@ Media can be imported with the item. The mapping is automatic with headers `Medi
 TODO
 ----
 
-- [ ] Full dry-run.
+- [ ] See todo in code.
+- [x] Full dry-run.
+- [ ] Extract list of metadata names during dry-run and output it to help building mapping.
 - [ ] Fix numeric data type (doctrine issue).
 - [ ] Distinction between skipped and blank (for spreadsheet).
 - [ ] Update for module Mapping.
@@ -246,8 +250,10 @@ TODO
 - [x] Import of uri with label in spreadsheet.
 - [ ] Import of uri with label in value suggest.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
+- [ ] Allow to set a query for Omeka S import.
 - [ ] Add check, in particular with multi-sheets.
 - [ ] Manage import of Custom vocab with items.
+- [ ] Convert specific importer into standard resource processor + pattern.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
 
@@ -329,6 +335,7 @@ by [BibLibre].
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
 [this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
+[config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
 [Spip]: https://spip.net
 [data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
