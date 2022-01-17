@@ -144,7 +144,7 @@ trait FileTrait
         $contentDispositionFilename = function ($string): ?string {
             $matches = [];
             preg_match('/filename[^;\n]*=\s*(UTF-\d[\'"]*)?(?<filename>([\'"]).*?[.]$\2|[^;\n]*)?/', (string) $string, $matches);
-            return isset($matches['filename']) ? trim($matches['filename'], '\'" ') : null;
+            return isset($matches['filename']) ? trim($matches['filename'], "\"' \n\r\t\v\0") : null;
         };
 
         if (function_exists('curl_init')) {
