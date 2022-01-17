@@ -465,6 +465,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         // Check through hydration and standard api.
+        /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
         $adapter = $this->adapterManager->get($resource['resource_name']);
 
         // Some options are useless here, but added anyway.
@@ -534,6 +535,18 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
+        // Don't check new files twice. Furthermore, the media are pre-hydrated
+        // and a flush somewhere may duplicate the item.
+        // TODO Use a second entity manager.
+        /*
+        $isItem = $resource['resource_name'] === 'items';
+        if ($isItem) {
+            $res = $request->getContent();
+            unset($res['o:media']);
+            $request->setContent($res);
+        }
+        */
+
         // Process hydration checks for remaining checks, in particular media.
         // This is the same operation than api create/update, but without
         // persisting entity.
@@ -548,6 +561,12 @@ class ResourceProcessor extends AbstractResourceProcessor
             ));
             return false;
         }
+
+        // Remove pre-hydrated entities from entity manager: it was only checks.
+        // TODO Ideally, checks should be done on a different entity manager, so modify service before and after.
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $entityManager->clear();
 
         // Merge error store with resource message store.
         $resource['messageStore']->mergeErrors($errorStore, 'validation');
