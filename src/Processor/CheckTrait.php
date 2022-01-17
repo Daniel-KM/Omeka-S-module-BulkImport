@@ -5,8 +5,6 @@ namespace BulkImport\Processor;
 use ArrayObject;
 use BulkImport\Entry\Entry;
 use Laminas\Log\Logger;
-use Log\Stdlib\PsrMessage;
-use Omeka\Stdlib\ErrorStore;
 
 /**
  * Manage checks of source.
@@ -226,7 +224,7 @@ SQL;
             return $this;
         }
 
-        $logging = function($message): array {
+        $logging = function ($message): array {
             if (is_string($message)) {
                 return [$message, []];
             }

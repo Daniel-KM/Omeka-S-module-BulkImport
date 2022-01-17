@@ -2,7 +2,6 @@
 namespace BulkImport\Processor;
 
 use BulkImport\AbstractPluginManager;
-use BulkImport\Processor\Processor;
 
 class Manager extends AbstractPluginManager
 {

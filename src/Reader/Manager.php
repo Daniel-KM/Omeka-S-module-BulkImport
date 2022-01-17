@@ -2,7 +2,6 @@
 namespace BulkImport\Reader;
 
 use BulkImport\AbstractPluginManager;
-use BulkImport\Reader\Reader;
 
 class Manager extends AbstractPluginManager
 {

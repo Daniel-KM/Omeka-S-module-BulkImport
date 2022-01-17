@@ -151,7 +151,7 @@ class Module extends AbstractModule
         $event->setParam('registered_names', $names);
     }
 
-    public function handleItemApiHydratePre(Event $event)
+    public function handleItemApiHydratePre(Event $event): void
     {
         /** @var \Omeka\Api\Request $request */
         $request = $event->getParam('request');
@@ -389,7 +389,7 @@ class Module extends AbstractModule
             ?: null;
     }
 
-    public function addHeadersAdmin(Event $event)
+    public function addHeadersAdmin(Event $event): void
     {
         $view = $event->getTarget();
         $assetUrl = $view->plugin('assetUrl');

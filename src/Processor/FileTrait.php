@@ -70,7 +70,7 @@ trait FileTrait
      */
     protected $checkAssetMediaType = false;
 
-    protected function initFileTrait()
+    protected function initFileTrait(): void
     {
         $services = $this->getServiceLocator();
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
@@ -325,19 +325,19 @@ trait FileTrait
                 }
                 return true;
             });
-                $iterator = new \RecursiveIteratorIterator($dir);
-                /** @var \SplFileInfo $file */
-                foreach ($iterator as $filepath => $file) {
-                    if ($this->verifyFile($filepath)) {
-                        // For security, don't display the full path to the user.
-                        $relativePath = substr($filepath, $lengthDir);
-                        // Use keys for quicker process on big directories.
-                        $listFiles[$relativePath] = null;
-                        if (pathinfo($filepath, PATHINFO_DIRNAME) === $directory) {
-                            $listRootFiles[$relativePath] = null;
-                        }
+            $iterator = new \RecursiveIteratorIterator($dir);
+            /** @var \SplFileInfo $file */
+            foreach ($iterator as $filepath => $file) {
+                if ($this->verifyFile($filepath)) {
+                    // For security, don't display the full path to the user.
+                    $relativePath = substr($filepath, $lengthDir);
+                    // Use keys for quicker process on big directories.
+                    $listFiles[$relativePath] = null;
+                    if (pathinfo($filepath, PATHINFO_DIRNAME) === $directory) {
+                        $listRootFiles[$relativePath] = null;
                     }
                 }
+            }
         } else {
             $iterator = new \DirectoryIterator($directory);
             /** @var \DirectoryIterator $file */

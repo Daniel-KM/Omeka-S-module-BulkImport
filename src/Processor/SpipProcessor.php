@@ -1641,7 +1641,7 @@ class SpipProcessor extends AbstractFullProcessor
         $this->entity->setIsPublic(true);
     }
 
-    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId): void
     {
         // Ici, les parents sont dans une autre table.
         if ($this->configThesaurus === 'mots') {
@@ -1673,7 +1673,7 @@ class SpipProcessor extends AbstractFullProcessor
         }
     }
 
-    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId): void
     {
         if ($this->configThesaurus === 'mots') {
             // Ici, pas d'enfants.
@@ -2466,7 +2466,7 @@ class SpipProcessor extends AbstractFullProcessor
         // est un array.
         $conceptsArticles = [];
         $conceptsSansArticles = [];
-        $buildMenu= null;
+        $buildMenu = null;
         $buildMenu = function (array $branches, int $level = 0) use (&$buildMenu, &$conceptsArticles, &$conceptsSansArticles): array {
             $menu = [];
             foreach ($branches as $branch) {
@@ -2550,7 +2550,7 @@ class SpipProcessor extends AbstractFullProcessor
      *
      * Les traductions sont gérées dans le module ou le thème.
      */
-    protected function removeMenuTraductions()
+    protected function removeMenuTraductions(): void
     {
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
@@ -2686,7 +2686,7 @@ class SpipProcessor extends AbstractFullProcessor
      * Le tri se fait avant la suppression des faux éléments structurels, car il
      * faut connaître les numéros, qui ne sont pas dans les articles.
      */
-    protected function sortMenu()
+    protected function sortMenu(): void
     {
         /** @var \Omeka\Settings\SiteSettings $siteSettings */
         $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
@@ -2757,7 +2757,7 @@ class SpipProcessor extends AbstractFullProcessor
      *
      * Les sous-rubriques à conserver peuvent être indiquées dans le fichier "data/configs/spip/clean-menu-keep.php".
      */
-    protected function cleanMenu()
+    protected function cleanMenu(): void
     {
         $exceptions = include __DIR__ . '/../../data/configs/spip/clean-menu-keep.php';
 
@@ -2999,7 +2999,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         $result = [$resource->id() => $resource];
         $iterator = null;
-        $iterator = function (AbstractResourceEntityRepresentation $resource, $level = 0) use(&$iterator, &$result, $propertyTerm, $propertyId): void {
+        $iterator = function (AbstractResourceEntityRepresentation $resource, $level = 0) use (&$iterator, &$result, $propertyTerm, $propertyId): void {
             if ($level > 100) {
                 return;
             }

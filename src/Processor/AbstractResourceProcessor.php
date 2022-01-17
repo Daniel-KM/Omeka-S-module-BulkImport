@@ -1999,7 +1999,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 : new \SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $pathOrUrl);
             $realPath = $fileinfo->getRealPath();
             $this->store->put($realPath, 'asset/' . $storageId . '.' . $extension);
-            $fullPath = $this->basePath . '/asset/'  . $storageId . '.' . $extension;
+            $fullPath = $this->basePath . '/asset/' . $storageId . '.' . $extension;
         }
 
         // A check to get the real medai-type and extension.

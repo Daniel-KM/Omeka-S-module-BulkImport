@@ -264,7 +264,7 @@ trait ThesaurusTrait
 
     protected function labelKeyForSort($labelKey, $id): string
     {
-        return sprintf('%s#%s', $labelKey , $id);
+        return sprintf('%s#%s', $labelKey, $id);
     }
 
     protected function sortNarrowers(array $narrowers): array
@@ -374,7 +374,7 @@ trait ThesaurusTrait
         $this->orderAndAppendValues($values);
     }
 
-    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId): void
     {
         if ($keyParentId && $source[$keyParentId]) {
             $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
@@ -399,7 +399,7 @@ trait ThesaurusTrait
         }
     }
 
-    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId)
+    protected function fillConceptProcessNarrowers(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId): void
     {
         if (empty($this->thesaurus[$mappingName]['narrowers'][$source[$keyId]])) {
             return;

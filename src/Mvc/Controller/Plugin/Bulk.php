@@ -33,7 +33,6 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
-use Omeka\DataType\Manager as DataTypeManager;
 
 /**
  * Adapted from the controller plugin of the module Csv Import
@@ -536,7 +535,7 @@ class Bulk extends AbstractPlugin
      */
     public function getDataTypeName($dataType): ?string
     {
-        $datatypes =  $this->getDataTypeNames();
+        $datatypes = $this->getDataTypeNames();
         return $datatypes[$dataType]
             // Manage exception for customvocab, that may use label as name.
             ?? $this->getCustomVocabDataTypeName($dataType);

@@ -2,7 +2,7 @@
 
 namespace BulkImport\Stdlib;
 
-use \Laminas\Log\Logger;
+use Laminas\Log\Logger;
 
 /**
  * Error key/message store with severity level.
@@ -123,7 +123,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
             $flatArray = [];
             foreach ($this->messages[$severity] as $key => $message) {
                 if (is_array($message)) {
-                    array_walk_recursive($message, function($data) use(&$flatArray, $key) {
+                    array_walk_recursive($message, function ($data) use (&$flatArray, $key): void {
                         $flatArray[$key][] = $data;
                     });
                 } else {

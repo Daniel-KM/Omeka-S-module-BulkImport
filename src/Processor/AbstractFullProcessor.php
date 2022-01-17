@@ -587,7 +587,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         /** @var \Laminas\EventManager\EventManager $eventManager */
         $eventManager = $services->get('EventManager');
-        $args = $eventManager ->prepareArgs([
+        $args = $eventManager->prepareArgs([
             'job' => $this->job,
             'processor' => $this,
             'logger' => $this->logger,
@@ -1206,12 +1206,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (count($ids)) {
             $this->logger->notice(
                 'Updating titles for {total} resources.', // @translate
-                ['total'=> count($ids)]
+                ['total' => count($ids)]
             );
             $this->dispatchJob(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids]);
             $this->logger->notice(
                 'Titles updated for {total} resources.', // @translate
-                ['total'=> count($ids)]
+                ['total' => count($ids)]
             );
         }
 
@@ -1223,7 +1223,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         /** @var \Laminas\EventManager\EventManager $eventManager */
         $eventManager = $services->get('EventManager');
-        $args = $eventManager ->prepareArgs([
+        $args = $eventManager->prepareArgs([
             'job' => $this->job,
             'processor' => $this,
             'logger' => $this->logger,
@@ -1309,7 +1309,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
     }
 
-    protected function dispatchJob(string $jobClass, ?array $args = null, bool $asynchronous = false)
+    protected function dispatchJob(string $jobClass, ?array $args = null, bool $asynchronous = false): void
     {
         /** @var \Omeka\Mvc\Controller\Plugin\JobDispatcher $dispatcher */
         $services = $this->getServiceLocator();

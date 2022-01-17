@@ -422,7 +422,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             if (is_null($firstIndexIsOneBased)) {
                 $firstIndexIsOneBased = (int) empty($index);
             }
-            $data = array_filter($row->getCells(), function(\Box\Spout\Common\Entity\Cell $cell) {
+            $data = array_filter($row->getCells(), function (\Box\Spout\Common\Entity\Cell $cell) {
                 return $cell->getValue() !== '';
             });
             if (count($data)) {

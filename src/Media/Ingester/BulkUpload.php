@@ -136,10 +136,10 @@ HTML;
         switch ($lastChar) {
             case 'g':
                 $value *= 1024;
-                // No break.
+                // no break.
             case 'm':
                 $value *= 1024;
-                // No break.
+                // no break.
             case 'k':
                 $value *= 1024;
         }
