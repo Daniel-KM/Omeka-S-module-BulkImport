@@ -2,12 +2,10 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\EntriesByBatchTrait;
 use BulkImport\Form\EntriesToProcessTrait;
 
 class MediaProcessorParamsForm extends MediaProcessorConfigForm
 {
-    use EntriesByBatchTrait;
     use EntriesToProcessTrait;
 
     public function init(): void
@@ -16,14 +14,12 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
             ->baseFieldset()
             ->addFieldsets()
             ->addEntriesToProcess()
-            ->addEntriesByBatch()
             ->addMapping();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
             ->addEntriesToProcessInputFilter()
-            ->addEntriesByBatchInputFilter()
             ->addMappingFilter();
     }
 

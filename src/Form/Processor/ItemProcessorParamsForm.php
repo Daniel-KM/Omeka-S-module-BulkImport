@@ -2,12 +2,10 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\EntriesByBatchTrait;
 use BulkImport\Form\EntriesToProcessTrait;
 
 class ItemProcessorParamsForm extends ItemProcessorConfigForm
 {
-    use EntriesByBatchTrait;
     use EntriesToProcessTrait;
 
     public function init(): void
@@ -16,14 +14,12 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
             ->baseFieldset()
             ->addFieldsets()
             ->addEntriesToProcess()
-            ->addEntriesByBatch()
             ->addMapping();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
             ->addEntriesToProcessInputFilter()
-            ->addEntriesByBatchInputFilter()
             ->addMappingFilter();
     }
 

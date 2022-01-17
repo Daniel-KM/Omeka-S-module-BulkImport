@@ -3,7 +3,6 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Form\EntriesByBatchTrait;
 use BulkImport\Form\EntriesToProcessTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
@@ -14,7 +13,6 @@ use Omeka\Form\Element as OmekaElement;
 abstract class AbstractResourceProcessorConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
-    use EntriesByBatchTrait;
     use EntriesToProcessTrait;
 
     public function init(): void
@@ -22,14 +20,12 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $this
             ->baseFieldset()
             ->addFieldsets()
-            ->addEntriesToProcess()
-            ->addEntriesByBatch();
+            ->addEntriesToProcess();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
-            ->addEntriesToProcessInputFilter()
-            ->addEntriesByBatchInputFilter();
+            ->addEntriesToProcessInputFilter();
     }
 
     protected function baseFieldset(): \Laminas\Form\Form
