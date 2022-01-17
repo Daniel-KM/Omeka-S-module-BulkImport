@@ -490,7 +490,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
             $entity = $adapter->findEntity($resource['o:id']);
             // \Omeka\Api\Adapter\AbstractEntityAdapter::authorize() is protected.
-            if (!$this->acl->authorize($entity, $operation)) {
+            if (!$this->acl->userIsAllowed($entity, $operation)) {
                 $resource['messageStore']->addError('rights', new PsrMessage(
                     'User has no rights to "{action}" {resource_name} {resource_id}.', // @translate
                     ['action' => $operation, 'resource_name' => $resource['resource_name'], 'resource_id' => $resource['o:id']]
