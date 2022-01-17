@@ -37,6 +37,10 @@ class OmekaSReader extends AbstractPaginatedReader
         'key_credential',
     ];
 
+    protected $contentType = 'application/json';
+
+    protected $charset = 'utf-8';
+
     /**
      * @var array
      */
@@ -96,7 +100,7 @@ class OmekaSReader extends AbstractPaginatedReader
     {
         $this->initArgs();
 
-        if (!$this->isValidUrl('-context', '', [], 'application/json', 'utf-8')) {
+        if (!$this->isValidUrl('-context', '', [], $this->contentType, $this->charset)) {
             return false;
         }
 

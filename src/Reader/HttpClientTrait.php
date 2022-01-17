@@ -16,7 +16,7 @@ trait HttpClientTrait
     /**
      * @var string
      */
-    protected $userAgent = 'Omeka S - module BulkImport version 3.3.28.0';
+    protected $userAgent = 'Omeka S - module BulkImport version 3.3.29.0';
 
     /**
      * @var \Laminas\Http\Client
@@ -32,6 +32,13 @@ trait HttpClientTrait
      * @var \Laminas\Http\Response
      */
     protected $currentResponse;
+
+    /**
+     * This url is set when a http request is done, so the one used by response.
+     *
+     * @var string
+     */
+    protected $lastRequestUrl;
 
     /**
      * This method is mainly used outside.
@@ -65,11 +72,15 @@ trait HttpClientTrait
     }
 
     /**
-     * @return bool
+     * Check the endpoint.
      */
-    protected function isValidUrl(string $path = '', string $subpath = '', array $params = []): bool
-    {
-        // Check the endpoint.
+    protected function isValidUrl(
+        string $path = '',
+        string $subpath = '',
+        array $params = [],
+        ?string $contentType = null,
+        ?string $charset = null
+    ): bool {
         try {
             $response = $this->fetchData($path, $subpath, $params);
         } catch (\Laminas\Http\Exception\RuntimeException $e) {
@@ -80,24 +91,64 @@ trait HttpClientTrait
             return false;
         }
 
+        return $this->isValidHttpResponse($response, $contentType, $charset);
+    }
+
+    /**
+     * Check any url.
+     */
+    protected function isValidDirectUrl(string $url, ?string $contentType = null, ?string $charset = null): bool
+    {
+        try {
+            $response = $this->fetchUrl($url);
+        } catch (\Laminas\Http\Exception\RuntimeException $e) {
+            $this->lastErrorMessage = $e->getMessage();
+            return false;
+        } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
+            $this->lastErrorMessage = $e->getMessage();
+            return false;
+        }
+
+        return $this->isValidHttpResponse($response, $contentType, $charset);
+    }
+
+    protected function isValidHttpResponse(Response $response, ?string $contentType = null, ?string $charset = null): bool
+    {
         if (!$response->isSuccess()) {
             $this->lastErrorMessage = $response->renderStatusLine();
             return false;
         }
 
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($contentType->getMediaType() !== 'application/json'
-            || strtolower($contentType->getCharset()) !== 'utf-8'
-        ) {
-            $this->lastErrorMessage = new PsrMessage(
-                'Content-type "{content_type}" is invalid.', // @translate
-                ['content_type' => $contentType->toString()]
-            );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
-                $this->lastErrorMessage->getMessage(),
-                $this->lastErrorMessage->getContext()
-            );
-            return false;
+        if ($contentType) {
+            $responseContentType = $response->getHeaders()->get('Content-Type');
+            if ($responseContentType->getMediaType() !== $contentType) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Content-type "{content_type}" is invalid for url "{url}". It should be "{content_type_2}".', // @translate
+                    ['content_type' => $responseContentType->getMediaType(), 'url' => $this->lastRequestUrl, 'content_type_2' => $contentType]
+                );
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    $this->lastErrorMessage->getMessage(),
+                    $this->lastErrorMessage->getContext()
+                );
+                return false;
+            }
+        }
+
+        if ($charset) {
+            $responseContentType = $response->getHeaders()->get('Content-Type');
+            // Some servers don't send charset (see sub-queries for Content-DM).
+            $currentCharset = (string) $responseContentType->getCharset();
+            if ($currentCharset && strtolower($currentCharset) !== strtolower($charset)) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Charset "{charset}" is invalid for url "{url}". It should be "{charset_2}"', // @translate
+                    ['charset' => $responseContentType->getCharset(), 'url' => $this->lastRequestUrl, 'charset_2' => $charset]
+                );
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    $this->lastErrorMessage->getMessage(),
+                    $this->lastErrorMessage->getContext()
+                );
+                return false;
+            }
         }
 
         return true;
@@ -149,16 +200,21 @@ trait HttpClientTrait
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    protected function fetchUrl(string $url, array $query): Response
+    protected function fetchUrl(string $url, array $query = [], array $headers = []): Response
     {
+        $this->lastRequestUrl = $url;
         return $this->getHttpClient()
             ->resetParameters()
             ->setUri($url)
+            ->setHeaders($headers)
             ->setMethod(Request::METHOD_GET)
             ->setParameterGet($query)
             ->send();
     }
 
+    /**
+     * @todo To be moved in json reader.
+     */
     protected function fetchUrlJson(string $url, array $query = [], ?array $headers = null): array
     {
         // TODO See OaiPmhHarvester for user agent.
@@ -168,6 +224,7 @@ trait HttpClientTrait
         ];
         $headers = is_null($headers) ? $defaultHeaders : $headers + $defaultHeaders;
 
+        $this->lastRequestUrl = $url;
         $response = HttpClientStatic::get($url, $query, $headers);
         if (!$response->isSuccess()) {
             return [];

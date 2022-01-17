@@ -6,6 +6,7 @@ use ArrayIterator;
 use BulkImport\Entry\Entry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
+use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
 class JsonReader extends AbstractPaginatedReader
@@ -25,6 +26,10 @@ class JsonReader extends AbstractPaginatedReader
         'filename',
         'url',
     ];
+
+    protected $contentType = 'application/json';
+
+    protected $charset = 'utf-8';
 
     /**
      * @var ?string
@@ -88,45 +93,18 @@ class JsonReader extends AbstractPaginatedReader
         ]);
     }
 
-    /**
-     * @return bool
-     */
     public function isValid(): bool
     {
         $this->initArgs();
 
-        if (!$this->isValidUrl()) {
-            return false;
-        }
-        // Check the endpoint.
-
-        $check = ['path' => '', 'subpath' => '', 'params' => []];
-        try {
-            $response = $this->fetch($check['path'], $check['subpath'], $check['params']);
-        } catch (\Laminas\Http\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
-            return false;
-        } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
-            return false;
-        }
-        if (!$response->isSuccess()) {
-            $this->lastErrorMessage = $response->renderStatusLine();
-            return false;
-        }
-        $contentType = $response->getHeaders()->get('Content-Type');
-        if ($contentType->getMediaType() !== 'application/json'
-            || strtolower($contentType->getCharset()) !== 'utf-8'
-        ) {
-            $this->lastErrorMessage = new PsrMessage(
-                'Content-type "{content_type}" is invalid.', // @translate
-                ['content_type' => $contentType->toString()]
-            );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
-                $this->lastErrorMessage->getMessage(),
-                $this->lastErrorMessage->getContext()
-            );
-            return false;
+        if (empty($this->params['url'])) {
+            if (!$this->isValidUrl('', '', [], $this->contentType, $this->charset)) {
+                return false;
+            }
+        } else {
+            if (!$this->isValidDirectUrl($this->params['url'])) {
+                return false;
+            }
         }
 
         return true;
@@ -135,19 +113,20 @@ class JsonReader extends AbstractPaginatedReader
     protected function currentPage(): void
     {
         $this->currentResponse = $this->fetchData($this->path, $this->subpath, array_merge($this->filters, $this->queryParams), $this->currentPage);
-        $json = json_decode($this->currentResponse->getBody(), true) ?: [];
-        if (!$this->currentResponse->isSuccess()) {
-            if ($json && isset($json['errors']['error'])) {
-                $this->lastErrorMessage = new PsrMessage(
-                    'Unable to fetch data for the page {page}: {error}.', // @translate
-                    ['page' => $this->currentPage, 'error' => $json['errors']['error']]
-                );
-            } else {
-                $this->lastErrorMessage = new PsrMessage(
-                    'Unable to fetch data for the page {page}.', // @translate
-                    ['page' => $this->currentPage]
-                );
-            }
+
+        // Sometime, the url returns a html page in case of error, but this is
+        // not an error page…
+        $currentContentType = $this->currentResponse->getHeaders()->get('Content-Type');
+        $currentMediaType = $currentContentType->getMediaType();
+        $currentCharset = (string) $currentContentType->getCharset();
+        if ($currentMediaType !== 'application/json'
+            // Some servers don't send charset (see sub-queries for Content-DM).
+            || ($currentCharset && strtolower($currentCharset) !== 'utf-8')
+        ) {
+            $this->lastErrorMessage = new PsrMessage(
+                'Content-type "{content_type}" or charset "{charset}" is invalid for url {"url"}.', // @translate
+                ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->lastRequestUrl]
+            );
             $this->getServiceLocator()->get('Omeka\Logger')->err(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
@@ -157,6 +136,39 @@ class JsonReader extends AbstractPaginatedReader
             return;
         }
 
+        if (!$this->currentResponse->isSuccess()) {
+            $this->lastErrorMessage = new PsrMessage(
+                'Unable to fetch data for the page {page}, url "{url}".', // @translate
+                ['page' => $this->currentPage, 'url' => $this->lastRequestUrl]
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
+            $this->currentResponse = null;
+            $this->setInnerIterator(new ArrayIterator([]));
+            return;
+        }
+
+        // This is the check for Omeka S. To be moved.
+        $json = json_decode($this->currentResponse->getBody(), true) ?: [];
+        if ($json && isset($json['errors']['error'])) {
+            $this->lastErrorMessage = new PsrMessage(
+                'Unable to fetch data for the page {page} (url "{url}"): {error}.', // @translate
+                ['page' => $this->currentPage, 'url' => $this->lastRequestUrl, 'error' => $json['errors']['error']]
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
+            $this->currentResponse = null;
+            $this->setInnerIterator(new ArrayIterator([]));
+            return;
+        }
+
+        if (!is_array($json)) {
+            $json = [];
+        }
         $this->setInnerIterator(new ArrayIterator($json));
     }
 

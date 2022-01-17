@@ -21,6 +21,20 @@ abstract class AbstractPaginatedReader extends AbstractReader
     const PAGE_LIMIT = 100;
 
     /**
+     * The content type of the content.
+     *
+     * @var string
+     */
+    protected $contentType;
+
+    /**
+     * The charset of the content.
+     *
+     * @var string
+     */
+    protected $charset;
+
+    /**
      * @var array
      */
     protected $pageIterator;
@@ -176,9 +190,6 @@ abstract class AbstractPaginatedReader extends AbstractReader
         return $this->getArrayCopy();
     }
 
-    /**
-     * @return bool
-     */
     public function isValid(): bool
     {
         $this->initArgs();
