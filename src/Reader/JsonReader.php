@@ -122,7 +122,7 @@ class JsonReader extends AbstractPaginatedReader
             || ($currentCharset && strtolower($currentCharset) !== 'utf-8')
         ) {
             $this->lastErrorMessage = new PsrMessage(
-                'Content-type "{content_type}" or charset "{charset}" is invalid for url {"url"}.', // @translate
+                'Content-type "{content_type}" or charset "{charset}" is invalid for url "{url}".', // @translate
                 ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->lastRequestUrl]
             );
             $this->getServiceLocator()->get('Omeka\Logger')->err(

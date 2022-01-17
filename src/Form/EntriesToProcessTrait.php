@@ -31,7 +31,6 @@ trait EntriesToProcessTrait
                 'type' => Element\Number::class,
                 'options' => [
                     'label' => 'Max number of entries to process', // @translate
-                    'info' => 'This option is mainly for testing or checking purpose.', // @translate
                 ],
                 'attributes' => [
                     'attributes' => [
