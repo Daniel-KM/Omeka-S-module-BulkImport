@@ -3,6 +3,11 @@
 
         const basePath = window.location.pathname.replace(/\/admin\/.*/, '');
 
+        // May avoid crash on big import and small user computer.
+        const maxSizeThumbnail = 3000000;
+        const maxTotalSizeThumbnails = 100000000;
+        const maxCountThumbnails = 200;
+
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Add the listener on existing and new media files upload buttons.
         // The new listener is set above to manage dynamically created medias.
@@ -32,6 +37,7 @@
                 const maxSizePost = parseInt(inputUpload.data('max-size-post'));
                 const maxFileUploads = parseInt(inputUpload.data('max-file-uploads'));
                 const list = document.createElement('ol');
+                var index = 0;
                 var total = 0;
                 preview.appendChild(list);
                 for (const file of curFiles) {
@@ -45,8 +51,11 @@
                         const image = document.createElement('img');
                         const mainType = file.type.split('/')[0];
                         const subType = file.type.split('/')[1];
-                        image.src = file.size < 20000000
-                            && mainType === 'image' && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
+                        image.src = mainType === 'image'
+                            && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
+                            && file.size <= maxSizeThumbnail
+                            && total <= maxTotalSizeThumbnails
+                            && ++index <= maxCountThumbnails
                             ? URL.createObjectURL(file)
                             : defaultThumbnailUrl(file);
                         divImage.appendChild(image);
