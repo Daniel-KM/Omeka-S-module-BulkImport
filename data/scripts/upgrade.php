@@ -2,6 +2,9 @@
 
 namespace BulkImport;
 
+use Omeka\Mvc\Controller\Plugin\Messenger;
+use Omeka\Stdlib\Message;
+
 /**
  * @var Module $this
  * @var \Laminas\ServiceManager\ServiceLocatorInterface $serviceLocator
@@ -380,4 +383,12 @@ SQL;
     foreach (array_filter(array_map('trim', explode(";\n", $sqls))) as $sql) {
         $connection->executeStatement($sql);
     }
+}
+
+if (version_compare($oldVersion, '3.3.29.0', '<')) {
+    $messenger = new Messenger();
+    $message = new Message(
+        'It’s now possible to upload files and directories in bulk in item form.' // @translate
+    );
+    $messenger->addSuccess($message);
 }
