@@ -32,6 +32,8 @@ return [
     'resource class' => 'o:resource_class',
     'visibility' => 'o:is_public',
     'public' => 'o:is_public',
+    'asset' => 'o:thumbnail',
+    'thumbnail' => 'o:thumbnail',
     'item set' => 'o:item_set',
     'item sets' => 'o:item_set',
     'collection' => 'o:item_set',

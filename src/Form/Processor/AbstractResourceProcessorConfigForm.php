@@ -387,6 +387,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'options' => [
                     'o:resource_template' => 'Resource template', // @translate
                     'o:resource_class' => 'Resource class', // @translate
+                    'o:thumbnail' => 'Thumbnail', // @translate
                     'o:owner' => 'Owner', // @translate
                     'o:is_public' => 'Visibility public/private', // @translate
                 ],

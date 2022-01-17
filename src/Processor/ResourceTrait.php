@@ -59,6 +59,7 @@ trait ResourceTrait
         $this->sourceKeyId = $keyId;
         $classId = $this->mapping[$sourceType]['resource_class_id'] ?? null;
         $templateId = $this->mapping[$sourceType]['resource_template_id'] ?? null;
+        $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
 
         // Check the size of the import.
         $this->countEntities($sources, $sourceType);
@@ -123,7 +124,7 @@ trait ResourceTrait
             $this->map[$sourceTypeSub] = $this->map[$sourceType];
         }
 
-        $this->createEmptyResources($sourceType, $classId, $templateId);
+        $this->createEmptyResources($sourceType, $classId, $templateId, $thumbnailId);
         $this->createEmptyResourcesSpecific($sourceType, $mediaItems);
 
         if ($hasSub) {
@@ -140,12 +141,14 @@ trait ResourceTrait
     protected function createEmptyResources(
         string $sourceType,
         int $resourceClassId = null,
-        int $resourceTemplateId = null
+        int $resourceTemplateId = null,
+        int $thumbnailId
     ): void {
         // The pre-import is done with the default owner and updated later.
         $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
         $resourceClass = $resourceClassId ?: 'NULL';
         $resourceTemplate = $resourceTemplateId ?: 'NULL';
+        $resourceThumbnail = $thumbnailId ?: 'NULL';
         $class = $this->importables[$sourceType]['class'];
         $resourceNameClass = $this->connection->quote($class);
 
@@ -173,7 +176,7 @@ SQL;
 INSERT INTO `resource`
     (`id`, `owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
-    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, NULL, id
+    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, $resourceThumbnail, id
 FROM `_temporary_source_resource`;
 
 DROP TABLE IF EXISTS `_temporary_source_resource`;
@@ -183,7 +186,7 @@ SQL;
 INSERT INTO `resource`
     (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
 SELECT
-    $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, NULL, id
+    $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, $resourceThumbnail, id
 FROM `_temporary_source_resource`;
 
 DROP TABLE IF EXISTS `_temporary_source_resource`;

@@ -500,6 +500,19 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Check if an asset exists from id.
+     */
+    public function getAssetId($id): ?int
+    {
+        $id = (int) $id;
+        if (!$id) {
+            return null;
+        }
+        $result = $this->api->searchOne('assets', ['id' => $id])->getContent();
+        return $result ? $id : null;
+    }
+
+    /**
      * Check if a string is a managed data type.
      */
     public function isDataType($dataType): bool

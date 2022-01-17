@@ -12,6 +12,7 @@ use BulkImport\Traits\ParametrizableTrait;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
+use Omeka\Entity\Asset;
 
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
 {
@@ -178,6 +179,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             'o:resource_template' => null,
             'o:resource_class' => null,
+            'o:thumbnail' => null,
             'o:owner' => null,
             'o:is_public' => null,
 
@@ -584,6 +586,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Generic.
             'o:resource_template' => null,
             'o:resource_class' => null,
+            'o:thumbnail' => null,
             'o:owner' => null,
             // Media.
             'o:item' => null,
@@ -706,6 +709,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resourceClassId = $this->getParam('o:resource_class');
         if ($resourceClassId) {
             $resource['o:resource_class'] = ['o:id' => $resourceClassId];
+        }
+        $thumbnailId = $this->getParam('o:thumbnail');
+        if ($thumbnailId) {
+            $resource['o:thumbnail'] = ['o:id' => $thumbnailId];
         }
         $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
         if ($ownerId === 'current') {
@@ -1010,6 +1017,37 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
                 return true;
 
+            case 'o:thumbnail':
+                $value = array_pop($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
+                    $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
+                    $value = $id ?? $url ?? null;
+                }
+                if (is_numeric($value)) {
+                    $id = $this->bulk->getAssetId($value);
+                } elseif (is_string($value)) {
+                    // TODO Temporary creation of the asset.
+                    $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                    $id = $asset ? $asset->getId() : null;
+                }
+                if ($id) {
+                    $resource['o:thumbnail'] = empty($altText)
+                        ? ['o:id' => $id]
+                        // TODO Check if the alt text is updated.
+                        : ['o:id' => $id, 'o:alt_text' => $altText];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The thumbnail "{source}" does not exist or cannot be created.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
             case 'o:owner':
                 $value = array_pop($values);
                 if (!$value) {
@@ -1082,6 +1120,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
+    /**
+     * @todo Factorize with fillGeneric().
+     */
     protected function fillSingleEntity(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
     {
         if (empty($value)) {
@@ -1126,6 +1167,33 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resource['o:resource_class'] = null;
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The resource class "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            case 'o:thumbnail':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
+                    $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
+                    $value = $id ?? $url ?? null;
+                }
+                if (is_numeric($value)) {
+                    $id = $this->bulk->getAssetId($value);
+                } elseif (is_string($value)) {
+                    // TODO Temporary creation of the asset.
+                    $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                    $id = $asset ? $asset->getId() : null;
+                }
+                if ($id) {
+                    $resource['o:thumbnail'] = empty($altText)
+                        ? ['o:id' => $id]
+                        // TODO Check if the alt text is updated.
+                        : ['o:id' => $id, 'o:alt_text' => $altText];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The thumbnail "{source}" does not exist or cannot be created.', // @translate
                         ['source' => $value]
                     ));
                 }
@@ -1843,5 +1911,78 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
         $this->setParams(array_merge($this->getParams() + $internalParams));
         return $this;
+    }
+
+    /**
+     * Create a new asset from a url.
+     *
+     * @todo Find the good position of this function.
+     * @todo Rewrite and simplify.
+     */
+    protected function createAssetFromUrl(string $pathOrUrl, ?MessageStore $messageStore = null): ?Asset
+    {
+        // AssetAdapter requires an uploaded file, but it's common to use urls
+        // in bulk import.
+        $isUrl = $this->bulk->isUrl($pathOrUrl);
+        $this->checkAssetMediaType = true;
+        if ($isUrl) {
+            $result = $this->checkUrl($pathOrUrl, $messageStore);
+        } else {
+            $result = $this->checkFile($pathOrUrl, $messageStore);
+        }
+        if (!$result) {
+            return null;
+        }
+
+        $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
+        $filename = mb_substr(basename($pathOrUrl), 0, 255);
+        // TODO Set the real extension via tempFile().
+        $extension = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
+
+        if ($isUrl) {
+            $result = $this->fetchUrl(
+                'asset',
+                $filename,
+                $filename,
+                $storageId,
+                $extension,
+                $pathOrUrl
+            );
+            if ($result['status'] !== 'success') {
+                $messageStore->addError('file', $result['message']);
+                return null;
+            }
+            $fullPath = $result['data']['fullpath'];
+        } else {
+            $isAbsolutePathInsideDir = strpos($pathOrUrl, $this->sideloadPath) === 0;
+            $fileinfo = $isAbsolutePathInsideDir
+                ? new \SplFileInfo($pathOrUrl)
+                : new \SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $pathOrUrl);
+            $realPath = $fileinfo->getRealPath();
+            $this->store->put($realPath, 'asset/' . $storageId . '.' . $extension);
+            $fullPath = $this->basePath . '/asset/'  . $storageId . '.' . $extension;
+        }
+
+        // A check to get the real medai-type and extension.
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mediaType = $finfo->file($fullPath);
+        $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
+        // TODO Get the extension from the media type or use standard asset uploaded.
+
+        $asset = new \Omeka\Entity\Asset;
+        $asset->setName($filename);
+        // TODO Use the user specified in the config.
+        $asset->setOwner($this->user);
+        $asset->setStorageId($storageId);
+        $asset->setExtension($extension);
+        $asset->setMediaType($mediaType);
+        $asset->setAltText(null);
+
+        // TODO Remove this flush (required because there is a clear() after checks).
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $entityManager->persist($asset);
+        $entityManager->flush();
+
+        return $asset;
     }
 }

@@ -21,6 +21,16 @@ trait FileTrait
     protected $isInitFileTrait = false;
 
     /**
+     * @var \Omeka\File\TempFileFactory
+     */
+    protected $tempFileFactory;
+
+    /**
+     * @var \Omeka\File\Store\StoreInterface
+     */
+    protected $store;
+
+    /**
      * @var bool
      */
     protected $disableFileValidation = false;
@@ -55,9 +65,18 @@ trait FileTrait
      */
     protected $asAssociative = true;
 
+    /**
+     * @var bool
+     */
+    protected $checkAssetMediaType = false;
+
     protected function initFileTrait()
     {
-        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $services = $this->getServiceLocator();
+        $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
+        $this->store = $services->get('Omeka\File\Store');
+
+        $settings = $services->get('Omeka\Settings');
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist') ?: [];
         $this->allowedExtensions = $settings->get('extension_whitelist') ?: [];
@@ -461,7 +480,9 @@ trait FileTrait
         }
         $isValid = true;
         if ($mediaType) {
-            if (!in_array($mediaType, $this->allowedMediaTypes)) {
+            if ((!$this->checkAssetMediaType && !in_array($mediaType, $this->allowedMediaTypes))
+                || ($this->checkAssetMediaType && !in_array($mediaType, \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES))
+            ) {
                 $isValid = false;
                 if ($messageStore) {
                     $messageStore->addError('file', new PsrMessage(
@@ -483,6 +504,7 @@ trait FileTrait
                 }
             }
         }
+        $this->checkAssetMediaType = false;
         return $isValid;
     }
 
@@ -501,6 +523,7 @@ trait FileTrait
      * @return array
      *
      * @todo Use \Omeka\File\Downloader
+     * @todo Rewrite method to fetch url: the filename and extension may not be known.
      */
     protected function fetchUrl($type, $sourceName, $filename, $storageId, $extension, $url)
     {
@@ -529,22 +552,27 @@ trait FileTrait
             ];
         }
 
-        $destFile = $type . '/' . $storageId . '.' . $extension;
-        $destPath = $this->basePath . '/' . $destFile;
+        $destFile = $storageId . '.' . $extension;
+        $destPath = $this->basePath . '/' . $type . '/' . $destFile;
 
         if ($this->getParam('fake_files')) {
+            // TODO Add a temp file for fake files.
             $fakeFile = OMEKA_PATH . '/application/asset/thumbnails/image.png';
-            $this->store->put($fakeFile, 'original/' . $destFile);
-            $this->store->put($fakeFile, 'large/' . $destFile);
-            $this->store->put($fakeFile, 'medium/' . $destFile);
-            $this->store->put($fakeFile, 'square/' . $destFile);
+            if ($type === 'asset') {
+                $this->store->put($fakeFile, 'asset/' . $destFile);
+            } else {
+                $this->store->put($fakeFile, 'original/' . $destFile);
+                $this->store->put($fakeFile, 'large/' . $destFile);
+                $this->store->put($fakeFile, 'medium/' . $destFile);
+                $this->store->put($fakeFile, 'square/' . $destFile);
+            }
             return [
                 'status' => 'success',
                 'data' => [
                     'fullpath' => $destPath,
                     'media_type' => 'image/png',
                     'sha256' => 'fa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17efa4ef17e',
-                    'has_thumbnails' => true,
+                    'has_thumbnails' => $type === 'asset',
                     'size' => 894,
                     'is_fake_file' => true,
                 ],
@@ -575,8 +603,6 @@ trait FileTrait
                 ),
             ];
         }
-
-
 
         // In all cases, the media type is checked for aliases.
         // @see \Omeka\File\TempFile::getMediaType().
@@ -639,10 +665,12 @@ trait FileTrait
             'status' => 'success',
             'data' => [
                 'fullpath' => $destPath,
+                'extension' => $tempFile->getExtension(),
                 'media_type' => $tempFile->getMediaType(),
                 'sha256' => $tempFile->getSha256(),
                 'has_thumbnails' => $hasThumbnails,
                 'size' => $tempFile->getSize(),
+                'tempFile' => $tempFile,
             ],
         ];
     }

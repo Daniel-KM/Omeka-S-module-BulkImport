@@ -80,7 +80,7 @@ abstract class AbstractProcessor implements Processor
     protected $apiManager;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk;
+     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
     protected $bulk;
 
@@ -90,11 +90,23 @@ abstract class AbstractProcessor implements Processor
     protected $translator;
 
     /**
+     * @var \Omeka\Entity\User
+     */
+    protected $user;
+
+    /**
      * Base path of the files.
      *
      * @var string
      */
     protected $basePath;
+
+    /**
+     * Temp path for the files.
+     *
+     * @var string
+     */
+    protected $tempPath;
 
     /**
      * Processor constructor.
@@ -109,8 +121,10 @@ abstract class AbstractProcessor implements Processor
         $this->apiManager = $services->get('Omeka\ApiManager');
         $this->bulk = $services->get('ControllerPluginManager')->get('bulk');
         $this->translator = $services->get('MvcTranslator');
+        $this->user = $services->get('Omeka\AuthenticationService')->getIdentity();
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
     }
 
     public function setReader(Reader $reader): \BulkImport\Processor\Processor

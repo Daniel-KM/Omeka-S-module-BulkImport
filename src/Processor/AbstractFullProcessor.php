@@ -134,12 +134,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $entityManager;
 
     /**
-     * @var \Doctrine\DBAL\Connection $connection
+     * @var \Doctrine\DBAL\Connection
      */
     protected $connection;
 
     /**
-     * @var \Omeka\Api\Adapter\AdapterInterface $adapter
+     * @var \Omeka\Api\Adapter\AdapterInterface
      */
     protected $adapterManager;
 
@@ -147,16 +147,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * @var \Omeka\DataType\Manager
      */
     protected $datatypeManager;
-
-    /**
-     * @var \Omeka\File\TempFileFactory $tempFileFactory
-     */
-    protected $tempFileFactory;
-
-    /**
-     * @var \Omeka\File\Store\StoreInterface
-     */
-    protected $store;
 
     /**
      * List of allowed datatypes (except dynamic ones, like valuesuggest), for
@@ -496,10 +486,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
         $this->datatypeManager = $services->get('Omeka\DataTypeManager');
+        $this->allowedDataTypes = $this->datatypeManager->getRegisteredNames();
 
-        $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
-        $this->store = $services->get('Omeka\File\Store');
-        $this->allowedDataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
+        $this->initFileTrait();
 
         // The owner should be reloaded each time the entity manager is flushed.
         $ownerIdParam = $this->getParam('o:owner', 'current') ?: 'current';
@@ -512,8 +501,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->ownerId = $this->owner ? $this->owner->getId() : null;
         $this->ownerOId = $this->owner ? ['o:id' => $this->owner->getId()] : null;
 
-        $config = $services->get('Config');
-        $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
         $this->currentDateTime = new \DateTime();
         $this->currentDateTimeFormatted = $this->currentDateTime->format('Y-m-d H:i:s');
 
