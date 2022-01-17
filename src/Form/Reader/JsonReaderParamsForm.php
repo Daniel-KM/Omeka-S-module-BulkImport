@@ -22,6 +22,7 @@ class JsonReaderParamsForm extends JsonReaderConfigForm
                 'attributes' => [
                     'id' => 'file',
                     'required' => false,
+                    'accept' => 'application/json,json',
                 ],
             ])
             ->add([

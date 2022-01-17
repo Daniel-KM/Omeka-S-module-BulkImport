@@ -21,6 +21,7 @@ class CsvReaderParamsForm extends CsvReaderConfigForm
                 'attributes' => [
                     'id' => 'file',
                     'required' => true,
+                    'accept' => 'text/csv,application/csv,csv',
                 ],
             ]);
 

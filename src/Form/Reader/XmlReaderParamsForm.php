@@ -22,6 +22,7 @@ class XmlReaderParamsForm extends XmlReaderConfigForm
                 'attributes' => [
                     'id' => 'file',
                     'required' => false,
+                    'accept' => 'text/xml,application/xml,xml',
                 ],
             ])
             ->add([

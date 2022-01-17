@@ -21,6 +21,9 @@ class SpreadsheetReaderParamsForm extends CsvReaderConfigForm
                 'attributes' => [
                     'id' => 'file',
                     'required' => true,
+                    'accept' => '',
+                    'accept' => 'text/tab-separated-values,text/csv,application/csv,application/vnd.oasis.opendocument.spreadsheet,csv,tsv,ods',
+
                 ],
             ]);
 

@@ -22,6 +22,7 @@ class OpenDocumentSpreadsheetReaderParamsForm extends SpreadsheetReaderConfigFor
                 'attributes' => [
                     'id' => 'file',
                     'required' => true,
+                    'accept' => 'application/vnd.oasis.opendocument.spreadsheet,ods',
                 ],
             ])
             ->add([
