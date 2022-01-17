@@ -108,6 +108,7 @@ class XmlEntry extends BaseEntry
                             unset(
                                 $resource['ingest_url'],
                                 $resource['ingest_filename'],
+                                $resource['ingest_directory'],
                                 $resource['html']
                             );
                             $resource = array_replace($resource, $value);
@@ -171,6 +172,15 @@ class XmlEntry extends BaseEntry
                         'o:source' => $value,
                     ];
                 }
+                break;
+
+            case 'directory':
+                $resource += [
+                    'resource_name' => 'media',
+                    'o:ingester' => 'sideload_dir',
+                    'ingest_directory' => $value,
+                    'o:source' => $value,
+                ];
                 break;
 
             case 'html':

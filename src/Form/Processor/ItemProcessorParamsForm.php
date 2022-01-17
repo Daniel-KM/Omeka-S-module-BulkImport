@@ -42,6 +42,7 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
                 'options' => [
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
+                    'directory' => 'Directory', // @translate
                     'html' => 'Html', // @translate
                     'iiif' => 'IIIF Image', // @translate
                     'tile' => 'Tile', // @translate
@@ -50,6 +51,11 @@ class ItemProcessorParamsForm extends ItemProcessorConfigForm
                 ],
             ],
         ]);
+
+        if (!$this->isModuleActive('FileSideload')) {
+            unset($mapping['media']['options']['file']);
+            unset($mapping['media']['options']['directory']);
+        }
 
         if ($this->isModuleActive('Mapping')) {
             $mapping['item']['options']['o-module-mapping:marker'] = 'Mapping latitude/longitude'; // @translate

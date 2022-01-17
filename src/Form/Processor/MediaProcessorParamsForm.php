@@ -42,12 +42,18 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
                 'options' => [
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
+                    'directory' => 'Directory', // @translate
                     'html' => 'Html', // @translate
                     'iiif' => 'IIIF Image', // @translate
                     'tile' => 'Tile', // @translate
                 ],
             ],
         ]);
+
+        if (!$this->isModuleActive('FileSideload')) {
+            unset($mapping['media']['options']['file']);
+            unset($mapping['media']['options']['directory']);
+        }
 
         if (!$this->isModuleActive('ImageServer')) {
             unset($mapping['media']['options']['tile']);

@@ -574,6 +574,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'o:ingester' => null,
             'o:source' => null,
             'ingest_filename' => null,
+            'ingest_directory' => null,
+            'ingest_url' => null,
             'html' => null,
         ];
 
@@ -1244,8 +1246,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->checkUrl($media['ingest_url'], $resource['messageStore']);
             } elseif (!empty($media['ingest_filename'])) {
                 $this->checkFile($media['ingest_filename'], $resource['messageStore']);
+            } elseif (!empty($media['ingest_directory'])) {
+                $this->checkDirectory($media['ingest_directory'], $resource['messageStore']);
             } else {
-                // Add a warning: cannot be checked for other media type?
+                // Add a warning: cannot be checked for other media ingester? Or is it checked somewhere else?
                 continue;
             }
         }

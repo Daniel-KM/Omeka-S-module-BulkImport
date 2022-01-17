@@ -61,6 +61,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                     'o:media' => 'Identifier / Internal id', // @translate
                     'url' => 'Url', // @translate
                     'file' => 'File', // @translate
+                    'directory' => 'Directory', // @translate
                     'html' => 'Html', // @translate
                     'iiif' => 'IIIF Image', // @translate
                     'tile' => 'Tile', // @translate
@@ -69,6 +70,11 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                 ],
             ],
         ];
+
+        if (!$this->isModuleActive('FileSideload')) {
+            unset($mapping['media']['options']['file']);
+            unset($mapping['media']['options']['directory']);
+        }
 
         if ($this->isModuleActive('Mapping')) {
             $mapping['item']['options']['o-module-mapping:marker'] = 'Mapping latitude/longitude'; // @translate

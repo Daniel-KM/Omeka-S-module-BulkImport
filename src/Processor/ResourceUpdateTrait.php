@@ -152,6 +152,8 @@ trait ResourceUpdateTrait
                 case 'o:ingester':
                 case 'o:source':
                 case 'ingest_filename':
+                case 'ingest_directory':
+                case 'ingest_url':
                 case 'o:size':
                     unset($data[$name]);
                     break;
@@ -209,6 +211,8 @@ trait ResourceUpdateTrait
                     case 'o:ingester':
                     case 'o:source':
                     case 'ingest_filename':
+                    case 'ingest_directory':
+                    case 'ingest_url':
                     case 'o:size':
                         unset($data[$name]);
                         break;

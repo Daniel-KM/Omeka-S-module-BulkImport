@@ -193,6 +193,15 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            case 'directory':
+                foreach ($values as $value) {
+                    $media = [];
+                    $media['o:ingester'] = 'sideload_dir';
+                    $media['ingest_directory'] = $value;
+                    $media['o:source'] = $value;
+                    $this->appendRelated($resource, $media);
+                }
+                return true;
             case 'html':
                 foreach ($values as $value) {
                     $media = [];
@@ -348,6 +357,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 $resource['o:source'] = $value;
                 return true;
+            case 'directory':
+                $value = array_pop($values);
+                $resource['o:ingester'] = 'sideload_dir';
+                $resource['ingest_directory'] = $value;
+                $resource['o:source'] = $value;
+                return true;
             case 'html':
                 $value = array_pop($values);
                 $resource['o:ingester'] = 'html';
@@ -374,7 +389,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     /**
      * Append an attached resource to a resource, checking if it exists already.
      *
-     * It allows to fill multiple media of an items, or any other related
+     * It allows to fill multiple media of an item, or any other related
      * resource, in multiple steps, for example the url, then the title.
      * Note: it requires that all elements to be set, in the same order, when
      * they are multiple.
