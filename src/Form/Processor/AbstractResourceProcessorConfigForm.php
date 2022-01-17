@@ -4,7 +4,7 @@ namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Form\EntriesByBatchTrait;
-use BulkImport\Form\EntriesToSkipTrait;
+use BulkImport\Form\EntriesToProcessTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
@@ -15,20 +15,20 @@ abstract class AbstractResourceProcessorConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
     use EntriesByBatchTrait;
-    use EntriesToSkipTrait;
+    use EntriesToProcessTrait;
 
     public function init(): void
     {
         $this
             ->baseFieldset()
             ->addFieldsets()
-            ->addEntriesToSkip()
+            ->addEntriesToProcess()
             ->addEntriesByBatch();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
-            ->addEntriesToSkipInputFilter()
+            ->addEntriesToProcessInputFilter()
             ->addEntriesByBatchInputFilter();
     }
 

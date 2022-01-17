@@ -3,26 +3,26 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\EntriesByBatchTrait;
-use BulkImport\Form\EntriesToSkipTrait;
+use BulkImport\Form\EntriesToProcessTrait;
 
 class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
 {
     use EntriesByBatchTrait;
-    use EntriesToSkipTrait;
+    use EntriesToProcessTrait;
 
     public function init(): void
     {
         $this
             ->baseFieldset()
             ->addFieldsets()
-            ->addEntriesToSkip()
+            ->addEntriesToProcess()
             ->addEntriesByBatch()
             ->addMapping();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
-            ->addEntriesToSkipInputFilter()
+            ->addEntriesToProcessInputFilter()
             ->addEntriesByBatchInputFilter()
             ->addMappingFilter();
     }

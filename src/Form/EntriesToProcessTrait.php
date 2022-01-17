@@ -4,9 +4,9 @@ namespace BulkImport\Form;
 
 use Laminas\Form\Element;
 
-trait EntriesToSkipTrait
+trait EntriesToProcessTrait
 {
-    protected function addEntriesToSkip(): \Laminas\Form\Form
+    protected function addEntriesToProcess(): \Laminas\Form\Form
     {
         $this
             ->add([
@@ -30,7 +30,7 @@ trait EntriesToSkipTrait
         return $this;
     }
 
-    protected function addEntriesToSkipInputFilter(): \Laminas\Form\Form
+    protected function addEntriesToProcessInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
             ->add([
