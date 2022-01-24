@@ -32,6 +32,12 @@
     }
 
     /* Resource add/edit media files and folders */
+    .media-files-input-full-progress {
+        text-align: right;
+    }
+    .media-files-input-full-progress.empty {
+        display: none;
+    }
     .media-files-input-preview > ol > li {
         height: 80px;
         margin-bottom: 16px;
@@ -41,6 +47,9 @@
         align-items: initial;
         max-width: 100%;
         min-width: 0;
+    }
+    .media-files-input-preview .media-info.messages {
+        display: block;
     }
     .media-files-input-preview .media-info.messages .error {
         background-color: #f4b4b4;
