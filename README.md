@@ -23,6 +23,8 @@ dump of the database), and spreadsheet reader (via ods, tsv or csv). The
 spreadsheet uses a processor that creates resources based on a specific header
 format, but don't have a pretty manual ui like the module [CSV Import].
 
+Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files].
+
 
 Installation
 ------------
@@ -121,6 +123,142 @@ are only one.
 Then, config the reader and the processor.
 
 Finally, process the import.
+
+
+Json source
+-----------
+
+When the source is a json, it is possible to specify a config to do the mapping
+between the source and the omeka json representation of resources.
+
+The config can be selected in the first form. New config can be added in the
+directory "data/mapping" of the module (default ones) or in the directory
+"files/mapping" of Omeka (user ones).
+
+You can check examples.
+
+### Config to transform json
+
+The config contains four sections.
+
+The first section is `info`, that defines the name and the label of the config.
+An important key is `mapper`, that can be set to use as the base of the current
+config. This generic mapper is available from the directory `mapper` of  the
+module.
+
+The second section is `params`, that allows to define some params, like how to
+identify the root of the resources, or the fields of each resource. See the
+example used to migrate a digital library from Content-dm. For this last, the
+url should be the full one, like https://cdm21057.contentdm.oclc.org/digital/api/search/collection/coll3/maxRecords/100.
+
+The third section is `default` and defines default metadata of the resources,
+like the resource class or the template.
+
+The fourth section is `mapping` and contains all the source fields that should
+be imported and all the details about the destination field.
+
+### Config of the mappings
+
+The config contains a list of mappings between source data and destination data.
+For example:
+
+```
+source or xpath = dcterms:title @fr-fr ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
+```
+
+will be converted internally into and used to create a resource:
+
+```php
+[
+     'from' => 'source or xpath',
+     'to' => [
+         'field' => 'dcterms:title',
+         'property_id' => 1,
+         'type' => 'literal',
+         '@language' => 'fr-fr',
+         'is_public' => false,
+         'pattern' => 'pattern for the {{ value|trim }} with {{/source/record/data}}',
+         'replace' => [
+             '{{/source/record/data}}',
+         ],
+         'twig' => [
+             '{{ value|trim }}',
+         ],
+     ],
+]
+```
+
+A config is composed of multiple lines. The sections like "[info]" are managed:
+the next lines will be a sub-array.
+
+Each line is formatted with a source and a destination separated with the sign
+"=". The format of each part (left and right of the "=") of each line is
+checked, but not if it has a meaning.
+
+The source part may be the key in an array, or in a sub-array (`dcterms:title.0.@value`),
+or a xpath (used when the input is xml).
+
+The destination part is an automap field. It has till five components and only
+the first is required.
+
+The first must be the destination field. The field is one of the key used in the
+json representation of a resource, generally a property, but other metadata too
+("o:resource_template", etc.). It can be a sub-field too, in particular to
+specify related resources when importing an item: `o:media[o:original_url]`,
+`o:media[o:ingester]`, or `o:item_set[dcterms:identifier]`.
+
+The next three components are specific to properties and can occur in any order
+and are prefixed with a code, similar to some rdf representations:
+The language is prefixed with a `@`: `@fr-FR` or `@fra`.
+The data type is prefixed with a `^^`: `^^resource:item` or `^^customvocab:Liste des établissements`.
+The visibility is prefixed with a `§`: `§public` or `§private`.
+
+The last component is a pattern used to transform the source value when needed.
+It is prefixed with a `~`. It can be a simple replacement string, or a complex
+pattern with some [Twig] commands.
+
+A simple replacement string is a pattern with some replacement values:
+```
+geonameId = dcterms:identifier ^^uri ~ https://www.geonames.org/{{ value }}
+```
+
+The available replacement patterns are: the current source value `{{ value }}`
+and any source query `{{xxx}}`, for example a xpath `{{/doc/str[@name="ppn_z"]}}`.
+`{{ value }}` and `{{value}}` are not the same: the first is the current value
+extracted from the source part and the second is the key used to extract the
+value with the key `value` from a source array.
+
+For complex transformation, the pattern may be build as a simplified Twig one:
+this is a string where the values between `{{ ` and ` }}` are converted with
+some basic filters. For example, `{{ value|trim }}` takes the value from the
+source and trims it. The space after `{{` and before `}}` is required.
+Only some common Twig filters are supported: `abs`, `capitalize`, `date`, `e`,
+`escape`, `first`, `format`, `last`, `length`, `lower`, `slice`, `split`,
+`striptags`, `title`, `trim`, `upper`, `url_encode`.
+Only some common arguments of these filters are supported. Twig filters can be
+combined, but not nested.
+
+An example of the use of the filters is the renormalization of a date, here from
+a xml unimarc source `17890804` into a standard [ISO 8601] numeric date time `1789-08-04`:
+```
+/record/datafield[@tag="103"]/subfield[@code="b"] = dcterms:valid ^^numeric:timestamp ~ {{ value|trim|slice(1,4) }}-{{ value|trim|slice(5,2) }}-{{ value|trim|slice(7,2) }}
+```
+
+The Twig filters can be used in conjunction with simple replacements. In that
+case, they are processed after the replacements.
+
+The source can be `~` too, in which case the destination is a composite of
+multiple sources:
+```
+~ = dcterms:spatial ~ Coordinates: {{lat}}/{{lng}}
+```
+
+Here, `{{lat}}` and `{{lng}}` are values extracted from the source.
+
+The prefix `~` must not be used in other components or in the left part for now.
+
+Of course, in many cases, it is simpler to fix the values in the source or later
+in the resources with the batch edit or with the module [Bulk Edit].
 
 
 Omeka S
@@ -328,6 +466,7 @@ by [BibLibre].
 [CSV Import]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
+[size or number of files]: https://github.com/omeka/omeka-s/issues/1785
 [Generic]: https://gitlab.com/Daniel-KM/Omeka-S-module-Generic
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
@@ -335,7 +474,10 @@ by [BibLibre].
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
 [this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
+[ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
+[Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
+[Bulk Edit]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkEdit
 [Spip]: https://spip.net
 [data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
