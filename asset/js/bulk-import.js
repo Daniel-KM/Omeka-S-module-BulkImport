@@ -32,6 +32,7 @@
             const preview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
             const listUploaded = preview.getElementsByTagName('ol')[0];
             const buttonBrowse = mediaField.getElementsByClassName('button-browse')[0];
+            const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -151,6 +152,22 @@
             flow.on('fileError', (file, responseJson) => {
                 addError(submitReady, file, responseJson);
             });
+
+            buttonPause.onclick = () => {
+                if (flow.isUploading()) {
+                    flow.pause();
+                    buttonPause.textContent = mediaField.getAttribute('data-translate-resume');
+                    submitReady.removeAttribute('required');
+                } else {
+                    flow.resume();
+                    buttonPause.textContent = mediaField.getAttribute('data-translate-pause');
+                    !fullProgressTotal.textContent.length
+                        || parseInt(fullProgressTotal.textContent) === 0
+                        || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent))
+                        ? submitReady.removeAttribute('required')
+                        : submitReady.setAttribute('required', 'required');
+                }
+            };
         });
 
         function validateFile(file) {

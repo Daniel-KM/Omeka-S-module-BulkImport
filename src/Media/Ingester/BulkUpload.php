@@ -113,6 +113,8 @@ class BulkUpload implements IngesterInterface
             'data-max-size-file' => $maxSizeFile,
             'data-max-size-post' => $maxSizePost,
             'data-translate-upload-limit' => $view->translate($view->uploadLimit()),
+            'data-translate-pause' => $view->translate('Pause'), // @translate
+            'data-translate-resume' => $view->translate('Resume'), // @translate
             'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
             'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
             'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
@@ -122,6 +124,7 @@ class BulkUpload implements IngesterInterface
 
         $uploadFiles = $view->translate('Upload files'); // @translate
         $browseFiles = $view->translate('Browse files'); // @translate
+        $buttonPause = $data['data-translate-pause'];
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -130,6 +133,7 @@ class BulkUpload implements IngesterInterface
     </div>
     <div class="inputs">
         <button type="button" class="button-browse">$browseFiles</button>
+        <button type="button" class="button-pause">$buttonPause</button>
     </div>
 </div>
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
