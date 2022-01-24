@@ -210,7 +210,7 @@ class Module extends AbstractModule
             $listFiles = [];
             $hasError = false;
             foreach ($filesData['file'][$index] as $subIndex => $fileData) {
-                if ($fileData['error']) {
+                if (!empty($fileData['error'])) {
                     $errorStore->addError('upload', new PsrMessage(
                         'File #{index} "{filename}" has an error: {error}.',  // @translate
                         ['index' => ++$subIndex, 'filename' => $fileData['name'], 'error' => $uploadErrorCodes[$fileData['error']]]
@@ -224,7 +224,14 @@ class Module extends AbstractModule
                     ));
                     $hasError = true;
                     continue;
-                } elseif (!$fileData['size']) {
+                } elseif (!preg_match('/^[^\/\\\\{}$?!<>]+$/', $fileData['name'])) {
+                    $errorStore->addError('upload', new PsrMessage(
+                        'File #{index} "{filename}" must not contain a reserved character.', // @translate
+                        ['index' => ++$subIndex, 'filename' => $fileData['name']]
+                    ));
+                    $hasError = true;
+                    continue;
+                } elseif (empty($fileData['size'])) {
                     if ($validateFile) {
                         $errorStore->addError('upload', new PsrMessage(
                             'File #{index} "{filename}" is an empty file.', // @translate

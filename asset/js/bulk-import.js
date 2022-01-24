@@ -1,12 +1,21 @@
+'use strict';
+
 (function ($) {
     $(document).ready(function() {
 
         const basePath = window.location.pathname.replace(/\/admin\/.*/, '');
 
         // May avoid crash on big import and small user computer.
-        const maxSizeThumbnail = 3000000;
-        const maxTotalSizeThumbnails = 100000000;
+        const maxSizeThumbnail = 5000000;
+        const maxTotalSizeThumbnails = 200000000;
         const maxCountThumbnails = 200;
+
+        let inputUpload = $($('#media-template-bulk_upload').data('template')).find('input[type=file]');
+        const allowedMediaTypes = inputUpload.data('allowed-media-types').split(',');
+        const allowedExtensions = inputUpload.data('allowed-extensions').split(',');
+        const maxSizeFile = parseInt(inputUpload.data('max-size-file'));
+        const maxSizePost = parseInt(inputUpload.data('max-size-post'));
+        const maxFileUploads = parseInt(inputUpload.data('max-file-uploads'));
 
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Add the listener on existing and new media files upload buttons.
@@ -24,45 +33,50 @@
                 preview.removeChild(preview.firstChild);
             }
 
+            /** @var FileList curFiles */
             const curFiles = input.files;
             if (curFiles.length === 0) {
                 const para = document.createElement('p');
                 para.textContent = inputUpload.data('translate-no-file');
                 preview.appendChild(para);
             } else {
-                // Is vanilla js really simpler here?
-                const allowedMediaTypes = inputUpload.data('allowed-media-types').split(',');
-                const allowedExtensions = inputUpload.data('allowed-extensions').split(',');
-                const maxSizeFile = parseInt(inputUpload.data('max-size-file'));
-                const maxSizePost = parseInt(inputUpload.data('max-size-post'));
-                const maxFileUploads = parseInt(inputUpload.data('max-file-uploads'));
                 const list = document.createElement('ol');
-                var index = 0;
                 var total = 0;
+                var countThumbnails = 0;
+                var totalSizeThumbnails = 0;
                 preview.appendChild(list);
                 for (const file of curFiles) {
                     total += file.size;
                     const listItem = document.createElement('li');
                     const div = document.createElement('div');
                     div.classList.add('media-info');
-                    if (validateFile(file, allowedMediaTypes, allowedExtensions, maxSizeFile)) {
+                    if (validateFile(file)) {
+                        // Display thumbnail and data.
                         const divImage = document.createElement('div');
                         divImage.classList.add('resource-thumbnail');
                         const image = document.createElement('img');
                         const mainType = file.type.split('/')[0];
                         const subType = file.type.split('/')[1];
-                        image.src = mainType === 'image'
+                        const newThumbnail = mainType === 'image'
                             && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
                             && file.size <= maxSizeThumbnail
-                            && total <= maxTotalSizeThumbnails
-                            && ++index <= maxCountThumbnails
-                            ? URL.createObjectURL(file)
-                            : defaultThumbnailUrl(file);
+                            && countThumbnails <= maxCountThumbnails
+                            && totalSizeThumbnails <= maxTotalSizeThumbnails;
+                        if (newThumbnail) {
+                            countThumbnails++;
+                            totalSizeThumbnails += file.size;
+                            image.src = URL.createObjectURL(file);
+                        } else {
+                            image.src = defaultThumbnailUrl(file);
+                        }
+                        image.onload = function() {
+                            URL.revokeObjectURL(this.src);
+                        };
                         divImage.appendChild(image);
                         div.appendChild(divImage);
                         const span = document.createElement('span');
                         span.classList.add('resource-name');
-                        span.textContent = `${file.name} (${returnFileSize(file.size)})`;
+                        span.textContent = `${file.name} (${humanFileSize(file.size)})`;
                         div.appendChild(span);
                         listItem.appendChild(div);
                     } else {
@@ -96,17 +110,17 @@
             }
         }
 
-        function validateFile(file, allowedMediaTypes, allowedExtensions, maxSizeFile) {
+        function validateFile(file) {
             const extension = file.name.slice((file.name.lastIndexOf('.') - 1 >>> 0) + 2);
-            const isForbidden = (allowedMediaTypes.length && !allowedMediaTypes.includes(file.type))
-                || (allowedExtensions.length && !allowedExtensions.includes(extension))
-                || file.name.substr(0, 1) === '.'
-                || file.size === 0
-                || file.size > maxSizeFile;
-            return !isForbidden;
+            return (!allowedMediaTypes.length || allowedMediaTypes.includes(file.type))
+                && (!allowedExtensions.length || allowedExtensions.includes(extension.toLowerCase()))
+                && file.name.substr(0, 1) !== '.'
+                && /^[^{}$?!<>\/\\]+$/.test(file.name)
+                && file.size > 0
+                && file.size <= maxSizeFile;
         }
 
-        function returnFileSize(number) {
+        function humanFileSize(number) {
             if (number < 1000) {
                 return number + ' bytes';
             } else if (number > 1000 && number < 1000000) {
