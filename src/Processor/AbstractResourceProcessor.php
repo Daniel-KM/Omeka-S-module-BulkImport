@@ -431,7 +431,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->logger->notice(
-            'End of global check: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+            'End of global check: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_skipped' => $this->totalSkipped,
@@ -1861,6 +1861,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
                 }
                 unset($datas);
+
+                // These mappings are added automatically with JsonEntry.
+                // TODO Find a way to add automatic mapping in transformSource or default mapping.
+                if (!isset($mapping['url'])) {
+                    $mapping['url'] = ['url'];
+                }
+                if (!isset($mapping['iiif'])) {
+                    $mapping['iiif'] = ['iiif'];
+                }
             }
         }
 

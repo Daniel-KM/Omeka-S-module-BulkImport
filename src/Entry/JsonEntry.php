@@ -27,6 +27,15 @@ class JsonEntry extends BaseEntry
         $resource = $transformSource->convertMappingSection('default', $resource, $this->data, true);
         $resource = $transformSource->convertMappingSection('mapping', $resource, $this->data);
 
+        if (!empty($this->data['@context'])) {
+            if ($this->data['@context'] === 'http://iiif.io/api/presentation/2/context.json') {
+                $importMedia = $transformSource->getSectionSetting('params', 'import_media');
+                if (in_array($importMedia, ['1', true, 'true'])) {
+                    $resource = $this->appendMedias($resource);
+                }
+            }
+        }
+
         // Filter duplicated and null values.
         foreach ($resource as &$datas) {
             $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
@@ -34,5 +43,30 @@ class JsonEntry extends BaseEntry
         unset($datas);
 
         $this->data = $resource;
+    }
+
+    protected function appendMedias(array $resource): array
+    {
+        // Get all resources in all canvases in all sequences, but one time only.
+        // Omeka manages only iiif images.
+        // TODO Import other files as standard files.
+        foreach ($this->data['sequences'] ?? [] as $sequence) {
+            foreach ($sequence['canvases'] ?? [] as $canvas) {
+                foreach ($canvas['images'] ?? [] as $image) {
+                    if (isset($image['resource']['service']['@id'])) {
+                        $resource['iiif'][] = $image['resource']['service']['@id'];
+                    } elseif (isset($image['resource']['@id'])) {
+                        $resource['url'][] = $image['resource']['@id'];
+                    }
+                }
+            }
+        }
+        if (!empty($resource['iiif'])) {
+            $resource['iiif'] = array_values(array_unique(array_filter($resource['iiif'])));
+        }
+        if (!empty($resource['url'])) {
+            $resource['url'] = array_values(array_unique(array_filter($resource['url'])));
+        }
+        return $resource;
     }
 }
