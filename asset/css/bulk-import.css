@@ -33,11 +33,12 @@
 
     /* Resource add/edit media files and folders */
     .media-files-input-preview > ol > li {
-        margin-bottom: 6px;
+        height: 80px;
+        margin-bottom: 16px;
     }
     .media-files-input-preview .media-info {
         display: inline-flex;
-        align-items: center;
+        align-items: initial;
         max-width: 100%;
         min-width: 0;
     }
@@ -57,6 +58,14 @@
     .media-files-input-preview .media-info .resource-thumbnail img {
         max-height: 64px;
         max-width: 64px;
+    }
+    .media-files-input-preview .media-info .resource-thumbnail .upload-progress {
+        width: 64px;
+        height: 10px;
+        max-height: 64px;
+        max-width: 64px;
+        padding-top: 4px;
+        padding-bottom: 4px;
     }
     .media-files-input-preview .media-info .resource-name {
         flex: 1;

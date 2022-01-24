@@ -19,6 +19,7 @@ class BulkUploadDir extends BulkUpload
         $html = $view->formRow($fileInput)
             . <<<HTML
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
+<input type="hidden" name="filesData[file][__index__]" value='{"append":{},"remove":[]}' class="filesdata"/>
 <div class="media-files-input-preview"></div>
 HTML;
         // Attributes "directory" and "webkitdirectory" are invalid for html,

@@ -12,6 +12,7 @@ use Generic\AbstractModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
+use Laminas\Mvc\MvcEvent;
 use Log\Stdlib\PsrMessage;
 use Omeka\Entity\Media;
 use Omeka\Module\Exception\ModuleCannotInstallException;
@@ -25,6 +26,31 @@ class Module extends AbstractModule
     public function init(ModuleManager $moduleManager): void
     {
         require_once __DIR__ . '/vendor/autoload.php';
+    }
+
+    public function onBootstrap(MvcEvent $event): void
+    {
+        parent::onBootstrap($event);
+
+        /** @var \Omeka\Permissions\Acl $acl */
+        $acl = $this->getServiceLocator()->get('Omeka\Acl');
+
+        // Any user who can create an item can use bulk upload.
+        // Admins are not included because they have the rights by default.
+        $roles = [
+            \Omeka\Permissions\Acl::ROLE_EDITOR,
+            \Omeka\Permissions\Acl::ROLE_REVIEWER,
+            \Omeka\Permissions\Acl::ROLE_AUTHOR,
+        ];
+
+        $acl
+            ->allow(
+                $roles,
+                ['BulkImport\Controller\Admin\Upload'],
+                [
+                    'index',
+                ]
+            );
     }
 
     protected function preInstall(): void
@@ -153,11 +179,31 @@ class Module extends AbstractModule
 
     public function handleItemApiHydratePre(Event $event): void
     {
+        $services = $this->getServiceLocator();
+        $tempDir = $services->get('Config')['temp_dir'] ?: sys_get_temp_dir();
+        $tempDir = rtrim($tempDir, '/\\');
+
         /** @var \Omeka\Api\Request $request */
         $request = $event->getParam('request');
         $data = $request->getContent();
-        $filesData = $request->getFileData();
-        if (empty($data['o:media']) || empty($filesData)) {
+
+        // Remove removed files.
+        $filesData = $data['filesData'] ?? [];
+        if (empty($filesData['file'])) {
+            return;
+        }
+
+        foreach ($filesData['file'] ?? [] as $key => $fileData) {
+            $fileData = json_decode($fileData, true);
+            if (!empty($fileData['remove'])) {
+                foreach ($fileData['remove'] as $remove) {
+                    @unlink($tempDir . DIRECTORY_SEPARATOR . $remove['tmp_name']);
+                }
+            }
+            $filesData['file'][$key] = $fileData['append'] ?? [];
+        }
+
+        if (empty($data['o:media'])) {
             return;
         }
 
@@ -166,7 +212,6 @@ class Module extends AbstractModule
          * @var \Omeka\File\TempFileFactory $tempFileFactory
          * @var \Omeka\File\Validator $validator
          */
-        $services = $this->getServiceLocator();
         $errorStore = $event->getParam('errorStore');
         $settings = $services->get('Omeka\Settings');
         $validator = $services->get(\Omeka\File\Validator::class);
@@ -231,6 +276,13 @@ class Module extends AbstractModule
                     ));
                     $hasError = true;
                     continue;
+                } elseif (!preg_match('/^[^\/\\\\{}$?!<>]+$/', $fileData['tmp_name'])) {
+                    $errorStore->addError('upload', new PsrMessage(
+                        'File #{index} temp name "{filename}" must not contain a reserved character.', // @translate
+                        ['index' => ++$subIndex, 'filename' => $fileData['tmp_name']]
+                    ));
+                    $hasError = true;
+                    continue;
                 } elseif (empty($fileData['size'])) {
                     if ($validateFile) {
                         $errorStore->addError('upload', new PsrMessage(
@@ -248,7 +300,7 @@ class Module extends AbstractModule
                     // may not be extracted by system.
                     $tempFile = $tempFileFactory->build();
                     $tempFile->setSourceName($fileData['name']);
-                    $tempFile->setTempPath($fileData['tmp_name']);
+                    $tempFile->setTempPath($tempDir . DIRECTORY_SEPARATOR . $fileData['tmp_name']);
                     if (!$validator->validate($tempFile, $errorStore)) {
                         // Errors are already stored.
                         continue;
@@ -263,7 +315,7 @@ class Module extends AbstractModule
             // Remove the added media directory from list of media.
             array_pop($newDataMedias);
             foreach ($listFiles as $index => $fileData) {
-                $dataMedia['file_index_sub'] = $index;
+                $dataMedia['ingest_file_data'] = $fileData;
                 $newDataMedias[] = $dataMedia;
             }
         }

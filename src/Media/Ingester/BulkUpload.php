@@ -6,20 +6,33 @@ use Laminas\Form\Element\File;
 use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Api\Request;
 use Omeka\Entity\Media;
-use Omeka\File\Uploader;
+use Omeka\File\TempFileFactory;
+use Omeka\File\Validator;
 use Omeka\Media\Ingester\IngesterInterface;
 use Omeka\Stdlib\ErrorStore;
 
 class BulkUpload implements IngesterInterface
 {
     /**
-     * @var Uploader
+     * @var TempFileFactory
      */
-    protected $uploader;
+    protected $tempFileFactory;
 
-    public function __construct(Uploader $uploader)
+    /**
+     * @var Validator
+     */
+    protected $validator;
+
+    /**
+     * @var string
+     */
+    protected $tempDir;
+
+    public function __construct(TempFileFactory $tempFileFactory, Validator $validator, string $tempDir)
     {
-        $this->uploader = $uploader;
+        $this->tempFileFactory = $tempFileFactory;
+        $this->validator = $validator;
+        $this->tempDir = $tempDir;
     }
 
     public function getLabel()
@@ -35,40 +48,45 @@ class BulkUpload implements IngesterInterface
     public function ingest(Media $media, Request $request, ErrorStore $errorStore)
     {
         $data = $request->getContent();
-        $fileData = $request->getFileData();
-        if (!isset($fileData['file'])) {
+
+        $fileData = $data['ingest_file_data'] ?? [];
+        if (empty($fileData) || empty($fileData['name']) || empty($fileData['tmp_name'])) {
             $errorStore->addError('error', 'No files were uploaded'); // @translate
             return;
         }
 
-        if (!isset($data['file_index'])) {
-            $errorStore->addError('error', 'No file index was specified'); // @translate
+        $filepath = $this->tempDir . DIRECTORY_SEPARATOR . $fileData['tmp_name'];
+        if (!file_exists($filepath)) {
+            $errorStore->addError('error', 'File is missing'); // @translate
             return;
         }
 
-        $index = $data['file_index'];
-        if (!isset($fileData['file'][$index])) {
-            $errorStore->addError('error', 'No file uploaded for the specified index'); // @translate
+        $fileinfo = new \SplFileInfo($filepath);
+        $realPath = $this->verifyFile($fileinfo);
+        if (is_null($realPath)) {
+            $errorStore->addError('ingest_file_data', sprintf(
+                'Cannot upload file "%s". File does not exist or does not have sufficient permissions', // @translate
+                $filepath
+            ));
             return;
         }
 
-        $subIndex = $data['file_index_sub'];
-        if (!isset($fileData['file'][$index][$subIndex])) {
-            $errorStore->addError('error', 'No file uploaded for the specified sub-index'); // @translate
-            return;
-        }
+        $tempFile = $this->tempFileFactory->build();
+        $tempFile->setSourceName($fileData['name']);
+        $tempFile->setTempPath($realPath);
 
-        $tempFile = $this->uploader->upload($fileData['file'][$index][$subIndex], $errorStore);
-        if (!$tempFile) {
+        if (!$this->validator->validate($tempFile, $errorStore)) {
             // Errors are already stored.
+            @$tempFile->delete();
             return;
         }
 
-        $tempFile->setSourceName($fileData['file'][$index][$subIndex]['name']);
         if (!array_key_exists('o:source', $data)) {
-            $media->setSource($fileData['file'][$index][$subIndex]['name']);
+            $media->setSource($fileData['name']);
         }
-        $tempFile->mediaIngestFile($media, $request, $errorStore);
+        $storeOriginal = (!isset($data['store_original']) || $data['store_original']);
+        $tempFile->mediaIngestFile($media, $request, $errorStore, $storeOriginal, true, true, true);
+        @$tempFile->delete();
     }
 
     public function form(PhpRenderer $view, array $options = [])
@@ -77,6 +95,7 @@ class BulkUpload implements IngesterInterface
         return $view->formRow($fileInput)
             . <<<'HTML'
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
+<input type="hidden" name="filesData[file][__index__]" value='{"append":{},"remove":[]}' class="filesdata"/>
 <div class="media-files-input-preview"></div>
 HTML;
     }
@@ -97,7 +116,7 @@ HTML;
 
         $maxSizeFile = $this->parseSize(ini_get('upload_max_filesize'));
         $maxSizePost = $this->parseSize(ini_get('post_max_size'));
-        $maxFileUploads = (int) ini_get('max_file_uploads');
+        // "max_file_uploads" is no more a limit since files are sent one by one.
 
         $fileInput = new File('file[__index__]');
         return $fileInput
@@ -108,18 +127,16 @@ HTML;
             ->setAttributes([
                 'id' => 'media-file-input-__index__',
                 'class' => 'media-files-input',
-                'required' => true,
+                'required' => false,
                 'multiple' => true,
                 'accept' => $accept,
                 'data-allowed-media-types' => $allowedMediaTypes,
                 'data-allowed-extensions' => $allowedExtensions,
                 'data-max-size-file' => $maxSizeFile,
                 'data-max-size-post' => $maxSizePost,
-                'data-max-file-uploads' => $maxFileUploads,
                 'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
                 'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
                 'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
-                'data-translate-max-file-uploads' => sprintf($view->translate('The maximum number of files to post is greater than the server limit (%d files). Remove some new files.'), $maxFileUploads), // @translate
             ]);
     }
 
@@ -144,5 +161,26 @@ HTML;
                 $value *= 1024;
         }
         return $value;
+    }
+
+    /**
+     * Verify the passed file.
+     */
+    protected function verifyFile(\SplFileInfo $fileinfo): ?string
+    {
+        if (!$this->tempDir) {
+            return null;
+        }
+        $realPath = $fileinfo->getRealPath();
+        if (false === $realPath) {
+            return null;
+        }
+        if (strpos($realPath, $this->tempDir) !== 0) {
+            return null;
+        }
+        if (!$fileinfo->isFile() || !$fileinfo->isReadable()) {
+            return null;
+        }
+        return $realPath;
     }
 }

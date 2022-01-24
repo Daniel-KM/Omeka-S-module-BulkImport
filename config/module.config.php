@@ -42,6 +42,9 @@ return [
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
         ],
+        'strategies' => [
+            'ViewJsonStrategy',
+        ],
     ],
     'form_elements' => [
         'invokables' => [
@@ -95,6 +98,7 @@ return [
             'BulkImport\Controller\Admin\BulkImport' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Import' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Importer' => Service\Controller\ControllerFactory::class,
+            'BulkImport\Controller\Admin\Upload' => Service\Controller\UploadControllerFactory::class,
         ],
     ],
     'controller_plugins' => [
@@ -207,6 +211,16 @@ return [
                                     ],
                                     'defaults' => [
                                         'action' => 'show',
+                                    ],
+                                ],
+                            ],
+                            'upload' => [
+                                'type' => \Laminas\Router\Http\Literal::class,
+                                'options' => [
+                                    'route' => '/upload',
+                                    'defaults' => [
+                                        'controller' => 'Upload',
+                                        'action' => 'index',
                                     ],
                                 ],
                             ],
