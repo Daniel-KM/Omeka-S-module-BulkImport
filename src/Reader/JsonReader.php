@@ -7,6 +7,12 @@ use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
 use Log\Stdlib\PsrMessage;
 
+/**
+ * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
+ * @todo Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
+ * @todo Implement an intermediate (or generic) JsonReader.
+ * @todo Merge with OmekaSReader (make a generic json reader).
+ */
 class JsonReader extends AbstractPaginatedReader
 {
     use HttpClientTrait;

@@ -239,6 +239,7 @@ return [
     'bulk_import' => [
         'readers' => [
             Reader\JsonReader::class => Reader\JsonReader::class,
+            Reader\ContentDmReader::class => Reader\ContentDmReader::class,
             Reader\OmekaSReader::class => Reader\OmekaSReader::class,
             Reader\SqlReader::class => Reader\SqlReader::class,
             Reader\XmlReader::class => Reader\XmlReader::class,
