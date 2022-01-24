@@ -1,10 +1,14 @@
 {
     "require": {
+        "php": ">=7.2",
         "ext-xml": "*",
         "box/spout": "^3.1",
         "mikehaertl/php-pdftk": "^0.9",
         "hakre/xmlreaderiterator": "^0.1.10",
-        "phpoffice/phpword": "^0.18.2"
+        "phpoffice/phpword": "^0.18.2",
+        "flowjs/flow-php-server": "^1.0",
+        "flowjs/flow.js": "^2.14.1",
+        "oomphinc/composer-installers-extender": "^2.0"
     },
     "require-dev": {
         "biblibre/omeka-s-test-helper": "dev-master"
@@ -12,6 +16,35 @@
     "autoload-dev": {
         "psr-4": {
             "BulkImportTest\\": "test/BulkImportTest/"
+        }
+    },
+   "repositories": [
+        {
+            "type": "package",
+            "package": {
+                "type": "omeka-addon-asset",
+                "name": "flowjs/flow.js",
+                "version": "2.14.1",
+                "dist": {
+                    "type": "file",
+                    "reference": "2.14.1",
+                    "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.30.0/flow.min.js"
+                }
+            }
+        }
+    ],
+    "extra": {
+        "installer-types": ["omeka-addon-asset"],
+        "installer-paths": {
+            "asset/vendor/{$name}/": [
+                "type:omeka-addon-asset"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "oomphinc/composer-installers-extender": true
         }
     }
 }

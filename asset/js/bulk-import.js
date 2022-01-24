@@ -11,129 +11,147 @@
         const maxTotalSizeThumbnails = 200000000;
         const maxCountThumbnails = 200;
 
-        let inputUpload = $($('#media-template-bulk_upload').data('template')).find('input[type=file]');
-        const allowedMediaTypes = inputUpload.data('allowed-media-types').split(',');
-        const allowedExtensions = inputUpload.data('allowed-extensions').split(',');
-        const maxSizeFile = parseInt(inputUpload.data('max-size-file'));
-        const maxSizePost = parseInt(inputUpload.data('max-size-post'));
+        let bulkUpload = $($('#media-template-bulk_upload').data('template')).find('.media-bulk-upload');
+        const allowedMediaTypes = bulkUpload.data('allowed-media-types').split(',');
+        const allowedExtensions = bulkUpload.data('allowed-extensions').split(',');
+        const maxSizeFile = parseInt(bulkUpload.data('max-size-file'));
+        const maxSizePost = parseInt(bulkUpload.data('max-size-post'));
 
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Adapted from https://developer.mozilla.org/fr/docs/Web/API/File/Using_files_from_web_applications
-        // Add the listener on existing and new media files upload buttons.
-        // The new listener is set above to manage dynamically created medias.
-        $('#item-media').on('change', '#media-list .media-files-input', function (e) {
-            e.preventDefault();
-            checkAndSend($(this));
-            // Reset the input file to avoid to send files during item post.
-            $(this).wrap('<form>').closest('form').get(0).reset();
-            $(this).unwrap();
-        });
-
-        function checkAndSend(inputUpload) {
-            const inputFile = inputUpload[0];
-            const inputHidden = inputFile.closest('.media-field-wrapper').getElementsByClassName('filesdata')[0];
-            const fullProgress = inputUpload.closest('.media-field-wrapper').find('.media-files-input-full-progress')[0];
+        // @see https://github.com/flowjs/flow.js
+        $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', function (e) {
+            // Get the last media in media list, that is the new one.
+            const mediaField = $('#media-list').find('.media-bulk-upload').last()[0];
+            const mainIndex = mediaField.getAttribute('data-main-index');
+            const submitReady = mediaField.parentNode.getElementsByClassName('submit-ready')[0];
+            const inputFilesData = mediaField.parentNode.getElementsByClassName('filesdata')[0];
+            const fullProgress = mediaField.parentNode.getElementsByClassName('media-files-input-full-progress')[0];
             const fullProgressCurrent = fullProgress.getElementsByClassName('progress-current')[0];
             const fullProgressTotal = fullProgress.getElementsByClassName('progress-total')[0];
-            const preview = inputUpload.closest('.media-field-wrapper').find('.media-files-input-preview')[0];
-            const mainIndex = /^file\[(\d+)\]\[\]$/g.exec(inputFile.getAttribute('name'))[1];
+            const preview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
+            const listUploaded = preview.getElementsByTagName('ol')[0];
+            const buttonBrowse = mediaField.getElementsByClassName('button-browse')[0];
 
-            while (preview.firstChild) {
-                preview.removeChild(preview.firstChild);
+            const flow = new Flow({
+                target: uploadUrl,
+                chunkSize: 1000000,
+                permanentErrors: [403, 404, 412, 415, 500, 501],
+                headers: {
+                    'X-Csrf': $('body.items form.resource-form input[type=hidden][name=csrf]').val(),
+                },
+                // Like default one, but prepend the main index to allow uploading same files multiple times in bulk-uploads.
+                generateUniqueIdentifier: (file) => {
+                    var relativePath = file.relativePath || file.webkitRelativePath || file.fileName || file.name;
+                    return mainIndex + '_' + file.size + '-' + relativePath.replace(/[^0-9a-zA-Z_-]/img, '');
+                },
+            });
+            if (!flow.support) {
+                return;
             }
 
-            // Prepare hidden input for new files and reset previous data uploaded if any.
-            // TODO It may be possible to append new files to the list instead of removing them, but multiple media is already possible in resource form.
-            var data = JSON.parse(inputHidden.getAttribute('value'));
-            for(var k in data.append) {
-                data.remove.push(data.append[k]);
-            }
-            data.append = {};
-            inputHidden.setAttribute('value', JSON.stringify(data));
-
-            /** @var FileList curFiles */
-            const curFiles = inputFile.files;
-            if (curFiles.length === 0) {
-                inputFile.removeAttribute('required');
-                const para = document.createElement('p');
-                para.textContent = inputUpload.data('translate-no-file');
-                preview.appendChild(para);
-                fullProgress.classList.add('empty');
-                fullProgressCurrent.textContent = '';
-                fullProgressTotal.textContent = '';
-            } else {
+            flow.assignBrowse(buttonBrowse)
+            flow.on('fileAdded', (file, event) => {
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
-                inputFile.setAttribute('required', 'required');
+                submitReady.setAttribute('required', 'required');
                 fullProgress.classList.remove('empty');
-                fullProgressCurrent.textContent = 0;
-                fullProgressTotal.textContent = curFiles.length;
+                fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
+                fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
 
-                const list = document.createElement('ol');
-                var index = 0;
-                var total = 0;
-                var countThumbnails = 0;
+                const countThumbnails = listUploaded.getElementsByClassName('original-thumbnail').length;
                 var totalSizeThumbnails = 0;
-                preview.appendChild(list);
-                for (const file of curFiles) {
-                    ++index;
-                    total += file.size;
-                    const listItem = document.createElement('li');
-                    const div = document.createElement('div');
-                    div.classList.add('media-info');
-                    if (validateFile(file)) {
-                        // Display thumbnail and data.
-                        const divImage = document.createElement('div');
-                        divImage.classList.add('resource-thumbnail');
-                        const image = document.createElement('img');
-                        const mainType = file.type.split('/')[0];
-                        const subType = file.type.split('/')[1];
-                        const newThumbnail = mainType === 'image'
-                            && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
-                            && file.size <= maxSizeThumbnail
-                            && countThumbnails <= maxCountThumbnails
-                            && totalSizeThumbnails <= maxTotalSizeThumbnails;
-                        if (newThumbnail) {
-                            countThumbnails++;
-                            totalSizeThumbnails += file.size;
-                            image.src = URL.createObjectURL(file);
-                        } else {
-                            image.src = defaultThumbnailUrl(file);
-                        }
-                        image.onload = function() {
-                            URL.revokeObjectURL(this.src);
-                        };
-                        divImage.appendChild(image);
-                        div.appendChild(divImage);
-                        const span = document.createElement('span');
-                        span.classList.add('resource-name');
-                        span.textContent = `${file.name} (${humanFileSize(file.size)})`;
-                        div.appendChild(span);
-                        listItem.appendChild(div);
-                        // Pre-upload file.
-                        new FileUpload(image, file, inputFile, inputHidden, index, fullProgressCurrent, fullProgressTotal);
-                    } else {
-                        const pError = document.createElement('p');
-                        pError.textContent = file.name + ': ' + inputUpload.data('translate-invalid-file');
-                        pError.classList.add('error');
-                        div.appendChild(pError);
-                        div.classList.add('messages');
-                        listItem.appendChild(div);
-                        fullProgressTotal.textContent = parseInt(fullProgressTotal.textContent) - 1;
-                    }
-                    list.appendChild(listItem);
+                for (const item of listUploaded.getElementsByClassName('original-thumbnail')) {
+                    totalSizeThumbnails += parseInt(item.getAttribute('data-size'));
                 }
-                if (total > maxSizePost) {
-                    const div = document.createElement('div');
+
+                const fileFile = file.file;
+                const listItem = document.createElement('li');
+                const listItemIsValid = validateFile(fileFile);
+                listItem.id = file.uniqueIdentifier;
+                listItem.setAttribute('data-is-valid', listItemIsValid ? '1' : '0');
+                listItem.setAttribute('data-is-uploaded', '0');
+                const div = document.createElement('div');
+                div.classList.add('media-info');
+                if (listItemIsValid) {
+                    // Display thumbnail and data.
+                    const divImage = document.createElement('div');
+                    divImage.classList.add('resource-thumbnail');
+                    const image = document.createElement('img');
+                    const mainType = fileFile.type.split('/')[0];
+                    const subType = fileFile.type.split('/')[1];
+                    const newThumbnail = mainType === 'image'
+                        && ['avif', 'apng', 'bmp', 'gif', 'ico', 'jpeg', 'png', 'svg', 'webp'].includes(subType)
+                        && file.size <= maxSizeThumbnail
+                        && countThumbnails < maxCountThumbnails
+                        && totalSizeThumbnails <= maxTotalSizeThumbnails;
+                    if (newThumbnail) {
+                        totalSizeThumbnails += file.size;
+                        image.src = URL.createObjectURL(fileFile);
+                        image.classList.add('original-thumbnail');
+                        image.setAttribute('data-size', file.size);
+                    } else {
+                        image.src = defaultThumbnailUrl(fileFile);
+                    }
+                    image.onload = function() {
+                        URL.revokeObjectURL(this.src);
+                    };
+                    divImage.appendChild(image);
+                    div.appendChild(divImage);
+                    const span = document.createElement('span');
+                    span.classList.add('resource-name');
+                    span.textContent = `${file.name} (${humanFileSize(file.size)})`;
+                    div.appendChild(span);
+                    listItem.appendChild(div);
+                    // Create a throbber and attach it to the file.
+                    file.ctrl = createThrobber(image);
+                } else {
                     const pError = document.createElement('p');
-                    pError.textContent = inputUpload.data('translate-max-size-post');
+                    pError.textContent = file.name + ': ' + bulkUpload.data('translate-invalid-file');
                     pError.classList.add('error');
                     div.appendChild(pError);
                     div.classList.add('messages');
-                    preview.prepend(div);
+                    listItem.appendChild(div);
+                    fullProgressTotal.textContent = parseInt(fullProgressTotal.textContent) - 1;
                 }
-            }
-        }
+                listUploaded.appendChild(listItem);
+                return listItemIsValid;
+            })
+            flow.on('filesSubmitted', (files, event) => {
+                // Submit immediately.
+                flow.upload();
+            })
+            flow.on('fileProgress', (file, chunk) => {
+                const percentage = file.chunks.length ? (chunk.offset + 1) / file.chunks.length * 100 : 0;
+                file.ctrl.update(percentage);
+            })
+            flow.on('fileSuccess', (file, responseJson, chunk) => {
+                const response = JSON.parse(responseJson);
+                // The order of the files may be different from the order of
+                // success uploads, so use the index.
+                let index = 0;
+                for (const item of listUploaded.getElementsByTagName('li')) {
+                    if (item.id === file.uniqueIdentifier) {
+                        break;
+                    }
+                    ++index;
+                }
+                let filesData = JSON.parse(inputFilesData.getAttribute('value'));
+                filesData[index] = response.data.file;
+                inputFilesData.setAttribute('value', JSON.stringify(filesData));
+                file.ctrl.update(100);
+                file.ctrl.ctx.fillStyle = 'green';
+                const listItem = document.getElementById(file.uniqueIdentifier);
+                listItem.setAttribute('data-is-uploaded', '1');
+                fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length;
+                if (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent)) {
+                    submitReady.removeAttribute('required');
+                }
+            })
+            flow.on('fileError', (file, responseJson) => {
+                addError(submitReady, file, responseJson);
+            });
+        });
 
         function validateFile(file) {
             const extension = file.name.slice((file.name.lastIndexOf('.') - 1 >>> 0) + 2);
@@ -163,75 +181,18 @@
                 + '.png';
         }
 
-        function FileUpload(img, file, inputFile, inputHidden, index, fullProgressCurrent, fullProgressTotal) {
-            const self = this;
-            const reader = new FileReader();
-            const xhr = new XMLHttpRequest();
-            this.xhr = xhr;
-            this.ctrl = createThrobber(img);
-            xhr.upload
-                .addEventListener('progress', function(e) {
-                    if (e.lengthComputable) {
-                        const percentage = Math.round((e.loaded * 100) / e.total);
-                        self.ctrl.update(percentage);
-                    }
-                }, false);
-            xhr.upload
-                .addEventListener('load', function(e) {
-                    self.ctrl.update(100);
-                    const canvas = self.ctrl.ctx.canvas;
-                    // canvas.parentNode.removeChild(canvas);
-                    self.ctrl.ctx.fillStyle = 'green';
-                }, false);
-            xhr.onloadend = function() {
-                if (xhr.status == 200) {
-                    // Add a hidden input with data.
-                    // A check is done to manage a php issue with session_write_close() on some servers.
-                    const responseJson = JSON.parse(
-                        xhr.response.includes('}<') ? xhr.response.substr(0, xhr.response.indexOf('}<') + 1) : xhr.response
-                    );
-                    if (responseJson.status && responseJson.status === 'success') {
-                        let data = JSON.parse(inputHidden.getAttribute('value'));
-                        data.append[index] = responseJson.data.file;
-                        inputHidden.setAttribute('value', JSON.stringify(data));
-                        fullProgressCurrent.textContent = parseInt(fullProgressCurrent.textContent) + 1;
-                        // Check if the form can be submitted.
-                        const fullCurrent = parseInt(fullProgressCurrent.textContent);
-                        const fullTotal = parseInt(fullProgressTotal.textContent);
-                        if (fullCurrent >= fullTotal) {
-                            inputFile.removeAttribute('required');
-                        }
-                    } else {
-                        addError(img, file, inputFile, responseJson.message);
-                    }
-                } else {
-                    addError(img, file, inputFile, 'error ' + this.status)
-                }
-            }
-            xhr
-                .addEventListener('error', function(e) {
-                    addError(img, file, inputFile, 'error ' + this.status)
-                }, false);
-            xhr.open('POST', uploadUrl);
-            xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
-            xhr.setRequestHeader('X-Csrf', $('body.items form.resource-form input[type=hidden][name=csrf]').val());
-            xhr.setRequestHeader('X-Filename', file.name);
-            reader.onload = function(evt) {
-                xhr.send(evt.target.result);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function addError(img, file, inputFile, message) {
-            inputFile.setAttribute('required', 'required');
+        function addError(submitReady, file, responseJson) {
+            const response = JSON.parse(responseJson);
+            submitReady.setAttribute('required', 'required');
             const div = document.createElement('div');
             div.classList.add('media-info');
             div.classList.add('messages');
             const pError = document.createElement('p');
-            pError.textContent = message;
+            pError.textContent = response.message;
             pError.classList.add('error');
             div.appendChild(pError);
-            img.closest('li').appendChild(div);
+            const listItem = document.getElementById(file.uniqueIdentifier);
+            listItem.appendChild(div);
         }
 
         function createThrobber(img) {

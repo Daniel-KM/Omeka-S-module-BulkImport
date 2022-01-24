@@ -55,6 +55,18 @@ class Module extends AbstractModule
 
     protected function preInstall(): void
     {
+        $js = __DIR__ . '/asset/vendor/flow.js/flow.min.js';
+        if (!file_exists($js)) {
+            $services = $this->getServiceLocator();
+            $t = $services->get('MvcTranslator');
+            throw new ModuleCannotInstallException(
+                sprintf(
+                    $t->translate('The library "%s" should be installed.'), // @translate
+                    'javascript'
+                ) . ' '
+                . $t->translate('See module’s installation documentation.')); // @translate
+        }
+
         $config = $this->getServiceLocator()->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         if (!$this->checkDestinationDir($basePath . '/xsl')) {
@@ -194,13 +206,7 @@ class Module extends AbstractModule
         }
 
         foreach ($filesData['file'] ?? [] as $key => $fileData) {
-            $fileData = json_decode($fileData, true);
-            if (!empty($fileData['remove'])) {
-                foreach ($fileData['remove'] as $remove) {
-                    @unlink($tempDir . DIRECTORY_SEPARATOR . $remove['tmp_name']);
-                }
-            }
-            $filesData['file'][$key] = $fileData['append'] ?? [];
+            $filesData['file'][$key] = json_decode($fileData, true) ?: [];
         }
 
         if (empty($data['o:media'])) {
@@ -455,6 +461,7 @@ class Module extends AbstractModule
         $view->headLink()
             ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
         $view->headScript()
+            ->appendFile($assetUrl('vendor/flow.js/flow.min.js', 'BulkImport'), 'text/javascript', ['defer' => 'defer'])
             ->appendFile($assetUrl('js/bulk-import.js', 'BulkImport'), 'text/javascript', ['defer' => 'defer']);
     }
 

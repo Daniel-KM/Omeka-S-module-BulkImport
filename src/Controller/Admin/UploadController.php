@@ -24,16 +24,34 @@ class UploadController extends AbstractActionController
      */
     protected $validator;
 
+    /**
+     * @var string
+     */
+    protected $tempDir;
+
     public function __construct(
         TempFileFactory $tempFileFactory,
-        Validator $validator
+        Validator $validator,
+        string $tempDir
     ) {
         $this->tempFileFactory = $tempFileFactory;
         $this->validator = $validator;
+        $this->tempDir = $tempDir;
     }
 
+    /**
+     * Save a file locally for future ingesting.
+     *
+     * For each chunk, Flow.js sends a get with a query, then a post with the
+     * same query but with the chunk too as file. It allows to resume broken
+     * downloads without restarting.
+     *
+     * @see \Flow\Basic::save()
+     */
     public function indexAction()
     {
+        // Some security checks.
+
         $user = $this->identity();
         if (!$user) {
             $response = $this->getResponse();
@@ -45,7 +63,7 @@ class UploadController extends AbstractActionController
             ]);
         }
 
-        /** @var \Laminas\Http\Request $request*/
+        /** @var \Laminas\Http\Request $request */
         $request = $this->getRequest();
         $headers = $request->getHeaders()->toArray();
 
@@ -74,8 +92,60 @@ class UploadController extends AbstractActionController
             ]);
         }
 
-        $contentLength = $headers['Content-Length'] ?? 0;
-        if (!$contentLength) {
+        // Processing the chunk.
+
+        $flowConfig = new \Flow\Config([
+            'tempDir' => $this->tempDir,
+        ]);
+
+        // $chunk = $this->params()->fromQuery() ?: $this->params()->fromPost();
+        $flowRequest = new \Flow\Request();
+
+        $uploadFileName = 'omk'
+            . '_' . (new \DateTime())->format('Ymd-His')
+            . '_' . substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(32))), 0, 8)
+            . '_' . $flowRequest->getFileName();
+        $destination = $this->tempDir . DIRECTORY_SEPARATOR . $uploadFileName;
+
+        $file = new \Flow\File($flowConfig, $flowRequest);
+        if ($request->isGet()) {
+            if ($file->checkChunk()) {
+                // Nothing to do here.
+            } else {
+                // The 204 response MUST NOT include a message-body, and
+                // thus is always terminated by the first empty line after
+                // the header fields.
+                $this->getResponse()
+                    ->setStatusCode(Response::STATUS_CODE_204);
+                // Don't use view model, there is no template.
+                return (new JsonModel())
+                    ->setTerminal(true);
+            }
+        } else {
+            if ($file->validateChunk()) {
+                $file->saveChunk();
+            } else {
+                // Error, invalid chunk upload request, retry.
+                $this->getResponse()
+                    ->setStatusCode(Response::STATUS_CODE_400);
+                // Don't use view model, there is no template.
+                return (new JsonModel())
+                    ->setTerminal(true);
+            }
+        }
+
+        // Check if this is the last chunk.
+        if (!$file->validateFile() || !$file->save($destination)) {
+            return (new JsonModel())
+                ->setTerminal(true);
+        }
+
+        // File is saved successfully and can be accessed at destination.
+
+        // Ingester checks.
+
+        $filesize = filesize($destination);
+        if (!$filesize) {
             $response = $this->getResponse();
             $response->setStatusCode(Response::STATUS_CODE_412);
             return new JsonModel([
@@ -85,7 +155,7 @@ class UploadController extends AbstractActionController
             ]);
         }
 
-        $filename = (string) ($headers['X-Filename'] ?? '');
+        $filename = (string) $flowRequest->getFileName();
         if (strlen($filename) < 3 || strlen($filename) > 200) {
             $response = $this->getResponse();
             $response->setStatusCode(Response::STATUS_CODE_412);
@@ -117,30 +187,10 @@ class UploadController extends AbstractActionController
             ]);
         }
 
+        $filepath = $destination;
         $tempFile = $this->tempFileFactory->build();
         $tempFile->setSourceName($filename);
-        $filepath = $tempFile->getTempPath();
-        $filesize = file_put_contents($filepath, $request->getContent());
-        if ($filesize === false) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_500);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('Unable to store the file.'), // @translate
-                'code' => Response::STATUS_CODE_500,
-            ]);
-        }
-
-        if (!$filesize) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_412);
-            @unlink($filepath);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('The file is empty.'), // @translate
-                'code' => Response::STATUS_CODE_412,
-            ]);
-        }
+        $tempFile->setTempPath($filepath);
 
         $validateFile = (bool) $this->settings()->get('disable_file_validation', false);
         if ($validateFile) {

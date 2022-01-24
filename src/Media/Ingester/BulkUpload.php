@@ -2,7 +2,6 @@
 
 namespace BulkImport\Media\Ingester;
 
-use Laminas\Form\Element\File;
 use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Api\Request;
 use Omeka\Entity\Media;
@@ -91,18 +90,6 @@ class BulkUpload implements IngesterInterface
 
     public function form(PhpRenderer $view, array $options = [])
     {
-        $fileInput = $this->getFileInput($view, $options);
-        return $view->formRow($fileInput)
-            . <<<'HTML'
-<input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
-<input type="hidden" name="filesData[file][__index__]" value='{"append":{},"remove":[]}' class="filesdata"/>
-<div class="media-files-input-full-progress empty"><span class="progress-current"></span> / <span class="progress-total"></span></div>
-<div class="media-files-input-preview"></div>
-HTML;
-    }
-
-    protected function getFileInput($view, $options): File
-    {
         if ($view->setting('disable_file_validation', false)) {
             $allowedMediaTypes = '';
             $allowedExtensions = '';
@@ -119,26 +106,38 @@ HTML;
         $maxSizePost = $this->parseSize(ini_get('post_max_size'));
         // "max_file_uploads" is no more a limit since files are sent one by one.
 
-        $fileInput = new File('file[__index__]');
-        return $fileInput
-            ->setOptions([
-                'label' => 'Upload files', // @translate
-                'info' => $view->uploadLimit(),
-            ])
-            ->setAttributes([
-                'id' => 'media-file-input-__index__',
-                'class' => 'media-files-input',
-                'required' => false,
-                'multiple' => true,
-                'accept' => $accept,
-                'data-allowed-media-types' => $allowedMediaTypes,
-                'data-allowed-extensions' => $allowedExtensions,
-                'data-max-size-file' => $maxSizeFile,
-                'data-max-size-post' => $maxSizePost,
-                'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
-                'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
-                'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
-            ]);
+        $data = [
+            'data-accept' => $accept,
+            'data-allowed-media-types' => $allowedMediaTypes,
+            'data-allowed-extensions' => $allowedExtensions,
+            'data-max-size-file' => $maxSizeFile,
+            'data-max-size-post' => $maxSizePost,
+            'data-translate-upload-limit' => $view->translate($view->uploadLimit()),
+            'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
+            'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
+            'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
+        ];
+
+        $dataAttributes = $this->arrayToAttributes($view, $data);
+
+        $uploadFiles = $view->translate('Upload files'); // @translate
+        $browseFiles = $view->translate('Browse files'); // @translate
+
+        return <<<HTML
+<div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
+    <div class="field-meta">
+        <label for="media-file-input-__index__">$uploadFiles</label>
+    </div>
+    <div class="inputs">
+        <button type="button" class="button-browse">$browseFiles</button>
+    </div>
+</div>
+<input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
+<input type="file" name="ready" value="" class="submit-ready" style="display: none; visibility: hidden"/>
+<input type="hidden" name="filesData[file][__index__]" value="{}" class="filesdata"/>
+<div class="media-files-input-full-progress empty"><span class="progress-current"></span> / <span class="progress-total"></span></div>
+<div class="media-files-input-preview"><ol></ol></div>
+HTML;
     }
 
     /**
@@ -183,5 +182,19 @@ HTML;
             return null;
         }
         return $realPath;
+    }
+
+    /**
+     * @todo Keys are not checked, but this is only use internaly.
+     */
+    protected function arrayToAttributes(PhpRenderer $view, array $attributes): string
+    {
+        $escapeAttr = $view->plugin('escapeHtmlAttr');
+        return implode(' ', array_map(function($key) use ($attributes, $escapeAttr) {
+            if (is_bool($attributes[$key])) {
+                return $attributes[$key] ? $key . '="' . $key . '"' : '';
+            }
+            return $key . '="' . $escapeAttr($attributes[$key]) . '"';
+        }, array_keys($attributes)));
     }
 }
