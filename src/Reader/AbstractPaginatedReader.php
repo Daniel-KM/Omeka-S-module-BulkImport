@@ -35,6 +35,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
     protected $charset;
 
     /**
+     * @todo Remove this value, not used (urls are fetched).
      * @var array
      */
     protected $pageIterator;

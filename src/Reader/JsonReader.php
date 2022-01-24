@@ -3,6 +3,7 @@
 namespace BulkImport\Reader;
 
 use ArrayIterator;
+use BulkImport\Entry\BaseEntry;
 use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
@@ -35,6 +36,7 @@ class JsonReader extends AbstractPaginatedReader
         'mapping_file',
         'filename',
         'url',
+        'list_files',
     ];
 
     protected $contentType = 'application/json';
@@ -60,6 +62,11 @@ class JsonReader extends AbstractPaginatedReader
      * @var int
      */
     protected $baseUrl = '';
+
+    /**
+     * @var array
+     */
+    protected $listFiles = [];
 
     /**
      * @var \Laminas\Http\Response
@@ -100,7 +107,25 @@ class JsonReader extends AbstractPaginatedReader
                 ->setVariables($this->transformSourceImportParams)
                 ->convertToString('params', 'resource_url', $current);
             $this->transformSource->addVariable('url_resource', $resourceUrl);
-            $current = $this->fetchUrlJson($resourceUrl);
+            if (!$this->listFiles) {
+                $current = $this->fetchUrlJson($resourceUrl);
+            }
+        }
+
+        if ($this->listFiles) {
+            $content = @file_get_contents($current);
+            if ($content === false) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'File "{fileurl}" is not available.', // @translate
+                    ['fileurl' => $current]
+                );
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    $this->lastErrorMessage->getMessage(),
+                    $this->lastErrorMessage->getContext()
+                );
+                return new BaseEntry([], []);
+            }
+            $current = json_decode($content, true) ?: [];
         }
 
         return new JsonEntry($current, [], [
@@ -111,6 +136,10 @@ class JsonReader extends AbstractPaginatedReader
     public function isValid(): bool
     {
         $this->initArgs();
+
+        if ($this->listFiles) {
+            return true;
+        }
 
         if (empty($this->params['url'])) {
             if (!$this->isValidUrl('', '', [], $this->contentType, $this->charset)) {
@@ -123,6 +152,15 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         return true;
+    }
+
+    public function rewind(): void
+    {
+        if ($this->listFiles) {
+            $this->prepareFileListIterator();
+        } else {
+            parent::rewind();
+        }
     }
 
     protected function initArgs(): void
@@ -147,10 +185,24 @@ class JsonReader extends AbstractPaginatedReader
         if (!empty($this->transformSourceImportParams['subpath'])) {
             $this->subpath = $this->transformSourceImportParams['subpath'];
         }
+
+        // Manage a simple list of url/filepath to json.
+        $fileList = $this->getParam('list_files');
+        if ($fileList) {
+            $this->listFiles = array_unique(array_filter(array_map('trim', $fileList)));
+        }
     }
 
     protected function currentPage(): void
     {
+        if ($this->listFiles) {
+            // TODO Remove useless response (just to avoid a check currently in preparePageIterator().
+            $this->currentResponse = new Response();
+            $this->currentResponse->setContent(implode("\n", $this->listFiles));
+            $this->prepareFileListIterator();
+            return;
+        }
+
         $this->currentResponse = $this->fetchData($this->path, $this->subpath, array_merge($this->filters, $this->queryParams), $this->currentPage);
 
         // Sometime, the url returns a html page in case of error, but this is
@@ -220,6 +272,11 @@ class JsonReader extends AbstractPaginatedReader
             return;
         }
 
+        if ($this->listFiles) {
+            $this->prepareFileListIterator();
+            return;
+        }
+
         $this->baseUrl = $this->endpoint;
 
         $body = json_decode($this->currentResponse->getBody(), true) ?: [];
@@ -230,6 +287,18 @@ class JsonReader extends AbstractPaginatedReader
         // At least the first page.
         $this->lastPage = max((int) ceil($this->totalCount / $this->perPage), 1);
         // The page is 1-based, but the index is 0-based, more common in loops.
+        $this->currentPage = 1;
+        $this->currentIndex = 0;
+        $this->isValid = true;
+    }
+
+    protected function prepareFileListIterator(): void
+    {
+        $this->setInnerIterator(new ArrayIterator($this->listFiles));
+        $this->perPage = count($this->listFiles);
+        $this->totalCount = count($this->listFiles);
+        $this->firstPage = 1;
+        $this->lastPage = 1;
         $this->currentPage = 1;
         $this->currentIndex = 0;
         $this->isValid = true;

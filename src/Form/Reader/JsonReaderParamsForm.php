@@ -4,6 +4,7 @@ namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
 use Laminas\Form\Element;
+use Omeka\Form\Element as OmekaElement;
 
 class JsonReaderParamsForm extends JsonReaderConfigForm
 {
@@ -33,6 +34,17 @@ class JsonReaderParamsForm extends JsonReaderConfigForm
                 ],
                 'attributes' => [
                     'id' => 'url',
+                    'required' => false,
+                ],
+            ])
+            ->add([
+                'name' => 'list_files',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'List of files or urls', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'list_files',
                     'required' => false,
                 ],
             ])
