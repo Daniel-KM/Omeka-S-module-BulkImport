@@ -385,7 +385,7 @@ SQL;
     }
 }
 
-if (version_compare($oldVersion, '3.3.29.0', '<')) {
+if (version_compare($oldVersion, '3.3.30.0', '<')) {
     $messenger = new Messenger();
     $message = new Message(
         'It’s now possible to upload files and directories in bulk in item form.' // @translate
