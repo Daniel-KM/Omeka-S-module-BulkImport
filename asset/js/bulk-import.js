@@ -7,15 +7,13 @@
         const uploadUrl = basePath + '/admin/bulk/upload';
 
         // May avoid crash on big import and small user computer.
-        const maxSizeThumbnail = 5000000;
-        const maxTotalSizeThumbnails = 200000000;
+        const maxSizeThumbnail = 15000000;
+        const maxTotalSizeThumbnails = 500000000;
         const maxCountThumbnails = 200;
 
         let bulkUpload = $($('#media-template-bulk_upload').data('template')).find('.media-bulk-upload');
         const allowedMediaTypes = bulkUpload.data('allowed-media-types').split(',');
         const allowedExtensions = bulkUpload.data('allowed-extensions').split(',');
-        const maxSizeFile = parseInt(bulkUpload.data('max-size-file'));
-        const maxSizePost = parseInt(bulkUpload.data('max-size-post'));
 
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Adapted from https://developer.mozilla.org/fr/docs/Web/API/File/Using_files_from_web_applications
@@ -29,10 +27,13 @@
             const fullProgress = mediaField.parentNode.getElementsByClassName('media-files-input-full-progress')[0];
             const fullProgressCurrent = fullProgress.getElementsByClassName('progress-current')[0];
             const fullProgressTotal = fullProgress.getElementsByClassName('progress-total')[0];
+            const fullProgressWait = fullProgress.getElementsByClassName('progress-wait')[0];
             const preview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
             const listUploaded = preview.getElementsByTagName('ol')[0];
-            const buttonBrowse = mediaField.getElementsByClassName('button-browse')[0];
+            const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files');
+            const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory');
             const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
+            const divDrop = mediaField.getElementsByClassName('bulk-drop');
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -51,7 +52,15 @@
                 return;
             }
 
-            flow.assignBrowse(buttonBrowse)
+            const accept = (allowedMediaTypes + ',' + allowedExtensions).replace(/^,+|,+$/g, '');
+
+            flow.assignBrowse(buttonBrowseFiles, false, false, accept.length ? {'accept': accept} : {});
+            // Fix Apple Safari.
+            flow.supportDirectory
+                ? flow.assignBrowse(buttonBrowseDirectory, true, false, accept.length ? {'accept': accept} : {})
+                : buttonBrowseDirectory.style.display = 'none';
+            flow.assignDrop(divDrop);
+
             flow.on('fileAdded', (file, event) => {
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
@@ -59,6 +68,7 @@
                 fullProgress.classList.remove('empty');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
                 fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
+                fullProgressWait.style.display = 'block';
 
                 const countThumbnails = listUploaded.getElementsByClassName('original-thumbnail').length;
                 var totalSizeThumbnails = 0;
@@ -145,9 +155,7 @@
                 const listItem = document.getElementById(file.uniqueIdentifier);
                 listItem.setAttribute('data-is-uploaded', '1');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length;
-                if (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent)) {
-                    submitReady.removeAttribute('required');
-                }
+                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait);
             })
             flow.on('fileError', (file, responseJson) => {
                 addError(submitReady, file, responseJson);
@@ -157,16 +165,11 @@
                 if (flow.isUploading()) {
                     flow.pause();
                     buttonPause.textContent = mediaField.getAttribute('data-translate-resume');
-                    submitReady.removeAttribute('required');
                 } else {
                     flow.resume();
                     buttonPause.textContent = mediaField.getAttribute('data-translate-pause');
-                    !fullProgressTotal.textContent.length
-                        || parseInt(fullProgressTotal.textContent) === 0
-                        || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent))
-                        ? submitReady.removeAttribute('required')
-                        : submitReady.setAttribute('required', 'required');
                 }
+                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait);
             };
         });
 
@@ -176,8 +179,7 @@
                 && (!allowedExtensions.length || allowedExtensions.includes(extension.toLowerCase()))
                 && file.name.substr(0, 1) !== '.'
                 && /^[^{}$?!<>\/\\]+$/.test(file.name)
-                && file.size > 0
-                && file.size <= maxSizeFile;
+                && file.size > 0;
         }
 
         function humanFileSize(number) {
@@ -230,6 +232,19 @@
             }
             throbber.update(0);
             return throbber;
+        }
+
+        function updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait) {
+            if (!fullProgressTotal.textContent.length
+                || parseInt(fullProgressTotal.textContent) === 0
+                || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent))
+            ) {
+                submitReady.removeAttribute('required');
+                fullProgressWait.style.display = 'none';
+            } else {
+                submitReady.setAttribute('required', 'required');
+                fullProgressWait.style.display = 'block';
+            }
         }
 
     });

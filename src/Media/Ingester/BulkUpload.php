@@ -93,37 +93,32 @@ class BulkUpload implements IngesterInterface
         if ($view->setting('disable_file_validation', false)) {
             $allowedMediaTypes = '';
             $allowedExtensions = '';
-            $accept = '';
         } else {
             $allowedMediaTypes = $view->setting('media_type_whitelist', []);
             $allowedExtensions = $view->setting('extension_whitelist', []);
-            $accept = implode(',', array_merge($allowedMediaTypes, $allowedExtensions));
             $allowedMediaTypes = implode(',', $allowedMediaTypes);
             $allowedExtensions = implode(',', $allowedExtensions);
         }
 
-        $maxSizeFile = $this->parseSize(ini_get('upload_max_filesize'));
-        $maxSizePost = $this->parseSize(ini_get('post_max_size'));
-        // "max_file_uploads" is no more a limit since files are sent one by one.
+        // "upload_max_filesize", "post_max_size", "max_file_uploads" are no
+        // more a limit since files are sent one by one, and by small chunks.
 
         $data = [
-            'data-accept' => $accept,
             'data-allowed-media-types' => $allowedMediaTypes,
             'data-allowed-extensions' => $allowedExtensions,
-            'data-max-size-file' => $maxSizeFile,
-            'data-max-size-post' => $maxSizePost,
-            'data-translate-upload-limit' => $view->translate($view->uploadLimit()),
             'data-translate-pause' => $view->translate('Pause'), // @translate
             'data-translate-resume' => $view->translate('Resume'), // @translate
             'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
             'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
-            'data-translate-max-size-post' => sprintf($view->translate('The total size of the uploaded files is greater than the server limit (%d bytes). Remove some new files.'), $maxSizePost), // @translate
         ];
 
         $dataAttributes = $this->arrayToAttributes($view, $data);
 
         $uploadFiles = $view->translate('Upload files'); // @translate
+        $divDrop = $view->translate('Drag and drop'); // @translate
         $browseFiles = $view->translate('Browse files'); // @translate
+        $browseDirectory = $view->translate('Select directory'); // @translate
+        $wait = $view->translate('Wait before submission…'); // @translate
         $buttonPause = $data['data-translate-pause'];
 
         return <<<HTML
@@ -131,15 +126,20 @@ class BulkUpload implements IngesterInterface
     <div class="field-meta">
         <label for="media-file-input-__index__">$uploadFiles</label>
     </div>
-    <div class="inputs">
-        <button type="button" class="button-browse">$browseFiles</button>
+    <div class="inputs bulk-drop">
+        <span>$divDrop</span>
+        <button type="button" class="button-browse button-browse-files">$browseFiles</button>
+        <button type="button" class="button-browse button-browse-directory" webkitdirectory="webkitdirectory">$browseDirectory</button>
         <button type="button" class="button-pause">$buttonPause</button>
     </div>
 </div>
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
-<input type="file" name="ready" value="" class="submit-ready" style="display: none; visibility: hidden"/>
+<input type="file" value="" class="submit-ready" style="display: none; visibility: hidden"/>
 <input type="hidden" name="filesData[file][__index__]" value="{}" class="filesdata"/>
-<div class="media-files-input-full-progress empty"><span class="progress-current"></span> / <span class="progress-total"></span></div>
+<div class="media-files-input-full-progress empty">
+    <span class="progress-current"></span> / <span class="progress-total"></span>
+    <span class="progress-wait">$wait</span>
+</div>
 <div class="media-files-input-preview"><ol></ol></div>
 HTML;
     }

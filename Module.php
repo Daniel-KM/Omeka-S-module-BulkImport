@@ -240,7 +240,7 @@ class Module extends AbstractModule
             $newDataMedias[] = $dataMedia;
 
             if (empty($dataMedia['o:ingester'])
-                || !in_array($dataMedia['o:ingester'], ['bulk_upload', 'bulk_upload_dir'])
+                || $dataMedia['o:ingester'] !== 'bulk_upload'
             ) {
                 continue;
             }
