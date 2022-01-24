@@ -26,7 +26,6 @@ return [
     'resource name' => 'resource_name',
     'resource type' => 'resource_name',
     'record type' => 'resource_name',
-    '@type' => 'resource_name',
     'resource template' => 'o:resource_template',
     'item type' => 'o:resource_class',
     'resource class' => 'o:resource_class',

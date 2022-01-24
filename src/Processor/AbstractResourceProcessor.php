@@ -9,6 +9,7 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Stdlib\MessageStore;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
+use BulkImport\Traits\TransformSourceTrait;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
@@ -20,6 +21,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     use CheckTrait;
     use FileTrait;
     use ResourceUpdateTrait;
+    use TransformSourceTrait;
 
     /**
      * @var string
@@ -342,6 +344,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $toSkip = (int) $this->getParam('entries_to_skip', 0);
         $maxEntries = (int) $this->getParam('entries_max', 0);
         $maxRemaining = $maxEntries;
+
+        // TODO Do a first loop to get all identifiers and linked resources to speed up process.
 
         // Manage the case where the reader is zero-based or one-based.
         $firstIndexBase = null;
@@ -780,7 +784,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 case $this->fillSpecific($resource, $target, $values):
                     break;
                 default:
-                    $resource[$target['target']] = array_pop($values);
+                    // The resource name should be set only in fillSpecific.
+                    if ($target['target'] !== 'resource_name') {
+                        $resource[$target['target']] = array_pop($values);
+                    }
                     break;
             }
         }
@@ -1824,13 +1831,52 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * Prepare full mapping one time to simplify and speed process.
      *
      * Add automapped metadata for properties (language and datatypes).
+     *
+     * @todo Merge this method with transformSource::getNormalizedConfig().
      */
     protected function prepareMapping(): \BulkImport\Processor\Processor
     {
-        $mapping = $this->getParam('mapping', []);
+        $isPrepared = false;
+        if (method_exists($this->reader, 'getConfigParam')) {
+            $mappingFile = $this->reader->getParam('mapping_file') ?: $this->reader->getConfigParam('mapping_file');
+            if ($mappingFile) {
+                $isPrepared = true;
+                $mapping = [];
+                // TODO Avoid to prepare the source a second time when the reader prepared it.
+                $this->initTransformSource($mappingFile, $this->reader->getParams());
+                $mappingSource = array_merge(
+                    $this->transformSource->getSection('default'),
+                    $this->transformSource->getSection('mapping')
+                );
+                foreach ($mappingSource as $fromTo) {
+                    // The from is useless here, the entry takes care of it.
+                    if (isset($fromTo['to']['dest'])) {
+                        // Manage multimapping: there may be multiple target fields.
+                        // TODO Improve multimapping management (for spreadsheet in fact).
+                        $mapping[$fromTo['to']['dest']][] = $fromTo['to']['field'] ?? null;
+                    }
+                }
+                // Filter duplicated and null values.
+                foreach ($mapping as &$datas) {
+                    $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
+                }
+                unset($datas);
+            }
+        }
+
+        if (!$isPrepared) {
+            $mapping = $this->getParam('mapping', []);
+        }
+
+        if (!count($mapping)) {
+            $this->hasMapping = false;
+            $this->mapping = [];
+            return $this;
+        }
 
         // The automap is only used for language, datatypes and visibility:
         // the properties are the one that are set by the user.
+        // TODO Avoid remapping or factorize when done in transformSource.
         /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
         $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
         $sourceFields = $automapFields(array_keys($mapping), ['output_full_matches' => true]);
@@ -1862,7 +1908,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $fullTargets = [];
             foreach ($targets as $target) {
                 $result = [];
-                // Field is the property found by automap.
+                // Field is the property found by automap, or any other metadata.
                 // This value is not used, but may be useful for messages.
                 $result['field'] = $metadata['field'];
 
@@ -1918,7 +1964,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 else {
                     $result['full_field'] = $sourceField;
                     $result['@language'] = $metadata['@language'];
-                    $result['datatypes'] = $metadata['datatypes'];
+                    $result['datatypes'] = $metadata['datatypes'] ?? [];
                     $result['is_public'] = $metadata['is_public'] !== 'private';
                 }
 

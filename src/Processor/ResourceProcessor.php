@@ -100,12 +100,9 @@ class ResourceProcessor extends AbstractResourceProcessor
         if (is_null($resourceNames)) {
             $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
             $resourceNames = [
-                'o:Item' => 'items',
-                'o:ItemSet' => 'item_sets',
-                'o:Media' => 'media',
-                'o:item' => 'items',
-                'o:item_set' => 'item_sets',
-                'o:media' => 'media',
+                'oitem' => 'items',
+                'oitemset' => 'item_sets',
+                'omedia' => 'media',
                 'item' => 'items',
                 'itemset' => 'item_sets',
                 'media' => 'media',
@@ -127,6 +124,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $translate('file') => 'media',
                 $translate('files') => 'media',
             ];
+            $resourceNames = array_change_key_case($resourceNames, CASE_LOWER);
         }
 
         // When the resource name is known, don't fill other resources. But if
@@ -432,7 +430,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         if (!in_array($resource['resource_name'], ['items', 'item_sets', 'media'])) {
             $resource['messageStore']->addError('resource_name', new PsrMessage(
-                'Resource type "{resource_name}" not managed.', // @translate
+                'The resource type "{resource_name}" is not managed.', // @translate
                 ['resource_name' => $resource['resource_name']]
             ));
             return false;

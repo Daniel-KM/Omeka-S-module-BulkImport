@@ -12,7 +12,7 @@ class TransformSourceFactory implements FactoryInterface
     {
         $plugins = $services->get('ControllerPluginManager');
         return new TransformSource(
-            $plugins->get('logger'),
+            $services->get('Omeka\Logger'),
             $plugins->get('automapFields'),
             $plugins->get('bulk')
         );

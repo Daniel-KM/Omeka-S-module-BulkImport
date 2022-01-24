@@ -3,8 +3,11 @@
 namespace BulkImport\Reader;
 
 use ArrayIterator;
+use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
+use BulkImport\Traits\TransformSourceTrait;
+use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
 /**
@@ -12,10 +15,13 @@ use Log\Stdlib\PsrMessage;
  * @todo Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
  * @todo Implement an intermediate (or generic) JsonReader.
  * @todo Merge with OmekaSReader (make a generic json reader).
+ *
+ * @todo This is the content-dm json reader: move specific code (pagination) inside ContentDmReader.
  */
 class JsonReader extends AbstractPaginatedReader
 {
     use HttpClientTrait;
+    use TransformSourceTrait;
 
     protected $label = 'Json';
     protected $configFormClass = JsonReaderConfigForm::class;
@@ -56,11 +62,6 @@ class JsonReader extends AbstractPaginatedReader
     protected $baseUrl = '';
 
     /**
-     * @var array
-     */
-    protected $importParams = [];
-
-    /**
      * @var \Laminas\Http\Response
      */
     protected $currentResponse;
@@ -90,10 +91,20 @@ class JsonReader extends AbstractPaginatedReader
         $this->isReady();
         $current = $this->getInnerIterator()->current();
 
-        $resource = $current;
+        // Sometime, resource data should be sub-fetched: the current data may
+        // be incomplete or used only for a quick listing (see content-dm, or
+        // even Omeka for sub-resources).
+        $resourceUrl = $this->transformSourceImportParams['resource_url'] ?? null;
+        if ($resourceUrl) {
+            $resourceUrl = $this->transformSource
+                ->setVariables($this->transformSourceImportParams)
+                ->convertToString('params', 'resource_url', $current);
+            $this->transformSource->addVariable('url_resource', $resourceUrl);
+            $current = $this->fetchUrlJson($resourceUrl);
+        }
 
-        return new BaseEntry($resource, [], [
-            'is_formatted' => true,
+        return new JsonEntry($current, [], [
+            'transformSource' => $this->transformSource,
         ]);
     }
 
@@ -112,6 +123,30 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         return true;
+    }
+
+    protected function initArgs(): void
+    {
+        // Prepare mapper one time.
+        if (isset($this->transformSourceImportParams)) {
+            return;
+        }
+
+        $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');
+        $this->initTransformSource($mappingFile, $this->params);
+
+        // Prepare specific data for the reader.
+        $this->endpoint = empty($this->transformSourceImportParams['endpoint'])
+            ? $this->getParam('url')
+            : $this->transformSourceImportParams['endpoint'];
+
+        // To manage complex pagination mechanism, the url can be transformed.
+        if (!empty($this->transformSourceImportParams['path'])) {
+            $this->path = $this->transformSourceImportParams['path'];
+        }
+        if (!empty($this->transformSourceImportParams['subpath'])) {
+            $this->subpath = $this->transformSourceImportParams['subpath'];
+        }
     }
 
     protected function currentPage(): void
@@ -170,6 +205,8 @@ class JsonReader extends AbstractPaginatedReader
             return;
         }
 
+        $resourcesRoot = $this->transformSource->getSectionSetting('params', 'resources_root');
+        $json = $this->transformSource->extractSubValue($json, $resourcesRoot, []);
         if (!is_array($json)) {
             $json = [];
         }
@@ -196,5 +233,30 @@ class JsonReader extends AbstractPaginatedReader
         $this->currentPage = 1;
         $this->currentIndex = 0;
         $this->isValid = true;
+    }
+
+    protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
+    {
+        // TODO Manage pagination query that is not "page".
+        if ($page && !empty($this->transformSourceImportParams['pagination'])) {
+            $vars = $this->transformSourceImportParams;
+            $vars['url'] = $this->getParam('url');
+            if (!is_null($path)) {
+                $vars['path'] = $path;
+            }
+            if (!is_null($subpath)) {
+                $vars['subpath'] = $subpath;
+            }
+            $vars['page'] = $page;
+            $url = $this->transformSource->setVariables($vars)->convertToString('params', 'pagination');
+        } else {
+            if ($page) {
+                $params['page'] = $page;
+            }
+            $url = $this->endpoint
+                . (strlen((string) $path) ? '/' . $path : '')
+                . (strlen((string) $subpath) ? '/' . $subpath : '');
+        }
+        return $this->fetchUrl($url, $params);
     }
 }

@@ -746,6 +746,9 @@ class Bulk extends AbstractPlugin
             'o:item' => \Omeka\Entity\Item::class,
             'o:item_set' => \Omeka\Entity\ItemSet::class,
             'o:media' => \Omeka\Entity\Media::class,
+            'o:Item' => \Omeka\Entity\Item::class,
+            'o:ItemSet' => \Omeka\Entity\ItemSet::class,
+            'o:Media' => \Omeka\Entity\Media::class,
             // Other resource types or badly written types.
             'item' => \Omeka\Entity\Item::class,
             'item_set' => \Omeka\Entity\ItemSet::class,
@@ -847,7 +850,7 @@ class Bulk extends AbstractPlugin
      * metadata names, in which case the identifiers are searched in a list of
      * properties and/or in internal ids.
      * @param string $resourceName The resource type, name or class, if any.
-     * @param MessageStore $messageStore
+     * @param \BulkImport\Stdlib\MessageStore $messageStore
      * @return array|int|null|Object Associative array with the identifiers as key
      * and the ids or null as value. Order is kept, but duplicate identifiers
      * are removed. If $identifiers is a string, return directly the resource
@@ -933,7 +936,7 @@ class Bulk extends AbstractPlugin
      * @param string|int|array $identifierName Property as integer or term,
      * media ingester or "o:id", or an array with multiple conditions.
      * @param string $resourceName The resource type, name or class, if any.
-     * @param MessageStore $messageStore
+     * @param \BulkImport\Stdlib\MessageStore $messageStore
      * @return int|null|false
      */
     public function findResourceFromIdentifier(

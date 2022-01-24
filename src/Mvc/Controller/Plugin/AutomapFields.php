@@ -30,7 +30,9 @@ class AutomapFields extends AbstractPlugin
         . '|(?:\s*§\s*(?<visibility>public|private|))'
         // Max three options, but no check for duplicates for now.
         . '){0,3}'
-        // A replacement pattern for optional transformation of the source.
+        // A replacement pattern for optional transformation of the source:
+        // ~ {{ value|trim }}. It can be a default value, enclosed or not by
+        // quotes: ~ "Public domain" (internal quotes are not escaped).
         . '(?:\s*~\s*(?<pattern>.*))?'
         // Remove final spaces too.
         . '\s*$'
@@ -235,6 +237,7 @@ class AutomapFields extends AbstractPlugin
                                 : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                            $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
                         } else {
                             $automaps[$index][] = $automapList[$found];
@@ -261,6 +264,7 @@ class AutomapFields extends AbstractPlugin
                                 : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                            $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
                         } else {
                             $property = $propertyLists['names'][$found];
@@ -308,6 +312,7 @@ class AutomapFields extends AbstractPlugin
                     $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                    $result = $this->appendPattern($result);
                     $automaps[$index][] = $result;
                 } else {
                     $automaps[$index][] = $field;
@@ -316,6 +321,50 @@ class AutomapFields extends AbstractPlugin
         }
 
         return $automaps;
+    }
+
+    /**
+     * @todo Factorize with TransformSource::preparePattern()
+     */
+    protected function appendPattern(array $result): array
+    {
+        if (empty($result['pattern'])) {
+            return $result;
+        }
+
+        $pattern = &$result['pattern'];
+
+        // There is no escape for simple/double quotes.
+        $isQuoted = (mb_substr($pattern, 0, 1) === '"' && mb_substr($pattern, -1) === '"')
+            || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
+        if ($isQuoted) {
+            $result['raw'] = trim(mb_substr($pattern, 1, -1));
+            return $result;
+        }
+
+        // Manage exceptions.
+        $exceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
+
+        if (in_array($pattern, $exceptions)) {
+            $result['replace'][] = $pattern;
+            return $result;
+        }
+
+        // Separate simple replacement strings (`{{/xpath/from/source}}` and the
+        // twig filters (`{{ value|trim }}`).
+        // The difference is the presence of spaces surrounding sub-patterns.
+        // Sub-patterns cannot be nested, but combined.
+        $matches = [];
+        if (preg_match_all('~\{\{( value | label | list |\S+?|\S.*?\S)\}\}~', $pattern, $matches) !== false) {
+            $result['replace'] = empty($matches[0]) ? [] : array_values(array_unique($matches[0]));
+        }
+        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $pattern, $matches) !== false) {
+            $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
+            // Avoid to use twig when a replacement is enough.
+            $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
+        }
+
+        return $result;
     }
 
     /**
@@ -396,7 +445,7 @@ class AutomapFields extends AbstractPlugin
     }
 
     /**
-     * Clean and trim all whitespaces, included the unicode ones.
+     * Clean and trim all whitespaces, included the unicode ones inside string.
      */
     protected function cleanUnicode($string): string
     {
