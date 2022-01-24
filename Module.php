@@ -332,10 +332,36 @@ class Module extends AbstractModule
 
     public function handleAfterSaveItem(Event $event): void
     {
+        // Process conversion of documents to html if set.
+        // And prepare thumbnailling if needed.
+        $needThumbnailing = false;
+        /**
+         * @var \Omeka\Entity\Item $item
+         * @var \Omeka\Entity\Media $media
+         */
         $item = $event->getParam('response')->getContent();
         foreach ($item->getMedia() as $media) {
             $this->afterSaveMedia($media);
+            if (!$needThumbnailing
+                && $media->getIngester() === 'bulk_upload'
+                && !$media->hasThumbnails()
+            ) {
+                $needThumbnailing = true;
+            }
         }
+
+        if (!$needThumbnailing) {
+            return;
+        }
+
+        // Create the thumbnails for the media ingested with "bulk_upload" via a job.
+        /** @var \Omeka\Job\Dispatcher $dispatcher */
+        $dispatcher = $this->getServiceLocator()->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher->dispatch(\BulkImport\Job\FileDerivative::class, [
+            'item_id' => $item->getId(),
+            'ingester' => 'bulk_upload',
+            'only_missing' => true,
+        ]);
     }
 
     public function handleAfterCreateMedia(Event $event): void

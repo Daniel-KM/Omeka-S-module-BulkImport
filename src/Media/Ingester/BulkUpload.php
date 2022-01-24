@@ -84,7 +84,11 @@ class BulkUpload implements IngesterInterface
             $media->setSource($fileData['name']);
         }
         $storeOriginal = (!isset($data['store_original']) || $data['store_original']);
-        $tempFile->mediaIngestFile($media, $request, $errorStore, $storeOriginal, true, true, true);
+
+        // Thumbnails are created in bulk in a second step: usually, when this
+        // media type is used, there are many files and the time may be too
+        // short to create thumbnails.
+        $tempFile->mediaIngestFile($media, $request, $errorStore, $storeOriginal, false, true, true);
         @$tempFile->delete();
     }
 
