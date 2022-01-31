@@ -510,6 +510,16 @@ class TransformSource extends AbstractPlugin
             $patternVars = '';
         }
 
+        $extractList = function ($args) use ($patternVars, $twigVars) {
+            $matches = [];
+            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
+            return array_map(function ($arg) use ($twigVars) {
+                // If this is a var, take it, else this is a string, so remove
+                // the quotes.
+                return $twigVars['{{ ' . $arg . ' }}'] ?? mb_substr($arg, 1, -1);
+            }, $matches['args']);
+        };
+
         $twig = array_fill_keys($twig, '');
         foreach ($twig as $query => &$output) {
             $v = '';
@@ -555,7 +565,7 @@ class TransformSource extends AbstractPlugin
                     $v = rawurlencode($v);
                     break;
                 // date().
-                case preg_match('~date\s*\(?:\s*["|\'](?<format>[^"\']+?)["|\']\s*\)~', $filter, $matches) > 0:
+                case preg_match('~date\s*\(\s*["|\'](?<format>[^"\']+?)["|\']\s*\)~', $filter, $matches) > 0:
                     try {
                         $v = @date($matches['format'], @strtotime($v));
                     } catch (\Exception $e) {
@@ -563,18 +573,14 @@ class TransformSource extends AbstractPlugin
                     }
                     break;
                 // format().
-                case preg_match('~format\s*\(?:\s*(?<args>.*?)\s*\)~', $filter, $matches) > 0:
-                    $args = $matches['args'];
-                    preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
-                    $args = array_map(function ($arg) use ($twigVars) {
-                        // If this is a var, take it, else this is a string, so
-                        // remove the quotes.
-                        return $twigVars['{{ ' . $arg . ' }}'] ?? mb_substr($arg, 1, -1);
-                    }, $matches['args']);
-                    try {
-                        $v = @vsptintf($v, $args);
-                    } catch (\Exception $e) {
-                        // Nothing.
+                case preg_match('~format\s*\(\s*(?<args>.*?)\s*\)~', $filter, $matches) > 0:
+                    $args = $extractList($matches['args']);
+                    if ($args) {
+                        try {
+                            $v = @vsprintf($v, $args);
+                        } catch (\Exception $e) {
+                            // Nothing.
+                        }
                     }
                     break;
                 // slice().
