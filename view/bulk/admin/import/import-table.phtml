@@ -9,7 +9,6 @@ $url = $plugins->get('url');
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
-$escapeAttr = $plugins->get('escapeHtmlAttr');
 ?>
 
 <script>
@@ -23,7 +22,7 @@ $(document).ready(function(){
 <table class="tablesaw" data-tablesaw-mode="stack">
     <thead>
         <tr>
-            <th><?= $escape($translate('Comment')) ?></th>
+            <th><?= $escape($translate('Label / Comment')) ?></th>
             <th><?= $escape($translate('Status')) ?></th>
             <th><?= $escape($translate('Started')) ?></th>
             <th><?= $escape($translate('Completed')) ?></th>
@@ -42,9 +41,7 @@ $(document).ready(function(){
                 <?php endif; ?>
                 <ul class="actions">
                     <?php if ($import->isDryRun()): ?>
-                        <li>
-                            <span class="dry-run"><?= $translate('Dry run') ?></span>
-                        </li>
+                    <li><span class="dry-run"><?= $translate('Dry run') ?></span></li>
                     <?php endif; ?>
                     <?php if ($import->isProcessStoppable()): ?>
                     <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()]), [

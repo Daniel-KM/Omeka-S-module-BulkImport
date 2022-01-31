@@ -132,6 +132,7 @@ return [
                             [
                                 'route' => 'admin/bulk/id',
                                 'controller' => 'importer',
+                                'action' => 'start',
                                 'visible' => false,
                             ],
                         ],
@@ -145,6 +146,50 @@ return [
                             [
                                 'route' => 'admin/bulk/id',
                                 'controller' => 'import',
+                                'visible' => false,
+                            ],
+                        ],
+                    ],
+                    [
+                        'label' => 'Configuration', // @translate
+                        'route' => 'admin/bulk/default',
+                        'controller' => 'importer',
+                        'resource' => 'BulkImport\Controller\Admin\Importer',
+                        'pages' => [
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'browse',
+                                'visible' => false,
+                            ],
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'add',
+                                'visible' => false,
+                            ],
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'edit',
+                                'visible' => false,
+                            ],
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'delete',
+                                'visible' => false,
+                            ],
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'configure-reader',
+                                'visible' => false,
+                            ],
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'importer',
+                                'action' => 'configure-processor',
                                 'visible' => false,
                             ],
                         ],
@@ -195,7 +240,7 @@ return [
                                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                                     ],
                                     'defaults' => [
-                                        'action' => 'index',
+                                        'action' => 'browse',
                                     ],
                                 ],
                             ],

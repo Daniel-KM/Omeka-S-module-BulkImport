@@ -30,6 +30,21 @@ class ImporterController extends AbstractActionController
         $this->setServiceLocator($serviceLocator);
     }
 
+    public function browseAction()
+    {
+        $this->setBrowseDefaults('label');
+
+        $response = $this->api()->search('bulk_importers', ['sort_by' => 'label', 'sort_order' => 'asc']);
+        $importers = $response->getContent();
+
+        $this->setBrowseDefaults('label', 'asc');
+
+        return new ViewModel([
+            'importers' => $importers,
+            'resources' => $importers,
+        ]);
+    }
+
     public function addAction()
     {
         return $this->editAction();
@@ -44,7 +59,7 @@ class ImporterController extends AbstractActionController
         if ($id && !$entity) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk');
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         $form = $this->getForm(ImporterForm::class);
@@ -66,11 +81,10 @@ class ImporterController extends AbstractActionController
 
                 if ($response) {
                     $this->messenger()->addSuccess('Importer successfully saved'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 } else {
                     $this->messenger()->addError('Save of importer failed'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 }
+                return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
             } else {
                 $this->messenger()->addFormErrors($form);
             }
@@ -89,7 +103,7 @@ class ImporterController extends AbstractActionController
         if (!$entity) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk');
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         // Check if the importer has imports.
@@ -97,7 +111,7 @@ class ImporterController extends AbstractActionController
         $total = $this->api()->search('bulk_imports', ['importer_id' => $id, 'limit' => 0])->getTotalResults();
         if ($total) {
             $this->messenger()->addWarning('This importerd cannot be deleted: imports that use it exist.'); // @translate
-            return $this->redirect()->toRoute('admin/bulk');
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         $form = $this->getForm(ImporterDeleteForm::class);
@@ -110,11 +124,10 @@ class ImporterController extends AbstractActionController
                 $response = $this->api($form)->delete('bulk_importers', $id);
                 if ($response) {
                     $this->messenger()->addSuccess('Importer successfully deleted'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 } else {
                     $this->messenger()->addError('Delete of importer failed'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 }
+                return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
             } else {
                 $this->messenger()->addFormErrors($form);
             }
@@ -135,7 +148,7 @@ class ImporterController extends AbstractActionController
         if (!$entity) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk');
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         /** @var \BulkImport\Reader\Reader $reader */
@@ -167,11 +180,10 @@ class ImporterController extends AbstractActionController
 
                 if ($response) {
                     $this->messenger()->addSuccess('Reader configuration saved'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 } else {
                     $this->messenger()->addError('Save of reader configuration failed'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 }
+                return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
             } else {
                 $this->messenger()->addFormErrors($form);
             }
@@ -191,7 +203,7 @@ class ImporterController extends AbstractActionController
         if (!$entity) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk');
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         /** @var \BulkImport\Processor\Processor $processor */
@@ -224,11 +236,10 @@ class ImporterController extends AbstractActionController
 
                 if ($response) {
                     $this->messenger()->addSuccess('Processor configuration saved'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 } else {
                     $this->messenger()->addError('Save of processor configuration failed'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk');
                 }
+                return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
             } else {
                 $this->messenger()->addFormErrors($form);
             }
@@ -415,7 +426,6 @@ class ImporterController extends AbstractActionController
                         }
 
                         return $this->redirect()->toRoute('admin/bulk');
-                        break;
                 }
 
                 // Next form.

@@ -21,7 +21,7 @@ class ImportController extends AbstractActionController
         $this->setServiceLocator($serviceLocator);
     }
 
-    public function indexAction()
+    public function browseAction()
     {
         $this->setBrowseDefaults('started');
 

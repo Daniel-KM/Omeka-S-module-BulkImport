@@ -36,13 +36,13 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'name' => 'comment',
                 'type' => Element\Textarea::class,
                 'options' => [
-                    'label' => 'Comment', // @translate
+                    'label' => 'Label or comment', // @translate
                     'info' => 'This optional comment will help admins for future reference.', // @translate
                 ],
                 'attributes' => [
                     'id' => 'comment',
                     'value' => '',
-                    'placeholder' => 'Optional comment for future reference.', // @translate
+                    'placeholder' => 'Optional label or comment for future reference.', // @translate
                 ],
             ])
 

@@ -19,7 +19,7 @@ class BulkImportController extends AbstractActionController
         $this->setServiceLocator($serviceLocator);
     }
 
-    public function indexAction()
+    public function browseAction()
     {
         // Importers.
         $response = $this->api()->search('bulk_importers', ['sort_by' => 'label', 'sort_order' => 'asc']);
@@ -40,9 +40,11 @@ class BulkImportController extends AbstractActionController
 
         $imports = $response->getContent();
 
-        return new ViewModel([
+        $view = new ViewModel([
             'importers' => $importers,
             'imports' => $imports,
         ]);
+        return $view
+            ->setTemplate('bulk/admin/index/index.phtml');
     }
 }

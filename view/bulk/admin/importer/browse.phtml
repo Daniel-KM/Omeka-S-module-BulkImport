@@ -1,0 +1,83 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImporterRepresentation[] $importers
+ */
+
+use BulkImport\Interfaces\Configurable as ConfigurableImport;
+
+$translate = $this->plugin('translate');
+$escape = $this->plugin('escapeHtml');
+$hyperlink = $this->plugin('hyperlink');
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
+$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+?>
+
+<?= $this->pageTitle($translate('Bulk importers'), 1, $translate('Bulk import')) ?>
+
+<div id="page-actions">
+    <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\ImporterAdapter::class, 'create')): ?>
+    <?= $this->hyperlink($translate('Add new importer'), $this->url('admin/bulk/default', ['controller' => 'importer', 'action' => 'add'], true), ['class' => 'button']) ?>
+    <?php endif; ?>
+</div>
+
+<h2><?= $escape($translate('Configuration of importers')) ?></h2>
+
+<?php if (count($importers)): ?>
+<table class="tablesaw batch-edit" data-tablesaw-mode="stack">
+    <thead>
+        <tr>
+            <th><?= $escape($translate('Name')) ?></th>
+            <th><?= $escape($translate('Reader')) ?></th>
+            <th><?= $escape($translate('Processor')) ?></th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($importers as $importer): ?>
+        <?php $userIsAllowedUpdate = $importer->userIsAllowed('update'); ?>
+        <?php $userIsAllowedDelete = $importer->userIsAllowed('delete'); ?>
+        <tr>
+            <td>
+                <?= $importer->link($importer->label(), 'edit') ?>
+                <ul class="actions">
+                    <?php if ($userIsAllowedUpdate): ?>
+                    <li><?= $importer->link('', 'edit', [
+                        'class' => 'o-icon-edit',
+                        'title' => $translate('Edit'),
+                    ]) ?></li>
+                    <?php endif; ?>
+                    <?php if ($userIsAllowedDelete): ?>
+                    <li><?= $importer->link('', 'delete', [
+                        'class' => 'o-icon-delete',
+                        'title' => $translate('Delete'),
+                    ]); /*
+                    echo $this->hyperlink('', '#', [
+                        'data-sidebar-selector' => '#sidebar',
+                        'data-sidebar-content-url' => $importer->url('delete-confirm'),
+                        'class' => 'o-icon-delete sidebar-content',
+                        'title' => $translate('Delete'),
+                    ]); */ ?></li>
+                    <?php endif; ?>
+                </ul>
+            </td>
+            <td>
+                <?php $reader = $importer->reader(); ?>
+                <?= $reader ? $reader->getLabel() : null; ?>
+                <?php if ($reader instanceof ConfigurableImport): ?>
+                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()])) ?>)
+                <?php endif; ?>
+            </td>
+            <td>
+                <?php $processor = $importer->processor(); ?>
+                <?= $processor ? $processor->getLabel() : null; ?>
+                <?php if ($processor instanceof ConfigurableImport): ?>
+                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()])) ?>)
+                <?php endif; ?>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+
+<?php endif; ?>
