@@ -95,6 +95,11 @@ abstract class AbstractProcessor implements Processor
     protected $user;
 
     /**
+     * @var int
+     */
+    protected $userId;
+
+    /**
      * Base path of the files.
      *
      * @var string
@@ -121,10 +126,13 @@ abstract class AbstractProcessor implements Processor
         $this->apiManager = $services->get('Omeka\ApiManager');
         $this->bulk = $services->get('ControllerPluginManager')->get('bulk');
         $this->translator = $services->get('MvcTranslator');
-        $this->user = $services->get('Omeka\AuthenticationService')->getIdentity();
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
+        // This doctrine resource should be reloaded each time the entity
+        // manager is cleared, else a error may occur on big import.
+        $this->user = $services->get('Omeka\AuthenticationService')->getIdentity();
+        $this->userId = $this->user->getId();
     }
 
     public function setReader(Reader $reader): \BulkImport\Processor\Processor

@@ -1373,6 +1373,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function refreshMainResources(): void
     {
+        $this->user = $this->entityManager->find(\Omeka\Entity\User::class, $this->userId);
         if ($this->ownerId) {
             $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $this->ownerId);
         }

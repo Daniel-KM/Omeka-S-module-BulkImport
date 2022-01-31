@@ -2063,9 +2063,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
         // TODO Get the extension from the media type or use standard asset uploaded.
 
+        // This doctrine resource should be reloaded each time the entity
+        // manager is cleared, else a error may occur on big import.
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $this->user = $entityManager->find(\Omeka\Entity\User::class, $this->userId);
+
         $asset = new \Omeka\Entity\Asset;
         $asset->setName($filename);
-        // TODO Use the user specified in the config.
+        // TODO Use the user specified in the config (owner).
         $asset->setOwner($this->user);
         $asset->setStorageId($storageId);
         $asset->setExtension($extension);
@@ -2073,7 +2078,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $asset->setAltText(null);
 
         // TODO Remove this flush (required because there is a clear() after checks).
-        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
         $entityManager->persist($asset);
         $entityManager->flush();
 
