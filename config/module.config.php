@@ -130,6 +130,10 @@ return [
                         'resource' => 'BulkImport\Controller\Admin\BulkImport',
                         'pages' => [
                             [
+                                'route' => 'admin/bulk',
+                                'visible' => false,
+                            ],
+                            [
                                 'route' => 'admin/bulk/id',
                                 'controller' => 'importer',
                                 'action' => 'start',
