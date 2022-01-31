@@ -3577,7 +3577,7 @@ SQL;
             : $filtereds;
     }
 
-    protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): string
+    protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): ?string
     {
         $relativePath = 'bulk_import/' . 'import_' . $this->job->getImportId() . '_' . str_replace(':', '-', $filename) . '.' . $extension;
         if ($relative) {
@@ -3585,10 +3585,20 @@ SQL;
         }
         $filepath = $this->basePath . '/' . $relativePath;
         if (!file_exists($filepath)) {
-            if (!is_dir(dirname($filepath))) {
-                @mkdir(dirname($filepath), 0775, true);
+            try {
+                if (!is_dir(dirname($filepath))) {
+                    @mkdir(dirname($filepath), 0775, true);
+                }
+                @touch($filepath);
+            } catch (\Exception $e) {
+                // Don't set error, it can be managed outside.
+                // $this->hasError = true;
+                $this->logger->warn(
+                    'File "{filename}" cannot be created.', // @translate
+                    ['filename' => $filepath]
+                );
+                return null;
             }
-            touch($filepath);
         }
         return $filepath;
     }
@@ -3634,6 +3644,12 @@ SQL;
         $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'ods');
         $relativePath = $this->getOutputFilepath($name, 'ods', true);
+        if (!$filepath || !$relativePath) {
+            $this->logger->err(
+                'Unable to create output file.' // @translate
+            );
+            return;
+        }
 
         // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
         // Manage compatibility with old version of CSV Import.
@@ -3738,6 +3754,12 @@ SQL;
         $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'html');
         $relativePath = $this->getOutputFilepath($name, 'html', true);
+        if (!$filepath || !$relativePath) {
+            $this->logger->err(
+                'Unable to create output file.' // @translate
+            );
+            return;
+        }
 
         $headers = [
             'source',

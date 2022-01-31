@@ -259,6 +259,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->initializeCheckStore()
             ->initializeCheckOutput();
 
+        if ($this->totalErrors) {
+            $this
+                ->purgeCheckStore()
+                ->finalizeCheckOutput();
+            return;
+        }
+
         // Store the file in params to get it in user interface and next.
         $jobJob = $this->job->getJob();
         $jobJobArgs = $jobJob->getArgs();

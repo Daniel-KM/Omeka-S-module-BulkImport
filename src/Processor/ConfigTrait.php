@@ -513,7 +513,7 @@ trait ConfigTrait
      * The csv is a tab-separated values.
      * Extension "csv" is used because Windows doesn't manage tsv by default.
      */
-    protected function saveKeyValuePairToTsv(string $resourceName, bool $skipEmpty = false): string
+    protected function saveKeyValuePairToTsv(string $resourceName, bool $skipEmpty = false): ?string
     {
         $resources = $skipEmpty
             ? array_filter($this->map[$resourceName])
@@ -526,7 +526,15 @@ trait ConfigTrait
 
         // TODO Use omeka temp directory (but check if mysql has access to it).
         $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
-        touch($filepath . '.csv');
+        try {
+            @touch($filepath . '.csv');
+        } catch (\Exception $e) {
+            $this->hasError = true;
+            $this->logger->warn(
+                'Unable to put content in a temp file.' // @translate
+            );
+            return null;
+        }
         @unlink($filepath);
         $filepath .= '.csv';
 
@@ -536,6 +544,7 @@ trait ConfigTrait
             $this->logger->warn(
                 'Unable to put content in a temp file.' // @translate
             );
+            return null;
         }
 
         return $filepath;

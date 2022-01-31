@@ -24,6 +24,11 @@ trait CheckTrait
     protected $spreadsheetRowLimit = 1000000;
 
     /**
+     * @var resource
+     */
+    protected $handle;
+
+    /**
      * Default options for output (tsv).
      *
      * @var array
@@ -432,7 +437,7 @@ SQL;
             $filePath = $destinationDir . '/' . $filename;
             if (!file_exists($filePath)) {
                 try {
-                    $result = touch($filePath);
+                    $result = @touch($filePath);
                 } catch (\Exception $e) {
                     ++$this->totalErrors;
                     $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
