@@ -85,6 +85,7 @@ trait DateTimeTrait
             return null;
         }
 
+        $dateTimeZone = null;
         if ($timeZone) {
             if ($timeZone === true) {
                 $timeZone = $this->getServiceLocator()->get('Omeka\Settings')->get('time_zone');
