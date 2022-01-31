@@ -144,6 +144,11 @@ class CsvReader extends AbstractSpreadsheetFileReader
 
     protected function isValidFilepath($filepath, array $file = []): bool
     {
+        // On some servers, type for csv is "application/vnd.ms-excel".
+        if (!empty($file['type']) && $file['type'] === 'application/vnd.ms-excel') {
+            $file['type'] = 'text/csv';
+        }
+
         if (!parent::isValidFilepath($filepath, $file)) {
             return false;
         }
@@ -155,6 +160,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
             );
             return false;
         }
+
         return true;
     }
 

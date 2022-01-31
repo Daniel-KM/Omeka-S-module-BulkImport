@@ -53,4 +53,14 @@ class TsvReader extends CsvReader
         $this->escape = chr(0);
         return $this;
     }
+
+    protected function isValidFilepath($filepath, array $file = []): bool
+    {
+        // On some servers, type for csv is "application/vnd.ms-excel".
+        if (!empty($file['type']) && $file['type'] === 'application/vnd.ms-excel') {
+            $file['type'] = 'text/tab-separated-values';
+        }
+
+        return parent::isValidFilepath($filepath, $file);
+    }
 }
