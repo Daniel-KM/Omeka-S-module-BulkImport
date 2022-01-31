@@ -145,7 +145,7 @@ return [
                         'label' => 'Past Imports', // @translate
                         'route' => 'admin/bulk/default',
                         'controller' => 'import',
-                        'action' => 'index',
+                        'resource' => 'BulkImport\Controller\Admin\Import',
                         'pages' => [
                             [
                                 'route' => 'admin/bulk/id',
