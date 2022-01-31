@@ -3735,7 +3735,7 @@ SQL;
     protected function saveMappingSourceUrisToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
         $baseUrlPath = trim($this->job->getArg('base_path'), '/');
-        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $basePath . '/' : '');
+        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'html');
         $relativePath = $this->getOutputFilepath($name, 'html', true);
 
