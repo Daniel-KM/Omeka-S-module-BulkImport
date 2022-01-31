@@ -103,7 +103,7 @@ class UploadController extends AbstractActionController
 
         $uploadFileName = 'omk'
             . '_' . (new \DateTime())->format('Ymd-His')
-            . '_' . substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(32))), 0, 8)
+            . '_' . substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8)
             . '_' . $flowRequest->getFileName();
         $destination = $this->tempDir . DIRECTORY_SEPARATOR . $uploadFileName;
 

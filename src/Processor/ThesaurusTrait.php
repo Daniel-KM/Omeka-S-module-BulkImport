@@ -60,7 +60,7 @@ trait ThesaurusTrait
         $mainName = $config['main_name'];
 
         $name = $config['label'] ?: sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate;
-        $randomName = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(64))), 0, 8);
+        $randomName = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8);
 
         // Custom vocab requires a single name.
         $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name]);

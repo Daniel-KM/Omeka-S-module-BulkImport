@@ -80,7 +80,7 @@ trait CheckTrait
         $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->getLabel());
         $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
         $date = (new \DateTime())->format('Ymd-His');
-        $random = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(64))), 0, 8);
+        $random = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8);
         $this->keyStore = sprintf('_cache_bulkimport_%s%s_%s', $base, $date, $random);
 
         return $this;
