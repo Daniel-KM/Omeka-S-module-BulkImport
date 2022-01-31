@@ -624,7 +624,7 @@ class Bulk extends AbstractPlugin
 
         if (is_null($customVocabTypes)) {
             $customVocabTypes = [];
-            foreach ($this->getDataTypes(true) as $datatype) {
+            foreach ($this->getDataTypeNames(true) as $datatype) {
                 if (substr($datatype, 0, 11) !== 'customvocab') {
                     continue;
                 }
