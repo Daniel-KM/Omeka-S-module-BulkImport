@@ -69,7 +69,7 @@ class FileDerivative extends AbstractJob
             $sourcePath = $basePath . '/original/' . $filename;
 
             if (!file_exists($sourcePath)) {
-                $this->logger->err(
+                $logger->err(
                     'Media #{media_id}: the original file "{filename}" does not exist.', // @translate
                     ['media_id' => $media->getId(), 'filename' => $filename]
                 );
@@ -77,7 +77,7 @@ class FileDerivative extends AbstractJob
             }
 
             if (!is_readable($sourcePath)) {
-                $this->logger->err(
+                $logger->err(
                     'Media #{media_id}: the original file "{filename}" is not readable.', // @translate
                     ['media_id' => $media->getId(), 'filename' => $filename]
                 );
@@ -93,7 +93,7 @@ class FileDerivative extends AbstractJob
 
             // Update the media.
             if (!$result) {
-                $this->logger->err(
+                $logger->err(
                     'Media #{media_id}: an issue occurred during thumbnail creation.', // @translate
                     ['media_id' => $media->getId()]
                 );
