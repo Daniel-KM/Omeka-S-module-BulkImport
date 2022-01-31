@@ -142,7 +142,7 @@ trait ResourceTrait
         string $sourceType,
         int $resourceClassId = null,
         int $resourceTemplateId = null,
-        int $thumbnailId
+        int $thumbnailId = null
     ): void {
         // The pre-import is done with the default owner and updated later.
         $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
