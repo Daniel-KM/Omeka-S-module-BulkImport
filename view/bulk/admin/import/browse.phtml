@@ -20,6 +20,8 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <?= $this->pagination() ?>
         <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
     <?php else: ?>
-        <p><?= $escape($translate('No imports yet.')) ?></p>
+        <div class="no-resources">
+            <p><?= $escape($translate('No imports yet.')) ?></p>
+        </div>
     <?php endif; ?>
 </div>

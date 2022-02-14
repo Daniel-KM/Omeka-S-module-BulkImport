@@ -37,12 +37,10 @@ class ImporterController extends AbstractActionController
 
     public function browseAction()
     {
-        $this->setBrowseDefaults('label');
+        $this->setBrowseDefaults('label', 'asc');
 
         $response = $this->api()->search('bulk_importers', ['sort_by' => 'label', 'sort_order' => 'asc']);
         $importers = $response->getContent();
-
-        $this->setBrowseDefaults('label', 'asc');
 
         return new ViewModel([
             'importers' => $importers,

@@ -41,6 +41,7 @@ return [
             Controller\Admin\BulkImportController::class => 'bulk/admin/index',
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
+            Controller\Admin\MappingController::class => 'bulk/admin/mapping',
         ],
         'strategies' => [
             'ViewJsonStrategy',
@@ -98,6 +99,7 @@ return [
             'BulkImport\Controller\Admin\BulkImport' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Import' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Importer' => Service\Controller\ControllerFactory::class,
+            'BulkImport\Controller\Admin\Mapping' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Upload' => Service\Controller\UploadControllerFactory::class,
         ],
     ],
@@ -195,6 +197,19 @@ return [
                                 'route' => 'admin/bulk/id',
                                 'controller' => 'importer',
                                 'action' => 'configure-processor',
+                                'visible' => false,
+                            ],
+                        ],
+                    ],
+                    [
+                        'label' => 'Field mappings', // @translate
+                        'route' => 'admin/bulk/default',
+                        'controller' => 'mapping',
+                        'resource' => 'BulkImport\Controller\Admin\Mapping',
+                        'pages' => [
+                            [
+                                'route' => 'admin/bulk/id',
+                                'controller' => 'mapping',
                                 'visible' => false,
                             ],
                         ],

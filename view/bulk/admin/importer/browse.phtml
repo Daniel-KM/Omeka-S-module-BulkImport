@@ -79,5 +79,8 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <?php endforeach; ?>
     </tbody>
 </table>
-
+<?php else: ?>
+<div class="no-resources">
+    <p><?= $escape($translate('No importers yet.')) ?></p>
+</div>
 <?php endif; ?>

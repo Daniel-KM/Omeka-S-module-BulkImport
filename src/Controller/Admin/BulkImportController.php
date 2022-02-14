@@ -21,11 +21,11 @@ class BulkImportController extends AbstractActionController
 
     public function indexAction()
     {
+        $this->setBrowseDefaults('label', 'asc');
+
         // Importers.
         $response = $this->api()->search('bulk_importers', ['sort_by' => 'label', 'sort_order' => 'asc']);
         $importers = $response->getContent();
-
-        $this->setBrowseDefaults('label', 'asc');
 
         // Imports.
         $perPage = 25;
