@@ -791,44 +791,47 @@ class TransformSource extends AbstractPlugin
             return $output;
         };
 
-        $twigProcess = function (string $v, string $filter) use ($twigVars, $extractList, $extractAssociative): string {
+        $twigProcess = function ($v, string $filter) use ($twigVars, $extractList, $extractAssociative) {
             $matches = [];
             if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~', $filter, $matches) > 0) {
                 $function = $matches['function'];
                 $args = $matches['args'];
             } else {
                 $function = $filter;
-                $args = [];
+                $args = '';
             }
+            // Most of the time, a string is required, but a function can return
+            // an array. Only some functions can manage an array.
+            $w = is_array($v) ? reset($v) : $v;
             switch ($function) {
                 case 'abs':
-                    $v = is_numeric($v) ? (string) abs($v) : $v;
+                    $v = is_numeric($w) ? (string) abs($w) : $w;
                     break;
                 case 'capitalize':
-                    $v = ucfirst($v);
+                    $v = ucfirst((string) $w);
                     break;
                 case 'date':
                     $format = $args;
                     try {
                         $v = $format === ''
-                            ? @strtotime($v)
-                            : @date($format, @strtotime($v));
+                            ? @strtotime($w)
+                            : @date($format, @strtotime($w));
                     } catch (\Exception $e) {
                         // Nothing: keep value.
                     }
                     break;
                 case 'e':
                 case 'escape':
-                    $v = htmlspecialchars($v, ENT_COMPAT | ENT_HTML5);
+                    $v = htmlspecialchars((string) $w, ENT_COMPAT | ENT_HTML5);
                     break;
                 case 'first':
-                    $v = is_array($v) ? reset($v) : mb_substr((string) $v, 0, 1);
+                    $v = is_array($v) ? $w : mb_substr((string) $v, 0, 1);
                     break;
                 case 'format':
                     $args = $extractList($args);
                     if ($args) {
                         try {
-                            $v = @vsprintf($v, $args);
+                            $v = @vsprintf($w, $args);
                         } catch (\Exception $e) {
                             // Nothing: keep value.
                         }
@@ -838,31 +841,35 @@ class TransformSource extends AbstractPlugin
                     $v = is_array($v) ? array_pop($v) : mb_substr((string) $v, -1);
                     break;
                 case 'length':
-                    $v = is_array($v) ? count($v) : mb_strlen($v);
+                    $v = is_array($v) ? count($v) : mb_strlen((string) $v);
                     break;
                 case 'lower':
-                    $v = mb_strtolower($v);
+                    $v = mb_strtolower((string) $w);
                     break;
                 case 'replace':
                     $args = $extractAssociative($args);
                     if ($args) {
-                        $v = str_replace(array_keys($args), array_values($args), $v);
+                        $v = str_replace(array_keys($args), array_values($args), $w);
                     }
                     break;
                 case 'slice':
                     $args = $extractList($args);
                     $start = (int) ($args[0] ?? 0);
                     $length = (int) ($args[1] ?? 1);
-                    $v = mb_substr($v, $start, $length);
+                    $v = is_array($v)
+                        ? array_slice($v, $start, $length, !empty($args[2]))
+                        : mb_substr((string) $w, $start, $length);
                     break;
                 case 'split':
                     $args = $extractList($args);
                     $delimiter = $args[0] ?? '';
                     $limit = (int) ($args[1] ?? 1);
-                    $v = strlen($delimiter) ? explode($delimiter, $v, $limit) : str_split($v, $limit);
+                    $v = strlen($delimiter)
+                        ? explode($delimiter, (string) $w, $limit)
+                        : str_split((string) $w, $limit);
                     break;
                 case 'striptags':
-                    $v = strip_tags($v);
+                    $v = strip_tags((string) $w);
                     break;
                 case 'table':
                     // table() (included).
@@ -870,17 +877,17 @@ class TransformSource extends AbstractPlugin
                     if ($first === '{') {
                         $table = $extractAssociative(trim(mb_substr($args, 1, -1)));
                         if ($table) {
-                            $v = $table[$v] ?? $v;
+                            $v = $table[$w] ?? $w;
                         }
                     }
                     // table() (named).
                     else {
                         $name = $first === '"' || $first === "'" ? mb_substr($args, 1, -1) : $args;
-                        $v = $this->tables[$name][$v] ?? $v;
+                        $v = $this->tables[$name][$w] ?? $w;
                     }
                     break;
                 case 'title':
-                    $v = ucwords($v);
+                    $v = ucwords((string) $w);
                     break;
                 case 'trim':
                     $args = $extractList($args);
@@ -891,18 +898,18 @@ class TransformSource extends AbstractPlugin
                     $side = $args[1] ?? '';
                     // Side is "both" by default.
                     if ($side === 'left') {
-                        $v = ltrim($v, $characterMask);
+                        $v = ltrim((string) $w, $characterMask);
                     } elseif ($side === 'right') {
-                        $v = rtrim($v, $characterMask);
+                        $v = rtrim((string) $w, $characterMask);
                     } else {
-                        $v = trim($v, $characterMask);
+                        $v = trim((string) $w, $characterMask);
                     }
                     break;
                 case 'upper':
-                    $v = mb_strtoupper($v);
+                    $v = mb_strtoupper((string) $w);
                     break;
                 case 'url_encode':
-                    $v = rawurlencode($v);
+                    $v = rawurlencode((string) $w);
                     break;
                 // Special filters and functions to manage common values.
                 case 'dateIso':
@@ -910,18 +917,19 @@ class TransformSource extends AbstractPlugin
                     // "[1984]-" => kept.
                     // Missing numbers may be set as "u", but this is not
                     // manageable as iso 8601.
-                    if (strlen($v) && strpos($v, 'u') === false) {
-                        $firstChar = substr($v, 0, 1);
+                    $v = (string) $w;
+                    if (mb_strlen($v) && mb_strpos($v, 'u') === false) {
+                        $firstChar = mb_substr($v, 0, 1);
                         if (in_array($firstChar, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'c', 'd'])) {
                             if (in_array($firstChar, ['-', '+', 'c', 'd'])) {
                                 $d = $firstChar === '-' || $firstChar === 'c' ? '-' : '';
-                                $v = substr($v, 1);
+                                $v = mb_substr($v, 1);
                             } else {
                                 $d = '';
                             }
                             $v = $d
-                                . substr($v, 0, 4) . '-' . substr($v, 4, 2) . '-' . substr($v, 6, 2)
-                                . 'T' . substr($v, 8, 2) . ':' . substr($v, 10, 2) . ':' . substr($v, 12, 2);
+                                . mb_substr($v, 0, 4) . '-' . mb_substr($v, 4, 2) . '-' . mb_substr($v, 6, 2)
+                                . 'T' . mb_substr($v, 8, 2) . ':' . mb_substr($v, 10, 2) . ':' . mb_substr($v, 12, 2);
                             $v = rtrim($v, '-:T |#');
                         }
                     }
@@ -929,8 +937,9 @@ class TransformSource extends AbstractPlugin
                 case 'dateSql':
                     // Unimarc 005.
                     // "19850901141236.0" => "1985-09-01 14:12:36" (date sql).
-                    $v = substr($v, 0, 4) . '-' . substr($v, 4, 2) . '-' . substr($v, 6, 2)
-                        . ' ' . substr($v, 8, 2) . ':' . substr($v, 10, 2) . ':' . substr($v, 12, 2);
+                    $v = (string) $w;
+                    $v = mb_substr($v, 0, 4) . '-' . mb_substr($v, 4, 2) . '-' . mb_substr($v, 6, 2)
+                        . ' ' . mb_substr($v, 8, 2) . ':' . mb_substr($v, 10, 2) . ':' . mb_substr($v, 12, 2);
                     break;
                 case 'isbdName':
                     // isbdName(a, b, c, d, f, g, k, o, p, 5) (function).
@@ -1026,7 +1035,7 @@ class TransformSource extends AbstractPlugin
                     $index = $args[0] ?? '';
                     if ($index) {
                         // Unimarc Index uri (filter or function).
-                        $code = count($args) === 1 ? $v : ($args[1] ?? '');
+                        $code = count($args) === 1 ? $w : ($args[1] ?? '');
                         // Unimarc Annexe G.
                         // @link https://www.transition-bibliographique.fr/wp-content/uploads/2018/07/AnnexeG-5-2007.pdf
                         switch ($index) {
@@ -1045,21 +1054,24 @@ class TransformSource extends AbstractPlugin
                 case 'unimarcCoordinates':
                     // "w0241207" => "W 24°12’7”".
                     // Hemisphere "+" / "-" too.
-                    $firstChar = strtoupper(substr($v, 0, 1));
+                    $v = (string) $w;
+                    $firstChar = mb_strtoupper(mb_substr($v, 0, 1));
                     $mappingChars = ['+' => 'N', '-' => 'S', 'W' => 'W', 'E' => 'E', 'N' => 'N', 'S' => 'S'];
                     $v = ($mappingChars[$firstChar] ?? '?') . ' '
-                        . intval(substr($v, 1, 3)) . '°'
-                        . intval(substr($v, 4, 2)) . '’'
-                        . intval(substr($v, 6, 2)) . '”';
+                        . intval(mb_substr($v, 1, 3)) . '°'
+                        . intval(mb_substr($v, 4, 2)) . '’'
+                        . intval(mb_substr($v, 6, 2)) . '”';
                     break;
                 case 'unimarcCoordinatesHexa':
-                    $v = substr($v, 0, 2) . '°' . substr($v, 2, 2) . '’' . substr($v, 4, 2) . '”';
+                    $v = (string) $w;
+                    $v = mb_substr($v, 0, 2) . '°' . mb_substr($v, 2, 2) . '’' . mb_substr($v, 4, 2) . '”';
                     break;
                 case 'unimarcTimeHexa':
                     // "150027" => "15h0m27s".
-                    $h = (int) trim(substr($v, 0, 2));
-                    $m = (int) trim(substr($v, 2, 2));
-                    $s = (int) trim(substr($v, 4, 2));
+                    $v = (string) $w;
+                    $h = (int) trim(mb_substr($v, 0, 2));
+                    $m = (int) trim(mb_substr($v, 2, 2));
+                    $s = (int) trim(mb_substr($v, 4, 2));
                     $v = ($h ? $h . 'h' : '')
                         . ($m ? $m . 'm' : ($h && $s ? '0m' : ''))
                         . ($s ? $s . 's' : '');
@@ -1068,10 +1080,12 @@ class TransformSource extends AbstractPlugin
                 case 'value':
                 default:
                     $v = $twigVars['{{ ' . $filter . ' }}'] ?? $twigVars[$filter] ?? $v;
-                    $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
+                    if ($v instanceof \DOMNode) {
+                        $v = (string) $v->nodeValue;
+                    }
                     break;
             }
-            return (string) $v;
+            return $v;
         };
 
         $twigReplace = [];
@@ -1087,6 +1101,10 @@ class TransformSource extends AbstractPlugin
                 $v = $hasReplaceQuery
                     ? $twigProcess($v, str_replace(array_keys($replace), array_values($replace), $filter))
                     : $twigProcess($v, $filter);
+            }
+            // Avoid an issue when the twig pattern returns an array.
+            if (is_array($v)) {
+                $v = reset($v);
             }
             if ($hasReplaceQuery) {
                 $twigReplace[str_replace(array_keys($replace), array_values($replace), $query)] = $v;
