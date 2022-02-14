@@ -3,7 +3,8 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Form\EntriesToProcessTrait;
+use BulkImport\Form\Processor\TaskTrait;
+use BulkImport\Form\Processor\EntriesToProcessTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
@@ -13,6 +14,7 @@ use Omeka\Form\Element as OmekaElement;
 abstract class AbstractResourceProcessorConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
+    use TaskTrait;
     use EntriesToProcessTrait;
 
     public function init(): void
@@ -45,6 +47,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                     'placeholder' => 'Optional label or comment for future reference.', // @translate
                 ],
             ])
+
+            ->addTask()
 
             ->add([
                 'name' => 'processing',
@@ -440,7 +444,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'required' => false,
             ]);
         return $this
-            ->addEntriesToProcessInputFilter();
+            ->addEntriesToProcessInputFilter()
+            ->addTaskInputFilter();
     }
 
     protected function addInputFilter(): \Laminas\Form\Form

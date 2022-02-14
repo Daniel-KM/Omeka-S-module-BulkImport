@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Form;
+namespace BulkImport\Form\Processor;
 
 use Laminas\Form\Element;
 

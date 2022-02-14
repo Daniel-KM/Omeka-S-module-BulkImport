@@ -34,7 +34,8 @@ class ResourceProcessorConfigForm extends AbstractResourceProcessorConfigForm
             ])
             ->addFieldsetItem()
             ->addFieldsetItemSet()
-            ->addFieldsetMedia();
+            ->addFieldsetMedia()
+        ;
 
         return $this;
     }

@@ -4,6 +4,7 @@
  * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
  * @var \BulkImport\Form\ImporterForm $form
  * @var array $importArgs
+ * @var bool $storeAsTask
  */
 
 $translate = $this->plugin('translate');
@@ -12,12 +13,17 @@ $escape = $this->plugin('escapeHtml');
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-imports edit');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 $form->prepare();
+
+$storeAsTask = !empty($storeAsTask) && $form->has('start_submit');
+if ($storeAsTask) {
+    $form->get('start_submit')->get('submit')->setValue('Store import'); // @translate
+}
 ?>
 
-<?= $this->pageTitle($translate('Start import'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($storeAsTask ? $translate('Store import') : $translate('Start import'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?= $escape($translate('Start import')) ?></h2>
+    <h2><?= $escape($storeAsTask ? $translate('Store import') : $translate('Start import')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <?php if ($form instanceof \BulkImport\Form\Reader\SpreadsheetReaderConfigForm): ?>
     <p><?= sprintf($translate('See the %sread me%s to learn how to write spreadsheets headers for a quick mapping, with data type and language.'), '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#spreadsheet">', '</a>') // @translate ?></p>

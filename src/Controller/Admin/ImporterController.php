@@ -366,9 +366,14 @@ class ImporterController extends AbstractActionController
                     case 'processor':
                         $processor->handleParamsForm($form);
                         $session->comment = trim((string) $data['comment']);
+                        $session->storeAsTask = !empty($data['store_as_task']);
                         $session->processor = $processor->getParams();
                         $next = 'start';
                         $formCallback = $formsCallbacks['start'];
+                        if (!empty($session->storeAsTask)) {
+                            $message = new PsrMessage('This import will be stored to be run as a task.'); // @translate
+                            $this->messenger()->addWarning($message);
+                        }
                         break;
 
                     case 'start':
@@ -387,7 +392,18 @@ class ImporterController extends AbstractActionController
                             $this->messenger()->addError('Save of import failed'); // @translate
                             break;
                         }
+
+                        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
                         $import = $response->getContent();
+
+                        // Don't run job if it is a task.
+                        if (!empty($session->storeAsTask)) {
+                            $message = new PsrMessage('The import #{bulk_import} was stored as a task.', // @translate
+                                ['bulk_import' => $import->id()]
+                            );
+                            $this->messenger()->addSuccess($message);
+                            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk-import']);
+                        }
 
                         // Clear import session.
                         $session->exchangeArray([]);
@@ -445,7 +461,9 @@ class ImporterController extends AbstractActionController
         $view = new ViewModel([
             'importer' => $importer,
             'form' => $form,
+            'storeAsTask' => !empty($session->storeAsTask),
         ]);
+
         if ($next === 'start') {
             $importArgs = [];
             $importArgs['comment'] = $session['comment'];
@@ -453,7 +471,8 @@ class ImporterController extends AbstractActionController
             $importArgs['processor'] = $currentForm === 'reader' ? [] : $session['processor'];
             // For security purpose.
             unset($importArgs['reader']['filename']);
-            $view->setVariable('importArgs', $importArgs);
+            $view
+                ->setVariable('importArgs', $importArgs);
         }
         return $view;
     }
