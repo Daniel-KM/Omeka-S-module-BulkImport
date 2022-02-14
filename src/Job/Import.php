@@ -38,7 +38,11 @@ class Import extends AbstractJob
         $this->getLogger();
         $this->getImport();
 
-        $this->api()->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
+        // Make compatible with EasyAdmin tasks, that may use a fake job.
+        if ($this->job->getId()) {
+            $this->api()->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
+        }
+
         $reader = $this->getReader();
         $processor = $this->getProcessor()
             ->setReader($reader)
@@ -61,13 +65,8 @@ class Import extends AbstractJob
         return $this->import->id();
     }
 
-    public function getJobId()
-    {
-        return $this->job->getId();
-    }
-
     /**
-     * @todo Remove this direct access to job to set status.
+     * @todo Remove this direct access to job to set status or to check if there is an id for task.
      */
     public function getJob(): Job
     {

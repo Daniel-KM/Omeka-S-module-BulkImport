@@ -267,13 +267,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Store the file in params to get it in user interface and next.
+        /** @var \Omeka\Entity\Job $jobJob */
         $jobJob = $this->job->getJob();
-        $jobJobArgs = $jobJob->getArgs();
-        $jobJobArgs['filename_check'] = basename($this->filepathCheck);
-        $jobJob->setArgs($jobJobArgs);
-        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
-        $entityManager->persist($jobJob);
-        $entityManager->flush();
+        if ($jobJob->getId()) {
+            $jobJobArgs = $jobJob->getArgs();
+            $jobJobArgs['filename_check'] = basename($this->filepathCheck);
+            $jobJob->setArgs($jobJobArgs);
+            $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+            $entityManager->persist($jobJob);
+            $entityManager->flush();
+        }
 
         $this->prepareFullRun();
 

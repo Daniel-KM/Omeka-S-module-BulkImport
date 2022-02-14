@@ -417,9 +417,14 @@ abstract class AbstractProcessor implements Processor
 
     protected function recordCreatedResources(array $resources): void
     {
+        // TODO Store the bulk import id instead of the job id in order to manage regular task?
+        $jobId = $this->job->getJob()->getId();
+        if (!$jobId) {
+            return;
+        }
+
         /** @var \Omeka\Api\Adapter\Manager $adapterManager */
         $adapterManager = $this->getServiceLocator()->get('Omeka\ApiAdapterManager');
-        $jobId = $this->job->getJobId();
         $classes = [];
 
         $importeds = [];
