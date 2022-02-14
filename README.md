@@ -36,6 +36,9 @@ xlt 1. Some specific readers or processors may need some other modules.
 **Important**: If you use the module [CSV Import] in parallel, you should apply
 [this patch] or use [this version].
 
+**Important**: If you use the module [Numeric Data Types], you should apply this
+[other patch] or use this [other version].
+
 See general end user documentation for [installing a module].
 
 * From the zip
@@ -51,6 +54,10 @@ the module to `BulkImport`, go to the root of the module, and run:
 ```sh
 composer install --no-dev
 ```
+
+Note: the library "CodeMirror" has no file "codemirror.js" by default: it is
+created automatically when installing packages with npm. To use it via composer,
+the missing file is added in the package used by composer.
 
 Then install it like any other Omeka module.
 
@@ -114,30 +121,26 @@ Anyway, if there is no xslt2 processor installed, the command field should be
 cleared. The plugin will use the default xslt 1 processor of php, if installed.
 
 
-Quick start
------------
+Usage
+-----
 
-First, define an importer, that is a reader and a processor. By default, they
-are only one.
+### Quick start
 
-Then, config the reader and the processor.
+Click on menu Bulk Import > Dashboard, then click on one importer, then fill
+the two forms, and finally confirm the import.
 
-Finally, process the import.
+To add, remove or config importers, you can go to menu Bulk Import > Configuration.
+An importer is a reader and a processor.
 
-
-Json source
------------
-
-When the source is a json, it is possible to specify a config to do the mapping
-between the source and the omeka json representation of resources.
+Some readers can use a mapping, in particular json and xml. It allows to map
+data between the source and the omeka json representation of resources.
 
 The config can be selected in the first form. New config can be added in the
 directory "data/mapping" of the module (default ones) or in the directory
-"files/mapping" of Omeka (user ones).
+"files/mapping" of Omeka (user ones). They can be edited online in the menu
+"Mappings" too.
 
-You can check examples.
-
-### Config to transform json
+### Config files
 
 The config contains four sections.
 
@@ -160,13 +163,15 @@ be imported and all the details about the destination field.
 ### Config of the mappings
 
 The config contains a list of mappings between source data and destination data.
+Mapping can be done in two formats: ini or xml.
+
 For example:
 
 ```
 source or xpath = dcterms:title @fr-fr ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
 ```
 
-will be converted internally into and used to create a resource:
+will be converted internally and used to create a resource like that:
 
 ```php
 [
@@ -186,6 +191,15 @@ will be converted internally into and used to create a resource:
          ],
      ],
 ]
+```
+
+For xml, the mapping is like that:
+
+```xml
+<map>
+    <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
+    <to field="dcterms:title" datatypes="literal" lang="" visibility="" raw="" prepend="" pattern="" append=""/>
+</map>
 ```
 
 A config is composed of multiple lines. The sections like "[info]" are managed:
@@ -233,8 +247,8 @@ this is a string where the values between `{{ ` and ` }}` are converted with
 some basic filters. For example, `{{ value|trim }}` takes the value from the
 source and trims it. The space after `{{` and before `}}` is required.
 Only some common Twig filters are supported: `abs`, `capitalize`, `date`, `e`,
-`escape`, `first`, `format`, `last`, `length`, `lower`, `slice`, `split`,
-`striptags`, `title`, `trim`, `upper`, `url_encode`.
+`escape`, `first`, `format`, `last`, `length`, `lower`, `replace`, `slice`,
+`split`, `striptags`, `table`, `title`, `trim`, `upper`, `url_encode`.
 Only some common arguments of these filters are supported. Twig filters can be
 combined, but not nested.
 
@@ -243,6 +257,14 @@ a xml unimarc source `17890804` into a standard [ISO 8601] numeric date time `17
 ```
 /record/datafield[@tag="103"]/subfield[@code="b"] = dcterms:valid ^^numeric:timestamp ~ {{ value|trim|slice(1,4) }}-{{ value|trim|slice(5,2) }}-{{ value|trim|slice(7,2) }}
 ```
+
+Some specific functions are added: `table`, to replace a code with a string,
+`dateIso`, `dateSql`, `isbdName`, `isbdNameColl`, `isbdMark`, `unimarcIndex`,
+`unimarcCoordinates`, `unimarcCoordinatesHexa`, `unimarcTimeHexa`.
+
+To see a full example, look to the file that manage [Unimarc conversion to Omeka].
+Note that this file will be improved soon to manage value annotations, an very
+interesting improvement for Omeka 3.2.
 
 The Twig filters can be used in conjunction with simple replacements. In that
 case, they are processed after the replacements.
@@ -381,7 +403,7 @@ TODO
 - [ ] See todo in code.
 - [x] Full dry-run.
 - [ ] Extract list of metadata names during dry-run and output it to help building mapping.
-- [ ] Fix numeric data type (doctrine issue).
+- [ ] Fix numeric data type (doctrine issue): see fix in https://github.com/omeka-s-modules/NumericDataTypes/pull/29.
 - [ ] Distinction between skipped and blank (for spreadsheet).
 - [ ] Update for module Mapping.
 - [ ] Import of users, in particular for Omeka S import.
@@ -442,6 +464,16 @@ conditions as regards security.
 The fact that you are presently reading this means that you have had knowledge
 of the CeCILL license and that you accept its terms.
 
+### Libraries
+
+- Flow.js / Flow php server
+
+  Licence [MIT]
+
+- CodeMirror
+
+  Licence [MIT}
+
 ### Data
 
 - Table of countries and languages:
@@ -456,6 +488,8 @@ Copyright
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
 * Copyright Daniel Berthereau, 2017-2022 (see [Daniel-KM] on GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code from Spip)
+* Copyright 2011-2022, Steffen Fagerström Christensen & alii (libraries [Flow.js] and [flow-php-server])
+* Copyright 2011-2022, Marijn Haverbeke & alii (library [CodeMirror])
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
 by [BibLibre].
@@ -474,7 +508,10 @@ by [BibLibre].
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
 [this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
+[other patch]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
+[other version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
 [ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
+[Unimarc conversion to Omeka]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
 [Bulk Edit]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkEdit
@@ -494,6 +531,9 @@ by [BibLibre].
 [FSF]: https://www.fsf.org
 [OSI]: http://opensource.org
 [MIT]: https://github.com/sandywalker/webui-popover/blob/master/LICENSE.txt
+[Flow.js]: https://flowjs.github.io/ng-flow
+[flow-php-server]: https://github.com/flowjs/flow-php-server
+[CodeMirror]: https://codemirror.net
 [BibLibre]: https://github.com/BibLibre
 [GitLab]: https://gitlab.com/Daniel-KM
 [Daniel-KM]: https://gitlab.com/Daniel-KM "Daniel Berthereau"
