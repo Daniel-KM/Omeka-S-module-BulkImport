@@ -33,6 +33,7 @@ class MappingForm extends Form
                 'attributes' => [
                     'id' => 'o-module-bulk-mapping',
                     'rows' => 30,
+                    'class' => 'codemirror-code',
                 ],
             ])
 

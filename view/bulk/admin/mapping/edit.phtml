@@ -6,10 +6,21 @@
  */
 
 $escape = $this->plugin('escapeHtml');
+$assetUrl = $this->plugin('assetUrl');
 $translate = $this->plugin('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings edit');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headLink()
+    ->appendStylesheet($assetUrl('vendor/codemirror/lib/codemirror.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('vendor/codemirror/addon/hint/show-hint.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headScript()
+    ->appendFile($assetUrl('vendor/codemirror/lib/codemirror.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/hint/show-hint.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/hint/xml-hint.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/mode/xml/xml.js', 'BulkImport'))
+    ->appendFile($assetUrl('js/bulk-import-admin.js', 'BulkImport'));
+
 $form->prepare();
 ?>
 

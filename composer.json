@@ -8,7 +8,10 @@
         "phpoffice/phpword": "^0.18.2",
         "flowjs/flow-php-server": "^1.0",
         "flowjs/flow.js": "^2.14.1",
-        "oomphinc/composer-installers-extender": "^2.0"
+        "codemirror/codemirror": "^5.65.1",
+        "oomphinc/composer-installers-extender": "^2.0",
+        "laminas/laminas-escaper": "2.6.1",
+        "laminas/laminas-zendframework-bridge": "1.1.1"
     },
     "require-dev": {
         "biblibre/omeka-s-test-helper": "dev-master"
@@ -27,8 +30,19 @@
                 "version": "2.14.1",
                 "dist": {
                     "type": "file",
-                    "reference": "2.14.1",
                     "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.30.0/flow.min.js"
+                }
+            }
+        },
+        {
+            "type": "package",
+            "package": {
+                "type": "omeka-addon-asset",
+                "name": "codemirror/codemirror",
+                "version": "5.65.1",
+                "dist": {
+                    "type": "tar",
+                    "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31.0/codemirror.tar.gz"
                 }
             }
         }
