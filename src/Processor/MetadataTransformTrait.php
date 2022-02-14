@@ -6,6 +6,7 @@ use Box\Spout\Common\Entity\Style\Color;
 use Box\Spout\Writer\Common\Creator\Style\StyleBuilder;
 use Box\Spout\Writer\Common\Creator\WriterEntityFactory;
 use DomDocument;
+use DOMNodeList;
 use DOMXPath;
 use Laminas\Http\Client\Exception\ExceptionInterface as HttpExceptionInterface;
 use Laminas\Http\ClientStatic;
@@ -649,12 +650,20 @@ SQL;
 
             $hasNew = false;
             foreach ($params['properties'] as $query => $property) {
-                $nodeList = $xpath->query($query);
-                if (!$nodeList || !$nodeList->length) {
+                // Use evaluate() instead of query(), because DOMXPath->query()
+                // and SimpleXML->xpath() don't work with xpath functions like "substring(xpath, 2)".
+                $nodeList = $xpath->evaluate($query);
+                if ($nodeList === false
+                    || ($nodeList === '')
+                    || ($nodeList instanceof DOMNodeList && !$nodeList->count())
+                ) {
                     continue;
                 }
+                if (!is_object($nodeList)) {
+                    $nodeList = [$nodeList];
+                }
                 foreach ($nodeList as $item) {
-                    $value = trim((string) $item->nodeValue);
+                    $value = trim((string) (is_object($item) ? $item->nodeValue : $item));
                     if ($value === '') {
                         continue;
                     }

@@ -29,12 +29,18 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use DOMDocument;
+use DOMNode;
+use DOMNodeList;
+use DOMXPath;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use SimpleXMLElement;
 
 /**
  * @todo Separate xml and json process into two plugins and make this one an abstract one.
- * @todo Merge with AdvancedResourceTemplate Mapper.
+ * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\Mapper.
+ * @todo Divide json and xml.
  */
 class TransformSource extends AbstractPlugin
 {
@@ -94,7 +100,21 @@ class TransformSource extends AbstractPlugin
      * ```
      * source or xpath = dcterms:title @fr-fr ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
      * ```
-     * will be converted into:
+     * or the same mapping as xml:
+     * ```xml
+     * <map>
+     *     <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
+     *     <to field="dcterms:title"
+     *         lang="fr-fr"
+     *         datatypes="literal"
+     *         visibility="private"
+     *         pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"
+     *     />
+     * </map>
+     * ```
+     *
+     * will be stored internally as:
+     *
      * ```php
      * [
      *      'from' => 'source or xpath',
@@ -115,8 +135,10 @@ class TransformSource extends AbstractPlugin
      * ]
      * ```
      *
-     * A config is composed of multiple lines. The sections like "[info]" are
-     * managed: the next lines will be a sub-array.
+     * With the xml format, the config above is enough to understand it.
+     *
+     * With the ini format, a config is composed of multiple lines. The sections
+     * like "[info]" are managed: the next lines will be a sub-array.
      *
      * Each line is formatted with a source and a destination separated with the
      * sign "=". The format of each part (left and right of the "=") of each
@@ -306,7 +328,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Convert all mappings from a section "mapping".
+     * Convert all mappings from a section with type "mapping".
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
@@ -318,6 +340,7 @@ class TransformSource extends AbstractPlugin
         if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
             return $resource;
         }
+
         if ($isDefault || empty($data)) {
             $flatData = [];
             $fields = [];
@@ -325,12 +348,15 @@ class TransformSource extends AbstractPlugin
             $flatData = $this->flatArray($data);
             $fields = $this->extractFields($data);
         }
+
         foreach ($this->getSection($section) as $fromTo) {
+            // @todo When default, "from" is useless.
             $from = $fromTo['from'];
             $to = $fromTo['to'] ?? null;
             if (empty($from) || empty($to)) {
                 continue;
             }
+
             $result = [];
             if ($isDefault) {
                 $converted = $this->convertTargetToString($from, $to);
@@ -365,23 +391,94 @@ class TransformSource extends AbstractPlugin
                     $result[] = $converted;
                 }
             }
+
             if ($result === []) {
                 continue;
             }
+
             $resource[$to['dest']] = empty($resource[$to['dest']])
                 ? $result
                 : array_merge($resource[$to['dest']], $result);
         }
+
+        return $resource;
+    }
+
+    /**
+     * Convert all mappings from a section with type "mapping" for xml.
+     *
+     * This method should be used when a mapping source ("from") is used
+     * multiple times.
+     * @param bool $isDefault When true, the target value "to" is added to the
+     * resource without using data.
+     */
+    public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefault = false): array
+    {
+        if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
+            return $resource;
+        }
+
+        // There is no fields with xml: xpath is smart enough.
+
+        // Use dom because it allows any xpath.
+        /** @var \DOMElement $dom */
+        $dom = dom_import_simplexml($xml);
+        $doc = new DOMDocument();
+        $doc->appendChild($doc->importNode($dom, true));
+
+        foreach ($this->getSection($section) as $fromTo) {
+            $to = $fromTo['to'] ?? null;
+            if (empty($to)) {
+                continue;
+            }
+
+            $from = $fromTo['from'] ?? null;
+
+            $result = [];
+            if ($isDefault) {
+                $converted = $this->convertTargetToStringXml($from, $to);
+                if ($converted === [] || $converted === '' || $converted === null) {
+                    continue;
+                }
+                $result[] = $converted;
+            } else {
+                if (!$from) {
+                    continue;
+                }
+                $values = $this->xpathQuery($doc, $from);
+                foreach ($values as $value) {
+                    $converted = $this->convertTargetToStringXml($from, $to, $doc, $value);
+                    if ($converted === [] || $converted === '' || $converted === null) {
+                        continue;
+                    }
+                    $result[] = $converted;
+                }
+            }
+
+            if ($result === []) {
+                continue;
+            }
+
+            $resource[$to['dest']] = empty($resource[$to['dest']])
+                ? $result
+                : array_merge($resource[$to['dest']], $result);
+        }
+
         return $resource;
     }
 
     /**
      * Convert a single field into a string.
      */
-    public function convertToString(string $section, string $name, ?array $data = null): ?string
+    public function convertToString(string $section, string $name, $data = null): ?string
     {
         $to = $this->getSectionSetting($section, $name);
-        return $to ? $this->convertTargetToString($name, $to, $data) : null;
+        if (!$to) {
+            return null;
+        }
+        return $data instanceof \SimpleXMLElement
+            ? $this->convertTargetToStringXml($name, $to, $data)
+            : $this->convertTargetToString($name, $to, $data);
     }
 
     /**
@@ -394,12 +491,12 @@ class TransformSource extends AbstractPlugin
      *     // Set for current value and default output when there is no pattern.
      *     'value' => 'xxx',
      * ];
-     * $from = 'xxx';
+     * $from = 'yyy';
      * $to = [
      *     'pattern' => '{{ endpoint }}/api{{itemLink}}',
      *     // The following keys are automatically created from the pattern.
-     *     'replace' => ['{{itemLink}}']
-     *     'twig' => ['{{ endpoint }}'],
+     *     'replace' => [ '{{itemLink}}' ]
+     *     'twig' => [ '{{ endpoint }}' ],
      * ];
      * $data = [
      *     'itemLink' => '/id/150',
@@ -484,20 +581,148 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
+     * Convert a single field from the config into a string.
+     *
+     * Example:
+     * ```php
+     * $this->variables = [
+     *     'endpoint' => 'https://example.com',
+     *     // Set for current value and default output when there is no pattern.
+     *     'value' => 'xxx',
+     * ];
+     * $from = 'yyy';
+     * $to = [
+     *     'pattern' => '{{ endpoint }}/api{{itemLink}}',
+     *     // The following keys are automatically created from the pattern.
+     *     'replace' => [ '{{itemLink}}' ]
+     *     'twig' => [ '{{ endpoint }}' ],
+     * ];
+     * $data = [
+     *     'itemLink' => '/id/150',
+     * ];
+     * $output = 'https://example.com/api/id/1850'
+     * ```
+     *
+     * @param string|null $from The key where to get the data.
+     * @param array|string $to If array, contains the pattern to use, else the
+     * static value itself.
+     * @param \DOMDocument|\SimpleXMLElement $data The resource from which
+     * extract the data, if needed.
+     * @param \DOMNode|string  $fromValue
+     * @return string The converted value. Without pattern, return the key
+     * "value" from the variables.
+     */
+    protected function convertTargetToStringXml($from, $to, $data = null, $fromValue = null): ?string
+    {
+        if (is_null($to) || is_string($to)) {
+            return $to;
+        }
+
+        if (is_null($fromValue) && $from && $data) {
+            $fromValue = $this->xpathQuery($data, $from);
+        }
+
+        if (is_null($fromValue)) {
+            $first = null;
+        } elseif (is_scalar($fromValue)) {
+            $first = (string) $fromValue;
+        } elseif ($fromValue instanceof \DOMNode) {
+            $first = $fromValue;
+        } elseif ($fromValue instanceof \SimpleXMLElement) {
+            // Not used any more. SimpleXml doesn't support context or subquery.
+            $first = (string) $fromValue[0];
+        } else {
+            $first = (string) reset($fromValue);
+        }
+
+        $fromValue = $first;
+        $this->addVariable('value', $first);
+
+        if (!isset($to['pattern']) || !strlen($to['pattern'])) {
+            return $first instanceof \DOMNode ? (string) $first->nodeValue : (string) $first;
+        }
+
+        if (isset($to['raw']) && strlen($to['raw'])) {
+            return (string) $to['raw'];
+        }
+
+        // When there are data, a query can be used for each variable.
+        $replace = [];
+        if (!empty($to['replace'])) {
+            if ($data) {
+                foreach ($to['replace'] as $wrappedQuery) {
+                    // Manage the exceptions: there is no value here, neither label or list.
+                    if (in_array($wrappedQuery, ['{{ value }}', '{{ label }}', '{{ list }}'])) {
+                        $replace[$wrappedQuery] = '';
+                        continue;
+                    }
+                    $query = mb_substr($wrappedQuery, 2, -2);
+                    $answer = $this->xpathQuery($data, $query, $first instanceof \DOMNode ? $first : null);
+                    if (count($answer)) {
+                        $firstAnswer = reset($answer);
+                        $replace[$wrappedQuery] = $firstAnswer instanceof \DOMNode
+                            ? (string) $firstAnswer->nodeValue
+                            : (string) $firstAnswer;
+                    } else {
+                        $replace[$wrappedQuery] = '';
+                    }
+                }
+            } else {
+                $replace = array_fill_keys($to['replace'], '');
+            }
+        }
+
+        // Wrap vars to quick process for simple variables without twig filters.
+        if (!empty($to['twig'])) {
+            foreach ($this->variables as $name => $value) {
+                if ($value instanceof \DOMNode) {
+                    $replace["{{ $name }}"] = (string) $value->nodeValue;
+                } elseif (is_scalar($value)) {
+                    $replace["{{ $name }}"] = $value;
+                } else {
+                    // TODO What else can be value. Array?
+                    continue;
+                }
+                if (($pos = array_search("{{ $name }}", $to['twig'])) !== false) {
+                    unset($to['twig'][$pos]);
+                }
+            }
+        }
+
+        $value = $replace
+            ? str_replace(array_keys($replace), array_values($replace), $to['pattern'])
+            : $to['pattern'];
+
+        if (!empty($to['twig'])) {
+            $value = $this->twig($value, $this->variables, $to['twig']);
+        }
+
+        return $value;
+    }
+
+    /**
      * Convert a value into another value via twig filters.
      *
      * Only some common filters and some filter arguments are managed.
      */
     protected function twig(string $pattern, array $twigVars, array $twig): string
     {
+        // Store twig vars statically to avoid to extract them multiple times.
         static $patterns = [];
 
         // Prepare the static vars regex for twig.
         if (count($twigVars)) {
-            $serialized = serialize($twigVars);
+            // serialize() doesn't store DOMNode properties.
+            $tw = $twigVars;
+            foreach ($tw as &$v) {
+                if ($v instanceof \DOMNode) {
+                    $v = (string) $v->nodeValue;
+                }
+            }
+            $serialized = serialize($tw);
             if (!isset($patterns[$serialized])) {
                 $patterns[$serialized] = implode('|', array_map(function($v) {
-                    $v = (string) $v;
+                    $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
                     return mb_substr($v, 0, 3) === '{{ '
                         ? preg_quote(mb_substr($v, 3, -3), '~')
                         : preg_quote($v, '~');
@@ -614,6 +839,7 @@ class TransformSource extends AbstractPlugin
                 case 'value':
                 default:
                     $v = $twigVars['{{ ' . $filter . ' }}'] ?? $twigVars[$filter] ?? $v;
+                    $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
                     break;
             }
             return (string) $v;
@@ -640,6 +866,16 @@ class TransformSource extends AbstractPlugin
             return $this;
         }
 
+        // When first character is "<", it's an xml because it cannot be ini.
+        $this->config = trim($this->config);
+        $isXml = mb_substr($this->config, 0, 1) === '<';
+        return $isXml
+            ? $this->normalizeConfigXml()
+            : $this->normalizeConfigIni();
+    }
+
+    protected function normalizeConfigIni(): self
+    {
         // parse_ini_string() cannot be used, because some characters are forbid
         // on the left and the right part is not quoted.
         // So process by line.
@@ -775,6 +1011,125 @@ class TransformSource extends AbstractPlugin
         return $this;
     }
 
+    protected function normalizeConfigXml(): self
+    {
+        // The config is always a small file (less than some megabytes), so it
+        // can be managed directly with SimpleXml.
+        $xmlConfig = new SimpleXMLElement($this->config);
+
+        $xmlMapToArray = function (SimpleXMLElement $element, int $index, bool $isDefault = false): ?array {
+            // Since anything is set inside attributes, use a json conversion.
+            $xmlArray = json_decode(json_encode($element), true);
+
+            if ($isDefault) {
+                $result['from'] = null;
+            } else {
+                if (!isset($xmlArray['from']['@attributes']['xpath'])
+                    || !strlen((string) $xmlArray['from']['@attributes']['xpath'])
+                ) {
+                    $this->logger->err(sprintf('The mapping "%s" has no source.', $index));
+                    return null;
+                }
+                $result['from'] = (string) $xmlArray['from']['@attributes']['xpath'];
+            }
+
+            if (!isset($xmlArray['to']['@attributes']['field'])
+                || !strlen((string) $xmlArray['to']['@attributes']['field'])
+            ) {
+                $this->logger->err(sprintf('The mapping "%s" has no destination.', $index));
+                return null;
+            }
+
+            // @todo The use of automapFields is simpler, so merge the values and output it?
+
+            $result['to']['field'] = (string) $xmlArray['to']['@attributes']['field'];
+
+            $termId = $this->bulk->getPropertyId($result['to']['field']);
+            if ($termId) {
+                $result['to']['property_id'] = $termId;
+            }
+
+            $result['to']['@language'] = isset($xmlArray['to']['@attributes']['lang'])
+                ? (string) $xmlArray['to']['@attributes']['lang']
+                : null;
+            $result['to']['datatypes'] = isset($xmlArray['to']['@attributes']['datatypes'])
+                ? array_filter(array_map('trim', explode(';', (string) $xmlArray['to']['@attributes']['datatypes'])))
+                : [];
+            $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
+                ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
+                : null;
+            $result['to']['pattern'] = null;
+            if (isset($xmlArray['to']['@attributes']['pattern'])) {
+                $r = $this->preparePattern((string) $xmlArray['to']['@attributes']['pattern']);
+                if ($r['pattern']) {
+                    $result['to']['pattern'] = $r['pattern'];
+                    $result['to']['replace'] = $r['replace'] ?? [];
+                    $result['to']['twig'] = $r['twig'] ?? [];
+                }
+            }
+
+            // @todo Remove the short destination (used in processor and when converting to avoid duplicates)?
+            $result['to']['dest'] = $result['to']['field']
+                . (count($result['to']['datatypes']) ? ' ^^' . implode('; ', $result['to']['datatypes']) : '')
+                . (isset($result['to']['@language']) ? ' @' . $result['to']['@language'] : '')
+                . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
+                . (isset($result['to']['pattern']) && strlen($result['to']['pattern']) ? ' ~ ' . $r['pattern'] : '')
+            ;
+
+            return $result;
+        };
+
+        $this->normConfig = [
+            'info' => [],
+            'params' => [],
+            'default' => [],
+            'mapping' => [],
+        ];
+
+        // TODO Xml config for info and params.
+        foreach ($xmlConfig->info as $element) {
+            $this->normConfig['info'][] = [];
+        }
+
+        foreach ($xmlConfig->params as $element) {
+            $this->normConfig['params'][] = [];
+        }
+
+        // This value allows to keep the original dest single.
+        // @todo Remove [to][dest] and "k".
+        $k = 0;
+        // TODO Use an attribute or a sub-element ?
+        $i = 0;
+        foreach ($xmlConfig->map as $element) {
+            if ($element->from['xpath']) {
+                continue;
+            }
+            $fromTo = $xmlMapToArray($element, ++$i, true);
+            if (is_array($fromTo)) {
+                if (isset($fromTo['to']['dest'])) {
+                    $fromTo['to']['dest'] = $fromTo['to']['dest'] . str_repeat(' ', $k++);
+                }
+                $this->normConfig['default'][] = $fromTo;
+            }
+        }
+
+        $i = 0;
+        foreach ($xmlConfig->map as $element) {
+            if (!$element->from['xpath']) {
+                continue;
+            }
+            $fromTo = $xmlMapToArray($element, ++$i);
+            if (is_array($fromTo)) {
+                if (isset($fromTo['to']['dest'])) {
+                    $fromTo['to']['dest'] = $fromTo['to']['dest'] . str_repeat(' ', $k++);
+                }
+                $this->normConfig['mapping'][] = $fromTo;
+            }
+        }
+
+        return $this;
+    }
+
     protected function normalizeDestination(string $string): ?array
     {
         // TODO Add an option to fill the property id directly in automapFields().
@@ -802,7 +1157,8 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * @todo Factorize with TransformSource::appendPattern()
+     * @todo Factorize with AutomapFields::appendPattern()
+     * @see \BulkImport\Mvc\Controller\Plugin\AutomapFields::appendPattern()
      */
     protected function preparePattern(string $pattern): array
     {
@@ -995,6 +1351,59 @@ class TransformSource extends AbstractPlugin
         }
 
         return $fields;
+    }
+
+    /**
+     * Get result from a xpah expression on a xml.
+     *
+     * If the xpath contains a function (like `substring(xpath, 2)`),
+     * `evaluate()` is used and the output may be a simple string.
+     * Else `query()` is used and the output is a node list, so it's possible to
+     * do another query, included relative ones, on each node.
+     *
+     * Note: DOMXPath->query() and SimpleXML->xpath() don't work with xpath
+     * functions like `substring(xpath, 2)`, that output a single scalar value,
+     * not a list of nodes.
+     *
+     * @param \DOMDocument|\SimpleXMLElement $xml
+     * @param string $query
+     * @param \DOMNode $contextNode
+     * @return \DOMNode[]|string[] Try to return DOMNode when possible.
+     */
+    protected function xpathQuery($xml, string $query, ?DOMNode $contextNode = null): array
+    {
+        if ($xml instanceof \SimpleXMLElement) {
+            /** @var \DOMElement $xml */
+            $xml = dom_import_simplexml($xml);
+            $doc = new DOMDocument();
+            $node = $doc->importNode($xml, true);
+            $doc->appendChild($node);
+            /** @var \DOMDocument $xml */
+            $xml = $doc;
+        }
+        $xpath = new DOMXPath($xml);
+
+        $nodeList = $xpath->evaluate($query, $contextNode);
+        if ($nodeList === false
+            || ($nodeList === '')
+        ) {
+            return [];
+        }
+
+        if (is_array($nodeList)) {
+            return array_map('strval', $nodeList);
+        }
+
+        if (!is_object($nodeList)) {
+            return [(string) $nodeList];
+        }
+
+        /** @var DOMNodeList $nodeList */
+        $result = [];
+        foreach ($nodeList as $item) {
+            $result[] = $item;
+        }
+        return $result;
     }
 
     /**

@@ -325,6 +325,7 @@ class AutomapFields extends AbstractPlugin
 
     /**
      * @todo Factorize with TransformSource::preparePattern()
+     * @see \BulkImport\Mvc\Controller\Plugin\TransformSource::preparePattern()
      */
     protected function appendPattern(array $result): array
     {

@@ -289,7 +289,7 @@ SQL;
         return $this->getParam('database');
     }
 
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
         $this->dbConfig = [];
         $this->dbConfig['database'] = $this->getParam('database', '');
@@ -301,6 +301,7 @@ SQL;
         $this->dbConfig['driver'] = $this->getParam('driver') ?: 'Pdo_Mysql';
         $this->prefix = $this->getParam('prefix', '') ?: '';
         $this->getDbAdapter();
+        return $this;
     }
 
     protected function currentPage(): void

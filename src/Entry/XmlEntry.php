@@ -13,10 +13,15 @@ class XmlEntry extends BaseEntry
         $namespaces = [null] + $simpleData->getNamespaces(true);
 
         // Fix issue with cdata (no: it will escape html tags).
-        $simpleData = new \SimpleXMLElement($simpleData->asXML(), LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS
+        $simpleData = new SimpleXMLElement($simpleData->asXML(), LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS
                 | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
 
         $array = $this->attributes($simpleData);
+
+        if ($this->options['transformSource']) {
+            $this->initWithTransformSource($simpleData);
+            return;
+        }
 
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
@@ -413,6 +418,41 @@ class XmlEntry extends BaseEntry
     {
         // Unlike Entry, data are filtered during array conversion.
         return !count($this->data);
+    }
+
+    /**
+     * @see \BulkImport\Entry\JsonEntry::init()
+     */
+    protected function initWithTransformSource(SimpleXMLElement $data): void
+    {
+        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
+        $transformSource = $this->options['transformSource'];
+
+        // Remove wrapper to keep mapping simple with xpath adapted to source.
+        $unwrappedData = null;
+        foreach ($data->xpath('/resource/child::*[1]') as $node) {
+            $unwrappedData = new \SimpleXMLElement($node->asXML());
+            break;
+        }
+        if (!$unwrappedData) {
+            $this->data = [];
+            return;
+        }
+
+        // The real resource type is set via config or via processor.
+        $resource = [];
+        $resource = $transformSource->convertMappingSectionXml('default', $resource, $unwrappedData, true);
+        $resource = $transformSource->convertMappingSectionXml('mapping', $resource, $unwrappedData);
+
+        // Filter duplicated and null values.
+        foreach ($resource as &$datas) {
+            $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
+        }
+        unset($datas);
+
+        // Cf. JsonEntry to manage files (check urls).
+
+        $this->data = $resource;
     }
 
     /**

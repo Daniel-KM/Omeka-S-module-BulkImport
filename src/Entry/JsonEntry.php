@@ -20,7 +20,7 @@ class JsonEntry extends BaseEntry
         // Create a multivalue spreadsheet-like resource, not an omeka resource.
         // The conversion itself is done in processor.
         // So just replace each value by the right part according to mapping.
-        // TODO Currently, the conversion via pattern is done here.
+        // TODO Currently, the conversion via pattern is done here: move it to the processor (?).
 
         // The real resource type is set via config or via processor.
         $resource = [];

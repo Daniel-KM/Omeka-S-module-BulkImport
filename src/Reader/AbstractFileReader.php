@@ -94,11 +94,15 @@ abstract class AbstractFileReader extends AbstractReader
             unset($params['file']);
         } else {
             $file = $this->getUploadedFile($form);
-            $params['filename'] = $file['filename'];
-            // Remove temp names for security purpose.
-            unset($file['filename']);
-            unset($file['tmp_name']);
-            $params['file'] = $file;
+            if (is_null($file)) {
+                $params['file'] = null;
+            } else {
+                $params['filename'] = $file['filename'];
+                // Remove temp names for security purpose.
+                unset($file['filename']);
+                unset($file['tmp_name']);
+                $params['file'] = $file;
+            }
         }
 
         $this->setParams($params);
@@ -217,13 +221,15 @@ abstract class AbstractFileReader extends AbstractReader
      * @throws \Omeka\Service\Exception\RuntimeException
      * @return array The file array with the temp filename.
      */
-    protected function getUploadedFile(Form $form): array
+    protected function getUploadedFile(Form $form): ?array
     {
         $file = $form->get('file')->getValue();
         if (empty($file)) {
-            throw new \Omeka\Service\Exception\RuntimeException(
-                'Unable to upload file.' // @translate
-            );
+            return null;
+        }
+
+        if (!file_exists($file['tmp_name'])) {
+            return null;
         }
 
         $systemConfig = $this->getServiceLocator()->get('Config');

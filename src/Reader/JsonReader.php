@@ -165,11 +165,11 @@ class JsonReader extends AbstractPaginatedReader
         }
     }
 
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
         // Prepare mapper one time.
         if (isset($this->transformSourceImportParams)) {
-            return;
+            return $this;
         }
 
         $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');
@@ -193,6 +193,8 @@ class JsonReader extends AbstractPaginatedReader
         if ($fileList) {
             $this->listFiles = array_unique(array_filter(array_map('trim', $fileList)));
         }
+
+        return $this;
     }
 
     protected function currentPage(): void

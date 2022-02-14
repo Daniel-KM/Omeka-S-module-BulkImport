@@ -200,8 +200,9 @@ abstract class AbstractPaginatedReader extends AbstractReader
     /**
      * This method is called from the method setObjectType() and isValid().
      */
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
+        return $this;
     }
 
     protected function resetIterator(): void

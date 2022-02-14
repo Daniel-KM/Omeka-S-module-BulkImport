@@ -14,11 +14,11 @@ class ContentDmReader extends JsonReader
 {
     protected $label = 'Content-DM (Json)';
 
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
         // Prepare mapper one time.
         if (isset($this->transformSourceImportParams)) {
-            return;
+            return $this;
         }
 
         // For content-dm, if the url ends with "/api", it should be "/api/" to
@@ -38,6 +38,6 @@ class ContentDmReader extends JsonReader
             $this->params['url'] = rtrim($this->params['url'], '/') . '/maxRecords/100';
         }
 
-        parent::initArgs();
+        return parent::initArgs();
     }
 }

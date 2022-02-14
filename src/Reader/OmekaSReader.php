@@ -123,7 +123,7 @@ class OmekaSReader extends AbstractPaginatedReader
         return true;
     }
 
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
         $this->endpoint = rtrim($this->getParam('endpoint'), '/ ');
         $this->queryCredentials = [];
@@ -133,6 +133,7 @@ class OmekaSReader extends AbstractPaginatedReader
             $this->queryCredentials['key_identity'] = $keyIdentity;
             $this->queryCredentials['key_credential'] = $keyCredential;
         }
+        return $this;
     }
 
     protected function currentPage(): void

@@ -6,6 +6,7 @@ use BulkImport\Entry\Entry;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
+use BulkImport\Traits\TransformSourceTrait;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 use XMLElementIterator;
@@ -18,6 +19,8 @@ use XMLReaderNode;
  */
 class XmlReader extends AbstractFileReader
 {
+    use TransformSourceTrait;
+
     protected $label = 'XML'; // @translate
     protected $mediaType = 'text/xml';
     protected $configFormClass = XmlReaderConfigForm::class;
@@ -26,12 +29,14 @@ class XmlReader extends AbstractFileReader
     protected $configKeys = [
         'url',
         'xsl_sheet',
+        'mapping_file',
     ];
 
     protected $paramsKeys = [
         'filename',
         'url',
         'xsl_sheet',
+        'mapping_file',
     ];
 
     /**
@@ -58,6 +63,15 @@ class XmlReader extends AbstractFileReader
     {
         parent::__construct($services);
         $this->processXslt = $services->get('ControllerPluginManager')->get('processXslt');
+        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
+        $this->params['mapping_file_subdir'] = 'xml';
+    }
+
+    public function setParams(array $params)
+    {
+        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
+        $params['mapping_file_subdir'] = 'xml';
+        return parent::setParams($params);
     }
 
     public function isValid(): bool
@@ -113,6 +127,8 @@ class XmlReader extends AbstractFileReader
 
     protected function currentEntry(): Entry
     {
+        // To check xml:
+        // echo $this->currentData->getSimpleXMLElement()->asXML();
         return new XmlEntry($this->currentData, $this->availableFields, $this->getParams());
     }
 
@@ -158,7 +174,43 @@ class XmlReader extends AbstractFileReader
             $this->normalizedXmlpath = $tmpPath;
         }
 
-        return $this->initializeXmlReader();
+        return $this
+            ->initializeXmlReader()
+            ->initArgs();
+    }
+
+    /**
+     * @todo Merge with JsonReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
+     */
+    protected function initArgs(): \BulkImport\Reader\Reader
+    {
+        // Prepare mapper one time.
+        if (isset($this->transformSourceImportParams)) {
+            return $this;
+        }
+
+        // The config is used by the processor too, so it should be updated.
+        $subDirectory = $this->params['mapping_file_subdir'] ?? 'xml';
+
+        if (isset($this->config['mapping_file']) && $this->config['mapping_file'] !== '') {
+            $this->config['mapping_file'] = $subDirectory . '/' . $this->config['mapping_file'];
+        }
+        if (isset($this->params['mapping_file']) && $this->params['mapping_file'] !== '') {
+            $this->params['mapping_file'] = $subDirectory . '/' . $this->params['mapping_file'];
+        }
+
+        // The mapping file is not required when the main xsl file creates the
+        // resource directly.
+        $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');
+        if ($mappingFile) {
+            $this->initTransformSource($mappingFile, $this->params);
+            $this->params['transformSource'] = $this->transformSource;
+        }
+
+        // @todo See pagination in JsonReader.
+        // @todo See listFiles in JsonReader.
+
+        return $this;
     }
 
     /**

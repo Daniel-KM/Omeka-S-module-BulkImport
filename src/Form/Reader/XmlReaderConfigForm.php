@@ -4,6 +4,7 @@ namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Laminas\Form\Element;
 use Laminas\Form\Form;
 
 class XmlReaderConfigForm extends Form
@@ -39,7 +40,32 @@ class XmlReaderConfigForm extends Form
                     'class' => 'chosen-select',
                     'data-placeholder' => 'Select the xsl for conversion…', // @translate
                 ],
-            ]);
+            ])
+            ->add([
+                'name' => 'mapping_file',
+                'type' => BulkImportElement\OptionalSelect::class,
+                'options' => [
+                    'label' => 'Mapping file used to convert source', // @translate
+                    'info' => 'Default mapping are located in "modules/BulkImport/mapping/data/xml" and user ones in "files/mapping/xml".', // @translate
+                    'value_options' => $this->listFiles('xml', 'xml'),
+                    'empty_option' => '',
+                ],
+                'attributes' => [
+                    'id' => 'mapping_file',
+                    'value' => '',
+                    'class' => 'chosen-select',
+                    'required' => false,
+                    'data-placeholder' => 'Select the mapping for conversion…', // @translate
+                ],
+            ])
+            ->add([
+                'name' => 'mapping_automatic',
+                'type' => Element\Hidden::class,
+                'attributes' => [
+                    'id' => 'mapping_automatic',
+                    'value' => '1',
+                ],
+            ])
         ;
 
         parent::init();

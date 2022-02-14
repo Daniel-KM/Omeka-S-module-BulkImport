@@ -154,9 +154,10 @@ trait HttpClientTrait
         return true;
     }
 
-    protected function initArgs(): void
+    protected function initArgs(): \BulkImport\Reader\Reader
     {
         $this->endpoint = $this->getParam('endpoint');
+        return $this;
     }
 
     /**
