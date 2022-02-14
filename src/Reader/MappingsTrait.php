@@ -11,9 +11,14 @@ trait MappingsTrait
     protected function listMappings(array $subDirAndExtensions = []): array
     {
         $services = $this->getServiceLocator();
+        $api = $services->get('Omeka\ApiManager');
         $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
 
         $files = [
+            'mapping' => [
+                'label' => 'Configured mappings', // @translate
+                'options' => [],
+            ],
             'user' => [
                 'label' => 'User mapping files', // @translate
                 'options' => [],
@@ -28,14 +33,27 @@ trait MappingsTrait
             $extension = reset($subDirAndExtension);
             $subDirectory = key($subDirAndExtension);
 
-            $this->mappingDirectory = dirname(__DIR__, 2) . '/data/mapping/' . $subDirectory;
+            if ($subDirectory === 'mapping' && $extension === true) {
+                /** @var \BulkImport\Api\Representation\MappingRepresentation[] $mappings */
+                $mappings = $api->search('bulk_mappings', ['sort_by' => 'label', 'sort_order' => 'asc'])->getContent();
+                foreach ($mappings as $mapping) {
+                    $files['mapping']['options']['mapping:' . $mapping->id()] = $mapping->label();
+                }
+                continue;
+            }
+
             $this->mappingExtension = $extension;
-            $files['module']['options'] = $this->getMappingFiles();
+
+            $this->mappingDirectory = dirname(__DIR__, 2) . '/data/mapping/' . $subDirectory;
+            $mappingFiles = $this->getMappingFiles();
+            foreach ($mappingFiles as $file) {
+                $files['module']['options']['module:' . $subDirectory . '/' . $file] = $file;
+            }
 
             $this->mappingDirectory = $basePath . '/mapping/' . $subDirectory;
-            $userFiles = $this->getMappingFiles();
-            foreach ($userFiles as $file) {
-                $files['user']['options']['user: ' . $file] = $file;
+            $mappingFiles = $this->getMappingFiles();
+            foreach ($mappingFiles as $file) {
+                $files['user']['options']['user:' . $subDirectory . '/' . $file] = $file;
             }
         }
 

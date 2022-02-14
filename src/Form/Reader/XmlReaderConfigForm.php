@@ -15,6 +15,11 @@ class XmlReaderConfigForm extends Form
 
     public function init(): void
     {
+        $xslConfig = $this->listMappings([['xsl' => 'xsl']]);
+        $xslConfig['mapping']['label'] = 'Configured xsl'; // @translate
+        $xslConfig['user']['label'] = 'User xsl files'; // @translate
+        $xslConfig['module']['label'] = 'Module xsl files'; // @translate
+
         $this
             ->add([
                 'name' => 'url',
@@ -32,7 +37,7 @@ class XmlReaderConfigForm extends Form
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'XSLT file used to normalize source', // @translate
-                    'value_options' => $this->listMappings([['xsl' => 'xsl']]),
+                    'value_options' => $xslConfig,
                     'empty_option' => '',
                 ],
                 'attributes' => [
@@ -43,15 +48,15 @@ class XmlReaderConfigForm extends Form
                 ],
             ])
             ->add([
-                'name' => 'mapping_file',
+                'name' => 'mapping_config',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'Mapping to convert source', // @translate
-                    'value_options' => $this->listMappings([['xml' => 'xml'], ['json' => 'ini']]),
+                    'value_options' => $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]),
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'mapping_file',
+                    'id' => 'mapping_config',
                     'value' => '',
                     'class' => 'chosen-select',
                     'required' => false,

@@ -40,15 +40,15 @@ class JsonReaderConfigForm extends Form
                 ],
             ])
             ->add([
-                'name' => 'mapping_file',
+                'name' => 'mapping_config',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'Mapping to convert source', // @translate
-                    'value_options' => $this->listMappings([['xml' => 'xml'], ['json' => 'ini']]),
+                    'value_options' => $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]),
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'mapping_file',
+                    'id' => 'mapping_config',
                     'value' => '',
                     'class' => 'chosen-select',
                     'required' => true,

@@ -446,4 +446,51 @@ WHERE
 ;
 SQL;
     $connection->executeStatement($sql);
+
+    // Module resources are not available during upgrade.
+    // Update mapping files.
+    $qb = $connection->createQueryBuilder();
+    $qb
+        ->select('bulk_importer.id', 'bulk_importer.reader_config')
+        ->from('bulk_importer', 'bulk_importer')
+        ->where('bulk_importer.reader_config IS NOT NULL')
+        ->andWhere('bulk_importer.reader_config != "[]"')
+        ->andWhere('bulk_importer.reader_config != "{}"')
+        ->orderBy('bulk_importer.id', 'asc');
+    $importerReaderConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
+    foreach ($importerReaderConfigs as $id => $importerReaderConfig) {
+        $readerConfig = json_decode($importerReaderConfig,  true) ?: [];
+        if (isset($readerConfig['xsl_sheet'])) {
+            if (mb_substr($readerConfig['xsl_sheet'], 0, 5) === 'user:') {
+                $readerConfig['xsl_sheet'] = 'user:xsl/' . trim(mb_substr($readerConfig['xsl_sheet'], 5));
+            } else {
+                $readerConfig['xsl_sheet'] = 'module:xsl/' . trim($readerConfig['xsl_sheet']);
+            }
+        }
+        if (array_key_exists('mapping_file', $readerConfig)) {
+            $mappingFile = $readerConfig['mapping_file'];
+            unset($readerConfig['mapping_file']);
+            if ($mappingFile) {
+                $extension = pathinfo($mappingFile, PATHINFO_EXTENSION);
+                $subDir = $extension === 'xml' ? 'xml/' : 'json/';
+                if (mb_substr($mappingFile, 0, 5) === 'user:') {
+                    $readerConfig['mapping_config'] = 'user:' . $subDir . trim(mb_substr($mappingFile, 5));
+                } else {
+                    $readerConfig['mapping_config'] = 'module:' . $subDir . $mappingFile;
+                }
+            }
+        }
+        $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `reader_config` = ?
+WHERE
+    `id` = ?
+;
+SQL;
+        $connection->executeStatement($sql, [
+            json_encode($readerConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            $id,
+        ]);
+    }
 }

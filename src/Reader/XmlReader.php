@@ -29,14 +29,14 @@ class XmlReader extends AbstractFileReader
     protected $configKeys = [
         'url',
         'xsl_sheet',
-        'mapping_file',
+        'mapping_config',
     ];
 
     protected $paramsKeys = [
         'filename',
         'url',
         'xsl_sheet',
-        'mapping_file',
+        'mapping_config',
     ];
 
     /**
@@ -63,50 +63,62 @@ class XmlReader extends AbstractFileReader
     {
         parent::__construct($services);
         $this->processXslt = $services->get('ControllerPluginManager')->get('processXslt');
-        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
-        $this->params['mapping_file_subdir'] = 'xml';
-    }
-
-    public function setParams(array $params)
-    {
-        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
-        $params['mapping_file_subdir'] = 'xml';
-        return parent::setParams($params);
     }
 
     public function isValid(): bool
     {
         // Check if the xsl file is ok, if any.
         // It may be empty if the input is a flat xml file with resources.
-        $xslpath = $this->getParam('xsl_sheet');
-        if ($xslpath) {
+        $xslconfig = $this->getParam('xsl_sheet');
+        if ($xslconfig) {
             // Check if the basepath is inside Omeka path for security.
-            $filepath = $this->xslpath();
-            if (!$filepath) {
-                $this->lastErrorMessage = new PsrMessage(
-                    'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
-                    ['filename' => $xslpath]
-                );
-                return false;
-            }
-            $moduleXslPath = dirname(__DIR__, 2) . '/data/mapping/xsl/';
-            $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-            if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
-                $this->lastErrorMessage = new PsrMessage(
-                    'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
-                    ['filename' => $xslpath]
-                );
-                return false;
-
-                if (!$this->isValidFilepath($filepath, ['file' => basename($filepath)])) {
+            if (mb_substr($xslconfig, 0, 5) === 'user:' || mb_substr($xslconfig, 0, 7) === 'module:') {
+                $filepath = $this->xslpath();
+                if (!$filepath) {
+                    $this->lastErrorMessage = new PsrMessage(
+                        'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
+                        ['filename' => $xslconfig]
+                    );
                     return false;
                 }
+                $moduleXslPath = dirname(__DIR__, 2) . '/data/mapping/xsl/';
+                $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+                if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
+                    $this->lastErrorMessage = new PsrMessage(
+                        'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
+                        ['filename' => $xslconfig]
+                    );
+                    return false;
 
-                if (!$this->checkWellFormedXml($filepath)) {
+                    if (!$this->isValidFilepath($filepath, ['file' => basename($filepath)])) {
+                        return false;
+                    }
+
+                    if (!$this->checkWellFormedXml($filepath)) {
+                        return false;
+                    }
+                }
+            } elseif (mb_substr($xslconfig, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($xslconfig, 8);
+                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+                if (!$mapping) {
+                    $this->lastErrorMessage = new PsrMessage(
+                        'Xsl config #{mapping_id} is unavailable.', // @translate
+                        ['mapping_id' => $mappingId]
+                    );
                     return false;
                 }
+            } else {
+                $this->lastErrorMessage = new PsrMessage(
+                    'Xsl config "{name}" is invalid.', // @translate
+                    ['name' => $xslconfig]
+                );
+                return false;
             }
         }
+
+        // TODO Check mapping if any (xml, ini, base) (for all readers).
 
         if (!parent::isValid()) {
             return false;
@@ -189,26 +201,17 @@ class XmlReader extends AbstractFileReader
             return $this;
         }
 
-        // The config is used by the processor too, so it should be updated.
-        $subDirectory = $this->params['mapping_file_subdir'] ?? 'xml';
-
-        if (isset($this->config['mapping_file']) && $this->config['mapping_file'] !== '') {
-            $this->config['mapping_file'] = $subDirectory . '/' . $this->config['mapping_file'];
-        }
-        if (isset($this->params['mapping_file']) && $this->params['mapping_file'] !== '') {
-            $this->params['mapping_file'] = $subDirectory . '/' . $this->params['mapping_file'];
-        }
-
         // The mapping file is not required when the main xsl file creates the
         // resource directly.
-        $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');
-        if ($mappingFile) {
-            $this->initTransformSource($mappingFile, $this->params);
+        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+        if ($mappingConfig) {
+            $this->initTransformSource($mappingConfig, $this->params);
             $this->params['transformSource'] = $this->transformSource;
         }
 
         // @todo See pagination in JsonReader.
         // @todo See listFiles in JsonReader.
+        // @todo Build a generic pagination mechanism (query, path, token).
 
         return $this;
     }
@@ -273,14 +276,16 @@ class XmlReader extends AbstractFileReader
 
     protected function xslpath(): ?string
     {
-        $filepath = ltrim($this->getParam('xsl_sheet'), '/\\');
+        $filepath = $this->getParam('xsl_sheet');
         if (!$filepath) {
             return null;
         }
-        if (mb_substr($filepath, 0, 6) === 'user: ') {
-            $filepath = $this->basePath . '/mapping/xsl/' . mb_substr($filepath, 6);
+        if (mb_substr($filepath, 0, 5) === 'user:') {
+            $filepath = $this->basePath . '/mapping/' . mb_substr($filepath, 5);
+        } elseif (mb_substr($filepath, 0, 7) === 'module:') {
+            $filepath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($filepath, 7);
         } else {
-            $filepath = dirname(__DIR__, 2) . '/data/mapping/xsl/' . $filepath;
+            return null;
         }
         return realpath($filepath) ?: null;
     }

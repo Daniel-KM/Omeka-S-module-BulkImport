@@ -32,14 +32,14 @@ class JsonReader extends AbstractPaginatedReader
     protected $configKeys = [
         'url',
         'list_files',
-        'mapping_file',
+        'mapping_config',
     ];
 
     protected $paramsKeys = [
         'filename',
         'url',
         'list_files',
-        'mapping_file',
+        'mapping_config',
     ];
 
     protected $mediaType = 'application/json';
@@ -76,22 +76,9 @@ class JsonReader extends AbstractPaginatedReader
      */
     protected $currentResponse;
 
-    public function __construct(ServiceLocatorInterface $services)
-    {
-        parent::__construct($services);
-        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
-        $this->params['mapping_file_subdir'] = 'json';
-    }
-
-    public function setParams(array $params)
-    {
-        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
-        $params['mapping_file_subdir'] = 'json';
-        return parent::setParams($params);
-    }
-
-    // TODO Remove path and sub-path, mainly used for Omeka?
-
+    /**
+     * Many endpoints modify path and subpath by type of resources, for example Omeka.
+     */
     public function setPath(?string $path): \BulkImport\Reader\Reader
     {
         $this->path = $path;
@@ -154,6 +141,8 @@ class JsonReader extends AbstractPaginatedReader
     {
         $this->initArgs();
 
+        // TODO Check mapping if any (xml, ini, base) (for all readers).
+
         if ($this->listFiles) {
             return true;
         }
@@ -187,21 +176,8 @@ class JsonReader extends AbstractPaginatedReader
             return $this;
         }
 
-        // The config is used by the processor too, so it should be updated.
-        $subDirectory = $this->params['mapping_file_subdir'] ?? 'json';
-
-        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
-        $this->params['mapping_file_subdir'] = $subDirectory;
-
-        if (isset($this->config['mapping_file']) && $this->config['mapping_file'] !== '') {
-            $this->config['mapping_file'] = $subDirectory . '/' . $this->config['mapping_file'];
-        }
-        if (isset($this->params['mapping_file']) && $this->params['mapping_file'] !== '') {
-            $this->params['mapping_file'] = $subDirectory . '/' . $this->params['mapping_file'];
-        }
-
-        $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');
-        $this->initTransformSource($mappingFile, $this->params);
+        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+        $this->initTransformSource($mappingConfig, $this->params);
 
         // Prepare specific data for the reader.
         $this->endpoint = empty($this->transformSourceImportParams['endpoint'])

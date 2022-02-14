@@ -12,7 +12,7 @@ trait TransformSourceTrait
      */
     protected $transformSource;
 
-    protected $transformSourceMappingFile;
+    protected $transformSourceMappingConfig;
 
     protected $transformSourceParams;
 
@@ -20,10 +20,10 @@ trait TransformSourceTrait
 
     protected $transformSourceImportParams;
 
-    protected function initTransformSource(string $mappingFile, array $params)
+    protected function initTransformSource(string $mappingConfig, array $params)
     {
         $this->transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
-        $this->transformSourceMappingFile = $mappingFile;
+        $this->transformSourceMappingConfig = $mappingConfig;
         $this->transformSourceParams = $params;
         return $this
             ->transformSourcePrepareNormConfig()
@@ -34,41 +34,44 @@ trait TransformSourceTrait
     {
         $this->transformSourceNormConfig = [];
 
-        $getConfig = function (?string $file, ?string $subDir = null):?string {
-            if (empty($file)) {
+        $getConfig = function (?string $mappingConfig): ?string {
+            if (empty($mappingConfig)) {
                 return null;
             }
-            $filename = basename($file);
+            if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($mappingConfig, 8);
+                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')
+                    ->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+                return $mapping
+                    ? $mapping->mapping()
+                    : null;
+            }
+            $filename = basename($mappingConfig);
             if (empty($filename)) {
                 return null;
             }
             $prefixes = [
-                $this->basePath . '/mapping/',
-                dirname(__DIR__, 2) . '/data/mapping/',
+                'user' => $this->basePath . '/mapping/',
+                'module' => dirname(__DIR__, 2) . '/data/mapping/',
             ];
-            // Remove extension: the filename may be basename or with an extension.
-            $extensions = ['ini', 'xml', 'xsl'];
-            $fileExtension = pathinfo($file, PATHINFO_EXTENSION);
-            $filebase = in_array($fileExtension, $extensions) ? substr($file, 0, -4) : $file;
-            foreach ($prefixes as $prefix) {
-                if (is_string($subDir)) {
-                    $prefix .= $subDir . '/';
-                }
-                foreach ($extensions as $extension) {
-                    $filepath = $prefix . $filebase . '.' . $extension;
-                    if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
-                        return file_get_contents($filepath);
-                    }
-                }
+            $prefix = strtok($mappingConfig, ':');
+            if (!isset($prefixes[$prefix])) {
+                return null;
+            }
+            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
+            $filepath = $prefixes[$prefix] . $file;
+            if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
+                return file_get_contents($filepath);
             }
             return null;
         };
 
         // The mapping file is in the config.
-        if (!$this->transformSourceMappingFile) {
+        if (!$this->transformSourceMappingConfig) {
             return $this;
         }
-        $config = $getConfig($this->transformSourceMappingFile);
+        $config = $getConfig($this->transformSourceMappingConfig);
         if (!$config) {
             return $this;
         }
@@ -83,7 +86,7 @@ trait TransformSourceTrait
             } elseif (substr($line, 0, 1) === '[') {
                 $isInfo = false;
             } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_-]*)*$~', $line, $matches)) {
-                $mainConfig = $getConfig($matches['master'], 'base');
+                $mainConfig = $getConfig('base/' . $matches['master']);
                 break;
             }
         }
@@ -113,7 +116,7 @@ trait TransformSourceTrait
         // "importParams" is different from the transformSource config: it
         // contains converted data.
         $vars = $this->transformSourceParams;
-        unset($vars['mapping_file'], $vars['filename']);
+        unset($vars['mapping_config'], $vars['filename']);
         foreach (array_keys($this->transformSourceNormConfig['params']) as $from) {
             // TODO Clarify transform source: the two next lines are the same.
             // $value = $this->transformSource->setVariables($vars)->convertTargetToString($from, $to);

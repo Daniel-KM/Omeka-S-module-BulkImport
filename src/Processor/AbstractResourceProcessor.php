@@ -1848,16 +1848,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $isPrepared = false;
         if (method_exists($this->reader, 'getConfigParam')) {
-            $mappingFile = $this->reader->getParam('mapping_file') ?: $this->reader->getConfigParam('mapping_file');
-            if ($mappingFile) {
+            $mappingConfig = $this->reader->getParam('mapping_config') ?: $this->reader->getConfigParam('mapping_config');
+            if ($mappingConfig) {
                 $isPrepared = true;
-                $subDirectory = $this->reader->getParam('mapping_file_subdir');
-                if ($subDirectory) {
-                    $mappingFile = $subDirectory . '/' . $mappingFile;
-                }
                 $mapping = [];
-                // TODO Avoid to prepare the source a second time when the reader prepared it.
-                $this->initTransformSource($mappingFile, $this->reader->getParams());
+                // TODO Avoid to prepare the mapping a second time when the reader prepared it.
+                $this->initTransformSource($mappingConfig, $this->reader->getParams());
                 $mappingSource = array_merge(
                     $this->transformSource->getSection('default'),
                     $this->transformSource->getSection('mapping')
