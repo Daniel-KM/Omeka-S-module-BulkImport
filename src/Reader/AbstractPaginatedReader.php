@@ -21,11 +21,11 @@ abstract class AbstractPaginatedReader extends AbstractReader
     const PAGE_LIMIT = 100;
 
     /**
-     * The content type of the content.
+     * The media type of the content.
      *
      * @var string
      */
-    protected $contentType;
+    protected $mediaType;
 
     /**
      * The charset of the content.

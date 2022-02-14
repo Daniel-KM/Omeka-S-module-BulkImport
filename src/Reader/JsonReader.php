@@ -41,7 +41,7 @@ class JsonReader extends AbstractPaginatedReader
         'mapping_file',
     ];
 
-    protected $contentType = 'application/json';
+    protected $mediaType = 'application/json';
 
     protected $charset = 'utf-8';
 
@@ -144,7 +144,7 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         if (empty($this->params['url'])) {
-            if (!$this->isValidUrl('', '', [], $this->contentType, $this->charset)) {
+            if (!$this->isValidUrl('', '', [], $this->mediaType, $this->charset)) {
                 return false;
             }
         } else {

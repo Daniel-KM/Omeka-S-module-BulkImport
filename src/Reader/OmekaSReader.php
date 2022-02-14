@@ -11,7 +11,7 @@ use Log\Stdlib\PsrMessage;
 /**
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
  * @todo Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
- * @todo Implement an intermediate (or generic) JsonReader.
+ * @todo Make OmekaS reader a derivative of JsonReader.
  *
  * @todo Make current() an Entry, not an array?
  */
@@ -41,7 +41,7 @@ class OmekaSReader extends AbstractPaginatedReader
         'key_credential',
     ];
 
-    protected $contentType = 'application/json';
+    protected $mediaType = 'application/json';
 
     protected $charset = 'utf-8';
 
@@ -104,7 +104,7 @@ class OmekaSReader extends AbstractPaginatedReader
     {
         $this->initArgs();
 
-        if (!$this->isValidUrl('-context', '', [], $this->contentType, $this->charset)) {
+        if (!$this->isValidUrl('-context', '', [], $this->mediaType, $this->charset)) {
             return false;
         }
 
