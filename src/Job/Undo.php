@@ -47,7 +47,7 @@ class Undo extends AbstractJob
 
         if (!$totalResults) {
             $logger->notice(new PsrMessage(
-                'No resource processed by import #{import}.', // @translate
+                'No resource processed by import #{import} or resources not recorded.', // @translate
                 ['import' => $id]
             ));
             return;

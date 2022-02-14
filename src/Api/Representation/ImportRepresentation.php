@@ -138,7 +138,8 @@ class ImportRepresentation extends AbstractEntityRepresentation
      * Check if an import is undoable.
      *
      * An import is undoable only if the job process is not running and if it is
-     * not a creation process, and if it is not a dry run.
+     * not a creation process, and if it is not a dry run, and if there are
+     * recorded data.
      */
     public function isUndoable(): bool
     {
@@ -161,8 +162,10 @@ class ImportRepresentation extends AbstractEntityRepresentation
             return false;
         }
         $params = $this->processorParams();
-        return !empty($params['action'])
-            && $params['action'] === 'create';
+        if (empty($params['action']) || $params['action'] === 'create') {
+            return false;
+        }
+        return (bool) $this->importedCount();
     }
 
     public function undoStatus(): string
@@ -238,6 +241,22 @@ class ImportRepresentation extends AbstractEntityRepresentation
         $services = $this->getServiceLocator();
         $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         return $baseUrl . '/bulk_import/' . $jobArgs['filename_check'];
+    }
+
+    /**
+     * Get total resources imported by the job.
+     *
+     * The resources that were removed later are not included.
+     */
+    public function importedCount(): int
+    {
+        $job = $this->job();
+        if (!$job) {
+            return 0;
+        }
+       $response = $this->getServiceLocator()->get('Omeka\ApiManager')
+            ->search('bulk_importeds', ['job_id' => $this->job()->id()]);
+        return $response->getTotalResults();
     }
 
     public function logCount(): int
