@@ -492,8 +492,6 @@ class TransformSource extends AbstractPlugin
     {
         static $patterns = [];
 
-        $matches = [];
-
         // Prepare the static vars regex for twig.
         if (count($twigVars)) {
             $serialized = serialize($twigVars);
@@ -520,18 +518,31 @@ class TransformSource extends AbstractPlugin
             }, $matches['args']);
         };
 
-        $twig = array_fill_keys($twig, '');
-        foreach ($twig as $query => &$output) {
-            $v = '';
-            $filters = array_filter(array_map('trim', explode('|', mb_substr((string) $query, 3, -3))));
-            // The first filter may not be a filter, but a variable. A variable
-            // cannot be a reserved keyword.
-            foreach ($filters as $filter) switch ($filter) {
+        $twigProcess = function (string $v, string $filter) use ($twigVars, $extractList): string {
+            $matches = [];
+            if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~', $filter, $matches) > 0) {
+                $function = $matches['function'];
+                $args = $matches['args'];
+            } else {
+                $function = $filter;
+                $args = [];
+            }
+            switch ($function) {
                 case 'abs':
-                    $v = is_numeric($v) ? abs($v) : $v;
+                    $v = is_numeric($v) ? (string) abs($v) : $v;
                     break;
                 case 'capitalize':
                     $v = ucfirst($v);
+                    break;
+                case 'date':
+                    $format = $args;
+                    try {
+                        $v = $format === ''
+                            ? @strtotime($v)
+                            : @date($format, @strtotime($v));
+                    } catch (\Exception $e) {
+                        // Nothing: keep value.
+                    }
                     break;
                 case 'e':
                 case 'escape':
@@ -539,6 +550,16 @@ class TransformSource extends AbstractPlugin
                     break;
                 case 'first':
                     $v = is_array($v) ? reset($v) : mb_substr((string) $v, 0, 1);
+                    break;
+                case 'format':
+                    $args = $extractList($args);
+                    if ($args) {
+                        try {
+                            $v = @vsprintf($v, $args);
+                        } catch (\Exception $e) {
+                            // Nothing: keep value.
+                        }
+                    }
                     break;
                 case 'last':
                     $v = is_array($v) ? array_pop($v) : mb_substr((string) $v, -1);
@@ -549,6 +570,18 @@ class TransformSource extends AbstractPlugin
                 case 'lower':
                     $v = mb_strtolower($v);
                     break;
+                case 'slice':
+                    $args = $extractList($args);
+                    $start = (int) ($args[0] ?? 0);
+                    $length = (int) ($args[1] ?? 1);
+                    $v = mb_substr($v, $start, $length);
+                    break;
+                case 'split':
+                    $args = $extractList($args);
+                    $delimiter = $args[0] ?? '';
+                    $limit = (int) ($args[1] ?? 1);
+                    $v = strlen($delimiter) ? explode($delimiter, $v, $limit) : str_split($v, $limit);
+                    break;
                 case 'striptags':
                     $v = strip_tags($v);
                     break;
@@ -556,7 +589,20 @@ class TransformSource extends AbstractPlugin
                     $v = ucwords($v);
                     break;
                 case 'trim':
-                    $v = trim($v);
+                    $args = $extractList($args);
+                    $characterMask = $args[0] ?? '';
+                    if (!strlen($characterMask)) {
+                        $characterMask = " \t\n\r\0\x0B";
+                    }
+                    $side = $args[1] ?? '';
+                    // Side is "both" by default.
+                    if ($side === 'left') {
+                        $v = ltrim($v, $characterMask);
+                    } elseif ($side === 'right') {
+                        $v = rtrim($v, $characterMask);
+                    } else {
+                        $v = trim($v, $characterMask);
+                    }
                     break;
                 case 'upper':
                     $v = mb_strtoupper($v);
@@ -564,55 +610,27 @@ class TransformSource extends AbstractPlugin
                 case 'url_encode':
                     $v = rawurlencode($v);
                     break;
-                // date().
-                case preg_match('~date\s*\(\s*["|\'](?<format>[^"\']+?)["|\']\s*\)~', $filter, $matches) > 0:
-                    try {
-                        $v = @date($matches['format'], @strtotime($v));
-                    } catch (\Exception $e) {
-                        // Nothing.
-                    }
-                    break;
-                // format().
-                case preg_match('~format\s*\(\s*(?<args>.*?)\s*\)~', $filter, $matches) > 0:
-                    $args = $extractList($matches['args']);
-                    if ($args) {
-                        try {
-                            $v = @vsprintf($v, $args);
-                        } catch (\Exception $e) {
-                            // Nothing.
-                        }
-                    }
-                    break;
-                // slice().
-                case preg_match('~slice\s*\(\s*(?<start>-?\d+)\s*,\s*(?<length>-?\d+\s*)\s*\)~', $filter, $matches) > 0:
-                    $v = mb_substr($v, $matches['start'], (int) $matches['length']);
-                    break;
-                // split().
-                case preg_match('~split\s*\(\s*["|\'](?<delimiter>[^"\']*?)["|\']\s*(?:,\s*(?<limit>-?\d+\s*)\s*)?\)~', $filter, $matches) > 0:
-                    $delimiter = $matches['delimiter'] ?? '';
-                    $limit = (int) ($matches['limit'] ?? 1);
-                    $v = strlen($delimiter) ? explode($delimiter, $v, $limit) : str_split($v, $limit);
-                    break;
-                // trim().
-                case preg_match('~trim\s*\(\s*["|\'](?<character_mask>[^"\']*?)["|\']\s*(?:,\s*["|\'](?<side>left|right|both|)["|\']\s*)?\s*\)~', $filter, $matches) > 0:
-                    $characterMask = isset($matches['character_mask']) && strlen($matches['character_mask']) ? $matches['character_mask'] : " \t\n\r\0\x0B";
-                    if (empty($matches['side']) || $matches['side'] === 'both') {
-                        $v = trim($v, $characterMask);
-                    } elseif ($matches['side'] === 'left') {
-                        $v = ltrim($v, $characterMask);
-                    } elseif ($matches['side'] === 'right') {
-                        $v = rtrim($v, $characterMask);
-                    }
-                    break;
                 // This is not a reserved keyword, so check for a variable.
+                case 'value':
                 default:
                     $v = $twigVars['{{ ' . $filter . ' }}'] ?? $twigVars[$filter] ?? $v;
                     break;
             }
-            $output = $v;
+            return (string) $v;
+        };
+
+        $twigReplace = [];
+        foreach ($twig as $query) {
+            $v = '';
+            $filters = array_filter(array_map('trim', explode('|', mb_substr((string) $query, 3, -3))));
+            // The first filter may not be a filter, but a variable. A variable
+            // cannot be a reserved keyword.
+            foreach ($filters as $filter) {
+                $v = $twigProcess($v, $filter);
+            }
+            $twigReplace[$query] = $v;
         }
-        unset($output);
-        return str_replace(array_keys($twig), array_values($twig), $pattern);
+        return str_replace(array_keys($twigReplace), array_values($twigReplace), $pattern);
     }
 
     protected function normalizeConfig(): self
