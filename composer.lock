@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "36386e53d715bbe95adb9cf8c55d3a8e",
+    "content-hash": "7c3f32aaa851d8221a5e14c4ec37494e",
     "packages": [
         {
             "name": "box/spout",
@@ -85,7 +85,7 @@
             "version": "5.65.1",
             "dist": {
                 "type": "tar",
-                "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31.0/codemirror.tar.gz"
+                "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31/CodeMirror-5.65.1.tar.gz"
             },
             "type": "omeka-addon-asset"
         },

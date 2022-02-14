@@ -42,7 +42,7 @@
                 "version": "5.65.1",
                 "dist": {
                     "type": "tar",
-                    "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31.0/codemirror.tar.gz"
+                    "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31/CodeMirror-5.65.1.tar.gz"
                 }
             }
         }
