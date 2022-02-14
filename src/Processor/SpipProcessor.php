@@ -495,6 +495,7 @@ class SpipProcessor extends AbstractFullProcessor
                 'o:lang' => '',
                 'o:terms' => '',
                 'o:item_set' => null,
+                // Use the main owner.
                 'o:owner' => $this->owner,
             ];
         }
@@ -518,6 +519,7 @@ class SpipProcessor extends AbstractFullProcessor
                     'o:lang' => '',
                     'o:terms' => '',
                     'o:item_set' => null,
+                    // Use the main owner.
                     'o:owner' => $this->owner,
                 ];
             }

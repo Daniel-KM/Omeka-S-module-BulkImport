@@ -190,26 +190,50 @@ SQL;
             : $this->entityManager->find(User::class, $this->map['users'][$id]);
     }
 
+    /**
+     * @return array|null When id is an object, return its id, else return the
+     * mapped user. When id is an array, get its id, then return the mapped
+     * user.
+     */
     protected function userIdOrDefaultOwner($id): ?int
     {
         if (empty($id)) {
             return $this->ownerId;
         }
+        // If it is already user, use it!
+        if (is_object($id)) {
+            $id = method_exists($id, 'getId')
+                ? $id->getId()
+                : (method_exists($id, 'id') ? $id->id() : null);
+            return $id ?: $this->ownerId;
+        }
         if (is_array($id)) {
-            $id = $id['o:id'];
+            $id = $id['o:id'] ?? $id['id'] ?? reset($id);
         }
         return empty($this->map['users'][$id])
             ? $this->ownerId
             : $this->map['users'][$id];
     }
 
+    /**
+     * @return array|null When id is an object, return its id, else return the
+     * mapped user. When id is an array, get its id, then return the mapped
+     * user.
+     */
     protected function userOIdOrDefaultOwner($id): ?array
     {
         if (empty($id)) {
             return $this->ownerOId;
         }
+        // If it is already an object, use it!
+        if (is_object($id)) {
+            $id = method_exists($id, 'getId')
+                ? $id->getId()
+                : (method_exists($id, 'id') ? $id->id() : null);
+            return $id ? ['o:id' => $id] : $this->ownerOId;
+        }
         if (is_array($id)) {
-            $id = $id['o:id'];
+            $id = $id['o:id'] ?? $id['id'] ?? reset($id);
         }
         return empty($this->map['users'][$id])
             ? $this->ownerOId
