@@ -97,7 +97,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
     public function statusLabel(): string
     {
         $job = $this->job();
-        return $job ? $job->statusLabel() : 'Ready'; // @translate
+        return $job ? $job->statusLabel() : 'Task ready'; // @translate
     }
 
     public function started(): ?\DateTime
