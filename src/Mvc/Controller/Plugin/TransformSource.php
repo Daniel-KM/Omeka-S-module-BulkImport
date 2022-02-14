@@ -748,7 +748,23 @@ class TransformSource extends AbstractPlugin
                 : $args;
         };
 
-        $twigProcess = function (string $v, string $filter) use ($twigVars, $extractList): string {
+        $extractAssociative = function ($args) use ($patternVars, $twigVars) {
+            // TODO Improve the regex to extract keys and values directly.
+            $matches = [];
+            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
+            $output = [];
+            foreach (array_chunk($matches['args'], 2) as $keyValue) {
+                if (count($keyValue) === 2) {
+                    // The key cannot be a value.
+                    $key = mb_substr($keyValue[0], 1, -1);
+                    $value = $twigVars['{{ ' . $keyValue[1] . ' }}'] ?? mb_substr($keyValue[1], 1, -1);
+                    $output[$key] = $value;
+                }
+            }
+            return $output;
+        };
+
+        $twigProcess = function (string $v, string $filter) use ($twigVars, $extractList, $extractAssociative): string {
             $matches = [];
             if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~', $filter, $matches) > 0) {
                 $function = $matches['function'];
@@ -799,6 +815,12 @@ class TransformSource extends AbstractPlugin
                     break;
                 case 'lower':
                     $v = mb_strtolower($v);
+                    break;
+                case 'replace':
+                    $args = $extractAssociative($args);
+                    if ($args) {
+                        $v = str_replace(array_keys($args), array_values($args), $v);
+                    }
                     break;
                 case 'slice':
                     $args = $extractList($args);
