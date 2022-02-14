@@ -5,7 +5,7 @@ return [
     'label' => 'Xml - Items', // @translate
     'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
-        'xsl_sheet' => 'modules/BulkImport/data/xsl/identity.xslt1.xsl',
+        'xsl_sheet' => 'modules/BulkImport/data/mapping/xsl/identity.xslt1.xsl',
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [

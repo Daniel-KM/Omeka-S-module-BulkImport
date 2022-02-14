@@ -9,6 +9,7 @@ use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
 use BulkImport\Traits\TransformSourceTrait;
 use Laminas\Http\Response;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 
 /**
@@ -74,6 +75,20 @@ class JsonReader extends AbstractPaginatedReader
      * @var \Laminas\Http\Response
      */
     protected $currentResponse;
+
+    public function __construct(ServiceLocatorInterface $services)
+    {
+        parent::__construct($services);
+        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
+        $this->params['mapping_file_subdir'] = 'json';
+    }
+
+    public function setParams(array $params)
+    {
+        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
+        $params['mapping_file_subdir'] = 'json';
+        return parent::setParams($params);
+    }
 
     // TODO Remove path and sub-path, mainly used for Omeka?
 
@@ -170,6 +185,19 @@ class JsonReader extends AbstractPaginatedReader
         // Prepare mapper one time.
         if (isset($this->transformSourceImportParams)) {
             return $this;
+        }
+
+        // The config is used by the processor too, so it should be updated.
+        $subDirectory = $this->params['mapping_file_subdir'] ?? 'json';
+
+        // TODO Required for now in AbstractResourceProcessor::prepareMapping().
+        $this->params['mapping_file_subdir'] = $subDirectory;
+
+        if (isset($this->config['mapping_file']) && $this->config['mapping_file'] !== '') {
+            $this->config['mapping_file'] = $subDirectory . '/' . $this->config['mapping_file'];
+        }
+        if (isset($this->params['mapping_file']) && $this->params['mapping_file'] !== '') {
+            $this->params['mapping_file'] = $subDirectory . '/' . $this->params['mapping_file'];
         }
 
         $mappingFile = $this->getParam('mapping_file', '') ?: $this->getConfigParam('mapping_file', '');

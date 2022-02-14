@@ -17,6 +17,12 @@ class JsonEntry extends BaseEntry
             return;
         }
 
+        // Avoid an issue when the config is incorrect or incomplete or when the
+        // source is not available.
+        if (!is_array($this->data) && !is_null($this->data)) {
+            return;
+        }
+
         // Create a multivalue spreadsheet-like resource, not an omeka resource.
         // The conversion itself is done in processor.
         // So just replace each value by the right part according to mapping.

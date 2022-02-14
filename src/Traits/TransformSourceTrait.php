@@ -34,7 +34,7 @@ trait TransformSourceTrait
     {
         $this->transformSourceNormConfig = [];
 
-        $getConfig = function (?string $file):?string {
+        $getConfig = function (?string $file, ?string $subDir = null):?string {
             if (empty($file)) {
                 return null;
             }
@@ -45,14 +45,20 @@ trait TransformSourceTrait
             $prefixes = [
                 $this->basePath . '/mapping/',
                 dirname(__DIR__, 2) . '/data/mapping/',
-                dirname(__DIR__, 2) . '/data/mapper/',
             ];
-            // Remove extension: the filename may be basename or with ".ini".
-            $filebase = substr($file, -4) === '.ini' ? substr($file, 0, -4) : $file;
+            // Remove extension: the filename may be basename or with an extension.
+            $extensions = ['ini', 'xml', 'xsl'];
+            $fileExtension = pathinfo($file, PATHINFO_EXTENSION);
+            $filebase = in_array($fileExtension, $extensions) ? substr($file, 0, -4) : $file;
             foreach ($prefixes as $prefix) {
-                $filepath = $prefix . $filebase . '.ini';
-                if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
-                    return file_get_contents($filepath);
+                if (is_string($subDir)) {
+                    $prefix .= $subDir . '/';
+                }
+                foreach ($extensions as $extension) {
+                    $filepath = $prefix . $filebase . '.' . $extension;
+                    if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
+                        return file_get_contents($filepath);
+                    }
                 }
             }
             return null;
@@ -77,7 +83,7 @@ trait TransformSourceTrait
             } elseif (substr($line, 0, 1) === '[') {
                 $isInfo = false;
             } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_-]*)*$~', $line, $matches)) {
-                $mainConfig = $getConfig($matches['master']);
+                $mainConfig = $getConfig($matches['master'], 'base');
                 break;
             }
         }

@@ -67,7 +67,7 @@ class BaseEntry implements Entry
 
     public function isEmpty(): bool
     {
-        return !count(array_filter($this->data, function ($v) {
+        return !is_array($this->data) || !count(array_filter($this->data, function ($v) {
             return is_array($v)
                 ? count(array_filter($v, function ($w) {
                     return is_array($w)

@@ -1851,6 +1851,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $mappingFile = $this->reader->getParam('mapping_file') ?: $this->reader->getConfigParam('mapping_file');
             if ($mappingFile) {
                 $isPrepared = true;
+                $subDirectory = $this->reader->getParam('mapping_file_subdir');
+                if ($subDirectory) {
+                    $mappingFile = $subDirectory . '/' . $mappingFile;
+                }
                 $mapping = [];
                 // TODO Avoid to prepare the source a second time when the reader prepared it.
                 $this->initTransformSource($mappingFile, $this->reader->getParams());

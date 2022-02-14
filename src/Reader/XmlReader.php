@@ -89,7 +89,7 @@ class XmlReader extends AbstractFileReader
                 );
                 return false;
             }
-            $moduleXslPath = dirname(__DIR__, 2) . '/data/xsl/';
+            $moduleXslPath = dirname(__DIR__, 2) . '/data/mapping/xsl/';
             $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
             if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
                 $this->lastErrorMessage = new PsrMessage(
@@ -278,9 +278,9 @@ class XmlReader extends AbstractFileReader
             return null;
         }
         if (mb_substr($filepath, 0, 6) === 'user: ') {
-            $filepath = $this->basePath . '/xsl/' . mb_substr($filepath, 6);
+            $filepath = $this->basePath . '/mapping/xsl/' . mb_substr($filepath, 6);
         } else {
-            $filepath = dirname(__DIR__, 2) . '/data/xsl/' . $filepath;
+            $filepath = dirname(__DIR__, 2) . '/data/mapping/xsl/' . $filepath;
         }
         return realpath($filepath) ?: null;
     }

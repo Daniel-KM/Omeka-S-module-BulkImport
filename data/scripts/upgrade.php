@@ -409,4 +409,41 @@ CREATE TABLE `bulk_mapping` (
 ALTER TABLE `bulk_mapping` ADD CONSTRAINT FK_7DA823507E3C61F9 FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE SET NULL;
 SQL;
     $connection->executeStatement($sql);
+
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `reader_config` = REPLACE(
+        REPLACE(
+            `reader_config`,
+            '\\/data\\/xsl\\/',
+            '\\/data\\/mapping\\/xsl\\/'
+        ),
+        '\\/data\\/ini\\/',
+        '\\/data\\/mapping\\/json\\/'
+    )
+WHERE
+    `reader_config` IS NOT NULL
+    AND `reader_config` LIKE '%/data%'
+;
+SQL;
+    $connection->executeStatement($sql);
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `processor_config` = REPLACE(
+        REPLACE(
+            `processor_config`,
+            '\\/data\\/xsl\\/',
+            '\\/data\\/mapping\\/xsl\\/'
+        ),
+        '\\/data\\/ini\\/',
+        '\\/data\\/mapping\\/json\\/'
+    )
+WHERE
+    `reader_config` IS NOT NULL
+    AND `processor_config` LIKE '%/data%'
+;
+SQL;
+    $connection->executeStatement($sql);
 }

@@ -300,7 +300,7 @@ class TransformSource extends AbstractPlugin
     /**
      * Allow to use a generic config completed by a specific one.
      */
-    public function setConfigs(string ...$configs): self
+    public function setConfigs(?string ...$configs): self
     {
         $mergedMappings = [];
         foreach (array_filter($configs) as $config) {
@@ -1595,9 +1595,9 @@ class TransformSource extends AbstractPlugin
      * When multiple extractions should be done, it's quicker to use flatArray.
      * @see self::flatArray()
      */
-    public function extractSubValue($data, string $path, $default = null)
+    public function extractSubValue($data, ?string $path, $default = null)
     {
-        if (!strlen($path)) {
+        if (is_null($path) || !strlen($path)) {
             return $data;
         }
 
