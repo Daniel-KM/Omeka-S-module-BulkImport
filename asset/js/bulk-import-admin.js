@@ -9,41 +9,60 @@
 
         const textarea = 'o-module-bulk-mapping';
 
-        var dummy = {
-            attrs: {
-                color: ['red', 'green', 'blue', 'purple', 'white', 'black', 'yellow'],
-                size: ['large', 'medium', 'small'],
-                description: null
-            },
-            children: []
-        };
-
         var tags = {
-            '!top': ['top'],
+            '!top': ['mapping'],
             '!attrs': {
-                id: null,
-                class: ['A', 'B', 'C']
             },
-            top: {
+            mapping: {
                 attrs: {
-                    lang: ['en', 'de', 'fr', 'nl'],
-                    freeform: null
                 },
-                children: ['animal', 'plant']
+                children: ['map', 'table'],
             },
-            animal: {
+            map: {
                 attrs: {
-                    name: null,
-                    isduck: ['yes', 'no']
                 },
-                children: ['wings', 'feet', 'body', 'head', 'tail']
+                children: ['from', 'to'],
             },
-            plant: {
-                attrs: {name: null},
-                children: ['leaves', 'stem', 'flowers']
+            from: {
+                attrs: {
+                    xpath: null,
+                },
             },
-            wings: dummy, feet: dummy, body: dummy, head: dummy, tail: dummy,
-            leaves: dummy, stem: dummy, flowers: dummy
+            to: {
+                attrs: {
+                    field: null,
+                    datatypes: null,
+                    lang: null,
+                    visibility: null,
+                    raw: null,
+                    prepend: null,
+                    pattern: null,
+                    append: null,
+                },
+            },
+            table: {
+                attrs: {
+                    code: null,
+                    lang: null,
+                },
+                children: ['label', 'list'],
+            },
+            label: {
+                attrs: {
+                    lang: null,
+                    code: null,
+                },
+            },
+            list: {
+                attrs: {
+                },
+                children: ['term'],
+            },
+            term: {
+                attrs: {
+                    code: null,
+                },
+            },
         };
 
         function completeAfter(cm, pred) {
@@ -74,6 +93,9 @@
         var editor = CodeMirror.fromTextArea(document.getElementById(textarea), {
             mode: 'xml',
             lineNumbers: true,
+            indentUnit: 4,
+            undoDepth: 1000,
+            viewportMargin: Infinity,
             extraKeys: {
                 "'<'": completeAfter,
                 "'/'": completeIfAfterLt,

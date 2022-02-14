@@ -41,6 +41,17 @@
     .bulk-mappings #content form fieldset > .field:nth-of-type(2) .inputs {
         width: 100%;
     }
+    .bulk-mappings .CodeMirror {
+        font-family: inherit;
+        font-size: unset;
+        height: auto;
+    }
+    .bulk-mappings .inputs .CodeMirror {
+        font-family: inherit;
+        font-size: unset;
+        height: auto;
+        line-height: initial;
+    }
 
     /* Resource add/edit media files and folders */
     .media-files-input-full-progress {
