@@ -344,6 +344,7 @@ class AutomapFields extends AbstractPlugin
         }
 
         // Manage exceptions.
+        // TODO Remove twig / replacement exception (value, label, and list).
         $exceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
 
         if (in_array($pattern, $exceptions)) {
@@ -354,15 +355,38 @@ class AutomapFields extends AbstractPlugin
         // Separate simple replacement strings (`{{/xpath/from/source}}` and the
         // twig filters (`{{ value|trim }}`).
         // The difference is the presence of spaces surrounding sub-patterns.
-        // Sub-patterns cannot be nested, but combined.
+        // Sub-patterns cannot be nested for now, but combined.
         $matches = [];
         if (preg_match_all('~\{\{( value | label | list |\S+?|\S.*?\S)\}\}~', $pattern, $matches) !== false) {
             $result['replace'] = empty($matches[0]) ? [] : array_values(array_unique($matches[0]));
         }
-        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $pattern, $matches) !== false) {
+
+        // In order to allow replacements inside twig patterns, the replacements
+        // are replaced (since replacements are done before twig transforms).
+        if (empty($result['replace'])) {
+            $replacements = [];
+            $cleanPattern = $pattern;
+        } else {
+            foreach ($result['replace'] as $i => $replacement) {
+                $replacements[$replacement] = '__To_Be_Replaced__' . $i . '__';
+            }
+            $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
+        }
+
+        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $cleanPattern, $matches) !== false) {
             $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
             // Avoid to use twig when a replacement is enough.
             $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
+            // Keep original replacements values.
+            if (!empty($replacements)) {
+                foreach ($result['twig'] as $key => $twigPattern) {
+                    $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                    $result['twig'][$key] = $originalPattern;
+                    // When there are replacements, the twig transformation
+                    // should be done on real value or on a transformed filter.
+                    $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
+                }
+            }
         }
 
         return $result;

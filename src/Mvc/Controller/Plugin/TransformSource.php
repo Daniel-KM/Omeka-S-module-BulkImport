@@ -574,7 +574,7 @@ class TransformSource extends AbstractPlugin
             : $to['pattern'];
 
         if (!empty($to['twig'])) {
-            $value = $this->twig($value, $this->variables, $to['twig']);
+            $value = $this->twig($value, $this->variables, $to['twig'], $to['twig_has_replace'] ?? [], $replace);
         }
 
         return $value;
@@ -694,7 +694,7 @@ class TransformSource extends AbstractPlugin
             : $to['pattern'];
 
         if (!empty($to['twig'])) {
-            $value = $this->twig($value, $this->variables, $to['twig']);
+            $value = $this->twig($value, $this->variables, $to['twig'], $to['twig_has_replace'] ?? [], $replace);
         }
 
         return $value;
@@ -703,9 +703,10 @@ class TransformSource extends AbstractPlugin
     /**
      * Convert a value into another value via twig filters.
      *
-     * Only some common filters and some filter arguments are managed.
+     * Only some common filters and some filter arguments are managed, and some
+     * special functions for dates and index uris.
      */
-    protected function twig(string $pattern, array $twigVars, array $twig): string
+    protected function twig(string $pattern, array $twigVars, array $twig, array $twigHasReplace, array $replace): string
     {
         // Store twig vars statically to avoid to extract them multiple times.
         static $patterns = [];
@@ -733,14 +734,18 @@ class TransformSource extends AbstractPlugin
             $patternVars = '';
         }
 
-        $extractList = function ($args) use ($patternVars, $twigVars) {
+        $extractList = function ($args, array $keys = []) use ($patternVars, $twigVars) {
             $matches = [];
             preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
-            return array_map(function ($arg) use ($twigVars) {
+            $args = array_map(function ($arg) use ($twigVars) {
                 // If this is a var, take it, else this is a string, so remove
                 // the quotes.
                 return $twigVars['{{ ' . $arg . ' }}'] ?? mb_substr($arg, 1, -1);
             }, $matches['args']);
+            $countKeys = count($keys);
+            return $countKeys
+                ? array_combine($keys, count($args) >= $countKeys ? array_slice($args, 0, $countKeys) : array_pad($args, $countKeys, ''))
+                : $args;
         };
 
         $twigProcess = function (string $v, string $filter) use ($twigVars, $extractList): string {
@@ -846,15 +851,24 @@ class TransformSource extends AbstractPlugin
         };
 
         $twigReplace = [];
+        $twigPatterns = array_flip($twig);
+        $hasReplace = !empty($replace);
         foreach ($twig as $query) {
+            $hasReplaceQuery = $hasReplace && !empty($twigHasReplace[$twigPatterns[$query]]);
             $v = '';
             $filters = array_filter(array_map('trim', explode('|', mb_substr((string) $query, 3, -3))));
             // The first filter may not be a filter, but a variable. A variable
             // cannot be a reserved keyword.
             foreach ($filters as $filter) {
-                $v = $twigProcess($v, $filter);
+                $v = $hasReplaceQuery
+                    ? $twigProcess($v, str_replace(array_keys($replace), array_values($replace), $filter))
+                    : $twigProcess($v, $filter);
             }
-            $twigReplace[$query] = $v;
+            if ($hasReplaceQuery) {
+                $twigReplace[str_replace(array_keys($replace), array_values($replace), $query)] = $v;
+            } else {
+                $twigReplace[$query] = $v;
+            }
         }
         return str_replace(array_keys($twigReplace), array_values($twigReplace), $pattern);
     }
@@ -1065,6 +1079,7 @@ class TransformSource extends AbstractPlugin
                     $result['to']['pattern'] = $r['pattern'];
                     $result['to']['replace'] = $r['replace'] ?? [];
                     $result['to']['twig'] = $r['twig'] ?? [];
+                    $result['to']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
                 }
             }
 
@@ -1178,6 +1193,7 @@ class TransformSource extends AbstractPlugin
         }
 
         // Manage exceptions.
+        // TODO Remove twig / replacement exception (value, label, and list).
         $exceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
 
         if (in_array($pattern, $exceptions)) {
@@ -1188,15 +1204,38 @@ class TransformSource extends AbstractPlugin
         // Separate simple replacement strings (`{{/xpath/from/source}}` and the
         // twig filters (`{{ value|trim }}`).
         // The difference is the presence of spaces surrounding sub-patterns.
-        // Sub-patterns cannot be nested, but combined.
+        // Sub-patterns cannot be nested for now, but combined.
         $matches = [];
         if (preg_match_all('~\{\{( value | label | list |\S+?|\S.*?\S)\}\}~', $pattern, $matches) !== false) {
             $result['replace'] = empty($matches[0]) ? [] : array_values(array_unique($matches[0]));
         }
-        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $pattern, $matches) !== false) {
+
+        // In order to allow replacements inside twig patterns, the replacements
+        // are replaced (since replacements are done before twig transforms).
+        if (empty($result['replace'])) {
+            $replacements = [];
+            $cleanPattern = $pattern;
+        } else {
+            foreach ($result['replace'] as $i => $replacement) {
+                $replacements[$replacement] = '__To_Be_Replaced__' . $i . '__';
+            }
+            $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
+        }
+
+        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $cleanPattern, $matches) !== false) {
             $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
             // Avoid to use twig when a replacement is enough.
             $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
+            // Keep original replacements values.
+            if (!empty($replacements)) {
+                foreach ($result['twig'] as $key => $twigPattern) {
+                    $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                    $result['twig'][$key] = $originalPattern;
+                    // When there are replacements, the twig transformation
+                    // should be done on real value or on a transformed filter.
+                    $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
+                }
+            }
         }
 
         return $result;
