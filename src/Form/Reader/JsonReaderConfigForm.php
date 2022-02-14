@@ -4,7 +4,9 @@ namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element\OptionalSelect;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Laminas\Form\Element;
 use Laminas\Form\Form;
+use Omeka\Form\Element as OmekaElement;
 
 class JsonReaderConfigForm extends Form
 {
@@ -13,6 +15,28 @@ class JsonReaderConfigForm extends Form
     public function init(): void
     {
         $this
+            ->add([
+                'name' => 'url',
+                'type' => BulkImportElement\OptionalUrl::class,
+                'options' => [
+                    'label' => 'Json url', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url',
+                    'required' => false,
+                ],
+            ])
+            ->add([
+                'name' => 'list_files',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'List of files or urls', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'list_files',
+                    'required' => false,
+                ],
+            ])
             ->add([
                 'name' => 'mapping_file',
                 'type' => OptionalSelect::class,
@@ -29,7 +53,16 @@ class JsonReaderConfigForm extends Form
                     'required' => true,
                     'data-placeholder' => 'Select the mapping for conversion…', // @translate
                 ],
-            ]);
+            ])
+            ->add([
+                'name' => 'mapping_automatic',
+                'type' => Element\Hidden::class,
+                'attributes' => [
+                    'id' => 'mapping_automatic',
+                    'value' => '1',
+                ],
+            ])
+        ;
 
         parent::init();
     }

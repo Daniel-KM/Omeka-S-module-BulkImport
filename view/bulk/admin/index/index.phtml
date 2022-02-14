@@ -55,6 +55,6 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <?php if (!empty($imports)): ?>
     <h2><?= $escape($translate('Last imports')) ?></h2>
-    <?= $hyperlink('See all imports', $this->url('admin/bulk/default', ['controller' => 'import', 'action' => 'index'])) ?>
+    <?= $hyperlink('See all imports', $this->url('admin/bulk/default', ['controller' => 'import', 'action' => 'browse'])) ?>
     <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
 <?php endif; ?>

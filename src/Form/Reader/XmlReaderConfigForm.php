@@ -14,6 +14,17 @@ class XmlReaderConfigForm extends Form
     {
         $this
             ->add([
+                'name' => 'url',
+                'type' => BulkImportElement\OptionalUrl::class,
+                'options' => [
+                    'label' => 'XML url', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url',
+                    'required' => false,
+                ],
+            ])
+            ->add([
                 'name' => 'xsl_sheet',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
@@ -29,6 +40,7 @@ class XmlReaderConfigForm extends Form
                     'data-placeholder' => 'Select the xsl for conversion…', // @translate
                 ],
             ]);
+        ;
 
         parent::init();
     }

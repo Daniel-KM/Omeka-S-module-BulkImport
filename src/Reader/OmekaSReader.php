@@ -26,7 +26,11 @@ class OmekaSReader extends AbstractPaginatedReader
     /**
      * var array
      */
-    protected $configKeys = [];
+    protected $configKeys = [
+        'endpoint' ,
+        'key_identity',
+        'key_credential',
+    ];
 
     /**
      * var array

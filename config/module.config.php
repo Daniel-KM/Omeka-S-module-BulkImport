@@ -312,10 +312,10 @@ return [
             Reader\FakeReader::class => Reader\FakeReader::class,
         ],
         'processors' => [
-            Processor\ResourceProcessor::class => Processor\ResourceProcessor::class,
             Processor\ItemProcessor::class => Processor\ItemProcessor::class,
             Processor\ItemSetProcessor::class => Processor\ItemSetProcessor::class,
             Processor\MediaProcessor::class => Processor\MediaProcessor::class,
+            Processor\ResourceProcessor::class => Processor\ResourceProcessor::class,
             Processor\ManiocProcessor::class => Processor\ManiocProcessor::class,
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
             Processor\SpipProcessor::class => Processor\SpipProcessor::class,

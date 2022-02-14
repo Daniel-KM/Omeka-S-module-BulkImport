@@ -24,13 +24,14 @@ class XmlReader extends AbstractFileReader
     protected $paramsFormClass = XmlReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
         'xsl_sheet',
     ];
 
     protected $paramsKeys = [
-        'xsl_sheet',
         'filename',
         'url',
+        'xsl_sheet',
     ];
 
     /**

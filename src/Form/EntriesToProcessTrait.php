@@ -17,13 +17,10 @@ trait EntriesToProcessTrait
                     'info' => 'Allows to start on a specific entry index, in particular when there was an issue in first rows of a spreadsheet. Note: don’t include the header row.', // @translate
                 ],
                 'attributes' => [
-                    'attributes' => [
-                        'id' => 'entries_to_skip',
-                        'min' => '0',
-                        'step' => '1',
-                        'placeholder' => '1',
-                        'aria-label' => 'Number of entries to skip', // @translate
-                    ],
+                    'id' => 'entries_to_skip',
+                    'min' => '0',
+                    'step' => '1',
+                    'aria-label' => 'Number of entries to skip', // @translate
                 ],
             ])
             ->add([
@@ -33,13 +30,10 @@ trait EntriesToProcessTrait
                     'label' => 'Max number of entries to process', // @translate
                 ],
                 'attributes' => [
-                    'attributes' => [
-                        'id' => 'entries_max',
-                        'min' => '0',
-                        'step' => '1',
-                        'placeholder' => '1',
-                        'aria-label' => 'Max number of entries to process', // @translate
-                    ],
+                    'id' => 'entries_max',
+                    'min' => '0',
+                    'step' => '1',
+                    'aria-label' => 'Max number of entries to process', // @translate
                 ],
             ])
             ->add([
@@ -50,13 +44,10 @@ trait EntriesToProcessTrait
                     'info' => 'This value has no impact on process, but when it is set to "1" (default), the order of internal ids will be in the same order than the input and medias will follow their items. If it is greater, the order will follow the number of entries by resource types.', // @translate
                 ],
                 'attributes' => [
-                    'attributes' => [
-                        'id' => 'entries_by_batch',
-                        'min' => '0',
-                        'step' => '1',
-                        'placeholder' => '1',
-                        'aria-label' => 'Entries by batch', // @translate
-                    ],
+                    'id' => 'entries_by_batch',
+                    'min' => '0',
+                    'step' => '1',
+                    'aria-label' => 'Entries by batch', // @translate
                 ],
             ])
         ;

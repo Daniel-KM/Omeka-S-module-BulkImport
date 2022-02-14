@@ -8,17 +8,18 @@ use Box\Spout\Reader\ReaderInterface;
 use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
-use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
+use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderConfigForm;
 use Log\Stdlib\PsrMessage;
 
 class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 {
     protected $label = 'OpenDocument Spreadsheet'; // @translate
     protected $mediaType = 'application/vnd.oasis.opendocument.spreadsheet';
-    protected $configFormClass = SpreadsheetReaderConfigForm::class;
+    protected $configFormClass = OpenDocumentSpreadsheetReaderConfigForm::class;
     protected $paramsFormClass = OpenDocumentSpreadsheetReaderParamsForm::class;
 
     protected $configKeys = [
+        'multisheet',
         'separator',
     ];
 

@@ -2,7 +2,6 @@
 
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Form\Element as BulkImportElement;
 use Laminas\Form\Element;
 
 class XmlReaderParamsForm extends XmlReaderConfigForm
@@ -23,25 +22,6 @@ class XmlReaderParamsForm extends XmlReaderConfigForm
                     'id' => 'file',
                     'required' => false,
                     'accept' => 'text/xml,application/xml,xml',
-                ],
-            ])
-            ->add([
-                'name' => 'url',
-                'type' => BulkImportElement\OptionalUrl::class,
-                'options' => [
-                    'label' => 'XML url', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'url',
-                    'required' => false,
-                ],
-            ])
-            ->add([
-                'name' => 'mapping_automatic',
-                'type' => Element\Hidden::class,
-                'attributes' => [
-                    'id' => 'mapping_automatic',
-                    'value' => '1',
                 ],
             ])
         ;

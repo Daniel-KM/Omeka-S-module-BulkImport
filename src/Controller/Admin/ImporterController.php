@@ -30,6 +30,11 @@ class ImporterController extends AbstractActionController
         $this->setServiceLocator($serviceLocator);
     }
 
+    public function indexAction()
+    {
+        return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer', 'action' => 'browse']);
+    }
+
     public function browseAction()
     {
         $this->setBrowseDefaults('label');

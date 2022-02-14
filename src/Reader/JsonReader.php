@@ -29,14 +29,16 @@ class JsonReader extends AbstractPaginatedReader
     protected $paramsFormClass = JsonReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
+        'list_files',
         'mapping_file',
     ];
 
     protected $paramsKeys = [
-        'mapping_file',
         'filename',
         'url',
         'list_files',
+        'mapping_file',
     ];
 
     protected $contentType = 'application/json';

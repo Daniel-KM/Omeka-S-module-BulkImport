@@ -4,7 +4,7 @@ namespace BulkImport\Form\Reader;
 
 use Laminas\Form\Element;
 
-class OpenDocumentSpreadsheetReaderParamsForm extends SpreadsheetReaderConfigForm
+class OpenDocumentSpreadsheetReaderParamsForm extends OpenDocumentSpreadsheetReaderConfigForm
 {
     public function init(): void
     {
@@ -23,23 +23,6 @@ class OpenDocumentSpreadsheetReaderParamsForm extends SpreadsheetReaderConfigFor
                     'id' => 'file',
                     'required' => true,
                     'accept' => 'application/vnd.oasis.opendocument.spreadsheet,ods',
-                ],
-            ])
-            ->add([
-                'name' => 'multisheet',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Sheets', // @translate
-                    'value_options' => [
-                        'active' => 'Active', // @translate
-                        'first' => 'First', // @translate
-                        'all' => 'All', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'multisheet',
-                    'required' => false,
-                    'value' => 'active',
                 ],
             ]);
 
