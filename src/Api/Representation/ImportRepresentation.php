@@ -235,7 +235,8 @@ class ImportRepresentation extends AbstractEntityRepresentation
         if (empty($jobArgs['filename_check'])) {
             return null;
         }
-        $baseUrl = $this->getServiceLocator()->get('Config')['file_store']['local']['base_uri'] ?: $jobArgs['base_path'] . '/files';
+        $services = $this->getServiceLocator();
+        $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         return $baseUrl . '/bulk_import/' . $jobArgs['filename_check'];
     }
 

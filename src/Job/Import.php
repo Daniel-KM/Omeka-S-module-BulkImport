@@ -75,21 +75,6 @@ class Import extends AbstractJob
     }
 
     /**
-     * @todo Remove this direct access to job to get arg.
-     */
-    public function getJobArg($name, $default = null)
-    {
-        $args = $this->job->getArgs();
-        if (!is_array($args)) {
-            return $default;
-        }
-        if (!array_key_exists($name, $args)) {
-            return $default;
-        }
-        return $args[$name];
-    }
-
-    /**
      * Get the logger for the bulk process (the Omeka one, with reference id).
      *
      * @return \Laminas\Log\Logger

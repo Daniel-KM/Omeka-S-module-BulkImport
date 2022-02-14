@@ -3640,8 +3640,6 @@ SQL;
 
     protected function saveMappingSourceUrisToOds(string $name, array $mapper, array $extraColumns = []): void
     {
-        $baseUrlPath = trim($this->job->getArg('base_path'), '/');
-        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'ods');
         $relativePath = $this->getOutputFilepath($name, 'ods', true);
         if (!$filepath || !$relativePath) {
@@ -3650,6 +3648,10 @@ SQL;
             );
             return;
         }
+
+        $serverUrlHelper = $this->services->get('ViewHelperManager')->get('ServerUrl');
+        $baseUrlPath = $this->services->get('Router')->getBaseUrl();
+        $baseUrl = $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/' : '/');
 
         // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
         // Manage compatibility with old version of CSV Import.
@@ -3750,8 +3752,6 @@ SQL;
 
     protected function saveMappingSourceUrisToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
-        $baseUrlPath = trim($this->job->getArg('base_path'), '/');
-        $baseUrl = $this->job->getArg('base_url') . '/' . ($baseUrlPath ? $baseUrlPath . '/' : '');
         $filepath = $this->getOutputFilepath($name, 'html');
         $relativePath = $this->getOutputFilepath($name, 'html', true);
         if (!$filepath || !$relativePath) {
@@ -3760,6 +3760,10 @@ SQL;
             );
             return;
         }
+
+        $serverUrlHelper = $this->services->get('ViewHelperManager')->get('ServerUrl');
+        $baseUrlPath = $this->services->get('Router')->getBaseUrl();
+        $baseUrl = $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/' : '/');
 
         $headers = [
             'source',
