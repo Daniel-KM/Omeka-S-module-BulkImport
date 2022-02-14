@@ -495,4 +495,14 @@ SQL;
             $id,
         ]);
     }
+
+    $messenger = new Messenger();
+    $message = new Message(
+        'It’s now possible to edit online the mappings between any json or xml source and omeka resources.' // @translate
+    );
+    $messenger->addSuccess($message);
+    $message = new Message(
+        'It’s now possible to create import/update tasks to be run via command line or cron (for module Easy Admin).' // @translate
+    );
+    $messenger->addSuccess($message);
 }
