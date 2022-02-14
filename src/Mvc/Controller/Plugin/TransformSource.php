@@ -254,6 +254,11 @@ class TransformSource extends AbstractPlugin
         return $this->variables;
     }
 
+    public function getVariable(string $name, $default = null)
+    {
+        return $this->variables[$name] ?? $default;
+    }
+
     /**
      * Set the sections that contains raw data, pattern data, or full mapping.
      */
@@ -837,6 +842,13 @@ class TransformSource extends AbstractPlugin
                 case 'striptags':
                     $v = strip_tags($v);
                     break;
+                case 'table':
+                    // table().
+                    $table = $extractAssociative(trim(mb_substr($args, 1, -1)));
+                    if ($table) {
+                        $v = $table[$v] ?? $v;
+                    }
+                    break;
                 case 'title':
                     $v = ucwords($v);
                     break;
@@ -861,6 +873,166 @@ class TransformSource extends AbstractPlugin
                     break;
                 case 'url_encode':
                     $v = rawurlencode($v);
+                    break;
+                // Special filters and functions to manage common values.
+                case 'dateIso':
+                    // "d1605110512" => "1605-11-05T12" (date iso).
+                    // "[1984]-" => kept.
+                    // Missing numbers may be set as "u", but this is not
+                    // manageable as iso 8601.
+                    if (strlen($v) && strpos($v, 'u') === false) {
+                        $firstChar = substr($v, 0, 1);
+                        if (in_array($firstChar, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'c', 'd'])) {
+                            if (in_array($firstChar, ['-', '+', 'c', 'd'])) {
+                                $d = $firstChar === '-' || $firstChar === 'c' ? '-' : '';
+                                $v = substr($v, 1);
+                            } else {
+                                $d = '';
+                            }
+                            $v = $d
+                                . substr($v, 0, 4) . '-' . substr($v, 4, 2) . '-' . substr($v, 6, 2)
+                                . 'T' . substr($v, 8, 2) . ':' . substr($v, 10, 2) . ':' . substr($v, 12, 2);
+                            $v = rtrim($v, '-:T |#');
+                        }
+                    }
+                    break;
+                case 'dateSql':
+                    // Unimarc 005.
+                    // "19850901141236.0" => "1985-09-01 14:12:36" (date sql).
+                    $v = substr($v, 0, 4) . '-' . substr($v, 4, 2) . '-' . substr($v, 6, 2)
+                        . ' ' . substr($v, 8, 2) . ':' . substr($v, 10, 2) . ':' . substr($v, 12, 2);
+                    break;
+                case 'isbdName':
+                    // isbdName(a, b, c, d, f, g, k, o, p, 5) (function).
+                    /* Unimarc 700 et suivants :
+                    $a Élément d’entrée
+                    $b Partie du nom autre que l’élément d’entrée
+                    $c Eléments ajoutés aux noms autres que les dates
+                    $d Chiffres romains
+                    $f Dates
+                    $g Développement des initiales du prénom
+                    $k Qualificatif pour l’attribution
+                    $o Identifiant international du nom
+                    $p Affiliation / adresse
+                    $5 Institution à laquelle s’applique la zone
+                     */
+                    $args = $extractList($args, ['a', 'b', 'c', 'd', 'f', 'g', 'k', 'o', 'p', '5']);
+                    // @todo Improve isbd for names.
+                    $v = $args['a']
+                        . ($args['b'] ? ', ' . $args['b'] : '')
+                        . ($args['g'] ? ' (' . $args['g'] . ')' : '')
+                        . ($args['d'] ? ', ' . $args['d'] : '')
+                        . ($args['f']
+                            ? ' (' . $args['f']
+                                . ($args['c'] ? ' ; ' . $args['c'] : '')
+                                . ($args['k'] ? ' ; ' . $args['k'] : '')
+                                . ')'
+                            : ($args['c']
+                                ? (' (' . $args['c'] . ($args['k'] ? ' ; ' . $args['k'] : '') . ')')
+                                : ($args['k'] ? ' (' . $args['k'] . ')' : '')
+                            )
+                        )
+                        . ($args['o'] ? ' {' . $args['o'] . '}' : '')
+                        . ($args['p'] ? ', ' . $args['p'] : '')
+                        . ($args['5'] ? ', ' . $args['5'] : '')
+                    ;
+                    break;
+                case 'isbdNameColl':
+                    // isbdNameColl(a, b, c, d, e, f, g, h, o, p, r, 5) (function).
+                    /* Unimarc 710/720/740 et suivants :
+                    $a Élément d’entrée
+                    $b Subdivision
+                    $c Élément ajouté au nom ou qualificatif
+                    $d Numéro de congrès et/ou numéro de session de congrès
+                    $e Lieu du congrès
+                    $f Date du congrès
+                    $g Élément rejeté
+                    $h Partie du nom autre que l’élément d’entrée et autre que l’élément rejeté
+                    $o Identifiant international du nom
+                    $p Affiliation / adresse
+                    $r Partie ou rôle joué
+                    $5 Institution à laquelle s’applique la zone
+                    // Pour mémoire.
+                    $3 Identifiant de la notice d’autorité
+                    $4 Code de fonction
+                     */
+                    $args = $extractList($args, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'o', 'p', 'r', '5']);
+                    // @todo Improve isbd for organizations.
+                    $v = $args['a']
+                        . ($args['b'] ? ', ' . $args['b'] : '')
+                        . ($args['g']
+                            ? ' (' . $args['g'] . ($args['h'] ? ' ; ' . $args['h'] . '' : '') . ')'
+                            : ($args['h'] ? ' (' . $args['h'] . ')' : ''))
+                        . ($args['d'] ? ', ' . $args['d'] : '')
+                        . ($args['e'] ? ', ' . $args['e'] : '')
+                        . ($args['f']
+                            ? ' (' . $args['f']
+                                . ($args['c'] ? ' ; ' . $args['c'] : '')
+                                . ')'
+                            : ($args['c'] ? (' (' . $args['c'] . ')') : '')
+                        )
+                        . ($args['o'] ? ' {' . $args['o'] . '}' : '')
+                        . ($args['p'] ? ', ' . $args['p'] : '')
+                        . ($args['r'] ? ', ' . $args['r'] : '')
+                        . ($args['5'] ? ', ' . $args['5'] : '')
+                    ;
+                    break;
+                case 'isbdMark':
+                    /* Unimarc 716 :
+                    $a Élément d’entrée
+                    $c Qualificatif
+                    $f Dates
+                     */
+                    // isbdMark(a, b, c) (function).
+                    $args = $extractList($args, ['a', 'b', 'c']);
+                    // @todo Improve isbd for marks.
+                    $v = $args['a']
+                        . ($args['b'] ? ', ' . $args['b'] : '')
+                        . ($args['c'] ? (' (' . $args['c'] . ')') : '')
+                    ;
+                    break;
+                case 'unimarcIndex':
+                    $args = $extractList($args);
+                    $index = $args[0] ?? '';
+                    if ($index) {
+                        // Unimarc Index uri (filter or function).
+                        $code = count($args) === 1 ? $v : ($args[1] ?? '');
+                        // Unimarc Annexe G.
+                        // @link https://www.transition-bibliographique.fr/wp-content/uploads/2018/07/AnnexeG-5-2007.pdf
+                        switch ($index) {
+                            case 'unimarc/a':
+                                $v = 'Unimarc/A : ' . $code;
+                                break;
+                            case 'rameau':
+                                $v = 'https://data.bnf.fr/ark:/12148/cb' . $code . $this->noidCheckBnf('cb' . $code);
+                                break;
+                            default:
+                                $v = $index . ' : ' . $code;
+                                break;
+                        }
+                    }
+                    break;
+                case 'unimarcCoordinates':
+                    // "w0241207" => "W 24°12’7”".
+                    // Hemisphere "+" / "-" too.
+                    $firstChar = strtoupper(substr($v, 0, 1));
+                    $mappingChars = ['+' => 'N', '-' => 'S', 'W' => 'W', 'E' => 'E', 'N' => 'N', 'S' => 'S'];
+                    $v = ($mappingChars[$firstChar] ?? '?') . ' '
+                        . intval(substr($v, 1, 3)) . '°'
+                        . intval(substr($v, 4, 2)) . '’'
+                        . intval(substr($v, 6, 2)) . '”';
+                    break;
+                case 'unimarcCoordinatesHexa':
+                    $v = substr($v, 0, 2) . '°' . substr($v, 2, 2) . '’' . substr($v, 4, 2) . '”';
+                    break;
+                case 'unimarcTimeHexa':
+                    // "150027" => "15h0m27s".
+                    $h = (int) trim(substr($v, 0, 2));
+                    $m = (int) trim(substr($v, 2, 2));
+                    $s = (int) trim(substr($v, 4, 2));
+                    $v = ($h ? $h . 'h' : '')
+                        . ($m ? $m . 'm' : ($h && $s ? '0m' : ''))
+                        . ($s ? $s . 's' : '');
                     break;
                 // This is not a reserved keyword, so check for a variable.
                 case 'value':
@@ -1485,5 +1657,26 @@ class TransformSource extends AbstractPlugin
     protected function fixEndOfLine($string): string
     {
         return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
+    }
+
+    /**
+     * Compute the check character for BnF records.
+     *
+     * The records linked with BnF use only the code, without the check
+     * character, so it should be computed in order to get the uri.
+     *
+     * @see https://metacpan.org/dist/Noid/view/noid#NOID-CHECK-DIGIT-ALGORITHM
+     */
+    protected function noidCheckBnf(string $value): string
+    {
+        // Unlike noid recommendation, the check for bnf doesn't use the naan ("12148").
+        $table = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'z'];
+        $tableKeys = array_flip($table);
+        $vals = str_split($value, 1);
+        $sum = array_sum(array_map(function ($k, $v) use ($tableKeys) {
+            return ($tableKeys[$v] ?? 0) * ($k + 1);
+        }, array_keys($vals), array_values($vals)));
+        $mod = $sum % count($table);
+        return $table[$mod];
     }
 }
