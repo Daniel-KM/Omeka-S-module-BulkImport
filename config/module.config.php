@@ -22,6 +22,7 @@ return [
             'bulk_importeds' => Api\Adapter\ImportedAdapter::class,
             'bulk_importers' => Api\Adapter\ImporterAdapter::class,
             'bulk_imports' => Api\Adapter\ImportAdapter::class,
+            'bulk_mappings' => Api\Adapter\MappingAdapter::class,
         ],
     ],
     'media_ingesters' => [

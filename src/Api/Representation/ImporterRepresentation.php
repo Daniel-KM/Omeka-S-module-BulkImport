@@ -89,8 +89,10 @@ class ImporterRepresentation extends AbstractEntityRepresentation
      */
     public function owner(): ?\Omeka\Api\Representation\UserRepresentation
     {
-        return $this->getAdapter('users')
-            ->getRepresentation($this->resource->getOwner());
+        $owner = $this->resource->getOwner();
+        return $owner
+            ? $this->getAdapter('users')->getRepresentation($owner)
+            : null;
     }
 
     public function reader(): ?\BulkImport\Reader\Reader

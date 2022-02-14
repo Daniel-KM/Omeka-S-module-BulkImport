@@ -2,8 +2,8 @@
 
 namespace BulkImport\Api\Adapter;
 
-use BulkImport\Api\Representation\ImporterRepresentation;
-use BulkImport\Entity\Importer;
+use BulkImport\Api\Representation\MappingRepresentation;
+use BulkImport\Entity\Mapping;
 use Doctrine\Inflector\InflectorFactory;
 use Doctrine\ORM\QueryBuilder;
 use Omeka\Api\Adapter\AbstractEntityAdapter;
@@ -11,28 +11,28 @@ use Omeka\Api\Request;
 use Omeka\Entity\EntityInterface;
 use Omeka\Stdlib\ErrorStore;
 
-class ImporterAdapter extends AbstractEntityAdapter
+class MappingAdapter extends AbstractEntityAdapter
 {
     protected $sortFields = [
         'id' => 'id',
         'label' => 'label',
-        'reader_class' => 'readerClass',
-        'processor_class' => 'processorClass',
+        'created' => 'created',
+        'modified' => 'modified',
     ];
 
     public function getResourceName()
     {
-        return 'bulk_importers';
+        return 'bulk_mappings';
     }
 
     public function getRepresentationClass()
     {
-        return ImporterRepresentation::class;
+        return MappingRepresentation::class;
     }
 
     public function getEntityClass()
     {
-        return Importer::class;
+        return Mapping::class;
     }
 
     public function buildQuery(QueryBuilder $qb, array $query): void
@@ -73,6 +73,20 @@ class ImporterAdapter extends AbstractEntityAdapter
                 continue;
             }
             $entity->$method($value);
+        }
+
+        $this->hydrateOwner($request, $entity);
+        $this->updateTimestamps($request, $entity);
+    }
+
+    public function validateEntity(EntityInterface $entity, ErrorStore $errorStore)
+    {
+        $label = $entity->getLabel();
+        if (false == trim($label)) {
+            $errorStore->addError('o:label', 'The label cannot be empty.'); // @translate
+        }
+        if (!$this->isUnique($entity, ['label' => $label])) {
+            $errorStore->addError('o:label', 'The label is already taken.'); // @translate
         }
     }
 }

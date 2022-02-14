@@ -392,3 +392,21 @@ if (version_compare($oldVersion, '3.3.30.0', '<')) {
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.3.31.0', '<')) {
+    $sql = <<<'SQL'
+CREATE TABLE `bulk_mapping` (
+    `id` INT AUTO_INCREMENT NOT NULL,
+    `owner_id` INT DEFAULT NULL,
+    `label` VARCHAR(190) NOT NULL,
+    `mapping` LONGTEXT NOT NULL,
+    `created` DATETIME NOT NULL,
+    `modified` DATETIME DEFAULT NULL,
+    UNIQUE INDEX UNIQ_7DA82350EA750E8 (`label`),
+    INDEX IDX_7DA823507E3C61F9 (`owner_id`),
+    PRIMARY KEY(`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB;
+ALTER TABLE `bulk_mapping` ADD CONSTRAINT FK_7DA823507E3C61F9 FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE SET NULL;
+SQL;
+    $connection->executeStatement($sql);
+}
