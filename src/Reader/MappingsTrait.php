@@ -2,40 +2,41 @@
 
 namespace BulkImport\Reader;
 
-/**
- * This file is currently used with forms JsonReader and XmlReader.
- */
-trait MappingFilesTrait
+trait MappingsTrait
 {
-    protected $directory = '';
+    protected $mappingDirectory = '';
 
-    protected $extension = '';
+    protected $mappingExtension = '';
 
-    protected function listFiles($subDirectory, $extension): array
+    protected function listMappings(array $subDirAndExtensions = []): array
     {
         $services = $this->getServiceLocator();
+        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
 
         $files = [
-            'module' => [
-                'label' => 'Module mapping files', // @translate
-                'options' => [],
-            ],
             'user' => [
                 'label' => 'User mapping files', // @translate
                 'options' => [],
             ],
+            'module' => [
+                'label' => 'Module mapping files', // @translate
+                'options' => [],
+            ],
         ];
 
-        $this->directory = dirname(__DIR__, 2) . '/data/mapping/' . $subDirectory;
-        $this->extension = $extension;
+        foreach ($subDirAndExtensions as $subDirAndExtension) {
+            $extension = reset($subDirAndExtension);
+            $subDirectory = key($subDirAndExtension);
 
-        $files['module']['options'] = $this->getFiles();
+            $this->mappingDirectory = dirname(__DIR__, 2) . '/data/mapping/' . $subDirectory;
+            $this->mappingExtension = $extension;
+            $files['module']['options'] = $this->getMappingFiles();
 
-        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $this->directory = $basePath . '/mapping/' . $subDirectory;
-        $userFiles = $this->getFiles();
-        foreach ($userFiles as $file) {
-            $files['user']['options']['user: ' . $file] = $file;
+            $this->mappingDirectory = $basePath . '/mapping/' . $subDirectory;
+            $userFiles = $this->getMappingFiles();
+            foreach ($userFiles as $file) {
+                $files['user']['options']['user: ' . $file] = $file;
+            }
         }
 
         return $files;
@@ -45,15 +46,15 @@ trait MappingFilesTrait
      * Get all files available to sideload.
      *
      * Adapted from the method in module FileSideload.
-     * @see \FileSideload\Media\Ingester\Sideload::getFiles();
+     * @see \FileSideload\Media\Ingester\Sideload::getMappingFiles();
      */
-    protected function getFiles(): array
+    protected function getMappingFiles(): array
     {
         $files = [];
-        $dir = new \SplFileInfo($this->directory);
+        $dir = new \SplFileInfo($this->mappingDirectory);
         if ($dir->isDir()) {
-            $lengthDir = strlen($this->directory) + 1;
-            $dir = new \RecursiveDirectoryIterator($this->directory);
+            $lengthDir = strlen($this->mappingDirectory) + 1;
+            $dir = new \RecursiveDirectoryIterator($this->mappingDirectory);
             // Prevent UnexpectedValueException "Permission denied" by excluding
             // directories that are not executable or readable.
             $dir = new \RecursiveCallbackFilterIterator($dir, function ($current, $key, $iterator) {
@@ -64,8 +65,8 @@ trait MappingFilesTrait
             });
                 $iterator = new \RecursiveIteratorIterator($dir);
                 foreach ($iterator as $filepath => $file) {
-                    if ((!$this->extension || pathinfo($filepath, PATHINFO_EXTENSION) === $this->extension)
-                        && $this->checkFile($file)
+                    if ((!$this->mappingExtension || pathinfo($filepath, PATHINFO_EXTENSION) === $this->mappingExtension)
+                        && $this->checkMappingFile($file)
                     ) {
                         // For security, don't display the full path to the user.
                         $relativePath = substr($filepath, $lengthDir);
@@ -94,17 +95,19 @@ trait MappingFilesTrait
 
     /**
      * Check and get the realpath of a file.
+     *
+     * @todo Merge with main checkFile().
      */
-    protected function checkFile(\SplFileInfo $fileinfo): ?string
+    protected function checkMappingFile(\SplFileInfo $fileinfo): ?string
     {
-        if ($this->directory === false) {
+        if ($this->mappingDirectory === false) {
             return null;
         }
         $realPath = $fileinfo->getRealPath();
         if ($realPath === false) {
             return null;
         }
-        if (strpos($realPath, $this->directory) !== 0) {
+        if (strpos($realPath, $this->mappingDirectory) !== 0) {
             return null;
         }
         if (!$fileinfo->isFile() || !$fileinfo->isReadable()) {

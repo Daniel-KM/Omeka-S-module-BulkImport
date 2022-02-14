@@ -3,7 +3,7 @@
 namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Reader\MappingFilesTrait;
+use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
@@ -11,7 +11,7 @@ use Laminas\Form\Form;
 class XmlReaderConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
-    use MappingFilesTrait;
+    use MappingsTrait;
 
     public function init(): void
     {
@@ -31,9 +31,8 @@ class XmlReaderConfigForm extends Form
                 'name' => 'xsl_sheet',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
-                    'label' => 'XSLT file used to convert source', // @translate
-                    'info' => 'Default sheets are located in "modules/BulkImport/data/mapping/xsl" and user ones in "files/mapping/xsl".', // @translate
-                    'value_options' => $this->listFiles('xsl', 'xsl'),
+                    'label' => 'XSLT file used to normalize source', // @translate
+                    'value_options' => $this->listMappings([['xsl' => 'xsl']]),
                     'empty_option' => '',
                 ],
                 'attributes' => [
@@ -47,9 +46,8 @@ class XmlReaderConfigForm extends Form
                 'name' => 'mapping_file',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
-                    'label' => 'Mapping file used to convert source', // @translate
-                    'info' => 'Default mapping are located in "modules/BulkImport/mapping/data/xml" and user ones in "files/mapping/xml".', // @translate
-                    'value_options' => $this->listFiles('xml', 'xml'),
+                    'label' => 'Mapping to convert source', // @translate
+                    'value_options' => $this->listMappings([['xml' => 'xml'], ['json' => 'ini']]),
                     'empty_option' => '',
                 ],
                 'attributes' => [

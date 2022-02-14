@@ -3,7 +3,7 @@
 namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Reader\MappingFilesTrait;
+use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
@@ -12,7 +12,7 @@ use Omeka\Form\Element as OmekaElement;
 class JsonReaderConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
-    use MappingFilesTrait;
+    use MappingsTrait;
 
     public function init(): void
     {
@@ -43,9 +43,8 @@ class JsonReaderConfigForm extends Form
                 'name' => 'mapping_file',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
-                    'label' => 'Mapping file used to convert source', // @translate
-                    'info' => 'Default mapping are located in "modules/BulkImport/data/mapping/json" and user ones in "files/mapping/json".', // @translate
-                    'value_options' => $this->listFiles('json', 'ini'),
+                    'label' => 'Mapping to convert source', // @translate
+                    'value_options' => $this->listMappings([['xml' => 'xml'], ['json' => 'ini']]),
                     'empty_option' => '',
                 ],
                 'attributes' => [
