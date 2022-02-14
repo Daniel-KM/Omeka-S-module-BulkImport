@@ -79,6 +79,13 @@ class TransformSource extends AbstractPlugin
      */
     protected $normConfig = [];
 
+    /**
+     * List of tables (associative arrays) indexed by their name.
+     *
+     * @array
+     */
+    protected $tables = [];
+
     public function __construct(
         Logger $logger,
         AutomapFields $automapFields,
@@ -257,6 +264,21 @@ class TransformSource extends AbstractPlugin
     public function getVariable(string $name, $default = null)
     {
         return $this->variables[$name] ?? $default;
+    }
+
+    public function getTables(): array
+    {
+        return $this->tables;
+    }
+
+    public function getTable(string $name): array
+    {
+        return $this->tables[$name] ?? [];
+    }
+
+    public function getTableItem(string $name, $key, $default = null): array
+    {
+        return $this->tables[$name][$key] ?? $default;
     }
 
     /**
@@ -843,10 +865,18 @@ class TransformSource extends AbstractPlugin
                     $v = strip_tags($v);
                     break;
                 case 'table':
-                    // table().
-                    $table = $extractAssociative(trim(mb_substr($args, 1, -1)));
-                    if ($table) {
-                        $v = $table[$v] ?? $v;
+                    // table() (included).
+                    $first = mb_substr($args, 0, 1);
+                    if ($first === '{') {
+                        $table = $extractAssociative(trim(mb_substr($args, 1, -1)));
+                        if ($table) {
+                            $v = $table[$v] ?? $v;
+                        }
+                    }
+                    // table() (named).
+                    else {
+                        $name = $first === '"' || $first === "'" ? mb_substr($args, 1, -1) : $args;
+                        $v = $this->tables[$name][$v] ?? $v;
                     }
                     break;
                 case 'title':
@@ -1336,6 +1366,9 @@ class TransformSource extends AbstractPlugin
             }
         }
 
+        // Prepare tables.
+        $this->normalizeTables();
+
         return $this;
     }
 
@@ -1433,6 +1466,26 @@ class TransformSource extends AbstractPlugin
         }
 
         return $result;
+    }
+
+    protected function normalizeTables(): self
+    {
+        // The config is always a small file (less than some megabytes), so it
+        // can be managed directly with SimpleXml.
+        $xmlConfig = new SimpleXMLElement($this->config);
+        foreach ($xmlConfig->table as $table) {
+            $code = (string) $table['code'];
+            if (!$code) {
+                continue;
+            }
+            foreach ($table->list[0]->term as $term) {
+                $termCode = (string) $term['code'];
+                if (strlen($termCode)) {
+                    $this->tables[$code][$termCode] = (string) $term[0];
+                }
+            }
+        }
+        return $this;
     }
 
     /**
