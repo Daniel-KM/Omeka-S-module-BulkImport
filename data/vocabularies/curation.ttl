@@ -1,0 +1,89 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix oc: <http://omeka.org/s/vocabs/oc#> .
+@prefix curation: <https://omeka.org/s/vocabs/curation/> .
+
+<https://omeka.org/s/vocabs/curation/> a owl:Ontology ;
+    dcterms:title "Curation"@en ;
+    dcterms:title "Curation"@fr ;
+    dcterms:description "Properties designed to be used internally for the curation of resources."@en ;
+    dcterms:description "Propriétés destinées à être utilisées en interne pour la gestion des ressources."@fr .
+
+curation:featured a rdf:Property ;
+    rdfs:label "Featured"@en ;
+    rdfs:label "En vedette"@fr ;
+    rdfs:comment "Mark the resource as a featured one as soon as a value is set, whatever it is."@en ;
+    rdfs:comment "Marque la ressource comme vedette dès qu‘une valeur quelconque est définie."@fr ;
+    vs:term_status "experimental" .
+
+curation:new a rdf:Property ;
+    rdfs:label "New"@en ;
+    rdfs:label "Nouveau"@fr ;
+    rdfs:comment "Mark the resource as a new one as soon as a value is set, whatever it is."@en ;
+    rdfs:comment "Marque la ressource comme nouvelle dès qu‘une valeur quelconque est définie."@fr ;
+    vs:term_status "experimental" .
+
+curation:reserved a rdf:Property ;
+    rdfs:label "Reserved"@en ;
+    rdfs:label "Réservé"@fr ;
+    rdfs:comment "Define the resource as a restricted access one as soon a value is set, whatever it is."@en ;
+    rdfs:comment "Place la ressource en accès restreint dès qu‘une valeur quelconque est définie."@fr ;
+    vs:term_status "experimental" .
+
+curation:selected a rdf:Property ;
+    rdfs:label "Selected"@en ;
+    rdfs:label "Sélectionné"@fr ;
+    rdfs:comment "Mark the resource as a selected one as soon as a value is set, whatever it is."@en ;
+    rdfs:comment "Marque la ressource comme sélectionnée dès qu‘une valeur quelconque est définie."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    vs:term_status "experimental" .
+
+curation:category a rdf:Property ;
+    rdfs:label "Category"@en ;
+    rdfs:label "Catégorie"@fr ;
+    rdfs:comment "A topic that can be used for some purposes."@en ;
+    rdfs:comment "Un sujet pouvant être utilisé dans certains cas."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    vs:term_status "experimental" .
+
+curation:tag a rdf:Property ;
+    rdfs:label "Tag"@en ;
+    rdfs:label "Mot-clé"@fr ;
+    rdfs:comment "Tag that can be used for some purposes or for upgrade from Omeka Classic."@en ;
+    rdfs:comment "Mot-clé pouvant être utilisé dans certains cas ou pour une mise à niveau depuis Omeka Classic."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    owl:sameAs oc:tag ;
+    vs:term_status "experimental" .
+
+curation:theme a rdf:Property ;
+    rdfs:label "Theme"@en ;
+    rdfs:label "Thème"@fr ;
+    rdfs:comment "A domain that can be used for some purposes."@en ;
+    rdfs:comment "Un domaine pouvant être utilisé dans certains cas."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    vs:term_status "experimental" .
+
+curation:collection a rdf:Property ;
+    rdfs:label "Collection"@en ;
+    rdfs:label "Collection"@fr ;
+    rdfs:comment "A way to group resources."@en ;
+    rdfs:comment "Un moyen de grouper des ressources."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    vs:term_status "experimental" .
+
+curation:note a rdf:Property ;
+    rdfs:label "Note"@en ;
+    rdfs:label "Note"@fr ;
+    rdfs:comment "A specific or generic information on a resource, generally for internal purposes."@en ;
+    rdfs:comment "Une information spécifique ou générique sur une resource, généralement à usage interne."@fr ;
+    vs:term_status "experimental" .
+
+curation:data a rdf:Property ;
+    rdfs:label "Data"@en ;
+    rdfs:label "Données"@fr ;
+    rdfs:comment "Any data that can be used for any purpose."@en ;
+    rdfs:comment "Toute donnée pouvant être utilisée pour tout objet."@fr ;
+    vs:term_status "experimental" .

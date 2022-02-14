@@ -394,6 +394,8 @@ if (version_compare($oldVersion, '3.3.30.0', '<')) {
 }
 
 if (version_compare($oldVersion, '3.3.31.0', '<')) {
+    require_once __DIR__ . '/upgrade_vocabulary.php';
+
     $sql = <<<'SQL'
 CREATE TABLE `bulk_mapping` (
     `id` INT AUTO_INCREMENT NOT NULL,
