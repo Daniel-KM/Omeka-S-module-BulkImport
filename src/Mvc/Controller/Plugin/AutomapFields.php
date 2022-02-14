@@ -340,7 +340,34 @@ class AutomapFields extends AbstractPlugin
             || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
         if ($isQuoted) {
             $result['raw'] = trim(mb_substr($pattern, 1, -1));
+            $result['pattern'] = null;
             return $result;
+        }
+
+        // Check for incomplete replacement or twig patterns.
+        $prependPos = mb_strpos($pattern, '{{');
+        $appendPos = mb_strrpos($pattern, '}}');
+
+        // A quick check.
+        if ($prependPos === false || $appendPos === false) {
+            $result['raw'] = trim($pattern);
+            $result['pattern'] = null;
+            return $result;
+        }
+
+        // To simplify process and remove the empty values, check if the pattern
+        // contains a prepend/append string.
+        // Replace only complete patterns, so check append too.
+        if ($prependPos && $appendPos && $prependPos < $appendPos) {
+            $result['prepend'] = mb_substr($pattern, 0, $prependPos);
+            $pattern = mb_substr($pattern, $prependPos);
+            $result['pattern'] = $pattern;
+            $appendPos = mb_strrpos($pattern, '}}');
+        }
+        if ($prependPos < $appendPos && $appendPos !== mb_strlen($pattern) - 2) {
+            $result['append'] = mb_substr($pattern, $appendPos + 2);
+            $pattern = mb_substr($pattern, 0, $appendPos + 2);
+            $result['pattern'] = $pattern;
         }
 
         // Manage exceptions.

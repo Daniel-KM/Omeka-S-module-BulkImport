@@ -377,12 +377,23 @@ class TransformSource extends AbstractPlugin
         }
 
         foreach ($this->getSection($section) as $fromTo) {
-            // @todo When default, "from" is useless.
-            $from = $fromTo['from'];
             $to = $fromTo['to'] ?? null;
-            if (empty($from) || empty($to)) {
+            if (empty($to)) {
                 continue;
             }
+
+            $raw = $to['raw'] ?? '';
+            if (strlen($raw)) {
+                $resource[$to['dest']] = empty($resource[$to['dest']])
+                    ? [$raw]
+                    : array_merge($resource[$to['dest']], [$raw]);
+                continue;
+            }
+
+            // @todo When default, "from" is useless: remove it from normalized config.
+            $from = $fromTo['from'] ?? null;
+            $prepend = $to['prepend'] ?? '';
+            $append = $to['append'] ?? '';
 
             $result = [];
             if ($isDefault) {
@@ -390,7 +401,7 @@ class TransformSource extends AbstractPlugin
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
-                $result[] = $converted;
+                $result[] = $prepend . $converted . $append;
             } else {
                 // Check for associative value. "from" is a full path to data:
                 // [key.to.data => "value"]
@@ -415,7 +426,7 @@ class TransformSource extends AbstractPlugin
                     if ($converted === [] || $converted === '' || $converted === null) {
                         continue;
                     }
-                    $result[] = $converted;
+                    $result[] = $prepend . $converted . $append;
                 }
             }
 
@@ -438,6 +449,8 @@ class TransformSource extends AbstractPlugin
      * multiple times.
      * @param bool $isDefault When true, the target value "to" is added to the
      * resource without using data.
+     *
+     * @todo Merge convertMappingSectionXml() with convertMappingSection()?
      */
     public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefault = false): array
     {
@@ -459,7 +472,17 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
 
+            $raw = $to['raw'] ?? '';
+            if (strlen($raw)) {
+                $resource[$to['dest']] = empty($resource[$to['dest']])
+                    ? [$raw]
+                    : array_merge($resource[$to['dest']], [$raw]);
+                continue;
+            }
+
             $from = $fromTo['from'] ?? null;
+            $prepend = $to['prepend'] ?? '';
+            $append = $to['append'] ?? '';
 
             $result = [];
             if ($isDefault) {
@@ -467,7 +490,7 @@ class TransformSource extends AbstractPlugin
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
-                $result[] = $converted;
+                $result[] = $prepend . $converted . $append;
             } else {
                 if (!$from) {
                     continue;
@@ -478,7 +501,7 @@ class TransformSource extends AbstractPlugin
                     if ($converted === [] || $converted === '' || $converted === null) {
                         continue;
                     }
-                    $result[] = $converted;
+                    $result[] = $prepend . $converted . $append;
                 }
             }
 
@@ -584,13 +607,20 @@ class TransformSource extends AbstractPlugin
         }
 
         // Wrap vars to quick process for simple variables without twig filters.
-        if (!empty($to['twig'])) {
-            foreach ($this->variables as $name => $value) {
-                if (!is_scalar($value)) {
-                    continue;
-                }
+        // Note that there are exceptions in variables (value, list, label), so
+        // replacement is done in all cases.
+        foreach ($this->variables as $name => $value) {
+            if ($value instanceof \DOMNode) {
+                $replace["{{ $name }}"] = (string) $value->nodeValue;
+            } elseif (is_scalar($value)) {
                 $replace["{{ $name }}"] = $value;
-                if (($pos = array_search("{{ $name }}", $to['twig'])) !== false) {
+            } else {
+                // TODO What else can be value. Array?
+                continue;
+            }
+            // The variable can be set multiple times.
+            if (!empty($to['twig'])  && ($poss = array_keys($to['twig'], "{{ $name }}"))) {
+                foreach ($poss as $pos) {
                     unset($to['twig'][$pos]);
                 }
             }
@@ -700,17 +730,20 @@ class TransformSource extends AbstractPlugin
         }
 
         // Wrap vars to quick process for simple variables without twig filters.
-        if (!empty($to['twig'])) {
-            foreach ($this->variables as $name => $value) {
-                if ($value instanceof \DOMNode) {
-                    $replace["{{ $name }}"] = (string) $value->nodeValue;
-                } elseif (is_scalar($value)) {
-                    $replace["{{ $name }}"] = $value;
-                } else {
-                    // TODO What else can be value. Array?
-                    continue;
-                }
-                if (($pos = array_search("{{ $name }}", $to['twig'])) !== false) {
+        // Note that there are exceptions in variables (value, list, label), so
+        // replacement is done in all cases.
+        foreach ($this->variables as $name => $value) {
+            if ($value instanceof \DOMNode) {
+                $replace["{{ $name }}"] = (string) $value->nodeValue;
+            } elseif (is_scalar($value)) {
+                $replace["{{ $name }}"] = $value;
+            } else {
+                // TODO What else can be value. Array?
+                continue;
+            }
+            // The variable can be set multiple times.
+            if (!empty($to['twig'])  && ($poss = array_keys($to['twig'], "{{ $name }}"))) {
+                foreach ($poss as $pos) {
                     unset($to['twig'][$pos]);
                 }
             }
@@ -1314,11 +1347,30 @@ class TransformSource extends AbstractPlugin
             $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
                 ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
                 : null;
+            $result['to']['raw'] = isset($xmlArray['to']['@attributes']['raw']) && strlen($xmlArray['to']['@attributes']['raw'])
+                ? (string) $xmlArray['to']['@attributes']['raw']
+                : null;
+            $hasNoRaw = is_null($result['to']['raw']);
+            $result['to']['prepend'] = $hasNoRaw && isset($xmlArray['to']['@attributes']['prepend'])
+                ? (string) $xmlArray['to']['@attributes']['prepend']
+                : null;
+            $result['to']['append'] = $hasNoRaw && isset($xmlArray['to']['@attributes']['append'])
+                ? (string) $xmlArray['to']['@attributes']['append']
+                : null;
             $result['to']['pattern'] = null;
-            if (isset($xmlArray['to']['@attributes']['pattern'])) {
+            if ($hasNoRaw && isset($xmlArray['to']['@attributes']['pattern'])) {
                 $r = $this->preparePattern((string) $xmlArray['to']['@attributes']['pattern']);
-                if ($r['pattern']) {
-                    $result['to']['pattern'] = $r['pattern'];
+                if (isset($r['raw']) && strlen($r['raw'])) {
+                    $result['to']['raw'] = $r['raw'];
+                    $hasNoRaw = false;
+                } else {
+                    if (isset($r['prepend']) && strlen($r['prepend'])) {
+                        $result['to']['prepend'] = $r['prepend'];
+                    }
+                    if (isset($r['append']) && strlen($r['append'])) {
+                        $result['to']['append'] = $r['append'];
+                    }
+                    $result['to']['pattern'] = $r['pattern'] ?? null;
                     $result['to']['replace'] = $r['replace'] ?? [];
                     $result['to']['twig'] = $r['twig'] ?? [];
                     $result['to']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
@@ -1326,11 +1378,14 @@ class TransformSource extends AbstractPlugin
             }
 
             // @todo Remove the short destination (used in processor and when converting to avoid duplicates)?
+            $fullPattern = $hasNoRaw
+                ? ($result['to']['prepend'] ?? '') . ($result['to']['pattern'] ?? '') . ($result['to']['append'] ?? '')
+                : (string) $result['to']['raw'];
             $result['to']['dest'] = $result['to']['field']
                 . (count($result['to']['datatypes']) ? ' ^^' . implode('; ', $result['to']['datatypes']) : '')
                 . (isset($result['to']['@language']) ? ' @' . $result['to']['@language'] : '')
                 . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
-                . (isset($result['to']['pattern']) && strlen($result['to']['pattern']) ? ' ~ ' . $r['pattern'] : '')
+                . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')
             ;
 
             return $result;
@@ -1434,7 +1489,35 @@ class TransformSource extends AbstractPlugin
             || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
         if ($isQuoted) {
             $result['raw'] = trim(mb_substr($pattern, 1, -1));
+            $result['pattern'] = null;
             return $result;
+        }
+
+        // Check for incomplete replacement or twig patterns.
+        $prependPos = mb_strpos($pattern, '{{');
+        $appendPos = mb_strrpos($pattern, '}}');
+
+        // A quick check.
+        if ($prependPos === false || $appendPos === false) {
+            $result['raw'] = trim($pattern);
+            $result['pattern'] = null;
+            return $result;
+        }
+
+        // To simplify process and remove the empty values, check if the pattern
+        // contains a prepend/append string.
+        // Replace only complete patterns, so check append too.
+        $isNormalPattern = $prependPos < $appendPos;
+        if ($isNormalPattern && $prependPos && $appendPos) {
+            $result['prepend'] = mb_substr($pattern, 0, $prependPos);
+            $pattern = mb_substr($pattern, $prependPos);
+            $result['pattern'] = $pattern;
+            $appendPos = mb_strrpos($pattern, '}}');
+        }
+        if ($isNormalPattern && $appendPos !== mb_strlen($pattern) - 2) {
+            $result['append'] = mb_substr($pattern, $appendPos + 2);
+            $pattern = mb_substr($pattern, 0, $appendPos + 2);
+            $result['pattern'] = $pattern;
         }
 
         // Manage exceptions.
