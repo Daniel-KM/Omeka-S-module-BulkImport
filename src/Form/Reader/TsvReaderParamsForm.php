@@ -20,9 +20,10 @@ class TsvReaderParamsForm extends SpreadsheetReaderConfigForm
                 ],
                 'attributes' => [
                     'id' => 'file',
-                    'required' => true,
-                    // Some servers doesn't detect tsv, so add csv too.
-                    'accept' => 'text/tab-separated-values,text/csv,application/csv,csv,tsv',
+                    'required' => false,
+                    // Some servers don't detect tsv, so add csv too.
+                    // Some computers don't detect tsv, so add excel too.
+                    'accept' => 'text/tab-separated-values,text/csv,application/csv,csv,tsv,application/vnd.ms-excel',
                 ],
             ]);
 

@@ -19,12 +19,14 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $paramsFormClass = OpenDocumentSpreadsheetReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
         'multisheet',
         'separator',
     ];
 
     protected $paramsKeys = [
         'filename',
+        'url',
         'multisheet',
         'separator',
     ];

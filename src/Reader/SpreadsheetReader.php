@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BulkImport\Reader;
 
 use BulkImport\Form\Reader\CsvReaderConfigForm;
@@ -17,6 +18,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
     protected $paramsFormClass = SpreadsheetReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
         'delimiter',
         'enclosure',
         'escape',
@@ -25,6 +27,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
 
     protected $paramsKeys = [
         'filename',
+        'url',
         'delimiter',
         'enclosure',
         'escape',

@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Reader;
 
+use BulkImport\Form\Element as BulkImportElement;
 use Laminas\Form\Element;
 
 class SpreadsheetReaderConfigForm extends AbstractReaderConfigForm
@@ -11,6 +12,17 @@ class SpreadsheetReaderConfigForm extends AbstractReaderConfigForm
         parent::init();
 
         $this
+            ->add([
+                'name' => 'url',
+                'type' => BulkImportElement\OptionalUrl::class,
+                'options' => [
+                    'label' => 'Spreadsheet url', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url',
+                    'required' => false,
+                ],
+            ])
             ->add([
                 'name' => 'separator',
                 'type' => Element\Text::class,

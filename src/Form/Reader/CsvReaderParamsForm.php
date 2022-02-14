@@ -20,8 +20,10 @@ class CsvReaderParamsForm extends CsvReaderConfigForm
                 ],
                 'attributes' => [
                     'id' => 'file',
-                    'required' => true,
-                    'accept' => 'text/csv,application/csv,csv',
+                    'required' => false,
+                    // Some servers don't detect csv, so add csv too.
+                    // Some computers don't detect csv, so add excel too.
+                    'accept' => 'text/csv,application/csv,csv,application/vnd.ms-excel',
                 ],
             ]);
 

@@ -20,9 +20,9 @@ class SpreadsheetReaderParamsForm extends CsvReaderConfigForm
                 ],
                 'attributes' => [
                     'id' => 'file',
-                    'required' => true,
-                    'accept' => '',
-                    'accept' => 'text/tab-separated-values,text/csv,application/csv,application/vnd.oasis.opendocument.spreadsheet,csv,tsv,ods',
+                    'required' => false,
+                    // Some computers don't detect csv or tsv, so add excel too.
+                    'accept' => 'text/tab-separated-values,text/csv,application/csv,application/vnd.oasis.opendocument.spreadsheet,csv,tsv,ods,application/vnd.ms-excel',
 
                 ],
             ]);

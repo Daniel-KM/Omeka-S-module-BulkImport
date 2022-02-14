@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form\Reader;
 
+use BulkImport\Form\Element as BulkImportElement;
 use Laminas\Form\Element;
 
 class OpenDocumentSpreadsheetReaderConfigForm extends AbstractReaderConfigForm
@@ -11,6 +12,17 @@ class OpenDocumentSpreadsheetReaderConfigForm extends AbstractReaderConfigForm
         parent::init();
 
         $this
+            ->add([
+                'name' => 'url',
+                'type' => BulkImportElement\OptionalUrl::class,
+                'options' => [
+                    'label' => 'Spreadsheet url', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url',
+                    'required' => false,
+                ],
+            ])
             ->add([
                 'name' => 'multisheet',
                 'type' => Element\Radio::class,

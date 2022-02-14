@@ -21,7 +21,7 @@ class OpenDocumentSpreadsheetReaderParamsForm extends OpenDocumentSpreadsheetRea
                 ],
                 'attributes' => [
                     'id' => 'file',
-                    'required' => true,
+                    'required' => false,
                     'accept' => 'application/vnd.oasis.opendocument.spreadsheet,ods',
                 ],
             ]);

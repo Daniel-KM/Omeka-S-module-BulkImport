@@ -25,6 +25,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
     protected $paramsFormClass = CsvReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
         'delimiter',
         'enclosure',
         'escape',
@@ -33,6 +34,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
 
     protected $paramsKeys = [
         'filename',
+        'url',
         'delimiter',
         'enclosure',
         'escape',

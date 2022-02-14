@@ -17,11 +17,13 @@ class TsvReader extends CsvReader
     protected $paramsFormClass = TsvReaderParamsForm::class;
 
     protected $configKeys = [
+        'url',
         'separator',
     ];
 
     protected $paramsKeys = [
         'filename',
+        'url',
         'separator',
     ];
 
