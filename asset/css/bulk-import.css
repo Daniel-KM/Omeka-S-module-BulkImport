@@ -34,6 +34,14 @@
         padding-right: 8px;
     }
 
+    /* Bulk import */
+    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .field-meta {
+        display: none;
+    }
+    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .inputs {
+        width: 100%;
+    }
+
     /* Resource add/edit media files and folders */
     .media-files-input-full-progress {
         text-align: right;

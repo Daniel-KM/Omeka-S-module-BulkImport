@@ -82,12 +82,13 @@ class ImporterController extends AbstractActionController
                     $response = $this->api($form)->create('bulk_importers', $data);
                 }
 
-                if ($response) {
-                    $this->messenger()->addSuccess('Importer successfully saved'); // @translate
-                } else {
+                if (!$response) {
                     $this->messenger()->addError('Save of importer failed'); // @translate
+                    return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer'], true);
+                } else {
+                    $this->messenger()->addSuccess('Importer successfully saved'); // @translate
+                    return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer', 'action' => 'browse'], true);
                 }
-                return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
             } else {
                 $this->messenger()->addFormErrors($form);
             }
@@ -113,7 +114,7 @@ class ImporterController extends AbstractActionController
         // Don't load entities if the only information needed is total results.
         $total = $this->api()->search('bulk_imports', ['importer_id' => $id, 'limit' => 0])->getTotalResults();
         if ($total) {
-            $this->messenger()->addWarning('This importerd cannot be deleted: imports that use it exist.'); // @translate
+            $this->messenger()->addWarning('This importer cannot be deleted: imports that use it exist.'); // @translate
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 

@@ -1,0 +1,24 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Form\MappingForm $form
+ */
+
+$escape = $this->plugin('escapeHtml');
+$translate = $this->plugin('translate');
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-mappings edit');
+$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$form->prepare();
+?>
+
+<?= $this->pageTitle($translate('Create new mapping'), 1, $translate('Bulk Import')) ?>
+
+<div id="content">
+    <h2><?= $escape($translate('Create new mapping')) ?></h2>
+    <?php
+    echo $this->form()->openTag($form);
+    echo $this->formCollection($form);
+    echo $this->form()->closeTag();
+    ?>
+</div>

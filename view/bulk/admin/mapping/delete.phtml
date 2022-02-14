@@ -1,0 +1,26 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Form\MappingDeleteForm $form
+ * @var \BulkImport\Api\Representation\MappingRepresentation $entity
+ */
+
+$escape = $this->plugin('escapeHtml');
+$translate = $this->plugin('translate');
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-mappings delete');
+$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$form->prepare();
+?>
+
+<?= $this->pageTitle($translate('Delete mapping'), 1, $translate('Bulk import')) ?>
+
+<div id="content">
+    <h2><?= $escape(sprintf($translate('Delete mapping (%s)'), $entity->label())) ?></h2>
+    <p><?= $escape($translate('Are you sure you want to delete this mapping?')) ?></p>
+    <?php
+    echo $this->form()->openTag($form);
+    echo $this->formCollection($form);
+    echo $this->form()->closeTag();
+    ?>
+</div>

@@ -15,6 +15,12 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <?= $this->pageTitle($translate('Mappings'), 1, $translate('Bulk import')) ?>
 
+<div id="page-actions">
+    <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')): ?>
+    <?= $this->hyperlink($translate('Add new mapping'), $this->url('admin/bulk/default', ['controller' => 'mapping', 'action' => 'add'], true), ['class' => 'button']) ?>
+    <?php endif; ?>
+</div>
+
 <h2><?= $escape($translate('Configuration of mappings')) ?></h2>
 
 <?php if (count($mappings)): ?>
@@ -27,9 +33,31 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     </thead>
     <tbody>
     <?php foreach ($mappings as $mapping): ?>
+        <?php $userIsAllowedUpdate = $mapping->userIsAllowed('update'); ?>
+        <?php $userIsAllowedDelete = $mapping->userIsAllowed('delete'); ?>
         <tr>
             <td>
                 <?= $mapping->link($mapping->label(), 'edit') ?>
+                <ul class="actions">
+                    <?php if ($userIsAllowedUpdate): ?>
+                    <li><?= $mapping->link('', 'edit', [
+                        'class' => 'o-icon-edit',
+                        'title' => $translate('Edit'),
+                    ]) ?></li>
+                    <?php endif; ?>
+                    <?php if ($userIsAllowedDelete): ?>
+                    <li><?= $mapping->link('', 'delete', [
+                        'class' => 'o-icon-delete',
+                        'title' => $translate('Delete'),
+                    ]); /*
+                    echo $this->hyperlink('', '#', [
+                        'data-sidebar-selector' => '#sidebar',
+                        'data-sidebar-content-url' => $importer->url('delete-confirm'),
+                        'class' => 'o-icon-delete sidebar-content',
+                        'title' => $translate('Delete'),
+                    ]); */ ?></li>
+                    <?php endif; ?>
+                </ul>
             </td>
             <td>
                 <?php if ($mapping->modified()): ?>

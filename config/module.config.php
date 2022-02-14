@@ -56,6 +56,8 @@ return [
             Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
             Form\Element\OptionalUrl::class => Form\Element\OptionalUrl::class,
             Form\SettingsFieldset::class => Form\SettingsFieldset::class,
+            Form\MappingDeleteForm::class => Form\MappingDeleteForm::class,
+            Form\MappingForm::class => Form\MappingForm::class,
         ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
