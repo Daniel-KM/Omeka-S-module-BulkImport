@@ -69,7 +69,7 @@ class UploadController extends AbstractActionController
 
         /** @var \Laminas\View\Helper\ServerUrl $serverUrl */
         $serverUrl = $this->viewHelpers()->get('ServerUrl');
-        if ($serverUrl->getHost() !== $headers['Host'] ?? null) {
+        if ($serverUrl->getHost() !== ($headers['Host'] ?? null)) {
             $response = $this->getResponse();
             $response->setStatusCode(Response::STATUS_CODE_403);
             return new JsonModel([
