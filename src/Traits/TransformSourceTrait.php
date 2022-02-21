@@ -54,6 +54,7 @@ trait TransformSourceTrait
             $prefixes = [
                 'user' => $this->basePath . '/mapping/',
                 'module' => dirname(__DIR__, 2) . '/data/mapping/',
+                'base' => dirname(__DIR__, 2) . '/data/mapping/base/',
             ];
             $prefix = strtok($mappingConfig, ':');
             if (!isset($prefixes[$prefix])) {
@@ -85,8 +86,9 @@ trait TransformSourceTrait
                 $isInfo = true;
             } elseif (substr($line, 0, 1) === '[') {
                 $isInfo = false;
-            } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_-]*)*$~', $line, $matches)) {
-                $mainConfig = $getConfig('base/' . $matches['master']);
+            } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_.-]*)*$~', $line, $matches)) {
+                // @todo Currently, the base mapper is always an ini.
+                $mainConfig = $getConfig('base:' . $matches['master'] . '.ini');
                 break;
             }
         }
