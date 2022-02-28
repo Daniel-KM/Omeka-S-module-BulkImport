@@ -129,6 +129,7 @@ class JsonReader extends AbstractPaginatedReader
                 );
                 return new BaseEntry([], []);
             }
+            $this->transformSource->addVariable('url_resource', $current);
             $current = json_decode($content, true) ?: [];
         }
 
