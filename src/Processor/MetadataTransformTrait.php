@@ -201,6 +201,8 @@ trait MetadataTransformTrait
         $this->operationExcludes = [];
         $this->operationRandoms = [];
         $this->operationPartialFlush = false;
+        // The temporary table may be missing.
+        $this->storeMappingTablePrepare();
     }
 
     protected function transformApplyOperations(bool $flush = false): void

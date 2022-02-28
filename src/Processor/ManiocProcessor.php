@@ -1213,7 +1213,7 @@ CREATE TABLE `_temporary_valuesuggest` (
     `items` longtext COLLATE utf8mb4_unicode_ci,
     `uri` longtext COLLATE utf8mb4_unicode_ci,
     `label` longtext COLLATE utf8mb4_unicode_ci,
-    `info` longtext COLLATE utf8mb4_unicode_ci
+    `info` longtext COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
