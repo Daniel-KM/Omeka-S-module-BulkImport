@@ -1605,17 +1605,21 @@ class TransformSource extends AbstractPlugin
      * // The following recursive array:
      * [
      *     'video' => [
-     *         'dataformat' => 'jpg',
+     *         'data.format' => 'jpg',
      *         'creator' => ['alpha', 'beta'],
      *     ],
      * ]
      * // is converted into:
      * [
-     *     'video.dataformat' => 'jpg',
+     *     'video.data\.format' => 'jpg',
      *     'creator.0' => 'alpha',
      *     'creator.1' => 'beta',
      * ]
      * ```
+     *
+     * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\Mapper::flatArray()
+     * @see \ValueSuggestAny\Suggester\JsonLd\JsonLdSuggester::flatArray()
+     * @todo Factorize flatArray() between modules.
      */
     public function flatArray(?array $array): array
     {
@@ -1635,16 +1639,15 @@ class TransformSource extends AbstractPlugin
      * Recursive helper to flat an array with separator ".".
      *
      * @todo Find a way to keep the last level of array (list of subjects…), currently managed with fields.
-     * @todo Manage the case where the separator is included in the key (very rare in real world).
      */
     private function _flatArray(array &$array, array &$flatArray, ?string $keys = null): void
     {
         foreach ($array as $key => $value) {
-            // $nKey = strpos($key, '.') === false ? $key : "'$key'";
+            $nKey = str_replace(['.', '\\'], ['\.', '\\\\'], $key);
             if (is_array($value)) {
-                $this->_flatArray($value, $flatArray, $keys . '.' . $key);
+                $this->_flatArray($value, $flatArray, $keys . '.' . $nKey);
             } else {
-                $flatArray[trim($keys . '.' . $key, '.')] = $value;
+                $flatArray[trim($keys . '.' . $nKey, '.')] = $value;
             }
         }
     }
