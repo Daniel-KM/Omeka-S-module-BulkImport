@@ -582,7 +582,10 @@ SQL;
     public function createCustomVocab(string $filepath): ?\CustomVocab\Api\Representation\CustomVocabRepresentation
     {
         $data = json_decode(file_get_contents($filepath), true);
-        $data['o:terms'] = implode(PHP_EOL, $data['o:terms']);
+        if (!$data) {
+            return null;
+        }
+        $data['o:terms'] = implode(PHP_EOL, $data['o:terms'] ?? []);
         try {
             return $this->api->create('custom_vocabs', $data)->getContent();
         } catch (\Exception $e) {
