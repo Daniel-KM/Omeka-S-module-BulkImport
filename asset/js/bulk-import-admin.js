@@ -21,7 +21,7 @@
             map: {
                 attrs: {
                 },
-                children: ['from', 'to'],
+                children: ['from', 'to', 'mod'],
             },
             from: {
                 attrs: {
@@ -34,6 +34,10 @@
                     datatypes: null,
                     language: null,
                     visibility: null,
+                },
+            },
+            mod: {
+                attrs: {
                     raw: null,
                     prepend: null,
                     pattern: null,

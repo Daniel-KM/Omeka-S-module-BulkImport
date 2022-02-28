@@ -40,7 +40,6 @@ use SimpleXMLElement;
 /**
  * @todo Separate xml and json process into two plugins and make this one an abstract one.
  * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\Mapper.
- * @todo Divide json and xml.
  */
 class TransformSource extends AbstractPlugin
 {
@@ -100,144 +99,57 @@ class TransformSource extends AbstractPlugin
      * Prepare a config to simplify any import into Omeka and transform a source.
      *
      * It can be used as headers of a spreadsheet, or in an import config, or to
-     * extract metadata from files.
+     * extract metadata from files json or xml files.
      *
      * It contains a list of mappings between source data and destination data.
      * For example:
+     *
      * ```
-     * source or xpath = dcterms:title @fr-fr ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
+     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
      * ```
+     *
      * or the same mapping as xml:
+     *
      * ```xml
-     * <map>
-     *     <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
-     *     <to field="dcterms:title"
-     *         language="fra"
-     *         datatypes="literal"
-     *         visibility="private"
-     *         pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"
-     *     />
-     * </map>
+     * <mapping>
+     *     <map>
+     *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
+     *         <to field="dcterms:title" language="fra" datatypes="literal" visibility="private"/>
+     *         <mod pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"/>
+     *     </map>
+     * </mapping>
      * ```
      *
      * will be stored internally as:
      *
      * ```php
      * [
-     *      'from' => 'source or xpath',
-     *      'to' => [
-     *          'field' => 'dcterms:title',
-     *          'property_id' => 1,
-     *          'type' => 'literal',
-     *          '@language' => 'fr-fr',
-     *          'is_public' => false,
-     *          'pattern' => 'pattern for the {{ value|trim }} with {{/source/record/data}}',
-     *          'replace' => [
-     *              '{{/source/record/data}}',
+     *     [
+     *          'from' => 'source or xpath',
+     *          'to' => [
+     *              'field' => 'dcterms:title',
+     *              'property_id' => 1,
+     *              'type' => 'literal',
+     *              '@language' => 'fra',
+     *              'is_public' => false,
      *          ],
-     *          'twig' => [
-     *              '{{ value|trim }}',
+     *          'mod' => [
+     *              'raw' => null,
+     *              'prepend' => 'pattern for the ',
+     *              'pattern' => '{{ value|trim }} with {{/source/record/data}}',
+     *              'append' => null,
+     *              'replace' => [
+     *                  '{{/source/record/data}}',
+     *              ],
+     *              'twig' => [
+     *                  '{{ value|trim }}',
+     *              ],
      *          ],
      *      ],
      * ]
      * ```
      *
-     * With the xml format, the config above is enough to understand it.
-     *
-     * With the ini format, a config is composed of multiple lines. The sections
-     * like "[info]" are managed: the next lines will be a sub-array.
-     *
-     * Each line is formatted with a source and a destination separated with the
-     * sign "=". The format of each part (left and right of the "=") of each
-     * line is checked, but not if it has a meaning.
-     *
-     * The source part may be the key in an array, or in a sub-array (`dcterms:title.0.@value`),
-     * or a xpath (used when the input is xml).
-     *
-     * The destination part is an automap field. It has till five components and
-     * only the first is required.
-     *
-     * The first must be the destination field. The field is one of the key used
-     * in the json representation of a resource, generally a property, but other
-     * metadata too ("o:resource_template", etc.). It can be a sub-field too, in
-     * particular to specify related resources when importing an item:
-     * `o:media[o:original_url]`, `o:media[o:ingester]`, or `o:item_set[dcterms:identifier]`.
-     *
-     * The next three components are specific to properties and can occur in any
-     * order and are prefixed with a code, similar to some rdf representations.
-     * The language is prefixed with a `@`: `@fr-FR` or `@fra`.
-     * The data type is prefixed with a `^^`: `^^resource:item` or `^^customvocab:Liste des établissements`.
-     * The visibility is prefixed with a `§`: `§public` or `§private`.
-     *
-     * The last component is a pattern used to transform the source value when
-     * needed. It is prefixed with a `~`. It can be a simple replacement string,
-     * or a complex pattern with some twig commands.
-     *
-     * A simple replacement string is a pattern with some replacement values:
-     * ```
-     * geonameId = dcterms:identifier ^^uri ~ https://www.geonames.org/{{ value }}
-     * ```
-     * The available replacement patterns are: the current source value `{{ value }}`
-     * and any source query `{{xxx}}`, for example a xpath `{{/doc/str[@name="ppn_z"]}}`.
-     *
-     * `{{ value }}` and `{{value}}` are not the same: the first is the current
-     * value extracted from the source part (stored as variable) and the second
-     * is the key used to extract the value with the key `value` from a source
-     * data array.
-     *
-     * For default values, the right part may be a simple string starting and
-     * ending with a simple or double quotes, in which case the left part is the
-     * destination.
-     * ```
-     * dcterms:license = "Public domain"
-     * dcterms:license = ^^literal ~ "Public domain"
-     * dcterms:license = dcterms:license ^^literal ~ "Public domain"
-     * ```
-     *
-     * For complex transformation, the pattern may be build as a simplified twig
-     * one: this is a string where the values between `{{ ` and ` }}` are
-     * converted with some basic filters. For example, `{{ value|trim }}` takes
-     * the value from the source and trims it. The space after `{{` and before
-     * `}}` is required.
-     * Only some common twig filters are supported: `abs`, `capitalize`, `date`,
-     * `e`, `escape`, `first`, `format`, `last`, `length`, `lower`, `slice`,
-     * `split`, `striptags`, `title`, `trim`, `upper`, `url_encode`. Only some
-     * common arguments of these filters are supported. Twig filters can be
-     * combined, but not nested.
-     *
-     * An example of the use of the filters is the renormalization of a date,
-     * here from a xml unimarc source `17890804` into a standard ISO 8601
-     * numeric date time `1789-08-04`:
-     * ```
-     * /record/datafield[@tag="103"]/subfield[@code="b"] = dcterms:valid ^^numeric:timestamp ~ {{ value|trim|slice(1,4) }}-{{ value|trim|slice(5,2) }}-{{ value|trim|slice(7,2) }}
-     * ```
-     *
-     * The twig filters can be used in conjunction with simple replacements. In
-     * that case, they are processed after the replacements.
-     *
-     * The source can be `~` too, in which case the destination is a composite
-     * of multiple sources:
-     * ```
-     * ~ = dcterms:spatial ~ Coordinates: {{lat}}/{{lng}}
-     * ```
-     * Here, `{{lat}}` and `{{lng}}` are values extracted from the source.
-     *
-     * The prefix `~` must not be used in other components or in the left part
-     * for now.
-     *
-     * For the autofiller of the module Advanced resource template, a special
-     * line can be used to determine the autofiller: `[service:subservice #variant] = label`.
-     * The label is optional, but the "=" is required when there is no label in
-     * order to make a distinction with standard sections.
-     * Two special sources can be used: `service_url = https://xxx`, to set the
-     * endpoint of the web service, and `service_query = ?username=johnsmith&lang={language}&q={query}`
-     * to specify the query to use to fetch data.
-     * Two special destinations are available too: `{{ label }}` is used to get
-     * the main title of a resource; `{{ list }}` is used to specify the base path
-     * of the resources when it is not the root and allows to loop them.
-     *
-     * If the source or the destination is not determined, is is returned as
-     * a raw pattern.
+     * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}
      */
     public function __invoke(): self
     {
@@ -338,15 +250,18 @@ class TransformSource extends AbstractPlugin
 
     /**
      * Only the settings for the namable sections can be get, of course.
+     *
+     * For sections "mapping", the name is the "from" path and all the setting
+     * is output.
      */
-    public function getSectionSetting(string $section, string $name, $default = null)    {
+    public function getSectionSetting(string $section, string $name, $default = null) {
         if (!empty($this->configSections[$section])
             && $this->configSections[$section] === 'mapping'
             && !empty($this->normConfig[$section])
         ) {
             foreach ($this->normConfig[$section] as $fromTo) {
                 if ($name === $fromTo['from']) {
-                    return $fromTo['to'];
+                    return $fromTo;
                 }
             }
             return $default;
@@ -382,7 +297,8 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
 
-            $raw = $to['raw'] ?? '';
+            $mod = $fromTo['mod'] ?? [];
+            $raw = $mod['raw'] ?? '';
             if (strlen($raw)) {
                 $resource[$to['dest']] = empty($resource[$to['dest']])
                     ? [$raw]
@@ -392,12 +308,12 @@ class TransformSource extends AbstractPlugin
 
             // @todo When default, "from" is useless: remove it from normalized config.
             $from = $fromTo['from'] ?? null;
-            $prepend = $to['prepend'] ?? '';
-            $append = $to['append'] ?? '';
+            $prepend = $mod['prepend'] ?? '';
+            $append = $mod['append'] ?? '';
 
             $result = [];
             if ($isDefault) {
-                $converted = $this->convertTargetToString($from, $to);
+                $converted = $this->convertTargetToString($from, $mod);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
@@ -422,7 +338,7 @@ class TransformSource extends AbstractPlugin
                     // Allows to use multiple mappings in one pattern, managing fields.
                     $source = $flatData;
                     $source[$from] = $value;
-                    $converted = $this->convertTargetToString($from, $to, $source);
+                    $converted = $this->convertTargetToString($from, $mod, $source);
                     if ($converted === [] || $converted === '' || $converted === null) {
                         continue;
                     }
@@ -472,7 +388,8 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
 
-            $raw = $to['raw'] ?? '';
+            $mod = $fromTo['mod'] ?? [];
+            $raw = $mod['raw'] ?? '';
             if (strlen($raw)) {
                 $resource[$to['dest']] = empty($resource[$to['dest']])
                     ? [$raw]
@@ -481,12 +398,12 @@ class TransformSource extends AbstractPlugin
             }
 
             $from = $fromTo['from'] ?? null;
-            $prepend = $to['prepend'] ?? '';
-            $append = $to['append'] ?? '';
+            $prepend = $mod['prepend'] ?? '';
+            $append = $mod['append'] ?? '';
 
             $result = [];
             if ($isDefault) {
-                $converted = $this->convertTargetToStringXml($from, $to);
+                $converted = $this->convertTargetToStringXml($from, $mod);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
@@ -497,7 +414,7 @@ class TransformSource extends AbstractPlugin
                 }
                 $values = $this->xpathQuery($doc, $from);
                 foreach ($values as $value) {
-                    $converted = $this->convertTargetToStringXml($from, $to, $doc, $value);
+                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value);
                     if ($converted === [] || $converted === '' || $converted === null) {
                         continue;
                     }
@@ -522,13 +439,15 @@ class TransformSource extends AbstractPlugin
      */
     public function convertToString(string $section, string $name, $data = null): ?string
     {
-        $to = $this->getSectionSetting($section, $name);
-        if (!$to) {
+        // Note: for section type "mapping", the output is the whole setting
+        // including "from", "to" and "mod".
+        $toMod = $this->getSectionSetting($section, $name);
+        if (!$toMod) {
             return null;
         }
         return $data instanceof \SimpleXMLElement
-            ? $this->convertTargetToStringXml($name, $to, $data)
-            : $this->convertTargetToString($name, $to, $data);
+            ? $this->convertTargetToStringXml($name, $toMod, $data)
+            : $this->convertTargetToString($name, $toMod, $data);
     }
 
     /**
@@ -542,7 +461,7 @@ class TransformSource extends AbstractPlugin
      *     'value' => 'xxx',
      * ];
      * $from = 'yyy';
-     * $to = [
+     * $mod = [
      *     'pattern' => '{{ endpoint }}/api{{itemLink}}',
      *     // The following keys are automatically created from the pattern.
      *     'replace' => [ '{{itemLink}}' ]
@@ -554,25 +473,30 @@ class TransformSource extends AbstractPlugin
      * $output = 'https://example.com/api/id/1850'
      * ```
      *
+     * @todo Clarify arguments of function convertTargetToString().
+     * @internal For internal use only.
+     *
      * @param string $from The key where to get the data.
-     * @param array|string $to If array, contains the pattern to use, else the
+     * @param array|string $mod If array, contains the pattern to use, else the
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToString($from, $to, ?array $data = null): ?string
+    protected function convertTargetToString($from, $mod, ?array $data = null): ?string
     {
-        if (is_null($to) || is_string($to)) {
-            return $to;
+        if (is_null($mod) || is_string($mod)) {
+            return $mod;
         }
+
+        $mod = $mod['mod'] ?? $mod;
 
         $flatData = $this->flatArray($data);
         $fromValue = $flatData[$from] ?? null;
         $this->addVariable('value', $fromValue);
 
-        if (!isset($to['pattern']) || !strlen($to['pattern'])) {
+        if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
             if (is_null($fromValue)) {
                 return null;
             }
@@ -584,15 +508,15 @@ class TransformSource extends AbstractPlugin
             return (string) reset($fromValue);
         }
 
-        if (isset($to['raw']) && strlen($to['raw'])) {
-            return (string) $to['raw'];
+        if (isset($mod['raw']) && strlen($mod['raw'])) {
+            return (string) $mod['raw'];
         }
 
         // When there are data, a query can be used for each variable.
         $replace = [];
-        if (!empty($to['replace'])) {
+        if (!empty($mod['replace'])) {
             if ($data) {
-                foreach ($to['replace'] as $wrappedQuery) {
+                foreach ($mod['replace'] as $wrappedQuery) {
                     // Manage the exceptions: there is no value here, neither label or list.
                     if (in_array($wrappedQuery, ['{{ value }}', '{{ label }}', '{{ list }}'])) {
                         $replace[$wrappedQuery] = '';
@@ -602,7 +526,7 @@ class TransformSource extends AbstractPlugin
                     $replace[$wrappedQuery] = $flatData[$query] ?? '';
                 }
             } else {
-                $replace = array_fill_keys($to['replace'], '');
+                $replace = array_fill_keys($mod['replace'], '');
             }
         }
 
@@ -619,19 +543,19 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
             // The variable can be set multiple times.
-            if (!empty($to['twig'])  && ($poss = array_keys($to['twig'], "{{ $name }}"))) {
+            if (!empty($mod['twig'])  && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
                 foreach ($poss as $pos) {
-                    unset($to['twig'][$pos]);
+                    unset($mod['twig'][$pos]);
                 }
             }
         }
 
         $value = $replace
-            ? str_replace(array_keys($replace), array_values($replace), $to['pattern'])
-            : $to['pattern'];
+            ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
+            : $mod['pattern'];
 
-        if (!empty($to['twig'])) {
-            $value = $this->twig($value, $this->variables, $to['twig'], $to['twig_has_replace'] ?? [], $replace);
+        if (!empty($mod['twig'])) {
+            $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
         }
 
         return $value;
@@ -648,7 +572,7 @@ class TransformSource extends AbstractPlugin
      *     'value' => 'xxx',
      * ];
      * $from = 'yyy';
-     * $to = [
+     * $mod = [
      *     'pattern' => '{{ endpoint }}/api{{itemLink}}',
      *     // The following keys are automatically created from the pattern.
      *     'replace' => [ '{{itemLink}}' ]
@@ -660,8 +584,10 @@ class TransformSource extends AbstractPlugin
      * $output = 'https://example.com/api/id/1850'
      * ```
      *
+     * @todo Clarify arguments of function convertTargetToStringXml().
+     *
      * @param string|null $from The key where to get the data.
-     * @param array|string $to If array, contains the pattern to use, else the
+     * @param array|string mod If array, contains the pattern to use, else the
      * static value itself.
      * @param \DOMDocument|\SimpleXMLElement $data The resource from which
      * extract the data, if needed.
@@ -669,11 +595,13 @@ class TransformSource extends AbstractPlugin
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToStringXml($from, $to, $data = null, $fromValue = null): ?string
+    protected function convertTargetToStringXml($from, $mod, $data = null, $fromValue = null): ?string
     {
-        if (is_null($to) || is_string($to)) {
-            return $to;
+        if (is_null($mod) || is_string($mod)) {
+            return $mod;
         }
+
+        $mod = $mod['mod'] ?? $mod;
 
         if (is_null($fromValue) && $from && $data) {
             $fromValue = $this->xpathQuery($data, $from);
@@ -695,19 +623,19 @@ class TransformSource extends AbstractPlugin
         $fromValue = $first;
         $this->addVariable('value', $first);
 
-        if (!isset($to['pattern']) || !strlen($to['pattern'])) {
+        if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
             return $first instanceof \DOMNode ? (string) $first->nodeValue : (string) $first;
         }
 
-        if (isset($to['raw']) && strlen($to['raw'])) {
-            return (string) $to['raw'];
+        if (isset($mod['raw']) && strlen($mod['raw'])) {
+            return (string) $mod['raw'];
         }
 
         // When there are data, a query can be used for each variable.
         $replace = [];
-        if (!empty($to['replace'])) {
+        if (!empty($mod['replace'])) {
             if ($data) {
-                foreach ($to['replace'] as $wrappedQuery) {
+                foreach ($mod['replace'] as $wrappedQuery) {
                     // Manage the exceptions: there is no value here, neither label or list.
                     if (in_array($wrappedQuery, ['{{ value }}', '{{ label }}', '{{ list }}'])) {
                         $replace[$wrappedQuery] = '';
@@ -725,7 +653,7 @@ class TransformSource extends AbstractPlugin
                     }
                 }
             } else {
-                $replace = array_fill_keys($to['replace'], '');
+                $replace = array_fill_keys($mod['replace'], '');
             }
         }
 
@@ -742,19 +670,19 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
             // The variable can be set multiple times.
-            if (!empty($to['twig'])  && ($poss = array_keys($to['twig'], "{{ $name }}"))) {
+            if (!empty($mod['twig'])  && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
                 foreach ($poss as $pos) {
-                    unset($to['twig'][$pos]);
+                    unset($mod['twig'][$pos]);
                 }
             }
         }
 
         $value = $replace
-            ? str_replace(array_keys($replace), array_values($replace), $to['pattern'])
-            : $to['pattern'];
+            ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
+            : $mod['pattern'];
 
-        if (!empty($to['twig'])) {
-            $value = $this->twig($value, $this->variables, $to['twig'], $to['twig_has_replace'] ?? [], $replace);
+        if (!empty($mod['twig'])) {
+            $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
         }
 
         return $value;
@@ -1175,6 +1103,14 @@ class TransformSource extends AbstractPlugin
             }
         }
 
+        $toKeys = [
+            'field' => null,
+            'property_id' => null,
+            'type' => null,
+            '@language' => null,
+            'is_public' => null,
+        ];
+
         // Lines are trimmed. Empty lines are removed.
         $lines = $this->stringToList($this->config);
 
@@ -1270,6 +1206,7 @@ class TransformSource extends AbstractPlugin
                     ? $to
                     : $this->preparePattern(trim(mb_substr($to, 1)));
             } else {
+                // Section type is "mapping".
                 if (!strlen($to)) {
                     $this->logger->warn(sprintf('The mapping "%s" has no destination.', trim($line, "= \t\n\r\0\x0B")));
                     continue;
@@ -1283,12 +1220,10 @@ class TransformSource extends AbstractPlugin
                     $this->logger->err(sprintf('The destination "%s" is invalid.', $to));
                     continue;
                 }
-                // Remove useless values for the mapping.
                 $result = [
                     'from' => $from,
-                    'to' => array_filter($ton, function ($v) {
-                        return !is_null($v);
-                    }),
+                    'to' => array_intersect_key($ton, $toKeys),
+                    'mod' => array_diff_key($ton, $toKeys),
                 ];
                 $result['to']['dest'] = $toDest;
                 $normConfigRef[] = $result;
@@ -1347,40 +1282,41 @@ class TransformSource extends AbstractPlugin
             $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
                 ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
                 : null;
-            $result['to']['raw'] = isset($xmlArray['to']['@attributes']['raw']) && strlen($xmlArray['to']['@attributes']['raw'])
-                ? (string) $xmlArray['to']['@attributes']['raw']
+
+            $result['mod']['raw'] = isset($xmlArray['mod']['@attributes']['raw']) && strlen($xmlArray['mod']['@attributes']['raw'])
+                ? (string) $xmlArray['mod']['@attributes']['raw']
                 : null;
-            $hasNoRaw = is_null($result['to']['raw']);
-            $result['to']['prepend'] = $hasNoRaw && isset($xmlArray['to']['@attributes']['prepend'])
-                ? (string) $xmlArray['to']['@attributes']['prepend']
+            $hasNoRaw = is_null($result['mod']['raw']);
+            $result['mod']['prepend'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['prepend'])
+                ? (string) $xmlArray['mod']['@attributes']['prepend']
                 : null;
-            $result['to']['append'] = $hasNoRaw && isset($xmlArray['to']['@attributes']['append'])
-                ? (string) $xmlArray['to']['@attributes']['append']
+            $result['mod']['append'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['append'])
+                ? (string) $xmlArray['mod']['@attributes']['append']
                 : null;
-            $result['to']['pattern'] = null;
-            if ($hasNoRaw && isset($xmlArray['to']['@attributes']['pattern'])) {
-                $r = $this->preparePattern((string) $xmlArray['to']['@attributes']['pattern']);
+            $result['mod']['pattern'] = null;
+            if ($hasNoRaw && isset($xmlArray['mod']['@attributes']['pattern'])) {
+                $r = $this->preparePattern((string) $xmlArray['mod']['@attributes']['pattern']);
                 if (isset($r['raw']) && strlen($r['raw'])) {
-                    $result['to']['raw'] = $r['raw'];
+                    $result['mod']['raw'] = $r['raw'];
                     $hasNoRaw = false;
                 } else {
                     if (isset($r['prepend']) && strlen($r['prepend'])) {
-                        $result['to']['prepend'] = $r['prepend'];
+                        $result['mod']['prepend'] = $r['prepend'];
                     }
                     if (isset($r['append']) && strlen($r['append'])) {
-                        $result['to']['append'] = $r['append'];
+                        $result['mod']['append'] = $r['append'];
                     }
-                    $result['to']['pattern'] = $r['pattern'] ?? null;
-                    $result['to']['replace'] = $r['replace'] ?? [];
-                    $result['to']['twig'] = $r['twig'] ?? [];
-                    $result['to']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
+                    $result['mod']['pattern'] = $r['pattern'] ?? null;
+                    $result['mod']['replace'] = $r['replace'] ?? [];
+                    $result['mod']['twig'] = $r['twig'] ?? [];
+                    $result['mod']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
                 }
             }
 
             // @todo Remove the short destination (used in processor and when converting to avoid duplicates)?
             $fullPattern = $hasNoRaw
-                ? ($result['to']['prepend'] ?? '') . ($result['to']['pattern'] ?? '') . ($result['to']['append'] ?? '')
-                : (string) $result['to']['raw'];
+                ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
+                : (string) $result['mod']['raw'];
             $result['to']['dest'] = $result['to']['field']
                 . (count($result['to']['datatypes']) ? ' ^^' . implode('; ', $result['to']['datatypes']) : '')
                 . (isset($result['to']['@language']) ? ' @' . $result['to']['@language'] : '')
