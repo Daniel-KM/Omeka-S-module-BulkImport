@@ -90,6 +90,16 @@ trait FileTrait
     }
 
     /**
+     * Check if a file or url exists and is readable.
+     */
+    protected function checkFileOrUrl($fileOrUrl, ?ErrorStore $messageStore = null): bool
+    {
+        return $this->bulk->isUrl($fileOrUrl)
+            ? $this->checkUrl($fileOrUrl)
+            : $this->checkFile($fileOrUrl);
+    }
+
+    /**
      * Check if a file exists and is readable.
      */
     protected function checkFile($filepath, ?ErrorStore $messageStore = null): bool
