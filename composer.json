@@ -10,8 +10,12 @@
         "flowjs/flow.js": "^2.14.1",
         "codemirror/codemirror": "^5.65.1",
         "oomphinc/composer-installers-extender": "^2.0",
-        "laminas/laminas-escaper": "2.6.1",
-        "laminas/laminas-zendframework-bridge": "1.1.1"
+        "mtdowling/jmespath.php": "^2.6"
+    },
+    "replace": {
+        "laminas/laminas-escaper": "*",
+        "laminas/laminas-zendframework-bridge": "*",
+        "symfony/polyfill-mbstring": "*"
     },
     "require-dev": {
         "biblibre/omeka-s-test-helper": "dev-master"
