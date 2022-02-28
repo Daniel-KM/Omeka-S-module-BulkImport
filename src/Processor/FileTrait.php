@@ -521,6 +521,16 @@ trait FileTrait
     /**
      * Fetch, check and save a file for an asset or a media.
      *
+     * @deprecated Use self::fetchFile()
+     */
+    protected function fetchUrl($type, $sourceName, $filename, $storageId, $extension, $url)
+    {
+        return $this->fetchFile($type, $sourceName, $filename, $storageId, $extension, $url);
+    }
+
+    /**
+     * Fetch, check and save a file for an asset or a media.
+     *
      * @todo Create derivative files (thumbnails) with the tempfile factory.
      * @fixme Source name is not used, only filename.
      *
@@ -529,13 +539,13 @@ trait FileTrait
      * @param string $filename
      * @param string $storageId
      * @param string $extension
-     * @param string $url
+     * @param string $fileOrUrl
      * @return array
      *
      * @todo Use \Omeka\File\Downloader
      * @todo Rewrite method to fetch url: the filename and extension may not be known.
      */
-    protected function fetchUrl($type, $sourceName, $filename, $storageId, $extension, $url)
+    protected function fetchFile($type, $sourceName, $filename, $storageId, $extension, $fileOrUrl)
     {
         // Quick check.
         if (!$this->disableFileValidation
@@ -557,7 +567,7 @@ trait FileTrait
                 'status' => 'error',
                 'message' => new PsrMessage(
                     'File {url} ({source}) don’t have an allowed extension: "{extension}".', // @translate
-                    ['url' => $url, 'source' => $sourceName, 'extension' => $extension]
+                    ['url' => $fileOrUrl, 'source' => $sourceName, 'extension' => $extension]
                 ),
             ];
         }
@@ -589,27 +599,45 @@ trait FileTrait
             ];
         }
 
-        $tempname = tempnam($this->tempPath, 'omkbulk_');
+        $isUrl = $this->bulk->isUrl($fileOrUrl);
 
-        // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
-        // Curl is faster than copy or file_get_contents/file_put_contents.
-        // $result = copy($url, $tempname);
-        // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
-        $ch = curl_init($url);
-        $fp = fopen($tempname, 'wb');
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_exec($ch);
-        curl_close($ch);
-        fclose($fp);
+        if ($isUrl) {
+            $tempname = tempnam($this->tempPath, 'omkbulk_');
+            // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
+            // Curl is faster than copy or file_get_contents/file_put_contents.
+            // $result = copy($url, $tempname);
+            // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
+            $ch = curl_init($fileOrUrl);
+            $fp = fopen($tempname, 'wb');
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_exec($ch);
+            curl_close($ch);
+            fclose($fp);
+        } else {
+            $errorStore = new ErrorStore();
+            if (!$this->checkFile($fileOrUrl)) {
+                return [
+                    'status' => 'error',
+                    'message' => new PsrMessage(
+                        'File {file} invalid: {error}', // @translate
+                        ['file' => $fileOrUrl, 'error' => reset($errorStore->getErrors())]
+                    ),
+                ];
+            }
+            $tempname = $fileOrUrl;
+        }
 
         if (!filesize($tempname)) {
+            if ($isUrl) {
+                unlink($tempname);
+            }
             return [
                 'status' => 'error',
                 'message' => new PsrMessage(
-                    'Unable to download asset {url}.', // @translate
-                    ['url' => $url]
+                    'Unable to download file {url}.', // @translate
+                    ['url' => $fileOrUrl]
                 ),
             ];
         }
@@ -624,22 +652,26 @@ trait FileTrait
         if (!$this->disableFileValidation) {
             if ($type === 'asset') {
                 if (!in_array($mediaType, \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES)) {
-                    unlink($tempname);
+                    if ($isUrl) {
+                        unlink($tempname);
+                    }
                     return [
                         'status' => 'error',
                         'message' => new PsrMessage(
                             'Asset {url} is not an image.', // @translate
-                            ['url' => $url]
+                            ['url' => $fileOrUrl]
                         ),
                     ];
                 }
             } elseif (!in_array($mediaType, $this->allowedMediaTypes)) {
-                unlink($tempname);
+                if ($isUrl) {
+                    unlink($tempname);
+                }
                 return [
                     'status' => 'error',
                     'message' => new PsrMessage(
                         'File {url} is not an allowed file.', // @translate
-                        ['url' => $url]
+                        ['url' => $fileOrUrl]
                     ),
                 ];
             }
@@ -655,7 +687,9 @@ trait FileTrait
         /*
         $result = rename($tempname, $destPath);
         if (!$result) {
-            unlink($tempname);
+            if ($isUrl) {
+                unlink($tempname);
+            }
             return [
                 'status' => 'error',
                 'message' => new PsrMessage(
@@ -664,11 +698,15 @@ trait FileTrait
                 ),
             ];
         }
-        */
+         */
 
         $hasThumbnails = $type !== 'asset';
         if ($hasThumbnails) {
             $hasThumbnails = $tempFile->storeThumbnails();
+        }
+
+        if ($isUrl) {
+            unlink($tempname);
         }
 
         return [
