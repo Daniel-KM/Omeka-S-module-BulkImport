@@ -814,8 +814,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         if (!empty($target['value']['type'])) {
             $datatypeNames = [$target['value']['type']];
-        } elseif (!empty($target['datatypes'])) {
-            $datatypeNames = $target['datatypes'];
+        } elseif (!empty($target['datatype'])) {
+            $datatypeNames = $target['datatype'];
         } else {
             // Normally not possible, so use "literal", whatever the option is.
             $datatypeNames = ['literal'];
@@ -888,12 +888,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
                     $resource['messageStore']->addNotice('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatype' => implode('", "', $datatypeNames)]
                     ));
                 } else {
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Try adding "literal" to datatypes or default to it.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatype' => implode('", "', $datatypeNames)]
                     ));
                 }
             }
@@ -1959,7 +1959,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if ($propertyId) {
                     $datatypes = [];
                     // Normally already checked.
-                    foreach ($metadata['datatypes'] ?? [] as $datatype) {
+                    foreach ($metadata['datatype'] ?? [] as $datatype) {
                         $datatypes[] = $this->bulk->getDataTypeName($datatype);
                     }
                     $datatypes = array_filter(array_unique($datatypes));
@@ -1975,7 +1975,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $result['value']['@language'] = $metadata['language'];
                     $result['value']['is_public'] = $metadata['is_public'] !== 'private';
                     if (is_null($datatype)) {
-                        $result['datatypes'] = $datatypes;
+                        $result['datatype'] = $datatypes;
                     }
                 }
                 // A specific or module field. These fields may be useless.
@@ -1983,7 +1983,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 else {
                     $result['full_field'] = $sourceField;
                     $result['@language'] = $metadata['language'];
-                    $result['datatypes'] = $metadata['datatypes'] ?? [];
+                    $result['type'] = empty($metadata['datatype'])
+                        ? null
+                        : (is_array($metadata['datatype']) ? reset($metadata['datatype']) : (string) $metadata['datatype']);
                     $result['is_public'] = $metadata['is_public'] !== 'private';
                 }
 

@@ -31,7 +31,7 @@
             to: {
                 attrs: {
                     field: null,
-                    datatypes: null,
+                    datatype: null,
                     language: null,
                     visibility: null,
                 },

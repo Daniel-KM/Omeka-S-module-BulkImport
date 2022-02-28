@@ -896,8 +896,8 @@ SQL;
         $sqlFilters = '';
         if (!empty($params['filters'])) {
             $filters = &$params['filters'];
-            if (!empty($filters['datatypes'])) {
-                $datatypes = (array) $filters['datatypes'];
+            if (!empty($filters['datatype'])) {
+                $datatypes = (array) $filters['datatype'];
                 if (count($datatypes)) {
                     $sqlFilters = 'AND (`value`.`type` IN (' . implode(', ', array_map([$this->connection, 'quote'], $datatypes)) . ')';
                     if (in_array('valuesuggest', $datatypes)) {
@@ -965,8 +965,8 @@ SQL;
         $sqlFilters = '';
         if (!empty($params['filters'])) {
             $filters = &$params['filters'];
-            if (!empty($filters['datatypes'])) {
-                $datatypes = (array) $filters['datatypes'];
+            if (!empty($filters['datatype'])) {
+                $datatypes = (array) $filters['datatype'];
                 if (count($datatypes)) {
                     $sqlFilters = 'AND (`value`.`type` IN (' . implode(', ', array_map([$this->connection, 'quote'], $datatypes)) . ')';
                     if (in_array('valuesuggest', $datatypes)) {
@@ -1655,11 +1655,11 @@ SQL;
                 $field['header'] = $firstKeys[$index];
                 $field['term'] = $field['field'];
                 $field['property_id'] = $propertyIds[$field['field']];
-                if (empty($field['datatypes'])) {
+                if (empty($field['datatype'])) {
                     $field['type'] = 'literal';
                 } else {
                     // TODO Ideally, the value should be checked according to a list of datatypes.
-                    $field['type'] = reset($field['datatypes']);
+                    $field['type'] = reset($field['datatype']);
                 }
                 $destinations[] = $field;
                 $properties[$field['field']] = $field['property_id'];

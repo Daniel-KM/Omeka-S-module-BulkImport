@@ -25,7 +25,7 @@ class AutomapFields extends AbstractPlugin
         // Check a data type (^^resource:item or ^^customvocab:Liste des établissements)
         // or multiple data types (^^customvocab:xxx ; resource:item ; literal).
         // The sub data type must not contain a ";".
-        . '|(?:\s*\^\^\s*(?<datatypes>(?:[a-zA-Z][\w;]*:[\w\p{L}][\w\p{L}:;\s-]*?|[a-zA-Z][\w;\s-]*)+))'
+        . '|(?:\s*\^\^\s*(?<datatype>(?:[a-zA-Z][\w;]*:[\w\p{L}][\w\p{L}:;\s-]*?|[a-zA-Z][\w;\s-]*)+))'
         // Check visibility (§private).
         . '|(?:\s*§\s*(?<visibility>public|private|))'
         // Max three options, but no check for duplicates for now.
@@ -232,9 +232,9 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $automapList[$found];
                             $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['datatypes'] = empty($matches['datatypes'])
+                            $result['datatype'] = empty($matches['datatype'])
                                 ? []
-                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
+                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatype']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $result = $this->appendPattern($result);
@@ -259,9 +259,9 @@ class AutomapFields extends AbstractPlugin
                             $result = [];
                             $result['field'] = $propertyLists['names'][$found];
                             $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
-                            $result['datatypes'] = empty($matches['datatypes'])
+                            $result['datatype'] = empty($matches['datatype'])
                                 ? []
-                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
+                                : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatype']))));
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             $result = $this->appendPattern($result);
@@ -309,7 +309,7 @@ class AutomapFields extends AbstractPlugin
                     $result = [];
                     $result['field'] = $field;
                     $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
-                    $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
+                    $result['datatype'] = empty($matches['datatype']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatype'])));
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                     $result = $this->appendPattern($result);

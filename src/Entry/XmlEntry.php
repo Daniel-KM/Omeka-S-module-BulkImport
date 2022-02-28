@@ -300,7 +300,7 @@ class XmlEntry extends BaseEntry
             case 'xsd:boolean':
             case 'http://www.w3.org/2001/XMLSchema#boolean':
                 $value = [
-                    '@type' => 'boolean',
+                    'type' => 'boolean',
                     '@value' => !(empty($string) || $string === 'false'),
                     '@language' => null,
                 ];

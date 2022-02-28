@@ -114,7 +114,7 @@ class TransformSource extends AbstractPlugin
      * <mapping>
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
-     *         <to field="dcterms:title" language="fra" datatypes="literal" visibility="private"/>
+     *         <to field="dcterms:title" language="fra" datatype="literal" visibility="private"/>
      *         <mod pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
@@ -129,7 +129,7 @@ class TransformSource extends AbstractPlugin
      *          'to' => [
      *              'field' => 'dcterms:title',
      *              'property_id' => 1,
-     *              'type' => 'literal',
+     *              'datatype' => 'literal',
      *              'language' => 'fra',
      *              'is_public' => false,
      *          ],
@@ -1106,7 +1106,7 @@ class TransformSource extends AbstractPlugin
         $toKeys = [
             'field' => null,
             'property_id' => null,
-            'type' => null,
+            'datatype' => null,
             'language' => null,
             'is_public' => null,
         ];
@@ -1276,8 +1276,8 @@ class TransformSource extends AbstractPlugin
             $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])
                 ? (string) $xmlArray['to']['@attributes']['language']
                 : null;
-            $result['to']['datatypes'] = isset($xmlArray['to']['@attributes']['datatypes'])
-                ? array_filter(array_map('trim', explode(';', (string) $xmlArray['to']['@attributes']['datatypes'])))
+            $result['to']['datatype'] = isset($xmlArray['to']['@attributes']['datatype'])
+                ? array_filter(array_map('trim', explode(';', (string) $xmlArray['to']['@attributes']['datatype'])))
                 : [];
             $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
                 ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
@@ -1318,7 +1318,7 @@ class TransformSource extends AbstractPlugin
                 ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
                 : (string) $result['mod']['raw'];
             $result['to']['dest'] = $result['to']['field']
-                . (count($result['to']['datatypes']) ? ' ^^' . implode('; ', $result['to']['datatypes']) : '')
+                . (count($result['to']['datatype']) ? ' ^^' . implode('; ', $result['to']['datatype']) : '')
                 . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
                 . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
                 . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')

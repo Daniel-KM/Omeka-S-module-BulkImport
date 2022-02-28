@@ -1828,7 +1828,7 @@ SQL;
                                     $map['property_id'],
                                 ],
                                 'filters' => [
-                                    'datatypes' => [
+                                    'datatype' => [
                                         'literal',
                                         '',
                                     ],
@@ -2148,7 +2148,7 @@ SQL;
                             'params' => [
                                 'source' => 'bibo:uri',
                                 'filters' => [
-                                    'datatypes' => [
+                                    'datatype' => [
                                         'uri',
                                         'valuesuggest',
                                     ],
@@ -2626,7 +2626,7 @@ SQL;
                             'properties' => [
                                 'bio:place',
                             ],
-                            'datatypes' => [
+                            'datatype' => [
                                 'valuesuggest:geonames:geonames',
                             ],
                             'language_code' => 'fr',
@@ -2684,7 +2684,7 @@ SQL;
                                 'manioc:themePatrimoine',
                                 'manioc:themeTravaux',
                             ],
-                            'datatypes' => [
+                            'datatype' => [
                                 'valuesuggest:geonames:geonames',
                                 'valuesuggest:idref:all',
                                 'valuesuggest:idref:person',
