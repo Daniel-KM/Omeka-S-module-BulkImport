@@ -248,7 +248,7 @@ class XmlEntry extends BaseEntry
                     'type' => 'uri',
                     '@id' => $string,
                     'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label']) ? $attributes['o:label'] : null,
-                    'o:language' => null,
+                    '@language' => null,
                 ];
                 break;
 

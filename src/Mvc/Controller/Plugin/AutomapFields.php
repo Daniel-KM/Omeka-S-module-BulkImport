@@ -231,7 +231,7 @@ class AutomapFields extends AbstractPlugin
                         if ($outputFullMatches) {
                             $result = [];
                             $result['field'] = $automapList[$found];
-                            $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                            $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['datatypes'] = empty($matches['datatypes'])
                                 ? []
                                 : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
@@ -258,7 +258,7 @@ class AutomapFields extends AbstractPlugin
                         if ($outputFullMatches) {
                             $result = [];
                             $result['field'] = $propertyLists['names'][$found];
-                            $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                            $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['datatypes'] = empty($matches['datatypes'])
                                 ? []
                                 : $this->normalizeDatatypes(array_filter(array_map('trim', explode(';', $matches['datatypes']))));
@@ -308,7 +308,7 @@ class AutomapFields extends AbstractPlugin
                 if ($outputFullMatches) {
                     $result = [];
                     $result['field'] = $field;
-                    $result['@language'] = empty($matches['language']) ? null : trim($matches['language']);
+                    $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                     $result['datatypes'] = empty($matches['datatypes']) ? [] : array_filter(array_map('trim', explode(';', $matches['datatypes'])));
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);

@@ -130,7 +130,7 @@ class TransformSource extends AbstractPlugin
      *              'field' => 'dcterms:title',
      *              'property_id' => 1,
      *              'type' => 'literal',
-     *              '@language' => 'fra',
+     *              'language' => 'fra',
      *              'is_public' => false,
      *          ],
      *          'mod' => [
@@ -1107,7 +1107,7 @@ class TransformSource extends AbstractPlugin
             'field' => null,
             'property_id' => null,
             'type' => null,
-            '@language' => null,
+            'language' => null,
             'is_public' => null,
         ];
 
@@ -1273,7 +1273,7 @@ class TransformSource extends AbstractPlugin
                 $result['to']['property_id'] = $termId;
             }
 
-            $result['to']['@language'] = isset($xmlArray['to']['@attributes']['language'])
+            $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])
                 ? (string) $xmlArray['to']['@attributes']['language']
                 : null;
             $result['to']['datatypes'] = isset($xmlArray['to']['@attributes']['datatypes'])
@@ -1319,7 +1319,7 @@ class TransformSource extends AbstractPlugin
                 : (string) $result['mod']['raw'];
             $result['to']['dest'] = $result['to']['field']
                 . (count($result['to']['datatypes']) ? ' ^^' . implode('; ', $result['to']['datatypes']) : '')
-                . (isset($result['to']['@language']) ? ' @' . $result['to']['@language'] : '')
+                . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
                 . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
                 . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')
             ;

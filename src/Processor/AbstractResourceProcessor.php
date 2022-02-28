@@ -1972,7 +1972,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                     $result['value']['property_id'] = $propertyId;
                     $result['value']['type'] = $datatype;
-                    $result['value']['@language'] = $metadata['@language'];
+                    $result['value']['@language'] = $metadata['language'];
                     $result['value']['is_public'] = $metadata['is_public'] !== 'private';
                     if (is_null($datatype)) {
                         $result['datatypes'] = $datatypes;
@@ -1982,7 +1982,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // TODO Check where this exception is used.
                 else {
                     $result['full_field'] = $sourceField;
-                    $result['@language'] = $metadata['@language'];
+                    $result['@language'] = $metadata['language'];
                     $result['datatypes'] = $metadata['datatypes'] ?? [];
                     $result['is_public'] = $metadata['is_public'] !== 'private';
                 }
