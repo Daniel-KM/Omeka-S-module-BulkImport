@@ -11,6 +11,17 @@ class MappingForm extends Form
     {
         parent::init();
 
+        $defaultMapping = <<<'XML'
+<mapping>
+    <map>
+        <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
+        <to field="dcterms:title" datatype="literal" language="" visibility=""/>
+        <mod raw="" prepend="" pattern="" append=""/>
+    </map>
+</mapping>
+
+XML;
+
         $this
             ->add([
                 'name' => 'o:label',
@@ -34,6 +45,8 @@ class MappingForm extends Form
                     'id' => 'o-module-bulk-mapping',
                     'rows' => 30,
                     'class' => 'codemirror-code',
+                    'placeholder' => $defaultMapping,
+                    'value' => $defaultMapping,
                 ],
             ])
 

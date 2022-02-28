@@ -68,6 +68,8 @@ $(document).ready(function(){
                         'class' => 'fas fa-solid fa-check',
                         'title' => $translate('Check file'), // @translate
                     ]) ?></li>
+                    <?php else: ?>
+                    <li><span class="no-action"></span></li>
                     <?php endif; ?>
                 </ul>
             </td>

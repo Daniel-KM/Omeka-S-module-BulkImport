@@ -34,23 +34,9 @@
         padding-right: 8px;
     }
 
-    /* Bulk import */
-    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .field-meta {
-        display: none;
-    }
-    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .inputs {
-        width: 100%;
-    }
-    .bulk-mappings .CodeMirror {
-        font-family: inherit;
-        font-size: unset;
-        height: auto;
-    }
-    .bulk-mappings .inputs .CodeMirror {
-        font-family: inherit;
-        font-size: unset;
-        height: auto;
-        line-height: initial;
+    .bulk-imports .actions .no-action {
+        padding-right: 24px;
+        vertical-align: top;
     }
 
     /* Resource add/edit media files and folders */
@@ -101,5 +87,34 @@
     .media-files-input-preview .media-info .resource-name {
         flex: 1;
         min-width: 0;
+    }
+
+    /* Edit mappings. */
+    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .field-meta {
+        display: none;
+    }
+    .bulk-mappings #content form fieldset > .field:nth-of-type(2) .inputs {
+        width: 100%;
+    }
+    .bulk-mappings .CodeMirror {
+        font-family: inherit;
+        font-size: unset;
+        height: auto;
+    }
+    .bulk-mappings .inputs .CodeMirror {
+        font-family: inherit;
+        font-size: unset;
+        height: auto;
+        line-height: initial;
+    }
+    .bulk-mappings .CodeMirror {
+        border: 1px solid silver;
+        min-height: 70vh;
+    }
+    .bulk-mappings .CodeMirror-scroll {
+        min-height: 70vh;
+    }
+    .bulk-mappings .CodeMirror pre.CodeMirror-placeholder {
+        color: #999;
     }
 }

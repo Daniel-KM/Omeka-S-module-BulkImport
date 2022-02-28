@@ -1,7 +1,7 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
- * @var \BulkImport\Form\MappingDeleteForm $form
+ * @var \BulkImport\Form\MappingForm $form
  * @var \BulkImport\Api\Representation\MappingRepresentation $entity
  */
 
@@ -16,6 +16,7 @@ $this->headLink()
     ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
 $this->headScript()
     ->appendFile($assetUrl('vendor/codemirror/lib/codemirror.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/display/placeholder.js', 'BulkImport'))
     ->appendFile($assetUrl('vendor/codemirror/addon/hint/show-hint.js', 'BulkImport'))
     ->appendFile($assetUrl('vendor/codemirror/addon/hint/xml-hint.js', 'BulkImport'))
     ->appendFile($assetUrl('vendor/codemirror/mode/xml/xml.js', 'BulkImport'))

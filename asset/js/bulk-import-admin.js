@@ -100,6 +100,7 @@
             lineNumbers: true,
             indentUnit: 4,
             undoDepth: 1000,
+            height: 'auto',
             viewportMargin: Infinity,
             extraKeys: {
                 "'<'": completeAfter,
