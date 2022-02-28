@@ -798,6 +798,12 @@ SQL;
             $source = $this->entity;
         }
 
+        if (strpos($value['type'], 'customvocab:') === 0
+            && !is_numeric(mb_substr($value['type'], 12))
+        ) {
+            $value['type'] = $this->bulk->getCustomVocabDataTypeName($value['type']) ?? 'literal';
+        }
+
         $entityValue = new \Omeka\Entity\Value;
         $entityValue->setResource($source);
         $entityValue->setProperty($property);
@@ -950,7 +956,7 @@ SQL;
         foreach ($itemSets as $itemSet) {
             $itemSetIds[] = $itemSet->getId();
         }
-        foreach ($source['o:item_set'] as $itemSet) {
+        foreach ($source['o:item_set'] ?? [] as $itemSet) {
             if (isset($this->map['item_sets'][$itemSet['o:id']])
                 // This check avoids a core bug (don't add the same item set twice).
                 && !in_array($this->map['item_sets'][$itemSet['o:id']], $itemSetIds)

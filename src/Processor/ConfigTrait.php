@@ -196,7 +196,7 @@ trait ConfigTrait
     protected function loadKeyValuePair(?string $configKey, bool $flip = false): ?array
     {
         $result = $this->loadTableFromFile($configKey, true);
-        return $flip
+        return $flip && $result
             ? array_flip($result)
             : $result;
     }

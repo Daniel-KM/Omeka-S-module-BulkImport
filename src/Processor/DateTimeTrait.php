@@ -284,7 +284,7 @@ SQL;
     {
         // Match against ISO 8601, allowing for reduced accuracy.
         $matches = [];
-        $isMatch = preg_match(sprintf('/%s/', $this->patternIso8601), $value, $matches);
+        $isMatch = preg_match('/' . $this->patternIso8601 . '/', (string) $value, $matches);
         if (!$isMatch) {
             return null;
         }
