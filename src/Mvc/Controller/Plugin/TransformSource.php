@@ -125,7 +125,10 @@ class TransformSource extends AbstractPlugin
      * ```php
      * [
      *     [
-     *          'from' => 'source or xpath',
+     *          'from' => [
+     *              'type' => 'xpath',
+     *              'path' => '/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']',
+     *          ],
      *          'to' => [
      *              'field' => 'dcterms:title',
      *              'property_id' => 1,
@@ -260,7 +263,7 @@ class TransformSource extends AbstractPlugin
             && !empty($this->normConfig[$section])
         ) {
             foreach ($this->normConfig[$section] as $fromTo) {
-                if ($name === $fromTo['from']) {
+                if ($name === ($fromTo['from']['path'] ?? null)) {
                     return $fromTo;
                 }
             }
@@ -307,7 +310,7 @@ class TransformSource extends AbstractPlugin
             }
 
             // @todo When default, "from" is useless: remove it from normalized config.
-            $from = $fromTo['from'] ?? null;
+            $from = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
@@ -397,7 +400,7 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
 
-            $from = $fromTo['from'] ?? null;
+            $from = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
@@ -476,7 +479,8 @@ class TransformSource extends AbstractPlugin
      * @todo Clarify arguments of function convertTargetToString().
      * @internal For internal use only.
      *
-     * @param string $from The key where to get the data.
+     * @param string|array $from The key, or an array with key "path", where to
+     * get the data.
      * @param array|string $mod If array, contains the pattern to use, else the
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
@@ -488,6 +492,10 @@ class TransformSource extends AbstractPlugin
     {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
+        }
+
+        if (is_array($from)) {
+            $from = $from['path'] ?? null;
         }
 
         $mod = $mod['mod'] ?? $mod;
@@ -586,7 +594,8 @@ class TransformSource extends AbstractPlugin
      *
      * @todo Clarify arguments of function convertTargetToStringXml().
      *
-     * @param string|null $from The key where to get the data.
+     * @param string|array $from The key, or an array with key "path", where to
+     * get the data.
      * @param array|string mod If array, contains the pattern to use, else the
      * static value itself.
      * @param \DOMDocument|\SimpleXMLElement $data The resource from which
@@ -599,6 +608,10 @@ class TransformSource extends AbstractPlugin
     {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
+        }
+
+        if (is_array($from)) {
+            $from = $from['path'] ?? null;
         }
 
         $mod = $mod['mod'] ?? $mod;
@@ -1221,7 +1234,10 @@ class TransformSource extends AbstractPlugin
                     continue;
                 }
                 $result = [
-                    'from' => $from,
+                    'from' => [
+                        'type' => $this->typePath($from),
+                        'path' => $from,
+                    ],
                     'to' => array_intersect_key($ton, $toKeys),
                     'mod' => array_diff_key($ton, $toKeys),
                 ];
@@ -1247,14 +1263,13 @@ class TransformSource extends AbstractPlugin
 
             if ($isDefault) {
                 $result['from'] = null;
+            } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
+                $result['from'] = ['type' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
+            } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
+                $result['from'] = ['type' => 'xmlpath', 'path' => (string) $xmlArray['from']['@attributes']['xmlpath']];
             } else {
-                if (!isset($xmlArray['from']['@attributes']['xpath'])
-                    || !strlen((string) $xmlArray['from']['@attributes']['xpath'])
-                ) {
-                    $this->logger->err(sprintf('The mapping "%s" has no source.', $index));
-                    return null;
-                }
-                $result['from'] = (string) $xmlArray['from']['@attributes']['xpath'];
+                $this->logger->err(sprintf('The mapping "%s" has no source.', $index));
+                return null;
             }
 
             if (!isset($xmlArray['to']['@attributes']['field'])
@@ -1405,6 +1420,38 @@ class TransformSource extends AbstractPlugin
         }
 
         return $result;
+    }
+
+    /**
+     * Determine if an expression is a js dot object notation or an xpath.
+     *
+     * @return string|null "jsdot" (default) or "xpath".
+     */
+    protected function typePath(?string $path): ?string
+    {
+        if (is_null($path) || !strlen($path)) {
+            return null;
+        }
+
+        // Keys with "/", "'", """, etc. are very rare in json, so not a jsdot.
+        if (strpos($path, '/') !== false
+            || strpos($path, '"') !== false
+            || strpos($path, "'") !== false
+            || strpos($path, '::') !== false
+            || strpos($path, '=') !== false
+        ) {
+            return 'xpath';
+        }
+
+        // A sub-array is represented as "xxx.0.yyy", so a jsdot.
+        if (preg_match('~\.\d+\.~', $path)) {
+            return 'jsdot';
+        }
+
+        $xpath = new DOMXPath(new DOMDocument);
+        return @$xpath->query($path)
+            ? 'xpath'
+            : 'jsdot';
     }
 
     /**
