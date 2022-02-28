@@ -112,7 +112,7 @@ class TransformSource extends AbstractPlugin
      * <map>
      *     <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
      *     <to field="dcterms:title"
-     *         lang="fr-fr"
+     *         language="fra"
      *         datatypes="literal"
      *         visibility="private"
      *         pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"
@@ -1338,8 +1338,8 @@ class TransformSource extends AbstractPlugin
                 $result['to']['property_id'] = $termId;
             }
 
-            $result['to']['@language'] = isset($xmlArray['to']['@attributes']['lang'])
-                ? (string) $xmlArray['to']['@attributes']['lang']
+            $result['to']['@language'] = isset($xmlArray['to']['@attributes']['language'])
+                ? (string) $xmlArray['to']['@attributes']['language']
                 : null;
             $result['to']['datatypes'] = isset($xmlArray['to']['@attributes']['datatypes'])
                 ? array_filter(array_map('trim', explode(';', (string) $xmlArray['to']['@attributes']['datatypes'])))

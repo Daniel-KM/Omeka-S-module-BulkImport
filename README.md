@@ -196,10 +196,12 @@ will be converted internally and used to create a resource like that:
 For xml, the mapping is like that:
 
 ```xml
-<map>
-    <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
-    <to field="dcterms:title" datatypes="literal" lang="" visibility="" raw="" prepend="" pattern="" append=""/>
-</map>
+<mapping>
+    <map>
+        <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
+        <to field="dcterms:title" datatypes="literal" language="" visibility="" raw="" prepend="" pattern="" append=""/>
+    </map>
+</mapping>
 ```
 
 A config is composed of multiple lines. The sections like "[info]" are managed:

@@ -34,10 +34,12 @@ régler la plupart des points, même en se limitant aux vocabulaires de base.
 Format des correspondances :
 
 ```xml
-<map>
-    <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
-    <to field="dcterms:title" datatypes="literal" lang="" visibility="" raw="" prepend="" pattern="" append=""/>
-</map>
+<mapping>
+    <map>
+        <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
+        <to field="dcterms:title" datatypes="literal" language="" visibility="" raw="" prepend="" pattern="" append=""/>
+    </map>
+</mapping>
 ```
 
 Pour la source, le xpath commence au niveau du "record" interne à recordData.
@@ -1829,7 +1831,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='200']/subfield[@code='d']"/>
         <!-- @todo 200-d - La langue traduite est dans le même ordre dans d et z. -->
         <to field="fabio:hasTranslatedTitle"
-            lang="{{../subfield[@code='z']}}"/>
+            language="{{../subfield[@code='z']}}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='200']/subfield[@code='e']"/>
@@ -2272,7 +2274,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='225']/subfield[@code='d']"/>
         <!-- @todo 225-d - La langue traduite est dans le même ordre dans d et z. Intégrer 225-2 également. -->
         <to field="dcterms:isPartOf"
-            lang="{{/record/datafield[@tag='225']/subfield[@code='z']}}"/>
+            language="{{/record/datafield[@tag='225']/subfield[@code='z']}}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='225']/subfield[@code='e']"/>
@@ -4107,13 +4109,13 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='510']/subfield[@code='a']"/>
         <to field="fabio:hasTranslatedTitle"
-            lang="{{../subfield[@code='z']}}"/>
+            language="{{../subfield[@code='z']}}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='510']/subfield[@code!='a' and @code!='z']"/>
         <!-- 510 - La langue est au standard iso 639-2 ou à celui indiqué en $2 (généralement iso 639-3) : ils sont compatibles entre eux. -->
         <to field="fabio:hasTranslatedTitle"
-            lang="{{../subfield[@code='z']}}"
+            language="{{../subfield[@code='z']}}"
             prepend="Titre parallèle "
             pattern="[{{@code}}] : "/>
     </map>

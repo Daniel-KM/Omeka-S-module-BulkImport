@@ -32,7 +32,7 @@
                 attrs: {
                     field: null,
                     datatypes: null,
-                    lang: null,
+                    language: null,
                     visibility: null,
                     raw: null,
                     prepend: null,
