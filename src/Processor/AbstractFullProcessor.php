@@ -177,6 +177,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $currentDateTime;
 
     /**
+     * The date is formatted for mysql, not iso.
+     *
      * @var string
      */
     protected $currentDateTimeFormatted;
@@ -1306,7 +1308,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->logger->notice('Full text search reindexed.'); // @translate
 
         // TODO Run derivative files job.
-        if (count($this->map['media'])) {
+        if (isset($this->map['media']) && count($this->map['media'])) {
             $this->logger->warn('Derivative files should be recreated with module Bulk Check.'); // @translate
         }
     }

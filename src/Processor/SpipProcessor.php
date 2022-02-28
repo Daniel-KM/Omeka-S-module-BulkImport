@@ -854,7 +854,7 @@ class SpipProcessor extends AbstractFullProcessor
         if ($value) {
             if (empty($this->map['items'][$value])) {
                 $this->logger->warn(
-                    'The translation #{id_trad} of item #{item_id} (source {source}) was not found.', // @translate
+                    'The translation #{id_trad} of item #{item_id} (source "{source}") was not found.', // @translate
                     ['id_trad' => $value, 'item_id' => $this->entity->getId(), 'source' => $source['id_article']]
                 );
             } else {
@@ -1161,7 +1161,7 @@ class SpipProcessor extends AbstractFullProcessor
         if ($value) {
             if (empty($this->map['item_sets'][$value])) {
                 $this->logger->warn(
-                    'The translation #{id_trad} of item set #{item_set_id} (source {source}) was not found.', // @translate
+                    'The translation #{id_trad} of item set #{item_set_id} (source "{source}") was not found.', // @translate
                     ['id_trad' => $value, 'item_set_id' => $this->entity->getId(), 'source' => $source['id_article']]
                 );
             } else {
@@ -1662,7 +1662,7 @@ class SpipProcessor extends AbstractFullProcessor
                 ];
             } else {
                 $this->logger->warn(
-                    'The broader concept #{identifier} of items #{item_id} (source {main} {source}) was not found.', // @translate
+                    'The broader concept #{identifier} of items #{item_id} (source {main} "{source}") was not found.', // @translate
                     ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'main' => $mainName, 'source' => $source[$keyId]]
                 );
             }
@@ -1732,9 +1732,22 @@ class SpipProcessor extends AbstractFullProcessor
         }
 
         // L'auteur de la ressource liée est à la fois propriétaire et auteur.
-        $user = $this->entityManager->getRepository(\Omeka\Entity\user::class)->find($this->map['users'][$source['id_auteur']]);
-        if ($user) {
-            $data['linked_resource']->setOwner($user);
+        $userId = $this->map['users'][$source['id_auteur']]['id'] ?? null;
+        if ($userId) {
+            $user = $this->entityManager->find(\Omeka\Entity\User::class, $userId);
+            if ($user) {
+                $data['linked_resource']->setOwner($user);
+            } else {
+                $this->logger->warn(
+                    'L’utilisateur #{id} (source: #{id2}) n’existe pas.', // @translate
+                    ['id' => $userId, 'id2' => $source['id_auteur']]
+                );
+            }
+        } else {
+            $this->logger->warn(
+                'L’utilisateur #{id} (source) n’est pas aligné : pas de lien pour la fiche auteur.', // @translate
+                ['type' => $source['id_auteur']]
+            );
         }
         $this->appendValue([
             'term' => 'dcterms:creator',

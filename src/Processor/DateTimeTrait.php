@@ -193,7 +193,7 @@ SELECT `value` FROM `_temporary_date`;
 SQL;
         $stmt = $this->connection->executeQuery($sql);
         // TODO Add a loop for big source sizes or increase database and php memory.
-        $result = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $result = $stmt->fetchFirstColumn();
         if (count($result)) {
             $result = array_fill_keys($result, null);
             foreach ($result as $datetime => &$timestamp) {
@@ -257,8 +257,12 @@ SQL;
                 $this->connection->executeQuery($sql);
 
                 $this->logger->warn(
-                    '{count}/{total} values are not valid dates.', // @translate
-                    ['count' => count($notTimestamps), 'total' => count($result)]
+                    '{count} were not valid dates and were converted into literal.', // @translate
+                    ['count' => count($notTimestamps)]
+                );
+                $this->logger->warn(
+                    'Here are the first invalid dates: {list}.', // @translate
+                    ['list' => implode(', ', array_slice($notTimestamps, 0, 20))]
                 );
             }
         }

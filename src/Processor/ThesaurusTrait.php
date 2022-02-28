@@ -386,7 +386,7 @@ trait ThesaurusTrait
                 ];
             } else {
                 $this->logger->warn(
-                    'The broader concept #{identifier} of items #{item_id} (source {main} {source}) was not found.', // @translate
+                    'The broader concept #{identifier} of items #{item_id} (source {main} "{source}") was not found.', // @translate
                     ['identifier' => $source[$keyParentId], 'item_id' => $this->entity->getId(), 'main' => $mainName, 'source' => $source[$keyId]]
                 );
             }

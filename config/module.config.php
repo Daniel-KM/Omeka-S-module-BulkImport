@@ -126,7 +126,7 @@ return [
                 'route' => 'admin/bulk/default',
                 'controller' => 'bulk-import',
                 'resource' => 'BulkImport\Controller\Admin\BulkImport',
-                'class' => 'o-icon-install',
+                'class' => 'o-icon- fa-cloud-upload-alt',
                 'pages' => [
                     [
                         'label' => 'Dashboard', // @translate

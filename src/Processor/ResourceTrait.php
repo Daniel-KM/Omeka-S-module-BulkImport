@@ -56,6 +56,15 @@ trait ResourceTrait
         $this->map[$sourceType] = [];
 
         $keyId = $this->mapping[$sourceType]['key_id'];
+        if (empty($keyId)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'There is no key identifier for "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
         $this->sourceKeyId = $keyId;
         $classId = $this->mapping[$sourceType]['resource_class_id'] ?? null;
         $templateId = $this->mapping[$sourceType]['resource_template_id'] ?? null;
@@ -69,15 +78,15 @@ trait ResourceTrait
 
         if (empty($this->totals[$sourceType])) {
             $this->logger->warn(
-                'There is no "{type}".', // @translate
-                ['type' => $sourceType]
+                'There is no "{source}".', // @translate
+                ['source' => $sourceType]
             );
             return;
         }
 
         $this->logger->notice(
-            'Preparation of {total} resources "{type}".', // @translate
-            ['total' => $this->totals[$sourceType], 'type' => $sourceType]
+            'Preparation of {total} resources "{source}".', // @translate
+            ['total' => $this->totals[$sourceType], 'source' => $sourceType]
         );
 
         // Use direct query to speed process and to reserve a whole list of ids.
@@ -101,8 +110,8 @@ trait ResourceTrait
         }
         if (!count($this->map[$sourceType])) {
             $this->logger->notice(
-                'No resource "{type}" available on the source.', // @translate
-                ['type' => $sourceType]
+                'No resource "{source}" available on the source.', // @translate
+                ['source' => $sourceType]
             );
             return;
         }
@@ -133,8 +142,8 @@ trait ResourceTrait
         }
 
         $this->logger->notice(
-            '{total} resources "{type}" have been created.', // @translate
-            ['total' => count($this->map[$sourceType]), 'type' => $sourceType]
+            '{total} resources "{source}" have been created.', // @translate
+            ['total' => count($this->map[$sourceType]), 'source' => $sourceType]
         );
     }
 
@@ -347,8 +356,8 @@ SQL;
             if (!isset($this->map[$sourceType][$sourceId])) {
                 ++$skipped;
                 $this->logger->notice(
-                    'Skipped resource "{type}" #{source_id} added in source.', // @translate
-                    ['type' => $sourceType, 'source_id' => $sourceId]
+                    'Skipped resource "{source}" #{source_id} added in source.', // @translate
+                    ['source' => $sourceType, 'source_id' => $sourceId]
                 );
                 continue;
             }
@@ -357,8 +366,8 @@ SQL;
             if (!$entity) {
                 ++$skipped;
                 $this->logger->notice(
-                    'Unknown resource "{type}" #{source_id}. Probably removed during by another user.', // @translate
-                    ['type' => $sourceType, 'source_id' => $sourceId]
+                    'Unknown resource "{source}" #{source_id}. Probably removed during by another user.', // @translate
+                    ['source' => $sourceType, 'source_id' => $sourceId]
                 );
                 continue;
             }
@@ -397,8 +406,8 @@ SQL;
                 $this->entityManager->clear();
                 $this->refreshMainResources();
                 $this->logger->info(
-                    '{count}/{total} resource "{type}" imported, {skipped} skipped, {excluded} excluded.', // @translate
-                    ['count' => $created, 'total' => count($this->map[$sourceType]), 'type' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+                    '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+                    ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
                 );
             }
         }
@@ -409,8 +418,8 @@ SQL;
         $this->refreshMainResources();
 
         $this->logger->notice(
-            '{count}/{total} resource "{type}" imported, {skipped} skipped, {excluded} excluded.', // @translate
-            ['count' => $created, 'total' => count($this->map[$sourceType]), 'type' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+            '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+            ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
         );
 
         // Check total in case of an issue in the network or with Omeka < 2.1.
@@ -418,8 +427,8 @@ SQL;
         if ($this->totals[$sourceType] !== count($this->map[$sourceType])) {
             $this->hasError = true;
             $this->logger->err(
-                'The total {total} of resources {type} is not the same than the count {count}.', // @translate
-                ['total' => $this->totals[$sourceType], 'count' => count($this->map[$sourceType]), 'type' => $sourceType]
+                'The total {total} of resources "{source}" is not the same than the count {count}.', // @translate
+                ['total' => $this->totals[$sourceType], 'count' => count($this->map[$sourceType]), 'source' => $sourceType]
             );
         }
     }
@@ -562,8 +571,8 @@ SQL;
                                     $datatype = 'literal';
                                     $value['type'] = 'literal';
                                     $this->logger->warn(
-                                        'Value of resource {type} #{id} with data type {datatype} is not managed and skipped.', // @translate
-                                        ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
+                                        'Value of resource "{source}" #{id} with data type {datatype} is not managed and skipped.', // @translate
+                                        ['source' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
                                     );
                                 }
                                 break;
@@ -611,8 +620,8 @@ SQL;
                     if ($toInstall) {
                         // TODO Use new option to force "literal".
                         $this->logger->warn(
-                            'Value of resource {type} #{id} with data type {datatype} was changed to literal.', // @translate
-                            ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
+                            'Value of resource "{source}" #{id} with data type {datatype} was changed to literal.', // @translate
+                            ['source' => $resourceName, 'id' => $source[$this->sourceKeyId], 'datatype' => $value['type']]
                         );
                         $this->logger->info(
                             'It’s recommended to install module {module}.', // @translate
@@ -647,8 +656,8 @@ SQL;
                     }
                     if (!$valueResource) {
                         $this->logger->warn(
-                            'Value of resource {type} #{id} with linked resource for term {term} is not found.', // @translate
-                            ['type' => $resourceName, 'id' => $source[$this->sourceKeyId], 'term' => $term]
+                            'Value of resource "{source}" #{id} with linked resource for term {term} is not found.', // @translate
+                            ['source' => $resourceName, 'id' => $source[$this->sourceKeyId], 'term' => $term]
                         );
                         continue;
                     }
@@ -814,8 +823,8 @@ SQL;
         $entityValue->setLang(empty($value['lang']) ? null : $value['lang']);
         $entityValue->setIsPublic(!empty($value['is_public']));
 
-        $entityValues = $source->getValues();
-        $entityValues->add($entityValue);
+        $source->getValues()
+            ->add($entityValue);
     }
 
     /**

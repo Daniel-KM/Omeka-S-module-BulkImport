@@ -85,11 +85,22 @@ class ManiocProcessor extends AbstractFullProcessor
         ],
     ];
 
+    /**
+     * Tables to be copied in Omeka for import and t o be removed after.
+     * It helps to fix rights issues.
+     *
+     * @var array
+     */
     protected $tables = [
         'fichiers',
         'metadata',
     ];
 
+    /**
+     * Store values that were removed or not managed.
+     *
+     * @var array
+     */
     protected $stats = [
         'removed' => 0,
         'not_managed' => [],
@@ -143,41 +154,25 @@ class ManiocProcessor extends AbstractFullProcessor
             return;
         }
 
-        // TODO Remove these fixes.
-        $args = $this->getParams();
-        if (empty($args['types_selected'])) {
-            $this->hasError = true;
-            $this->logger->err(
-                'The job cannot be restarted.' // @translate
-            );
-            return;
-        }
-
-        if (empty($args['types'])) {
-            $this->hasError = true;
-            $this->logger->err(
-                'The job cannot be restarted. Restart import from the beginning.' // @translate
-            );
-            return;
+        if (!empty($this->tables)) {
+            $this->logger->info(
+                'Copying {total} tables from the source.',  // @translate
+                ['total' => count($this->tables)]
+                );
+            foreach ($this->tables as $table) {
+                $result = $this->copyTable($table);
+                if (!$result) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'Unable to copy source table "{table}".',  // @translate
+                        ['table' => $table]
+                        );
+                    return;
+                }
+            }
         }
 
         // TODO Check if the properties of the mapping are all presents.
-
-        $this->logger->info(
-            'Copying {total} tables from the source.',  // @translate
-            ['total' => count($this->tables)]
-        );
-        foreach ($this->tables as $table) {
-            $result = $this->copyTable($table);
-            if (!$result) {
-                $this->hasError = true;
-                $this->logger->err(
-                    'Unable to copy source table "{table}".',  // @translate
-                    ['table' => $table]
-                );
-                return;
-            }
-        }
 
         foreach ($this->prepareReader('etablissements') as $etablissement) {
             $this->map['etablissements'][$etablissement['id_etabl']] = $etablissement['nom_etabl'];
@@ -207,6 +202,7 @@ class ManiocProcessor extends AbstractFullProcessor
         foreach ($this->prepareReader('users') as $userSource) {
             $user = [];
             $userSource = array_map('trim', array_map('strval', $userSource));
+            // In Greenstone, emails can be duplicated, so a check is done.
             $cleanName = mb_strtolower(preg_replace('/[^\da-z]/i', '_', ($userSource['login'])));
             $email = $cleanName . '@manioc.net';
             $user['name'] = $cleanName;
@@ -626,7 +622,6 @@ SQL;
         }
         $sql .= 'INSERT INTO `_temporary_map_property` (`nom`, `property_id`) VALUES(' . implode('),(', $data) . ");\n";
 
-        // Warning: a similar temporary table is used in ResourceTrait::createEmptyResources().
         $sql .= <<<SQL
 # Copy the mapping of source ids and destination ids.
 DROP TABLE IF EXISTS `_temporary_source_resource`;

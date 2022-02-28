@@ -626,6 +626,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Resource.
             'resource_name' => null,
             // Media.
+            'o:lang' => null,
             'o:ingester' => null,
             'o:source' => null,
             'ingest_filename' => null,
