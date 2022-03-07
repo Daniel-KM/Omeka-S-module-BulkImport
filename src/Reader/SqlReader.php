@@ -265,6 +265,9 @@ SQL;
                 $skips .= " AND (`$sk` != '' AND `$sk` IS NOT NULL) ";
             }
         }
+        if ($this->filters) {
+            $skips = ($skips ? '' : 'WHERE ') . $this->whereSql();
+        }
 
         // @see https://dev.mysql.com/doc/refman/8.0/en/load-data.html
         // Default output is tab-separated values without enclosure.
@@ -316,9 +319,10 @@ SQL;
     {
         try {
             $stmt = $this->dbAdapter->query(sprintf(
-                'SELECT * FROM `%s`%s LIMIT %d OFFSET %d;',
+                'SELECT * FROM `%s` %s %s LIMIT %d OFFSET %d;',
                 $this->prefix . $this->objectType,
-                empty($this->order['by']) ? '' : (' ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
+                $this->filters ? 'WHERE ' . $this->whereSql() : '',
+                empty($this->order['by']) ? '' : ('ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
                 self::PAGE_LIMIT,
                 ($this->currentPage - 1) * self::PAGE_LIMIT
             ));
@@ -362,9 +366,11 @@ SQL;
 
         // Get total first.
         try {
+            // TODO Use the standard doctrine query builder.
             $stmt = $this->dbAdapter->query(sprintf(
-                'SELECT COUNT(*) AS "total" FROM `%s`;',
-                $this->prefix . $this->objectType
+                'SELECT COUNT(*) AS "total" FROM `%s` %s;',
+                $this->prefix . $this->objectType,
+                $this->filters ? 'WHERE ' . $this->whereSql() : ''
             ));
             $results = $stmt->execute();
         } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
@@ -408,5 +414,12 @@ SQL;
         }
 
         $this->isValid = true;
+    }
+
+    protected function whereSql(): string
+    {
+        return $this->filters
+            ? implode(', AND ', $this->filters)
+            : '';
     }
 }
