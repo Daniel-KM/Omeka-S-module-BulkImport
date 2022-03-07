@@ -352,23 +352,33 @@ SQL;
         // Omeka entities are not fluid.
         $this->entity->setOwner($this->userOrDefaultOwner($source['o:owner']));
 
-        if (!empty($source['@type'][1])
-            && !empty($this->map['resource_classes'][$source['@type'][1]])
-        ) {
-            $resourceClass = $this->entityManager->find(\Omeka\Entity\ResourceClass::class, $this->map['resource_classes'][$source['@type'][1]]['id']);
-            $this->entity->setResourceClass($resourceClass);
+        if (!empty($source['o:resource_class']['o:id'])) {
+            $resourceClass = $this->entityManager->find(\Omeka\Entity\ResourceClass::class, $source['o:resource_class']['o:id']);
+            if ($resourceClass) {
+                $this->entity->setResourceClass($resourceClass);
+            } else {
+                $this->logger->warn(
+                    'Resource class for resource #{id} (source #{source_id}) is not available.', // @translate
+                    ['id' => $this->entity->getId(), 'source_id' => $source[$this->sourceKeyId]]
+                );
+            }
         }
 
-        if (!empty($source['o:resource_template']['o:id'])
-            && !empty($this->map['resource_templates'][$source['o:resource_template']['o:id']])
-        ) {
-            $resourceTemplate = $this->entityManager->find(\Omeka\Entity\ResourceTemplate::class, $this->map['resource_templates'][$source['o:resource_template']['o:id']]);
-            $this->entity->setResourceTemplate($resourceTemplate);
+        if (!empty($source['o:resource_template']['o:id'])) {
+            $resourceTemplate = $this->entityManager->find(\Omeka\Entity\ResourceTemplate::class, $source['o:resource_template']['o:id']);
+            if ($resourceTemplate) {
+                $this->entity->setResourceTemplate($resourceTemplate);
+            } else {
+                $this->logger->warn(
+                    'Resource template for resource #{id} (source #{source_id}) is not available.', // @translate
+                    ['id' => $this->entity->getId(), 'source_id' => $source[$this->sourceKeyId]]
+                );
+            }
         }
 
         if (!empty($source['o:thumbnail']['o:id'])) {
-            if (isset($this->map['assets'][$source['o:thumbnail']['o:id']])) {
-                $asset = $this->entityManager->find(\Omeka\Entity\Asset::class, $this->map['assets'][$source['o:thumbnail']['o:id']]);
+            $asset = $this->entityManager->find(\Omeka\Entity\Asset::class, $source['o:thumbnail']['o:id']);
+            if ($asset) {
                 $this->entity->setThumbnail($asset);
             } else {
                 $this->logger->warn(
@@ -417,24 +427,7 @@ SQL;
             $property = $this->entityManager->find(\Omeka\Entity\Property::class, $this->map['properties'][$term]['id']);
             foreach ($values as $value) {
                 $datatype = $value['type'];
-                // Convert unknown custom vocab into a literal.
-                if (mb_substr($datatype, 0, 12) === 'customvocab:') {
-                    if (!empty($this->map['custom_vocabs'][$datatype]['datatype'])) {
-                        $datatype = $value['type'] = $this->map['custom_vocabs'][$datatype]['datatype'];
-                    } else {
-                        $datatypeResult = $this->getCustomVocabDataTypeName($datatype);
-                        if ($datatypeResult) {
-                            $datatype = $value['type'] = $datatypeResult;
-                        } else {
-                            // TODO Use new option to force "literal".
-                            $this->logger->warn(
-                                'Value with datatype "{type}" for resource #{id} is changed to "literal".', // @translate
-                                ['type' => $datatype, 'id' => $this->entity->getId()]
-                            );
-                            $datatype = $value['type'] = 'literal';
-                        }
-                    }
-                }
+                // The check of custom vocab shoud be done in main processor.
 
                 if (!in_array($datatype, $this->allowedDataTypes)) {
                     $mapDataTypes = [
@@ -554,21 +547,9 @@ SQL;
                 $valueValue = $value['@value'] ?? null;
                 $valueUri = null;
                 $valueResource = null;
-                if (!empty($value['value_resource_id'])) {
-                    if (!empty($value['value_resource_name'])
-                        && $this->map[$value['value_resource_name']][$value['value_resource_id']]
-                    ) {
-                        $valueResource = $this->entityManager->find($classes[$value['value_resource_name']], $this->map[$value['value_resource_name']][$value['value_resource_id']]);
-                    }
-                    if (!$valueResource) {
-                        if (isset($this->map['items'][$value['value_resource_id']])) {
-                            $valueResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value['value_resource_id']]);
-                        } elseif (isset($this->map['media'][$value['value_resource_id']])) {
-                            $valueResource = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media'][$value['value_resource_id']]);
-                        } elseif (isset($this->map['item_sets'][$value['value_resource_id']])) {
-                            $valueResource = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['item_sets'][$value['value_resource_id']]);
-                        }
-                    }
+                // Check of linked resource should be done in main processor.
+                if (!empty($value['value_resource_id']) && !empty($value['value_resource_name'])) {
+                    $valueResource = $this->entityManager->find($classes[$value['value_resource_name']], $value['value_resource_id']);
                     if (!$valueResource) {
                         $this->logger->warn(
                             'Value of resource "{source}" #{id} with linked resource for term {term} is not found.', // @translate
@@ -885,11 +866,10 @@ SQL;
             $itemSetIds[] = $itemSet->getId();
         }
         foreach ($source['o:item_set'] ?? [] as $itemSet) {
-            if (isset($this->map['item_sets'][$itemSet['o:id']])
-                // This check avoids a core bug (don't add the same item set twice).
-                && !in_array($this->map['item_sets'][$itemSet['o:id']], $itemSetIds)
-            ) {
-                $itemSets->add($this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['item_sets'][$itemSet['o:id']]));
+            // This check avoids a core bug that omeka team doesn't want to fix
+            // in core: don't add the same item set twice.
+            if (!in_array($itemSet['o:id'], $itemSetIds)) {
+                $itemSets->add($this->entityManager->find(\Omeka\Entity\ItemSet::class, $itemSet['o:id']));
             }
         }
 
@@ -900,7 +880,7 @@ SQL;
     {
         $this->fillResource($source);
 
-        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$source['o:item']['o:id']]);
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $source['o:item']['o:id']);
         $this->entity->setItem($item);
 
         // TODO Keep the original storage id of assets (so check existing one as a whole).
@@ -908,11 +888,12 @@ SQL;
         // @see \Omeka\File\TempFile::getStorageId()
         if ($source['o:filename']
             && ($pos = mb_strrpos($source['o:filename'], '.')) !== false
+            && empty($source['_skip_ingest'])
         ) {
             $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
             $extension = substr($source['o:filename'], $pos + 1);
 
-            $result = $this->fetchUrl('original', $source['o:source'], $source['o:filename'], $storageId, $extension, $source['o:original_url']);
+            $result = $this->fetchFile('original', $source['o:source'], $source['o:filename'], $storageId, $extension, $source['o:original_url']);
             if ($result['status'] !== 'success') {
                 $this->logger->err($result['message']);
             }
@@ -921,7 +902,7 @@ SQL;
                 if ($source['o:media_type'] !== $result['data']['media_type']) {
                     $this->logger->err(new PsrMessage(
                         'Media type of media #{id} is different from the original one ({media_type}).', // @translate
-                        ['id' => $this->entity->getId(), $source['o:media_type']]
+                        ['id' => $this->entity->getId(), 'media_type' => $source['o:media_type']]
                     ));
                 }
                 if ($source['o:sha256'] !== $result['data']['sha256']) {

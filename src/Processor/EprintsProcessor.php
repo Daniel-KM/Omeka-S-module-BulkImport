@@ -756,6 +756,14 @@ class EprintsProcessor extends AbstractFullProcessor
         } catch (\Exception $e) {
             $this->tableDataBy['directors'] = [];
         }
+
+        // Prepare main maps to avoid checks and strict type issues.
+        $this->map['items'] = [];
+        $this->map['item_sets'] = [];
+        $this->map['media'] = [];
+        $this->map['users'] = [];
+        $this->map['custom_vocabs'] = [];
+        $this->map['concepts'] = [];
     }
 
     protected function prepareMedias(): void
@@ -982,10 +990,20 @@ class EprintsProcessor extends AbstractFullProcessor
         $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->getResourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
         $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
 
+        $created = 0;
         foreach ($sources as $source) {
             $orderedSource = array_intersect_key(array_replace($emptyKeyId, $source), $emptyKeyId);
             $sourceId = $this->asciiArrayToString($orderedSource);
             $this->map[$sourceType][$sourceId] = null;
+            if (++$created % self::CHUNK_ENTITIES === 0) {
+                if ($this->isErrorOrStop()) {
+                    break;
+                }
+                $this->logger->info(
+                    '{count} resource "{source}" prepared.', // @translate
+                    ['count' => $created, 'source' => $sourceType]
+                );
+            }
         }
 
         // Because data are not yet merged, update the total here.
@@ -1000,7 +1018,7 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         $this->logger->notice(
-            'Preparation of {total} resources "{source}".', // @translate
+            'Creation of a total of {total} resources "{source}".', // @translate
             ['total' => $this->totals[$sourceType], 'source' => $sourceType]
         );
 
@@ -2401,6 +2419,8 @@ class EprintsProcessor extends AbstractFullProcessor
         $item = $this->entityManager->find(\Omeka\Entity\Item::class, $itemId);
         $ownerId = $item->getOwner() ? $item->getOwner()->getId() : null;
 
+        // TODO Use the parent process to check and fetch file,(but skip media type check because the original is kept).
+
         // @see \Omeka\File\TempFile::getStorageId()
         $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
         $extension = basename($source['main']);
@@ -2408,7 +2428,7 @@ class EprintsProcessor extends AbstractFullProcessor
         $endpoint = rtrim($this->getParam('url_path'), '/ ');
         $sourceBasename = '/' . $this->itemDirPaths[$sourceItemId]
             // TODO Check file or document.
-            . '/' . $source['main'];;
+            . '/' . $source['main'];
         $sourceFile = $endpoint . $sourceBasename;
         $isUrl = $this->bulk->isUrl($sourceFile);
 
@@ -2423,6 +2443,9 @@ class EprintsProcessor extends AbstractFullProcessor
             // Keep the source id to simplify next steps and find mapped id.
             // The source id may be updated if duplicate.
             '_source_id' => $sourceId,
+            // This is a message for the parent method to not ingest fle
+            // TODO Remove the flag "do_ingest" (move fetch to parent).
+            '_skip_ingest' => true,
             '@type' => [
                 'o:Media',
             ],
@@ -2432,7 +2455,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'o:resource_class' => null,
             'o:resource_template' => null,
             'o:title' => null,
-            'o:created' => $item->getCreated(),
+            'o:created' => ['@value' => $item->getCreated()->format('Y-m-d\TH:i:s')],
             'o:modified' => null,
             'o:item' => ['o:id' => $this->map['items'][$sourceItemId]],
             // Source filename may be duplicate.
@@ -2446,6 +2469,8 @@ class EprintsProcessor extends AbstractFullProcessor
             'o:ingester' => $isUrl ? 'url' : 'sideload',
             'o:renderer' => 'file',
         ];
+
+        parent::fillMedia($media);
 
         // Use the short values mechanism.
 
@@ -2623,14 +2648,10 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
-        parent::fillMedia($media);
-
         // TODO What is the real difference between "pos" and "placement"?
         // Note: the position is set automatically in parent method according to
         // the order of media item.
-        if ((int) $source['pos']) {
-            $this->entity->setPosition((int) $source['pos']);
-        }
+        $this->entity->setPosition(1 + (int) $source['pos']);
 
         // Source is the current resource (this entity).
         $this->orderAndAppendValues($values);
@@ -2640,7 +2661,11 @@ class EprintsProcessor extends AbstractFullProcessor
         if (!$isFileAvailable) {
             // No stop in order to update other metadata, in particular item,
             // and usually, file are fetched later.
-            $this->logger->err(reset($messageStore->getErrors()));
+            $message = reset($messageStore->getErrors());
+            $this->logger->err(
+                'File "{filename}" is not available: {error}.', // @translate
+                ['filename' => $sourceBasename, 'error' => $message ?: $this->translator->translate('[unknown error]')] // @translate
+            );
         }
 
         $result = false;

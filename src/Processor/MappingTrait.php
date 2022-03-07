@@ -70,39 +70,39 @@ trait MappingTrait
 
     protected function fillMappingMapping(array $source): void
     {
-        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$source['o:item']['o:id']]);
-        if (!$item) {
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $source['o:item']['o:id']);
+        if ($item) {
+            $this->entity->setItem($item);
+        } else {
             $this->logger->warn(
                 'The source item #{source_id} is not found for its mapping zone.', // @translate
                 ['source_id' => $source['o:item']['o:id']]
             );
-        } else {
-            $this->entity->setItem($item);
         }
         $this->entity->setBounds($source['o-module-mapping:bounds']);
     }
 
     protected function fillMappingMarker(array $source): void
     {
-        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$source['o:item']['o:id']]);
-        if (!$item) {
+        $item = $this->entityManager->find(\Omeka\Entity\Item::class, $source['o:item']['o:id']);
+        if ($item) {
+            $this->entity->setItem($item);
+        } else {
             $this->logger->warn(
                 'The source item #{source_id} is not found for its mapping marker.', // @translate
                 ['source_id' => $source['o:item']['o:id']]
             );
-        } else {
-            $this->entity->setItem($item);
         }
 
         if (!empty($source['o:item']['o:id'])) {
-            $media = $this->entityManager->find(\Omeka\Entity\Media::class, $this->map['media'][$source['o:media']['o:id']] ?? '0');
-            if (!$media) {
+            $media = $this->entityManager->find(\Omeka\Entity\Media::class, $source['o:media']['o:id'] ?? '0');
+            if ($media) {
+                $this->entity->setMedia($media);
+            } else {
                 $this->logger->warn(
                     'The source media #{source_id} is not found for its mapping marker.', // @translate
                     ['source_id' => $source['o:media']['o:id']]
                 );
-            } else {
-                $this->entity->setMedia($media);
             }
         }
 

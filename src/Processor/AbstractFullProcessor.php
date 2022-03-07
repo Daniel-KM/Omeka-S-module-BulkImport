@@ -399,6 +399,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'source' => 'item',
             'key_id' => 'id',
         ],
+        // Warning: media has no final "s".
         'media' => [
             'source' => 'media',
             'key_id' => 'id',
@@ -904,7 +905,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 }
             }
             if (in_array('media', $toImport)
-                && $this->prepareImport('medias')
+                && $this->prepareImport('media')
             ) {
                 $this->fillMedias();
                 if ($this->isErrorOrStop()) {
