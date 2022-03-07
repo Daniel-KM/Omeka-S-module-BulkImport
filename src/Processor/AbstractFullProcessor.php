@@ -28,6 +28,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use ParametrizableTrait;
     use ResourceTemplateTrait;
     use ResourceTrait;
+    use StatisticsTrait;
     use ThesaurusTrait;
     use ToolsTrait;
     use UserTrait;
@@ -350,6 +351,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'fill' => 'fillConcept',
             'is_resource' => true,
         ],
+        'hits' => [
+            'name' => 'hits',
+            'class' => \Statistics\Entity\Hit::class,
+            'table' => 'hit',
+            'column_keep_id' => 'url',
+        ],
     ];
 
     /**
@@ -439,6 +446,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         ],
         'concepts' => [
             'source' => null,
+        ],
+        'hits' => [
+            'source' => 'hit',
+            'key_id' => 'id',
         ],
     ];
 
@@ -1127,10 +1138,18 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         ) {
             // It's possible to change the values in $this->thesaurusProcess
             // to manage multiple thesaurus, before and after each step.
-            $this->logger->info('Preparation of metadata of module Thesaurus.'); // @translate
+            $this->logger->notice('Preparation of metadata of module Thesaurus.'); // @translate
             $this->configThesaurus = 'concepts';
             $this->prepareThesaurus();
             $this->prepareConcepts($this->prepareReader('concepts'));
+        }
+
+        if (!empty($this->modulesActive['Statistics'])
+            && in_array('hits', $toImport)
+            && $this->prepareImport('hits')
+        ) {
+            $this->logger->notice('Preparation of metadata of module Statistics.'); // @translate
+            $this->prepareHits();
         }
     }
 
@@ -1174,6 +1193,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         ) {
             $this->configThesaurus = 'concepts';
             $this->fillConcepts();
+        }
+
+        if (!empty($this->modulesActive['Statistics'])
+            && in_array('hits', $toImport)
+            && $this->prepareImport('hits')
+        ) {
+            $this->fillHits();
         }
 
         if (!empty($this->modulesActive['Mapping'])
