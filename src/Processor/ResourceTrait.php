@@ -147,6 +147,9 @@ trait ResourceTrait
         );
     }
 
+    /**
+     * @deprecated Use createEmptyEntities() instead.
+     */
     protected function createEmptyResources(
         string $sourceType,
         int $resourceClassId = null,
@@ -315,6 +318,9 @@ SQL;
         }
     }
 
+    /**
+     * @deprecated Use checkConflictSourceIds() instead.
+     */
     protected function keepSourceIds(string $sourceType): bool
     {
         if (!in_array($sourceType, ['items', 'media', 'item_sets', 'annotations', 'media_items'])) {

@@ -29,6 +29,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use ResourceTemplateTrait;
     use ResourceTrait;
     use ThesaurusTrait;
+    use ToolsTrait;
     use UserTrait;
     use VocabularyTrait;
 
@@ -222,12 +223,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      *
      * The default is derived from Omeka database, different from api endpoint.
      * A specific processor can override this property or use $moreImportables.
+     * Nevertheless, it is related to the omeka database, so it is generally
+     * useless to override data.
      *
      * The keys to use for automatic management are:
      * - name: api resource name
      * - class: the Omeka class for the entity manager
      * - dest: table
      * - key_id: name of the key to get the id of a record
+     * - column_keep_id: string column used to keep the id of source temporary.
      *
      * @var array
      */
@@ -236,6 +240,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'name' => 'users',
             'class' => \Omeka\Entity\User::class,
             'table' => 'user',
+            'fill' => 'fillUser',
         ],
         'assets' => [
             'name' => 'assets',

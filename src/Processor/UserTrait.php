@@ -147,7 +147,7 @@ trait UserTrait
                 }
                 $this->entityManager->flush();
                 $this->entityManager->clear();
-                $this->updateDates('user', 'email', $updateDates);
+                $this->updateDates('users', 'email', $updateDates);
                 $updateDates = [];
                 $this->refreshMainResources();
                 $this->logger->notice(
@@ -160,7 +160,7 @@ trait UserTrait
         // Remaining entities.
         $this->entityManager->flush();
         $this->entityManager->clear();
-        $this->updateDates('user', 'email', $updateDates);
+        $this->updateDates('users', 'email', $updateDates);
         $updateDates = [];
         $this->refreshMainResources();
 
@@ -334,51 +334,5 @@ SQL;
         $this->entityManager->flush();
         $this->entityManager->clear();
         $this->refreshMainResources();
-    }
-
-    /**
-     * Update created dates and, if any, modified dates. No check is done.
-     *
-     * @param string $table
-     * @param string $columnId
-     * @param array $dates
-     */
-    protected function updateDates(string $table, string $columnId, array $dates): void
-    {
-        if (!count($dates)) {
-            return;
-        }
-
-        $sql = '';
-
-        $first = reset($dates);
-        if (count($first) === 2) {
-            foreach ($dates as $date) {
-                [$id, $created] = $date;
-                $sql .= sprintf(
-                    'UPDATE `%s` SET `created` = "%s", WHERE `%s` = "%s";',
-                    $table,
-                    $created,
-                    $columnId,
-                    $id
-                );
-            }
-        } elseif (count($first) === 3) {
-            foreach ($dates as $date) {
-                [$id, $created, $modified] = $date;
-                $sql .= sprintf(
-                    'UPDATE `%s` SET `created` = "%s", `modified` = %s WHERE `%s` = "%s";',
-                    $table,
-                    $created,
-                    $modified ? '"' . $modified . '"' : 'NULL',
-                    $columnId,
-                    $id
-                );
-            }
-        } else {
-            return;
-        }
-
-        $this->connection->executeQuery($sql);
     }
 }
