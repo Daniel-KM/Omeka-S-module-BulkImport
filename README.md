@@ -18,10 +18,11 @@ it is possible to import multiple times the same type of files without needing
 to do the mapping each time.
 
 Default readers are Omeka S reader (via the api json endpoint), xml (via
-transformation with xslt), sql (to adapt to each database), [Spip] reader (via a
-dump of the database), and spreadsheet reader (via ods, tsv or csv). The
-spreadsheet uses a processor that creates resources based on a specific header
-format, but don't have a pretty manual ui like the module [CSV Import].
+transformation with xslt), sql (to adapt to each database, an example for [e-prints]
+is provided), [Spip] reader (via a dump of the database), and spreadsheet reader
+(via ods, tsv or csv). The spreadsheet uses a processor that creates resources
+based on a specific header format, but don't have a pretty manual ui like the
+module [CSV Import].
 
 Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files].
 
@@ -285,6 +286,17 @@ Of course, in many cases, it is simpler to fix the values in the source or later
 in the resources with the batch edit or with the module [Bulk Edit].
 
 
+E-prints
+--------
+
+[e-prints] is a tool to build institutional repository (research articles,
+student works, learning resources, etc.). It is one of the oldest free digital
+libraries that support the OAI-PMH protocol. Because Omeka S can be [OAI-PMH repository],
+an upgrade to it can be useful.
+
+Simply select the sql reader and the eprints processor, then follow the forms.
+
+
 Omeka S
 -------
 
@@ -297,7 +309,7 @@ Specific metadata of other modules are currently not managed.
 
 
 Spip
--------
+----
 
 Simply set the database credentials and  the endpoint and go on. You need to
 install some more modules: [Advanced Resource Template], [Article], [Custom Vocab],
@@ -418,6 +430,8 @@ TODO
 - [ ] Convert specific importer into standard resource processor + pattern.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
+- [ ] Use transformSource() for sql imports (so convert special processors) or convert rows early (like spreadsheets).
+- [ ] For sql import, use a direct sql queries when mapping is table to table (like eprints statistics).
 
 
 Warning
@@ -517,6 +531,8 @@ by [BibLibre].
 [Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
 [Bulk Edit]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkEdit
+[e-prints]: https://eprints.org/
+[OAI-PMH repository]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
 [Spip]: https://spip.net
 [data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
