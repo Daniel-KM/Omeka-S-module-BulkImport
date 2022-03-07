@@ -30,6 +30,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'items',
             'media',
             // 'item_sets',
+            // 'hits',
         ],
         'fake_files' => true,
         'endpoint' => null,
@@ -81,6 +82,11 @@ class EprintsProcessor extends AbstractFullProcessor
         // 'media_items' => [],
         // 'item_sets' => [],
         // 'values' => [],
+        // TODO Use a direct copy of the table, because it may be too much big.
+        'hits' => [
+            'source' => 'access',
+            'key_id' => 'accessid',
+        ],
     ];
 
     // For internal use.
@@ -1510,5 +1516,97 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->entity->setHasThumbnails(false);
             $this->entity->setSize(0);
         }
+    }
+
+    protected function fillHit(array $source, array $hit): array
+    {
+        /* // @link https://wiki.eprints.org/w/Access_Log_Dataset
+        accessid    int(11)
+        datestamp_year    smallint(6) NULL
+        datestamp_month    smallint(6) NULL
+        datestamp_day    smallint(6) NULL
+        datestamp_hour    smallint(6) NULL
+        datestamp_minute    smallint(6) NULL
+        datestamp_second    smallint(6) NULL
+        requester_id    varchar(255) NULL
+        requester_user_agent    varchar(255) NULL
+        requester_country    varchar(255) NULL
+        requester_institution    varchar(255) NULL
+        referring_entity_id    longtext NULL
+        service_type_id    varchar(255) NULL
+        referent_id    int(11) NULL
+        referent_docid    int(11) NULL
+         */
+
+        $source = array_map('trim', array_map('strval', $source));
+
+        // The source id is already checked in prepareResources().
+
+        $created = $this->implodeDate(
+            $source['datestamp_year'],
+            $source['datestamp_month'],
+            $source['datestamp_day'],
+            $source['datestamp_hour'],
+            $source['datestamp_minute'],
+            $source['datestamp_second'],
+            null,
+            true,
+            true,
+            true
+        ) ?: $this->currentDateTimeFormatted;
+
+        // "referring_entity_id" may have not the same meaning than url.
+        /*
+        $pos = mb_strpos($source['referring_entity_id'], '?');
+        if ($pos === false || $pos >= mb_strlen($source['referring_entity_id']) - 1) {
+            $url = trim($source['referring_entity_id'], '?');
+            // can be only "fulltext=yes" or "abstract=yes".
+            $query = $source['service_type_id'];
+        } else {
+            $url = mb_substr($source['referring_entity_id'], 0, $pos);
+            $query = mb_substr($source['referring_entity_id'], $pos + 1);
+        }
+        */
+
+        // The url does not exist, only the ids. So rebuild the item id.
+        // The item may have been deleted, so it may not be mapped, so keep the
+        // original indexes.
+        if ($source['referent_id'] && $source['referent_docid']) {
+            $url = '/eprints/' . $source['referent_id'] . '/document/' . $source['referent_docid'];
+        } elseif ($source['referent_id']) {
+            $url = '/eprints/' . $source['referent_id'];
+        } elseif ($source['referent_docid']) {
+            $url = '/eprints/0/document/'. $source['referent_docid'];
+        } else {
+            $url = '/eprints/';
+        }
+
+        // Store the mapped id only if it exists.
+        $entityId = 0;
+        if ($source['referent_docid']) {
+            $entityId = $this->map['media'][$source['referent_docid']] ?? 0;
+            $entityName = 'media';
+        } elseif ($source['referent_id']) {
+            $entityId = $this->map['items'][$source['referent_docid']] ?? 0;
+            $entityName = 'items';
+        }
+        if (!$entityId) {
+            $entityName = '';
+        }
+
+        // TODO Manage "requester_country" and "requester_institution".
+
+        return array_replace($hit, [
+            'o:url' => $url,
+            'o:entity_id' => $entityId,
+            'o:entity_name' => $entityName,
+            'o:user_id' => 0,
+            'o:ip' => $source['requester_id'],
+            'o:referrer' => $source['referring_entity_id'],
+            'o:query' => $source['service_type_id'],
+            'o:user_agent' => $source['requester_user_agent'],
+            'o:accept_language' => '',
+            'o:created' => ['@value' => $created],
+        ]);
     }
 }

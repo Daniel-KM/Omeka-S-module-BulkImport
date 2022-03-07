@@ -96,6 +96,11 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                             'selected' => false,
                             'disabled' => true,
                         ],
+                        [
+                            'value' => 'hits',
+                            'label' => 'Statistics', // @translate
+                            'selected' => false,
+                        ],
                     ],
                 ],
                 'attributes' => [
@@ -105,6 +110,7 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                         'items',
                         'media',
                         // 'item_sets',
+                        // 'hits',
                     ],
                     'required' => false,
                 ],
