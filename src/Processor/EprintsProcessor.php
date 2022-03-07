@@ -506,7 +506,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         $values[] = [
             'term' => 'bibo:status',
-            'type' => 'customvocab:statutdepublication',
+            'type' => $this->configs['custom_vocabs']['eprint_status'] ?? 'literal',
             'value' => $source['eprint_status'],
             'is_public' => false,
         ];
@@ -642,6 +642,7 @@ class EprintsProcessor extends AbstractFullProcessor
             $values[] = [
                 'term' => 'bibo:status',
                 // TODO Use code: "unpub", "submitted", "inpress".
+                'type' => $this->configs['custom_vocabs']['ispublished'] ?? 'literal',
                 'value' => $source['ispublished'],
                 'is_public' => false,
             ];
@@ -650,6 +651,7 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['full_text_status']) {
             $values[] = [
                 'term' => 'curation:status',
+                'type' => $this->configs['custom_vocabs']['full_text_status'] ?? 'literal',
                 'value' => $source['full_text_status'],
                 'is_public' => false,
             ];
@@ -658,6 +660,7 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['monograph_type']) {
             $values[] = [
                 'term' => 'dcterms:type',
+                'type' => $this->configs['custom_vocabs']['monograph_type'] ?? 'literal',
                 'value' => $source['monograph_type'],
             ];
         }
@@ -665,6 +668,7 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['pres_type']) {
             $values[] = [
                 'term' => 'dcterms:type',
+                'type' => $this->configs['custom_vocabs']['pres_type'] ?? 'literal',
                 'value' => $source['pres_type'],
             ];
         }
@@ -844,17 +848,25 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         if ($source['department']) {
-            $values[] = [
-                'term' => $template === 'Thèse'
-                    ? 'dante:ecoleDoctorale'
-                    : 'dante:ufrOuComposante',
-                'value' => $source['department'],
-            ];
+            if ($template === 'Thèse') {
+                $values[] = [
+                    'term' => 'dante:ecoleDoctorale',
+                    'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'literal',
+                    'value' => $source['department'],
+                ];
+            } else {
+                $values[] = [
+                    'term' => 'dante:ufrOuComposante',
+                    'type' => $this->configs['custom_vocabs']['divisions'] ?? 'literal',
+                    'value' => $source['department'],
+                ];
+            }
         }
 
         if ($source['thesis_type']) {
             $values[] = [
                 'term' => 'curation:type',
+                'type' => $this->configs['custom_vocabs']['thesis_type'] ?? 'literal',
                 'value' => $source['thesis_type'],
             ];
         }
