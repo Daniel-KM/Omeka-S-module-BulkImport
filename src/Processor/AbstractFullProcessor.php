@@ -542,8 +542,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->datatypeManager = $services->get('Omeka\DataTypeManager');
         $this->allowedDataTypes = $this->datatypeManager->getRegisteredNames();
 
-        $this->initFileTrait();
-
         // The owner should be reloaded each time the entity manager is flushed.
         $ownerIdParam = $this->getParam('o:owner', 'current') ?: 'current';
         if ($ownerIdParam === 'current') {
@@ -577,6 +575,29 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 ]
             );
             return;
+        }
+
+        // Prepare main maps to avoid checks and strict type issues.
+        $this->map['items'] = [];
+        $this->map['item_sets'] = [];
+        $this->map['media'] = [];
+        $this->map['users'] = [];
+        $this->map['custom_vocabs'] = [];
+        $this->map['concepts'] = [];
+
+        // Set the template id when a label is used.
+        foreach ($this->mapping as $sourceType => $configData) {
+            if (isset($configData['resource_template_id'])) {
+                $templateId = $this->bulk->getResourceTemplateId($configData['resource_template_id']);
+                if ($templateId) {
+                    $this->mapping[$sourceType]['resource_template_id'] = $templateId;
+                } else {
+                    $templateId = $this->bulk->getResourceTemplateId($this->translator->translate($configData['resource_template_id']));
+                    if ($templateId) {
+                        $this->mapping[$sourceType]['resource_template_id'] = $templateId;
+                    }
+                }
+            }
         }
 
         if (!$this->reader->isValid()) {

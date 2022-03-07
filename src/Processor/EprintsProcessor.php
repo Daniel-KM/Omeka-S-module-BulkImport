@@ -387,6 +387,8 @@ class EprintsProcessor extends AbstractFullProcessor
                 'conductors_name_honourific' => 'foaf:title',
             ],
             'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         'contributors_id' => [
@@ -405,6 +407,8 @@ class EprintsProcessor extends AbstractFullProcessor
                 'contributors_name_honourific' => 'foaf:title',
             ],
             'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         // TODO Use value annotation for Omeka 3.2 or use mapping of terms below.
@@ -435,7 +439,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
-            // 'resource_template_id' => 'Person',
+            'resource_template_id' => 'Person',
         ],
         // Directors are not stored in a specific table, but in the main table.
         'directors' => [
@@ -449,6 +453,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         'directors_other' => [
             'source' => 'eprint_directors_other',
@@ -460,6 +465,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         'editors_id' => [
@@ -478,6 +484,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         'exhibitors_id' => [
@@ -497,6 +504,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         'lyricists_id' => [
@@ -516,6 +524,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
         /*
         'producers_id' => [
@@ -535,6 +544,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ],
             'set' => 'eprint_name',
             'resource_class_id' => 'foaf:Person',
+            'resource_template_id' => 'Person',
         ],
 
         /*
@@ -753,14 +763,6 @@ class EprintsProcessor extends AbstractFullProcessor
         } catch (\Exception $e) {
             $this->tableDataBy['directors'] = [];
         }
-
-        // Prepare main maps to avoid checks and strict type issues.
-        $this->map['items'] = [];
-        $this->map['item_sets'] = [];
-        $this->map['media'] = [];
-        $this->map['users'] = [];
-        $this->map['custom_vocabs'] = [];
-        $this->map['concepts'] = [];
     }
 
     protected function prepareMedias(): void
