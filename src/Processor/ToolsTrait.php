@@ -169,11 +169,10 @@ SQL;
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 
 SQL;
-            $this->connection->executeQuery($sqls);
+            $this->connection->executeStatement($sqls);
             return;
         }
-
-        $this->connection->executeQuery($sqls);
+        $this->connection->executeStatement($sqls);
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
@@ -207,7 +206,7 @@ SQL;
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 
 SQL;
-        $this->connection->executeQuery($sql);
+        $this->connection->executeStatement($sql);
     }
 
     /**
@@ -378,5 +377,25 @@ SQL;
     {
         $length = max(1, $length);
         return substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(16 * $length))), 0, $length);
+    }
+
+
+    protected function asciiArrayToString(array $array): string
+    {
+        // The table of identifiers should be pure ascii to allow indexation.
+        // When possible, keep original data to simplify debugging.
+        $separator = ' | ';
+        $string = implode($separator, $array);
+        $sha1 = sha1($string);
+        $string = mb_strtolower($string);
+        if (extension_loaded('intl')) {
+            $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+            $string = $transliterator->transliterate($string);
+        } elseif (extension_loaded('iconv')) {
+            $string = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $string);
+        } else {
+            return $sha1;
+        }
+        return trim($string, $separator) . $separator . $sha1;
     }
 }

@@ -163,7 +163,7 @@ LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
 WHERE `specific`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
-                $this->connection->executeQuery($sql);
+                $this->connection->executeStatement($sql);
                 return;
 
             case 'item_sets':
@@ -177,7 +177,7 @@ LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
 WHERE `specific`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
-                $this->connection->executeQuery($sql);
+                $this->connection->executeStatement($sql);
                 return;
 
             case 'media':
@@ -231,7 +231,7 @@ JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`i
 DROP TABLE IF EXISTS `_temporary_source_media`;
 
 SQL;
-                $this->connection->executeQuery($sql);
+                $this->connection->executeStatement($sql);
                 break;
         }
     }

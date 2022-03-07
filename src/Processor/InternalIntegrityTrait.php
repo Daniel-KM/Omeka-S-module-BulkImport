@@ -15,7 +15,7 @@ WHERE `asset`.`name` = ""
     AND `asset`.`extension` = ""
     AND `asset`.`owner_id` IS NULL;
 SQL;
-        $result = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_COLUMN);
+        $result = $this->connection->executeQuery($sql)->fetchFirstColumn();
         if (count($result)) {
             $this->hasError = true;
             $this->logger->err(
@@ -43,7 +43,7 @@ LEFT JOIN `$resourceTable` AS `spec` ON `spec`.`id` = `resource`.`id`
 WHERE `resource`.`resource_type` = $resourceClass
     AND `spec`.`id` IS NULL;
 SQL;
-            $result = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_COLUMN);
+            $result = $this->connection->executeQuery($sql)->fetchFirstColumn();
             if (count($result)) {
                 $this->hasError = true;
                 $this->logger->err(

@@ -52,7 +52,7 @@ SELECT `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`storage_id` IN ($storageIds);
 SQL;
-        $existingAssets = array_map('intval', array_column($this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd'));
+        $existingAssets = array_map('intval', $this->connection->executeQuery($sql)->fetchAllFirstColumn());
 
         $sql = '';
         // Save the ids as storage, it should be unique anyway, except in case
@@ -62,7 +62,7 @@ SQL;
             $sql .= 'INSERT INTO `asset` (`name`,`media_type`,`storage_id`) VALUES("","","' . implode('"),("","","', $chunk) . '");' . "\n";
         }
         if ($sql) {
-            $this->connection->executeQuery($sql);
+            $this->connection->executeStatement($sql);
         }
 
         // Get the mapping of source and destination ids.
@@ -75,8 +75,7 @@ WHERE `asset`.`name` = ""
     AND `asset`.`owner_id` IS NULL
     AND `asset`.`storage_id` LIKE "$timestamp-%";
 SQL;
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $this->map['assets'] = array_map('intval', array_column($this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC), 'd', 's'));
+        $this->map['assets'] = array_map('intval', $this->connection->executeQuery($sql)->fetchAllKeyValue());
 
         $this->logger->notice(
             '{total} resources "{type}" have been created.', // @translate

@@ -501,7 +501,7 @@ WHERE `id` = $oldMemberId;
 SQL;
                 }
                 foreach (array_filter(explode(";\n", $sqls)) as $sql) {
-                    $connection->executeQuery($sql);
+                    $connection->executeStatement($sql);
                 }
             }
             $hasReplace = true;

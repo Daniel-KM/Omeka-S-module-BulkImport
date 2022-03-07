@@ -160,7 +160,7 @@ JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `numeric_data_types_timestamp`.
 
 SQL;
 
-        $this->connection->executeQuery($sql);
+        $this->connection->executeStatement($sql);
 
         // Create timestamps.
         // Use static \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue()
@@ -186,7 +186,7 @@ WHERE
 ;
 SQL;
 
-        $this->connection->executeQuery($sql);
+        $this->connection->executeStatement($sql);
 
         $sql = <<<'SQL'
 SELECT `value` FROM `_temporary_date`;
@@ -218,7 +218,7 @@ SQL;
                         $value = $this->connection->quote($datetime);
                         $sql .= "UPDATE `_temporary_date` SET `timestamp` = '$timestamp' WHERE `value` = $value;\n";
                     }
-                    $this->connection->exec($sql);
+                    $this->connection->executeStatement($sql);
                 }
 
                 $sql = <<<'SQL'
@@ -237,7 +237,7 @@ WHERE
     AND `_temporary_date`.`timestamp` IS NOT NULL
 ;
 SQL;
-                $this->connection->executeQuery($sql);
+                $this->connection->executeStatement($sql);
             }
 
             // Clean data type for numeric:timestamp.
@@ -254,7 +254,7 @@ WHERE
     AND `_temporary_date`.`timestamp` IS NULL
 ;
 SQL;
-                $this->connection->executeQuery($sql);
+                $this->connection->executeStatement($sql);
 
                 $this->logger->warn(
                     '{count} were not valid dates and were converted into literal.', // @translate
@@ -271,7 +271,7 @@ SQL;
 DROP TABLE IF EXISTS `_temporary_rid`;
 DROP TABLE IF EXISTS `_temporary_date`;
 SQL;
-        $this->connection->executeQuery($sql);
+        $this->connection->executeStatement($sql);
     }
 
     /**

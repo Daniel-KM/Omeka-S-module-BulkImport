@@ -228,7 +228,7 @@ SQL;
             $this->dbAdapter->query($sql)->execute();
         } catch (\Exception $e) {
             try {
-                $connection->exec($sql);
+                $connection->executeStatement($sql);
             } catch (\Exception $e) {
                 return false;
             }
@@ -239,7 +239,7 @@ SQL;
             $this->dbAdapter->query('FLUSH PRIVILEGES;')->execute();
         } catch (\Exception $e) {
             try {
-                $connection->exec('FLUSH PRIVILEGES;');
+                $connection->executeStatement('FLUSH PRIVILEGES;');
             } catch (\Exception $e) {
                 return false;
             }

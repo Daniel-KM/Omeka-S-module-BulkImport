@@ -747,7 +747,7 @@ DROP TABLE IF EXISTS `_temporary_source_value`;
 
 SQL;
 
-        $this->connection->executeQuery($sql);
+        $this->connection->executeStatement($sql);
         unlink($filepath);
 
         if (!empty($this->modulesActive['BulkEdit'])) {
@@ -1342,13 +1342,13 @@ SQL;
             $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 SQL;
-            $this->connection->exec($sql);
+            $this->connection->executeStatement($sql);
         }
 
         $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_value`;
 SQL;
-        $this->connection->exec($sql);
+        $this->connection->executeStatement($sql);
 
         if ($this->stats['removed']) {
             $this->logger->warn(
@@ -2688,7 +2688,7 @@ SQL;
 DROP TABLE IF EXISTS `_src_$table`;
 CREATE TABLE `_src_$table` LIKE `$sourceDatabase`.`$table`;
 SQL;
-        $this->connection->exec($sql);
+        $this->connection->executeStatement($sql);
         // Casting is required.
         if ((int) $this->connection->errorCode()) {
             $this->hasError = true;
@@ -2702,7 +2702,7 @@ SQL;
         $sql = <<<SQL
 INSERT INTO `_src_$table` SELECT * FROM `$sourceDatabase`.`$table`;
 SQL;
-        $result = $this->connection->exec($sql);
+        $result = $this->connection->executeStatement($sql);
         $this->logger->info(
             'Copied {total} rows from the table "{table}".', // @translate
             ['total' => $result, 'table' => $table]
@@ -2746,7 +2746,7 @@ LOAD DATA INFILE "$filepath"
     CHARACTER SET utf8;
 SQL;
 
-        $this->connection->exec($sql);
+        $this->connection->executeStatement($sql);
         @unlink($filepath);
 
         // Casting is required.
@@ -2767,7 +2767,7 @@ SQL;
         $sql = <<<SQL
 DROP TABLE IF EXISTS `_src_$table`;
 SQL;
-        $this->connection->exec($sql);
+        $this->connection->executeStatement($sql);
         return true;
     }
 }
