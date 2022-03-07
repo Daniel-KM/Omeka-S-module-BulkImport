@@ -2,15 +2,15 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\Element\OptionalUrl;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use BulkImport\Form\Element as BulkElement;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
 /**
- * @todo Factorize with Spip, Eprints, and Omeka S processor.
+ * @todo Factorize with Manioc processor.
  */
-class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
+class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
 {
     use ServiceLocatorAwareTrait;
 
@@ -38,7 +38,6 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 ],
                 'attributes' => [
                     'id' => 'comment',
-                    'value' => '',
                     'placeholder' => 'Optional label or comment for future reference.', // @translate
                 ],
             ])
@@ -71,11 +70,32 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
                     'label' => 'Types to import', // @translate
+                    'info' => 'Warning: import of statistics is slow currently.', // @translate
                     'value_options' => [
-                        'users' => 'Users', // @translate
-                        'items' => 'Items', // @translate
-                        // 'media' => 'Media', // @translate
-                        'item_sets' => 'Item sets', // @translate
+                        [
+                            'value' => 'users',
+                            'label' => 'Users', // @translate
+                            'selected' => true,
+                            // 'disabled' => false,
+                            // 'attributes' => [],
+                            // 'label_attributes' => [],
+                        ],
+                        [
+                            'value' => 'items',
+                            'label' => 'Items', // @translate
+                            'selected' => true,
+                        ],
+                        [
+                            'value' => 'media',
+                            'label' => 'Medias', // @translate
+                            'selected' => true,
+                        ],
+                        [
+                            'value' => 'item_sets',
+                            'label' => 'Item sets', // @translate
+                            'selected' => false,
+                            'disabled' => true,
+                        ],
                     ],
                 ],
                 'attributes' => [
@@ -83,8 +103,8 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                     'value' => [
                         'users',
                         'items',
-                        // 'media',
-                        'item_sets',
+                        'media',
+                        // 'item_sets',
                     ],
                     'required' => false,
                 ],
@@ -103,13 +123,22 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
             ])
             ->add([
                 'name' => 'endpoint',
-                'type' => OptionalUrl::class,
+                'type' => BulkElement\OptionalUrl::class,
                 'options' => [
-                    'label' => 'Url of original site to fetch files', // @translate
+                    'label' => 'Base url', // @translate
                 ],
                 'attributes' => [
                     'id' => 'endpoint',
-                    'value' => 'http://manioc.org/',
+                ],
+            ])
+            ->add([
+                'name' => 'url_path',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Url or filepath to fetch original files', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'url_path',
                 ],
             ])
             ->add([
@@ -121,7 +150,6 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 'attributes' => [
                     'id' => 'language',
                     'placeholder' => 'fra',
-                    'value' => 'fra',
                 ],
             ])
             ->add([
@@ -133,22 +161,6 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
                 'attributes' => [
                     'id' => 'language',
                     'placeholder' => 'fr',
-                    'value' => 'fr',
-                ],
-            ])
-            ->add([
-                'name' => 'geonames_search',
-                'type' => Element\Radio::class,
-                'options' => [
-                    'label' => 'Search for geonames', // @translate
-                    'value_options' => [
-                        'strict' => 'Strict', // @translate
-                        'fuzzy' => 'Fuzzy', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'geonames_search',
-                    'value' => 'strict',
                 ],
             ])
         ;

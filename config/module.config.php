@@ -47,6 +47,7 @@ return [
             'ViewJsonStrategy',
         ],
     ],
+    // TODO Merge the forms.
     'form_elements' => [
         'invokables' => [
             Form\Element\ArrayText::class => Form\Element\ArrayText::class,
@@ -64,6 +65,8 @@ return [
             Form\ImporterDeleteForm::class => Service\Form\FormFactory::class,
             Form\ImporterForm::class => Service\Form\FormFactory::class,
             Form\ImporterStartForm::class => Service\Form\FormFactory::class,
+            Form\Processor\EprintsProcessorConfigForm::class => Service\Form\FormFactory::class,
+            Form\Processor\EprintsProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemSetProcessorConfigForm::class => Service\Form\FormFactory::class,
@@ -334,6 +337,7 @@ return [
             Processor\ItemSetProcessor::class => Processor\ItemSetProcessor::class,
             Processor\MediaProcessor::class => Processor\MediaProcessor::class,
             Processor\ResourceProcessor::class => Processor\ResourceProcessor::class,
+            Processor\EprintsProcessor::class => Processor\EprintsProcessor::class,
             Processor\ManiocProcessor::class => Processor\ManiocProcessor::class,
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
             Processor\SpipProcessor::class => Processor\SpipProcessor::class,
