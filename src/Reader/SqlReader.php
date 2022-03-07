@@ -17,7 +17,15 @@ class SqlReader extends AbstractPaginatedReader
     /**
      * var array
      */
-    protected $configKeys = [];
+    protected $configKeys = [
+        'database',
+        'username',
+        'password',
+        'host',
+        'port',
+        'charset',
+        'prefix',
+    ];
 
     /**
      * var array
