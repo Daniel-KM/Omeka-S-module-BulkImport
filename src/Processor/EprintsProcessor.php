@@ -30,6 +30,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'items',
             'media',
             // 'item_sets',
+            'concepts',
             // 'hits',
         ],
         'fake_files' => true,
@@ -82,10 +83,36 @@ class EprintsProcessor extends AbstractFullProcessor
         // 'media_items' => [],
         // 'item_sets' => [],
         // 'values' => [],
+        // Concepts are managed in 5 tables: "subject", "subject_ancestor",
+        // "subject_name_lang", "subject_name_name", "subject_parents".
+        'concepts' => [
+            'source' => 'subject',
+            'key_id' => 'subjectid',
+            // The parent is stored in another table.
+            // 'key_parent_id' => 'parent',
+        ],
         // TODO Use a direct copy of the table, because it may be too much big.
         'hits' => [
             'source' => 'access',
             'key_id' => 'accessid',
+        ],
+    ];
+
+    protected $main = [
+        'concept' => [
+            'template' => 'Thesaurus Concept',
+            'class' => 'skos:Concept',
+            'item' => null,
+            'item_set' => null,
+            'custom_vocab' => null,
+        ],
+        'templates' => [
+            'Thesaurus Concept' => null,
+            'Thesaurus Scheme' => null,
+        ],
+        'classes' => [
+            'skos:Concept' => null,
+            'skos:ConceptScheme' => null,
         ],
     ];
 
@@ -166,6 +193,127 @@ class EprintsProcessor extends AbstractFullProcessor
     protected function prepareMedias(): void
     {
         $this->prepareResources($this->prepareReader('media'), 'media');
+    }
+
+    protected function prepareThesaurus(): void
+    {
+        // There may be multiple thesaurus: this is the not "depositable" values.
+        // So the first step is to list them, then do a loop with them.
+
+        // The ids are strings, so they cannot be kept for internal ids.
+
+        // A thesaurus is normally small (less than some thousands concepts),
+        // so it is loaded as a whole to simplify process.
+
+        $sourceType = 'concepts';
+
+        $roots = $this->reader
+            ->setFilters(['parents = "ROOT"'])
+            ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'parents']])
+            ->setObjectType('subject_parents')
+            ->fetchAllKeyValues('subjectid');
+
+        $ids = $this
+            ->prepareReader('concepts')
+            ->fetchAllKeyValues('subjectid');
+
+        if (empty($roots)) {
+            $roots = ['_root_concept_' => null];
+            $ids = array_merge($roots, $ids);
+        }
+
+        // The ids are strings, so they cannot be kept for internal ids, so
+        // proceed in two steps.
+        // The keys are a simple numeric id from 1, not 0, in order to be sure
+        // that the created id won't be 0.
+        $fakeIdsToTerms = array_merge([0 => null], array_keys($ids));
+        unset($fakeIdsToTerms[0]);
+        $this->map['concepts'] = $fakeIdsToTerms;
+
+        /**
+         * @var \Omeka\Entity\Vocabulary $vocabulary
+         * @var \Omeka\Entity\ResourceClass $resourceClass
+         * @var \Omeka\Entity\ResourceTemplate $resourceTemplate
+         */
+        $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => 'skos']);
+        $class = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'Concept']);
+        $template = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Concept']);
+
+        // Prepare the resources for all the ids.
+        $resourceColumns = [
+            'id' => 'id',
+            'owner_id' => $this->owner ? $this->ownerId : 'NULL',
+            'resource_class_id' => $class ? $class->getId() : 'NULL',
+            'resource_template_id' => $template ? $template->getId() : 'NULL',
+            'is_public' => '0',
+            'created' => '"' . $this->currentDateTimeFormatted . '"',
+            'modified' => 'NULL',
+            'resource_type' => $this->connection->quote($this->importables[$sourceType]['class']),
+            'thumbnail_id' => 'NULL',
+            'title' => 'id',
+        ];
+        $this->createEmptyEntities($sourceType, $resourceColumns, null, true);
+        $this->createEmptyResourcesSpecific($sourceType);
+
+        // Second step: store the real concept ids, not the keys.
+        $list = $this->map['concepts'];
+        $this->map['concepts'] = array_fill_keys($fakeIdsToTerms, null);
+        foreach ($list as $sourceId => $destinationId) {
+            $this->map['concepts'][$fakeIdsToTerms[$sourceId]] = $destinationId;
+        }
+
+        $this->rootConcepts = [];
+        foreach (array_keys($roots) as $schemeSourceId) {
+            $this->rootConcepts[$schemeSourceId] = $this->map['concepts'][$schemeSourceId];
+        }
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        // Prepare the schemes, item set and custom vocabs..
+        $this->thesaurusConfigs = [];
+        foreach ($this->rootConcepts as $sourceId => $destinationId) {
+            // Fill the thesaurus scheme.
+            $this->configThesaurus = $sourceId;
+            $this->main['concepts_' . $sourceId] = [
+                'template' => 'Thesaurus Concept',
+                'class' => 'skos:Concept',
+                'item' => null,
+                'item_set' => null,
+                'custom_vocab' => null,
+            ];
+            $this->thesaurusConfigs[$sourceId] = [
+                // If resources are already created.
+                'resources_ready' => [
+                    'scheme' => $destinationId,
+                    'item_set' => null,
+                    'custom_vocab' => null,
+                ],
+                // New thesaurus.
+                'label' => 'Thesaurus ' . $sourceId,
+                'mapping_name' => 'concepts_' . $sourceId,
+                'main_name' => 'concepts_' . $sourceId,
+                // Data from the source.
+                'source' => 'subject',
+                'key_id' => 'subjectid',
+                'key_parent_id' => null,
+                'key_label' => null,
+                'key_definition' => null,
+                'key_scope_note' => null,
+                'key_created' => null,
+                'key_modified' => null,
+                'narrowers_sort' => null,
+            ];
+            parent::prepareThesaurus();
+        }
+
+        $this->configThesaurus = 'concepts';
+    }
+
+    protected function prepareConcepts(iterable $sources): void
+    {
+        // Skip parent.
     }
 
     protected function fillUser(array $source, array $user): array
@@ -1516,6 +1664,247 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->entity->setHasThumbnails(false);
             $this->entity->setSize(0);
         }
+    }
+
+    protected function fillConcepts(): void
+    {
+        $sourceType = 'concepts';
+
+        // Here the process does not use the parent methods.
+        $this->prepareImport('concepts');
+
+        // Since all concepts are merged in one table but there are multiple
+        // table, do a single loop for all concepts.
+        $this->configThesaurus = 'concepts';
+
+        // Concepts are managed in 5 tables: "subject", "subject_ancestor",
+        // "subject_name_lang", "subject_name_name", "subject_parents".
+        // Language tables "subject__ordervalues_fr" are a dynamic merge.
+        // Parent is the first ancestor.
+
+        // Subjects are already mapped in map['concepts'], included schemes.
+        $depositables = $this->reader
+            ->setFilters([])
+            ->setOrders([['by' => 'subjectid']])
+            ->setObjectType('subject')
+            ->fetchAllKeyValues('subjectid', 'depositable');
+        $nameByIds = $this->reader
+            ->setFilters([])
+            ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'name_name']])
+            ->setObjectType('subject_name_name')
+            ->fetchAll(null, 'subjectid');
+        $langByIds = $this->reader
+            ->setFilters([])
+            ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'name_lang']])
+            ->setObjectType('subject_name_lang')
+            ->fetchAll(null, 'subjectid');
+        $parents = $this->reader
+            ->setFilters([])
+            ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'parents']])
+            ->setObjectType('subject_parents')
+            ->fetchAll();
+        $ancestorByIds = $this->reader
+            ->setFilters([])
+            ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'ancestors']])
+            ->setObjectType('subject_ancestors')
+            ->fetchAll(null, 'subjectid');
+        // Reset the reader.
+        $this->prepareReader('concepts');
+
+        $this->refreshMainResources();
+
+        // All tables manage multiple data (many-to-one relations), except "subject".
+        // So prepare them to be an array of array.
+        $depositables = array_map(function ($v) {
+            return $v === 'TRUE';
+        }, $depositables);
+        $parentByIds = [];
+        foreach ($parents as $data) {
+            $parentByIds[$data['subjectid']][] = $data;
+        }
+
+        // $classOId = ['o:id' => $this->main['classes']['skos:Concept']->getId()];
+        // $templateOId = ['o:id' => $this->main['templates']['Thesaurus Concept']->getId()];
+
+        // TODO The case where a fake thesaurus is created is not fully managed.
+
+        $index = 0;
+        $created = 0;
+        $skipped = 0;
+        $excluded = 0;
+        foreach ($this->map['concepts'] as $sourceId => $destinationId) {
+            ++$index;
+            if (!$destinationId) {
+                if ($sourceId === '_root_concept_') {
+                    continue;
+                }
+                $this->hasError = true;
+                $this->logger->err(
+                    'No destination id for the concept "{source}".', // @translate
+                    ['source' => $sourceId]
+                );
+                return;
+            }
+            $this->entity = $this->entityManager->find(\Omeka\Entity\Item::class, $destinationId);
+            $this->entity->setIsPublic(true);
+
+            $values = [];
+            if (isset($this->rootConcepts[$sourceId])) {
+                foreach ($parents as $parentData) {
+                    if ($parentData['parents'] === $sourceId) {
+                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['subjectid']]);
+                        $values[] = [
+                            'term' => 'skos:hasTopConcept',
+                            'type' => 'resource:item',
+                            'value_resource' => $linked,
+                        ];
+                    }
+                }
+            } else {
+                $scheme = null;
+                foreach ($ancestorByIds[$sourceId] ?? [] as $ancestorData) {
+                    if (isset($this->rootConcepts[$ancestorData['ancestors']])) {
+                        $scheme = $this->entityManager->find(\Omeka\Entity\Item::class, $this->rootConcepts[$ancestorData['ancestors']]);
+                        break;
+                    }
+                }
+                if (!$scheme) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'No root scheme for concept source {source}.', // @translate
+                        ['source' => $sourceId]
+                    );
+                    return;
+                }
+                $values[] = [
+                    'term' => 'skos:inScheme',
+                    'type' => 'resource:item',
+                    'value_resource' => $scheme,
+                ];
+                /** @see \Doctrine\ORM\PersistentCollection */
+                $schemeItemSet = $scheme->getItemSets()->first();
+                if ($schemeItemSet) {
+                    $itemSets = $this->entity->getItemSets();
+                    $itemSets->add($schemeItemSet);
+                } else {
+                    $this->logger->warn(
+                        'The scheme item set is missing for scheme {name}.', // @translate
+                        ['source' => $sourceId]
+                    );
+                }
+
+                foreach ($parentByIds[$sourceId] as $parentData) {
+                    if (isset($this->rootConcepts[$parentData['parents']])) {
+                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->rootConcepts[$parentData['parents']]);
+                        $values[] = [
+                            'term' => 'skos:topConceptOf',
+                            'type' => 'resource:item',
+                            'value_resource' => $linked,
+                        ];
+                    } elseif ($parentData['parents'] !== 'ROOT') {
+                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['parents']]);
+                        $values[] = [
+                            'term' => 'skos:broader',
+                            'type' => 'resource:item',
+                            'value_resource' => $linked,
+                        ];
+                    }
+                }
+
+                foreach ($parents as $parentData) {
+                    if ($parentData['parents'] === $sourceId) {
+                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['subjectid']]);
+                        $values[] = [
+                            'term' => 'skos:narrower',
+                            'type' => 'resource:item',
+                            'value_resource' => $linked,
+                        ];
+                    }
+                }
+            }
+
+            foreach ($nameByIds[$sourceId] ?? [] as $nameData) {
+                $lang = null;
+                foreach ($langByIds[$sourceId] ?? [] as $langData) {
+                    if ($langData['pos'] === $nameData['pos']) {
+                        $lang = $langData['name_lang'];
+                        break;
+                    }
+                }
+                $values[] = [
+                    'term' => 'skos:prefLabel',
+                    'type' => 'literal',
+                    'lang' => $lang,
+                    'value' => $nameData['name_name'],
+                ];
+            }
+
+            $values[] = [
+                'term' => 'skos:notation',
+                'type' => 'literal',
+                'value' => $sourceId,
+            ];
+
+            // TODO Thesaurus collection or member list are currently not managed, so use skos:member.
+            if (empty($depositables[$sourceId])) {
+                $values[] = [
+                    'term' => 'skos:member',
+                    'type' => 'literal',
+                    'lang' => 'fra',
+                    'value' => 'Non utilisable',
+                ];
+            }
+
+            // No skos:definition.
+
+            /*
+            $item = [
+                '_source_id' => $sourceId,
+                '@type' => [
+                    'o:Item',
+                    'skos:Concept',
+                ],
+                'o:id' => $this->map['concepts'][$sourceId],
+                'o:is_public' => true,
+                'o:owner' => $this->ownerOId,
+                'o:resource_class' => $classOId,
+                'o:resource_template' => $templateOId,
+                'o:title' => $names[$sourceId] ?? null,
+                'o:created' => $this->currentDateTimeFormatted,
+                'o:modified' => null,
+                'o:media' => null,
+                'o:item_sets' => null,
+            ];
+            */
+
+            $this->orderAndAppendValues($values);
+
+            $this->entityManager->persist($this->entity);
+            ++$created;
+
+            if ($created % self::CHUNK_ENTITIES === 0) {
+                if ($this->isErrorOrStop()) {
+                    break;
+                }
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+                $this->refreshMainResources();
+                $this->logger->info(
+                    '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+                    ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+                );
+            }
+        }
+
+        // Remaining entities.
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $this->logger->notice(
+            '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+            ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+        );
     }
 
     protected function fillHit(array $source, array $hit): array
