@@ -13,6 +13,7 @@ return [
     'types_to_resource_classes' => [
     ],
     'custom_vocabs' => [
+        // Single-valued fields.
         'eprint_status' => null,
         'full_text_status' => null,
         'institution' => null,
@@ -22,6 +23,8 @@ return [
         'monograph_type' => null,
         'pres_type' => null,
         'thesis_type' => null,
+        'type' => null,
+        // Multi-valued fields.
         'creators' => null,
         'contributors' => null,
         'directors' => null,
@@ -38,5 +41,15 @@ return [
         'doctoral_school' => 'customvocab:Thesaurus doctoral_school',
         'research_unit' => 'Thesaurus research_unit',
         'subjects' => 'Thesaurus subjects',
+    ],
+    'transform' => [
+        'dcterms:type' => [
+            'article' => 'Article',
+            'master' => 'Mémoire',
+            'pfpa' => 'Parcours de Formation Professionnelle Adapté',
+            'projettutore' => 'Projet tutoré',
+            'rapportstage' => 'Rapport de stage',
+            'thesis' => 'Thèse de doctorat',
+        ],
     ],
 ];

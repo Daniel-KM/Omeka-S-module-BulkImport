@@ -438,6 +438,7 @@ class EprintsProcessor extends AbstractFullProcessor
         // Directors are not stored in a specific table, but in the main table.
         'directors' => [
             'source' => 'eprint',
+            'no_table' => true,
             'key_id' => [
                 'director_family' => 'foaf:familyName',
                 'director_given' => 'foaf:givenName',
@@ -743,7 +744,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 ->setObjectType('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific']);
         } catch (\Exception $e) {
-            $this->tableData[$table] = [];
+            $this->tableData['directors'] = [];
         }
 
         try {
@@ -753,7 +754,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 ->setObjectType('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific'], 'eprintid');
         } catch (\Exception $e) {
-            $this->tableData[$table] = [];
+            $this->tableDataBy['directors'] = [];
         }
     }
 
@@ -790,7 +791,9 @@ class EprintsProcessor extends AbstractFullProcessor
                     'Preparation of related resources "{name}".', // @translate
                     ['name' => $sourceType]
                 );
-                $table = $this->mapping[$sourceType]['source'] ?? null;
+                $table = !empty($this->mapping[$sourceType]['no_table'])
+                    ? $sourceType
+                    : $this->mapping[$sourceType]['source'] ?? null;
                 if (!isset($this->tableData[$table])) {
                     $this->hasError = true;
                     $this->logger->err(
@@ -1258,7 +1261,8 @@ class EprintsProcessor extends AbstractFullProcessor
         // Some values are related to eprints plugins, but empty.
 
         // "full_text_status", "ispublished" and "hidden" are not related.
-        $isPublic = !in_array($source['ispublished'], ['unpub', 'submitted', 'inpress']);
+        // $isPublic = !in_array($source['ispublished'], ['unpub', 'submitted', 'inpress']);
+        $isPublic = $source['eprint_status'] === 'archived';
 
         $item = [
             // Keep the source id to simplify next steps and find mapped id.
@@ -1327,10 +1331,7 @@ class EprintsProcessor extends AbstractFullProcessor
             true,
             true,
             true
-        ) ?: $this->currentDateTimeFormatted;
-
-        $item['o:created'] = ['@value' => $created];
-
+        );
         $modified = $this->implodeDate(
             $source['lastmod_year'],
             $source['lastmod_month'],
@@ -1343,10 +1344,12 @@ class EprintsProcessor extends AbstractFullProcessor
             true,
             true
         );
+        $created = $created ?? $modified ?? $this->currentDateTimeFormatted;
         if (!$modified && $source['rev_number'] > 1) {
             $modified = $this->currentDateTimeFormatted;
         }
 
+        $item['o:created'] = ['@value' => $created];
         $item['o:modified'] = $modified ? ['@value' => $modified] : null;
 
         // Use the short values mechanism.
@@ -1392,13 +1395,7 @@ class EprintsProcessor extends AbstractFullProcessor
             true,
             false,
             false
-        ) ?: $this->currentDateTimeFormatted;
-        $values[] = [
-            'term' => 'dcterms:created',
-            'type' => 'numeric:timestamp',
-            'value' => $created,
-        ];
-
+        );
         $modified = $this->implodeDate(
             $source['lastmod_year'],
             $source['lastmod_month'],
@@ -1411,12 +1408,20 @@ class EprintsProcessor extends AbstractFullProcessor
             false,
             false
         );
-        if ($modified && $source['rev_number'] > 1) {
+        $created = $created ?? $modified;
+        if ($created) {
             $values[] = [
-                'term' => 'dcterms:modified',
+                'term' => 'dcterms:created',
                 'type' => 'numeric:timestamp',
-                'value' => $modified,
+                'value' => $created,
             ];
+            if ($modified && $modified !== $created && $source['rev_number'] > 1) {
+                $values[] = [
+                    'term' => 'dcterms:modified',
+                    'type' => 'numeric:timestamp',
+                    'value' => $modified,
+                ];
+            }
         }
 
         // Useless in Omeka for now.
@@ -1517,6 +1522,15 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
+        if ($source['type']) {
+            $values[] = [
+                'term' => 'dcterms:type',
+                'type' => $this->configs['custom_vocabs']['type'] ?? 'literal',
+                'value' => $this->configs['transform']['dcterms:type'][$source['type']] ?? $source['type'],
+                'is_public' => true,
+            ];
+        }
+
         if ($source['monograph_type']) {
             $values[] = [
                 'term' => 'dcterms:type',
@@ -1594,7 +1608,8 @@ class EprintsProcessor extends AbstractFullProcessor
             }
             $values[] = [
                 'term' => $dateTypes[$source['date_type']] ?? 'dcterms:date',
-                'value' => $source['abstract'],
+                'type' => 'numeric:timestamp',
+                'value' => $date,
             ];
         }
 
@@ -2099,24 +2114,26 @@ class EprintsProcessor extends AbstractFullProcessor
             // 'issues' => [
             // ],
         ];
-        foreach ($listValues as $sourceType => $sourceData) {
-            $table = $this->mapping[$sourceType]['source'];
-            $set = $this->mapping[$sourceType]['set'] ?? null;
+        foreach ($listValues as $sourceTypeLinked => $sourceData) {
+            $table = !empty($this->mapping[$sourceTypeLinked]['no_table'])
+                ? $sourceTypeLinked
+                : $this->mapping[$sourceTypeLinked]['source'] ?? null;
+            $set = $this->mapping[$sourceTypeLinked]['set'] ?? null;
             if ($set !== 'eprint_name') {
                 $this->logger->warn(
                     'Attachment of "{source}" to items is currently not managed..',  // @translate
-                    ['source' => $sourceType]
+                    ['source' => $sourceTypeLinked]
                 );
                 continue;
             }
-            $linkedType = $this->configs['custom_vocabs'][$sourceType] ?? 'resource:item';
+            $linkedType = $this->configs['custom_vocabs'][$sourceTypeLinked] ?? 'resource:item';
             $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
-            $keyId = $this->mapping[$sourceType]['key_id'];
+            $keyId = $this->mapping[$sourceTypeLinked]['key_id'];
             $emptyKeyId = array_fill_keys(array_keys($keyId), null);
             foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $dataSource) {
                 $orderedSource = array_intersect_key(array_replace($emptyKeyId, $dataSource), $emptyKeyId);
                 $sourceLinkedId = $this->asciiArrayToString($orderedSource);
-                $vrid = $this->map[$sourceType][$sourceLinkedId] ?? null;
+                $vrid = $this->map[$sourceTypeLinked][$sourceLinkedId] ?? null;
                 if ($vrid) {
                     $values[] = [
                         'term' => $sourceData['term'],
@@ -2129,7 +2146,7 @@ class EprintsProcessor extends AbstractFullProcessor
                     $this->hasError = true;
                     $this->logger->err(
                         'The "{source}" #"{id}" has not yet been imported as a resource.',  // @translate
-                        ['source' => $sourceType, 'id' => implode(' | ', $orderedSource)]
+                        ['source' => $sourceTypeLinked, 'id' => implode(' | ', $orderedSource)]
                     );
                 }
             }
@@ -2678,7 +2695,9 @@ class EprintsProcessor extends AbstractFullProcessor
                 'lyricists',
                 // 'issues',
             ] as $sourceType) {
-                $table = $this->mapping[$sourceType]['source'] ?? null;
+                $table = !empty($this->mapping[$sourceType]['no_table'])
+                    ? $sourceType
+                    : $this->mapping[$sourceType]['source'] ?? null;
                 if (!isset($this->tableData[$table])) {
                     $this->hasError = true;
                     $this->logger->err(
