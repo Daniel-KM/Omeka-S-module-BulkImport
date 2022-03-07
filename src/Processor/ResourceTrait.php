@@ -5,6 +5,10 @@ namespace BulkImport\Processor;
 use Log\Stdlib\PsrMessage;
 use Omeka\Entity\Resource;
 
+/**
+ * @todo Rename all methods to avoid possible override of ResourceProcessor, even if they are fully separated for now.
+ * @todo Use only the same array as json-ld resources.
+ */
 trait ResourceTrait
 {
     /**
@@ -370,6 +374,7 @@ SQL;
 
         $this->entity->setIsPublic(!empty($source['o:is_public']));
 
+        // TODO Replace by implodeDate() in previous steps.
         $sqlDate = function ($value) {
             return substr(str_replace('T', ' ', $value), 0, 19) ?: $this->currentDateTimeFormatted;
         };
@@ -622,7 +627,7 @@ SQL;
     }
 
     /**
-     * Append a list of value to a resource, ordered according the template.
+     * Append a list of value to a resource, ordered according to the template.
      *
      * The existing values of the resource are not reordered.
      * Use `fillResourceValues()` if values are Omeka values or `appendValues()` if the

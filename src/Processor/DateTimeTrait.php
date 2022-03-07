@@ -275,6 +275,53 @@ SQL;
     }
 
     /**
+     * Gather date/time components.
+     *
+     * Some databases store each date time components separately, so they may
+     * need to be merged.
+     *
+     * @return DateTime|string|null
+     */
+    protected function implodeDate(
+        $year,
+        $month = null,
+        $day = null,
+        $hour = null,
+        $minute = null,
+        $second = null,
+        $epoch = null,
+        bool $formatted = false,
+        bool $fullDatetime = false,
+        bool $forSql = false
+    ) {
+        if ((int) $epoch) {
+            return $this->getDateTimeFromValue(date('Y-m-d\TH:i:s', (int) $epoch), true, $formatted, $fullDatetime, $forSql);
+        }
+        if (!$year) {
+            return null;
+        }
+        // Stringify according to granularity if some last parts are missing.
+        if (strlen((string) $second)) {
+            $string = sprintf('%04d-%02d-%02dT%02d:%02d:%02d', (int) $year, (int) $month, (int) $day, (int) $hour, (int) $minute, (int) $second);
+        } elseif (strlen((string) $minute)) {
+            $string = sprintf('%04d-%02d-%02dT%02d:%02d', (int) $year, (int) $month, (int) $day, (int) $hour, (int) $minute);
+        } elseif (strlen((string) $hour)) {
+            $string = sprintf('%04d-%02d-%02dT%02d', (int) $year, (int) $month, (int) $day, (int) $hour);
+        } elseif (strlen((string) $day)) {
+            $string = sprintf('%04d-%02d-%02d', (int) $year, (int) $month, (int) $day);
+        } elseif (strlen((string) $month)) {
+            $string = sprintf('%04d-%02d', (int) $year, (int) $month);
+        } elseif (strlen((string) $year)) {
+            $string = sprintf('%04d', (int) $year);
+        } else {
+            return null;
+        }
+        return $string
+            ? $this->getDateTimeFromValue($string, true, $formatted, $fullDatetime, $forSql)
+            : null;
+    }
+
+    /**
      * Get the decomposed date/time and DateTime object from an ISO 8601 value.
      *
      * Use $defaultFirst to set the default of each datetime component to its
@@ -283,8 +330,10 @@ SQL;
      *
      * Also used to validate the datetime since validation is a side effect of
      * parsing the value into its component datetime pieces.
+     *
+     * @return DateTime|string|null
      */
-    protected function getDateTimeFromValue($value, bool $defaultFirst = true): ?DateTime
+    protected function getDateTimeFromValue($value, bool $defaultFirst = true, bool $formatted = false, bool $fullDatetime = false, bool $forSql = false)
     {
         // Match against ISO 8601, allowing for reduced accuracy.
         $matches = [];
@@ -419,6 +468,17 @@ SQL;
             $dateTime['minute_normalized'],
             $dateTime['second_normalized']
         );
+
+        if ($forSql) {
+            return $dateTime['date']->format('Y-m-d H:i:s');
+        }
+
+        if ($formatted) {
+            return $fullDatetime
+                ? $dateTime['date']->format('Y-m-d\TH:i:s')
+                : $dateTime['date']->format($dateTime['format_iso8601']);
+        }
+
         return $dateTime['date'];
     }
 
