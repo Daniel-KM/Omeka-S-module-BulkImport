@@ -252,6 +252,88 @@ SQL;
         return empty(array_intersect_key($this->map[$sourceType], array_flip($entityIds)));
     }
 
+    protected function sqlCheckReadDirectly(?string $sourceType): bool
+    {
+        $table = null;
+        if ($sourceType) {
+            $table = $this->mapping[$sourceType]['source'] ?? null;
+        }
+
+        if (!$this->reader->canReadDirectly($table)) {
+            $dbConfig = $this->reader->getDbConfig();
+            if ($sourceType) {
+                $this->logger->warn(
+                    'To import "{source}", the Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
+                    ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                    );
+            } else {
+                $this->logger->warn(
+                    'The Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
+                    ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                    );
+            }
+            $this->logger->err(
+                'In some cases, the grants should be given to the omeka database user too.'  // @translate
+                );
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function sqlTemporaryTableForIdsCreate(string $sourceType, string $entityName): string
+    {
+        $sqls = <<<SQL
+# Create a temporary table to store the mapping between original ids and new ids for "$sourceType" ($entityName).
+DROP TABLE IF EXISTS `_temporary__$entityName`;
+CREATE TABLE `_temporary__$entityName` (
+    `from` INT(11) NOT NULL,
+    `to` INT(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SQL;
+        if (empty($this->map[$sourceType])) {
+            return $sqls;
+        }
+
+        $filtered = array_filter($this->map[$sourceType]);
+        $isArray = is_array(reset($filtered));
+        foreach (array_chunk($filtered, self::CHUNK_RECORD_IDS, true) as $chunk) {
+            $values = [];
+            if ($isArray) {
+                foreach ($chunk as $from => $to) {
+                    $values[] = "$from,{$to['id']}";
+                }
+            } else {
+                foreach ($chunk as $from => $to) {
+                    $values[] = "$from,$to";
+                }
+            }
+            $sqls .= "INSERT INTO `_temporary__$entityName` (`from`, `to`) VALUES(" . implode('),(', $values) . ");\n";
+        }
+        return $sqls;
+    }
+
+    protected function sqlTemporaryTableForIdsJoin(string $sourceType, string $sourceKey, string $entityName, ?string $joinType = null): string
+    {
+        $dbConfig = $this->reader->getDbConfig();
+        $sourceDatabase = $dbConfig['database'];
+        $destinationDatabase = $this->connection->getDatabase();
+        $sourceTable = $this->mapping[$sourceType]['source'] ?? null;
+        $joinType = strtolower((string) $joinType) === 'left' ? 'LEFT ' : '';
+
+        return <<<SQL
+{$joinType}JOIN `$destinationDatabase`.`_temporary__$entityName`
+    ON `$sourceDatabase`.`$sourceTable`.`$sourceKey` = `$destinationDatabase`.`_temporary__$entityName`.`from`
+
+SQL;
+    }
+
+        protected function sqlTemporaryTableForIdsDrop(string $entityName): string
+    {
+        return "DROP TABLE IF EXISTS `_temporary__$entityName`;\n";
+    }
+
     /**
      * Update created dates and, if any, modified dates. No check is done.
      *

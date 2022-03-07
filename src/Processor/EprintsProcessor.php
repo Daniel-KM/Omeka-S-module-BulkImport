@@ -37,6 +37,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'concepts',
             // 'hits',
             'contact_messages',
+            'search_requests',
         ],
         'fake_files' => true,
         'endpoint' => null,
@@ -551,6 +552,11 @@ class EprintsProcessor extends AbstractFullProcessor
         'contact_messages' => [
             'source' => 'request',
             'key_id' => 'requestid',
+            'mode' => 'sql',
+        ],
+        'search_requests' => [
+            'source' => 'saved_search',
+            'key_id' => 'id',
             'mode' => 'sql',
         ],
         // history => module History Log.
@@ -2756,6 +2762,14 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->logger->notice('Import of contact messages.'); // @translate
             $this->fillContactMessages();
         }
+
+        if (!empty($this->modulesActive['SearchHistory'])
+            && in_array('search_requests', $toImport)
+            && $this->prepareImport('search_requests')
+        ) {
+            $this->logger->notice('Import of search requests.'); // @translate
+            $this->fillSearchRequests();
+        }
     }
 
     protected function fillConcepts(): void
@@ -3271,7 +3285,7 @@ class EprintsProcessor extends AbstractFullProcessor
         */
 
         $sourceType = 'contact_messages';
-        if (!$this->checkReadDirectly($sourceType)) {
+        if (!$this->sqlCheckReadDirectly($sourceType)) {
             return;
         }
 
@@ -3281,9 +3295,6 @@ class EprintsProcessor extends AbstractFullProcessor
 
         $sourceTable = $this->mapping[$sourceType]['source'];
         $sourceKeyId = $this->mapping[$sourceType]['key_id'];
-        $sourceKeyItem = 'eprintid';
-        $sourceKeyMedia = 'docid';
-        $sourceKeyUser = 'userid';
 
         $subject = $this->translator->translate('Request to document (migrated)'); // @translate
         $subject = $this->connection->quote($subject);
@@ -3298,60 +3309,10 @@ class EprintsProcessor extends AbstractFullProcessor
             $selectId = '';
         }
 
-        // Import via sql.
-        $sqls = <<<'SQL'
-# Create a temporary table to store the mapping between original item ids and new ids.
-# It should manage removed items (null is allowed).
-DROP TABLE IF EXISTS `_temporary_contact_items`;
-CREATE TABLE `_temporary_contact_items` (
-    `from` INT(11) NOT NULL,
-    `to` INT(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SQL;
-        foreach (array_chunk(array_filter($this->map['items']), self::CHUNK_RECORD_IDS, true) as $chunk) {
-            $values = [];
-            foreach ($chunk as $from => $to) {
-                $values[] = "$from,$to";
-            }
-            $sqls .= 'INSERT INTO `_temporary_contact_items` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
-        }
-
-        $sqls .= <<<'SQL'
-# Create a temporary table to store the mapping between original document ids and new media ids.
-# It should manage removed medias (null is allowed).
-DROP TABLE IF EXISTS `_temporary_contact_medias`;
-CREATE TABLE `_temporary_contact_medias` (
-    `from` INT(11) NOT NULL,
-    `to` INT(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SQL;
-        foreach (array_chunk(array_filter($this->map['media']), self::CHUNK_RECORD_IDS, true) as $chunk) {
-            $values = [];
-            foreach ($chunk as $from => $to) {
-                $values[] = "$from,$to";
-            }
-            $sqls .= 'INSERT INTO `_temporary_contact_medias` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
-        }
-
-        $sqls .= <<<'SQL'
-# Create a temporary table to store the mapping between original user ids and new ids.
-# It should manage removed users (null is allowed).
-DROP TABLE IF EXISTS `_temporary_contact_users`;
-CREATE TABLE `_temporary_contact_users` (
-    `from` INT(11) NOT NULL,
-    `to` INT(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SQL;
-        foreach (array_chunk(array_filter($this->map['users']), self::CHUNK_RECORD_IDS, true) as $chunk) {
-            $values = [];
-            foreach ($chunk as $from => $to) {
-                $values[] = "$from,{$to['id']}";
-            }
-            $sqls .= 'INSERT INTO `_temporary_contact_users` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
-        }
+        $sqls = $this->sqlTemporaryTableForIdsCreate($sourceType, 'items');
+        $sqls .= $this->sqlTemporaryTableForIdsCreate($sourceType, 'media');
+        $sqls .= $this->sqlTemporaryTableForIdsCreate($sourceType, 'users');
+        $sqls .= "\n";
 
         $sqls .= <<<SQL
 # Mapping columns and copy source table.
@@ -3379,8 +3340,8 @@ INSERT INTO `$destinationDatabase`.`contact_message` (
 )
 SELECT
     $selectId
-    `$destinationDatabase`.`_temporary_contact_users`.`to`,
-    IFNULL(`$destinationDatabase`.`_temporary_contact_medias`.`to`, `$destinationDatabase`.`_temporary_contact_items`.`to`),
+    `_temporary__users`.`to`,
+    IFNULL(`_temporary__media`.`to`, `_temporary__items`.`to`),
     1,
     IFNULL(`requester_email`, ""),
     `requester_email`,
@@ -3401,20 +3362,104 @@ SELECT
         `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
     ), "%Y-%m-%d %H:%i:%s")
 FROM `$sourceDatabase`.`$sourceTable`
-LEFT JOIN `$destinationDatabase`.`_temporary_contact_items`
-    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyItem` = `$destinationDatabase`.`_temporary_contact_items`.`from`
-LEFT JOIN `$destinationDatabase`.`_temporary_contact_medias`
-    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyMedia` = `$destinationDatabase`.`_temporary_contact_medias`.`from`
-LEFT JOIN `$destinationDatabase`.`_temporary_contact_users`
-    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyUser` = `$destinationDatabase`.`_temporary_contact_users`.`from`
-;
-
-# Drop temporary tables.
-DROP TABLE IF EXISTS `_temporary_contact_items`;
-DROP TABLE IF EXISTS `_temporary_contact_medias`;
-DROP TABLE IF EXISTS `_temporary_contact_users`;
-
 SQL;
+        $sqls .= "\n";
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'eprintid', 'items', 'left');
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'docid', 'media', 'left');
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'userid', 'users', 'left');
+        $sqls .= ";\n";
+
+        $sqls .= "\n# Drop temporary tables.\n";
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('items');
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('media');
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('users');
+
+        $this->connection->executeStatement($sqls);
+
+        $after = $this->bulk->api()->search($sourceType)->getTotalResults();
+
+        $this->logger->notice(
+            '{total} "{source}" have been imported.', // @translate
+            ['total' => $after - $before, 'source' => $sourceType]
+        );
+    }
+
+    protected function fillSearchRequests(): void
+    {
+        /*
+        id    int(11)
+        userid    int(11) NULL
+        pos    int(11) NULL
+        name    varchar(255) NULL
+        spec    longtext NULL
+        frequency    varchar(255) NULL
+        mailempty    varchar(5) NULL
+        public    varchar(5) NULL
+         */
+
+        $sourceType = 'search_requests';
+        if (!$this->sqlCheckReadDirectly($sourceType)) {
+            return;
+        }
+
+        $dbConfig = $this->reader->getDbConfig();
+        $sourceDatabase = $dbConfig['database'];
+        $destinationDatabase = $this->connection->getDatabase();
+
+        $sourceTable = $this->mapping[$sourceType]['source'];
+        $sourceKeyId = $this->mapping[$sourceType]['key_id'];
+
+        $subject = $this->translator->translate('migrated'); // @translate
+        $subject = $this->connection->quote($subject);
+
+        // If the table is empty, keep original ids.
+        $before = $this->bulk->api()->search($sourceType)->getTotalResults();
+        if (empty($before)) {
+            $insertId = '`id`,';
+            $selectId = "`$sourceKeyId`,";
+        } else {
+            $insertId = '';
+            $selectId = '';
+        }
+
+        $sqls = $this->sqlTemporaryTableForIdsCreate($sourceType, 'users');
+
+        $sqls .= <<<SQL
+# Mapping columns and copy source table.
+# Not managed, but stored : frequency, public. Not managed: mailempty.
+INSERT INTO `$destinationDatabase`.`search_request` (
+    $insertId
+    `user_id`,
+    `site_id`,
+    `comment`,
+    `engine`,
+    `query`,
+    `created`,
+    `modified`
+)
+SELECT
+    $selectId
+    `_temporary__users`.`to`,
+    1,
+    CONCAT(
+        SUBSTR(TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+            `name`, "\n\r", " "), "\n", " "), "\r", " "), "\t", " "), "  ", " ")
+        ), 1, 160),
+        " (", $subject, ") [",
+        LOWER(`frequency`), "/", IF(`public` = "FALSE", "private", "public"), "]"
+    ),
+    "item",
+    `spec`,
+    "$this->currentDateTimeFormatted",
+    NULL
+FROM `$sourceDatabase`.`$sourceTable`
+SQL;
+        $sqls .= "\n";
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'userid', 'users', 'left');
+        $sqls .= ";\n";
+
+        $sqls .= "\n# Drop temporary tables.\n";
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('users');
 
         $this->connection->executeStatement($sqls);
 
@@ -3443,34 +3488,5 @@ SQL;
             return $sha1;
         }
         return trim($string, $separator) . $separator . $sha1;
-    }
-
-    protected function checkReadDirectly(?string $sourceType): bool
-    {
-        $table = null;
-        if ($sourceType) {
-            $table = $this->mapping[$sourceType]['source'] ?? null;
-        }
-
-        if (!$this->reader->canReadDirectly($table)) {
-            $dbConfig = $this->reader->getDbConfig();
-            if ($sourceType) {
-                $this->logger->warn(
-                    'To import "{source}", the Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
-                    ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
-                );
-            } else {
-                $this->logger->warn(
-                    'The Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
-                    ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
-                );
-            }
-            $this->logger->err(
-                'In some cases, the grants should be given to the omeka database user too.'  // @translate
-            );
-            return false;
-        }
-
-        return true;
     }
 }
