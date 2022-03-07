@@ -36,6 +36,7 @@ class EprintsProcessor extends AbstractFullProcessor
             // 'item_sets',
             'concepts',
             // 'hits',
+            'contact_messages',
         ],
         'fake_files' => true,
         'endpoint' => null,
@@ -547,6 +548,12 @@ class EprintsProcessor extends AbstractFullProcessor
             'source' => 'access',
             'key_id' => 'accessid',
         ],
+        'contact_messages' => [
+            'source' => 'request',
+            'key_id' => 'requestid',
+            'mode' => 'sql',
+        ],
+        // history => module History Log.
     ];
 
     protected $main = [
@@ -649,22 +656,6 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // No config to prepare currently.
         $this->prepareConfig('config.php', 'eprints');
-
-        // With this processor, direct requests are done to the source database,
-        // so check right of the current database user.
-
-        if (!$this->reader->canReadDirectly()) {
-            $this->hasError = true;
-            $dbConfig = $this->reader->getDbConfig();
-            $this->logger->err(
-                'The Omeka database user should be able to read the source database, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
-                ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
-            );
-            $this->logger->err(
-                'In some cases, the grants should be given to the omeka database user too.'  // @translate
-            );
-            return;
-        }
 
         // TODO Remove these fixes.
         $args = $this->getParams();
@@ -2758,10 +2749,12 @@ class EprintsProcessor extends AbstractFullProcessor
             }
         }
 
-        if (in_array('contact_messages', $toImport)
+        if (!empty($this->modulesActive['ContactUs'])
+            && in_array('contact_messages', $toImport)
             && $this->prepareImport('contact_messages')
         ) {
-            $this->logger->notice('Preparation of related resources (authors, issues, etc.).'); // @translate
+            $this->logger->notice('Import of contact messages.'); // @translate
+            $this->fillContactMessages();
         }
     }
 
@@ -3252,6 +3245,187 @@ class EprintsProcessor extends AbstractFullProcessor
         }
     }
 
+    protected function fillContactMessages(): void
+    {
+        /*
+        requestid    int(11)
+        eprintid    int(11) NULL
+        docid    varchar(255) NULL
+        datestamp_year    smallint(6) NULL
+        datestamp_month    smallint(6) NULL
+        datestamp_day    smallint(6) NULL
+        datestamp_hour    smallint(6) NULL
+        datestamp_minute    smallint(6) NULL
+        datestamp_second    smallint(6) NULL
+        userid    int(11) NULL
+        email    varchar(255) NULL
+        requester_email    varchar(255) NULL
+        reason    longtext NULL
+        expiry_date_year    smallint(6) NULL
+        expiry_date_month    smallint(6) NULL
+        expiry_date_day    smallint(6) NULL
+        expiry_date_hour    smallint(6) NULL
+        expiry_date_minute    smallint(6) NULL
+        expiry_date_second    smallint(6) NULL
+        code    varchar(255) NULL
+        */
+
+        $sourceType = 'contact_messages';
+        if (!$this->checkReadDirectly($sourceType)) {
+            return;
+        }
+
+        $dbConfig = $this->reader->getDbConfig();
+        $sourceDatabase = $dbConfig['database'];
+        $destinationDatabase = $this->connection->getDatabase();
+
+        $sourceTable = $this->mapping[$sourceType]['source'];
+        $sourceKeyId = $this->mapping[$sourceType]['key_id'];
+        $sourceKeyItem = 'eprintid';
+        $sourceKeyMedia = 'docid';
+        $sourceKeyUser = 'userid';
+
+        $subject = $this->translator->translate('Request to document (migrated)'); // @translate
+        $subject = $this->connection->quote($subject);
+
+        // If the table is empty, keep original ids.
+        $before = $this->bulk->api()->search($sourceType)->getTotalResults();
+        if (empty($before)) {
+            $insertId = '`id`,';
+            $selectId = "`$sourceKeyId`,";
+        } else {
+            $insertId = '';
+            $selectId = '';
+        }
+
+        // Import via sql.
+        $sqls = <<<'SQL'
+# Create a temporary table to store the mapping between original item ids and new ids.
+# It should manage removed items (null is allowed).
+DROP TABLE IF EXISTS `_temporary_contact_items`;
+CREATE TABLE `_temporary_contact_items` (
+    `from` INT(11) NOT NULL,
+    `to` INT(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SQL;
+        foreach (array_chunk(array_filter($this->map['items']), self::CHUNK_RECORD_IDS, true) as $chunk) {
+            $values = [];
+            foreach ($chunk as $from => $to) {
+                $values[] = "$from,$to";
+            }
+            $sqls .= 'INSERT INTO `_temporary_contact_items` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
+        }
+
+        $sqls .= <<<'SQL'
+# Create a temporary table to store the mapping between original document ids and new media ids.
+# It should manage removed medias (null is allowed).
+DROP TABLE IF EXISTS `_temporary_contact_medias`;
+CREATE TABLE `_temporary_contact_medias` (
+    `from` INT(11) NOT NULL,
+    `to` INT(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SQL;
+        foreach (array_chunk(array_filter($this->map['media']), self::CHUNK_RECORD_IDS, true) as $chunk) {
+            $values = [];
+            foreach ($chunk as $from => $to) {
+                $values[] = "$from,$to";
+            }
+            $sqls .= 'INSERT INTO `_temporary_contact_medias` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
+        }
+
+        $sqls .= <<<'SQL'
+# Create a temporary table to store the mapping between original user ids and new ids.
+# It should manage removed users (null is allowed).
+DROP TABLE IF EXISTS `_temporary_contact_users`;
+CREATE TABLE `_temporary_contact_users` (
+    `from` INT(11) NOT NULL,
+    `to` INT(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SQL;
+        foreach (array_chunk(array_filter($this->map['users']), self::CHUNK_RECORD_IDS, true) as $chunk) {
+            $values = [];
+            foreach ($chunk as $from => $to) {
+                $values[] = "$from,{$to['id']}";
+            }
+            $sqls .= 'INSERT INTO `_temporary_contact_users` (`from`, `to`) VALUES(' . implode('),(', $values) . ");\n";
+        }
+
+        $sqls .= <<<SQL
+# Mapping columns and copy source table.
+# Not managed: expiry date; user email; code (hash).
+INSERT INTO `$destinationDatabase`.`contact_message` (
+    $insertId
+    `owner_id`,
+    `resource_id`,
+    `site_id`,
+    `email`,
+    `name`,
+    `subject`,
+    `body`,
+    `source`,
+    `media_type`,
+    `storage_id`,
+    `extension`,
+    `request_url`,
+    `ip`,
+    `user_agent`,
+    `is_read`,
+    `is_spam`,
+    `newsletter`,
+    `created`
+)
+SELECT
+    $selectId
+    `$destinationDatabase`.`_temporary_contact_users`.`to`,
+    IFNULL(`$destinationDatabase`.`_temporary_contact_medias`.`to`, `$destinationDatabase`.`_temporary_contact_items`.`to`),
+    1,
+    IFNULL(`requester_email`, ""),
+    `requester_email`,
+    $subject,
+    IFNULL(`reason`, ""),
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    "::",
+    "",
+    0,
+    0,
+    0,
+    STR_TO_DATE(CONCAT(
+        `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
+        `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
+    ), "%Y-%m-%d %H:%i:%s")
+FROM `$sourceDatabase`.`$sourceTable`
+LEFT JOIN `$destinationDatabase`.`_temporary_contact_items`
+    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyItem` = `$destinationDatabase`.`_temporary_contact_items`.`from`
+LEFT JOIN `$destinationDatabase`.`_temporary_contact_medias`
+    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyMedia` = `$destinationDatabase`.`_temporary_contact_medias`.`from`
+LEFT JOIN `$destinationDatabase`.`_temporary_contact_users`
+    ON `$sourceDatabase`.`$sourceTable`.`$sourceKeyUser` = `$destinationDatabase`.`_temporary_contact_users`.`from`
+;
+
+# Drop temporary tables.
+DROP TABLE IF EXISTS `_temporary_contact_items`;
+DROP TABLE IF EXISTS `_temporary_contact_medias`;
+DROP TABLE IF EXISTS `_temporary_contact_users`;
+
+SQL;
+
+        $this->connection->executeStatement($sqls);
+
+        $after = $this->bulk->api()->search($sourceType)->getTotalResults();
+
+        $this->logger->notice(
+            '{total} "{source}" have been imported.', // @translate
+            ['total' => $after - $before, 'source' => $sourceType]
+        );
+    }
+
     protected function asciiArrayToString(array $array): string
     {
         // The table of identifiers should be pure ascii to allow indexation.
@@ -3269,5 +3443,34 @@ class EprintsProcessor extends AbstractFullProcessor
             return $sha1;
         }
         return trim($string, $separator) . $separator . $sha1;
+    }
+
+    protected function checkReadDirectly(?string $sourceType): bool
+    {
+        $table = null;
+        if ($sourceType) {
+            $table = $this->mapping[$sourceType]['source'] ?? null;
+        }
+
+        if (!$this->reader->canReadDirectly($table)) {
+            $dbConfig = $this->reader->getDbConfig();
+            if ($sourceType) {
+                $this->logger->warn(
+                    'To import "{source}", the Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
+                    ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                );
+            } else {
+                $this->logger->warn(
+                    'The Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
+                    ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                );
+            }
+            $this->logger->err(
+                'In some cases, the grants should be given to the omeka database user too.'  // @translate
+            );
+            return false;
+        }
+
+        return true;
     }
 }

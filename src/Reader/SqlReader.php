@@ -143,7 +143,7 @@ class SqlReader extends AbstractPaginatedReader
      *
      * If not, try to grant Select before return.
      */
-    public function canReadDirectly(): bool
+    public function canReadDirectly(?string $table = null): bool
     {
         if (!$this->isValid()) {
             return false;
@@ -174,9 +174,13 @@ class SqlReader extends AbstractPaginatedReader
         $mainUserDbConfig['password'] = $mainDbConfig['password'];
         $mainUserDbAdapter = new DbAdapter($mainUserDbConfig);
 
-        // Check if the main db user has rights to read this database.
+        // Check if the main db user has rights to read this database or a
+        // specific table.
+        $sql = $table
+            ? "SELECT * FROM `$table` LIMIT 1;"
+            : 'SELECT "test" ;';
         try {
-            $stmt = $mainUserDbAdapter->query('SELECT "test";');
+            $stmt = $mainUserDbAdapter->query($sql);
             $results = $stmt->execute();
             if (empty($results->current())) {
                 $this->lastErrorMesage = 'The database seems empty: there is no data in a core table. You may add Grant Select to this database for the main database user.'; // @translate

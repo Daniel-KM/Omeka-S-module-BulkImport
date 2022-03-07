@@ -106,6 +106,11 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                             'label' => 'Statistics', // @translate
                             'selected' => false,
                         ],
+                        [
+                            'value' => 'contact_messages',
+                            'label' => 'Contact messages', // @translate
+                            'selected' => true,
+                        ],
                     ],
                 ],
                 'attributes' => [
@@ -117,6 +122,7 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                         // 'item_sets',
                         'concepts',
                         // 'hits',
+                        'contact_messages',
                     ],
                     'required' => false,
                 ],
