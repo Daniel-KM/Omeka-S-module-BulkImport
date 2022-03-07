@@ -284,6 +284,59 @@ SQL;
         return $filepath;
     }
 
+    public function fetchAll(?array $keys = [], ?string $by = null): array
+    {
+        if ($keys) {
+            $keysString = [];
+            foreach ($keys as $key) {
+                $keysString[] = "`$this->prefix$this->objectType`.`$key`";
+            }
+            $keysString = implode(', ', $keysString);
+        } else {
+            $keysString = "`$this->prefix$this->objectType`.*";
+        }
+        $sql = sprintf(
+            'SELECT %s FROM `%s` %s %s;',
+            $keysString,
+            $this->prefix . $this->objectType,
+            $this->joinAndWhereSql(),
+            $this->orderBySql()
+        );
+        try {
+            $stmt = $this->dbAdapter->query($sql);
+            $result = [];
+            foreach ($stmt->execute() as $r) {
+                $result[] = $r;
+            }
+            // TODO Find the Laminas key to get the values by id directly.
+            if ($by) {
+                $r = $result;
+                $result = [];
+                foreach ($r as $data) {
+                    $result[$data[$by] ?? null][] = $data;
+                }
+            }
+            return $result;
+        } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
+            $this->lastErrorMessage = new PsrMessage(
+                'Unable to read all values for object type "{table}": {exception}', // @translate
+                ['table' => $this->objectType, 'exception' => $e]
+            );
+            $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->lastErrorMessage->getMessage(),
+                $this->lastErrorMessage->getContext()
+            );
+            return [];
+        }
+    }
+
+    public function fetchAllKeyValues(string $key, ?string $value = null): array
+    {
+        $value = $value ?: $key;
+        $result = $this->fetchAll([$key, $value]);
+        return array_column($result, $value, $key);
+    }
+
     public function sqlQueryCreateTable(): ?string
     {
         if (!$this->objectType) {
