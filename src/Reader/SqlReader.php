@@ -322,7 +322,7 @@ SQL;
             $this->prefix . $this->objectType,
             $this->prefix . $this->objectType,
             $this->joinAndWhereSql(),
-            empty($this->order['by']) ? '' : ('ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
+            $this->orderBySql(),
             self::PAGE_LIMIT,
             ($this->currentPage - 1) * self::PAGE_LIMIT
         );
@@ -435,5 +435,17 @@ SQL;
         $join = $join ? 'JOIN ' . implode(', ', $join) : '';
         $where = $where ? 'WHERE ' . implode('AND ', $where) : '';
         return trim($join . ' ' . $where);
+    }
+
+    protected function orderBySql(): string
+    {
+        if (empty($this->orders)) {
+            return '';
+        }
+        $result = [];
+        foreach ($this->orders as $order) {
+            $result[] = $order['by'] . ' ' . $order['dir'];
+        }
+        return 'ORDER BY ' . implode(', ', $result);
     }
 }

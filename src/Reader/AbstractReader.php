@@ -154,12 +154,24 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Reader\Reader
+    public function setOrders($by, $dir = 'ASC'): \BulkImport\Reader\Reader
     {
-        $this->order = [
-            'by' => $by,
-            'dir' => strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC',
-        ];
+        $this->orders = [];
+        if (!$by) {
+            // Nothing.
+        } elseif (is_string($by)) {
+            $this->orders[] = [
+                'by' => $by,
+                'dir' => strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC',
+            ];
+        } elseif (is_array($by)) {
+            foreach ($by as $byElement) {
+                $this->orders[] = [
+                    'by' => $byElement['by'],
+                    'dir' => !empty($byElement['dir']) && strtoupper($byElement['dir']) === 'DESC' ? 'DESC' : 'ASC',
+                ];
+            }
+        }
         return $this;
     }
 

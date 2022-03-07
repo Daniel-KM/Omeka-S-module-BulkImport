@@ -48,8 +48,10 @@ interface Reader extends \Iterator, \Countable
 
     /**
      * Prepare the order of  the result, for example a column for sql.
+     *
+     * @param string|array $by
      */
-    public function setOrder(?string $by, $dir = 'ASC'): \BulkImport\Reader\Reader;
+    public function setOrders($by, $dir = 'ASC'): \BulkImport\Reader\Reader;
 
     /**
      * List of fields used in the input, for example the first spreadsheet row.
