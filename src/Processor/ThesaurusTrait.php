@@ -22,8 +22,15 @@ trait ThesaurusTrait
      */
     protected $thesaurusConfigs = [
         'concepts' => [
+            // If resources are already created.
+            'resources_ready' => [
+                'scheme' => null,
+                'item_set' => null,
+                'custom_vocab' => null,
+            ],
             // New thesaurus.
             'label' => 'Thesaurus',
+            // TODO Fix singular/plural for internal thesaurus data.
             // The source, main name and the source are the same, but in some
             // cases, one is plural and the other one is singular.
             'mapping_name' => 'concepts',
@@ -62,6 +69,42 @@ trait ThesaurusTrait
         $name = $config['label'] ?: sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate;
         $randomName = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8);
 
+        if (!empty($config['resources_ready']['scheme'])) {
+            $schemeReal = $this->entityManager->find(\Omeka\Entity\Item::class, $config['resources_ready']['scheme']);
+            if (!$schemeReal) {
+                $this->hasError = true;
+                $this->logger->notice(
+                    'Item #{id} for scheme for thesaurus {name} is missing.', // @translate
+                    ['id' => $config['resources_ready']['scheme'], 'name' => $name]
+                );
+                return;
+            }
+        }
+
+        if (!empty($config['resources_ready']['item_set'])) {
+            $itemSetReal = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $config['resources_ready']['item_set']);
+            if (!$itemSetReal) {
+                $this->hasError = true;
+                $this->logger->notice(
+                    'Item set #{id} for thesaurus {name} is missing.', // @translate
+                    ['id' => $config['resources_ready']['item_set'], 'name' => $name]
+                );
+                return;
+            }
+        }
+
+        if (!empty($config['resources_ready']['custom_vocab'])) {
+            $customVocabReal = $this->entityManager->find(\CustomVocab\Entity\CustomVocab::class, $config['resources_ready']['custom_vocab']);
+            if (!$customVocabReal) {
+                $this->hasError = true;
+                $this->logger->notice(
+                    'Custom vocab #{id} for thesaurus {name} is missing.', // @translate
+                    ['id' => $config['resources_ready']['custom_vocab'], 'name' => $name]
+                );
+                return;
+            }
+        }
+
         // Custom vocab requires a single name.
         $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name]);
         $customVocabName = $customVocab
@@ -77,7 +120,7 @@ trait ThesaurusTrait
         $resourceClass = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
         $resourceTemplate = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
 
-        $item = new \Omeka\Entity\Item;
+        $item = $schemeReal ?? new \Omeka\Entity\Item;
         $item->setOwner($this->owner);
         $item->setTitle($randomName);
         $item->setCreated($this->currentDateTime);
@@ -89,7 +132,7 @@ trait ThesaurusTrait
             'value' => $name,
         ], $item);
 
-        $itemSet = new \Omeka\Entity\ItemSet;
+        $itemSet = $itemSetReal ?? new \Omeka\Entity\ItemSet;
         $itemSet->setOwner($this->owner);
         $itemSet->setTitle($randomName);
         $itemSet->setCreated($this->currentDateTime);
@@ -102,7 +145,7 @@ trait ThesaurusTrait
 
         $item->getItemSets()->add($itemSet);
 
-        $customVocab = new \CustomVocab\Entity\CustomVocab();
+        $customVocab = $customVocabReal ?? new \CustomVocab\Entity\CustomVocab();
         $customVocab->setOwner($this->owner);
         $customVocab->setLabel($randomName);
         $customVocab->setItemSet($itemSet);
