@@ -5,6 +5,7 @@ namespace BulkImport\Processor;
 use Laminas\Validator\EmailAddress;
 use Omeka\Entity\User;
 use Omeka\Entity\UserSetting;
+use UserNames\Entity\UserNames;
 
 trait UserTrait
 {
@@ -349,6 +350,40 @@ SQL;
             $userSetting->setValue($value);
             $this->entityManager->persist($userSetting);
         }
+    }
+
+    /**
+     * Prepare the user name of a user. No flush.
+     *
+     * The user name should be checked before.
+     *
+     * @param array $source
+     */
+    protected function appendUserName(array $source): void
+    {
+        if (empty($source['o-module-usernames:username'])
+            || empty($this->modulesActive['UserNames'])
+        ) {
+            return;
+        }
+
+        // The check should be done before (see eprints processor), but it may
+        // be stored by doctrine.
+        $userNameRepository = $this->entityManager->getRepository(UserNames::class);
+        /** @var \UserNames\Entity\UserNames $userName */
+        $userName = $userNameRepository->findOneBy(['userName' => $source['o-module-usernames:username']]);
+        if ($userName) {
+            $this->logger->notice(
+                'The user name "{username}" is already attributed to user #{id}.', // @translate
+                ['username' => $source['o-module-usernames:username'], 'id' => $userName->getUser()->getId()]
+            );
+            return;
+        }
+
+        $userName= new UserNames();
+        $userName->setUser($this->entity);
+        $userName->setUserName($source['o-module-usernames:username']);
+        $this->entityManager->persist($userName);
     }
 
     /**
