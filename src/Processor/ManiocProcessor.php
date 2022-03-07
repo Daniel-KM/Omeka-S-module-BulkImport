@@ -55,6 +55,9 @@ class ManiocProcessor extends AbstractFullProcessor
         'users' => [
             'source' => 'users',
             'key_id' => 'id',
+            // Greenstone ne gère pas les mails : il est créé à partir du login.
+            'key_email' => 'login',
+            'key_name' => 'login',
         ],
         'items' => [
             'source' => null,
@@ -194,57 +197,6 @@ class ManiocProcessor extends AbstractFullProcessor
         }
     }
 
-    protected function prepareUsers(): void
-    {
-        $userSources = [];
-        $emails = [];
-        $importId = $this->job->getImportId();
-        foreach ($this->prepareReader('users') as $userSource) {
-            $user = [];
-            $userSource = array_map('trim', array_map('strval', $userSource));
-            // In Greenstone, emails can be duplicated, so a check is done.
-            $cleanName = mb_strtolower(preg_replace('/[^\da-z]/i', '_', ($userSource['login'])));
-            $email = $cleanName . '@manioc.net';
-            $user['name'] = $cleanName;
-            $user['email'] = $email;
-            if (isset($emails[$email])) {
-                $email = $userSource['id'] . '-' . $importId . '-' . $email;
-                $user['email'] = $email;
-            }
-            $this->logger->warn(
-                'The email "{email}" has been attributed to user "{name}" for login.', // @translate
-                ['email' => $email, 'name' => $cleanName]
-            );
-            $emails[$email] = $user['email'];
-
-            $isActive = true;
-            $role = 'researcher';
-            $userCreated = $this->currentDateTimeFormatted;
-            $userModified = null;
-
-            $userSources[] = [
-                'o:id' => $userSource['id'],
-                'o:name' => $user['name'],
-                'o:email' => $user['email'],
-                'o:created' => [
-                    '@value' => $userCreated,
-                ],
-                'o:modified' => $userModified,
-                'o:role' => $role,
-                'o:is_active' => $isActive,
-                'o:settings' => [
-                    'locale' => 'fr',
-                    'userprofile_organisation' => $this->map['etablissements'][$userSource['etabl']] ?? null,
-                ],
-            ];
-        }
-
-        $this->prepareUsersProcess($userSources);
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-        $this->refreshMainResources();
-    }
-
     protected function fillMediaItems(): void
     {
         parent::fillMediaItems();
@@ -296,6 +248,27 @@ class ManiocProcessor extends AbstractFullProcessor
         $this->migrateValues();
         $this->finalizeValues();
         parent::fillOthers();
+    }
+
+    protected function fillUser(array $source, array $user): array
+    {
+        // In Greenstone, emails can be empty or duplicated.
+
+        $isActive = true;
+        $role = 'researcher';
+        $userCreated = $this->currentDateTimeFormatted;
+        $userModified = null;
+
+        return array_replace($user, [
+            'o:created' => ['@value' => $userCreated],
+            'o:modified' => $userModified,
+            'o:role' => $role,
+            'o:is_active' => $isActive,
+            'o:settings' => [
+                'locale' => 'fr',
+                'userprofile_organisation' => $this->map['etablissements'][$source['etabl']] ?? null,
+            ],
+        ]);
     }
 
     protected function fillMediaItem(array $source): void

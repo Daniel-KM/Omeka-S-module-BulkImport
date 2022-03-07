@@ -10,69 +10,160 @@ use UserNames\Entity\UserNames;
 trait UserTrait
 {
     /**
-     * Create users from a source.
-     */
-    protected function prepareUsers(): void
-    {
-        // Prepare the list of users from the source.
-        // Create empty users and keeps the mapping of ids.
-    }
-
-    protected function fillUsers(): void
-    {
-    }
-
-    /**
      * Unicity of imported ids, emails, and usernames should be checked before.
      *
      * @param iterable $sources Should be countable too.
      *   The source is an json-ld array of Omeka users.
-     * @param array|null $ids The ids may be computed early, so use them. When
-     * null, use the original source.
      */
-    protected function prepareUsersProcess(iterable $sources, ?array $ids = null): void
+    protected function prepareUsersProcess(iterable $sources): void
     {
-        $resourceName = 'users';
+        // The maps is done early in order to keep original ids when possible.
+        $this->map['users'] = [];
 
-        if (is_array($ids) && empty($ids)) {
-            $this->logger->warn(
-                'No ids set to fill {source}.', // @translate
-                ['source' => $resourceName]
-            );
-            return;
-        }
+        $existingUsers = $this->apiManager->search('users', [], ['initialize' => false, 'returnScalar' => 'email'])->getContent();
+        $existingUsernames = !empty($this->modules['UserNames'])
+            ? $this->apiManager->search('usernames', [], ['initialize' => false, 'returnScalar' => 'userName'])->getContent()
+            : null;
 
-        $noIds = is_null($ids);
-        if ($noIds) {
-            $this->map['users'] = [];
-        }
-
-        // Check the size of the import.
-        $this->countEntities($sources, $resourceName);
-        if ($this->hasError) {
-            return;
-        }
-
-        if (!$this->totals[$resourceName]) {
-            $this->logger->notice(
-                'No users importable from source. You may check rights.' // @translate
-            );
-            return;
-        }
-
-        // Keep emails and names to map ids when ids are not provided.
-        $emails = [];
-
-        $userEmails = $this->bulk->api()
-            ->search('users', [], ['initialize' => false, 'returnScalar' => 'email'])->getContent();
-        $userEmails = array_map('mb_strtolower', $userEmails);
+        // Emails and user names should be lower-cased to be checked.
+        $existingUsers = array_map('mb_strtolower', $existingUsers);
+        $existingUsernames = is_null($existingUsernames) ? null :  array_map('mb_strtolower', $existingUsernames);
 
         $validator = new EmailAddress();
+
+        $importId = $this->job->getImportId();
+
+        $emails = [];
+        $index = 0;
+        foreach ($sources as $source) {
+            ++$index;
+
+            $keyUserId = $this->mapping['users']['key_id'] ?? 'id';
+
+            $originalUserId = $source[$keyUserId] ?? null;
+            if (!$originalUserId) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The user index #{index} has no source id.', // @translate
+                    ['index' => $index]
+                );
+                return;
+            }
+
+            $user = $this->prepareUser($source);
+
+            // Manage exceptions (existing users in Omeka).
+            // TODO Manage existing users with the same email? Or let createEmptyEntiies() check them.
+            if (isset($existingUsers[$originalUserId])) {
+                $existingUsers[] = '+';
+                end($existingUsers);
+                $user['id'] = (int) key($existingUsers);
+                $this->logger->warn(
+                    'To avoid a conflict, the user #{id} ("{name}") has a new id: #{newid}.', // @translate
+                    ['id' => $originalUserId, 'name' => $user['name'] ?? '', 'newid' => $user['id']]
+                );
+            }
+
+            // Omeka does not require unique UserNames.
+            // So the check is done only when the module UserNames is present.
+            if (is_array($existingUsernames)) {
+                $userName = empty($user['name']) ? '' : mb_strtolower($user['name']);
+                if ($userName) {
+                    if (in_array($userName, $existingUsernames)) {
+                        $newName = $userName . '-' . strtolower($this->randomString(6));
+                        $this->logger->warn(
+                            'To avoid a conflict, the user #{id} ("{name}") has a new name: {newname}.', // @translate
+                            ['id' => $originalUserId, 'name' => $user['name'], 'newname' => $newName]
+                        );
+                        $userName = $newName;
+                        $user['name'] = $newName;
+                    }
+                    $existingUsernames[] = mb_strtolower($userName);
+                }
+            }
+
+            $email = mb_strtolower($user['email']);
+            if (!$validator->isValid($email)) {
+                $cleanName = empty($user['name'])
+                    ?$this->randomString(5)
+                    : preg_replace('/[^\da-z_-]/i', '_', $user['name']);
+                $user['email'] = $user['id'] . '-' . $importId . '-' . $index . '-' . strtolower($cleanName) . '@user.net';
+                $this->logger->warn(
+                    'The email "{email}" is not valid, so it was renamed to "{email2}".', // @translate
+                    ['email' => $email, 'email2' => $user['email']]
+                );
+                $email = $user['email'];
+            }
+
+            if (isset($emails[$email]) || in_array($email, $existingUsers)) {
+                $email = $user['id'] . '-' . $importId . '-' . $email;
+                $user['email'] = $email;
+                $this->logger->warn(
+                    'To avoid a conflict, the user #{id} ("{name}") has a new email: {email}".', // @translate
+                    ['id' => $originalUserId, 'name' => $user['name'] ?? '', 'email' => $email]
+                );
+            }
+            $emails[$email] = $email;
+
+            $this->map['users'][$originalUserId] = $user;
+        }
+
+        $userColumns = [
+            'id' => 'id',
+            'email' => 'id',
+            'name' => 'id',
+            'created' => '"' . $this->currentDateTimeFormatted . '"',
+            'modified' => 'NULL',
+            'password_hash' => '""',
+            'role' => '""',
+            'is_active' => '0',
+        ];
+
+        $ids = array_map('intval', array_column($this->map['users'], 'id'));
+        $this->createEmptyEntities('users', $userColumns, $ids);
+
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+    }
+
+    /**
+     * Allows to convert a source into a json-ld Omeka user.
+     *
+     * Only id, email and name are needed here. Other data are filled later.
+     *
+     * @todo Use transformSource().
+     */
+    protected function prepareUser(array $source): array
+    {
+        $user = [
+            'id' => $source[$this->mapping['users']['key_id'] ?? 'id'] ?? null,
+            'email' => $source[$this->mapping['users']['key_email'] ?? 'email'] ?? null,
+            'name' => $source[$this->mapping['users']['key_name'] ?? 'name'] ?? null,
+        ];
+        $user['id'] = $user['id'] ? (int) $user['id'] : null;
+        return $user;
+    }
+
+    /**
+     * @todo Move to sql reader with transformSource().
+     *
+     * @param iterable $sources
+     */
+    protected function fillUsersProcess(iterable $sources): void
+    {
+        $locale = $this->getServiceLocator()->get('Omeka\Settings')->get('locale');
+        $role = empty($this->modulesActive['Guest']) ? 'researcher' : 'guest';
+        $isActive = true;
 
         // User and Job have doctrine prePersist() and preUpdate(), so it's not
         // possible to keep original created and modified date.
         // So a direct update is done after each flush.
         $updateDates = [];
+
+        $keyUserId = $this->mapping['users']['key_id'] ?? 'id';
+        $keyUserEmail = $this->mapping['users']['key_id'] ?? 'email';
+        $keyUserName = $this->mapping['users']['key_name'] ?? null;
 
         $index = 0;
         $created = 0;
@@ -80,70 +171,63 @@ trait UserTrait
         foreach ($sources as $source) {
             ++$index;
 
-            $sourceId = $source['o:id'];
+            $source = array_map('trim', array_map('strval', $source));
+            $sourceId = $source[$keyUserId];
 
-            if ($noIds) {
-                $sourceEmail = trim((string) $source['o:email']);
-                if (!$sourceEmail) {
-                    $cleanName = preg_replace('/[^\da-z][^\da-z_.]*[^\da-z]$/i', '_', $source['o:name']);
-                    $source['o:email'] = $cleanName . '@user.net';
-                }
-
-                // A previous version was working fine via api.
-                // The check of the adapter are done here to avoid exceptions.
-                /** @see\Omeka\Api\Adapter\UserAdapter::validateEntity */
-                $sourceName = trim((string) $source['o:name']);
-                if (!strlen($sourceName)) {
-                    $source['o:name'] = $source['o:email'];
-                }
-
-                // Check email, since it should be well formatted and unique.
-                if (!$validator->isValid($source['o:email'])) {
-                    $cleanName = preg_replace('/[^\da-z]/i', '_', $source['o:name']);
-                    $prefix = $source['o:id'] ? $source['o:id'] : substr(bin2hex(\Laminas\Math\Rand::getBytes(20)), 0, 3);
-                    $source['o:email'] = $prefix . '-' . $cleanName . '@user.net';
-                    $this->logger->warn(
-                        'The email "{email}" is not valid, so it was renamed too "{email2}".', // @translate
-                        ['email' => $sourceEmail, 'email2' => $source['o:email']]
-                    );
-                }
-
-                $email = mb_strtolower($source['o:email']);
-                $emails[$sourceId] = $email;
-
-                // The user already exists in the database.
-                // Check for non-empty omeka base, or tools that allow multiple
-                // time the same email in database, like eprints, greenstone…
-                $userId = array_search($email, $userEmails);
-                if ($userId) {
-                    ++$skipped;
-                    $this->map['users'][$sourceId] = [
-                        'id' => $userId,
-                        'email' => $email,
-                    ];
-                    continue;
-                }
-            } else {
-                $sourceEmail = $this->map['users'][$sourceId]['id'];
+            // Normally, it should be a useless check, unless the source base
+            // was modified during process.
+            if (empty($this->map['users'][$sourceId]['id'])
+                || empty($this->map['users'][$sourceId]['email'])
+                // A user name is not required, but if set, it should be unique.
+            ) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The user #{id} ("{name}" / {email}) has an error: missing data.', // @translate
+                    ['id' => $source[$keyUserId], 'name' => $source[$keyUserName], 'email' => $source[$keyUserEmail]]
+                );
+                return;
             }
 
-            if (empty($source['o:role'])) {
-                $source['o:role'] = empty($this->modules['Guest']) ? 'researcher' : 'guest';
-            }
+            // Use the mapped data in case of fixed duplicates.
+            $userId = $this->map['users'][$sourceId]['id'];
+            $userEmail = $this->map['users'][$sourceId]['email'];
+            $userName = $this->map['users'][$sourceId]['name'] ?? null;
 
-            $result = $this->updateOrCreateUser($source);
+            $userCreated = $this->currentDateTimeFormatted;
+            $userModified = null;
+
+            $user = [
+                // Keep the source id to simplify next steps and find mapped id.
+                // The source id may be updated if duplicate.
+                '_source_id' => $sourceId,
+                'o:id' => $userId,
+                'o:name' => $userEmail,
+                'o:email' => $userEmail,
+                'o:created' => ['@value' => $userCreated],
+                'o:modified' => $userModified ? ['@value' => $userModified] : null,
+                'o:role' => $role,
+                'o:is_active' => $isActive,
+                'o:settings' => [
+                    'locale' => $source['lang'] ?: $locale,
+                ],
+                'o-module-usernames:username' => $userName,
+            ];
+
+            $user = $this->fillUser($source, $user);
+
+            $result = $this->updateOrCreateUser($user);
 
             // Prepare the fix for the dates.
             if ($result) {
                 ++$created;
-                $userCreated = empty($source['o:created']['@value'])
+                $userCreated = empty($user['o:created']['@value'])
                     ? $this->currentDateTime
-                    : (\DateTime::createFromFormat('Y-m-d H:i:s', $source['o:created']['@value']) ?: $this->currentDateTime);
-                $userModified = empty($source['o:modified']['@value'])
+                    : (\DateTime::createFromFormat('Y-m-d H:i:s', $user['o:created']['@value']) ?: $this->currentDateTime);
+                $userModified = empty($user['o:modified']['@value'])
                     ? null
-                    : (\DateTime::createFromFormat('Y-m-d H:i:s', $source['o:modified']['@value']) ?: $this->currentDateTime);
+                    : (\DateTime::createFromFormat('Y-m-d H:i:s', $user['o:modified']['@value']) ?: $this->currentDateTime);
                 $updateDates[] = [
-                    $source['o:email'],
+                    $userEmail,
                     $userCreated->format('Y-m-d H:i:s'),
                     $userModified ? $userModified->format('Y-m-d H:i:s') : null,
                 ];
@@ -163,12 +247,10 @@ trait UserTrait
                 $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} resource "{type}" imported, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => count($this->map[$resourceName]), 'type' => $resourceName, 'skipped' => $skipped]
+                    ['count' => $created, 'total' => count($this->map['users']), 'type' => 'users', 'skipped' => $skipped]
                 );
             }
         }
-
-        unset($userEmails);
 
         // Remaining entities and fix for dates.
         $this->entityManager->flush();
@@ -176,29 +258,19 @@ trait UserTrait
         $this->updateDates('users', 'email', $updateDates);
         $updateDates = [];
         $this->refreshMainResources();
+    }
 
-        if (!$noIds && count($emails)) {
-            // Map the ids.
-            $sql = <<<SQL
-SELECT `user`.`id`, `user`.`email`
-FROM `user` AS `user`
-WHERE `user`.`email` IN (%s);
-
-SQL;
-            $sql = sprintf($sql, '"' . implode('","', $emails) . '"');
-            $destEmails = $this->connection->executeQuery($sql)->fetchAllKeyValue();
-            $destEmails = array_map('mb_strtolower', $destEmails);
-            foreach ($emails as $sourceId => $email) {
-                $destId = array_search($email, $destEmails);
-                $this->map['users'][$sourceId]['id'] = $destId === false ? null : $destId;
-                $this->map['users'][$sourceId]['email'] = $email;
-            }
-        }
-
-        $this->logger->notice(
-            '{total} users ready, {created} created, {skipped} skipped.', // @translate
-            ['total' => $index, 'created' => $created, 'skipped' => $skipped]
-        );
+    /**
+     * Complete a user with specific data.
+     *
+     * Normally, "o:id", "o:email" and "o-module-usernames:username" should not
+     * be overridden.
+     *
+     * @todo Use transformSource().
+     */
+    protected function fillUser(array $source, array $user): array
+    {
+        return $user;
     }
 
     /**
@@ -211,11 +283,12 @@ SQL;
             $this->entity = new User();
         } else {
             $this->entity = $this->entityManager->find(User::class, $user['o:id']);
-            // It should not occur: empty entity should have been created.
+            // It should not occur: empty entity should have been created during
+            // preparation of the user entities.
             if (!$this->entity) {
                 $this->hasError = true;
                 $this->logger->err(
-                    'The id #{id} was provided for "{name}", but the entity was not created early.', // @translate
+                    'The id #{id} was provided for entity"{name}", but the entity was not created early.', // @translate
                     ['id' => $user['o:id'], 'name' => 'users']
                 );
                 return false;

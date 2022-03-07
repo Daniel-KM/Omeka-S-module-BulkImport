@@ -65,8 +65,7 @@ trait ToolsTrait
         }
 
         // Add a random prefix to get the mapping of ids, in all cases.
-        $randomPrefix = $this->job->getImportId() . '-'
-            . substr(base64_encode(random_bytes(128)), 0, 5) . ':';
+        $randomPrefix = $this->job->getImportId() . '-' . $this->randomString(5) . ':';
         $columnKeepId = $this->importables[$sourceType]['column_keep_id'];
         $escapedDefaultValues[$columnKeepId] = "CONCAT('$randomPrefix', id)";
 
@@ -194,5 +193,11 @@ SQL;
         }
 
         $this->connection->executeStatement($sql);
+    }
+
+    protected function randomString(int $length = 1): string
+    {
+        $length = max(1, $length);
+        return substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(16 * $length))), 0, $length);
     }
 }

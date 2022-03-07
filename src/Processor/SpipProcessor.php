@@ -94,6 +94,8 @@ class SpipProcessor extends AbstractFullProcessor
         'users' => [
             'source' => 'auteurs',
             'key_id' => 'id_auteur',
+            'key_email' => 'email',
+            'key_name' => 'nom',
         ],
         // Les documents peuvent être des assets (avec quelques métadonnées) ou
         // des médias (mais sans item), ou un seul item avec toutes les images,
@@ -389,84 +391,6 @@ class SpipProcessor extends AbstractFullProcessor
         $this->prepareInternalVocabularies();
     }
 
-    protected function prepareUsers(): void
-    {
-        // In spip, emails, logins and names are not unique or can be empty…
-        $validator = new EmailAddress();
-
-        $sourceUsers = [];
-        $emails = [];
-        foreach ($this->prepareReader('users') as $auteur) {
-            $auteur = array_map('trim', array_map('strval', $auteur));
-
-            // Check email, since it should be well formatted and unique.
-            $originalEmail = $auteur['email'];
-            $email = mb_strtolower($auteur['email']);
-            if (!strlen($email) || !$validator->isValid($auteur['email'])) {
-                $cleanName = mb_strtolower(preg_replace('/[^\da-z]/i', '_', ($auteur['login'] ?: $auteur['nom'])));
-                $email = $cleanName . '@spip.net';
-                $auteur['email'] = $email;
-                $this->logger->warn(
-                    'The user "{name}" has no email or an invalid email, so "{email}" was attribued for login.', // @translate
-                    ['name' => $auteur['login'] ?: $auteur['nom'], 'email' => $email]
-                );
-            }
-            if (isset($emails[$email])) {
-                $email = $auteur['id_auteur'] . '-' . $email;
-                $auteur['email'] = $email;
-                $this->logger->warn(
-                    'The email "{email}" is not unique, so it was renamed too "{email2}".', // @translate
-                    ['email' => $originalEmail, 'email2' => $email]
-                );
-            }
-            $emails[$email] = $auteur['email'];
-
-            $isActive = !empty($auteur['en_ligne']) && $auteur['en_ligne'] !== '0000-00-00 00:00:00';
-            $role = $auteur['webmestre'] === 'non' ? ($isActive ? 'author' : 'guest') : 'editor';
-            $userCreated = empty($auteur['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $auteur['maj']);
-            if ($userCreated) {
-                $userCreated = $userCreated->format('Y-m-d H:i:s');
-                $userModified = $userCreated;
-            } else {
-                $userCreated = $this->currentDateTimeFormatted;
-                $userModified = null;
-            }
-
-            $sourceUsers[] = [
-                'o:id' => $auteur['id_auteur'],
-                'o:name' => $auteur['nom'] ?: ($auteur['login'] ?: $auteur['email']),
-                'o:email' => $auteur['email'],
-                'o:created' => [
-                    '@value' => $userCreated,
-                ],
-                'o:modified' => $userModified ? [
-                    '@value' => $userModified,
-                ] : null,
-                'o:role' => $role,
-                'o:is_active' => $isActive,
-                'o:settings' => [
-                    'locale' => $auteur['lang'] ?: null,
-                    'userprofile_bio' => $auteur['bio'] ?: null,
-                    'userprofile_nom_site' => $auteur['nom_site'] ?: null,
-                    'userprofile_url_site' => $auteur['url_site'] ?: null,
-                    'userprofile_statut' => $auteur['statut'] ?: null,
-                    'userprofile_en_ligne' => $isActive ? $auteur['en_ligne'] : null,
-                    'userprofile_alea_actuel' => $auteur['alea_actuel'] ?: null,
-                    'userprofile_alea_futur' => $auteur['alea_futur'] ?: null,
-                    'userprofile_prefs' => $auteur['prefs'] ? unserialize($auteur['prefs']) : null,
-                    'userprofile_source' => $auteur['source'] ?: null,
-                    'userprofile_imessage	' => $auteur['imessage'] ?: null,
-                    'userprofile_messagerie' => $auteur['messagerie'] ?: null,
-                ],
-            ];
-        }
-
-        $this->prepareUsersProcess($sourceUsers);
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-        $this->refreshMainResources();
-    }
-
     protected function prepareCustomVocabsInitialize(): void
     {
         $this->map['custom_vocabs'] = [];
@@ -620,6 +544,46 @@ class SpipProcessor extends AbstractFullProcessor
     protected function labelKeyForSort($labelKey, $id): string
     {
         return sprintf('%s#%s', preg_replace('~^(\s*\d+\.\s*)(\s*\d+\.\s*)~', '$2', trim(str_replace(['<multi>', '  '], ['', ' '], $labelKey))), $id);
+    }
+
+    protected function fillUser(array $source, array $user): array
+    {
+        // In spip, emails, logins and names are not unique or can be empty…
+
+        // Check email, since it should be well formatted and unique.
+
+        $isActive = !empty($source['en_ligne']) && $source['en_ligne'] !== '0000-00-00 00:00:00';
+        $role = $source['webmestre'] === 'non' ? ($isActive ? 'author' : 'guest') : 'editor';
+        $userCreated = empty($source['maj']) ? null : DateTime::createFromFormat('Y-m-d H:i:s', $source['maj']);
+        if ($userCreated) {
+            $userCreated = $userCreated->format('Y-m-d H:i:s');
+            $userModified = $userCreated;
+        } else {
+            $userCreated = $this->currentDateTimeFormatted;
+            $userModified = null;
+        }
+
+        return array_replace($user, [
+            'o:name' => $source['nom'] ?: ($source['login'] ?: $source['email']),
+            'o:created' => ['@value' => $userCreated],
+            'o:modified' => $userModified ? ['@value' => $userModified] : null,
+            'o:role' => $role,
+            'o:is_active' => $isActive,
+            'o:settings' => [
+                'locale' => $source['lang'] ?: $user['o:settings']['locale'],
+                'userprofile_bio' => $source['bio'] ?: null,
+                'userprofile_nom_site' => $source['nom_site'] ?: null,
+                'userprofile_url_site' => $source['url_site'] ?: null,
+                'userprofile_statut' => $source['statut'] ?: null,
+                'userprofile_en_ligne' => $isActive ? $source['en_ligne'] : null,
+                'userprofile_alea_actuel' => $source['alea_actuel'] ?: null,
+                'userprofile_alea_futur' => $source['alea_futur'] ?: null,
+                'userprofile_prefs' => $source['prefs'] ? unserialize($source['prefs']) : null,
+                'userprofile_source' => $source['source'] ?: null,
+                'userprofile_imessage	' => $source['imessage'] ?: null,
+                'userprofile_messagerie' => $source['messagerie'] ?: null,
+            ],
+        ]);
     }
 
     protected function fillItem(array $source): void

@@ -347,12 +347,17 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * - sort_by: the name of the sort value (key_id by default).
      * - sort_dir: "asc" (default) or "desc".
      *
+     * Some specific keys can be added for some entities.
+     *
      * @var array
      */
     protected $mapping = [
         'users' => [
             'source' => 'user',
             'key_id' => 'id',
+            'key_email' => 'email',
+            // A unique name is not required in Omeka.
+            'key_name' => null,
         ],
         'assets' => [
             'source' => 'asset',

@@ -89,7 +89,7 @@ trait MetadataTransformTrait
         foreach ($operations as $index => $operation) {
             $this->operationName = $operation['action'];
             $this->operationIndex = ++$index;
-            $this->operationRandoms[$this->operationIndex] = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8);
+            $this->operationRandoms[$this->operationIndex] = $this->randomString(8);
             $this->operationPartialFlush = false;
 
             switch ($operation['action']) {
