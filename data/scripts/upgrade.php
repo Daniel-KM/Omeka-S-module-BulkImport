@@ -506,3 +506,7 @@ SQL;
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.3.33.0', '<')) {
+    require_once __DIR__ . '/upgrade_vocabulary.php';
+}

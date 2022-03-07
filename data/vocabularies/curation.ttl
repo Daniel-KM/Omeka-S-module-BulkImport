@@ -1,16 +1,25 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix bibo: <http://purl.org/ontology/bibo/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix oc: <http://omeka.org/s/vocabs/oc#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
-@prefix oc: <http://omeka.org/s/vocabs/oc#> .
 @prefix curation: <https://omeka.org/s/vocabs/curation/> .
 
 <https://omeka.org/s/vocabs/curation/> a owl:Ontology ;
     dcterms:title "Curation"@en ;
     dcterms:title "Curation"@fr ;
-    dcterms:description "Properties designed to be used internally for the curation of resources."@en ;
-    dcterms:description "Propriétés destinées à être utilisées en interne pour la gestion des ressources."@fr .
+    dcterms:description "Generic and common properties that are useful internally for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible."@en ;
+    dcterms:description "Propriétés génériques et courantes utiles pour la gestion interne des ressources. Le recours à des ontologies plus courantes ou plus précises est recommandé lorsque cela est possible."@fr ;
+    vs:term_status "experimental" .
+
+curation:access a rdf:Property ;
+    rdfs:label "Access"@en ;
+    rdfs:label "Accès"@fr ;
+    rdfs:comment "Define an access to the resource."@en ;
+    rdfs:comment "Définit un accès à la ressource."@fr ;
+    vs:term_status "experimental" .
 
 curation:featured a rdf:Property ;
     rdfs:label "Featured"@en ;
@@ -38,7 +47,6 @@ curation:selected a rdf:Property ;
     rdfs:label "Sélectionné"@fr ;
     rdfs:comment "Mark the resource as a selected one as soon as a value is set, whatever it is."@en ;
     rdfs:comment "Marque la ressource comme sélectionnée dès qu‘une valeur quelconque est définie."@fr ;
-    rdfs:subPropertyOf dcterms:subject ;
     vs:term_status "experimental" .
 
 curation:category a rdf:Property ;
@@ -46,6 +54,28 @@ curation:category a rdf:Property ;
     rdfs:label "Catégorie"@fr ;
     rdfs:comment "A topic that can be used for some purposes."@en ;
     rdfs:comment "Un sujet pouvant être utilisé dans certains cas."@fr ;
+    rdfs:subPropertyOf dcterms:subject ;
+    vs:term_status "experimental" .
+
+curation:collection a rdf:Property ;
+    rdfs:label "Collection"@en ;
+    rdfs:label "Collection"@fr ;
+    rdfs:comment "A way to group resources."@en ;
+    rdfs:comment "Un moyen de grouper des ressources."@fr ;
+    vs:term_status "experimental" .
+
+curation:set a rdf:Property ;
+    rdfs:label "Set"@en ;
+    rdfs:label "Lot"@fr ;
+    rdfs:comment "A set to group resources together."@en ;
+    rdfs:comment "Un lot pour grouper des ressources ensemble."@fr ;
+    vs:term_status "experimental" .
+
+curation:subject a rdf:Property ;
+    rdfs:label "Subject"@en ;
+    rdfs:label "Sujet"@fr ;
+    rdfs:comment "A subject to describe the resource."@en ;
+    rdfs:comment "Un sujet décrivant la ressoruce."@fr ;
     rdfs:subPropertyOf dcterms:subject ;
     vs:term_status "experimental" .
 
@@ -66,12 +96,40 @@ curation:theme a rdf:Property ;
     rdfs:subPropertyOf dcterms:subject ;
     vs:term_status "experimental" .
 
-curation:collection a rdf:Property ;
-    rdfs:label "Collection"@en ;
-    rdfs:label "Collection"@fr ;
-    rdfs:comment "A way to group resources."@en ;
-    rdfs:comment "Un moyen de grouper des ressources."@fr ;
-    rdfs:subPropertyOf dcterms:subject ;
+curation:type a rdf:Property ;
+    rdfs:label "Type"@en ;
+    rdfs:label "Type"@fr ;
+    rdfs:comment "A type that can be used for some purposes."@en ;
+    rdfs:comment "Un type pouvant être utilisé dans certains cas."@fr ;
+    rdfs:subPropertyOf dcterms:type ;
+    vs:term_status "experimental" .
+
+curation:data a rdf:Property ;
+    rdfs:label "Data"@en ;
+    rdfs:label "Données"@fr ;
+    rdfs:comment "Any data that can be used for any purpose."@en ;
+    rdfs:comment "Toute donnée pouvant être utilisée pour tout objet."@fr ;
+    vs:term_status "experimental" .
+
+curation:dateStart a rdf:Property ;
+    rdfs:label "Date of start"@en ;
+    rdfs:label "Date de début"@fr ;
+    rdfs:comment "Start date related to the resource, for example an embargo."@en ;
+    rdfs:comment "Date d’un début lié à la ressource, par exemple un embargo."@fr ;
+    vs:term_status "experimental" .
+
+curation:dateEnd a rdf:Property ;
+    rdfs:label "Date of end"@en ;
+    rdfs:label "Date de fin"@fr ;
+    rdfs:comment "End date related to the resource, for example an embargo."@en ;
+    rdfs:comment "Date d’une fin liée à la ressource, par exemple un embargo."@fr ;
+    vs:term_status "experimental" .
+
+curation:location a rdf:Property ;
+    rdfs:label "Location"@en ;
+    rdfs:label "Lieu"@fr ;
+    rdfs:comment "A location related to the resource, for example the place of publication."@en ;
+    rdfs:comment "Un lieu lié à la ressource, par exemple le lieu d’édition."@fr ;
     vs:term_status "experimental" .
 
 curation:note a rdf:Property ;
@@ -81,9 +139,24 @@ curation:note a rdf:Property ;
     rdfs:comment "Une information spécifique ou générique sur une resource, généralement à usage interne."@fr ;
     vs:term_status "experimental" .
 
-curation:data a rdf:Property ;
-    rdfs:label "Data"@en ;
-    rdfs:label "Données"@fr ;
-    rdfs:comment "Any data that can be used for any purpose."@en ;
-    rdfs:comment "Toute donnée pouvant être utilisée pour tout objet."@fr ;
+curation:number a rdf:Property ;
+    rdfs:label "Number"@en ;
+    rdfs:label "Nombre"@fr ;
+    rdfs:comment "A number related to the resource."@en ;
+    rdfs:comment "Un nombre lié à la ressource."@fr ;
+    vs:term_status "experimental" .
+
+curation:rank a rdf:Property ;
+    rdfs:label "Rank"@en ;
+    rdfs:label "Rang"@fr ;
+    rdfs:comment "A rank or a position related to the resource."@en ;
+    rdfs:comment "Un rang ou une position lié à la ressource."@fr ;
+    vs:term_status "experimental" .
+
+curation:status a rdf:Property ;
+    rdfs:label "Status"@en ;
+    rdfs:label "statut"@fr ;
+    rdfs:comment "The status of the resource, generally for internal purposes."@en ;
+    rdfs:comment "Le statut de la ressource, généralement à usage interne."@fr ;
+    rdfs:subPropertyOf bibo:status ;
     vs:term_status "experimental" .
