@@ -3009,98 +3009,6 @@ class EprintsProcessor extends AbstractFullProcessor
         );
     }
 
-    protected function fillHit(array $source, array $hit): array
-    {
-        /* // @link https://wiki.eprints.org/w/Access_Log_Dataset
-        accessid    int(11)
-        datestamp_year    smallint(6) NULL
-        datestamp_month    smallint(6) NULL
-        datestamp_day    smallint(6) NULL
-        datestamp_hour    smallint(6) NULL
-        datestamp_minute    smallint(6) NULL
-        datestamp_second    smallint(6) NULL
-        requester_id    varchar(255) NULL
-        requester_user_agent    varchar(255) NULL
-        requester_country    varchar(255) NULL
-        requester_institution    varchar(255) NULL
-        referring_entity_id    longtext NULL
-        service_type_id    varchar(255) NULL
-        referent_id    int(11) NULL
-        referent_docid    int(11) NULL
-         */
-
-        $source = array_map('trim', array_map('strval', $source));
-
-        // The source id is already checked in prepareResources().
-
-        $created = $this->implodeDate(
-            $source['datestamp_year'],
-            $source['datestamp_month'],
-            $source['datestamp_day'],
-            $source['datestamp_hour'],
-            $source['datestamp_minute'],
-            $source['datestamp_second'],
-            null,
-            true,
-            true,
-            true
-        ) ?: $this->currentDateTimeFormatted;
-
-        // "referring_entity_id" may have not the same meaning than url.
-        /*
-        $pos = mb_strpos($source['referring_entity_id'], '?');
-        if ($pos === false || $pos >= mb_strlen($source['referring_entity_id']) - 1) {
-            $url = trim($source['referring_entity_id'], '?');
-            // can be only "fulltext=yes" or "abstract=yes".
-            $query = $source['service_type_id'];
-        } else {
-            $url = mb_substr($source['referring_entity_id'], 0, $pos);
-            $query = mb_substr($source['referring_entity_id'], $pos + 1);
-        }
-        */
-
-        // The url does not exist, only the ids. So rebuild the item id.
-        // The item may have been deleted, so it may not be mapped, so keep the
-        // original indexes.
-        if ($source['referent_id'] && $source['referent_docid']) {
-            $url = '/eprints/' . $source['referent_id'] . '/document/' . $source['referent_docid'];
-        } elseif ($source['referent_id']) {
-            $url = '/eprints/' . $source['referent_id'];
-        } elseif ($source['referent_docid']) {
-            $url = '/eprints/0/document/'. $source['referent_docid'];
-        } else {
-            $url = '/eprints/';
-        }
-
-        // Store the mapped id only if it exists.
-        $entityId = 0;
-        if ($source['referent_docid']) {
-            $entityId = $this->map['media'][$source['referent_docid']] ?? 0;
-            $entityName = 'media';
-        } elseif ($source['referent_id']) {
-            $entityId = $this->map['items'][$source['referent_docid']] ?? 0;
-            $entityName = 'items';
-        }
-        if (!$entityId) {
-            $entityName = '';
-        }
-
-        // TODO Manage "requester_country" and "requester_institution".
-
-        return array_replace($hit, [
-            'o:url' => $url,
-            'o:entity_id' => $entityId,
-            'o:entity_name' => $entityName,
-            'o:user_id' => 0,
-            'o:ip' => $source['requester_id'],
-            'o:referrer' => $source['referring_entity_id'],
-            'o:query' => $source['service_type_id'],
-            'o:user_agent' => $source['requester_user_agent'],
-            'o:accept_language' => '',
-            'o:created' => ['@value' => $created],
-        ]);
-    }
-
     protected function fillItemsMultiKey(iterable $sources, string $sourceType): void
     {
         // Normally already checked in AbstractFullProcessor.
@@ -3257,6 +3165,142 @@ class EprintsProcessor extends AbstractFullProcessor
                 ['total' => $this->totals[$sourceType], 'count' => count($this->map[$sourceType]), 'source' => $sourceType]
             );
         }
+    }
+
+    protected function fillHits(): void
+    {
+        // The url does not exist, only the ids. So rebuild the url.
+        // The item may have been deleted, so it may not be mapped, so keep the
+        // original indexes in the url, but convert entity id when  possible.
+
+        // Hits are aggregated automatically via the job AggregateHits.
+
+        /* // @link https://wiki.eprints.org/w/Access_Log_Dataset
+        accessid    int(11)
+        datestamp_year    smallint(6) NULL
+        datestamp_month    smallint(6) NULL
+        datestamp_day    smallint(6) NULL
+        datestamp_hour    smallint(6) NULL
+        datestamp_minute    smallint(6) NULL
+        datestamp_second    smallint(6) NULL
+        requester_id    varchar(255) NULL
+        requester_user_agent    varchar(255) NULL
+        requester_country    varchar(255) NULL
+        requester_institution    varchar(255) NULL
+        referring_entity_id    longtext NULL
+        service_type_id    varchar(255) NULL
+        referent_id    int(11) NULL
+        referent_docid    int(11) NULL
+         */
+
+        // "referring_entity_id" may have not the same meaning than url.
+        /*
+        $pos = mb_strpos($source['referring_entity_id'], '?');
+        if ($pos === false || $pos >= mb_strlen($source['referring_entity_id']) - 1) {
+            $url = trim($source['referring_entity_id'], '?');
+            // can be only "fulltext=yes" or "abstract=yes".
+            $query = $source['service_type_id'];
+        } else {
+            $url = mb_substr($source['referring_entity_id'], 0, $pos);
+            $query = mb_substr($source['referring_entity_id'], $pos + 1);
+        }
+        */
+
+        $sourceType = 'hits';
+        if (!$this->sqlCheckReadDirectly($sourceType)) {
+            return;
+        }
+
+        $dbConfig = $this->reader->getDbConfig();
+        $sourceDatabase = $dbConfig['database'];
+        $destinationDatabase = $this->connection->getDatabase();
+
+        $sourceTable = $this->mapping[$sourceType]['source'];
+        $sourceKeyId = $this->mapping[$sourceType]['key_id'];
+
+        // If the table is empty, keep original ids.
+        $before = $this->bulk->api()->search($sourceType)->getTotalResults();
+        if (empty($before)) {
+            $insertId = '`id`,';
+            $selectId = "`$sourceKeyId`,";
+        } else {
+            $insertId = '';
+            $selectId = '';
+        }
+
+        $sqls = $this->sqlTemporaryTableForIdsCreate($sourceType, 'items');
+        $sqls .= $this->sqlTemporaryTableForIdsCreate($sourceType, 'media');
+        $sqls .= "\n";
+
+        // This table has no null.
+
+        $sqls .= <<<SQL
+# Mapping columns and copy source table.
+# Not managed: requester_country, requester_institution.
+INSERT INTO `$destinationDatabase`.`hit` (
+    $insertId
+    `url`,
+    `entity_id`,
+    `entity_name`,
+    `user_id`,
+    `ip`,
+    `query`,
+    `referrer`,
+    `user_agent`,
+    `accept_language`,
+    `created`
+)
+SELECT
+    $selectId
+    IF(`referent_id`,
+        IF(`referent_docid`,
+            CONCAT("/eprints/", `referent_id`, "/document/", `referent_docid`),
+            CONCAT("/eprints/", `referent_id`)
+        ),
+        IF(`referent_docid`,
+            CONCAT("/eprints/0/document/", `referent_docid`),
+            "/eprints/"
+        )
+    ),
+    IFNULL(
+        `_temporary__media`.`to`,
+        IFNULL(`_temporary__items`.`to`, 0)
+    ),
+    IF(`_temporary__media`.`to`,
+        "media",
+        IF(`_temporary__items`.`to`,
+            "items",
+            ""
+    )),
+    0,
+    IFNULL(`requester_id`, ""),
+    IFNULL(`service_type_id`, ""),
+    IFNULL(`requester_entity_id`, ""),
+    IFNULL(`requester_user_agent`, ""),
+    "",
+    STR_TO_DATE(CONCAT(
+        `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
+        `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
+    ), "%Y-%m-%d %H:%i:%s")
+FROM `$sourceDatabase`.`$sourceTable`
+SQL;
+        $sqls .= "\n";
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'eprintid', 'items', 'left');
+        $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'docid', 'media', 'left');
+        $sqls .= ";\n";
+
+        $sqls .= "\n# Drop temporary tables.\n";
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('items');
+        $sqls .= $this->sqlTemporaryTableForIdsDrop('media');
+
+        $this->connection->executeStatement($sqls);
+
+        $after = $this->bulk->api()->search($sourceType)->getTotalResults();
+
+        $this->logger->notice(
+            '{total} "{source}" have been imported.', // @translate
+            ['total' => $after - $before, 'source' => $sourceType]
+        );
     }
 
     protected function fillContactMessages(): void

@@ -451,6 +451,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'hits' => [
             'source' => 'hit',
             'key_id' => 'id',
+            // The mode "sql" allows to import hits directly and is recommended
+            // because the list of hit is generally very big.
+            'mode' => 'sql',
         ],
     ];
 
@@ -932,6 +935,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         // For child processors.
         $this->fillOthers();
+        if ($this->isErrorOrStop()) {
+            return;
+        }
+
+        // For long child processors.
+        $this->fillOthersLong();
         // if ($this->isErrorOrStop()) {
         //     return;
         // }
@@ -1148,6 +1157,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!empty($this->modulesActive['Statistics'])
             && in_array('hits', $toImport)
             && $this->prepareImport('hits')
+            && $this->mapping['hits']['mode'] !== 'sql'
         ) {
             $this->logger->notice('Preparation of metadata of module Statistics.'); // @translate
             $this->prepareHits();
@@ -1196,19 +1206,26 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $this->fillConcepts();
         }
 
-        if (!empty($this->modulesActive['Statistics'])
-            && in_array('hits', $toImport)
-            && $this->prepareImport('hits')
-        ) {
-            $this->fillHits();
-        }
-
         if (!empty($this->modulesActive['Mapping'])
             && in_array('mappings', $toImport)
         ) {
             $this->logger->info('Preparation of metadata of module Mapping.'); // @translate
             // Not prepare: there are mappings and mapping markers.
             $this->fillMapping();
+        }
+    }
+
+    protected function fillOthersLong(): void
+    {
+        $toImport = $this->getParam('types') ?: [];
+
+        if (!empty($this->modulesActive['Statistics'])
+            && in_array('hits', $toImport)
+            && $this->prepareImport('hits')
+        ) {
+            // The mode is not checked for now: the method is simply overridden.
+            // @see EprintsProcessor::fillHits() (and git for by-one import).
+            $this->fillHits();
         }
     }
 

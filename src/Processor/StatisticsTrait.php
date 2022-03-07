@@ -52,6 +52,14 @@ trait StatisticsTrait
 
     protected function fillHits(): void
     {
+        if ($this->mapping['hits']['mode'] === 'sql') {
+            $this->logger->err(
+                'To import "{source}" with mode "sql", the sql requests or the mapping should be defined.',  // @translate
+                ['source' => 'statistics']
+            );
+            return;
+        }
+
         $this->fillHitsProcess($this->prepareReader('hits'));
     }
 

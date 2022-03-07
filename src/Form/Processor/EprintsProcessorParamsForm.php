@@ -102,11 +102,6 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                             'selected' => true,
                         ],
                         [
-                            'value' => 'hits',
-                            'label' => 'Statistics', // @translate
-                            'selected' => false,
-                        ],
-                        [
                             'value' => 'contact_messages',
                             'label' => 'Contact messages', // @translate
                             'selected' => true,
@@ -115,6 +110,11 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                             'value' => 'search_requests',
                             'label' => 'Saved searches', // @translate
                             'selected' => true,
+                        ],
+                        [
+                            'value' => 'hits',
+                            'label' => 'Statistics', // @translate
+                            'selected' => false,
                         ],
                     ],
                 ],
@@ -126,9 +126,9 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                         'media',
                         // 'item_sets',
                         'concepts',
-                        // 'hits',
                         'contact_messages',
                         'search_requests',
+                        // 'hits',
                     ],
                     'required' => false,
                 ],
