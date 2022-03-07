@@ -117,7 +117,51 @@ class EprintsProcessor extends AbstractFullProcessor
     ];
 
     // For internal use.
+
     protected $itemDirPaths = [];
+
+    /**
+     * Commented tables are items.
+     */
+    protected $tableData = [
+        'eprint_accompaniment' => [],
+        // 'eprint_conductors_id' => [],
+        'eprint_conductors_name' => [],
+        // 'eprint_contributors_id' => [],
+        'eprint_contributors_name' => [],
+        'eprint_contributors_type' => [],
+        'eprint_copyright_holders' => [],
+        'eprint_corp_creators' => [],
+        // 'eprint_creators_id' => [],
+        'eprint_creators_name' => [],
+        'eprint_directors_other' => [],
+        'eprint_divisions' => [],
+        // 'eprint_editors_id' => [],
+        'eprint_editors_name' => [],
+        // 'eprint_exhibitors_id' => [],
+        'eprint_exhibitors_name' => [],
+        'eprint_funders' => [],
+        'eprint_item_issues_comment' => [],
+        'eprint_item_issues_description' => [],
+        // 'eprint_item_issues_id' => [],
+        'eprint_item_issues_reported_by' => [],
+        'eprint_item_issues_resolved_by' => [],
+        'eprint_item_issues_status' => [],
+        'eprint_item_issues_timestamp' => [],
+        'eprint_item_issues_type' => [],
+        // 'eprint_lyricists_id' => [],
+        'eprint_lyricists_name' => [],
+        // 'eprint_producers_id' => [],
+        'eprint_producers_name' => [],
+        'eprint_projects' => [],
+        'eprint_related_url_type' => [],
+        'eprint_related_url_url' => [],
+        'eprint_relation_type' => [],
+        'eprint_relation_uri' => [],
+        'eprint_research_unit' => [],
+        'eprint_skill_areas' => [],
+        'eprint_subjects' => [],
+    ];
 
     protected function preImport(): void
     {
@@ -188,6 +232,21 @@ class EprintsProcessor extends AbstractFullProcessor
 
         $this->prepareInternalVocabularies();
         $this->prepareInternalTemplates();
+
+        // Prepare related tables, most of them with a few or some thousand
+        // data, but not a lot, so get data one times for speed purpose.
+        foreach (array_keys($this->tableData) as $table) {
+            // If eprints module is not installed, skip it.
+            try {
+                $this->tableData[$table] = $this->reader
+                    ->setFilters([])
+                    ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
+                    ->setObjectType($table)
+                    ->fetchAll(null, 'eprintid');
+            } catch (\Exception $e) {
+                $this->tableData[$table] = [];
+            }
+        }
     }
 
     protected function prepareMedias(): void
@@ -817,7 +876,7 @@ class EprintsProcessor extends AbstractFullProcessor
         $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords']))));
         foreach ($list as $keyword) {
             $values[] = [
-                'term' => 'dcterms:subject',
+                'term' => 'curation:tag',
                 'lang' => 'fra',
                 'value' => $keyword,
             ];
@@ -981,23 +1040,29 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         if ($source['institution']) {
+            // TODO Create an item for the institution.
             $values[] = [
                 'term' => 'dante:etablissement',
+                'type' => $this->configs['custom_vocabs']['institution'] ?? 'literal',
                 'value' => $source['institution'],
             ];
         }
 
         if ($source['department']) {
-            if ($template === 'Thèse') {
+            $vrid = $this->map['concepts'][$source['department']] ?? null;
+            if ($vrid) {
                 $values[] = [
-                    'term' => 'dante:ecoleDoctorale',
-                    'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'literal',
-                    'value' => $source['department'],
+                    'term' => $template === 'Thèse'
+                        ? 'dante:ecoleDoctorale'
+                        : 'dante:ufrOuComposante',
+                    'type' => ($template === 'Thèse'
+                        ? $this->configs['custom_vocabs']['doctoral_school']
+                        : $this->configs['custom_vocabs']['divisions']) ?? 'resource:item',
+                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
                 ];
             } else {
                 $values[] = [
-                    'term' => 'dante:ufrOuComposante',
-                    'type' => $this->configs['custom_vocabs']['divisions'] ?? 'literal',
+                    'term' => $template === 'Thèse' ? 'dante:ecoleDoctorale' : 'dante:ufrOuComposante',
                     'value' => $source['department'],
                 ];
             }
@@ -1164,10 +1229,19 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         if ($source['degrees']) {
-            $values[] = [
-                'term' => 'bibo:degree',
-                'value' => $source['degrees'],
-            ];
+            $vrid = $this->map['concepts'][$source['degrees']] ?? null;
+            if ($vrid) {
+                $values[] = [
+                    'term' => 'bibo:degree',
+                    'type' => $this->configs['custom_vocabs']['degrees'] ?? 'resource:item',
+                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                ];
+            } else {
+                $values[] = [
+                    'term' => 'bibo:degree',
+                    'value' => $source['degrees'],
+                ];
+            }
         }
 
         if ($source['director_family']) {
@@ -1282,15 +1356,25 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['institution_partner']) {
             $values[] = [
                 'term' => 'dante:etablissementCotutelle',
+                'type' => $this->configs['custom_vocabs']['institution_partner'] ?? 'literal',
                 'value' => $source['institution_partner'],
             ];
         }
 
         if ($source['doctoral_school']) {
-            $values[] = [
-                'term' => 'dante:ecoleDoctorale',
-                'value' => $source['doctoral_school'],
-            ];
+            $vrid = $this->map['concepts'][$source['doctoral_school']] ?? null;
+            if ($vrid) {
+                $values[] = [
+                    'term' => 'dante:ecoleDoctorale',
+                    'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'resource:item',
+                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                ];
+            } else {
+                $values[] = [
+                    'term' => 'dante:ecoleDoctorale',
+                    'value' => $source['doctoral_school'],
+                ];
+            }
         }
 
         if ($source['abstract_english']) {
@@ -1304,9 +1388,144 @@ class EprintsProcessor extends AbstractFullProcessor
         $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords_english']))));
         foreach ($list as $keyword) {
             $values[] = [
-                'term' => 'dcterms:subject',
+                'term' => 'curation:tag',
                 'lang' => 'eng',
                 'value' => $keyword,
+            ];
+        }
+
+        /**
+         * Relations.
+         */
+
+        // Simple literal value.
+        // TODO In fact, it may be subject ids, so not so simple.
+        $simpleValues = [
+            'eprint_accompaniment' => [
+                'term' => 'curation:data',
+                'value' => 'accompaniment',
+            ],
+            'eprint_copyright_holders' => [
+                'term' => 'dcterms:rightsHolder',
+                'value' => 'copyright_holders',
+            ],
+            'eprint_corp_creators' => [
+                'term' => 'dcterms:creator',
+                'value' => 'corp_creators',
+            ],
+            'eprint_funders' => [
+                'term' => 'foaf:fundedBy',
+                'value' => 'funders',
+            ],
+            'eprint_projects' => [
+                'term' => 'foaf:currentProject',
+                'value' => 'projects',
+            ],
+            'eprint_skill_areas' => [
+                'term' => 'foaf:topic',
+                'value' => 'skill_areas',
+            ],
+        ];
+        foreach ($simpleValues as $table => $sourceTable) {
+            foreach ($this->tableData[$table][$sourceId] ?? [] as $data) {
+                $values[] = [
+                    'term' => $sourceTable['term'],
+                    'value' => $data[$sourceTable['value']],
+                ];
+            }
+        }
+
+        // Relations exceptions.
+
+        if ($template === 'Thèse') {
+            foreach ($this->tableData['eprint_divisions'][$sourceId] ?? [] as $data) {
+                $v = $this->map['concepts'][$data['divisions']] ?? null;
+                if ($v) {
+                    $values[] = [
+                        'term' => 'dante:ecoleDoctorale',
+                        'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'resource:item',
+                        'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $v),
+                    ];
+                } else {
+                    $values[] = [
+                        'term' => 'dante:ecoleDoctorale',
+                        'type' => 'literal',
+                        'value_resource' => $data['divisions'],
+                    ];
+                }
+            }
+        } else {
+            foreach ($this->tableData['eprint_divisions'][$sourceId] ?? [] as $data) {
+                $vrid = $this->map['concepts'][$data['divisions']] ?? null;
+                if ($vrid) {
+                    $values[] = [
+                        'term' => 'dante:ufrOuComposante',
+                        'type' => $this->configs['custom_vocabs']['divisions'] ?? 'resource:item',
+                        'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    ];
+                } else {
+                    $values[] = [
+                        'term' => 'dante:ufrOuComposante',
+                        'type' => 'literal',
+                        'value' => $data['divisions'],
+                    ];
+                }
+            }
+        }
+
+        foreach ($this->tableData['eprint_research_unit'][$sourceId] ?? [] as $data) {
+            $vrid = $this->map['concepts'][$data['research_unit']] ?? null;
+            if ($vrid) {
+                $values[] = [
+                    'term' => 'dante:uniteRecherche',
+                    'type' => $this->configs['custom_vocabs']['research_unit'] ?? 'resource:item',
+                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                ];
+            } else {
+                $values[] = [
+                    'term' => 'dante:uniteRecherche',
+                    'type' => 'literal',
+                    'value' => $data['research_unit'],
+                ];
+            }
+        }
+
+        // Subjects are divided into multiple lists (subjects, degrees,
+        // divisions, doctoral_school, research unit...).
+
+        foreach ($this->tableData['eprint_subjects'][$sourceId] ?? [] as $data) {
+            $vrid = $this->map['concepts'][$data['subjects']] ?? null;
+            if ($vrid) {
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => $this->configs['custom_vocabs']['eprint_subjects'] ?? 'resource:item',
+                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                ];
+            } else {
+                $values[] = [
+                    'term' => 'dcterms:subject',
+                    'type' => 'literal',
+                    'value' => $data['subjects'],
+                ];
+            }
+        }
+
+        // TODO Find the right terms for "relation_url" and "related_url_url".
+        foreach ($this->tableData['eprint_relation_url'][$sourceId] ?? [] as $data) {
+            $values[] = [
+                'term' => 'dcterms:relation',
+                'type' => 'uri',
+                'uri' => $data['relation_url'],
+                'value' => $this->tableData['eprint_relation_type'][$sourceId][$data['pos']] ?? null,
+            ];
+        }
+
+        foreach ($this->tableData['eprint_related_url_url'][$sourceId] ?? [] as $data) {
+            $values[] = [
+                'term' => 'dcterms:references',
+                'type' => 'uri',
+                'uri' => $data['related_url_url'],
+                'value' => $this->tableData['eprint_related_url_type'][$sourceId][$data['pos']] ?? null,
             ];
         }
 

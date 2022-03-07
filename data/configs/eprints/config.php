@@ -2,6 +2,8 @@
 
 /**
  * Config for the import of eprints.
+ *
+ * @todo Use standard mapping to transform source.
  */
 
 return [
@@ -20,6 +22,16 @@ return [
         'monograph_type' => null,
         'pres_type' => null,
         'thesis_type' => null,
+        'creators' => null,
+        'contributors' => null,
+        'directors' => null,
+        'directors_other' => null,
+        'producers' => null,
+        'editors' => null,
+        'conductors' => null,
+        'exhibitors' => null,
+        'lyricists' => null,
+        'issues' => null,
         // Automatic custom vocabs.
         'degrees' => 'customvocab:Thesaurus degrees',
         'divisions' => 'customvocab:Thesaurus divisions',
