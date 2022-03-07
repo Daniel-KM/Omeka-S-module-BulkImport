@@ -1341,7 +1341,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         // Récupére le propriétaire de sa propre notice.
         if (!empty($this->map['users'][$source['id_auteur']])) {
-            $ownerAuteur = $this->entityManager->find(\Omeka\Entity\User::class, $this->map['users'][$source['id_auteur']]);
+            $ownerAuteur = $this->entityManager->find(\Omeka\Entity\User::class, $this->map['users'][$source['id_auteur']]['id']);
         }
 
         $values = [];

@@ -241,6 +241,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'class' => \Omeka\Entity\User::class,
             'table' => 'user',
             'fill' => 'fillUser',
+            'column_keep_id' => 'email',
         ],
         'assets' => [
             'name' => 'assets',
@@ -779,6 +780,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // mapping of ids for thumbnails.
 
         // First loop: create one resource by resource.
+
         if (in_array('assets', $toImport)
             && $this->prepareImport('assets')
         ) {
@@ -832,12 +834,21 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         // Second loop.
+
+        if (in_array('users', $toImport)
+            && $this->prepareImport('users')
+        ) {
+            $this->logger->info('Finalization of users.'); // @translate
+            $this->fillUsers();
+        }
+
         if (in_array('assets', $toImport)
             && $this->prepareImport('assets')
         ) {
             $this->logger->info('Finalization of assets.'); // @translate
             $this->fillAssets();
         }
+
         if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
             $this->logger->info('Preparation of metadata of all resources.'); // @translate
             if (in_array('items', $toImport)
@@ -1081,6 +1092,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $this->prepareThesaurus();
             $this->prepareConcepts($this->prepareReader('concepts'));
         }
+    }
+
+    protected function fillUsers(): void
+    {
+        $this->fillUsersProcess($this->prepareReader('users'));
     }
 
     protected function fillAssets(): void
