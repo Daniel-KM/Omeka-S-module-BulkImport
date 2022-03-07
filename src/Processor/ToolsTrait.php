@@ -151,6 +151,20 @@ JOIN `_temporary_source_entities` AS `tempo` ON CONCAT("$randomPrefix", `tempo`.
 SQL;
 
         $result = $this->connection->executeQuery($sql)->fetchAllKeyValue();
+        if (!count($result)) {
+            $this->logger->warn(
+                'No entities were created for source {source}.', // @translate
+                ['source' => $sourceType]
+            );
+        }
+        if (count($result) !== count($this->map[$sourceType])) {
+            $this->hasError = true;
+            $this->logger->warn(
+                'Some entities were not created for source {source}.', // @translate
+                ['source' => $sourceType]
+            );
+        }
+
         // Numeric keys are automatically converted into integers, not values.
         $this->map[$sourceType] = $result ? array_map('intval', $result) : [];
 
