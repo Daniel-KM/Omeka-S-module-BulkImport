@@ -258,21 +258,21 @@ SQL;
         }
         $filepath .= '.csv';
 
-        $skips = '';
+        $skips = $this->joinAndWhereSql();
         if (count($skip)) {
-            $skips = 'WHERE 1 = 1';
+            $hasWhere = strpos($skips, ' WHERE ') !== false;
+            $skips .= $hasWhere ? ' AND ' : ' WHERE ';
+            $list = [];
             foreach ($skip as $sk) {
-                $skips .= " AND (`$sk` != '' AND `$sk` IS NOT NULL) ";
+                $list[] = "(`$sk` != '' AND `$sk` IS NOT NULL)";
             }
-        }
-        if ($this->filters) {
-            $skips = ($skips ? '' : 'WHERE ') . $this->whereSql();
+            $skips .= implode(' AND ', $list);
         }
 
         // @see https://dev.mysql.com/doc/refman/8.0/en/load-data.html
         // Default output is tab-separated values without enclosure.
         $sql = <<<SQL
-SELECT *
+SELECT `$this->objectType`.*
 FROM `$this->objectType`
 $skips
 INTO OUTFILE "$filepath"
@@ -317,15 +317,17 @@ SQL;
 
     protected function currentPage(): void
     {
+        $sql = sprintf(
+            'SELECT `%s`.* FROM `%s` %s %s LIMIT %d OFFSET %d;',
+            $this->prefix . $this->objectType,
+            $this->prefix . $this->objectType,
+            $this->joinAndWhereSql(),
+            empty($this->order['by']) ? '' : ('ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
+            self::PAGE_LIMIT,
+            ($this->currentPage - 1) * self::PAGE_LIMIT
+        );
         try {
-            $stmt = $this->dbAdapter->query(sprintf(
-                'SELECT * FROM `%s` %s %s LIMIT %d OFFSET %d;',
-                $this->prefix . $this->objectType,
-                $this->filters ? 'WHERE ' . $this->whereSql() : '',
-                empty($this->order['by']) ? '' : ('ORDER BY ' . $this->order['by'] . ' ' . $this->order['dir']),
-                self::PAGE_LIMIT,
-                ($this->currentPage - 1) * self::PAGE_LIMIT
-            ));
+            $stmt = $this->dbAdapter->query($sql);
             $this->currentResponse = $stmt->execute();
         } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
             $this->currentResponse = null;
@@ -361,17 +363,17 @@ SQL;
     protected function preparePageIterator(): void
     {
         // Simple and quick paginator, since each table is read as a whole.
-        // TODO Use Laminas DbSelect.
+        // TODO Use Laminas DbSelect or the standard doctrine query builder.
         $this->setInnerIterator(new ArrayIterator([]));
 
         // Get total first.
+        $sql = sprintf(
+            'SELECT COUNT(*) AS "total" FROM `%s` %s;',
+            $this->prefix . $this->objectType,
+            $this->joinAndWhereSql()
+        );
         try {
-            // TODO Use the standard doctrine query builder.
-            $stmt = $this->dbAdapter->query(sprintf(
-                'SELECT COUNT(*) AS "total" FROM `%s` %s;',
-                $this->prefix . $this->objectType,
-                $this->filters ? 'WHERE ' . $this->whereSql() : ''
-            ));
+            $stmt = $this->dbAdapter->query($sql);
             $results = $stmt->execute();
         } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
             $this->lastErrorMessage = new PsrMessage(
@@ -416,10 +418,22 @@ SQL;
         $this->isValid = true;
     }
 
-    protected function whereSql(): string
+    protected function joinAndWhereSql(): string
     {
-        return $this->filters
-            ? implode(', AND ', $this->filters)
-            : '';
+        if (!$this->filters) {
+            return '';
+        }
+        $join = [];
+        $where = [];
+        foreach ($this->filters as $filter) {
+            if (mb_stripos($filter, 'join ') === 0) {
+                $join[] = trim(mb_substr($filter, 5));
+            } else {
+                $where[] = $filter;
+            }
+        }
+        $join = $join ? 'JOIN ' . implode(', ', $join) : '';
+        $where = $where ? 'WHERE ' . implode('AND ', $where) : '';
+        return trim($join . ' ' . $where);
     }
 }
