@@ -26,7 +26,7 @@ trait UserTrait
         $this->map['users'] = [];
 
         $existingUsers = $this->apiManager->search('users', [], ['initialize' => false, 'returnScalar' => 'email'])->getContent();
-        $existingUsernames = !empty($this->modules['UserNames'])
+        $existingUsernames = !empty($this->modulesActive['UserNames'])
             ? $this->apiManager->search('usernames', [], ['initialize' => false, 'returnScalar' => 'userName'])->getContent()
             : null;
 

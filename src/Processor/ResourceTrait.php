@@ -449,7 +449,7 @@ SQL;
                             break;
                         // Module RdfDataType.
                         case 'xsd:integer':
-                            if (!empty($this->modules['NumericDataTypes'])) {
+                            if (!empty($this->modulesActive['NumericDataTypes'])) {
                                 $datatype = 'numeric:integer';
                                 $value['type'] = 'numeric:integer';
                                 break;
@@ -462,7 +462,7 @@ SQL;
                         case 'xsd:dateTime':
                         case 'xsd:gYear':
                         case 'xsd:gYearMonth':
-                            if (!empty($this->modules['NumericDataTypes'])) {
+                            if (!empty($this->modulesActive['NumericDataTypes'])) {
                                 try {
                                     $value['@value'] = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value['@value']);
                                     $datatype = 'numeric:timestamp';
@@ -495,7 +495,7 @@ SQL;
                             break;
                         // Module IdRef.
                         case 'idref':
-                            if (!empty($this->modules['ValueSuggest'])) {
+                            if (!empty($this->modulesActive['ValueSuggest'])) {
                                 $datatype = 'valuesuggest:idref:person';
                                 $value['type'] = 'valuesuggest:idref:person';
                                 break;

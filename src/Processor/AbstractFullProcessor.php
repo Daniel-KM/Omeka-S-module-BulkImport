@@ -202,7 +202,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * @var array
      */
-    protected $optionalModules = [
+    protected $modulesOptional = [
         'BulkCheck',
         'BulkEdit',
         'CustomVocab',
@@ -216,7 +216,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * @var array
      */
-    protected $requiredModules = [];
+    protected $modulesRequired = [];
+
+    /**
+     * @var array
+     */
+    protected $modulesActive = [];
 
     /**
      * List of importables Omeka resources for generic purposes.
@@ -544,15 +549,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $this->checkAvailableModules();
 
-        $requireds = array_intersect_key(array_filter($this->modules), array_flip($this->requiredModules));
-        if (count($this->requiredModules) && count($requireds) !== count($this->requiredModules)) {
-            $missings = array_diff($this->requiredModules, array_keys($requireds));
+        $requireds = array_intersect_key(array_filter($this->modules), array_flip($this->modulesRequired));
+        if (count($this->modulesRequired) && count($requireds) !== count($this->modulesRequired)) {
+            $missings = array_diff($this->modulesRequired, array_keys($requireds));
             $this->hasError = true;
             $this->logger->err(
                 'The process requires the missing modules {modules}. The following modules are already enabled: {enabled}.', // @translate
                 [
                     'modules' => '"' . implode('", "', $missings) . '"',
-                    'enabled' => '"' . implode('", "', array_intersect($this->requiredModules, array_keys($requireds))) . '"',
+                    'enabled' => '"' . implode('", "', array_intersect($this->modulesRequired, array_keys($requireds))) . '"',
                 ]
             );
             return;
@@ -773,7 +778,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // TODO Refresh the bulk lists for properties, resource classes and templates.
 
         if (in_array('custom_vocabs', $toImport)
-            && !empty($this->modules['CustomVocab'])
+            && !empty($this->modulesActive['CustomVocab'])
             && $this->prepareImport('custom_vocabs')
         ) {
             $this->logger->info('Check custom vocabs.'); // @translate
@@ -1115,7 +1120,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         $toImport = $this->getParam('types') ?: [];
 
-        if (!empty($this->modules['Thesaurus'])
+        if (!empty($this->modulesActive['Thesaurus'])
             && in_array('concepts', $toImport)
             && $this->prepareImport('concepts')
         ) {
@@ -1162,7 +1167,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         $toImport = $this->getParam('types') ?: [];
 
-        if (!empty($this->modules['Thesaurus'])
+        if (!empty($this->modulesActive['Thesaurus'])
             && in_array('concepts', $toImport)
             && $this->prepareImport('concepts')
         ) {
@@ -1170,7 +1175,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $this->fillConcepts();
         }
 
-        if (!empty($this->modules['Mapping'])
+        if (!empty($this->modulesActive['Mapping'])
             && in_array('mappings', $toImport)
         ) {
             $this->logger->info('Preparation of metadata of module Mapping.'); // @translate
@@ -1302,7 +1307,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function completionShortJobs(array $resourceIds): void
     {
-        if (!empty($this->modules['Thesaurus'])) {
+        if (!empty($this->modulesActive['Thesaurus'])) {
             $this->logger->notice('Reindexing thesaurus.'); // @translate
             foreach ($this->thesaurusConfigs as $config) {
                 if (!empty($this->main[$config['main_name']]['item_id'])) {
@@ -1408,11 +1413,15 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         /** @var \Omeka\Module\Manager $moduleManager */
         $moduleManager = $this->getServiceLocator()->get('Omeka\ModuleManager');
-        foreach ([$this->optionalModules, $this->requiredModules] as $moduleNames) {
+
+        $this->modulesActive = array_fill_keys(
+            array_keys($moduleManager->getModulesByState(\Omeka\Module\Manager::STATE_ACTIVE)),
+            true
+        );
+
+        foreach ([$this->modulesOptional, $this->modulesRequired] as $moduleNames) {
             foreach ($moduleNames as $moduleName) {
-                $module = $moduleManager->getModule($moduleName);
-                $this->modules[$moduleName] = $module
-                    && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
+                $this->modules[$moduleName] = isset($this->modulesActive[$moduleName]);
             }
         }
     }

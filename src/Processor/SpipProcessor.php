@@ -41,7 +41,7 @@ class SpipProcessor extends AbstractFullProcessor
         'endpoint' => null,
     ];
 
-    protected $requiredModules = [
+    protected $modulesRequired = [
         'AdvancedResourceTemplate',
         'Article',
         // 'Comment',
@@ -51,7 +51,7 @@ class SpipProcessor extends AbstractFullProcessor
         'Spip',
     ];
 
-    protected $optionalModules = [
+    protected $modulesOptional = [
         'BulkCheck',
         'BulkEdit',
         'DataTypeRdf',
@@ -399,7 +399,7 @@ class SpipProcessor extends AbstractFullProcessor
     {
         $this->map['custom_vocabs'] = [];
 
-        if (empty($this->modules['CustomVocab'])) {
+        if (empty($this->modulesActive['CustomVocab'])) {
             return;
         }
 
@@ -2362,7 +2362,7 @@ class SpipProcessor extends AbstractFullProcessor
      */
     protected function createMenu(): void
     {
-        if (empty($this->modules['Menu'])) {
+        if (empty($this->modulesActive['Menu'])) {
             $this->logger->err(
                 'Le module "Menu" est nécessaire pour créer le menu' // @translate
             );
@@ -2376,7 +2376,7 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
 
-        if (empty($this->thesaurusConfigs['concepts']) || empty($this->modules['Thesaurus'])) {
+        if (empty($this->thesaurusConfigs['concepts']) || empty($this->modulesActive['Thesaurus'])) {
             $this->logger->err(
                 'Le thésaurus doit être créé à partir des rubriques (module "Thesaurus").' // @translate
             );

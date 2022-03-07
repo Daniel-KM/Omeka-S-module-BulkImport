@@ -750,7 +750,7 @@ SQL;
         $this->connection->executeQuery($sql);
         unlink($filepath);
 
-        if (!empty($this->modules['BulkEdit'])) {
+        if (!empty($this->modulesActive['BulkEdit'])) {
             /** @var \BulkEdit\Mvc\Controller\Plugin\TrimValues $trimValues */
             $trimValues = $this->getServiceLocator()->get('ControllerPluginManager')->get('trimValues');
             $trimValues();
@@ -1171,7 +1171,7 @@ SQL;
         }
 
         // Check if value suggest is available in order to prepare a temp table.
-        if (!empty($this->modules['ValueSuggest'])) {
+        if (!empty($this->modulesActive['ValueSuggest'])) {
             $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
 CREATE TABLE `_temporary_valuesuggest` (
@@ -1337,7 +1337,7 @@ SQL;
         }
 
         // Check if value suggest is available in order to prepare a temp table.
-        if (!empty($this->modules['ValueSuggest'])) {
+        if (!empty($this->modulesActive['ValueSuggest'])) {
             $this->saveMappingsSourceUris();
             $sql = <<<'SQL'
 DROP TABLE IF EXISTS `_temporary_valuesuggest`;
