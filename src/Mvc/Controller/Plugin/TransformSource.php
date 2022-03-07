@@ -257,7 +257,8 @@ class TransformSource extends AbstractPlugin
      * For sections "mapping", the name is the "from" path and all the setting
      * is output.
      */
-    public function getSectionSetting(string $section, string $name, $default = null) {
+    public function getSectionSetting(string $section, string $name, $default = null)
+    {
         if (!empty($this->configSections[$section])
             && $this->configSections[$section] === 'mapping'
             && !empty($this->normConfig[$section])
@@ -551,7 +552,7 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
             // The variable can be set multiple times.
-            if (!empty($mod['twig'])  && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
+            if (!empty($mod['twig']) && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
                 foreach ($poss as $pos) {
                     unset($mod['twig'][$pos]);
                 }
@@ -683,7 +684,7 @@ class TransformSource extends AbstractPlugin
                 continue;
             }
             // The variable can be set multiple times.
-            if (!empty($mod['twig'])  && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
+            if (!empty($mod['twig']) && ($poss = array_keys($mod['twig'], "{{ $name }}"))) {
                 foreach ($poss as $pos) {
                     unset($mod['twig'][$pos]);
                 }
@@ -723,7 +724,7 @@ class TransformSource extends AbstractPlugin
             }
             $serialized = serialize($tw);
             if (!isset($patterns[$serialized])) {
-                $patterns[$serialized] = implode('|', array_map(function($v) {
+                $patterns[$serialized] = implode('|', array_map(function ($v) {
                     $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
                     return mb_substr($v, 0, 3) === '{{ '
                         ? preg_quote(mb_substr($v, 3, -3), '~')
@@ -935,12 +936,14 @@ class TransformSource extends AbstractPlugin
                         . ($args['b'] ? ', ' . $args['b'] : '')
                         . ($args['g'] ? ' (' . $args['g'] . ')' : '')
                         . ($args['d'] ? ', ' . $args['d'] : '')
-                        . ($args['f']
+                        . (
+                            $args['f']
                             ? ' (' . $args['f']
                                 . ($args['c'] ? ' ; ' . $args['c'] : '')
                                 . ($args['k'] ? ' ; ' . $args['k'] : '')
                                 . ')'
-                            : ($args['c']
+                            : (
+                                $args['c']
                                 ? (' (' . $args['c'] . ($args['k'] ? ' ; ' . $args['k'] : '') . ')')
                                 : ($args['k'] ? ' (' . $args['k'] . ')' : '')
                             )
@@ -978,7 +981,8 @@ class TransformSource extends AbstractPlugin
                             : ($args['h'] ? ' (' . $args['h'] . ')' : ''))
                         . ($args['d'] ? ', ' . $args['d'] : '')
                         . ($args['e'] ? ', ' . $args['e'] : '')
-                        . ($args['f']
+                        . (
+                            $args['f']
                             ? ' (' . $args['f']
                                 . ($args['c'] ? ' ; ' . $args['c'] : '')
                                 . ')'
@@ -1111,7 +1115,8 @@ class TransformSource extends AbstractPlugin
         // So process by line.
 
         if (!function_exists('array_key_last')) {
-            function array_key_last(array $array) {
+            function array_key_last(array $array)
+            {
                 return empty($array) ? null : key(array_slice($array, -1, 1, true));
             }
         }
@@ -1244,7 +1249,6 @@ class TransformSource extends AbstractPlugin
                 $result['to']['dest'] = $toDest;
                 $normConfigRef[] = $result;
             }
-
         }
         unset($normConfigRef);
 

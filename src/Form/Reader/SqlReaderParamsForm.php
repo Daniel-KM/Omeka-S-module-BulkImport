@@ -2,8 +2,6 @@
 
 namespace BulkImport\Form\Reader;
 
-use Laminas\Form\Element;
-
 class SqlReaderParamsForm extends SqlReaderConfigForm
 {
 }

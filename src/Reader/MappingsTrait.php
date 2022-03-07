@@ -81,17 +81,17 @@ trait MappingsTrait
                 }
                 return true;
             });
-                $iterator = new \RecursiveIteratorIterator($dir);
-                foreach ($iterator as $filepath => $file) {
-                    if ((!$this->mappingExtension || pathinfo($filepath, PATHINFO_EXTENSION) === $this->mappingExtension)
+            $iterator = new \RecursiveIteratorIterator($dir);
+            foreach ($iterator as $filepath => $file) {
+                if ((!$this->mappingExtension || pathinfo($filepath, PATHINFO_EXTENSION) === $this->mappingExtension)
                         && $this->checkMappingFile($file)
                     ) {
-                        // For security, don't display the full path to the user.
-                        $relativePath = substr($filepath, $lengthDir);
-                        // Use keys for quicker process on big directories.
-                        $files[$relativePath] = null;
-                    }
+                    // For security, don't display the full path to the user.
+                    $relativePath = substr($filepath, $lengthDir);
+                    // Use keys for quicker process on big directories.
+                    $files[$relativePath] = null;
                 }
+            }
         }
 
         // Don't mix directories and files, but list directories first as usual.

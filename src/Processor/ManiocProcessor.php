@@ -161,7 +161,7 @@ class ManiocProcessor extends AbstractFullProcessor
             $this->logger->info(
                 'Copying {total} tables from the source.',  // @translate
                 ['total' => count($this->tables)]
-                );
+            );
             foreach ($this->tables as $table) {
                 $result = $this->copyTable($table);
                 if (!$result) {
@@ -169,7 +169,7 @@ class ManiocProcessor extends AbstractFullProcessor
                     $this->logger->err(
                         'Unable to copy source table "{table}".',  // @translate
                         ['table' => $table]
-                        );
+                    );
                     return;
                 }
             }

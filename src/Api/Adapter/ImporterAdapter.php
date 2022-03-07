@@ -42,22 +42,18 @@ class ImporterAdapter extends AbstractEntityAdapter
         if (isset($query['label'])) {
             $qb->andWhere($expr->eq(
                 "omeka_root.label",
-                $this->createNamedParameter($qb, $query['label']))
-            );
+                $this->createNamedParameter($qb, $query['label'])
+            ));
         }
 
         if (isset($query['owner_id']) && is_numeric($query['owner_id'])) {
             $userAlias = $this->createAlias();
-            $qb->innerJoin(
-                'omeka_root.owner',
-                $userAlias
-            );
-            $qb->andWhere(
-                $expr->eq(
+            $qb
+                ->innerJoin('omeka_root.owner', $userAlias)
+                ->andWhere($expr->eq(
                     $userAlias . '.id',
                     $this->createNamedParameter($qb, $query['owner_id'])
-                )
-            );
+                ));
         }
     }
 

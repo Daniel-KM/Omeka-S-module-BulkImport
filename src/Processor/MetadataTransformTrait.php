@@ -2446,7 +2446,8 @@ SQL;
                     && (
                         !count($currentMapping[$sourceToCheck])
                         || count($currentMapping[$sourceToCheck]) > 1
-                        || (count($currentMapping[$sourceToCheck]) === 1
+                        || (
+                            count($currentMapping[$sourceToCheck]) === 1
                             && (key($currentMapping[$sourceToCheck]) !== '' || !empty($currentMapping[$sourceToCheck]['_chk']))
                         )
                     )

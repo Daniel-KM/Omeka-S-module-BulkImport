@@ -693,7 +693,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $counts = array_combine(array_keys($this->map), array_map('count', $this->map));
         $counts = array_intersect_key($counts, array_flip($this->getParam('types', [])));
-        $this->logger->notice('Totals of data existing and imported: {json}.', // @translate
+        $this->logger->notice(
+            'Totals of data existing and imported: {json}.', // @translate
             ['json' => json_encode($counts)]
         );
 
@@ -750,7 +751,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         // Check database integrity for assets.
-        $this->logger->info('Check integrity of assets.' // @translate
+        $this->logger->info(
+            'Check integrity of assets.' // @translate
         );
         $this->checkAssets();
 

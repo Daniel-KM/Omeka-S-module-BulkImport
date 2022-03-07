@@ -254,7 +254,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
         if (!$job) {
             return 0;
         }
-       $response = $this->getServiceLocator()->get('Omeka\ApiManager')
+        $response = $this->getServiceLocator()->get('Omeka\ApiManager')
             ->search('bulk_importeds', ['job_id' => $this->job()->id()]);
         return $response->getTotalResults();
     }

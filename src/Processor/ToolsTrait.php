@@ -20,8 +20,6 @@ trait ToolsTrait
      * @param bool $useMainTable When a resource is a derived resource
      *   ("items"), use the main table ("resource").
      * @param bool $keysAreStrings In some cases, id keys are coded strings.
-     * @return void The mapping of source and destination ids is stored in the
-     *   main map when no ids is provided.
      */
     protected function createEmptyEntities(
         string $sourceType,
@@ -202,7 +200,7 @@ SQL;
         // Numeric keys are automatically converted into integers, not values.
         $this->map[$sourceType] = $result ? array_map('intval', $result) : [];
 
-    $sql = <<<SQL
+        $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 
 SQL;
@@ -264,16 +262,16 @@ SQL;
                 $this->logger->warn(
                     'To import "{source}", the Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
                     ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
-                    );
+                );
             } else {
                 $this->logger->warn(
                     'The Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
                     ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
-                    );
+                );
             }
             $this->logger->err(
                 'In some cases, the grants should be given to the omeka database user too.'  // @translate
-                );
+            );
             return false;
         }
 
@@ -328,7 +326,7 @@ SQL;
 SQL;
     }
 
-        protected function sqlTemporaryTableForIdsDrop(string $entityName): string
+    protected function sqlTemporaryTableForIdsDrop(string $entityName): string
     {
         return "DROP TABLE IF EXISTS `_temporary__$entityName`;\n";
     }
@@ -378,7 +376,6 @@ SQL;
         $length = max(1, $length);
         return substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(16 * $length))), 0, $length);
     }
-
 
     protected function asciiArrayToString(array $array): string
     {

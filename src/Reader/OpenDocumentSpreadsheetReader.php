@@ -7,8 +7,8 @@ use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Box\Spout\Reader\ReaderInterface;
 use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
-use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderConfigForm;
+use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use Log\Stdlib\PsrMessage;
 
 class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader

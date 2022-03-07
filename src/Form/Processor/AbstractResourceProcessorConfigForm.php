@@ -3,8 +3,6 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Form\Processor\TaskTrait;
-use BulkImport\Form\Processor\EntriesToProcessTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;

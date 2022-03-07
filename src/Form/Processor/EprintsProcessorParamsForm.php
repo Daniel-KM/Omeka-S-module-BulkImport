@@ -2,8 +2,8 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use BulkImport\Form\Element as BulkElement;
+use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 

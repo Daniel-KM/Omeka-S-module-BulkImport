@@ -388,7 +388,7 @@ trait FileTrait
         if (!$this->sideloadPath || strlen($this->sideloadPath) <= 1) {
             if ($messageStore) {
                 $messageStore->addError('file', new PsrMessage(
-                    'Cannot sideload file: configuration of module File Sideload not ready.', // @translate
+                    'Cannot sideload file: configuration of module File Sideload not ready.' // @translate
                 ));
             }
             return null;

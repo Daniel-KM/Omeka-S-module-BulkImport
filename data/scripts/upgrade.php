@@ -461,7 +461,7 @@ SQL;
         ->orderBy('bulk_importer.id', 'asc');
     $importerReaderConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
     foreach ($importerReaderConfigs as $id => $importerReaderConfig) {
-        $readerConfig = json_decode($importerReaderConfig,  true) ?: [];
+        $readerConfig = json_decode($importerReaderConfig, true) ?: [];
         if (isset($readerConfig['xsl_sheet'])) {
             if (mb_substr($readerConfig['xsl_sheet'], 0, 5) === 'user:') {
                 $readerConfig['xsl_sheet'] = 'user:xsl/' . trim(mb_substr($readerConfig['xsl_sheet'], 5));

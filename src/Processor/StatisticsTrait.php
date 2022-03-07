@@ -126,7 +126,7 @@ trait StatisticsTrait
                     ['count' => $created, 'total' => count($this->map['hits']), 'type' => 'hits', 'skipped' => $skipped]
                 );
             }
-    }
+        }
 
         // Remaining entities and fix for dates.
         $this->entityManager->flush();

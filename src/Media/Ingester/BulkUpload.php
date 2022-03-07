@@ -198,7 +198,7 @@ HTML;
     protected function arrayToAttributes(PhpRenderer $view, array $attributes): string
     {
         $escapeAttr = $view->plugin('escapeHtmlAttr');
-        return implode(' ', array_map(function($key) use ($attributes, $escapeAttr) {
+        return implode(' ', array_map(function ($key) use ($attributes, $escapeAttr) {
             if (is_bool($attributes[$key])) {
                 return $attributes[$key] ? $key . '="' . $key . '"' : '';
             }

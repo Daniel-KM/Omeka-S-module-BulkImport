@@ -166,7 +166,7 @@ SQL;
         $indexMessage = 0;
 
         if (!$resource && !$entry) {
-            $this->logger->log(Logger::INFO,
+            $this->logger->info(
                 'Index #{index}: Skipped', // @translate
                 ['index' => $this->indexResource]
             );
@@ -179,7 +179,7 @@ SQL;
         }
 
         if ($entry && $entry->isEmpty()) {
-            $this->logger->log(Logger::NOTICE,
+            $this->logger->notice(
                 'Index #{index}: Empty source', // @translate
                 ['index' => $this->indexResource]
             );
@@ -192,7 +192,7 @@ SQL;
         }
 
         if (!$resource) {
-            $this->logger->log(Logger::ERR,
+            $this->logger->err(
                 'Index #{index}: Source cannot be converted', // @translate
                 ['index' => $this->indexResource]
             );
@@ -206,22 +206,22 @@ SQL;
         }
 
         if ($resource['messageStore']->hasErrors()) {
-            $this->logger->log(Logger::ERR,
+            $this->logger->err(
                 'Index #{index}: Error processing data.', // @translate
                 ['index' => $this->indexResource]
             );
         } elseif ($resource['messageStore']->hasWarnings()) {
-            $this->logger->log(Logger::WARN,
+            $this->logger->warn(
                 'Index #{index}: Warning about data processed.', // @translate
                 ['index' => $this->indexResource]
             );
         } elseif ($resource['messageStore']->hasNotices()) {
-            $this->logger->log(Logger::NOTICE,
+            $this->logger->notice(
                 'Index #{index}: Notices about data processed.', // @translate
                 ['index' => $this->indexResource]
             );
         } elseif ($resource['messageStore']->hasMessages()) {
-            $this->logger->log(Logger::INFO,
+            $this->logger->info(
                 'Index #{index}: Info about data processed.', // @translate
                 ['index' => $this->indexResource]
             );

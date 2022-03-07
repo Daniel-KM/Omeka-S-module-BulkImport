@@ -64,7 +64,8 @@ class Module extends AbstractModule
                     $t->translate('The library "%s" should be installed.'), // @translate
                     'javascript'
                 ) . ' '
-                . $t->translate('See module’s installation documentation.')); // @translate
+                . $t->translate('See module’s installation documentation.') // @translate
+            );
         }
 
         $config = $this->getServiceLocator()->get('Config');

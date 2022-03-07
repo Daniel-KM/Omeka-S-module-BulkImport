@@ -698,7 +698,7 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->logger->info(
                 'Copying {total} tables from the source.',  // @translate
                 ['total' => count($this->tables)]
-                );
+            );
             foreach ($this->tables as $table) {
                 $result = $this->copyTable($table);
                 if (!$result) {

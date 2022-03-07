@@ -5,7 +5,6 @@ namespace BulkImport\Processor;
 use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
 use DateTime;
-use Laminas\Validator\EmailAddress;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Api\Representation\ItemRepresentation;
@@ -2780,7 +2779,8 @@ class SpipProcessor extends AbstractFullProcessor
                         );
                     }
                     $isException = $exceptions
-                        && (in_array(trim($title), $exceptions)
+                        && (
+                            in_array(trim($title), $exceptions)
                             || in_array(trim($resource->title()), $exceptions)
                         );
                     // Supprimer si c'est un item "concept" (les autres n'ont

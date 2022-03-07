@@ -397,7 +397,8 @@ class ImporterController extends AbstractActionController
 
                         // Don't run job if it is a task.
                         if (!empty($session->storeAsTask)) {
-                            $message = new PsrMessage('The import #{bulk_import} was stored as a task.', // @translate
+                            $message = new PsrMessage(
+                                'The import #{bulk_import} was stored as a task.', // @translate
                                 ['bulk_import' => $import->id()]
                             );
                             $this->messenger()->addSuccess($message);
@@ -491,7 +492,8 @@ class ImporterController extends AbstractActionController
                 try {
                     $readerForm = $controller->getForm($reader->getParamsFormClass());
                 } catch (\Omeka\Service\Exception\RuntimeException $e) {
-                    $message = new PsrMessage('Importer #{importer} has error: {error}', // @translate
+                    $message = new PsrMessage(
+                        'Importer #{importer} has error: {error}', // @translate
                         ['importer' => $importer->label(), 'error' => $e->getMessage()]
                     );
                     $this->messenger()->addError($message);
@@ -533,7 +535,8 @@ class ImporterController extends AbstractActionController
                         'processor' => $processor,
                     ]);
                 } catch (\Omeka\Service\Exception\RuntimeException $e) {
-                    $message = new PsrMessage('Importer #{importer} has error: {error}', // @translate
+                    $message = new PsrMessage(
+                        'Importer #{importer} has error: {error}', // @translate
                         ['importer' => $importer->label(), 'error' => $e->getMessage()]
                     );
                     $this->messenger()->addError($message);

@@ -52,7 +52,9 @@ class ImportedAdapter extends AbstractEntityAdapter
         }
     }
 
-    public function hydrate(Request $request, EntityInterface $entity,
+    public function hydrate(
+        Request $request,
+        EntityInterface $entity,
         ErrorStore $errorStore
     ): void {
         /** @var \BulkImport\Entity\Imported $entity */

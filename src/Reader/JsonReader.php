@@ -9,7 +9,6 @@ use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
 use BulkImport\Traits\TransformSourceTrait;
 use Laminas\Http\Response;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 
 /**

@@ -313,7 +313,7 @@ trait ThesaurusTrait
         $this->logger->notice(
             '{total} resources "{type}" have been created inside concept scheme #{item_id}.', // @translate
             ['total' => count($this->map[$mappingName]), 'type' => $mappingName, 'item_id' => $this->main[$mainName]['item_id']]
-         );
+        );
     }
 
     protected function labelKeyForSort($labelKey, $id): string

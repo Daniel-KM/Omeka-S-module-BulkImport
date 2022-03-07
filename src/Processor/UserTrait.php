@@ -462,7 +462,7 @@ trait UserTrait
             return;
         }
 
-        $userName= new UserNames();
+        $userName = new UserNames();
         $userName->setUser($this->entity);
         $userName->setUserName($source['o-module-usernames:username']);
         $this->entityManager->persist($userName);
