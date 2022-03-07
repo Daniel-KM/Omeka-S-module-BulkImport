@@ -303,11 +303,10 @@ trait ThesaurusTrait
 
         // Update scheme with top concepts.
         foreach ($this->thesaurus[$mappingName]['tops'] as $value) {
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
             $this->appendValue([
                 'term' => 'skos:hasTopConcept',
                 'type' => 'resource:item',
-                'value_resource' => $linked,
+                'value_resource' => $this->map[$mappingName][$value],
             ], $this->main[$mainName]['item']);
         }
 

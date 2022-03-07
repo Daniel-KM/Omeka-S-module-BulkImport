@@ -38,8 +38,8 @@ trait ResourceTrait
         }
 
         $this->sourceKeyId = $keyId;
-        $classId = $this->mapping[$sourceType]['resource_class_id'] ?? null;
-        $templateId = $this->mapping[$sourceType]['resource_template_id'] ?? null;
+        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->bulk->getResourceClassId($this->mapping[$sourceType]['resource_class_id']);
+        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->getResourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
         $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
 
         // Check the size of the import.
@@ -726,6 +726,10 @@ SQL;
             && !is_numeric(mb_substr($value['type'], 12))
         ) {
             $value['type'] = $this->bulk->getCustomVocabDataTypeName($value['type']) ?? 'literal';
+        }
+
+        if (!empty($value['value_resource']) && !is_object($value['value_resource'])) {
+            $value['value_resource'] = $this->entityManager->find(\Omeka\Entity\Resource::class, $value['value_resource']);
         }
 
         $entityValue = new \Omeka\Entity\Value;

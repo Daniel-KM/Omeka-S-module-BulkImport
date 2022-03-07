@@ -8,6 +8,10 @@ use BulkImport\Stdlib\MessageStore;
 
 /**
  * @todo Use transformSource() instead hard coded mapping or create sql views.
+ *
+ * Warning:
+ * The database main values (creators, email, etc.) are case sensitive, unlike
+ * Omeka.
  */
 class EprintsProcessor extends AbstractFullProcessor
 {
@@ -44,6 +48,89 @@ class EprintsProcessor extends AbstractFullProcessor
         'NumericDataTypes',
         'UserName',
         'UserProfile',
+    ];
+
+    protected $moreImportables = [
+        'conductors' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'contributors' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'creators' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'directors' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'directors_other' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'editors' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'exhibitors' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'issues' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMoreIssues',
+            'is_resource' => true,
+        ],
+        'lyricists' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
+        'producers' => [
+            'name' => 'items',
+            'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
+            'table' => 'item',
+            'fill' => 'fillMorePeople',
+            'is_resource' => true,
+        ],
     ];
 
     protected $mapping = [
@@ -91,6 +178,369 @@ class EprintsProcessor extends AbstractFullProcessor
             // The parent is stored in another table.
             // 'key_parent_id' => 'parent',
         ],
+
+        // Eprints multifields.
+
+        // Warning: some fields have two tables ("eprint_conductors_id" / "eprint_conductors_name"),
+        // but it is not possible to relate them: no unicity, no related third
+        // table, partial data, updated data, contributor types not consistent,
+        // etc. The tables "index" fix somes issues, but not all.
+        // In fact, all these tables are related to eprint only and directly,
+        // without an intermediate aggregating table of field. They are only
+        // fields attached to eprints.
+        // So they are added separately to main eprints. Ids are made private.
+        // In the same way, creator ids or names can't be linked to table "user".
+        // Furthermore, the composite primary key (eprint-pos) complexifies a
+        // lot of requests.
+
+        /*
+        'conductors' => [
+            'source' => 'eprint_conductors_id',
+            'key_id' => 'conductors_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_conductors_name' => [
+                    'conductors_name_family' => 'foaf:familyName',
+                    'conductors_name_given' => 'foaf:givenName',
+                    'conductors_name_lineage' => 'foaf:lastName',
+                    'conductors_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        'contributors' => [
+            'source' => 'eprint_contributors_id',
+            'key_id' => 'contributors_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_contributors_name' => [
+                    'contributors_name_family' => 'foaf:familyName',
+                    'contributors_name_given' => 'foaf:givenName',
+                    'contributors_name_lineage' => 'foaf:lastName',
+                    'contributors_name_honourific' => 'foaf:title',
+                ],
+                // TODO Use value annotation for Omeka 3.2 or use mapping of terms below.
+                'eprint_contributors_type' => [
+                    //The term used depends on the type.
+                    'contributors_type' => [
+                    ],
+                ],
+            ],
+        ],
+        // It's not possible to map creators and users: many missing data,
+        // the family name may be partial, the email may have been updated,
+        // there is no unicity, etc.
+        'creators' => [
+            'source' => 'eprint_creators_id',
+            'key_id' => 'creators_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_creators_name' => [
+                    'creators_name_family' => 'foaf:familyName',
+                    'creators_name_given' => 'foaf:givenName',
+                    'creators_name_lineage' => 'foaf:lastName',
+                    'creators_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        // Directors are not stored in a specific table, but in the main table.
+        // There is no unique id.
+        'directors' => [
+            'source' => 'eprint',
+            // This is a multiple key id.
+            'key_id' => [
+                'director_family',
+                'director_given',
+                'director_lineage',
+                'director_honourific',
+            ],
+            // 'set' => 'people',
+            'related' => [
+                // Directors has no table: there is no id.
+                // So relate to itself for simplicity to get data.
+                'eprint' => [
+                    'director_family' => 'foaf:familyName',
+                    'director_given' => 'foaf:givenName',
+                    'director_lineage' => 'foaf:lastName',
+                    'director_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        // There is no unique id for director others, so create an item for all.
+        'directors_other' => [
+            'source' => 'eprint_directors_other',
+            'key_id' => 'directors_other_family',
+            // 'set' => 'people',
+            'related' => [
+                // Other directors is a special table: there is no id.
+                // So relate to itself for simplicity to get data.
+                'eprint_directors_other' => [
+                    'directors_other_family' => 'foaf:familyName',
+                    'directors_other_given' => 'foaf:givenName',
+                    'directors_other_lineage' => 'foaf:lastName',
+                    'directors_other_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        'editors' => [
+            'source' => 'eprint_editors_id',
+            'key_id' => 'editors_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_editors_name' => [
+                    'editors_name_family' => 'foaf:familyName',
+                    'editors_name_given' => 'foaf:givenName',
+                    'editors_name_lineage' => 'foaf:lastName',
+                    'editors_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        'exhibitors' => [
+            'source' => 'eprint_exhibitors_id',
+            'key_id' => 'exhibitors_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_exhibitors_name' => [
+                    'exhibitors_name_family' => 'foaf:familyName',
+                    'exhibitors_name_given' => 'foaf:givenName',
+                    'exhibitors_name_lineage' => 'foaf:lastName',
+                    'exhibitors_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        'lyricists' => [
+            'source' => 'eprint_lyricists_id',
+            'key_id' => 'lyricists_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_lyricists_name' => [
+                    'lyricists_name_family' => 'foaf:familyName',
+                    'lyricists_name_given' => 'foaf:givenName',
+                    'lyricists_name_lineage' => 'foaf:lastName',
+                    'lyricists_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+        'producers' => [
+            'source' => 'eprint_producers_id',
+            'key_id' => 'producers_id',
+            'set' => 'people',
+            'related' => [
+                'eprint_producers_name' => [
+                    'producers_name_family' => 'foaf:familyName',
+                    'producers_name_given' => 'foaf:givenName',
+                    'producers_name_lineage' => 'foaf:lastName',
+                    'producers_name_honourific' => 'foaf:title',
+                ],
+            ],
+        ],
+
+        'issues' => [
+            'source' => 'eprint_item_issues_id',
+            'key_id' => 'item_issues_id',
+            'set' => null,
+            'related' => [
+                'eprint_item_issues_comment' => [
+                    'item_issues_comment' => '',
+                ],
+                'eprint_item_issues_description' => [
+                    'item_issues_description' => '',
+                ],
+                'eprint_item_issues_reported_by' => [
+                    // Numeric.
+                    'item_issues_reported_by' => '',
+                ],
+                'eprint_item_issues_resolved_by' => [
+                    // Numeric.
+                    'item_issues_resolved_by' => '',
+                ],
+                'eprint_item_issues_status' => [
+                    'item_issues_status' => 'bibo:status',
+                ],
+                'eprint_item_issues_timestamp' => [
+                    // Date time
+                    '_datetime' =>  'dcterms:issued',
+                ],
+                'eprint_item_issues_type' => [
+                    // Or resource class.
+                    'item_issues_type' => 'dcterms:type',
+                ],
+            ],
+        ],
+        */
+
+        /*
+        'conductors_id' => [
+            'source' => 'eprint_conductors_id',
+            'key_id' => 'conductors_id',
+            'set' => 'eprint_id',
+            'importable' => 'conductors',
+        ],
+        */
+        'conductors' => [
+            'source' => 'eprint_conductors_name',
+            'key_id' => [
+                'conductors_name_family' => 'foaf:familyName',
+                'conductors_name_given' => 'foaf:givenName',
+                'conductors_name_lineage' => 'foaf:lastName',
+                'conductors_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+        ],
+        /*
+        'contributors_id' => [
+            'source' => 'eprint_contributors_id',
+            'key_id' => 'contributors_id',
+            'set' => 'eprint_id',
+            'importable' => 'contributors',
+        ],
+        */
+        'contributors' => [
+            'source' => 'eprint_contributors_name',
+            'key_id' => [
+                'contributors_name_family' => 'foaf:familyName',
+                'contributors_name_given' => 'foaf:givenName',
+                'contributors_name_lineage' => 'foaf:lastName',
+                'contributors_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+        ],
+        /*
+        // TODO Use value annotation for Omeka 3.2 or use mapping of terms below.
+        'contributors_type' => [
+            'source' => 'eprint_contributors_type',
+            //The term used depends on the type.
+            'key_id' => 'contributors_type',
+        ],
+        */
+        // It's not possible to map creators and users: many missing data,
+        // the family name may be partial, the email may have been updated,
+        // there is no unicity, etc.
+        /*
+        'creators_id' => [
+            'source' => 'eprint_creators_id',
+            'key_id' => 'creators_id',
+            'set' => 'eprint_id',
+            'importable' => 'creators',
+        ],
+        */
+        'creators' => [
+            'source' => 'eprint_creators_name',
+            'key_id' => [
+                'creators_name_family' => 'foaf:familyName',
+                'creators_name_given' => 'foaf:givenName',
+                'creators_name_lineage' => 'foaf:lastName',
+                'creators_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+            // 'resource_template_id' => 'Person',
+        ],
+        // Directors are not stored in a specific table, but in the main table.
+        'directors' => [
+            'source' => 'eprint',
+            'key_id' => [
+                'director_family' => 'foaf:familyName',
+                'director_given' => 'foaf:givenName',
+                'director_lineage' => 'foaf:lastName',
+                'director_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+        'directors_other' => [
+            'source' => 'eprint_directors_other',
+            'key_id' => [
+                'directors_other_family' => 'foaf:familyName',
+                'directors_other_given' => 'foaf:givenName',
+                'directors_other_lineage' => 'foaf:lastName',
+                'directors_other_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+        /*
+        'editors_id' => [
+            'source' => 'eprint_editors_id',
+            'key_id' => 'editors_id',
+            'set' => 'eprint_id',
+        ],
+        */
+        'editors' => [
+            'source' => 'eprint_editors_name',
+            'key_id' => [
+                'editors_name_family' => 'foaf:familyName',
+                'editors_name_given' => 'foaf:givenName',
+                'editors_name_lineage' => 'foaf:lastName',
+                'editors_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+        /*
+        'exhibitors_id' => [
+            'source' => 'eprint_exhibitors_id',
+            'key_id' => 'exhibitors_id',
+            'set' => 'eprint_id',
+            'importable' => 'exhibitors',
+        ],
+        */
+        'exhibitors' => [
+            'source' => 'eprint_exhibitors_name',
+            'key_id' => [
+                'exhibitors_name_family' => 'foaf:familyName',
+                'exhibitors_name_given' => 'foaf:givenName',
+                'exhibitors_name_lineage' => 'foaf:lastName',
+                'exhibitors_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+        /*
+        'lyricists_id' => [
+            'source' => 'eprint_lyricists_id',
+            'key_id' => 'lyricists_id',
+            'set' => 'eprint_id',
+            'importable' => 'lyricists',
+        ],
+        */
+        'lyricists' => [
+            'source' => 'eprint_lyricists_name',
+            'key_id' => [
+                'lyricists_name_family' => 'foaf:familyName',
+                'lyricists_name_given' => 'foaf:givenName',
+                'lyricists_name_lineage' => 'foaf:lastName',
+                'lyricists_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+        /*
+        'producers_id' => [
+            'source' => 'eprint_producers_id',
+            'key_id' => 'producers_id',
+            'set' => 'eprint_id',
+            'importable' => 'producers',
+        ],
+        */
+        'producers' => [
+            'source' => 'eprint_producers_name',
+            'key_id' => [
+                'producers_name_family' => 'foaf:familyName',
+                'producers_name_given' => 'foaf:givenName',
+                'producers_name_lineage' => 'foaf:lastName',
+                'producers_name_honourific' => 'foaf:title',
+            ],
+            'set' => 'eprint_name',
+            'resource_class_id' => 'foaf:Person',
+        ],
+
+        /*
+        'issues' => [
+            'source' => 'eprint_item_issues_id',
+            'key_id' => 'item_issues_id',
+        ],
+        */
+
         // TODO Use a direct copy of the table, because it may be too much big.
         'hits' => [
             'source' => 'access',
@@ -121,37 +571,61 @@ class EprintsProcessor extends AbstractFullProcessor
     protected $itemDirPaths = [];
 
     /**
-     * Commented tables are items.
+     * Some tables to preload.
+     *
+     * @todo Load tables only when needed.
      */
     protected $tableData = [
-        'eprint_accompaniment' => [],
-        // 'eprint_conductors_id' => [],
         'eprint_conductors_name' => [],
-        // 'eprint_contributors_id' => [],
+        'eprint_contributors_name' => [],
+        'eprint_creators_name' => [],
+        'eprint_directors_other' => [],
+        'eprint_editors_name' => [],
+        'eprint_exhibitors_name' => [],
+        'eprint_lyricists_name' => [],
+        'eprint_producers_name' => [],
+        //  There is no table for directors, but filled from eprint.
+        // 'eprint_directors' => [],
+        // 'eprint_item_issues_id' => [],
+    ];
+
+    /**
+     * Some table to preload by id.
+     *
+     * @todo Load tables only when needed.
+     * Some tables are needed flat and by id.
+     */
+    protected $tableDataBy = [
+        'eprint_accompaniment' => [],
+        'eprint_conductors_id' => [],
+        'eprint_conductors_name' => [],
+        'eprint_contributors_id' => [],
         'eprint_contributors_name' => [],
         'eprint_contributors_type' => [],
         'eprint_copyright_holders' => [],
         'eprint_corp_creators' => [],
-        // 'eprint_creators_id' => [],
+        'eprint_creators_id' => [],
         'eprint_creators_name' => [],
+        //  There is no table for directors, but filled from eprint.
+        // 'eprint_directors' => [],
         'eprint_directors_other' => [],
         'eprint_divisions' => [],
-        // 'eprint_editors_id' => [],
+        'eprint_editors_id' => [],
         'eprint_editors_name' => [],
-        // 'eprint_exhibitors_id' => [],
+        'eprint_exhibitors_id' => [],
         'eprint_exhibitors_name' => [],
         'eprint_funders' => [],
-        'eprint_item_issues_comment' => [],
-        'eprint_item_issues_description' => [],
+        // 'eprint_item_issues_comment' => [],
+        // 'eprint_item_issues_description' => [],
         // 'eprint_item_issues_id' => [],
-        'eprint_item_issues_reported_by' => [],
-        'eprint_item_issues_resolved_by' => [],
-        'eprint_item_issues_status' => [],
-        'eprint_item_issues_timestamp' => [],
-        'eprint_item_issues_type' => [],
-        // 'eprint_lyricists_id' => [],
+        // 'eprint_item_issues_reported_by' => [],
+        // 'eprint_item_issues_resolved_by' => [],
+        // 'eprint_item_issues_status' => [],
+        // 'eprint_item_issues_timestamp' => [],
+        // 'eprint_item_issues_type' => [],
+        'eprint_lyricists_id' => [],
         'eprint_lyricists_name' => [],
-        // 'eprint_producers_id' => [],
+        'eprint_producers_id' => [],
         'eprint_producers_name' => [],
         'eprint_projects' => [],
         'eprint_related_url_type' => [],
@@ -242,16 +716,113 @@ class EprintsProcessor extends AbstractFullProcessor
                     ->setFilters([])
                     ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
                     ->setObjectType($table)
-                    ->fetchAll(null, 'eprintid');
+                    ->fetchAll();
             } catch (\Exception $e) {
                 $this->tableData[$table] = [];
             }
+        }
+        foreach (array_keys($this->tableDataBy) as $table) {
+            // If eprints module is not installed, skip it.
+            try {
+                $this->tableDataBy[$table] = $this->reader
+                    ->setFilters([])
+                    ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
+                    ->setObjectType($table)
+                    ->fetchAll(null, 'eprintid');
+            } catch (\Exception $e) {
+                $this->tableDataBy[$table] = [];
+            }
+        }
+
+        // Exception for directors.
+
+        try {
+            $this->tableData['directors'] = $this->reader
+                ->setFilters([])
+                ->setOrders([['by' => 'eprintid']])
+                ->setObjectType('eprint')
+                ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific']);
+        } catch (\Exception $e) {
+            $this->tableData[$table] = [];
+        }
+
+        try {
+            $this->tableDataBy['directors'] = $this->reader
+                ->setFilters([])
+                ->setOrders([['by' => 'eprintid']])
+                ->setObjectType('eprint')
+                ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific'], 'eprintid');
+        } catch (\Exception $e) {
+            $this->tableData[$table] = [];
         }
     }
 
     protected function prepareMedias(): void
     {
         $this->prepareResources($this->prepareReader('media'), 'media');
+    }
+
+    protected function prepareOthers(): void
+    {
+        parent::prepareOthers();
+
+        $toImport = $this->getParam('types') ?: [];
+
+        if (in_array('items', $toImport)
+            && $this->prepareImport('items')
+        ) {
+            $this->logger->notice('Preparation of related resources (authors, issues, etc.).'); // @translate
+
+            foreach ([
+                // Try to follow dcterms order.
+                'creators',
+                'contributors',
+                'directors',
+                'directors_other',
+                'producers',
+                'editors',
+                'conductors',
+                'exhibitors',
+                'lyricists',
+                // 'issues',
+            ] as $sourceType) {
+                $this->logger->notice(
+                    'Preparation of related resources "{name}".', // @translate
+                    ['name' => $sourceType]
+                );
+                $table = $this->mapping[$sourceType]['source'] ?? null;
+                if (!isset($this->tableData[$table])) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'No table for source "{source}".', // @translate
+                        ['source' => $sourceType]
+                    );
+                    return;
+                }
+                if (!count($this->tableData[$table])) {
+                    $this->logger->notice(
+                        'Preparation of related resources "{name}": the table is empty.', // @translate
+                        ['name' => $sourceType]
+                    );
+                    continue;
+                }
+                $set = $this->mapping[$sourceType]['set'] ?? null;
+                switch ($set) {
+                    case 'eprint_id':
+                        // Skip: data are already added directly to items as multifields.
+                        break;
+                    case 'eprint_name':
+                        $this->prepareItemsMultiKey($this->tableData[$table], $sourceType);
+                        break;
+                    default:
+                }
+                if ($this->isErrorOrStop()) {
+                    return;
+                }
+            }
+        }
+
+        // Other datas are imported during filling.
     }
 
     protected function prepareThesaurus(): void
@@ -359,6 +930,96 @@ class EprintsProcessor extends AbstractFullProcessor
     protected function prepareConcepts(iterable $sources): void
     {
         // Skip parent.
+    }
+
+    protected function prepareItemsMultiKey(iterable $sources, string $sourceType): void
+    {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping[$sourceType]['source'])) {
+            return;
+        }
+
+        $this->map[$sourceType] = [];
+
+        $keyId = $this->mapping[$sourceType]['key_id'];
+        if (empty($keyId)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'There is no key identifier for "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        if (!is_array($keyId)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'To manage multi keys for source "{source}", the identifier should be an array.', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        // Check the size of the import.
+        $this->countEntities($sources, $sourceType);
+        if ($this->hasError) {
+            return;
+        }
+
+        if (empty($this->totals[$sourceType])) {
+            $this->logger->warn(
+                'There is no "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        $emptyKeyId = array_fill_keys(array_keys($keyId), null);
+        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->bulk->getResourceClassId($this->mapping[$sourceType]['resource_class_id']);
+        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->getResourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
+        $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
+
+        foreach ($sources as $source) {
+            $orderedSource = array_intersect_key(array_replace($emptyKeyId, $source), $emptyKeyId);
+            $sourceId = $this->asciiArrayToString($orderedSource);
+            $this->map[$sourceType][$sourceId] = null;
+        }
+
+        // Because data are not yet merged, update the total here.
+        $this->totals[$sourceType] = count($this->map[$sourceType]);
+
+        if (!$this->totals[$sourceType]) {
+            $this->logger->notice(
+                'No resource "{source}" available on the source.', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        $this->logger->notice(
+            'Preparation of {total} resources "{source}".', // @translate
+            ['total' => $this->totals[$sourceType], 'source' => $sourceType]
+        );
+
+        $resourceColumns = [
+            'id' => 'id',
+            'owner_id' => $this->owner ? $this->ownerId : 'NULL',
+            'resource_class_id' => $classId ?: 'NULL',
+            'resource_template_id' => $templateId ?: 'NULL',
+            'is_public' => '0',
+            'created' => '"' . $this->currentDateTimeFormatted . '"',
+            'modified' => 'NULL',
+            'resource_type' => $this->connection->quote($this->importables[$sourceType]['class']),
+            'thumbnail_id' => $thumbnailId ?: 'NULL',
+            'title' => 'id',
+        ];
+        $this->createEmptyEntities($sourceType, $resourceColumns, false, true, true);
+        $this->createEmptyResourcesSpecific($sourceType);
+
+        $this->logger->notice(
+            '{total} resources "{source}" have been created.', // @translate
+            ['total' => count($this->map[$sourceType]), 'source' => $sourceType]
+        );
     }
 
     protected function fillUser(array $source, array $user): array
@@ -1058,7 +1719,7 @@ class EprintsProcessor extends AbstractFullProcessor
                     'type' => ($template === 'Thèse'
                         ? $this->configs['custom_vocabs']['doctoral_school']
                         : $this->configs['custom_vocabs']['divisions']) ?? 'resource:item',
-                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    'value_resource' => $vrid,
                 ];
             } else {
                 $values[] = [
@@ -1234,7 +1895,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 $values[] = [
                     'term' => 'bibo:degree',
                     'type' => $this->configs['custom_vocabs']['degrees'] ?? 'resource:item',
-                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    'value_resource' => $vrid,
                 ];
             } else {
                 $values[] = [
@@ -1244,6 +1905,7 @@ class EprintsProcessor extends AbstractFullProcessor
             }
         }
 
+        /* // Created separately as item below.
         if ($source['director_family']) {
             $values[] = [
                 'term' => 'dante:directeur',
@@ -1271,6 +1933,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 'value' => $source['director_honourific'],
             ];
         }
+        */
 
         if ($source['abstract_other']) {
             $values[] = [
@@ -1294,6 +1957,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
+        /* // Duplicate of table eprint_directors_other.
         if ($source['directors_other_family']) {
             $values[] = [
                 'term' => 'dante:codirecteur',
@@ -1321,6 +1985,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 'value' => $source['directors_other_honourific'],
             ];
         }
+        */
 
         if ($source['title_other']) {
             $values[] = [
@@ -1367,7 +2032,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 $values[] = [
                     'term' => 'dante:ecoleDoctorale',
                     'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'resource:item',
-                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    'value_resource' => $vrid,
                 ];
             } else {
                 $values[] = [
@@ -1398,9 +2063,81 @@ class EprintsProcessor extends AbstractFullProcessor
          * Relations.
          */
 
+        // Relations as linked resources.
+
+        // TODO Add customvocab for creator, directors, etc.
+        $listValues = [
+            // Try to follow dcterms order (but reordered via template anyway).
+            'creators' => [
+                'term' => 'dcterms:creator',
+            ],
+            'contributors' => [
+                'term' => 'dcterms:contributor',
+            ],
+            'directors' => [
+                'term' => 'dante:directeur',
+            ],
+            'directors_other' => [
+                'term' => 'dante:codirecteur',
+            ],
+            'producers' => [
+                'term' => 'bibo:producer',
+            ],
+            'editors' => [
+                'term' => 'bibo:editor',
+            ],
+            //  TODO Find a better mapping for conductors, exhibitors, lyricists.
+            'conductors' => [
+                'term' => 'bibo:director',
+            ],
+            'exhibitors' => [
+                'term' => 'bibo:organizer',
+            ],
+            'lyricists' => [
+                'term' => 'bibo:performer',
+            ],
+            // 'issues' => [
+            // ],
+        ];
+        foreach ($listValues as $sourceType => $sourceData) {
+            $table = $this->mapping[$sourceType]['source'];
+            $set = $this->mapping[$sourceType]['set'] ?? null;
+            if ($set !== 'eprint_name') {
+                $this->logger->warn(
+                    'Attachment of "{source}" to items is currently not managed..',  // @translate
+                    ['source' => $sourceType]
+                );
+                continue;
+            }
+            $linkedType = $this->configs['custom_vocabs'][$sourceType] ?? 'resource:item';
+            $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
+            $keyId = $this->mapping[$sourceType]['key_id'];
+            $emptyKeyId = array_fill_keys(array_keys($keyId), null);
+            foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $dataSource) {
+                $orderedSource = array_intersect_key(array_replace($emptyKeyId, $dataSource), $emptyKeyId);
+                $sourceLinkedId = $this->asciiArrayToString($orderedSource);
+                $vrid = $this->map[$sourceType][$sourceLinkedId] ?? null;
+                if ($vrid) {
+                    $values[] = [
+                        'term' => $sourceData['term'],
+                        'type' => $linkedType,
+                        'value_resource' => $vrid,
+                        'is_public' => $isPublicValue,
+                    ];
+                } else {
+                    // It should not be possible.
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'The "{source}" #"{id}" has not yet been imported as a resource.',  // @translate
+                        ['source' => $sourceType, 'id' => implode(' | ', $orderedSource)]
+                    );
+                }
+            }
+        }
+
         // Simple literal value.
         // TODO In fact, it may be subject ids, so not so simple.
-        $simpleValues = [
+        $listValues = [
             'eprint_accompaniment' => [
                 'term' => 'curation:data',
                 'value' => 'accompaniment',
@@ -1425,12 +2162,50 @@ class EprintsProcessor extends AbstractFullProcessor
                 'term' => 'foaf:topic',
                 'value' => 'skill_areas',
             ],
+            // These data should not be literal values.
+            'eprint_creators_id' => [
+                'term' => 'dcterms:creator',
+                'value' => 'creators_id',
+                'is_public' => false,
+            ],
+            'eprint_contributors_id' => [
+                'term' => 'dcterms:contributor',
+                'value' => 'contributors_id',
+                'is_public' => false,
+            ],
+            'eprint_producers_id' => [
+                'term' => 'bibo:producer',
+                'value' => 'producers_id',
+                'is_public' => false,
+            ],
+            'eprint_editors_id' => [
+                'term' => 'bibo:editor',
+                'value' => 'editors_id',
+                'is_public' => false,
+            ],
+            'eprint_conductors_id' => [
+                'term' => 'bibo:director',
+                'value' => 'conductors_id',
+                'is_public' => false,
+            ],
+            'eprint_exhibitors_id' => [
+                'term' => 'bibo:organizer',
+                'value' => 'exhibitors_id',
+                'is_public' => false,
+            ],
+            'eprint_lyricists_id' => [
+                'term' => 'bibo:performer',
+                'value' => 'lyricists_id',
+                'is_public' => false,
+            ],
         ];
-        foreach ($simpleValues as $table => $sourceTable) {
-            foreach ($this->tableData[$table][$sourceId] ?? [] as $data) {
+        foreach ($listValues as $table => $sourceData) {
+            $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
+            foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $data) {
                 $values[] = [
-                    'term' => $sourceTable['term'],
-                    'value' => $data[$sourceTable['value']],
+                    'term' => $sourceData['term'],
+                    'value' => $data[$sourceData['value']],
+                    'is_public' => $isPublicValue,
                 ];
             }
         }
@@ -1438,13 +2213,13 @@ class EprintsProcessor extends AbstractFullProcessor
         // Relations exceptions.
 
         if ($template === 'Thèse') {
-            foreach ($this->tableData['eprint_divisions'][$sourceId] ?? [] as $data) {
-                $v = $this->map['concepts'][$data['divisions']] ?? null;
-                if ($v) {
+            foreach ($this->tableDataBy['eprint_divisions'][$sourceId] ?? [] as $data) {
+                $vrid = $this->map['concepts'][$data['divisions']] ?? null;
+                if ($vrid) {
                     $values[] = [
                         'term' => 'dante:ecoleDoctorale',
                         'type' => $this->configs['custom_vocabs']['doctoral_school'] ?? 'resource:item',
-                        'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $v),
+                        'value_resource' => $vrid,
                     ];
                 } else {
                     $values[] = [
@@ -1455,13 +2230,13 @@ class EprintsProcessor extends AbstractFullProcessor
                 }
             }
         } else {
-            foreach ($this->tableData['eprint_divisions'][$sourceId] ?? [] as $data) {
+            foreach ($this->tableDataBy['eprint_divisions'][$sourceId] ?? [] as $data) {
                 $vrid = $this->map['concepts'][$data['divisions']] ?? null;
                 if ($vrid) {
                     $values[] = [
                         'term' => 'dante:ufrOuComposante',
                         'type' => $this->configs['custom_vocabs']['divisions'] ?? 'resource:item',
-                        'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                        'value_resource' => $vrid,
                     ];
                 } else {
                     $values[] = [
@@ -1473,13 +2248,13 @@ class EprintsProcessor extends AbstractFullProcessor
             }
         }
 
-        foreach ($this->tableData['eprint_research_unit'][$sourceId] ?? [] as $data) {
+        foreach ($this->tableDataBy['eprint_research_unit'][$sourceId] ?? [] as $data) {
             $vrid = $this->map['concepts'][$data['research_unit']] ?? null;
             if ($vrid) {
                 $values[] = [
                     'term' => 'dante:uniteRecherche',
                     'type' => $this->configs['custom_vocabs']['research_unit'] ?? 'resource:item',
-                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    'value_resource' => $vrid,
                 ];
             } else {
                 $values[] = [
@@ -1493,13 +2268,13 @@ class EprintsProcessor extends AbstractFullProcessor
         // Subjects are divided into multiple lists (subjects, degrees,
         // divisions, doctoral_school, research unit...).
 
-        foreach ($this->tableData['eprint_subjects'][$sourceId] ?? [] as $data) {
+        foreach ($this->tableDataBy['eprint_subjects'][$sourceId] ?? [] as $data) {
             $vrid = $this->map['concepts'][$data['subjects']] ?? null;
             if ($vrid) {
                 $values[] = [
                     'term' => 'dcterms:subject',
                     'type' => $this->configs['custom_vocabs']['eprint_subjects'] ?? 'resource:item',
-                    'value_resource' => $this->entityManager->find(\Omeka\Entity\Item::class, $vrid),
+                    'value_resource' => $vrid,
                 ];
             } else {
                 $values[] = [
@@ -1511,23 +2286,31 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         // TODO Find the right terms for "relation_url" and "related_url_url".
-        foreach ($this->tableData['eprint_relation_url'][$sourceId] ?? [] as $data) {
+        foreach ($this->tableDataBy['eprint_relation_url'][$sourceId] ?? [] as $data) {
             $values[] = [
                 'term' => 'dcterms:relation',
                 'type' => 'uri',
                 'uri' => $data['relation_url'],
-                'value' => $this->tableData['eprint_relation_type'][$sourceId][$data['pos']] ?? null,
+                'value' => $this->tableDataBy['eprint_relation_type'][$sourceId][$data['pos']] ?? null,
             ];
         }
 
-        foreach ($this->tableData['eprint_related_url_url'][$sourceId] ?? [] as $data) {
+        foreach ($this->tableDataBy['eprint_related_url_url'][$sourceId] ?? [] as $data) {
             $values[] = [
                 'term' => 'dcterms:references',
                 'type' => 'uri',
                 'uri' => $data['related_url_url'],
-                'value' => $this->tableData['eprint_related_url_type'][$sourceId][$data['pos']] ?? null,
+                'value' => $this->tableDataBy['eprint_related_url_type'][$sourceId][$data['pos']] ?? null,
             ];
         }
+
+        // Add the previous uri, but useless when id are kept, so kept private.
+        $values[] = [
+            'term' => 'dcterms:identifier',
+            'type' => 'uri',
+            'uri' => rtrim($this->getParam('endpoint', 'https://example.org'), '/') . '/id/eprint/' . $sourceId,
+            'is_public' => false,
+        ];
 
         parent::fillItem($item);
 
@@ -1871,6 +2654,73 @@ class EprintsProcessor extends AbstractFullProcessor
         }
     }
 
+    protected function fillOthers(): void
+    {
+        parent::fillOthers();
+
+        $toImport = $this->getParam('types') ?: [];
+
+        if (in_array('items', $toImport)
+            && $this->prepareImport('items')
+        ) {
+            $this->logger->notice('Finalization of related resources (authors, issues, etc.).'); // @translate
+
+            foreach ([
+                // Try to follow dcterms order.
+                'creators',
+                'contributors',
+                'directors',
+                'directors_other',
+                'producers',
+                'editors',
+                'conductors',
+                'exhibitors',
+                'lyricists',
+                // 'issues',
+            ] as $sourceType) {
+                $table = $this->mapping[$sourceType]['source'] ?? null;
+                if (!isset($this->tableData[$table])) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'Finalization of related resources "{source}". No table provided.', // @translate
+                        ['source' => $sourceType]
+                    );
+                    return;
+                }
+                if (!count($this->tableData[$table])) {
+                    $this->logger->notice(
+                        'Finalization of related resources "{name}": No resources.', // @translate
+                        ['name' => $sourceType]
+                    );
+                    continue;
+                }
+                $this->logger->notice(
+                    'Finalization of related resources "{name}".', // @translate
+                    ['name' => $sourceType]
+                );
+                $set = $this->mapping[$sourceType]['set'] ?? null;
+                switch ($set) {
+                    case 'eprint_id':
+                        // Skip: data are already added directly to items as multifields.
+                        break;
+                    case 'eprint_name':
+                        $this->fillItemsMultiKey($this->tableData[$table], $sourceType);
+                        break;
+                    default:
+                }
+                if ($this->isErrorOrStop()) {
+                    return;
+                }
+            }
+        }
+
+        if (in_array('contact_messages', $toImport)
+            && $this->prepareImport('contact_messages')
+        ) {
+            $this->logger->notice('Preparation of related resources (authors, issues, etc.).'); // @translate
+        }
+    }
+
     protected function fillConcepts(): void
     {
         $sourceType = 'concepts';
@@ -1957,11 +2807,10 @@ class EprintsProcessor extends AbstractFullProcessor
             if (isset($this->rootConcepts[$sourceId])) {
                 foreach ($parents as $parentData) {
                     if ($parentData['parents'] === $sourceId) {
-                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['subjectid']]);
                         $values[] = [
                             'term' => 'skos:hasTopConcept',
                             'type' => 'resource:item',
-                            'value_resource' => $linked,
+                            'value_resource' => $this->map['concepts'][$parentData['subjectid']],
                         ];
                     }
                 }
@@ -1976,7 +2825,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 if (!$scheme) {
                     $this->hasError = true;
                     $this->logger->err(
-                        'No root scheme for concept source {source}.', // @translate
+                        'No root scheme for concept source "{source}".', // @translate
                         ['source' => $sourceId]
                     );
                     return;
@@ -2000,29 +2849,26 @@ class EprintsProcessor extends AbstractFullProcessor
 
                 foreach ($parentByIds[$sourceId] as $parentData) {
                     if (isset($this->rootConcepts[$parentData['parents']])) {
-                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->rootConcepts[$parentData['parents']]);
                         $values[] = [
                             'term' => 'skos:topConceptOf',
                             'type' => 'resource:item',
-                            'value_resource' => $linked,
+                            'value_resource' => $this->rootConcepts[$parentData['parents']],
                         ];
                     } elseif ($parentData['parents'] !== 'ROOT') {
-                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['parents']]);
                         $values[] = [
                             'term' => 'skos:broader',
                             'type' => 'resource:item',
-                            'value_resource' => $linked,
+                            'value_resource' => $this->map['concepts'][$parentData['parents']],
                         ];
                     }
                 }
 
                 foreach ($parents as $parentData) {
                     if ($parentData['parents'] === $sourceId) {
-                        $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['concepts'][$parentData['subjectid']]);
                         $values[] = [
                             'term' => 'skos:narrower',
                             'type' => 'resource:item',
-                            'value_resource' => $linked,
+                            'value_resource' => $this->map['concepts'][$parentData['subjectid']],
                         ];
                     }
                 }
@@ -2202,5 +3048,182 @@ class EprintsProcessor extends AbstractFullProcessor
             'o:accept_language' => '',
             'o:created' => ['@value' => $created],
         ]);
+    }
+
+    protected function fillItemsMultiKey(iterable $sources, string $sourceType): void
+    {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping[$sourceType]['source'])) {
+            return;
+        }
+
+        $keyId = $this->mapping[$sourceType]['key_id'];
+        if (empty($keyId)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'There is no key identifier for "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        if (!is_array($keyId)) {
+            $this->hasError = true;
+            $this->logger->err(
+                'To manage multikeys for source "{source}", the identifier should be an array.', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        if (empty($this->totals[$sourceType])) {
+            $this->logger->warn(
+                'There is no "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        // TODO This is nearly a copy of fillResourcesProcess(), so factorize.
+        $emptyKeyId = array_fill_keys(array_keys($keyId), null);
+
+        if ($this->mapping[$sourceType]['resource_class_id'] === 'foaf:Person') {
+            $keyFamily = array_search('foaf:familyName', $keyId);
+            $keyGiven = array_search('foaf:givenName', $keyId);
+        } else {
+            $keyFamily = null;
+            $keyGiven = null;
+        }
+
+        /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
+        $adapter = $this->adapterManager->get($this->importables[$sourceType]['name']);
+
+        // Warning: this is derived source, so process data one time only.
+        $processed = array_fill_keys($this->map[$sourceType], false);
+
+        $index = 0;
+        $created = 0;
+        $skipped = 0;
+        $excluded = 0;
+        foreach ($sources as $source) {
+            // Warning: this is derived source, so process data one time only.
+            $orderedSource = array_intersect_key(array_replace($emptyKeyId, $source), $emptyKeyId);
+            $sourceId = $this->asciiArrayToString($orderedSource);
+            if (!empty($processed[$sourceId])) {
+                continue;
+            }
+
+            ++$index;
+            $processed[$sourceId] = true;
+
+            $destinationId = $this->map[$sourceType][$sourceId] ?? null;
+            if (!$destinationId) {
+                ++$skipped;
+                $this->logger->notice(
+                    'Skipped resource "{source}" #{source_id} added in source.', // @translate
+                    ['source' => $sourceType, 'source_id' => $sourceId]
+                );
+                continue;
+            }
+            $entity = $this->entityManager->find($this->importables[$sourceType]['class'], $destinationId);
+            if (!$entity) {
+                ++$skipped;
+                $this->logger->notice(
+                    'Unknown resource "{source}" #{source_id}. Probably removed during by another user.', // @translate
+                    ['source' => $sourceType, 'source_id' => $sourceId]
+                );
+                continue;
+            }
+            $this->entity = $entity;
+
+            $values = [];
+            if ($this->mapping[$sourceType]['resource_class_id'] === 'foaf:Person') {
+                $familyGiven = [];
+                $familyGiven[] = $source[$keyFamily] ?? null;
+                $familyGiven[] = $source[$keyGiven] ?? null;
+                $familyGiven = array_filter($familyGiven);
+                if ($familyGiven) {
+                    $values[] = [
+                        'term' => 'foaf:name',
+                        'type' => 'literal',
+                        'value' => implode(', ', $familyGiven),
+                    ];
+                }
+            }
+            foreach ($keyId as $sourceKey => $term) {
+                if (isset($source[$sourceKey]) && strlen((string) $source[$sourceKey])) {
+                    $values[] = [
+                        'term' => $term,
+                        'type' => 'literal',
+                        'value' => $source[$sourceKey],
+                    ];
+                }
+            }
+
+            $this->orderAndAppendValues($values);
+
+            $errorStore = new \Omeka\Stdlib\ErrorStore;
+            $adapter->validateEntity($this->entity, $errorStore);
+            if ($errorStore->hasErrors()) {
+                ++$skipped;
+                $this->logErrors($this->entity, $errorStore);
+                continue;
+            }
+
+            $this->entityManager->persist($this->entity);
+            ++$created;
+
+            if ($created % self::CHUNK_ENTITIES === 0) {
+                if ($this->isErrorOrStop()) {
+                    break;
+                }
+                $this->entityManager->flush();
+                $this->entityManager->clear();
+                $this->refreshMainResources();
+                $this->logger->info(
+                    '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+                    ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+                );
+            }
+        }
+
+        // Remaining entities.
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+        $this->refreshMainResources();
+
+        $this->logger->notice(
+            '{count}/{total} resource "{source}" imported, {skipped} skipped, {excluded} excluded.', // @translate
+            ['count' => $created, 'total' => count($this->map[$sourceType]), 'source' => $sourceType, 'skipped' => $skipped, 'excluded' => $excluded]
+        );
+
+        // Check total in case of an issue in the network or with Omeka < 2.1.
+        // In particular, an issue occurred when a linked resource is private.
+        if ($this->totals[$sourceType] !== count($this->map[$sourceType])) {
+            $this->hasError = true;
+            $this->logger->err(
+                'The total {total} of resources "{source}" is not the same than the count {count}.', // @translate
+                ['total' => $this->totals[$sourceType], 'count' => count($this->map[$sourceType]), 'source' => $sourceType]
+            );
+        }
+    }
+
+    protected function asciiArrayToString(array $array): string
+    {
+        // The table of identifiers should be pure ascii to allow indexation.
+        // When possible, keep original data to simplify debugging.
+        $separator = ' | ';
+        $string = implode($separator, $array);
+        $sha1 = sha1($string);
+        $string = mb_strtolower($string);
+        if (extension_loaded('intl')) {
+            $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+            $string = $transliterator->transliterate($string);
+        } elseif (extension_loaded('iconv')) {
+            $string = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $string);
+        } else {
+            return $sha1;
+        }
+        return trim($string, $separator) . $separator . $sha1;
     }
 }

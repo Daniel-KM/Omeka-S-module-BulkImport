@@ -1133,7 +1133,7 @@ class SpipProcessor extends AbstractFullProcessor
                     ['id_trad' => $value, 'item_set_id' => $this->entity->getId(), 'source' => $source['id_article']]
                 );
             } else {
-                $linkedResource = $this->entityManager->find(\Omeka\Entity\ItemSet::class, $this->map['items'][$value]);
+                $linkedResource = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map['items'][$value]);
                 $values[] = [
                     'term' => 'bibo:translationOf',
                     'type' => 'resource:item',
