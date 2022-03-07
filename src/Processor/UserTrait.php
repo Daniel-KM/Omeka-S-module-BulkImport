@@ -21,7 +21,7 @@ trait UserTrait
      *
      * @param iterable $sources Should be countable too.
      */
-    protected function prepareUsersProcess(iterable $sources): void
+    protected function prepareUsersProcess(iterable $sources, bool $updateOrCreate = false): void
     {
         $resourceName = 'users';
         $this->map['users'] = [];
@@ -38,6 +38,9 @@ trait UserTrait
             );
             return;
         }
+
+        /** @var \Doctrine\Persistence\ObjectRepository $userRepository */
+        $userRepository = $this->entityManager->getRepository(User::class);
 
         // Keep the emails to map ids.
         $emails = [];
@@ -98,8 +101,6 @@ trait UserTrait
                 continue;
             }
 
-            unset($source['@id'], $source['o:id']);
-
             $userCreated = empty($source['o:created']['@value'])
                 ? $this->currentDateTime
                 : (\DateTime::createFromFormat('Y-m-d H:i:s', $source['o:created']['@value']) ?: $this->currentDateTime);
@@ -109,7 +110,17 @@ trait UserTrait
 
             $updateDates[] = [$source['o:email'], $userCreated->format('Y-m-d H:i:s'), $userModified ? $userModified->format('Y-m-d H:i:s') : null];
 
-            $this->entity = new User();
+            if ($updateOrCreate && !empty($source['o:id'])) {
+                $this->entity = $userRepository->find($source['o:id']);
+                if (!$this->entity) {
+                    unset($source['@id'], $source['o:id']);
+                    $this->entity = new User();
+                }
+            } else {
+                unset($source['@id'], $source['o:id']);
+                $this->entity = new User();
+            }
+
             $this->entity->setEmail($source['o:email']);
             $this->entity->setName($source['o:name']);
             $this->entity->setRole($source['o:role']);
