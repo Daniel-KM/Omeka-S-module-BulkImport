@@ -229,13 +229,24 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      * The keys to use for automatic management are:
      * - name: api resource name
      * - class: the Omeka class for the entity manager
-     * - dest: table
+     * - main_entity: name of the destination for derivated resource,
+     *   for example "resources" for "items".
+     * - table: destination (specific table when there is a main table)
      * - key_id: name of the key to get the id of a record
      * - column_keep_id: string column used to keep the id of source temporary.
+     *   It must be reset or overridden in a second time.
      *
      * @var array
      */
     protected $importables = [
+        // For internal process (mainly to get table), data must be overridden.
+        'resources' => [
+            'name' => 'resources',
+            'class' => \Omeka\Entity\Resource::class,
+            'table' => 'resource',
+            'column_keep_id' => 'title',
+        ],
+        // Common importables.
         'users' => [
             'name' => 'users',
             'class' => \Omeka\Entity\User::class,
@@ -247,16 +258,19 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'name' => 'assets',
             'class' => \Omeka\Entity\Asset::class,
             'table' => 'asset',
+            'column_keep_id' => 'alt_text',
         ],
         'items' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillItem',
         ],
         'media' => [
             'name' => 'media',
             'class' => \Omeka\Entity\Media::class,
+            'main_entity' => 'resources',
             'table' => 'media',
             'fill' => 'fillMedia',
             'parent' => 'items',
@@ -264,6 +278,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'item_sets' => [
             'name' => 'item_sets',
             'class' => \Omeka\Entity\ItemSet::class,
+            'main_entity' => 'resources',
             'table' => 'item_set',
             'fill' => 'fillItemSet',
         ],
@@ -291,6 +306,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'media_items' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillMediaItem',
             'sub' => 'media_items_sub',
@@ -298,6 +314,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'media_items_sub' => [
             'name' => 'media',
             'class' => \Omeka\Entity\Media::class,
+            'main_entity' => 'resources',
             'table' => 'media',
             'fill' => 'fillMediaItemMedia',
             'parent' => 'media_items',
@@ -323,6 +340,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'concepts' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillConcept',
             'is_resource' => true,
@@ -338,6 +356,8 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     /**
      * Mapping of Omeka resources according to the reader.
+     *
+     * Simply set null to the resource source to skip its process.
      *
      * The default is derived from Omeka database, different from api endpoint.
      *
@@ -781,8 +801,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // The process uses two loops: creation of all resources empty, then
         // filling them. This process is required to manage relations between
         // resources, while any other user can create new resources at the same
-        // time. This process is required for assets too in order to get the
-        // mapping of ids for thumbnails.
+        // time.
+
+        // Users and assets are prepared first, because they can be used by
+        // other resources.
 
         // First loop: create one resource by resource.
 
@@ -959,7 +981,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     {
         $this->resourceName = $resourceName;
         $this->objectType = $this->mapping[$resourceName]['source'] ?? null;
-        return !empty($this->objectType);
+        if (empty($this->objectType)) {
+            $this->logger->debug(
+                'The source "{type}" is skipped of the mapping or not managed, so resources cannot be prepared or filled.', // @translate
+                ['type' => $resourceName]
+            );
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -1111,22 +1140,22 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function fillItems(): void
     {
-        $this->fillResources($this->prepareReader('items'), 'items');
+        $this->fillResourcesProcess($this->prepareReader('items'), 'items');
     }
 
     protected function fillMedias(): void
     {
-        $this->fillResources($this->prepareReader('media'), 'media');
+        $this->fillResourcesProcess($this->prepareReader('media'), 'media');
     }
 
     protected function fillMediaItems(): void
     {
-        $this->fillResources($this->prepareReader('media_items'), 'media_items');
+        $this->fillResourcesProcess($this->prepareReader('media_items'), 'media_items');
     }
 
     protected function fillItemSets(): void
     {
-        $this->fillResources($this->prepareReader('item_sets'), 'item_sets');
+        $this->fillResourcesProcess($this->prepareReader('item_sets'), 'item_sets');
     }
 
     protected function fillOthers(): void
@@ -1350,6 +1379,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
     protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Reader\Reader
     {
+        // When no source is set, it means that the reader is disabled.
+        // For example, disable processing of items and medias when mediaItems
+        // is used.
         if (empty($this->mapping[$resourceName]['source'])) {
             $this->logger->debug(
                 'No source set for {resource_name}.', // @translate

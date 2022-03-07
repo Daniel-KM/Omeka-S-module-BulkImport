@@ -63,6 +63,7 @@ class SpipProcessor extends AbstractFullProcessor
         'breves' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillBreve',
             'is_resource' => true,
@@ -70,6 +71,7 @@ class SpipProcessor extends AbstractFullProcessor
         'auteurs' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillAuteur',
             'is_resource' => true,
@@ -77,6 +79,7 @@ class SpipProcessor extends AbstractFullProcessor
         'groupes_mots' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillMotCleGroup',
             'is_resource' => true,
@@ -84,6 +87,7 @@ class SpipProcessor extends AbstractFullProcessor
         'mots' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
+            'main_entity' => 'resources',
             'table' => 'item',
             'fill' => 'fillMotCle',
             'is_resource' => true,
@@ -1215,7 +1219,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (in_array('breves', $toImport)
             && $this->prepareImport('breves')
         ) {
-            $this->fillResources($this->prepareReader('breves'), 'breves');
+            $this->fillResourcesProcess($this->prepareReader('breves'), 'breves');
             if ($this->isErrorOrStop()) {
                 return;
             }
@@ -1247,7 +1251,7 @@ class SpipProcessor extends AbstractFullProcessor
         if (in_array('auteurs', $toImport)
             && $this->prepareImport('auteurs')
         ) {
-            $this->fillResources($this->prepareReader('auteurs'), 'auteurs');
+            $this->fillResourcesProcess($this->prepareReader('auteurs'), 'auteurs');
             if ($this->isErrorOrStop()) {
                 return;
             }

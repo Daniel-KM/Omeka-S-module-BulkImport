@@ -17,6 +17,11 @@ trait UserTrait
      */
     protected function prepareUsersProcess(iterable $sources): void
     {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping['users']['source'])) {
+            return;
+        }
+
         // The maps is done early in order to keep original ids when possible.
         $this->map['users'] = [];
 
@@ -152,6 +157,11 @@ trait UserTrait
      */
     protected function fillUsersProcess(iterable $sources): void
     {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping['users']['source'])) {
+            return;
+        }
+
         $locale = $this->getServiceLocator()->get('Omeka\Settings')->get('locale');
         $role = empty($this->modulesActive['Guest']) ? 'researcher' : 'guest';
         $isActive = true;

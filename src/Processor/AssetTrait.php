@@ -4,19 +4,13 @@ namespace BulkImport\Processor;
 
 trait AssetTrait
 {
-    protected function prepareAssets(): void
-    {
-        // Assets are managed first because they are not resources and resources
-        // may use thumbnails.
-        // Create empty assets and keeps the mapping of ids.
-    }
-
-    protected function fillAssets(): void
-    {
-    }
-
     protected function prepareAssetsProcess(iterable $sources): void
     {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping['assets']['source'])) {
+            return;
+        }
+
         $keyId = $this->mapping['assets']['key_id'];
 
         // Check the size of the import.
@@ -92,6 +86,11 @@ SQL;
 
     protected function fillAssetsProcess(iterable $sources): void
     {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping['assets']['source'])) {
+            return;
+        }
+
         $this->refreshMainResources();
 
         $keyId = $this->mapping['assets']['key_id'];

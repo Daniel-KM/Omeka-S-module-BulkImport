@@ -2,9 +2,6 @@
 
 namespace BulkImport\Processor;
 
-use Log\Stdlib\PsrMessage;
-use Omeka\Entity\Resource;
-
 trait ToolsTrait
 {
     /**
@@ -21,10 +18,12 @@ trait ToolsTrait
      * @param array|null $ids When null, get the ids from the source. Else it is
      *   recommended that the unicity ids to already checked, else new ids will
      *   be created.
+     * @param bool $useMainTable When a resource is a derived resource
+     *   ("items"), use the main table ("resource").
      * @return void The mapping of source and destination ids is stored in the
      *   main map when no ids is provided.
      */
-    protected function createEmptyEntities(string $sourceType, array $escapedDefaultValues, ?array $ids = null): void
+    protected function createEmptyEntities(string $sourceType, array $escapedDefaultValues, ?array $ids = null, bool $useMainTable = false): void
     {
         if (empty($sourceType) || empty($escapedDefaultValues)) {
             $this->logger->warn(
@@ -41,7 +40,20 @@ trait ToolsTrait
             return;
         }
 
-        $table = $this->importables[$sourceType]['table'] ?? null;
+        if ($useMainTable) {
+            $mainSourceType = $this->importables[$sourceType]['main_entity'] ?? null;
+            if (!$mainSourceType || empty($this->importables[$mainSourceType]['column_keep_id'])) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'The main source type is not fully defined for {source}.', // @translate
+                    ['source' => $sourceType]
+                );
+                return;
+            }
+            $table = $this->importables[$mainSourceType]['table'] ?? null;
+        } else {
+            $table = $this->importables[$sourceType]['table'] ?? null;
+        }
         if (!$table) {
             $this->hasError = true;
             $this->logger->err(
@@ -51,7 +63,7 @@ trait ToolsTrait
             return;
         }
 
-        $noConflict = $this->checkConflictSourceIds($sourceType, $ids);
+        $noConflict = $this->checkConflictSourceIds($sourceType, $ids, $useMainTable);
         if (!$noConflict) {
             if ($ids) {
                 $this->hasError = true;
@@ -62,11 +74,21 @@ trait ToolsTrait
                 return;
             }
             unset($escapedDefaultValues['id']);
+            if (empty($escapedDefaultValues)) {
+                $this->hasError = true;
+                $this->logger->err(
+                    'No empty entity for source {source} can be created: no column.', // @translate
+                    ['source' => $sourceType]
+                );
+                return;
+            }
         }
 
         // Add a random prefix to get the mapping of ids, in all cases.
-        $randomPrefix = $this->job->getImportId() . '-' . $this->randomString(5) . ':';
-        $columnKeepId = $this->importables[$sourceType]['column_keep_id'];
+        $randomPrefix = $this->job->getImportId() . '-' . $this->randomString(6) . ':';
+        $columnKeepId = $useMainTable
+            ? $this->importables[$mainSourceType]['column_keep_id']
+            : $this->importables[$sourceType]['column_keep_id'];
         $escapedDefaultValues[$columnKeepId] = "CONCAT('$randomPrefix', id)";
 
         $columnsString = '`' . implode('`, `', array_keys($escapedDefaultValues)) . '`';
@@ -87,6 +109,7 @@ CREATE TABLE `_temporary_source_entities` (
 
 SQL;
 
+        // TODO Find a way to prepare the ids without the map, but original source.
         foreach (array_chunk($ids ?: array_keys($this->map[$sourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
             $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
         }
@@ -100,7 +123,7 @@ FROM `_temporary_source_entities`;
 
 SQL;
 
-        // Fill the ids when no ids of conflict.
+        // Don't need to fill the ids when there are ids and no conflict.
         if ($noConflict && $ids) {
             $sqls .= <<<SQL
 DROP TABLE IF EXISTS `_temporary_source_entities`;
@@ -110,7 +133,7 @@ SQL;
 
         $this->connection->executeQuery($sqls);
 
-        // Fill the ids when no ids of conflict.
+        // Don't need to fill the ids when there are ids and no conflict.
         if ($noConflict && $ids) {
             return;
         }
@@ -120,8 +143,8 @@ SQL;
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
 SELECT
-    SUBSTR(`$table`.`$columnKeepId`, $randomPrefixLength) AS `s`;
-    `$table`.`id` AS `d`,
+    SUBSTR(`$table`.`$columnKeepId`, $randomPrefixLength) AS `s`,
+    `$table`.`id` AS `d`
 FROM `$table` AS `$table`
 JOIN `_temporary_source_entities` AS `tempo` ON CONCAT("$randomPrefix", `tempo`.`id`) = `$table`.`$columnKeepId`;
 
@@ -131,29 +154,50 @@ SQL;
         // Numeric keys are automatically converted into integers, not values.
         $this->map[$sourceType] = $result ? array_map('intval', $result) : [];
 
-    $sqls = <<<SQL
+    $sql = <<<SQL
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 
 SQL;
         $this->connection->executeQuery($sql);
     }
 
-    protected function checkConflictSourceIds(string $sourceType, ?array $ids = null): bool
+    /**
+     * Check if ids can be kept during import.
+     *
+     * @param bool $useMainTable When a resource is a derived resource
+     *   ("items"), use the main table ("resource").
+     * @return bool True if there is no conflict, else false.
+     */
+    protected function checkConflictSourceIds(string $sourceType, ?array $ids = null, bool $useMainTable = false): bool
     {
-        $table = $this->importables[$sourceType]['table'] ?? null;
+        // When there is a main table, check it.
+        if ($useMainTable) {
+            $mainSourceType = $this->importables[$sourceType]['main_entity'] ?? null;
+            $table = $this->importables[$mainSourceType]['table'] ?? null;
+        } else {
+            $table = $this->importables[$sourceType]['table'] ?? null;
+        }
         if (!$table) {
-            return true;
+            $this->hasError = true;
+            $this->logger->err(
+                'No table for source {source}.', // @translate
+                ['source' => $sourceType]
+            );
+            return false;
         }
 
         $entityIds = $this->connection
             ->query("SELECT `id` FROM `$table` ORDER BY `id`;")
             ->fetchAll(\PDO::FETCH_COLUMN);
 
-        return is_null($ids)
-            ? empty(array_intersect_key($this->map[$sourceType], array_flip($entityIds)))
-            : empty(array_intersect($ids, $entityIds));
-    }
+        if (!is_null($ids)) {
+            return empty(array_intersect($ids, $entityIds));
+        }
 
+        // No need to compute the list of all ids of the different entities:
+        // it will be done for each mapped ids.
+        return empty(array_intersect_key($this->map[$sourceType], array_flip($entityIds)));
+    }
 
     /**
      * Update created dates and, if any, modified dates. No check is done.

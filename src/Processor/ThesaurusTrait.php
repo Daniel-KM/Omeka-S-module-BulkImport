@@ -239,7 +239,19 @@ trait ThesaurusTrait
         $templateId = $this->main[$mainName]['template_id'];
         $classId = $this->main[$mainName]['class_id'];
 
-        $this->createEmptyResources($mappingName, $classId, $templateId);
+        $resourceColumns = [
+            'id' => 'id',
+            'owner_id' => $this->owner ? $this->ownerId : 'NULL',
+            'resource_class_id' => $classId ?: 'NULL',
+            'resource_template_id' => $templateId ?: 'NULL',
+            'is_public' => '0',
+            'created' => '"' . $this->currentDateTimeFormatted . '"',
+            'modified' => 'NULL',
+            'resource_type' => $this->connection->quote($this->importables[$mappingName]['class']),
+            'thumbnail_id' => 'NULL',
+            'title' => 'id',
+        ];
+        $this->createEmptyEntities($mappingName, $resourceColumns, null, true);
         $this->createEmptyResourcesSpecific($mappingName);
 
         $this->entityManager->flush();
@@ -274,7 +286,7 @@ trait ThesaurusTrait
 
     protected function fillConcepts(): void
     {
-        $this->fillResources($this->prepareReader($this->configThesaurus), $this->configThesaurus);
+        $this->fillResourcesProcess($this->prepareReader($this->configThesaurus), $this->configThesaurus);
     }
 
     protected function fillConcept(array $source): void

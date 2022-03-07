@@ -14,45 +14,13 @@ trait ResourceTrait
      */
     protected $sourceKeyId;
 
-    protected function prepareItems(): void
-    {
-        // Create empty items and keeps the mapping of ids.
-    }
-
-    protected function prepareMedias(): void
-    {
-        // Media should be managed after items currently.
-        // Create empty medias and keeps the mapping of ids.
-    }
-
-    protected function prepareMediaItems(): void
-    {
-        // Create empty items and empty medias and keeps the mapping of ids.
-    }
-
-    protected function prepareItemSets(): void
-    {
-        // Create empty item sets and keeps the mapping of ids.
-    }
-
-    protected function fillItems(): void
-    {
-    }
-
-    protected function fillMedias(): void
-    {
-    }
-
-    protected function fillMediaItems(): void
-    {
-    }
-
-    protected function fillItemSets(): void
-    {
-    }
-
     protected function prepareResources(iterable $sources, string $sourceType): void
     {
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping[$sourceType]['source'])) {
+            return;
+        }
+
         $this->map[$sourceType] = [];
 
         $keyId = $this->mapping[$sourceType]['key_id'];
@@ -133,11 +101,24 @@ trait ResourceTrait
             $this->map[$sourceTypeSub] = $this->map[$sourceType];
         }
 
-        $this->createEmptyResources($sourceType, $classId, $templateId, $thumbnailId);
+        $resourceColumns = [
+            'id' => 'id',
+            'owner_id' => $this->owner ? $this->ownerId : 'NULL',
+            'resource_class_id' => $classId ?: 'NULL',
+            'resource_template_id' => $templateId ?: 'NULL',
+            'is_public' => '0',
+            'created' => '"' . $this->currentDateTimeFormatted . '"',
+            'modified' => 'NULL',
+            'resource_type' => $this->connection->quote($this->importables[$sourceType]['class']),
+            'thumbnail_id' => $thumbnailId ?: 'NULL',
+            'title' => 'id',
+        ];
+        $this->createEmptyEntities($sourceType, $resourceColumns, null, true);
         $this->createEmptyResourcesSpecific($sourceType, $mediaItems);
 
         if ($hasSub) {
-            $this->createEmptyResources($sourceTypeSub);
+            $resourceColumns['resource_type'] = $this->connection->quote($this->importables[$sourceTypeSub]['class']);
+            $this->createEmptyEntities($sourceTypeSub, $resourceColumns, null, true);
             $this->createEmptyResourcesSpecific($sourceTypeSub);
         }
 
@@ -147,89 +128,12 @@ trait ResourceTrait
         );
     }
 
-    /**
-     * @deprecated Use createEmptyEntities() instead.
-     */
-    protected function createEmptyResources(
-        string $sourceType,
-        int $resourceClassId = null,
-        int $resourceTemplateId = null,
-        int $thumbnailId = null
-    ): void {
-        // The pre-import is done with the default owner and updated later.
-        $ownerIdOrNull = $this->owner ? $this->ownerId : 'NULL';
-        $resourceClass = $resourceClassId ?: 'NULL';
-        $resourceTemplate = $resourceTemplateId ?: 'NULL';
-        $resourceThumbnail = $thumbnailId ?: 'NULL';
-        $class = $this->importables[$sourceType]['class'];
-        $resourceNameClass = $this->connection->quote($class);
-
-        // For compatibility with old databases, a temporary table is used in
-        // order to create a generator of enough consecutive rows.
-        // Don't use "primary key", but "unique key" in order to allow the key
-        // "0" as key, used in some cases (the scheme of the thesaurus).
-        // The temporary table is not used any more in order to be able to check
-        // quickly if source ids are all available for main items.
-        $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_source_resource`;
-CREATE TABLE `_temporary_source_resource` (
-    `id` INT unsigned NOT NULL,
-    UNIQUE (`id`)
-);
-
-SQL;
-        foreach (array_chunk(array_keys($this->map[$sourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-            $sql .= 'INSERT INTO `_temporary_source_resource` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
-        }
-
-        // Try to keep original source ids for items.
-        if ($this->keepSourceIds($sourceType)) {
-            $sql .= <<<SQL
-INSERT INTO `resource`
-    (`id`, `owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
-SELECT
-    id, $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, $resourceThumbnail, id
-FROM `_temporary_source_resource`;
-
-DROP TABLE IF EXISTS `_temporary_source_resource`;
-SQL;
-        } else {
-            $sql .= <<<SQL
-INSERT INTO `resource`
-    (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
-SELECT
-    $ownerIdOrNull, $resourceClass, $resourceTemplate, 0, "$this->currentDateTimeFormatted", NULL, $resourceNameClass, $resourceThumbnail, id
-FROM `_temporary_source_resource`;
-
-DROP TABLE IF EXISTS `_temporary_source_resource`;
-SQL;
-        }
-        $this->connection->executeQuery($sql);
-    }
-
     protected function createEmptyResourcesSpecific(string $sourceType, ?array $mediaItems = null): void
     {
         $resourceName = $this->importables[$sourceType]['name'];
         $class = $this->importables[$sourceType]['class'];
         $table = $this->importables[$sourceType]['table'];
         $resourceClass = $this->connection->quote($class);
-
-        // Get the mapping of source and destination ids without specific data.
-        $sql = <<<SQL
-SELECT
-    `resource`.`title` AS `s`,
-    `resource`.`id` AS `d`
-FROM `resource` AS `resource`
-LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
-WHERE
-    `spec`.`id` IS NULL
-    AND `resource`.`resource_type` = $resourceClass;
-SQL;
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $result = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
-        $this->map[$sourceType] = $result
-            ? array_map('intval', array_column($result, 'd', 's'))
-            : [];
 
         // Create the resource in the specific resource table.
         switch ($resourceName) {
@@ -241,8 +145,8 @@ SQL;
 INSERT INTO `item`
 SELECT `resource`.`id`
 FROM `resource` AS `resource`
-LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
-WHERE `spec`.`id` IS NULL
+LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
+WHERE `specific`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
                 $this->connection->executeQuery($sql);
@@ -255,8 +159,8 @@ SQL;
 INSERT INTO `item_set`
 SELECT `resource`.`id`, 0
 FROM `resource` AS `resource`
-LEFT JOIN `$table` AS `spec` ON `spec`.`id` = `resource`.`id`
-WHERE `spec`.`id` IS NULL
+LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
+WHERE `specific`.`id` IS NULL
     AND `resource`.`resource_type` = $resourceClass;
 SQL;
                 $this->connection->executeQuery($sql);
@@ -318,23 +222,13 @@ SQL;
         }
     }
 
-    /**
-     * @deprecated Use checkConflictSourceIds() instead.
-     */
-    protected function keepSourceIds(string $sourceType): bool
+    protected function fillResourcesProcess(iterable $sources, string $sourceType): void
     {
-        if (!in_array($sourceType, ['items', 'media', 'item_sets', 'annotations', 'media_items'])) {
-            return false;
+        // Normally already checked in AbstractFullProcessor.
+        if (empty($this->mapping[$sourceType]['source'])) {
+            return;
         }
 
-        $resourceIds = $this->connection
-            ->query('SELECT `id` FROM `resource` ORDER BY `id`;')
-            ->fetchAll(\PDO::FETCH_COLUMN);
-        return empty(array_intersect_key($this->map[$sourceType], array_flip($resourceIds)));
-    }
-
-    protected function fillResources(iterable $sources, string $sourceType): void
-    {
         if (empty($this->totals[$sourceType])) {
             return;
         }
