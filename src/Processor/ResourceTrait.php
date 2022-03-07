@@ -70,10 +70,20 @@ trait ResourceTrait
         // id (mapped below).
         $mediaItems = [];
         if ($sourceType === 'media') {
-            foreach ($sources as $source) {
-                $this->map[$sourceType][(int) $source[$keyId]] = null;
-                // TODO item o:id should be generic.
-                $mediaItems[(int) $source[$keyId]] = (int) $source['o:item']['o:id'];
+            $keyItemId = $this->mapping['media']['key_parent_id'] ?? null;
+            if ($keyItemId) {
+                // Manage sql or any flat source.
+                foreach ($sources as $source) {
+                    $this->map[$sourceType][(int) $source[$keyId]] = null;
+                    $mediaItems[(int) $source[$keyId]] = (int) $source[$keyItemId];
+                }
+            } else {
+                // Manage standard json-ld source.
+                foreach ($sources as $source) {
+                    $this->map[$sourceType][(int) $source[$keyId]] = null;
+                    // TODO item o:id should be generic.
+                    $mediaItems[(int) $source[$keyId]] = (int) $source['o:item']['o:id'];
+                }
             }
         } else {
             foreach ($sources as $source) {

@@ -395,6 +395,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         'media' => [
             'source' => 'media',
             'key_id' => 'id',
+            'key_parent_id' => 'item_id',
         ],
         'media_items' => [
             'source' => null,
