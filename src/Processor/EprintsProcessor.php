@@ -197,10 +197,8 @@ class EprintsProcessor extends AbstractFullProcessor
 
     protected function prepareThesaurus(): void
     {
-        // There may be multiple thesaurus: this is the not "depositable" values.
+        // There may be multiple thesaurus.
         // So the first step is to list them, then do a loop with them.
-
-        // The ids are strings, so they cannot be kept for internal ids.
 
         // A thesaurus is normally small (less than some thousands concepts),
         // so it is loaded as a whole to simplify process.
@@ -222,13 +220,8 @@ class EprintsProcessor extends AbstractFullProcessor
             $ids = array_merge($roots, $ids);
         }
 
-        // The ids are strings, so they cannot be kept for internal ids, so
-        // proceed in two steps.
-        // The keys are a simple numeric id from 1, not 0, in order to be sure
-        // that the created id won't be 0.
-        $fakeIdsToTerms = array_merge([0 => null], array_keys($ids));
-        unset($fakeIdsToTerms[0]);
-        $this->map['concepts'] = $fakeIdsToTerms;
+        // Keys starts from 1 to be sure that the created ids won't be 0.
+        $this->map['concepts'] = array_fill_keys(array_keys($ids), null);
 
         /**
          * @var \Omeka\Entity\Vocabulary $vocabulary
@@ -252,15 +245,8 @@ class EprintsProcessor extends AbstractFullProcessor
             'thumbnail_id' => 'NULL',
             'title' => 'id',
         ];
-        $this->createEmptyEntities($sourceType, $resourceColumns, null, true);
+        $this->createEmptyEntities($sourceType, $resourceColumns, false, true, true);
         $this->createEmptyResourcesSpecific($sourceType);
-
-        // Second step: store the real concept ids, not the keys.
-        $list = $this->map['concepts'];
-        $this->map['concepts'] = array_fill_keys($fakeIdsToTerms, null);
-        foreach ($list as $sourceId => $destinationId) {
-            $this->map['concepts'][$fakeIdsToTerms[$sourceId]] = $destinationId;
-        }
 
         $this->rootConcepts = [];
         foreach (array_keys($roots) as $schemeSourceId) {

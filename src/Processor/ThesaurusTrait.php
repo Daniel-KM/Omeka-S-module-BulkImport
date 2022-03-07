@@ -294,7 +294,7 @@ trait ThesaurusTrait
             'thumbnail_id' => 'NULL',
             'title' => 'id',
         ];
-        $this->createEmptyEntities($mappingName, $resourceColumns, null, true);
+        $this->createEmptyEntities($mappingName, $resourceColumns, false, true);
         $this->createEmptyResourcesSpecific($mappingName);
 
         $this->entityManager->flush();

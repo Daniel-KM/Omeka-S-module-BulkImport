@@ -15,16 +15,21 @@ trait ToolsTrait
      *   title, with or without a prefix. It should be overridden in a next step
      *   with the real values. Strings should be quoted, in particular empty
      *   one, null set as "NULL", etc.
-     * @param array|null $ids When null, get the ids from the source. Else it is
-     *   recommended that the unicity ids to already checked, else new ids will
-     *   be created.
+     * @param bool $isAlreadyFilled By default, the map will be filled, but when
+     *   ids are already prepared, the only need is to create entities directly.
      * @param bool $useMainTable When a resource is a derived resource
      *   ("items"), use the main table ("resource").
+     * @param bool $keysAreStrings In some cases, id keys are coded strings.
      * @return void The mapping of source and destination ids is stored in the
      *   main map when no ids is provided.
      */
-    protected function createEmptyEntities(string $sourceType, array $escapedDefaultValues, ?array $ids = null, bool $useMainTable = false): void
-    {
+    protected function createEmptyEntities(
+        string $sourceType,
+        array $escapedDefaultValues,
+        bool $isAlreadyFilled = false,
+        bool $useMainTable = false,
+        bool $keysAreStrings = false
+    ): void {
         if (empty($sourceType) || empty($escapedDefaultValues)) {
             $this->logger->warn(
                 'No source or no default values: they are needed to create empty entities.' // @translate
@@ -32,9 +37,22 @@ trait ToolsTrait
             return;
         }
 
-        if (is_array($ids) && !count($ids)) {
+        if (!isset($this->map[$sourceType])
+            || !is_array($this->map[$sourceType])
+            || !count($this->map[$sourceType])
+        ) {
             $this->logger->warn(
-                'No ids set to create {source}.', // @translate
+                'No ids mapped to create "{source}".', // @translate
+                ['source' => $sourceType]
+            );
+            return;
+        }
+
+        $firstKey = key($this->map[$sourceType]);
+        if (!is_numeric($firstKey) && !$keysAreStrings) {
+            $this->hasError = true;
+            $this->logger->err(
+                'Ids are not numeric for "{source}".', // @translate
                 ['source' => $sourceType]
             );
             return;
@@ -45,7 +63,7 @@ trait ToolsTrait
             if (!$mainSourceType || empty($this->importables[$mainSourceType]['column_keep_id'])) {
                 $this->hasError = true;
                 $this->logger->err(
-                    'The main source type is not fully defined for {source}.', // @translate
+                    'The main source type is not fully defined for "{source}".', // @translate
                     ['source' => $sourceType]
                 );
                 return;
@@ -57,27 +75,30 @@ trait ToolsTrait
         if (!$table) {
             $this->hasError = true;
             $this->logger->err(
-                'No table for source {source}.', // @translate
+                'No table for source "{source}".', // @translate
                 ['source' => $sourceType]
             );
             return;
         }
 
-        $noConflict = $this->checkConflictSourceIds($sourceType, $ids, $useMainTable);
+        $noConflict = $keysAreStrings
+            || $this->checkConflictSourceIds($sourceType, $isAlreadyFilled, $useMainTable);
         if (!$noConflict) {
-            if ($ids) {
+            if ($isAlreadyFilled) {
                 $this->hasError = true;
                 $this->logger->err(
-                    'Ids are specified for {source}, but they are not unique.', // @translate
+                    'There is a conflict in the unique id for source "{source}".', // @translate
                     ['source' => $sourceType]
                 );
                 return;
             }
+        }
+        if (!$noConflict || $keysAreStrings) {
             unset($escapedDefaultValues['id']);
             if (empty($escapedDefaultValues)) {
                 $this->hasError = true;
                 $this->logger->err(
-                    'No empty entity for source {source} can be created: no column.', // @translate
+                    'No empty entity for source "{source}" can be created: no column.', // @translate
                     ['source' => $sourceType]
                 );
                 return;
@@ -86,6 +107,7 @@ trait ToolsTrait
 
         // Add a random prefix to get the mapping of ids, in all cases.
         $randomPrefix = $this->job->getImportId() . '-' . $this->randomString(6) . ':';
+        $randomPrefixLength = strlen($randomPrefix) + 1;
         $columnKeepId = $useMainTable
             ? $this->importables[$mainSourceType]['column_keep_id']
             : $this->importables[$sourceType]['column_keep_id'];
@@ -100,18 +122,36 @@ trait ToolsTrait
         // "0" as key, used in some cases (the scheme of the thesaurus).
         // The temporary table is not used any more in order to be able to check
         // quickly if source ids are all available for main items.
+        $idType = $keysAreStrings
+            ? 'VARCHAR(1024) COLLATE `latin1_bin`'
+            : 'INT unsigned';
         $sqls = <<<SQL
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 CREATE TABLE `_temporary_source_entities` (
-    `id` INT unsigned NOT NULL,
+    `id` $idType NOT NULL,
     UNIQUE (`id`)
 );
 
 SQL;
 
         // TODO Find a way to prepare the ids without the map, but original source.
-        foreach (array_chunk($ids ?: array_keys($this->map[$sourceType]), self::CHUNK_RECORD_IDS) as $chunk) {
-            $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+        if ($isAlreadyFilled) {
+            $ids = is_array(reset($this->map[$sourceType]))
+                ? array_map('intval', array_column($this->map[$sourceType], 'id'))
+                : $this->map[$sourceType];
+        } else {
+            $ids = array_keys($this->map[$sourceType]);
+        }
+        if ($keysAreStrings) {
+            foreach (array_chunk($ids, self::CHUNK_SIMPLE_RECORDS) as $chunk) {
+                $chunk = array_map([$this->connection, 'quote'], $chunk);
+                $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+            }
+        } else {
+            foreach (array_chunk($ids, self::CHUNK_RECORD_IDS) as $chunk) {
+                $chunk = array_map('intval', $chunk);
+                $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+            }
         }
 
         $sqls .= <<<SQL
@@ -123,22 +163,17 @@ FROM `_temporary_source_entities`;
 
 SQL;
 
-        // Don't need to fill the ids when there are ids and no conflict.
-        if ($noConflict && $ids) {
+        // Don't need to fill the ids when they are filled.
+        if ($isAlreadyFilled) {
             $sqls .= <<<SQL
 DROP TABLE IF EXISTS `_temporary_source_entities`;
 
 SQL;
-        }
-
-        $this->connection->executeQuery($sqls);
-
-        // Don't need to fill the ids when there are ids and no conflict.
-        if ($noConflict && $ids) {
+            $this->connection->executeQuery($sqls);
             return;
         }
 
-        $randomPrefixLength = strlen($randomPrefix) + 1;
+        $this->connection->executeQuery($sqls);
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
@@ -152,15 +187,15 @@ SQL;
 
         $result = $this->connection->executeQuery($sql)->fetchAllKeyValue();
         if (!count($result)) {
-            $this->logger->warn(
-                'No entities were created for source {source}.', // @translate
+            $this->hasError = true;
+            $this->logger->err(
+                'No entities were created for source "{source}".', // @translate
                 ['source' => $sourceType]
             );
-        }
-        if (count($result) !== count($this->map[$sourceType])) {
+        } elseif (count($result) !== count($this->map[$sourceType])) {
             $this->hasError = true;
             $this->logger->warn(
-                'Some entities were not created for source {source}.', // @translate
+                'Some entities were not created for source "{source}".', // @translate
                 ['source' => $sourceType]
             );
         }
@@ -182,7 +217,7 @@ SQL;
      *   ("items"), use the main table ("resource").
      * @return bool True if there is no conflict, else false.
      */
-    protected function checkConflictSourceIds(string $sourceType, ?array $ids = null, bool $useMainTable = false): bool
+    protected function checkConflictSourceIds(string $sourceType, bool $isAlreadyFilled = false, bool $useMainTable = false): bool
     {
         // When there is a main table, check it.
         if ($useMainTable) {
@@ -194,7 +229,7 @@ SQL;
         if (!$table) {
             $this->hasError = true;
             $this->logger->err(
-                'No table for source {source}.', // @translate
+                'No table for source "{source}".', // @translate
                 ['source' => $sourceType]
             );
             return false;
@@ -203,8 +238,12 @@ SQL;
         $entityIds = $this->connection
             ->query("SELECT `id` FROM `$table` ORDER BY `id`;")
             ->fetchAll(\PDO::FETCH_COLUMN);
+        $entityIds = array_map('intval', $entityIds);
 
-        if (!is_null($ids)) {
+        if ($isAlreadyFilled) {
+            $ids = is_array(reset($this->map[$sourceType]))
+                ? array_map('intval', array_column($this->map[$sourceType], 'id'))
+                : $this->map[$sourceType];
             return empty(array_intersect($ids, $entityIds));
         }
 

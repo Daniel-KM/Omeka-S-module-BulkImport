@@ -124,8 +124,7 @@ trait UserTrait
             'is_active' => '0',
         ];
 
-        $ids = array_map('intval', array_column($this->map['users'], 'id'));
-        $this->createEmptyEntities('users', $userColumns, $ids);
+        $this->createEmptyEntities('users', $userColumns, true);
 
         $this->entityManager->flush();
         $this->entityManager->clear();

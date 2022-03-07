@@ -127,12 +127,12 @@ trait ResourceTrait
             'thumbnail_id' => $thumbnailId ?: 'NULL',
             'title' => 'id',
         ];
-        $this->createEmptyEntities($sourceType, $resourceColumns, null, true);
+        $this->createEmptyEntities($sourceType, $resourceColumns, false, true);
         $this->createEmptyResourcesSpecific($sourceType, $mediaItems);
 
         if ($hasSub) {
             $resourceColumns['resource_type'] = $this->connection->quote($this->importables[$sourceTypeSub]['class']);
-            $this->createEmptyEntities($sourceTypeSub, $resourceColumns, null, true);
+            $this->createEmptyEntities($sourceTypeSub, $resourceColumns, false, true);
             $this->createEmptyResourcesSpecific($sourceTypeSub);
         }
 
