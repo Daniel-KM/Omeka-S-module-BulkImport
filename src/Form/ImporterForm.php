@@ -60,12 +60,34 @@ class ImporterForm extends Form
             ])
 
             ->add([
+                'name' => 'o:config',
+                'type' => Fieldset::class,
+                'options' => [
+                    'label' => 'Other params', // @translate
+                ],
+            ]);
+
+        $fieldset = $this->get('o:config');
+        $fieldset
+            ->add([
+                'name' => 'notify_end',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Notify by email when finished', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'notify_end',
+                ],
+            ]);
+
+        $this
+            ->add([
                 'name' => 'importer_submit',
                 'type' => Fieldset::class,
             ]);
 
         $this->get('importer_submit')
-                ->add([
+            ->add([
                 'name' => 'submit',
                 'type' => Element\Submit::class,
                 'attributes' => [
