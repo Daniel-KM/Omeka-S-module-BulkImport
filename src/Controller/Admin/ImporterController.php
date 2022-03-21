@@ -72,9 +72,10 @@ class ImporterController extends AbstractActionController
         }
 
         if ($this->getRequest()->isPost()) {
-            $data = $this->params()->fromPost();
-            $form->setData($data);
+            $post = $this->params()->fromPost();
+            $form->setData($post);
             if ($form->isValid()) {
+                $data = $form->getData();
                 if ($entity) {
                     $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
                 } else {

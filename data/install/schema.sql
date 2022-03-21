@@ -15,6 +15,7 @@ CREATE TABLE `bulk_importer` (
     `id` INT AUTO_INCREMENT NOT NULL,
     `owner_id` INT DEFAULT NULL,
     `label` VARCHAR(190) DEFAULT NULL,
+    `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
     `reader_class` VARCHAR(190) DEFAULT NULL,
     `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     `processor_class` VARCHAR(190) DEFAULT NULL,

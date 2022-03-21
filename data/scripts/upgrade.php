@@ -510,3 +510,25 @@ SQL;
 if (version_compare($oldVersion, '3.3.33.0', '<')) {
     require_once __DIR__ . '/upgrade_vocabulary.php';
 }
+
+if (version_compare($oldVersion, '3.3.33.1', '<')) {
+    $sql = <<<'SQL'
+ALTER TABLE bulk_importer
+ADD `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `label`,
+CHANGE `owner_id` `owner_id` INT DEFAULT NULL,
+CHANGE `label` `label` VARCHAR(190) DEFAULT NULL,
+CHANGE `reader_class` `reader_class` VARCHAR(190) DEFAULT NULL,
+CHANGE `reader_config` `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+CHANGE `processor_class` `processor_class` VARCHAR(190) DEFAULT NULL,
+CHANGE `processor_config` `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)'
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET `config` = '{}'
+;
+SQL;
+    $connection->executeStatement($sql);
+}

@@ -35,6 +35,16 @@ class Importer extends AbstractEntity
     protected $label;
 
     /**
+     * @var array
+     *
+     * @Column(
+     *      type="json",
+     *      nullable=false
+     * )
+     */
+    protected $config;
+
+    /**
      * @var string
      *
      * @Column(
@@ -121,6 +131,17 @@ class Importer extends AbstractEntity
     public function getLabel(): ?string
     {
         return $this->label;
+    }
+
+    public function setConfig(array $config): self
+    {
+        $this->config = $config;
+        return $this;
+    }
+
+    public function getConfig(): array
+    {
+        return $this->config;
     }
 
     public function setReaderClass(?string $readerClass): self

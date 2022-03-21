@@ -66,10 +66,10 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
+            return ['__isInitialized__', 'id', 'label', 'config', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
         }
 
-        return ['__isInitialized__', 'id', 'label', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
+        return ['__isInitialized__', 'id', 'label', 'config', 'readerClass', 'readerConfig', 'processorClass', 'processorConfig', 'owner', 'imports'];
     }
 
     /**
@@ -211,6 +211,28 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getLabel', []);
 
         return parent::getLabel();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setConfig(array $config): \BulkImport\Entity\Importer
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setConfig', [$config]);
+
+        return parent::setConfig($config);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getConfig(): array
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getConfig', []);
+
+        return parent::getConfig();
     }
 
     /**

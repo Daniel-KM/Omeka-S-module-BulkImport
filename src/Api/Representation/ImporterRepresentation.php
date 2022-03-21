@@ -41,6 +41,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return [
             'o:id' => $this->id(),
             'o:label' => $this->label(),
+            'o:config' => $this->config(),
             'o-module-bulk:reader_class' => $this->readerClass(),
             'o-module-bulk:reader_config' => $this->readerConfig(),
             'o-module-bulk:processor_class' => $this->processorClass(),
@@ -62,6 +63,11 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     public function label(): ?string
     {
         return $this->resource->getLabel();
+    }
+
+    public function config(): array
+    {
+        return $this->resource->getConfig() ?: [];
     }
 
     public function readerClass(): string
