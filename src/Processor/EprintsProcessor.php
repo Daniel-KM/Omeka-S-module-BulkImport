@@ -1988,11 +1988,12 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
-        if ($source['keywords_other']) {
+        $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords_other']))));
+        foreach ($list as $keyword) {
             $values[] = [
                 'term' => 'curation:tag',
-                // TODO Add the language of other keywords.
-                'value' => $source['keywords_other'],
+                'lang' => '',
+                'value' => $keyword,
             ];
         }
 
@@ -2026,9 +2027,10 @@ class EprintsProcessor extends AbstractFullProcessor
         }
         */
 
+        // Generally a title with another language, not an alternative.
         if ($source['title_other']) {
             $values[] = [
-                'term' => 'dcterms:alternative',
+                'term' => 'dcterms:title',
                 'value' => $source['title_other'],
             ];
         }
