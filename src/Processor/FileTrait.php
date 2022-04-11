@@ -46,6 +46,11 @@ trait FileTrait
     protected $allowedExtensions = [];
 
     /**
+     * @var bool
+     */
+    protected $allowEmptyFiles = false;
+
+    /**
      * @var string
      */
     protected $sideloadPath = null;
@@ -80,6 +85,7 @@ trait FileTrait
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist') ?: [];
         $this->allowedExtensions = $settings->get('extension_whitelist') ?: [];
+        $this->allowEmptyFiles = (bool) $settings->get('allow_empty_files');
         $this->sideloadPath = (string) $settings->get('file_sideload_directory');
         $this->sideloadDeleteFile = $settings->get('file_sideload_delete_file') === 'yes';
         $this->streamContextHeadersOnly = stream_context_create(['http' => ['method' => 'HEAD']]);
@@ -115,7 +121,7 @@ trait FileTrait
             return false;
         }
 
-        if (!filesize($realPath)) {
+        if (!filesize($realPath) && !$this->allowEmptyFiles) {
             if ($messageStore) {
                 $messageStore->addError('file', new PsrMessage(
                     'Cannot sideload file "{filepath}": File empty.', // @translate
@@ -630,7 +636,7 @@ trait FileTrait
         }
 
         $filesize = filesize($tempname);
-        if (!$filesize) {
+        if (!$filesize && !$this->allowEmptyFiles) {
             if ($isUrl) {
                 unlink($tempname);
             }

@@ -12,8 +12,9 @@
         const maxCountThumbnails = 200;
 
         let bulkUpload = $($('#media-template-bulk_upload').data('template')).find('.media-bulk-upload');
-        const allowedMediaTypes = bulkUpload.data('allowed-media-types').split(',');
-        const allowedExtensions = bulkUpload.data('allowed-extensions').split(',');
+        const allowedMediaTypes = bulkUpload.data('allowed-media-types') ? bulkUpload.data('allowed-media-types').split(',') : [];
+        const allowedExtensions = bulkUpload.data('allowed-extensions') ? bulkUpload.data('allowed-extensions').split(',') : [];
+        const allowEmptyFiles = !!bulkUpload.data('allowEmptyFiles');
 
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Adapted from https://developer.mozilla.org/fr/docs/Web/API/File/Using_files_from_web_applications
@@ -179,7 +180,7 @@
                 && (!allowedExtensions.length || allowedExtensions.includes(extension.toLowerCase()))
                 && file.name.substr(0, 1) !== '.'
                 && /^[^{}$?!<>\/\\]+$/.test(file.name)
-                && file.size > 0;
+                && (allowEmptyFiles || file.size > 0);
         }
 
         function humanFileSize(number) {

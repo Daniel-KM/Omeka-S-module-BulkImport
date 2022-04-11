@@ -222,6 +222,7 @@ class Module extends AbstractModule
         $validator = $services->get(\Omeka\File\Validator::class);
         $tempFileFactory = $services->get(\Omeka\File\TempFileFactory::class);
         $validateFile = (bool) $settings->get('disable_file_validation', false);
+        $allowEmptyFiles = (bool) $settings->get('bulkimport_allow_empty_files', false);
 
         $uploadErrorCodes = [
             UPLOAD_ERR_OK => 'File successfuly uploaded.', // @translate
@@ -289,7 +290,7 @@ class Module extends AbstractModule
                     $hasError = true;
                     continue;
                 } elseif (empty($fileData['size'])) {
-                    if ($validateFile) {
+                    if ($validateFile && !$allowEmptyFiles) {
                         $errorStore->addError('upload', new PsrMessage(
                             'File #{index} "{filename}" is an empty file.', // @translate
                             ['index' => ++$subIndex, 'filename' => $fileData['name']]

@@ -94,12 +94,15 @@ class BulkUpload implements IngesterInterface
 
     public function form(PhpRenderer $view, array $options = [])
     {
-        if ($view->setting('disable_file_validation', false)) {
+        $plugins = $view->getHelperPluginManager();
+        $setting = $plugins->get('setting');
+        $translate = $plugins->get('translate');
+        if ($setting('disable_file_validation', false)) {
             $allowedMediaTypes = '';
             $allowedExtensions = '';
         } else {
-            $allowedMediaTypes = $view->setting('media_type_whitelist', []);
-            $allowedExtensions = $view->setting('extension_whitelist', []);
+            $allowedMediaTypes = $setting('media_type_whitelist', []);
+            $allowedExtensions = $setting('extension_whitelist', []);
             $allowedMediaTypes = implode(',', $allowedMediaTypes);
             $allowedExtensions = implode(',', $allowedExtensions);
         }
@@ -107,21 +110,26 @@ class BulkUpload implements IngesterInterface
         // "upload_max_filesize", "post_max_size", "max_file_uploads" are no
         // more a limit since files are sent one by one, and by small chunks.
 
+        $allowEmptyFiles = (bool) $setting('bulkimport_allow_empty_files', false);
+
         $data = [
             'data-allowed-media-types' => $allowedMediaTypes,
             'data-allowed-extensions' => $allowedExtensions,
-            'data-translate-pause' => $view->translate('Pause'), // @translate
-            'data-translate-resume' => $view->translate('Resume'), // @translate
-            'data-translate-no-file' => $view->translate('No files currently selected for upload'), // @translate
-            'data-translate-invalid-file' => $view->translate('Not a valid file type, extension or size. Update your selection.'), // @translate
+            'data-allow-empty-files' => (int) $allowEmptyFiles,
+            'data-translate-pause' => $translate('Pause'), // @translate
+            'data-translate-resume' => $translate('Resume'), // @translate
+            'data-translate-no-file' => $translate('No files currently selected for upload'), // @translate
+            'data-translate-invalid-file' => $allowEmptyFiles
+                ? $translate('Not a valid file type or extension. Update your selection.') // @translate
+                : $translate('Not a valid file type, extension or size. Update your selection.'), // @translate
         ];
 
         $dataAttributes = $this->arrayToAttributes($view, $data);
 
-        $uploadFiles = $view->translate('Upload files'); // @translate
-        $divDrop = $view->translate('Drag and drop'); // @translate
-        $browseFiles = $view->translate('Browse files'); // @translate
-        $browseDirectory = $view->translate('Select directory'); // @translate
+        $uploadFiles = $translate('Upload files'); // @translate
+        $divDrop = $translate('Drag and drop'); // @translate
+        $browseFiles = $translate('Browse files'); // @translate
+        $browseDirectory = $translate('Select directory'); // @translate
         $wait = $view->translate('Wait before submission…'); // @translate
         $buttonPause = $data['data-translate-pause'];
 

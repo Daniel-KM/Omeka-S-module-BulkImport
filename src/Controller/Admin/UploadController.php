@@ -144,8 +144,9 @@ class UploadController extends AbstractActionController
 
         // Ingester checks.
 
+        $allowEmptyFiles = (bool) $this->settings()->get('bulkimport_allow_empty_files', false);
         $filesize = filesize($destination);
-        if (!$filesize) {
+        if (!$filesize && !$allowEmptyFiles) {
             $response = $this->getResponse();
             $response->setStatusCode(Response::STATUS_CODE_412);
             return new JsonModel([

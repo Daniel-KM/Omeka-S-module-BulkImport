@@ -315,6 +315,7 @@ return [
             'bulkimport_local_path' => OMEKA_PATH . '/files/import',
             'bulkimport_xslt_processor' => '',
             'bulkimport_pdftk' => '',
+            'bulkimport_allow_empty_files' => false,
         ],
         'settings' => [
             'bulkimport_convert_html' => [],

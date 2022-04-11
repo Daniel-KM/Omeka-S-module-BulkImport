@@ -9,9 +9,11 @@ Bulk Import (module for Omeka S)
 and is built to be extensible. It allows to manage importers and to process bulk
 import of resources.
 
-It manages readers of a source (xml, sql, spreadsheet, url…) and uses processors
-to import them as Omeka resources and other data (users, templates…) via a
-mapping.
+Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files].
+
+For bulk import, the module manages readers of a source (xml, sql, spreadsheet,
+url…) and uses processors to import them as Omeka resources and other data
+(users, templates…) via a mapping.
 
 Because multiple importers can be prepared with the same readers and processors,
 it is possible to import multiple times the same type of files without needing
@@ -23,8 +25,6 @@ is provided), [Spip] reader (via a dump of the database), and spreadsheet reader
 (via ods, tsv or csv). The spreadsheet uses a processor that creates resources
 based on a specific header format, but don't have a pretty manual ui like the
 module [CSV Import].
-
-Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files].
 
 
 Installation

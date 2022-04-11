@@ -38,6 +38,14 @@ class ConfigForm extends Form
                     'id' => 'bulkimport_pdftk',
                 ],
             ])
+            ->add([
+                'name' => 'bulkimport_allow_empty_files',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Allow empty files in manual upload', // @translate
+                    'info' => 'In rare cases, an admin may want to upload empty files. This option requires to disable file validation or to add the media type "application/x-empty" in main settings.', // @translate
+                ],
+            ])
         ;
     }
 }
