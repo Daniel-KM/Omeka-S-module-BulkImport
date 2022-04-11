@@ -45,15 +45,27 @@ class Bulk implements IngesterInterface
             return;
         }
 
-        // Keep standard ingester name to simplify management.
+        // Keep standard ingester name to simplify management: this is only an
+        // internal intermediate temporary ingester.
         $media->setIngester($data['ingest_ingester']);
 
         if (!array_key_exists('o:source', $data)) {
             $media->setSource($tempFile->getSourceName());
         }
         // $storeOriginal = (!isset($data['store_original']) || $data['store_original']);
+        $storeOriginal = true;
+        $storeThumbnails = true;
         $deleteTempFile = !empty($data['ingest_delete_file']);
-        $tempFile->mediaIngestFile($media, $request, $errorStore, true, true, $deleteTempFile, true);
+        $hydrateFileMetadataOnStoreOriginalFalse = true;
+        $tempFile->mediaIngestFile(
+            $media,
+            $request,
+            $errorStore,
+            $storeOriginal,
+            $storeThumbnails,
+            $deleteTempFile,
+            $hydrateFileMetadataOnStoreOriginalFalse
+        );
     }
 
     public function form(PhpRenderer $view, array $options = [])

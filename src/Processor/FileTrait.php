@@ -381,7 +381,7 @@ trait FileTrait
      *
      * @return string|null The real file path or null if the file is invalid
      *
-     * @see \FileSideload\Media\Ingester::verifyFile()
+     * @see \FileSideload\Media\Ingester\Sideload::verifyFile()
      */
     protected function verifyFile($filepath, ?ErrorStore $messageStore = null, $isDir = false): ?string
     {
@@ -539,7 +539,7 @@ trait FileTrait
      * @param string $filename
      * @param string $storageId
      * @param string $extension
-     * @param string $fileOrUrl
+     * @param string $fileOrUrl Full url or filepath.
      * @return array
      *
      * @todo Use \Omeka\File\Downloader
@@ -629,7 +629,8 @@ trait FileTrait
             $tempname = $fileOrUrl;
         }
 
-        if (!filesize($tempname)) {
+        $filesize = filesize($tempname);
+        if (!$filesize) {
             if ($isUrl) {
                 unlink($tempname);
             }
@@ -642,11 +643,13 @@ trait FileTrait
             ];
         }
 
-        // In all cases, the media type is checked for aliases.
-        // @see \Omeka\File\TempFile::getMediaType().
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mediaType = $finfo->file($tempname);
-        $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
+        /** @var \Omeka\File\TempFile $tempFile */
+        $tempFile = $this->tempFileFactory->build();
+        $tempFile->setTempPath($tempname);
+        $tempFile->setStorageId($storageId);
+        $tempFile->setSourceName($filename);
+
+        $mediaType = $tempFile->getMediaType();
 
         // Check the media type for security.
         if (!$this->disableFileValidation) {
@@ -677,12 +680,6 @@ trait FileTrait
             }
         }
 
-        /** @var \Omeka\File\TempFile $tempFile */
-        $tempFile = $this->tempFileFactory->build();
-        $tempFile->setTempPath($tempname);
-        $tempFile->setStorageId($storageId);
-        $tempFile->setSourceName($filename);
-
         $tempFile->store($type, $extension, $tempname);
         /*
         $result = rename($tempname, $destPath);
@@ -705,6 +702,9 @@ trait FileTrait
             $hasThumbnails = $tempFile->storeThumbnails();
         }
 
+        $extension = $tempFile->getExtension();
+        $sha256 = $tempFile->getSha256();
+
         if ($isUrl) {
             unlink($tempname);
         }
@@ -713,11 +713,11 @@ trait FileTrait
             'status' => 'success',
             'data' => [
                 'fullpath' => $destPath,
-                'extension' => $tempFile->getExtension(),
-                'media_type' => $tempFile->getMediaType(),
-                'sha256' => $tempFile->getSha256(),
+                'extension' => $extension,
+                'media_type' => $mediaType,
+                'sha256' => $sha256,
                 'has_thumbnails' => $hasThumbnails,
-                'size' => $tempFile->getSize(),
+                'size' => $filesize,
                 'tempFile' => $tempFile,
             ],
         ];

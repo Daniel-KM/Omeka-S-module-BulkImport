@@ -9,9 +9,10 @@ use BulkImport\Stdlib\MessageStore;
 /**
  * @todo Use transformSource() instead hard coded mapping or create sql views.
  *
- * Warning:
- * The database main values (creators, email, etc.) are case sensitive, unlike
- * Omeka.
+ * Warning: contains mapping with a special vocabulary "dante" for special columns.
+ *
+ * Warning: The database main values (creators, email, etc.) are case sensitive,
+ * unlike Omeka.
  */
 class EprintsProcessor extends AbstractFullProcessor
 {
@@ -47,6 +48,7 @@ class EprintsProcessor extends AbstractFullProcessor
     ];
 
     protected $modules = [
+        'AccessResource',
         'NumericDataTypes',
         'UserName',
         'UserProfile',
@@ -149,7 +151,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'source' => 'eprint',
             'key_id' => 'eprintid',
             'filters' => [
-                '`eprint_status` IN ("archive", "buffer")',
+                '`eprint_status` IN ("archive", "buffer", "inbox")',
             ],
         ],
         // It may be simpler to use file then document, than document.
@@ -164,7 +166,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'filters' => [
                 // The join avoids to load media whose item is not imported.
                 'JOIN `eprint` ON `eprint`.`eprintid` = `document`.`eprintid`',
-                '`eprint`.`eprint_status` IN ("archive", "buffer")',
+                '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox")',
                 // There is a filter on eprints, so use it here too.
                 '`document`.`format` != "other"',
             ],
@@ -670,6 +672,10 @@ class EprintsProcessor extends AbstractFullProcessor
             );
         }
 
+        $this->logger->warn(
+            'Deleted eprints resources are not imported.' // @translate
+        );
+
         // No config to prepare currently.
         $this->prepareConfig('config.php', 'eprints');
 
@@ -1045,7 +1051,7 @@ class EprintsProcessor extends AbstractFullProcessor
     protected function fillUser(array $source, array $user): array
     {
         // Note: everything is string or null from the sql reader.
-        /*
+        /* // Table "user".
         userid    int(11)
         rev_number    int(11) NULL
         username    varchar(255) NULL
@@ -1084,7 +1090,7 @@ class EprintsProcessor extends AbstractFullProcessor
         $mapRoles = [
             'admin' => \Omeka\Permissions\Acl::ROLE_GLOBAL_ADMIN,
             'editor' => \Omeka\Permissions\Acl::ROLE_EDITOR,
-            'user' => empty($this->modules['Guest']) ? 'researcher' : 'guest',
+            'user' => empty($this->modulesActive['Guest']) ? 'researcher' : 'guest',
         ];
 
         $locale = 'fr';
@@ -1125,6 +1131,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'o:is_active' => $isActive,
             'o:settings' => [
                 'locale' => $source['lang'] ?: $locale,
+                'guest_agreed_terms' => true,
                 'userprofile_rev' => $source['rev_number'],
                 // May be "daily", "weekly" or "never".
                 'userprofile_frequency' => $source['frequency'],
@@ -1150,7 +1157,7 @@ class EprintsProcessor extends AbstractFullProcessor
     protected function fillItem(array $source): void
     {
         // Note: everything is string or null from the sql reader.
-        /*
+        /* // Table "eprint".
         eprintid    int(11)
         rev_number    int(11) NULL
         eprint_status    varchar(255) NULL
@@ -1279,7 +1286,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // "full_text_status", "ispublished" and "hidden" are not related.
         // $isPublic = !in_array($source['ispublished'], ['unpub', 'submitted', 'inpress']);
-        $isPublic = $source['eprint_status'] === 'archived';
+        $isPublic = $source['eprint_status'] === 'archive';
 
         $item = [
             // Keep the source id to simplify next steps and find mapped id.
@@ -1983,7 +1990,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         if ($source['keywords_other']) {
             $values[] = [
-                'term' => 'dcterms:subject',
+                'term' => 'curation:tag',
                 // TODO Add the language of other keywords.
                 'value' => $source['keywords_other'],
             ];
@@ -2358,7 +2365,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
     protected function fillMedia(array $source): void
     {
-        /*
+        /* Table "document".
         docid    int(11)
         rev_number    int(11) NULL
         eprintid    int(11) NULL
@@ -2415,6 +2422,7 @@ class EprintsProcessor extends AbstractFullProcessor
             return;
         }
 
+        /** @var \Omeka\Entity\Item $item */
         $item = $this->entityManager->find(\Omeka\Entity\Item::class, $itemId);
         $ownerId = $item->getOwner() ? $item->getOwner()->getId() : null;
 
@@ -2422,21 +2430,49 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // @see \Omeka\File\TempFile::getStorageId()
         $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
-        $extension = basename($source['main']);
+        $extension = pathinfo($source['main'], PATHINFO_EXTENSION);
         $filename = $storageId . '.' . $extension;
         $endpoint = rtrim($this->getParam('url_path'), '/ ');
         $sourceBasename = '/' . $this->itemDirPaths[$sourceItemId]
+            . '/' . sprintf('%02d', (int) $source['pos'])
             // TODO Check file or document.
             . '/' . $source['main'];
         $sourceFile = $endpoint . $sourceBasename;
         $isUrl = $this->bulk->isUrl($sourceFile);
 
-        // TODO Is public = security + diff_permission?
+        // May be "staffonly", "validuser", "public".
+        // Restricted access for "validuser" is managed through module
+        // AccessResource and "curation:reserved".
         $isPublic = $source['security'] === 'public';
-        // $isRestricted = $source['security'] === 'validuser';
 
-        // TODO Use table file to get created date of the document.
+        // TODO Use table file to get created date of the document, but same as item anyway.
         // $created =
+
+        $class = null;
+        $template = null;
+        $itemTemplate = $item->getResourceTemplate();
+        if ($itemTemplate) {
+            $template = $this->configs['item_templates_to_media_templates'][$itemTemplate->getLabel()] ?? null;
+            if ($template) {
+                $templateId = $this->map['resource_templates'][$template] ?? null;
+                if ($templateId) {
+                    $template = ['o:id' => $templateId];
+                    /** @var \Omeka\Entity\ResourceTemplate $templateEntity */
+                    $templateEntity = $this->entityManager->find(\Omeka\Entity\ResourceTemplate::class, $templateId);
+                    $classEntity = $templateEntity->getResourceClass();
+                    if ($classEntity) {
+                        $class = ['o:id' => $classEntity->getId()];
+                    }
+                } else {
+                    $template = null;
+                    // No stop.
+                    $this->logger->err(
+                        'No resource template for {resource_template}.', // @translate
+                        ['resource_template' => $template]
+                    );
+                }
+            }
+        }
 
         $media = [
             // Keep the source id to simplify next steps and find mapped id.
@@ -2451,8 +2487,8 @@ class EprintsProcessor extends AbstractFullProcessor
             'o:id' => $this->map['media'][$sourceId],
             'o:is_public' => $isPublic,
             'o:owner' => $ownerId ? ['o:id' => $ownerId] : null,
-            'o:resource_class' => null,
-            'o:resource_template' => null,
+            'o:resource_class' => $class,
+            'o:resource_template' => $template,
             'o:title' => null,
             'o:created' => ['@value' => $item->getCreated()->format('Y-m-d\TH:i:s')],
             'o:modified' => null,
@@ -2505,10 +2541,37 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
+        // Three values for file: "public", "staffonly" or "validuser".
+        // Public and staffonly are managed via public/private media.
+        // The value "diff_permission" is set as "curation:access" too.
         if ($source['security'] === 'validuser') {
             $values[] = [
+                'term' => 'curation:access',
+                'value' => 'reserved',
+            ];
+            $values[] = [
                 'term' => 'curation:reserved',
-                'value' => 'Utilisateur identifié',
+                'value' => 'reserved',
+            ];
+        } elseif ($source['security'] === 'staffonly') {
+            $values[] = [
+                'term' => 'curation:access',
+                'value' => 'private',
+            ];
+        } else {
+            $values[] = [
+                'term' => 'curation:access',
+                'value' => 'public',
+            ];
+        }
+
+        $permissionDiffusion = strtolower((string) $source['diff_permission']);
+        if ($permissionDiffusion) {
+            $values[] = [
+                'term' => 'dante:permissionDiffusion',
+                'type' => 'literal',
+                'value' => $permissionDiffusion,
+                'is_public' => false,
             ];
         }
 
@@ -2621,14 +2684,6 @@ class EprintsProcessor extends AbstractFullProcessor
             $values[] = [
                 'term' => 'bibo:pages',
                 'value' => $source['page_number'],
-            ];
-        }
-
-        if ($source['diff_permission']) {
-            $values[] = [
-                'term' => 'dcterms:accessRights',
-                'type' => 'boolean',
-                'value' => strtolower($source['diff_permission']) === 'true' ? '1' : '0',
             ];
         }
 
@@ -3307,7 +3362,7 @@ SQL;
 
     protected function fillContactMessages(): void
     {
-        /*
+        /* // Table "request".
         requestid    int(11)
         eprintid    int(11) NULL
         docid    varchar(255) NULL
@@ -3432,7 +3487,7 @@ SQL;
 
     protected function fillSearchRequests(): void
     {
-        /*
+        /* // Table "saved_search".
         id    int(11)
         userid    int(11) NULL
         pos    int(11) NULL

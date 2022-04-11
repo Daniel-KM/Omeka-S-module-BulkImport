@@ -12,6 +12,8 @@ return [
     ],
     'types_to_resource_classes' => [
     ],
+    'item_templates_to_media_templates' => [
+    ],
     'custom_vocabs' => [
         // Single-valued fields.
         'eprint_status' => null,
@@ -35,12 +37,12 @@ return [
         'exhibitors' => null,
         'lyricists' => null,
         'issues' => null,
-        // Automatic custom vocabs.
+        // Automatic custom vocabs when subjects are available.
         'degrees' => 'customvocab:Thesaurus degrees',
         'divisions' => 'customvocab:Thesaurus divisions',
         'doctoral_school' => 'customvocab:Thesaurus doctoral_school',
-        'research_unit' => 'Thesaurus research_unit',
-        'subjects' => 'Thesaurus subjects',
+        'research_unit' => 'customvocab:Thesaurus research_unit',
+        'subjects' => 'customvocab:Thesaurus subjects',
     ],
     'transform' => [
         'dcterms:type' => [

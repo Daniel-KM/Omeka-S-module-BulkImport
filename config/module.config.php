@@ -27,6 +27,7 @@ return [
     ],
     'media_ingesters' => [
         'invokables' => [
+            // This is an internal ingester.
             'bulk' => Media\Ingester\Bulk::class,
         ],
         'factories' => [

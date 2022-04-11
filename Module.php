@@ -179,8 +179,6 @@ class Module extends AbstractModule
 
     /**
      * Avoid to display ingester in item edit, because it's an internal one.
-     *
-     * @param Event $event
      */
     public function handleMediaIngesterRegisteredNames(Event $event): void
     {
