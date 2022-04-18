@@ -145,6 +145,7 @@
                 file.ctrl.update(percentage);
             })
             flow.on('fileSuccess', (file, responseJson, chunk) => {
+                responseJson = fixJson(responseJson);
                 const response = JSON.parse(responseJson);
                 // The order of the files may be different from the order of
                 // success uploads, so use the index.
@@ -251,6 +252,7 @@
         }
 
         function addError(submitReady, file, responseJson) {
+            responseJson = fixJson(responseJson);
             const response = JSON.parse(responseJson);
             submitReady.setAttribute('required', 'required');
             const div = document.createElement('div');
@@ -297,6 +299,17 @@
                 fullProgressWait.style.display = 'block';
                 bulkUploadActions.style.display = 'none';
             }
+        }
+
+        /**
+         * A php session warning can be added to the response, breaking process,
+         * so remove it.
+         */
+        function fixJson(json) {
+            let errorPos = json.indexOf('}<br');
+            return errorPos > -1
+                ? json.substring(0, errorPos + 1)
+                : json;
         }
 
     });

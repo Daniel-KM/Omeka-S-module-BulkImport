@@ -50,6 +50,8 @@ class UploadController extends AbstractActionController
      */
     public function indexAction()
     {
+        // TODO Fix issue with session warning appended to json (currently fixed via js): Warning: session_write_close(): Failed to write session data using user defined save handler.
+
         // Some security checks.
 
         $user = $this->identity();
