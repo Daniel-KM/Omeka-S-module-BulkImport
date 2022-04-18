@@ -217,6 +217,7 @@ class UploadController extends AbstractActionController
             'data' => [
                 'file' => [
                     'name' => $filename,
+                    'path' => $flowRequest->getRelativePath(),
                     // Don't send the full path for security.
                     'tmp_name' => basename($filepath),
                     'size' => $filesize,

@@ -40,6 +40,9 @@
     }
 
     /* Resource add/edit media files and folders */
+    #media-list .bulk-upload-actions {
+        width: 100%;
+    }
     .media-files-input-full-progress {
         text-align: right;
     }

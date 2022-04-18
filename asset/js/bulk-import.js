@@ -36,8 +36,7 @@
             const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
-            const buttonSortAscii = bulkUploadActions.getElementsByClassName('sort-ascii')[0];
-            const buttonSortAlpha = bulkUploadActions.getElementsByClassName('sort-alpha')[0];
+            const buttonSort = bulkUploadActions.getElementsByClassName('button-sort');
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -88,6 +87,7 @@
                 const listItemIsValid = validateFile(fileFile);
                 listItem.id = file.uniqueIdentifier;
                 listItem.setAttribute('data-filename', file.name);
+                listItem.setAttribute('data-filepath', file.relativePath);
                 listItem.setAttribute('data-is-valid', listItemIsValid ? '1' : '0');
                 listItem.setAttribute('data-is-uploaded', '0');
                 const div = document.createElement('div');
@@ -180,17 +180,11 @@
                 updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
             };
 
-            buttonSortAscii.onclick = (ev) => {
+            $(buttonSort).on('click', (ev) => {
                 if (!flow.isUploading()) {
                     listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
                 }
-            };
-
-            buttonSortAlpha.onclick = (ev) => {
-                if (!flow.isUploading()) {
-                    listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
-                }
-            };
+            });
         });
 
         function validateFile(file) {
@@ -212,6 +206,16 @@
                 sortFunction = function (x, y) {
                     return x.name.localeCompare(y.name);
                 }
+            } else if (sortType === 'ascii-path') {
+                sortFunction = function (x, y) {
+                    return x.path === y.path ? 0 : (x.path > y.path ? 1 : -1);
+                }
+            } else if (sortType === 'alpha-path') {
+                sortFunction = function (x, y) {
+                    return x.path.localeCompare(y.path);
+                }
+            } else {
+                return;
             }
 
             var filesData = JSON.parse(inputFilesData.getAttribute('value'));
@@ -220,7 +224,7 @@
 
             var listNames = [];
             $(listUploaded).find('li').each(function () {
-                listNames.push({li: this, name: $(this).data('filename')});
+                listNames.push({li: this, name: $(this).data('filename'), path: $(this).data('filepath')});
             });
             listNames.sort(sortFunction);
             var html = '';

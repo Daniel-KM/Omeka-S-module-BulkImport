@@ -136,6 +136,8 @@ class BulkUpload implements IngesterInterface
         // $sortDefault = $translate('Default'); // @translate
         $sortAscii = $translate('Simple'); // @translate
         $sortAlpha = $translate('Alphabetic'); // @translate
+        $sortAsciiPath = $translate('Simple (with folder)'); // @translate
+        $sortAlphaPath = $translate('Alphabetic (with folder)'); // @translate
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -156,10 +158,12 @@ class BulkUpload implements IngesterInterface
     <span class="progress-current"></span> / <span class="progress-total"></span>
     <span class="progress-wait">$wait</span>
 </div>
-<div class="inputs bulk-upload-actions">
+<div class="bulk-upload-actions">
     <span>$sortText</span>
     <button type="button" class="button-sort sort-ascii" data-sort-type="ascii">$sortAscii</button>
     <button type="button" class="button-sort sort-alpha" data-sort-type="alpha">$sortAlpha</button>
+    <button type="button" class="button-sort sort-ascii-path" data-sort-type="ascii-path">$sortAsciiPath</button>
+    <button type="button" class="button-sort sort-alpha-path" data-sort-type="alpha-path">$sortAlphaPath</button>
 </div>
 <div class="media-files-input-preview"><ol></ol></div>
 HTML;
