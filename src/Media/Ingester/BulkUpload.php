@@ -132,6 +132,9 @@ class BulkUpload implements IngesterInterface
         $browseDirectory = $translate('Select directory'); // @translate
         $wait = $view->translate('Wait before submission…'); // @translate
         $buttonPause = $data['data-translate-pause'];
+        $sortText = $translate('Sort'); // @translate
+        // $sortDefault = $translate('Default'); // @translate
+        $sortAscii = $translate('Simple'); // @translate
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -147,10 +150,14 @@ class BulkUpload implements IngesterInterface
 </div>
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
 <input type="file" value="" class="submit-ready" style="display: none; visibility: hidden"/>
-<input type="hidden" name="filesData[file][__index__]" value="{}" class="filesdata"/>
+<input type="hidden" name="filesData[file][__index__]" value="[]" class="filesdata"/>
 <div class="media-files-input-full-progress empty">
     <span class="progress-current"></span> / <span class="progress-total"></span>
     <span class="progress-wait">$wait</span>
+</div>
+<div class="inputs bulk-upload-actions">
+    <span>$sortText</span>
+    <button type="button" class="button-sort sort-ascii" data-sort-type="ascii">$sortAscii</button>
 </div>
 <div class="media-files-input-preview"><ol></ol></div>
 HTML;

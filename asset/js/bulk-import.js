@@ -31,10 +31,12 @@
             const fullProgressWait = fullProgress.getElementsByClassName('progress-wait')[0];
             const preview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
             const listUploaded = preview.getElementsByTagName('ol')[0];
-            const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files');
-            const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory');
+            const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files')[0];
+            const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory')[0];
             const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
-            const divDrop = mediaField.getElementsByClassName('bulk-drop');
+            const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
+            const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
+            const buttonSortAscii = bulkUploadActions.getElementsByClassName('sort-ascii')[0];
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -53,6 +55,8 @@
                 return;
             }
 
+            bulkUploadActions.style.display = 'none';
+
             const accept = (allowedMediaTypes + ',' + allowedExtensions).replace(/^,+|,+$/g, '');
 
             flow.assignBrowse(buttonBrowseFiles, false, false, accept.length ? {'accept': accept} : {});
@@ -70,6 +74,7 @@
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
                 fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
                 fullProgressWait.style.display = 'block';
+                bulkUploadActions.style.display = 'none';
 
                 const countThumbnails = listUploaded.getElementsByClassName('original-thumbnail').length;
                 var totalSizeThumbnails = 0;
@@ -81,6 +86,7 @@
                 const listItem = document.createElement('li');
                 const listItemIsValid = validateFile(fileFile);
                 listItem.id = file.uniqueIdentifier;
+                listItem.setAttribute('data-filename', file.name);
                 listItem.setAttribute('data-is-valid', listItemIsValid ? '1' : '0');
                 listItem.setAttribute('data-is-uploaded', '0');
                 const div = document.createElement('div');
@@ -156,7 +162,7 @@
                 const listItem = document.getElementById(file.uniqueIdentifier);
                 listItem.setAttribute('data-is-uploaded', '1');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length;
-                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait);
+                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
             })
             flow.on('fileError', (file, responseJson) => {
                 addError(submitReady, file, responseJson);
@@ -170,7 +176,13 @@
                     flow.resume();
                     buttonPause.textContent = mediaField.getAttribute('data-translate-pause');
                 }
-                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait);
+                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
+            };
+
+            buttonSortAscii.onclick = (ev) => {
+                if (!flow.isUploading()) {
+                    listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
+                }
             };
         });
 
@@ -181,6 +193,28 @@
                 && file.name.substr(0, 1) !== '.'
                 && /^[^{}$?!<>\/\\]+$/.test(file.name)
                 && (allowEmptyFiles || file.size > 0);
+        }
+
+        function listSort (inputFilesData, listUploaded, sortType) {
+            var sortFunction;
+            if (sortType === 'ascii') {
+                sortFunction = function (x, y) {
+                    return x.name === y.name ? 0 : (x.name > y.name ? 1 : -1);
+                }
+            }
+
+            var filesData = JSON.parse(inputFilesData.getAttribute('value'));
+            filesData.sort(sortFunction);
+            inputFilesData.setAttribute('value', JSON.stringify(filesData));
+
+            var listNames = [];
+            $(listUploaded).find('li').each(function () {
+                listNames.push({li: this, name: $(this).data('filename')});
+            });
+            listNames.sort(sortFunction);
+            var html = '';
+            listNames.forEach(function (item) { html += item.li.outerHTML; });
+            $(listUploaded).html(html);
         }
 
         function humanFileSize(number) {
@@ -235,16 +269,18 @@
             return throbber;
         }
 
-        function updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait) {
+        function updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions) {
             if (!fullProgressTotal.textContent.length
                 || parseInt(fullProgressTotal.textContent) === 0
                 || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent))
             ) {
                 submitReady.removeAttribute('required');
                 fullProgressWait.style.display = 'none';
+                bulkUploadActions.style.display = 'block';
             } else {
                 submitReady.setAttribute('required', 'required');
                 fullProgressWait.style.display = 'block';
+                bulkUploadActions.style.display = 'none';
             }
         }
 
