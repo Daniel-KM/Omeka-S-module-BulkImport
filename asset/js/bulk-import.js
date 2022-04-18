@@ -37,6 +37,7 @@
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
             const buttonSortAscii = bulkUploadActions.getElementsByClassName('sort-ascii')[0];
+            const buttonSortAlpha = bulkUploadActions.getElementsByClassName('sort-alpha')[0];
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -184,6 +185,12 @@
                     listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
                 }
             };
+
+            buttonSortAlpha.onclick = (ev) => {
+                if (!flow.isUploading()) {
+                    listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
+                }
+            };
         });
 
         function validateFile(file) {
@@ -200,6 +207,10 @@
             if (sortType === 'ascii') {
                 sortFunction = function (x, y) {
                     return x.name === y.name ? 0 : (x.name > y.name ? 1 : -1);
+                }
+            } else if (sortType === 'alpha') {
+                sortFunction = function (x, y) {
+                    return x.name.localeCompare(y.name);
                 }
             }
 
