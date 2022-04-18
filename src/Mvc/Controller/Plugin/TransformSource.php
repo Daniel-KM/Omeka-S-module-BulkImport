@@ -39,7 +39,7 @@ use SimpleXMLElement;
 
 /**
  * @todo Separate xml and json process into two plugins and make this one an abstract one.
- * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\Mapper.
+ * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
  */
 class TransformSource extends AbstractPlugin
 {
@@ -1621,7 +1621,7 @@ class TransformSource extends AbstractPlugin
      * ]
      * ```
      *
-     * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\Mapper::flatArray()
+     * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::flatArray()
      * @see \ValueSuggestAny\Suggester\JsonLd\JsonLdSuggester::flatArray()
      * @todo Factorize flatArray() between modules.
      */
