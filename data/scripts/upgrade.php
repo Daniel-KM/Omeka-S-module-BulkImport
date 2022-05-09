@@ -410,7 +410,11 @@ CREATE TABLE `bulk_mapping` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB;
 ALTER TABLE `bulk_mapping` ADD CONSTRAINT FK_7DA823507E3C61F9 FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE SET NULL;
 SQL;
-    $connection->executeStatement($sql);
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Exception $e) {
+        // In some cases, the table already exists, so it may be skipped.
+    }
 
     $sql = <<<'SQL'
 UPDATE `bulk_importer`
