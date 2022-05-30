@@ -37,21 +37,10 @@ return [
         'exhibitors' => null,
         'lyricists' => null,
         'issues' => null,
-        // Automatic custom vocabs when subjects are available.
-        'degrees' => 'customvocab:Thesaurus degrees',
-        'divisions' => 'customvocab:Thesaurus divisions',
-        'doctoral_school' => 'customvocab:Thesaurus doctoral_school',
-        'research_unit' => 'customvocab:Thesaurus research_unit',
-        'subjects' => 'customvocab:Thesaurus subjects',
+        // Automatic custom vocabs.
     ],
     'transform' => [
         'dcterms:type' => [
-            'article' => 'Article',
-            'master' => 'Mémoire',
-            'pfpa' => 'Parcours de Formation Professionnelle Adapté',
-            'projettutore' => 'Projet tutoré',
-            'rapportstage' => 'Rapport de stage',
-            'thesis' => 'Thèse de doctorat',
         ],
     ],
 ];
