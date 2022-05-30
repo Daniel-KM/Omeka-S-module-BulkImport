@@ -40,6 +40,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'search_requests',
             // 'hits',
         ],
+        'people_to_items' => false,
         'fake_files' => false,
         'endpoint' => null,
         'url_path' => null,
@@ -62,6 +63,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'contributors' => [
             'name' => 'items',
@@ -70,6 +72,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'creators' => [
             'name' => 'items',
@@ -78,6 +81,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'directors' => [
             'name' => 'items',
@@ -86,6 +90,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'directors_other' => [
             'name' => 'items',
@@ -94,6 +99,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'editors' => [
             'name' => 'items',
@@ -102,6 +108,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'exhibitors' => [
             'name' => 'items',
@@ -110,7 +117,9 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
+        // TODO Issues is not people : add option not to create items.
         'issues' => [
             'name' => 'items',
             'class' => \Omeka\Entity\Item::class,
@@ -126,6 +135,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
         'producers' => [
             'name' => 'items',
@@ -134,6 +144,7 @@ class EprintsProcessor extends AbstractFullProcessor
             'table' => 'item',
             'fill' => 'fillMorePeople',
             'is_resource' => true,
+            'is_people' => true,
         ],
     ];
 
@@ -784,6 +795,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         if (in_array('items', $toImport)
             && $this->prepareImport('items')
+            && $this->getParam('people_to_items')
         ) {
             $this->logger->notice('Preparation of related resources (authors, issues, etc.).'); // @translate
 
@@ -957,6 +969,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         $this->map[$sourceType] = [];
 
+        // @see fillItem() for people.
         $keyId = $this->mapping[$sourceType]['key_id'];
         if (empty($keyId)) {
             $this->hasError = true;
@@ -1343,6 +1356,9 @@ class EprintsProcessor extends AbstractFullProcessor
                 );
             }
         }
+
+        $peopleToItems = $this->getParam('people_to_items');
+        $peopleToValues = !$peopleToItems;
 
         $created = $this->implodeDate(
             $source['datestamp_year'],
@@ -1948,7 +1964,7 @@ class EprintsProcessor extends AbstractFullProcessor
             }
         }
 
-        /* // Created separately as item below.
+        /* // Created separately as values or item below.
         if ($source['director_family']) {
             $values[] = [
                 'term' => 'dante:directeur',
@@ -2003,6 +2019,7 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         /* // Duplicate of table eprint_directors_other.
+        // Created separately as values or item below.
         if ($source['directors_other_family']) {
             $values[] = [
                 'term' => 'dante:codirecteur',
@@ -2109,9 +2126,9 @@ class EprintsProcessor extends AbstractFullProcessor
          * Relations.
          */
 
-        // Relations as linked resources.
+        // Relations as values or linked resources.
 
-        // TODO Add customvocab for creator, directors, etc.
+        // TODO Add a customvocab for role (creator, directors, etc.).
         $listValues = [
             // Try to follow dcterms order (but reordered via template anyway).
             'creators' => [
@@ -2145,40 +2162,95 @@ class EprintsProcessor extends AbstractFullProcessor
             // 'issues' => [
             // ],
         ];
-        foreach ($listValues as $sourceTypeLinked => $sourceData) {
-            $table = !empty($this->mapping[$sourceTypeLinked]['no_table'])
-                ? $sourceTypeLinked
-                : $this->mapping[$sourceTypeLinked]['source'] ?? null;
-            $set = $this->mapping[$sourceTypeLinked]['set'] ?? null;
-            if ($set !== 'eprint_name') {
-                $this->logger->warn(
-                    'Attachment of "{source}" to items is currently not managed..',  // @translate
-                    ['source' => $sourceTypeLinked]
-                );
-                continue;
+        if ($peopleToItems) {
+            foreach ($listValues as $sourceTypeLinked => $sourceData) {
+                $table = !empty($this->mapping[$sourceTypeLinked]['no_table'])
+                    ? $sourceTypeLinked
+                    : $this->mapping[$sourceTypeLinked]['source'] ?? null;
+                $set = $this->mapping[$sourceTypeLinked]['set'] ?? null;
+                if ($set !== 'eprint_name') {
+                    $this->logger->warn(
+                        'Attachment of "{source}" to items is currently not managed.',  // @translate
+                        ['source' => $sourceTypeLinked]
+                    );
+                    continue;
+                }
+                $linkedType = $this->configs['custom_vocabs'][$sourceTypeLinked] ?? 'resource:item';
+                $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
+                $keyId = $this->mapping[$sourceTypeLinked]['key_id'];
+                $emptyKeyId = array_fill_keys(array_keys($keyId), null);
+                foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $dataSource) {
+                    $orderedSource = array_intersect_key(array_replace($emptyKeyId, $dataSource), $emptyKeyId);
+                    $sourceLinkedId = $this->asciiArrayToString($orderedSource);
+                    $vrid = $this->map[$sourceTypeLinked][$sourceLinkedId] ?? null;
+                    if ($vrid) {
+                        $values[] = [
+                            'term' => $sourceData['term'],
+                            'type' => $linkedType,
+                            'value_resource' => $vrid,
+                            'is_public' => $isPublicValue,
+                        ];
+                    } else {
+                        // It should not be possible.
+                        $this->hasError = true;
+                        $this->logger->err(
+                            'The "{source}" #"{id}" has not yet been imported as a resource.',  // @translate
+                            ['source' => $sourceTypeLinked, 'id' => implode(' | ', $orderedSource)]
+                        );
+                    }
+                }
             }
-            $linkedType = $this->configs['custom_vocabs'][$sourceTypeLinked] ?? 'resource:item';
-            $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
-            $keyId = $this->mapping[$sourceTypeLinked]['key_id'];
-            $emptyKeyId = array_fill_keys(array_keys($keyId), null);
-            foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $dataSource) {
-                $orderedSource = array_intersect_key(array_replace($emptyKeyId, $dataSource), $emptyKeyId);
-                $sourceLinkedId = $this->asciiArrayToString($orderedSource);
-                $vrid = $this->map[$sourceTypeLinked][$sourceLinkedId] ?? null;
-                if ($vrid) {
-                    $values[] = [
-                        'term' => $sourceData['term'],
-                        'type' => $linkedType,
-                        'value_resource' => $vrid,
-                        'is_public' => $isPublicValue,
-                    ];
-                } else {
-                    // It should not be possible.
+        } else {
+            // By default, people to values.
+            // Tables are prepared in all cases during init.
+            foreach ($listValues as $sourceTypeLinked => $sourceData) {
+                // @see prepareItemsMultiKey() and fillItemsMultiKey()
+                // Normally already checked in AbstractFullProcessor.
+                if (empty($this->mapping[$sourceTypeLinked]['source'])) {
+                    return;
+                }
+
+                $keyId = $this->mapping[$sourceTypeLinked]['key_id'];
+                if (empty($keyId)) {
                     $this->hasError = true;
                     $this->logger->err(
-                        'The "{source}" #"{id}" has not yet been imported as a resource.',  // @translate
-                        ['source' => $sourceTypeLinked, 'id' => implode(' | ', $orderedSource)]
+                        'There is no key identifier for "{source}".', // @translate
+                        ['source' => $sourceTypeLinked]
                     );
+                    return;
+                }
+                if (!is_array($keyId)) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'To manage multi keys for source "{source}", the identifier should be an array.', // @translate
+                        ['source' => $sourceTypeLinked]
+                    );
+                    return;
+                }
+                $emptyKeyId = array_fill_keys(array_keys($keyId), null);
+
+                $table = !empty($this->mapping[$sourceTypeLinked]['no_table'])
+                    ? $sourceTypeLinked
+                    : $this->mapping[$sourceTypeLinked]['source'] ?? null;
+                $set = $this->mapping[$sourceTypeLinked]['set'] ?? null;
+                if ($set !== 'eprint_name') {
+                    $this->logger->warn(
+                        'Attachment of "{source}" to items is currently not managed.',  // @translate
+                        ['source' => $sourceTypeLinked]
+                    );
+                    continue;
+                }
+                $isPublicValue = !isset($sourceData['is_public']) || $sourceData['is_public'];
+                foreach ($this->tableDataBy[$table][$sourceId] ?? [] as $dataSource) {
+                    $orderedSource = array_intersect_key(array_replace($emptyKeyId, $dataSource), $emptyKeyId);
+                    // TODO Create value annotation for lineage and honourific, not used in the current database.
+                    $val = implode(', ', array_filter(array_map('strval', $orderedSource), 'strlen'));
+                    $values[] = [
+                        'term' => $sourceData['term'],
+                        'type' => 'literal',
+                        'value' => $val,
+                        'is_public' => $isPublicValue,
+                    ];
                 }
             }
         }
@@ -2765,6 +2837,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         if (in_array('items', $toImport)
             && $this->prepareImport('items')
+            && $this->getParam('people_to_items')
         ) {
             $this->logger->notice('Finalization of related resources (authors, issues, etc.).'); // @translate
 
@@ -3152,7 +3225,7 @@ class EprintsProcessor extends AbstractFullProcessor
             if (!$entity) {
                 ++$skipped;
                 $this->logger->notice(
-                    'Unknown resource "{source}" #{source_id}. Probably removed during by another user.', // @translate
+                    'Unknown resource "{source}" #{source_id}. Probably removed during process by another user.', // @translate
                     ['source' => $sourceType, 'source_id' => $sourceId]
                 );
                 continue;

@@ -134,6 +134,16 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                 ],
             ])
             ->add([
+                'name' => 'people_to_items',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Import people as item', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'people_to_items',
+                ],
+            ])
+            ->add([
                 'name' => 'fake_files',
                 'type' => Element\Checkbox::class,
                 'options' => [
