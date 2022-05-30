@@ -113,20 +113,22 @@ trait ThesaurusTrait
 
         /**
          * @var \Omeka\Entity\Vocabulary $vocabulary
-         * @var \Omeka\Entity\ResourceClass $resourceClass
-         * @var \Omeka\Entity\ResourceTemplate $resourceTemplate
+         * @var \Omeka\Entity\ResourceClass $classSkosConceptScheme
+         * @var \Omeka\Entity\ResourceClass $classSkosCollection
+         * @var \Omeka\Entity\ResourceTemplate $templateThesaurusScheme
          */
         $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => 'skos']);
-        $resourceClass = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
-        $resourceTemplate = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
+        $classSkosConceptScheme = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
+        $classSkosCollection = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'Collection']);
+        $templateThesaurusScheme = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
 
         $item = $schemeReal ?? new \Omeka\Entity\Item;
         $item->setOwner($this->owner);
         $item->setTitle($randomName);
         $item->setCreated($this->currentDateTime);
         $item->setIsPublic(true);
-        $item->setResourceClass($resourceClass);
-        $item->setResourceTemplate($resourceTemplate);
+        $item->setResourceClass($classSkosConceptScheme);
+        $item->setResourceTemplate($templateThesaurusScheme);
         $this->appendValue([
             'term' => 'skos:prefLabel',
             'value' => $name,
@@ -138,6 +140,7 @@ trait ThesaurusTrait
         $itemSet->setCreated($this->currentDateTime);
         $itemSet->setIsPublic(true);
         $itemSet->setIsOpen(true);
+        $itemSet->setResourceClass($classSkosCollection);
         $this->appendValue([
             'term' => 'dcterms:title',
             'value' => $name,

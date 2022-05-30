@@ -36,11 +36,11 @@ class EprintsProcessor extends AbstractFullProcessor
             'media',
             // 'item_sets',
             'concepts',
-            // 'hits',
             'contact_messages',
             'search_requests',
+            // 'hits',
         ],
-        'fake_files' => true,
+        'fake_files' => false,
         'endpoint' => null,
         'url_path' => null,
         'language' => null,
@@ -1408,6 +1408,8 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // TODO Warning: some created are not set, but only modified…
 
+        // Created and modified are stored as private, because useless and
+        // already as created/modified date of the record.
         $created = $this->implodeDate(
             $source['datestamp_year'],
             $source['datestamp_month'],
@@ -1438,12 +1440,14 @@ class EprintsProcessor extends AbstractFullProcessor
                 'term' => 'dcterms:created',
                 'type' => 'numeric:timestamp',
                 'value' => $created,
+                'is_public' => false,
             ];
             if ($modified && $modified !== $created && $source['rev_number'] > 1) {
                 $values[] = [
                     'term' => 'dcterms:modified',
                     'type' => 'numeric:timestamp',
                     'value' => $modified,
+                    'is_public' => false,
                 ];
             }
         }
@@ -1985,6 +1989,7 @@ class EprintsProcessor extends AbstractFullProcessor
             $values[] = [
                 'term' => 'dante:typeDiplome',
                 'value' => $source['master_type'],
+                'is_public' => false,
             ];
         }
 
@@ -2545,7 +2550,6 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // Three values for file: "public", "staffonly" or "validuser".
         // Public and staffonly are managed via public/private media.
-        // The value "diff_permission" is set as "curation:access" too.
         if ($source['security'] === 'validuser') {
             $values[] = [
                 'term' => 'curation:access',
@@ -2692,7 +2696,8 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['file_version']) {
             $values[] = [
                 'term' => 'dante:version',
-                'value' => $source['file_version'],
+                'type' => $this->configs['custom_vocabs']['file_version'] ?? 'literal',
+                'value' => $this->configs['transform']['file_version'][$source['file_version']] ?? $source['file_version'],
             ];
         }
 

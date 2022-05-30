@@ -142,7 +142,6 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                 ],
                 'attributes' => [
                     'id' => 'fake_files',
-                    'value' => '1',
                 ],
             ])
             ->add([
