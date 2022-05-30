@@ -1335,17 +1335,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         // Short required job.
-        if (count($ids)) {
-            $this->logger->notice(
-                'Updating titles for {total} resources.', // @translate
-                ['total' => count($ids)]
-            );
-            $this->dispatchJob(\BulkImport\Job\UpdateResourceTitles::class, ['resource_ids' => $ids]);
-            $this->logger->notice(
-                'Titles updated for {total} resources.', // @translate
-                ['total' => count($ids)]
-            );
-        }
+        // Process all resources, it's a quick job and there may be more ids.
+        $this->logger->notice(
+            'Updating titles for all resources.', // @translate
+        );
+        $this->dispatchJob(\BulkImport\Job\UpdateResourceTitles::class);
+        $this->logger->notice(
+            'Titles updated for all resources.', // @translate
+        );
 
         $this->completionShortJobs($ids);
 
