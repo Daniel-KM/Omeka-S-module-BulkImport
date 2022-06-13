@@ -30,7 +30,7 @@ module [CSV Import].
 Installation
 ------------
 
-This module requires the module [Log] and optionnaly [Generic]. An external xslt 2
+This module requires the module [Log] and optionaly [Generic]. An external xslt 2
 processor may be needed if you import xml files that are not importable with
 xlt 1. Some specific readers or processors may need some other modules.
 

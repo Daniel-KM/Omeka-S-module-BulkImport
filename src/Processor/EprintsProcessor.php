@@ -158,6 +158,13 @@ class EprintsProcessor extends AbstractFullProcessor
             'key_email' => 'email',
             'key_name' => 'username',
         ],
+        // In eprints, main statuses are:
+        // "inbox": inbox of the students, so unsubmitted contribution;
+        // "buffer": contribution submitted, so transformed into an item here;
+        // "archive": final status of a stored record;
+        // "deletion": a document removed (fake deletion, as google).
+        // Buffer and inbox may be converted into contributions
+        // for module Contribute via a task.
         'items' => [
             'source' => 'eprint',
             'key_id' => 'eprintid',
