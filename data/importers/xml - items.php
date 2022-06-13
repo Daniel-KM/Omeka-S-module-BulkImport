@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'Xml - Items', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
         'xsl_sheet' => 'modules/BulkImport/data/mapping/xsl/identity.xslt1.xsl',

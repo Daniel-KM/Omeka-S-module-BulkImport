@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'TSV (tab-separated values) - Item sets', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\TsvReader::class,
     'readerConfig' => [
         'separator' => '|',

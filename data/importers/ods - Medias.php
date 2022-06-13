@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'OpenDocument spreadsheet (ods) - Medias', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
     'readerConfig' => [
         'separator' => '|',

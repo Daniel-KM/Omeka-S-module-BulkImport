@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'CSV - Item sets', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\CsvReader::class,
     'readerConfig' => [
         'delimiter' => ',',

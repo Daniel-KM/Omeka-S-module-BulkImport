@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'TSV (tab-separated values) - Medias', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\TsvReader::class,
     'readerConfig' => [
         'separator' => '|',

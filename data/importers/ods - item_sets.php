@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'OpenDocument spreadsheet (ods) - Item sets', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
     'readerConfig' => [
         'separator' => '|',

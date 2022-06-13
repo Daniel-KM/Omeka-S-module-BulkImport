@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'Omeka S',
+    'config' => [],
     'readerClass' => \BulkImport\Reader\OmekaSReader::class,
     'readerConfig' => [
     ],

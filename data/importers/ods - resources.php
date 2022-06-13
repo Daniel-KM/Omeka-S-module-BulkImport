@@ -3,6 +3,7 @@
 return [
     'owner' => null,
     'label' => 'OpenDocument spreadsheet (ods) - Mixed resources', // @translate
+    'config' => [],
     'readerClass' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
     'readerConfig' => [
         'separator' => '|',
