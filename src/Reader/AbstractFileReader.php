@@ -270,9 +270,12 @@ abstract class AbstractFileReader extends AbstractReader
         // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
         $ch = curl_init($url);
         $fp = fopen($tempname, 'wb');
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt_array($curl, [
+            CURLOPT_FILE => $fp,
+            CURLOPT_HEADER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => "curl/" . curl_version()['version'],
+        ]);
         curl_exec($ch);
         curl_close($ch);
         fclose($fp);
