@@ -889,12 +889,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
                     $resource['messageStore']->addNotice('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatype' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 } else {
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The value "{value}" is not compatible with datatypes "{datatypes}". Try adding "literal" to datatypes or default to it.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatype' => implode('", "', $datatypeNames)]
+                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
                     ));
                 }
             }
