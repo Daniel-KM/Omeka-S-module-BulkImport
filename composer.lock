@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ed80f8714aff5dd741e312cd410c4661",
+    "content-hash": "667e2466c303ec2dc20c1504304fbcfa",
     "packages": [
         {
             "name": "box/spout",
@@ -78,6 +78,7 @@
                 "issues": "https://github.com/box/spout/issues",
                 "source": "https://github.com/box/spout/tree/v3.3.0"
             },
+            "abandoned": true,
             "time": "2021-05-14T21:18:09+00:00"
         },
         {
@@ -91,16 +92,16 @@
         },
         {
             "name": "composer/installers",
-            "version": "v2.0.1",
+            "version": "v2.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/installers.git",
-                "reference": "a241e78aaeb09781f5f5b92ac01ffd13ab43e5e8"
+                "reference": "af93ba6e52236418f07a278033eba6959ee5b983"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/installers/zipball/a241e78aaeb09781f5f5b92ac01ffd13ab43e5e8",
-                "reference": "a241e78aaeb09781f5f5b92ac01ffd13ab43e5e8",
+                "url": "https://api.github.com/repos/composer/installers/zipball/af93ba6e52236418f07a278033eba6959ee5b983",
+                "reference": "af93ba6e52236418f07a278033eba6959ee5b983",
                 "shasum": ""
             },
             "require": {
@@ -120,7 +121,8 @@
                 "class": "Composer\\Installers\\Plugin",
                 "branch-alias": {
                     "dev-main": "2.x-dev"
-                }
+                },
+                "plugin-modifies-install-path": true
             },
             "autoload": {
                 "psr-4": {
@@ -214,7 +216,7 @@
             ],
             "support": {
                 "issues": "https://github.com/composer/installers/issues",
-                "source": "https://github.com/composer/installers/tree/v2.0.1"
+                "source": "https://github.com/composer/installers/tree/v2.1.1"
             },
             "funding": [
                 {
@@ -230,7 +232,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-09-13T08:21:20+00:00"
+            "time": "2022-04-13T09:13:00+00:00"
         },
         {
             "name": "flowjs/flow-php-server",
@@ -299,35 +301,43 @@
         },
         {
             "name": "hakre/xmlreaderiterator",
-            "version": "v0.1.10",
+            "version": "v0.1.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hakre/XMLReaderIterator.git",
-                "reference": "42da6ef3c2fb839a40cc875aa31596915db758de"
+                "reference": "4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hakre/XMLReaderIterator/zipball/42da6ef3c2fb839a40cc875aa31596915db758de",
-                "reference": "42da6ef3c2fb839a40cc875aa31596915db758de",
+                "url": "https://api.github.com/repos/hakre/XMLReaderIterator/zipball/4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a",
+                "reference": "4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a",
                 "shasum": ""
             },
+            "require": {
+                "ext-dom": "*",
+                "ext-simplexml": "*",
+                "ext-xmlreader": "*",
+                "ext-xmlwriter": "*"
+            },
             "require-dev": {
+                "ext-bz2": "*",
+                "ext-libxml": "*",
                 "phpunit/phpunit": "3.7.*"
             },
             "type": "library",
             "autoload": {
-                "files": [
-                    "autoload.php"
+                "classmap": [
+                    "src/"
                 ]
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "AGPL-3.0"
+                "AGPL-3.0-or-later"
             ],
             "authors": [
                 {
                     "name": "hakre",
-                    "homepage": "http://hakre.wordpress.com/"
+                    "homepage": "https://hakre.wordpress.com/"
                 }
             ],
             "description": "Iterators for PHP XMLReader for ease of parsing",
@@ -339,9 +349,9 @@
             ],
             "support": {
                 "issues": "https://github.com/hakre/XMLReaderIterator/issues",
-                "source": "https://github.com/hakre/XMLReaderIterator/tree/v0.1.10"
+                "source": "https://github.com/hakre/XMLReaderIterator/tree/v0.1.11"
             },
-            "time": "2015-07-06T22:42:57+00:00"
+            "time": "2022-05-13T17:46:05+00:00"
         },
         {
             "name": "mikehaertl/php-pdftk",
@@ -767,5 +777,5 @@
         "ext-xml": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.3.0"
 }
