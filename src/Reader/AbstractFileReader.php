@@ -274,7 +274,7 @@ abstract class AbstractFileReader extends AbstractReader
             CURLOPT_FILE => $fp,
             CURLOPT_HEADER => false,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT => "curl/" . curl_version()['version'],
+            CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
         ]);
         curl_exec($ch);
         curl_close($ch);

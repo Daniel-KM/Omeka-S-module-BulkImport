@@ -1432,7 +1432,7 @@ class EprintsProcessor extends AbstractFullProcessor
         // TODO Warning: some created are not set, but only modified…
 
         // Created and modified are stored as private, because useless and
-        // already as created/modified date of the record.
+        // already as created/modified date of the record.
         $created = $this->implodeDate(
             $source['datestamp_year'],
             $source['datestamp_month'],

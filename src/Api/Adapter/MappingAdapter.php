@@ -49,7 +49,7 @@ class MappingAdapter extends AbstractEntityAdapter
         if (isset($query['owner_id']) && is_numeric($query['owner_id'])) {
             $userAlias = $this->createAlias();
             $qb
-                ->innerJoin('omeka_root.owner',$userAlias)
+                ->innerJoin('omeka_root.owner', $userAlias)
                 ->andWhere($expr->eq(
                     $userAlias . '.id',
                     $this->createNamedParameter($qb, $query['owner_id'])
@@ -75,7 +75,7 @@ class MappingAdapter extends AbstractEntityAdapter
         $this->updateTimestamps($request, $entity);
     }
 
-    public function validateEntity(EntityInterface $entity, ErrorStore $errorStore)
+    public function validateEntity(EntityInterface $entity, ErrorStore $errorStore): void
     {
         $label = $entity->getLabel();
         if (false == trim($label)) {

@@ -230,7 +230,7 @@ trait FileTrait
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_MAXREDIRS => 10,
-                CURLOPT_USERAGENT => "curl/" . curl_version()['version'],
+                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
             ]);
             $result = curl_exec($curl);
             if ($result === false) {
@@ -620,7 +620,7 @@ trait FileTrait
                 CURLOPT_FILE => $fp,
                 CURLOPT_HEADER => false,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_USERAGENT => "curl/" . curl_version()['version'],
+                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
             ]);
             curl_exec($ch);
             curl_close($ch);

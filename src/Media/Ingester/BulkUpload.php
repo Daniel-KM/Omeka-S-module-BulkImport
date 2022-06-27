@@ -44,7 +44,7 @@ class BulkUpload implements IngesterInterface
         return 'file';
     }
 
-    public function ingest(Media $media, Request $request, ErrorStore $errorStore)
+    public function ingest(Media $media, Request $request, ErrorStore $errorStore): void
     {
         $data = $request->getContent();
 
