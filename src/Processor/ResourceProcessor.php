@@ -499,6 +499,17 @@ class ResourceProcessor extends AbstractResourceProcessor
         if ($operation === Request::CREATE) {
             $entityClass = $adapter->getEntityClass();
             $entity = new $entityClass;
+            if ($resource['resource_name'] === 'media') {
+                // Normally already checked.
+                $entityItem = $adapter->getAdapter('items')->findEntity($resource['o:item']['o:id'] ?? 0);
+                if (!$entityItem) {
+                    $resource['messageStore']->addError('media', new PsrMessage(
+                        'Media must belong to an item.' // @translate
+                    ));
+                    return false;
+                }
+                $entity->setItem($entityItem);
+            }
         } else {
             // The id is already checked.
             $request
