@@ -496,7 +496,14 @@ class ResourceProcessor extends AbstractResourceProcessor
             ->setContent($resource->getArrayCopy())
             ->setOption($requestOptions);
 
-        if ($operation === Request::CREATE) {
+        if (empty($resource['o:id'])
+            && $operation !== Request::CREATE
+            && $this->actionUnidentified === self::ACTION_SKIP
+        ) {
+            return true;
+        } elseif ($operation === Request::CREATE
+            || (empty($resource['o:id']) && $this->actionUnidentified === self::ACTION_CREATE)
+        ) {
             $entityClass = $adapter->getEntityClass();
             $entity = new $entityClass;
             if ($resource['resource_name'] === 'media') {
@@ -511,14 +518,6 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $entity->setItem($entityItem);
             }
         } else {
-            if (empty($resource['o:id'])) {
-                $resource['messageStore']->addError('modules', new PsrMessage(
-                    'The operation "{action}" requires an id.', // @translate
-                    ['action' => $operation]
-                ));
-                return false;
-            }
-
             $request
                 ->setId($resource['o:id']);
 
