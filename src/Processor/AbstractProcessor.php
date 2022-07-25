@@ -22,7 +22,8 @@ abstract class AbstractProcessor implements Processor
      * the order of internal ids will be in the same order than the input and
      * medias will follow their items. If it is greater, the order will follow
      * the number of entries by resource types. This option is used only for
-     * creation.
+     * creation and deletion. For update, the process requires to manage each
+     * entry separetely, because this is not a bulk edition.
      * Furthermore, statistics are more precise when this option is "1".
      *
      * @var int
@@ -169,6 +170,7 @@ abstract class AbstractProcessor implements Processor
         if (!empty($resource['checked_id'])) {
             return !empty($resource['o:id']);
         }
+
         // The id is set, but not checked. So check it.
         if ($resource['o:id']) {
             // TODO getResourceName() is only in child AbstractResourceProcessor.
@@ -206,6 +208,7 @@ abstract class AbstractProcessor implements Processor
                 }
             }
         }
+
         $resource['checked_id'] = true;
         return !empty($resource['o:id']);
     }
@@ -309,7 +312,9 @@ abstract class AbstractProcessor implements Processor
                 continue;
             }
 
-            $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+            $ids = !empty($this->identifiers['mapx'][$resource['source_index']])
+                ? [$this->identifiers['mapx'][$resource['source_index']]]
+                : $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
             if (!$ids) {
                 continue;
             }

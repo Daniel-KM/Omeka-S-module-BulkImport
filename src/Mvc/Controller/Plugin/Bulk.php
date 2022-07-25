@@ -797,17 +797,20 @@ class Bulk extends AbstractPlugin
             'resource:item' => \Omeka\Entity\Item::class,
             'resource:itemset' => \Omeka\Entity\ItemSet::class,
             'resource:media' => \Omeka\Entity\Media::class,
+            'resource:annotation' => \Annotate\Entity\Annotation::class,
             // Avoid a check and make the plugin more flexible.
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
             \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
             \Omeka\Entity\Resource::class => '',
+            \Annotate\Entity\Annotation::class => \Annotate\Entity\Annotation::class,
             'o:item' => \Omeka\Entity\Item::class,
             'o:item_set' => \Omeka\Entity\ItemSet::class,
             'o:media' => \Omeka\Entity\Media::class,
             'o:Item' => \Omeka\Entity\Item::class,
             'o:ItemSet' => \Omeka\Entity\ItemSet::class,
             'o:Media' => \Omeka\Entity\Media::class,
+            'o:Annotation' => \Annotate\Entity\Annotation::class,
             // Other resource types or badly written types.
             'item' => \Omeka\Entity\Item::class,
             'item_set' => \Omeka\Entity\ItemSet::class,
@@ -815,6 +818,7 @@ class Bulk extends AbstractPlugin
             'itemset' => \Omeka\Entity\ItemSet::class,
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
+            'annotation' => \Annotate\Entity\Annotation::class,
         ];
         return $entityClasses[$name] ?? null;
     }

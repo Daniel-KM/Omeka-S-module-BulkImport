@@ -160,13 +160,29 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:item_set':
-                $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
-                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'item_sets', $resource['messageStore']);
-                foreach ($ids as $id) {
-                    $resource['o:item_set'][] = [
-                        'o:id' => $id,
-                        'checked_id' => true,
-                    ];
+                $identifierNames = $target['target_data'] ?? $this->bulk->getIdentifierNames();
+                // Check values one by one to manage source identifiers.
+                foreach ($values as $value) {
+                    $itemSetId = $this->bulk->findResourcesFromIdentifiers($value, $identifierNames, 'item_sets', $resource['messageStore']);
+                    if ($itemSetId) {
+                        $resource['o:item_set'][] = [
+                            'o:id' => $itemSetId,
+                            'checked_id' => true,
+                        ];
+                    } elseif (isset($this->identifiers['revert'][$value])) {
+                        $resource['o:item_set'][] = [
+                            'o:id' => null,
+                            'checked_id' => true,
+                            'source_identifier' => $value,
+                        ];
+                    } else {
+                        // Normally not possible: all identifiers are stored in
+                        // the list "revert".
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not an item set.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'value' => $value]
+                        ));
+                    }
                 }
                 return true;
             case 'url':
@@ -319,7 +335,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (!$value) {
                     return true;
                 }
-                $id = $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media', $resource['messageStore']);
+                $id = $this->identifiers['mapx'][$resource['source_index']]
+                    ?? $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media', $resource['messageStore']);
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
@@ -331,14 +348,29 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 return true;
             case 'o:item':
-                // $value = array_pop($values);
+                $identifier = array_pop($values);
                 $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
-                $ids = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
-                $id = $ids ? array_pop($ids) : null;
-                $resource['o:item'] = [
-                    'o:id' => $id,
-                    'checked_id' => true,
-                ];
+                $itemIds = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
+                if ($itemIds) {
+                    $resource['o:item'] = [
+                        'o:id' => array_pop($itemIds),
+                        'checked_id' => true,
+                    ];
+                } elseif (isset($this->identifiers['revert'][$identifier])) {
+                    $resource['o:item'] = [
+                        'o:id' => null,
+                        'checked_id' => true,
+                        'source_identifier' => $identifier,
+                    ];
+                } else {
+                    // Normally not possible: all identifiers are stored in the
+                    // list "revert".
+                    $resource['o:item'] = [
+                        'o:id' => null,
+                        'checked_id' => false,
+                        'source_identifier' => $identifier,
+                    ];
+                }
                 return true;
             case 'url':
                 $value = array_pop($values);
@@ -507,8 +539,19 @@ class ResourceProcessor extends AbstractResourceProcessor
             $entityClass = $adapter->getEntityClass();
             $entity = new $entityClass;
             if ($resource['resource_name'] === 'media') {
-                // Normally already checked.
-                $entityItem = $adapter->getAdapter('items')->findEntity($resource['o:item']['o:id'] ?? 0);
+                $entityItem = null;
+                // Already checked, except when a source identifier is used.
+                if (empty($resource['o:item']['o:id'])) {
+                    if (!empty($resource['o:item']['source_identifier']) && !empty($resource['o:item']['checked_id'])) {
+                        $entityItem = new \Omeka\Entity\Item;
+                    }
+                } else {
+                    try {
+                        $entityItem = $adapter->getAdapter('items')->findEntity($resource['o:item']['o:id']);
+                    } catch (\Exception $e) {
+                        // Managed below.
+                    }
+                }
                 if (!$entityItem) {
                     $resource['messageStore']->addError('media', new PsrMessage(
                         'Media must belong to an item.' // @translate
@@ -645,8 +688,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $identifierProperties = [];
                 $identifierProperties['o:ingester'] = $media['o:ingester'];
                 $identifierProperties['o:item']['o:id'] = $resource['o:id'];
-                $resource['o:media'][$key]['o:id'] = $this->bulk
-                    ->findResourceFromIdentifier($media['o:source'], $identifierProperties, 'media', $resource['messageStore']);
+                $resource['o:media'][$key]['o:id'] = $this->identifiers['mapx'][$resource['source_index']]
+                    ?? $this->bulk->findResourceFromIdentifier($media['o:source'], $identifierProperties, 'media', $resource['messageStore']);
             }
         }
 
@@ -692,7 +735,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
-        if (empty($resource['o:id']) && empty($resource['o:item']['o:id'])) {
+        if (empty($resource['o:id']) && empty($resource['o:item']['o:id']) && empty($resource['checked_id'])) {
             if ($this->action !== self::ACTION_DELETE) {
                 $resource['messageStore']->addError('resource_id', new PsrMessage(
                     'No item is set for the media.' // @translate
