@@ -268,7 +268,7 @@ abstract class AbstractFileReader extends AbstractReader
         // Curl is faster than copy or file_get_contents/file_put_contents.
         // $result = copy($url, $tempname);
         // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
-        $ch = curl_init($url);
+        $curl = curl_init($url);
         $fp = fopen($tempname, 'wb');
         curl_setopt_array($curl, [
             CURLOPT_FILE => $fp,
@@ -276,8 +276,8 @@ abstract class AbstractFileReader extends AbstractReader
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
         ]);
-        curl_exec($ch);
-        curl_close($ch);
+        curl_exec($curl);
+        curl_close($curl);
         fclose($fp);
 
         if (!filesize($tempname)) {
