@@ -224,6 +224,15 @@ trait FileTrait
 
         if (function_exists('curl_init')) {
             $curl = curl_init($url);
+            if (!$curl) {
+                if ($messageStore) {
+                    $messageStore->addError('url', new PsrMessage(
+                        'Cannot fetch url "{url}": url cannot be fetched.', // @translate
+                        ['url' => $url]
+                    ));
+                }
+                return false;
+            }
             curl_setopt_array($curl, [
                 CURLOPT_HEADER => true,
                 CURLOPT_NOBODY => true,
@@ -612,19 +621,40 @@ trait FileTrait
             $tempname = tempnam($this->tempPath, 'omkbulk_');
             // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
             // Curl is faster than copy or file_get_contents/file_put_contents.
-            // $result = copy($url, $tempname);
-            // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
-            $ch = curl_init($fileOrUrl);
-            $fp = fopen($tempname, 'wb');
-            curl_setopt_array($curl, [
-                CURLOPT_FILE => $fp,
-                CURLOPT_HEADER => false,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
-            ]);
-            curl_exec($ch);
-            curl_close($ch);
-            fclose($fp);
+            if (function_exists('curl_init')) {
+                $curl = curl_init($fileOrUrl);
+                if (!$curl) {
+                    return [
+                        'status' => 'error',
+                        'message' => new PsrMessage(
+                            'File {file} invalid: {error}', // @translate
+                            ['file' => $fileOrUrl, 'error' => 'Url not available.'] // @translate
+                        ),
+                    ];
+                }
+                $fp = fopen($tempname, 'wb');
+                curl_setopt_array($curl, [
+                    CURLOPT_FILE => $fp,
+                    CURLOPT_HEADER => false,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+                ]);
+                curl_exec($curl);
+                curl_close($curl);
+                fclose($fp);
+            } else {
+                // copy($url, $tempname);
+                $result = file_put_contents($tempname,(string) file_get_contents($fileOrUrl), \LOCK_EX);
+                if ($result ===  false) {
+                    return [
+                        'status' => 'error',
+                        'message' => new PsrMessage(
+                            'File {file} invalid: {error}', // @translate
+                            ['file' => $fileOrUrl, 'error' => 'Url not available.'] // @translate
+                        ),
+                    ];
+                }
+            }
         } else {
             $errorStore = new ErrorStore();
             if (!$this->checkFile($fileOrUrl)) {

@@ -266,21 +266,31 @@ abstract class AbstractFileReader extends AbstractReader
 
         // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
         // Curl is faster than copy or file_get_contents/file_put_contents.
-        // $result = copy($url, $tempname);
-        // $result = file_put_contents($tempname, file_get_contents($url), \LOCK_EX);
-        $curl = curl_init($url);
-        $fp = fopen($tempname, 'wb');
-        curl_setopt_array($curl, [
-            CURLOPT_FILE => $fp,
-            CURLOPT_HEADER => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
-        ]);
-        curl_exec($curl);
-        curl_close($curl);
-        fclose($fp);
+        if (function_exists('curl_init')) {
+            $curl = curl_init($url);
+            if (!$curl) {
+                return null;
+            }
+            $fp = fopen($tempname, 'wb');
+            curl_setopt_array($curl, [
+                CURLOPT_FILE => $fp,
+                CURLOPT_HEADER => false,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+            ]);
+            curl_exec($curl);
+            curl_close($curl);
+            fclose($fp);
+        } else {
+            // copy($url, $tempname);
+            $result = file_put_contents($tempname, (string) file_get_contents($url), \LOCK_EX);
+            if ($result === false) {
+                return null;
+            }
+        }
 
         if (!filesize($tempname)) {
+            unlink($tempname);
             return null;
         }
 
