@@ -44,6 +44,7 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
                 'options' => [
                     'o:item_set' => 'Identifier / Internal id', // @translate
                     'o:is_open' => 'Openness', // @translate
+                    'o:item_set[dcterms:title]' => 'Title', // @translate
                 ],
             ],
             'media' => [
