@@ -1672,8 +1672,8 @@ class TransformSource extends AbstractPlugin
             $fieldsKeyDot = $fieldsKey . '.';
             $fieldsKeyDotLength = mb_strlen($fieldsKeyDot);
             foreach ($flatData as $flatDataKey => $flatDataValue) {
-                if (mb_substr($flatDataKey, 0, $fieldsKeyDotLength) === $fieldsKeyDot) {
-                    $flatDataKey = explode('.', mb_substr($flatDataKey, $fieldsKeyDotLength), 2);
+                if (mb_substr((string) $flatDataKey, 0, $fieldsKeyDotLength) === $fieldsKeyDot) {
+                    $flatDataKey = explode('.', mb_substr((string) $flatDataKey, $fieldsKeyDotLength), 2);
                     if (isset($flatDataKey[1])) {
                         $fields[$flatDataKey[0]][$flatDataKey[1]] = $flatDataValue;
                     }
