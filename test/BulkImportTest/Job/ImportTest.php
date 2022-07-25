@@ -54,7 +54,7 @@ class ImportTest extends OmekaControllerTestCase
 
         $this->loginAsAdmin();
 
-        $this->tempfile = tempnam(sys_get_temp_dir(), 'omk');
+        $this->tempfile = @tempnam(sys_get_temp_dir(), 'omk_bki_');
     }
 
     protected function overrideConfig(): void

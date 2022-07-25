@@ -255,7 +255,7 @@ SQL;
             return null;
         }
 
-        $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
+        $filepath = @tempnam(sys_get_temp_dir(), 'omk_bki_');
         unlink($filepath);
         if (file_exists($filepath . '.csv')) {
             $filepath .= substr(uniqid(), 0, 8);

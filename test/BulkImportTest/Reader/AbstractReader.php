@@ -64,7 +64,7 @@ abstract class AbstractReader extends OmekaControllerTestCase
     protected function getSource($filepath, array $params = [])
     {
         $filepath = $this->basepath . $filepath;
-        $tempPath = tempnam(sys_get_temp_dir(), 'omeka');
+        $tempPath = @tempnam(sys_get_temp_dir(), 'omk_bki_');
         copy($filepath, $tempPath);
 
         $sourceClass = $this->sourceClass;

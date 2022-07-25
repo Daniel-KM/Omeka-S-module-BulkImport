@@ -71,7 +71,7 @@ class ProcessXslt extends AbstractPlugin
         $isRemote = $this->isRemote($uri);
         if ($isRemote) {
             // TODO Use the Omeka temp dir.
-            $filepath = tempnam(sys_get_temp_dir(), basename($uri));
+            $filepath = @tempnam(sys_get_temp_dir(), basename($uri));
             $result = file_put_contents($filepath, file_get_contents($uri));
             if (empty($result)) {
                 $message = sprintf('The remote file "%s" is not readable or empty.', $uri); // @translate
@@ -108,7 +108,7 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaPhp($uri, $stylesheet, $output = '', array $parameters = [])
     {
         if (empty($output)) {
-            $output = tempnam(sys_get_temp_dir(), 'omk_');
+            $output = @tempnam(sys_get_temp_dir(), 'omk_xsl_');
         }
 
         try {
@@ -182,7 +182,7 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaExternal($uri, $stylesheet, $output = '', $parameters = [])
     {
         if (empty($output)) {
-            $output = tempnam(sys_get_temp_dir(), 'omk_');
+            $output = @tempnam(sys_get_temp_dir(), 'omk_xsl_');
         }
 
         $command = sprintf($this->command, escapeshellarg($uri), escapeshellarg($stylesheet), escapeshellarg($output));

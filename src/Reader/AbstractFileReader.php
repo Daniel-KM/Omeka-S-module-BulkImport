@@ -240,7 +240,7 @@ abstract class AbstractFileReader extends AbstractReader
             );
         }
 
-        $filename = tempnam($tempDir, 'omk_');
+        $filename = @tempnam($tempDir, 'omk_bki_');
         if (!move_uploaded_file($file['tmp_name'], $filename)) {
             throw new \Omeka\Service\Exception\RuntimeException(
                 (string) new PsrMessage(
@@ -262,7 +262,7 @@ abstract class AbstractFileReader extends AbstractReader
         $config = $services->get('Config');
         $tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
 
-        $tempname = tempnam($tempPath, 'omkbulk_');
+        $tempname = @tempnam($tempPath, 'omk_bki_');
 
         // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
         // Curl is faster than copy or file_get_contents/file_put_contents.

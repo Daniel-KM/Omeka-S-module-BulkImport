@@ -525,7 +525,7 @@ trait ConfigTrait
         });
 
         // TODO Use omeka temp directory (but check if mysql has access to it).
-        $filepath = tempnam(sys_get_temp_dir(), 'omk_bki_');
+        $filepath = @tempnam(sys_get_temp_dir(), 'omk_bki_');
         try {
             @touch($filepath . '.csv');
         } catch (\Exception $e) {

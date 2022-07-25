@@ -618,7 +618,7 @@ trait FileTrait
         $isUrl = $this->bulk->isUrl($fileOrUrl);
 
         if ($isUrl) {
-            $tempname = tempnam($this->tempPath, 'omkbulk_');
+            $tempname = @tempnam($this->tempPath, 'omk_bki_');
             // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
             // Curl is faster than copy or file_get_contents/file_put_contents.
             if (function_exists('curl_init')) {
