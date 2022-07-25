@@ -126,13 +126,13 @@ class JsonReader extends AbstractPaginatedReader
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
-                return new BaseEntry([], []);
+                return new BaseEntry([], $this->key() + $this->isZeroBased, []);
             }
             $this->transformSource->addVariable('url_resource', $current);
             $current = json_decode($content, true) ?: [];
         }
 
-        return new JsonEntry($current, [], [
+        return new JsonEntry($current, $this->key() + $this->isZeroBased, [], [
             'transformSource' => $this->transformSource,
         ]);
     }

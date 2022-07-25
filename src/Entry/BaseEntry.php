@@ -18,6 +18,13 @@ class BaseEntry implements Entry
     protected $data = [];
 
     /**
+     * The index is 1-based.
+     *
+     * @var int
+     */
+    protected $index = 0;
+
+    /**
      * @var array
      */
     protected $fields = [];
@@ -32,9 +39,10 @@ class BaseEntry implements Entry
      */
     protected $valid;
 
-    public function __construct($data, array $fields, array $options = [])
+    public function __construct($data, int $index, array $fields, array $options = [])
     {
         $this->data = $data;
+        $this->index = $index;
         $this->fields = $fields;
         $this->options = $options;
         $this->init();
@@ -76,6 +84,11 @@ class BaseEntry implements Entry
                 }))
                 : strlen((string) $v);
         }));
+    }
+
+    public function index(): int
+    {
+        return $this->index;
     }
 
     public function getArrayCopy(): array

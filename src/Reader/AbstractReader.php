@@ -78,7 +78,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @var bool
      */
-    protected $isReady;
+    protected $isReady = false;
+
+    /**
+     * @var int 0 (one-based) or 1 (zero-based).
+     */
+    protected $isZeroBased = 0;
 
     /**
      * Reader constructor.
@@ -197,6 +202,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->objectType = null;
         $this->lastErrorMessage = null;
         $this->isReady = false;
+        $this->isZeroBased = 0;
         return $this;
     }
 

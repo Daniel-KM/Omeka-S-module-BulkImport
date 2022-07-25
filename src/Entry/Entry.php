@@ -31,10 +31,17 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
     public function getArrayCopy(): array;
 
     /**
+     * @return int The 1-based source index of the resource.
+     * It should be the same than the key output via a loop on the reader.
+     */
+    public function index(): int;
+
+    /**
      * {@inheritDoc}
      * @see \Iterator::current()
      *
      * @return array The list of values for the current field of the entry.
      */
+    #[\ReturnTypeWillChange]
     public function current();
 }

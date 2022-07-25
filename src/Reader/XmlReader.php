@@ -141,7 +141,7 @@ class XmlReader extends AbstractFileReader
     {
         // To check xml:
         // echo $this->currentData->getSimpleXMLElement()->asXML();
-        return new XmlEntry($this->currentData, $this->availableFields, $this->getParams());
+        return new XmlEntry($this->currentData, $this->key() + $this->isZeroBased, $this->availableFields, $this->getParams());
     }
 
     public function rewind(): void

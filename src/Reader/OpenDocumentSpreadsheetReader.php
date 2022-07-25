@@ -101,6 +101,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     {
         return new SpreadsheetEntry(
             $this->currentData,
+            $this->key() + $this->isZeroBased,
             $this->processAllSheets
                 ? $this->availableFieldsMultiSheets[$this->sheetIndex]
                 : $this->availableFields,

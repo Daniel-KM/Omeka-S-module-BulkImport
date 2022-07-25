@@ -607,9 +607,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
 
+        $resource['source_index'] = $entry->index();
+
         // Added for security.
         $skipKeys = [
             'checked_id' => null,
+            'source_index' => 0,
             'messageStore' => null,
         ];
 
@@ -710,6 +713,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
+        $resource['source_index'] = $entry->index();
         $resource['messageStore']->clearMessages();
 
         $this->skippedSourceFields = [];
@@ -747,6 +751,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
         $resource['o:id'] = null;
+        $resource['source_index'] = 0;
         $resource['checked_id'] = false;
         $resource['messageStore'] = new MessageStore();
         $this->baseGeneric($resource);
