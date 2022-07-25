@@ -1913,7 +1913,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 foreach ($targets as $target) {
                     $sourceFields[$index][] = [
                         'field' => $target,
-                        '@language' => null,
+                        'language' => null,
                         'type' => null,
                         'is_public' => null,
                     ];
