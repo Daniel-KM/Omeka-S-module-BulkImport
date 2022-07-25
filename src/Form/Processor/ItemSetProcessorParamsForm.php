@@ -22,7 +22,8 @@ class ItemSetProcessorParamsForm extends ItemSetProcessorConfigForm
         $mapping = parent::prependMappingOptions();
         return array_merge_recursive($mapping, [
             'metadata' => [
-                'label' => 'Resource metadata', // @translate
+                // Don't indicate it to avoid issue with recursive merge.
+                // 'label' => 'Resource metadata', // @translate
                 'options' => [
                     'o:is_open' => 'Openness', // @translate
                 ],
