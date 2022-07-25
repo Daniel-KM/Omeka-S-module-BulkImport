@@ -511,7 +511,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $entity->setItem($entityItem);
             }
         } else {
-            // The id is already checked.
+            if (empty($resource['o:id'])) {
+                $resource['messageStore']->addError('modules', new PsrMessage(
+                    'The operation "{action}" requires an id.', // @translate
+                    ['action' => $operation]
+                ));
+                return false;
+            }
+
             $request
                 ->setId($resource['o:id']);
 
