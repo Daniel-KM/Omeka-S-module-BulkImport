@@ -951,14 +951,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case substr($datatype, 0, 11) === 'customvocab':
                 // It may be a simple list, a list of uri/label, or items
                 // from an item set.
-                $customVocabType = $this->bulk->getCustomVocabMode($datatype);
+                $customVocabBaseType = $this->bulk->getCustomVocabBaseType($datatype);
                 $result = $this->bulk->isCustomVocabMember($datatype, $value);
-                if (!$result && $customVocabType === 'itemset') {
+                if (!$result && $customVocabBaseType === 'resource') {
                     $value = $this->bulk->findResourceFromIdentifier($value, null, 'items', $resource['messageStore']);
                     $result = $this->bulk->isCustomVocabMember($datatype, $value);
                 }
                 if ($result) {
-                    switch ($customVocabType) {
+                    switch ($customVocabBaseType) {
                         default:
                         case 'literal':
                             $resourceValue['@value'] = $value;
@@ -977,7 +977,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                                 // $resourceValue['o:label'] = null;
                             }
                             break;
-                        case 'itemset':
+                        case 'resource':
                             // The id is checked in function isCustomVocabMember().
                             $resourceValue['value_resource_id'] = $value;
                             $resourceValue['@language'] = null;

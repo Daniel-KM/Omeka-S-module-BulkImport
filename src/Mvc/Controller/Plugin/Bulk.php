@@ -646,35 +646,20 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Get the mode of the custom vocab: "literal", "uri" or "itemset".
+     * Get the main type of the custom vocab: "literal", "resource" or "uri".
      *
-     * The name should be
+     * @todo Check for dynamic custom vocabs.
      */
-    public function getCustomVocabMode(string $name): ?string
+    public function getCustomVocabBaseType(string $name): ?string
     {
         static $customVocabTypes;
 
         if (is_null($customVocabTypes)) {
             $customVocabTypes = [];
-            foreach ($this->getDataTypeNames(true) as $datatype) {
-                if (substr($datatype, 0, 11) !== 'customvocab') {
-                    continue;
-                }
-                // TODO Check if label is managed.
-                $id = (int) substr($datatype, 12);
-                try {
-                    $customVocab = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
-                } catch (\Exception $e) {
-                    $customVocabTypes[$datatype] = null;
-                    continue;
-                }
-                if (method_exists($customVocab, 'uris') && $customVocab->uris()) {
-                    $customVocabTypes[$datatype] = 'uri';
-                } elseif (method_exists($customVocab, 'itemSet') && $itemSet = $customVocab->itemSet()) {
-                    $customVocabTypes[$datatype] = 'itemset';
-                } else {
-                    $customVocabTypes[$datatype] = 'literal';
-                }
+            $types = $this->viewHelpers()->get('customVocabBaseType')();
+            foreach ($types as $id => $type) {
+                $customVocabTypes[$id] = $type;
+                $customVocabTypes["customvocab:$id"] = $type;
             }
         }
 

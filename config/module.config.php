@@ -48,6 +48,12 @@ return [
             'ViewJsonStrategy',
         ],
     ],
+    'view_helpers' => [
+        'factories' => [
+            // Copy from AdvancedResourceTemplate. Copy in BulkExport, BulkEdit and BulkImport. Used in Contribute.
+            'customVocabBaseType' => Service\ViewHelper\CustomVocabBaseTypeFactory::class,
+        ],
+    ],
     // TODO Merge the forms.
     'form_elements' => [
         'invokables' => [
