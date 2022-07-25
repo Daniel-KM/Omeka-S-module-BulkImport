@@ -295,6 +295,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->prepareListOfIdentifiers();
 
+        $this->prepareListOfIds();
+
         // Reset counts.
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
@@ -461,6 +463,45 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'total_processed' => $this->totalProcessed,
                 'total_errors' => $this->totalErrors,
             ]
+        );
+
+        return $this;
+    }
+
+    /**
+     * Get the list of ids from identifiers one time.
+     */
+    protected function prepareListOfIds(): \BulkImport\Processor\Processor
+    {
+        if (empty($this->identifiers['map'])) {
+            return $this;
+        }
+
+        $this->logger->notice(
+            'Start preparing ids from {count} source identifiers.', // @translate
+            ['count' => count($this->identifiers['map'])]
+        );
+
+        // Process only identifiers without ids (normally all of them).
+        $emptyIdentifiers = array_filter($this->identifiers['map'], function($v) {
+            return empty($v);
+        });
+
+        $identifierNames = $this->bulk->getIdentifierNames();
+        $ids = $this->bulk->findResourcesFromIdentifiers(array_keys($emptyIdentifiers), $identifierNames);
+
+        $this->identifiers['map'] = array_replace($this->identifiers['map'], $ids);
+
+        // Fill mapx when possible.
+        foreach ($ids as $identifier => $id) {
+            if (!empty($this->identifiers['revert'][$identifier])) {
+                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier])] = $id;
+            }
+        }
+
+        $this->logger->notice(
+            'End of initial listing of {total} ids from {count} source identifiers.', // @translate
+            ['total' => count($ids), 'count' => count($this->identifiers['map'])]
         );
 
         return $this;
@@ -985,7 +1026,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $hasDatatype = true;
                     break;
                 } elseif (substr($datatypeName, 0, 8) === 'resource') {
-                    $vrId = $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                    $vrId = $this->identifiers['map'][$value]
+                        ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
                     // Normally always true: all identifiers are stored first.
                     if ($vrId || isset($this->identifiers['revert'][$value])) {
                         $this->fillPropertyForValue($resource, $target, $value, $vrId);
@@ -995,7 +1037,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } elseif (substr($datatypeName, 0, 11) === 'customvocab') {
                     // The resource is not checked for custom vocab member here.
                     if ($this->bulk->getCustomVocabBaseType($datatypeName) === 'resource') {
-                        $vrId = $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                        $vrId = $this->identifiers['map'][$value]
+                            ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
                         // Normally always true: all identifiers are stored first.
                         if ($vrId || isset($this->identifiers['revert'][$value])) {
                             $this->fillPropertyForValue($resource, $target, $value, $vrId);
