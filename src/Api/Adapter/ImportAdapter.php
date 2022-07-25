@@ -18,6 +18,16 @@ class ImportAdapter extends AbstractEntityAdapter
         'importer_id' => 'importerId',
     ];
 
+    protected $scalarFields = [
+        'id' => 'id',
+        'importer_id' => 'importer',
+        'job' => 'job',
+        'undo_job' => 'undoJob',
+        'comment' => 'comment',
+        'reader_params' => 'readerParams',
+        'processor_params' => 'processorParams',
+    ];
+
     public function getResourceName()
     {
         return 'bulk_imports';

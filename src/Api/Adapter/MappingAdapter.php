@@ -16,6 +16,16 @@ class MappingAdapter extends AbstractEntityAdapter
     protected $sortFields = [
         'id' => 'id',
         'label' => 'label',
+        'owner_id' => 'owner',
+        'created' => 'created',
+        'modified' => 'modified',
+    ];
+
+    protected $scalarFields = [
+        'id' => 'id',
+        'label' => 'label',
+        'owner' => 'owner',
+        'mapping' => 'mapping',
         'created' => 'created',
         'modified' => 'modified',
     ];

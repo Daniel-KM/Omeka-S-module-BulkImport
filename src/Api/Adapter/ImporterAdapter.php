@@ -16,8 +16,20 @@ class ImporterAdapter extends AbstractEntityAdapter
     protected $sortFields = [
         'id' => 'id',
         'label' => 'label',
+        'owner_id' => 'owner',
         'reader_class' => 'readerClass',
         'processor_class' => 'processorClass',
+    ];
+
+    protected $scalarFields = [
+        'id' => 'id',
+        'label' => 'label',
+        'owner' => 'owner',
+        'config' => 'config',
+        'reader_class' => 'readerClass',
+        'processor_class' => 'processorClass',
+        'reader_config' => 'readerConfig',
+        'processor_config' => 'processorConfig',
     ];
 
     public function getResourceName()
