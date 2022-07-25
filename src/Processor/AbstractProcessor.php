@@ -312,6 +312,7 @@ abstract class AbstractProcessor implements Processor
                 continue;
             }
 
+            // Use source index first, because resource may have no identifier.
             $ids = !empty($this->identifiers['mapx'][$resource['source_index']])
                 ? [$this->identifiers['mapx'][$resource['source_index']]]
                 : $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
@@ -347,6 +348,7 @@ abstract class AbstractProcessor implements Processor
                 }
             }
             $resource['o:id'] = reset($ids);
+            $resource['checked_id'] = true;
             if (isset($resource['messageStore'])) {
                 $resource['messageStore']->addInfo('identifier', new PsrMessage(
                     'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
@@ -368,7 +370,6 @@ abstract class AbstractProcessor implements Processor
                         'resource_id' => $resource['o:id'],
                     ]
                 );
-                $resource['has_error'] = true;
             }
             return true;
         }

@@ -80,6 +80,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * The keys are filled during first loop and values when found or available.
      *
+     * @todo Remove "mapx" and "revert" ("revert" is only used to get "mapx"). "mapx" is a short to map[source index]. But a source can have no identifier and only an index.
+     *
      * @var array
      */
     protected $identifiers = [
@@ -464,7 +466,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
-                'total_identifiers' => count($this->identifiers['revert']),
+                'total_identifiers' => count($this->identifiers['map']),
                 'total_skipped' => $this->totalSkipped,
                 'total_processed' => $this->totalProcessed,
                 'total_errors' => $this->totalErrors,
@@ -1041,8 +1043,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } elseif (substr($datatypeName, 0, 8) === 'resource') {
                     $vrId = $this->identifiers['map'][$value]
                         ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
-                    // Normally always true: all identifiers are stored first.
-                    if ($vrId || isset($this->identifiers['revert'][$value])) {
+                    // Normally always true after first loop: all identifiers
+                    // are stored first.
+                    if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
                         $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                         $hasDatatype = true;
                         break;
@@ -1052,8 +1055,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     if ($this->bulk->getCustomVocabBaseType($datatypeName) === 'resource') {
                         $vrId = $this->identifiers['map'][$value]
                             ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
-                        // Normally always true: all identifiers are stored first.
-                        if ($vrId || isset($this->identifiers['revert'][$value])) {
+                        // Normally always true after first loop: all
+                        // identifiers are stored first.
+                        if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
                             $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                             $hasDatatype = true;
                             break;
@@ -1141,9 +1145,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'resource:media':
                 $resourceValue['value_resource_id'] = $vrId;
                 $resourceValue['@language'] = null;
-                if (!$vrId) {
-                    $resourceValue['source_identifier'] = $value;
-                }
+                $resourceValue['source_identifier'] = $value;
                 break;
 
             case substr($datatype, 0, 11) === 'customvocab':
@@ -1173,9 +1175,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             $resourceValue['value_resource_id'] = $vrId;
                             $resourceValue['@language'] = null;
                             // TODO Check identifier as member of custom vocab later.
-                            if (!$vrId) {
-                                $resourceValue['source_identifier'] = $value;
-                            }
+                            $resourceValue['source_identifier'] = $value;
                             break;
                     }
                 } else {
@@ -2137,7 +2137,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Store identifiers for linked resources.
-        foreach ($resource as $term => $values) {
+        $properties = $this->bulk->getPropertyIds();
+        foreach (array_intersect_key($resource, $properties) as $term => $values) {
             if (!is_array($values)) {
                 continue;
             }

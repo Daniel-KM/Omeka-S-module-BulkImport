@@ -169,15 +169,15 @@ class ResourceProcessor extends AbstractResourceProcessor
                             'o:id' => $itemSetId,
                             'checked_id' => true,
                         ];
-                    } elseif (isset($this->identifiers['revert'][$value])) {
+                    } elseif (array_key_exists($value, $this->identifiers['map'])) {
                         $resource['o:item_set'][] = [
-                            'o:id' => null,
+                            'o:id' => $this->identifiers['map'][$value],
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
                     } else {
-                        // Normally not possible: all identifiers are stored in
-                        // the list "revert".
+                        // Only for first loop. Normally not possible after: all
+                        // identifiers are stored in the list "map" during first loop.
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not an item set.', // @translate
                             ['value' => mb_substr((string) $value, 0, 50), 'value' => $value]
@@ -356,20 +356,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                         'o:id' => array_pop($itemIds),
                         'checked_id' => true,
                     ];
-                } elseif (isset($this->identifiers['revert'][$identifier])) {
+                } elseif (array_key_exists($identifier, $this->identifiers['map'])) {
                     $resource['o:item'] = [
-                        'o:id' => null,
+                        'o:id' => $this->identifiers['map'][$identifier],
                         'checked_id' => true,
                         'source_identifier' => $identifier,
                     ];
                 } else {
-                    // Normally not possible: all identifiers are stored in the
-                    // list "revert".
-                    $resource['o:item'] = [
-                        'o:id' => null,
-                        'checked_id' => false,
-                        'source_identifier' => $identifier,
-                    ];
+                    // Only for first loop. Normally not possible after: all
+                    // identifiers are stored in the list "map" during first loop.
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The value "{value}" is not an item.', // @translate
+                        ['value' => mb_substr((string) $value, 0, 50), 'value' => $value]
+                    ));
                 }
                 return true;
             case 'url':
@@ -688,8 +687,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $identifierProperties = [];
                 $identifierProperties['o:ingester'] = $media['o:ingester'];
                 $identifierProperties['o:item']['o:id'] = $resource['o:id'];
-                $resource['o:media'][$key]['o:id'] = $this->identifiers['mapx'][$resource['source_index']]
-                    ?? $this->bulk->findResourceFromIdentifier($media['o:source'], $identifierProperties, 'media', $resource['messageStore']);
+                $resource['o:media'][$key]['o:id'] = $this->bulk->findResourceFromIdentifier($media['o:source'], $identifierProperties, 'media', $resource['messageStore']);
             }
         }
 
@@ -728,14 +726,23 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        if (empty($resource['o:id']) && $this->actionRequiresId()) {
+        // This check is useless now, because action when unidentified is "skip"
+        // or "create" anyway. Furthermore, the id can be set later.
+        /*
+        if (empty($resource['o:id'])
+            && ($this->actionRequiresId() || empty($resource['source_index']))
+        ) {
             $resource['messageStore']->addError('resource_id', new PsrMessage(
                 'No internal id can be found for the media' // @translate
             ));
             return false;
         }
+        */
 
-        if (empty($resource['o:id']) && empty($resource['o:item']['o:id']) && empty($resource['checked_id'])) {
+        if (empty($resource['o:id'])
+            && empty($resource['o:item']['o:id'])
+            && empty($resource['checked_id'])
+        ) {
             if ($this->action !== self::ACTION_DELETE) {
                 $resource['messageStore']->addError('resource_id', new PsrMessage(
                     'No item is set for the media.' // @translate

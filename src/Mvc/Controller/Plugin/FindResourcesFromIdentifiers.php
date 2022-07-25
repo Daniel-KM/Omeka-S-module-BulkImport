@@ -69,7 +69,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      * All identifiers are returned, even without id.
      *
      * @todo Manage Media source html.
-     * @todo Clarify and simplify input and output.
+     * @todo Clarify and simplify input and output. Complexity is mainly related to media (search a media from ingester and item id during update).
      * @todo Check collation for some identifiers (see CleanUrl).
      *
      * @param array|string $identifiers Identifiers should be unique. If a
