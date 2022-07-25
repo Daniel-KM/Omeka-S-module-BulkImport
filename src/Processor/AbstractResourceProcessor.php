@@ -453,6 +453,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Clean identifiers for duplicates.
         $this->identifiers['source'] = array_map('array_unique', $this->identifiers['source']);
         $this->identifiers['revert'] = array_map('array_unique', $this->identifiers['revert']);
+        $this->identifiers['mapx'] = array_map(function ($v) {
+            return $v ? (int) $v : null;
+        }, $this->identifiers['mapx']);
+        $this->identifiers['map'] = array_map(function ($v) {
+            return $v ? (int) $v : null;
+        }, $this->identifiers['map']);
 
         $this->logger->notice(
             'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors.', // @translate
@@ -498,6 +504,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier])] = $id;
             }
         }
+
+        $this->identifiers['mapx'] = array_map(function ($v) {
+            return $v ? (int) $v : null;
+        }, $this->identifiers['mapx']);
+        $this->identifiers['map'] = array_map(function ($v) {
+            return $v ? (int) $v : null;
+        }, $this->identifiers['map']);
 
         $this->logger->notice(
             'End of initial listing of {total} ids from {count} source identifiers.', // @translate
@@ -1030,7 +1043,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
                     // Normally always true: all identifiers are stored first.
                     if ($vrId || isset($this->identifiers['revert'][$value])) {
-                        $this->fillPropertyForValue($resource, $target, $value, $vrId);
+                        $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                         $hasDatatype = true;
                         break;
                     }
@@ -1041,7 +1054,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
                         // Normally always true: all identifiers are stored first.
                         if ($vrId || isset($this->identifiers['revert'][$value])) {
-                            $this->fillPropertyForValue($resource, $target, $value, $vrId);
+                            $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                             $hasDatatype = true;
                             break;
                         }
