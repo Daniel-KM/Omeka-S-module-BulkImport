@@ -123,7 +123,7 @@ class ImportController extends AbstractActionController
     public function undoAction()
     {
         $importId = (int) $this->params()->fromRoute('id');
-        /** @var \BulkImport\Api\Representation\ImportRepresentation import */
+        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
         $import = $this->api()->searchOne('bulk_imports', ['id' => $importId])->getContent();
         if (!$importId || !$import) {
             $message = new PsrMessage(

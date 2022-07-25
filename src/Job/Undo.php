@@ -14,6 +14,7 @@ class Undo extends AbstractJob
         /** @var \Omeka\Api\Manager $api */
         $api = $services->get('Omeka\ApiManager');
         $logger = $services->get('Omeka\Logger');
+        $entityManager = $services->get('Omeka\EntityManager');
 
         $id = $this->getArg('bulkImportId');
 
@@ -42,7 +43,7 @@ class Undo extends AbstractJob
             return;
         }
 
-        $response = $api->search('bulk_importeds', ['job_id' => $import->job()->id()]);
+        $response = $api->search('bulk_importeds', ['job_id' => $import->job()->id()], ['returnScalar' => 'entityId']);
         $totalResults = $response->getTotalResults();
 
         if (!$totalResults) {
@@ -58,7 +59,7 @@ class Undo extends AbstractJob
             ['total' => $totalResults, 'import' => $id]
         ));
 
-        foreach (array_chunk($response->getContent(), 100) as $chunkIndex => $importedsChunk) {
+        foreach (array_chunk($response->getContent(), 100, true) as $chunkIndex => $importedIdsResourceIds) {
             if ($this->shouldStop()) {
                 $logger->warn(new PsrMessage(
                     'The job "Undo" was stopped: {count}/{total} resources deleted.', // @translate
@@ -66,18 +67,43 @@ class Undo extends AbstractJob
                 ));
                 break;
             }
-            foreach ($importedsChunk as $imported) {
+            // Delete medias first to avoid the entity manager issue "new entity is found"
+            // with media deleted before or after items.
+            $importedIdsMediaIds = $api->search('bulk_importeds', ['id' => array_keys($importedIdsResourceIds), 'entity_name' => 'media'], ['returnScalar' => 'entityId'])->getContent();
+            if (count($importedIdsMediaIds)) {
                 try {
-                    $api->delete('bulk_importeds', $imported->id());
-                    $api->delete($imported->entityName(), $imported->entityId());
+                    $api->batchDelete('media', $importedIdsMediaIds, [], ['continueOnError' => true]);
                 } catch (\Exception $e) {
-                    // Nothing to do: already deleted.
-                    // TODO Implement on delete cascade in the entity Imported.
+                    // Probably nothing to do.
                 }
             }
+            if (count($importedIdsMediaIds) < count($importedIdsResourceIds)) {
+                // Entity names may not be resources (assets), so they should be
+                // removed one by one.
+                // TODO Improve the possibility to delete resources in bulk (use ResourceAdapter).
+                $notMediaIds = array_diff_key($importedIdsResourceIds, $importedIdsMediaIds);
+                // A search is needed only to get the entity name (resource type).
+                // Use return scalar for speed, because the entity ids are
+                // already available.
+                $importedIdsNotMediaIds = $api->search('bulk_importeds', ['id' => array_keys($notMediaIds)], ['returnScalar' => 'entityName'])->getContent();
+                foreach ($importedIdsNotMediaIds as $importedId => $entityName) {
+                    $entityId = $notMediaIds[$importedId] ?? null;
+                    try {
+                        $api->delete($entityName, $entityId);
+                    } catch (\Exception $e) {
+                        // Nothing to do: already deleted.
+                        // TODO Implement on delete cascade in the entity Imported, but check for doctrine events (search index…).
+                    }
+                }
+            }
+            try {
+                $api->batchDelete('bulk_importeds', array_keys($importedIdsResourceIds), [], ['continueOnError' => true]);
+            } catch (\Exception $e) {
+            }
+            $entityManager->clear();
             $logger->info(new PsrMessage(
                 '{count}/{total} resources deleted.', // @translate
-                ['count' => $chunkIndex * 100 + count($importedsChunk), 'total' => $totalResults]
+                ['count' => $chunkIndex * 100 + count($importedIdsResourceIds), 'total' => $totalResults]
             ));
         }
 

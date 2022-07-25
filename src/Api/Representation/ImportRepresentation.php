@@ -137,15 +137,12 @@ class ImportRepresentation extends AbstractEntityRepresentation
     /**
      * Check if an import is undoable.
      *
-     * An import is undoable only if the job process is not running and if it is
-     * not a creation process, and if it is not a dry run, and if there are
-     * recorded data.
+     * An import is undoable only if the undo job is not done, if a job exists,
+     * if the process is not running, and if it is not a dry run, if this is a
+     * "create" action, and if there are recorded data.
      */
     public function isUndoable(): bool
     {
-        if ($this->isDryRun()) {
-            return false;
-        }
         $job = $this->undoJob();
         if ($job) {
             return false;
@@ -161,8 +158,11 @@ class ImportRepresentation extends AbstractEntityRepresentation
         ])) {
             return false;
         }
+        if ($this->isDryRun()) {
+            return false;
+        }
         $params = $this->processorParams();
-        if (empty($params['action']) || $params['action'] === 'create') {
+        if (empty($params['action']) || $params['action'] !== 'create') {
             return false;
         }
         return (bool) $this->importedCount();
