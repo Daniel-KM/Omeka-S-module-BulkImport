@@ -257,12 +257,12 @@ SQL;
                 $this->connection->executeStatement($sql);
 
                 $this->logger->warn(
-                    '{count} were not valid dates and were converted into literal.', // @translate
+                    '{count} values were not valid dates and were converted into literal.', // @translate
                     ['count' => count($notTimestamps)]
                 );
                 $this->logger->warn(
                     'Here are the first invalid dates: {list}.', // @translate
-                    ['list' => implode(', ', array_slice($notTimestamps, 0, 20))]
+                    ['list' => implode(', ', array_slice(array_keys($notTimestamps), 0, 100))]
                 );
             }
         }
