@@ -683,32 +683,65 @@ class Bulk extends AbstractPlugin
         if (!array_key_exists($customVocabDataType, $customVocabs)) {
             $id = (int) substr($customVocabDataType, 12);
             try {
-                $customVocabs[$customVocabDataType] = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
+                /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
+                $customVocab = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
             } catch (\Exception $e) {
-                $customVocabs[$customVocabDataType] = null;
+                $customVocabs[$customVocabDataType]['cv'] = null;
                 return false;
+            }
+
+            // Don't store the custom vocab to avoid issue with entity manager.
+            $customVocabs[$customVocabDataType]['cv'] = $customVocab->id();
+
+            // Support in v1.4.0, but v1.3.0 supports Omeka 3.0.0.
+            if (method_exists($customVocabs[$customVocabDataType]['cv'], 'uris') && $uris = $customVocab->uris()) {
+                $uris = array_filter(array_map('trim', explode("\n", $uris)));
+                $list = [];
+                foreach ($uris as $uriLabel) {
+                    $list[] = $uriLabel;
+                    $list[] = strtok($uriLabel, ' ');
+                }
+                $customVocabs[$customVocabDataType]['type'] = 'uri';
+                $customVocabs[$customVocabDataType]['uris'] = $list;
+            } elseif ($itemSet = $customVocab->itemSet()) {
+                $customVocabs[$customVocabDataType]['type'] = 'resource';
+                $customVocabs[$customVocabDataType]['item_ids'] = [];
+                $customVocabs[$customVocabDataType]['item_set_id'] = (int) $itemSet->id();
+            } else {
+                $customVocabs[$customVocabDataType]['type'] = 'literal';
+                $customVocabs[$customVocabDataType]['terms'] = array_filter(array_map('trim', explode("\n", $customVocab->terms())), 'strlen');
             }
         }
 
-        if (empty($customVocabs[$customVocabDataType])) {
+        if (!$customVocabs[$customVocabDataType]['cv']) {
             return false;
         }
 
-        $customVocab = $customVocabs[$customVocabDataType];
-
-        // Support in v1.4.0, but v1.3.0 supports Omeka 3.0.0.
-        if (method_exists($customVocab, 'uris') && $uris = $customVocab->uris()) {
-            $uris = array_filter(array_map('trim', explode("\n", $uris)));
+        if ($customVocabs[$customVocabDataType]['type'] === 'uri') {
+            if (in_array($value, $customVocabs[$customVocabDataType]['uris'])) {
+                return true;
+            }
+            // Manage dynamic list.
+            try {
+                $customVocab = $this->api()->read('custom_vocabs', ['id' => $customVocabs[$customVocabDataType]['cv']])->getContent();
+            } catch (\Exception $e) {
+                return false;
+            }
+            $uris = array_filter(array_map('trim', explode("\n", $customVocab->uris())));
             $list = [];
             foreach ($uris as $uriLabel) {
                 $list[] = $uriLabel;
                 $list[] = strtok($uriLabel, ' ');
             }
-            return in_array($value, $list);
+            $customVocabs[$customVocabDataType]['uris'] = $list;
+            return in_array($value, $customVocabs[$customVocabDataType]['uris']);
         }
 
-        if ($itemSet = $customVocab->itemSet()) {
+        if ($customVocabs[$customVocabDataType]['type'] === 'resource') {
             if (is_numeric($value)) {
+                if (in_array($value, $customVocabs[$customVocabDataType]['item_ids'])) {
+                    return true;
+                }
                 try {
                     $value = $this->api()->read('items', ['id' => $value])->getContent();
                 } catch (\Exception $e) {
@@ -717,13 +750,21 @@ class Bulk extends AbstractPlugin
             } elseif (!is_object($value) || !($value instanceof \Omeka\Api\Representation\ItemRepresentation)) {
                 return false;
             }
-            // Check if the value is in the item set.
+            $itemId = $value->id();
+            if (in_array($itemId, $customVocabs[$customVocabDataType]['item_ids'])) {
+                return true;
+            }
+            // Manage dynamic list.
             $itemSets = $value->itemSets();
-            return isset($itemSets[(int) $itemSet->id()]);
+            if (isset($itemSets[$customVocabs[$customVocabDataType]['item_set_id']])) {
+                $customVocabs[$customVocabDataType]['item_ids'][] = $itemId;
+                return true;
+            }
+            return false;
         }
 
-        $terms = array_filter(array_map('trim', explode("\n", $customVocab->terms())), 'strlen');
-        return in_array($value, $terms);
+        // There is no dynamic list for literal.
+        return in_array($value, $customVocabs[$customVocabDataType]['terms']);
     }
 
     /**
