@@ -277,7 +277,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->spreadsheetReader->close();
         }
 
-        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
+        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included [in version 2.3.0, 2022-02-17].
         // Manage compatibility with old version of CSV Import.
         // For now, it should be first checked.
         if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
@@ -417,6 +417,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // @link https://github.com/omeka-s-modules/CSVImport/pull/190
         // So simply remove all empty last empty rows.
         // Do it manually, because row method "isEmptyRow()" is not public.
+        /** @see \Box\Spout\Reader\ODS\RowIterator::isEmptyRow() */
 
         // $this->totalEntries = iterator_count($this->iterator) - 1;
         $total = 0;

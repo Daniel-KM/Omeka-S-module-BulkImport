@@ -711,6 +711,7 @@ class Bulk extends AbstractPlugin
 
         $customVocab = $customVocabs[$customVocabDataType];
 
+        // Support in v1.4.0, but v1.3.0 supports Omeka 3.0.0.
         if (method_exists($customVocab, 'uris') && $uris = $customVocab->uris()) {
             $uris = array_filter(array_map('trim', explode("\n", $uris)));
             $list = [];
@@ -721,7 +722,7 @@ class Bulk extends AbstractPlugin
             return in_array($value, $list);
         }
 
-        if (method_exists($customVocab, 'itemSet') && $itemSet = $customVocab->itemSet()) {
+        if ($itemSet = $customVocab->itemSet()) {
             if (is_numeric($value)) {
                 try {
                     $value = $this->api()->read('items', ['id' => $value])->getContent();
@@ -921,13 +922,13 @@ class Bulk extends AbstractPlugin
                 if ($result['count'][$identifier] > 1) {
                     if ($messageStore) {
                         $messageStore->addWarning('identifier', new PsrMessage(
-                            'Identifier "{identifier}" is not unique ({count} values).', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
+                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
                         ));
                     } else {
                         $this->logger->warn(
-                            'Identifier "{identifier}" is not unique ({count} values).', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier]]
+                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
                         );
                     }
                     // if (!$this->getAllowDuplicateIdentifiers() {

@@ -338,6 +338,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         $fieldset = $this->get('mapping');
 
         $fields = $automapFields($availableFields);
+        $prependedMappingOptions = $this->prependMappingOptions();
         foreach ($availableFields as $index => $name) {
             if (!strlen(trim($name))) {
                 continue;
@@ -350,7 +351,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                         // Fix an issue when a header of a csv file is "0".
                         'label' => is_numeric($name) && intval($name) === 0 ? "[$name]" : $name,
                         'term_as_value' => true,
-                        'prepend_value_options' => $this->prependMappingOptions(),
+                        'prepend_value_options' => $prependedMappingOptions,
                     ],
                     'attributes' => [
                         'value' => $fields[$index] ?? null,

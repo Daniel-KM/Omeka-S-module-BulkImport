@@ -104,7 +104,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 
     public function getLastErrorMessage(): ?string
     {
-        return $this->lastErrorMessage;
+        return (string) $this->lastErrorMessage;
     }
 
     public function getAvailableFields(): array

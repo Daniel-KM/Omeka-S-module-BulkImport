@@ -172,9 +172,11 @@ abstract class AbstractProcessor implements Processor
         // The id is set, but not checked. So check it.
         if ($resource['o:id']) {
             // TODO getResourceName() is only in child AbstractResourceProcessor.
-            $resourceName = empty($resource['resource_name'])
-                ? $this->getResourceName()
-                : $resource['resource_name'];
+            if (empty($resource['resource_name'])) {
+                $resourceName = method_exists($this, 'getResourceName') ? $this->getResourceName() : null;
+            } else {
+                $resourceName = $resource['resource_name'];
+            }
             if (empty($resourceName) || $resourceName === 'resources') {
                 if (isset($resource['messageStore'])) {
                     $resource['messageStore']->addError('resource_name', new PsrMessage(
@@ -423,8 +425,6 @@ abstract class AbstractProcessor implements Processor
             return;
         }
 
-        /** @var \Omeka\Api\Adapter\Manager $adapterManager */
-        $adapterManager = $this->getServiceLocator()->get('Omeka\ApiAdapterManager');
         $classes = [];
 
         $importeds = [];
@@ -434,7 +434,7 @@ abstract class AbstractProcessor implements Processor
             // the api name is unavailable.
             $class = get_class($resource);
             if (empty($classes[$class])) {
-                $classes[$class] = $adapterManager
+                $classes[$class] = $this->adapterManager
                     ->get(substr_replace(str_replace('\\Representation\\', '\\Adapter\\', get_class($resource)), 'Adapter', -14))
                     ->getResourceName();
             }

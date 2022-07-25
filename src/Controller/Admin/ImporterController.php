@@ -265,7 +265,7 @@ class ImporterController extends AbstractActionController
         $id = (int) $this->params()->fromRoute('id');
 
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
-        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $importer = $id ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
         if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
@@ -503,24 +503,26 @@ class ImporterController extends AbstractActionController
                 $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
                 $readerForm->setData($readerConfig);
 
-                $readerForm->add([
-                    'name' => 'current_form',
-                    'type' => Element\Hidden::class,
-                    'attributes' => [
-                        'value' => 'reader',
-                    ],
-                ]);
-                $readerForm->add([
-                    'name' => 'reader_submit',
-                    'type' => Fieldset::class,
-                ]);
-                $readerForm->get('reader_submit')->add([
-                    'name' => 'submit',
-                    'type' => Element\Submit::class,
-                    'attributes' => [
-                        'value' => 'Continue', // @translate
-                    ],
-                ]);
+                $readerForm
+                    ->add([
+                        'name' => 'current_form',
+                        'type' => Element\Hidden::class,
+                        'attributes' => [
+                            'value' => 'reader',
+                        ],
+                    ])
+                    ->add([
+                        'name' => 'reader_submit',
+                        'type' => Fieldset::class,
+                    ])
+                    ->get('reader_submit')
+                    ->add([
+                        'name' => 'submit',
+                        'type' => Element\Submit::class,
+                        'attributes' => [
+                            'value' => 'Continue', // @translate
+                        ],
+                    ]);
 
                 return $readerForm;
             };
@@ -546,24 +548,26 @@ class ImporterController extends AbstractActionController
                 $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
                 $processorForm->setData($processorConfig);
 
-                $processorForm->add([
-                    'name' => 'current_form',
-                    'type' => Element\Hidden::class,
-                    'attributes' => [
-                        'value' => 'processor',
-                    ],
-                ]);
-                $processorForm->add([
-                    'name' => 'reader_submit',
-                    'type' => Fieldset::class,
-                ]);
-                $processorForm->get('reader_submit')->add([
-                    'name' => 'submit',
-                    'type' => Element\Submit::class,
-                    'attributes' => [
-                        'value' => 'Continue', // @translate
-                    ],
-                ]);
+                $processorForm
+                    ->add([
+                        'name' => 'current_form',
+                        'type' => Element\Hidden::class,
+                        'attributes' => [
+                            'value' => 'processor',
+                        ],
+                    ])
+                    ->add([
+                        'name' => 'reader_submit',
+                        'type' => Fieldset::class,
+                    ])
+                    ->get('reader_submit')
+                    ->add([
+                        'name' => 'submit',
+                        'type' => Element\Submit::class,
+                        'attributes' => [
+                            'value' => 'Continue', // @translate
+                        ],
+                    ]);
 
                 return $processorForm;
             };
@@ -572,13 +576,14 @@ class ImporterController extends AbstractActionController
         /* @return \Laminas\Form\Form */
         $formsCallbacks['start'] = function () use ($controller) {
             $startForm = $controller->getForm(ImporterStartForm::class);
-            $startForm->add([
-                'name' => 'current_form',
-                'type' => Element\Hidden::class,
-                'attributes' => [
-                    'value' => 'start',
-                ],
-            ]);
+            $startForm
+                ->add([
+                    'name' => 'current_form',
+                    'type' => Element\Hidden::class,
+                    'attributes' => [
+                        'value' => 'start',
+                    ],
+                ]);
             return $startForm;
         };
 

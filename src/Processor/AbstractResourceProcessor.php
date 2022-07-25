@@ -394,7 +394,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
             }
 
-            // The first entry is #1, but the iterator (array) numbered it 0.
+            // The first entry is #1, but the iterator (array) may number it 0.
             $this->indexResource = $index + $firstIndexBase;
 
             if ($toSkip) {
@@ -512,7 +512,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             ++$this->totalIndexResources;
-            // The first entry is #1, but the iterator (array) numbered it 0.
+            // The first entry is #1, but the iterator (array) may number it 0.
             $this->indexResource = $index + $firstIndexBase;
 
             if ($maxEntries) {
@@ -1317,10 +1317,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                 } else {
                     $identifier = $this->extractIdentifierOrTitle($resource);
-                    $resource['messageStore']->addError('resource', new PsrMessage(
-                        'The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
-                        ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
-                    ));
+                    if ($this->action === self::ACTION_CREATE) {
+                        $resource['messageStore']->addError('resource', new PsrMessage(
+                            'The action "{action}" cannot have an id or a duplicate identifier ({identifier}, #{resource_id}).', // @translate
+                            ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
+                        ));
+                    } else {
+                        $resource['messageStore']->addError('resource', new PsrMessage(
+                            'The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
+                            ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
+                        ));
+                    }
                 }
             }
         }
@@ -1385,23 +1392,23 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process entities.
      */
-    protected function processEntities(array $data): \BulkImport\Processor\Processor
+    protected function processEntities(array $dataResources): \BulkImport\Processor\Processor
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
-                $this->createEntities($data);
+                $this->createEntities($dataResources);
                 break;
             case self::ACTION_APPEND:
             case self::ACTION_REVISE:
             case self::ACTION_UPDATE:
             case self::ACTION_REPLACE:
-                $this->updateEntities($data);
+                $this->updateEntities($dataResources);
                 break;
             case self::ACTION_SKIP:
-                $this->skipEntities($data);
+                $this->skipEntities($dataResources);
                 break;
             case self::ACTION_DELETE:
-                $this->deleteEntities($data);
+                $this->deleteEntities($dataResources);
                 break;
         }
         return $this;
@@ -1410,32 +1417,32 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of entities.
      */
-    protected function createEntities(array $data): \BulkImport\Processor\Processor
+    protected function createEntities(array $dataResources): \BulkImport\Processor\Processor
     {
         $resourceName = $this->getResourceName();
-        $this->createResources($resourceName, $data);
+        $this->createResources($resourceName, $dataResources);
         return $this;
     }
 
     /**
      * Process creation of resources.
      */
-    protected function createResources($resourceName, array $data): \BulkImport\Processor\Processor
+    protected function createResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
     {
-        if (!count($data)) {
+        if (!count($dataResources)) {
             return $this;
         }
 
         try {
-            if (count($data) === 1) {
+            if (count($dataResources) === 1) {
                 $response = $this->bulk->api(null, true)
-                    ->create($resourceName, reset($data));
+                    ->create($resourceName, reset($dataResources));
                 $resource = $response->getContent();
                 $resources = [$resource];
             } else {
                 // TODO Clarify continuation on exception for batch.
                 $resources = $this->bulk->api(null, true)
-                    ->batchCreate($resourceName, $data, [], ['continueOnError' => true])->getContent();
+                    ->batchCreate($resourceName, $dataResources, [], ['continueOnError' => true])->getContent();
             }
         } catch (ValidationException $e) {
             $r = $this->baseEntity();
@@ -1461,12 +1468,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         /** @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation[] $resources */
         foreach ($resources as $resource) {
             if ($resource->resourceName() === 'media') {
-                $this->logger->info(
+                $this->logger->notice(
                     'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
                     ['index' => $this->indexResource, 'media_id' => $resource->id(), 'item_id' => $resource->item()->id()]
                 );
             } else {
-                $this->logger->info(
+                $this->logger->notice(
                     'Index #{index}: Created {resource_name} #{resource_id}', // @translate
                     ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $resource->id()]
                 );
@@ -1481,31 +1488,31 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of entities.
      */
-    protected function updateEntities(array $data): \BulkImport\Processor\Processor
+    protected function updateEntities(array $dataResources): \BulkImport\Processor\Processor
     {
         $resourceName = $this->getResourceName();
 
         $dataToCreateOrSkip = [];
-        foreach ($data as $key => $value) {
+        foreach ($dataResources as $key => $value) {
             if (empty($value['o:id'])) {
                 $dataToCreateOrSkip[] = $value;
-                unset($data[$key]);
+                unset($dataResources[$key]);
             }
         }
         if ($this->actionUnidentified === self::ACTION_CREATE) {
             $this->createResources($resourceName, $dataToCreateOrSkip);
         }
 
-        $this->updateResources($resourceName, $data);
+        $this->updateResources($resourceName, $dataResources);
         return $this;
     }
 
     /**
      * Process update of resources.
      */
-    protected function updateResources($resourceName, array $data): \BulkImport\Processor\Processor
+    protected function updateResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
     {
-        if (!count($data)) {
+        if (!count($dataResources)) {
             return $this;
         }
 
@@ -1516,7 +1523,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Clone is required to keep option to throw issue. The api plugin may
         // be used by other methods.
         $api = clone $this->bulk->api(null, true);
-        foreach ($data as $dataResource) {
+        foreach ($dataResources as $dataResource) {
             $options = [];
             $fileData = [];
 
@@ -1537,10 +1544,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             try {
                 $response = $api->update($resourceName, $dataResource['o:id'], $dataResource, $fileData, $options);
-                $this->logger->notice(
-                    'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
-                );
             } catch (ValidationException $e) {
                 $r = $this->baseEntity();
                 $r['messageStore']->addError('resource', new PsrMessage(
@@ -1569,6 +1572,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ++$this->totalErrors;
                 return $this;
             }
+            $this->logger->notice(
+                'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
+            );
         }
 
         return $this;
@@ -1577,27 +1584,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of entities.
      */
-    protected function deleteEntities(array $data): \BulkImport\Processor\Processor
+    protected function deleteEntities(array $dataResources): \BulkImport\Processor\Processor
     {
         $resourceName = $this->getResourceName();
-        $this->deleteResources($resourceName, $data);
+        $this->deleteResources($resourceName, $dataResources);
         return $this;
     }
 
     /**
      * Process deletion of resources.
      */
-    protected function deleteResources($resourceName, array $data): \BulkImport\Processor\Processor
+    protected function deleteResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
     {
-        if (!count($data)) {
+        if (!count($dataResources)) {
             return $this;
         }
 
         // Get ids (already checked normally).
         $ids = [];
-        foreach ($data as $values) {
-            if (isset($values['o:id'])) {
-                $ids[] = $values['o:id'];
+        foreach ($dataResources as $dataResource) {
+            if (isset($dataResource['o:id'])) {
+                $ids[] = $dataResource['o:id'];
             }
         }
 
@@ -1643,17 +1650,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of entities.
      */
-    protected function skipEntities(array $data): \BulkImport\Processor\Processor
+    protected function skipEntities(array $dataResources): \BulkImport\Processor\Processor
     {
         $resourceName = $this->getResourceName();
-        $this->skipResources($resourceName, $data);
+        $this->skipResources($resourceName, $dataResources);
         return $this;
     }
 
     /**
      * Process skipping of resources.
      */
-    protected function skipResources($resourceName, array $data): \BulkImport\Processor\Processor
+    protected function skipResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
     {
         return $this;
     }

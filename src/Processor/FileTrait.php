@@ -93,6 +93,7 @@ trait FileTrait
         if (PHP_MAJOR_VERSION < 8) {
             $this->asAssociative = 1;
         }
+        $this->isInitFileTrait = true;
     }
 
     /**

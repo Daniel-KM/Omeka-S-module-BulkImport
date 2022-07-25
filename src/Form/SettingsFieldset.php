@@ -15,6 +15,7 @@ class SettingsFieldset extends Fieldset
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'bulk-import')
             ->add([
                 'name' => 'bulkimport_convert_html',
                 'type' => BulkImportElement\OptionalMultiCheckbox::class,

@@ -3,8 +3,8 @@
 (function ($) {
     $(document).ready(function() {
 
-        const basePath = window.location.pathname.replace(/\/admin\/.*/, '');
-        const uploadUrl = basePath + '/admin/bulk/upload';
+        const basePath = window.location.pathname.replace(/\/admin\/.*/, '/');
+        const uploadUrl = basePath + 'admin/bulk/upload';
 
         // May avoid crash on big import and small user computer.
         const maxSizeThumbnail = 15000000;
@@ -246,7 +246,7 @@
         function defaultThumbnailUrl(file) {
             const mainType = file.type.split('/')[0];
             return basePath
-                + '/application/asset/thumbnails/'
+                + 'application/asset/thumbnails/'
                 + (['audio', 'image', 'video'].includes(mainType) ? mainType : 'default')
                 + '.png';
         }
