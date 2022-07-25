@@ -110,11 +110,13 @@ class BaseEntry implements Entry
         throw new \Exception('Modification forbidden'); // @translate
     }
 
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return current($this->data);
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return key($this->data);
@@ -131,12 +133,12 @@ class BaseEntry implements Entry
         $this->valid = true;
     }
 
-    public function valid()
+    public function valid(): bool
     {
         return $this->valid;
     }
 
-    public function count()
+    public function count(): int
     {
         return count($this->data);
     }
@@ -155,9 +157,8 @@ class BaseEntry implements Entry
      * Trim all whitespaces.
      *
      * @param string $string
-     * @return string
      */
-    protected function trimUnicode($string)
+    protected function trimUnicode($string): string
     {
         if (is_object($string) && !method_exists($string, '__toString')) {
             if (!($string instanceof \DateTime)) {

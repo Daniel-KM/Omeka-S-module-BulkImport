@@ -23,11 +23,13 @@ class FakeReader extends AbstractReader
         return 0;
     }
 
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return null;
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         return null;

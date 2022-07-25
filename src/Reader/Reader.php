@@ -34,7 +34,7 @@ interface Reader extends \Iterator, \Countable
      *
      * @return string|null
      */
-    public function getLastErrorMessage();
+    public function getLastErrorMessage(): ?string;
 
     /**
      * @param string $objectType An Omeka api key like "items", "vocabularies"…
@@ -69,6 +69,7 @@ interface Reader extends \Iterator, \Countable
      *
      * @return \BulkImport\Entry\Entry|mixed
      */
+    #[\ReturnTypeWillChange]
     public function current();
 
     /**
@@ -77,5 +78,5 @@ interface Reader extends \Iterator, \Countable
      * {@inheritDoc}
      * @see \Countable::count()
      */
-    public function count();
+    public function count(): int;
 }

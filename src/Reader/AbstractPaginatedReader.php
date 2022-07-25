@@ -132,7 +132,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
      *
      * @return bool
      */
-    public function valid()
+    public function valid(): bool
     {
         if (!$this->isValid) {
             return false;
@@ -145,13 +145,15 @@ abstract class AbstractPaginatedReader extends AbstractReader
     }
 
     /**
-     * @fixme There is an issue widht the sql iterator when there is no row.
+     * @fixme There is an issue with the sql iterator when there is no row.
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return $this->getInnerIterator()->current();
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         // The inner iterator key cannot be used, because it should be a unique
@@ -170,14 +172,14 @@ abstract class AbstractPaginatedReader extends AbstractReader
             : $this->getInnerIterator()->next();
     }
 
-    public function hasNext()
+    public function hasNext(): bool
     {
         $inner = $this->getInnerIterator();
         return $inner->key() + 1 >= $inner->count()
             || $this->currentPage < $this->lastPage;
     }
 
-    public function getArrayCopy()
+    public function getArrayCopy(): array
     {
         $array = [];
         foreach ($this as $value) {

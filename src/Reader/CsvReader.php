@@ -68,6 +68,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
      */
     protected $escape = self::DEFAULT_ESCAPE;
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         // The first row should be numbered 0 for the data, not the headers.

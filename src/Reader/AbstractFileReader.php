@@ -111,6 +111,7 @@ abstract class AbstractFileReader extends AbstractReader
         return $this;
     }
 
+    #[\ReturnTypeWillChange]
     public function current()
     {
         $this->isReady();
@@ -130,6 +131,7 @@ abstract class AbstractFileReader extends AbstractReader
         return new BaseEntry($this->currentData, $this->availableFields, $this->getParams());
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         $this->isReady();

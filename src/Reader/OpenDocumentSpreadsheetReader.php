@@ -108,6 +108,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         );
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         // The first row should be numbered 0 for the data, not the headers.

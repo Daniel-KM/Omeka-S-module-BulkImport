@@ -30,7 +30,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->reader->isValid();
     }
 
-    public function getLastErrorMessage()
+    public function getLastErrorMessage(): ?string
     {
         if ($this->reader && $message = $this->reader->getLastErrorMessage()) {
             return $message;
@@ -44,12 +44,14 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->reader->getAvailableFields();
     }
 
+    #[\ReturnTypeWillChange]
     public function current()
     {
         $this->isReady();
         return $this->reader->current();
     }
 
+    #[\ReturnTypeWillChange]
     public function key()
     {
         $this->isReady();

@@ -102,7 +102,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return true;
     }
 
-    public function getLastErrorMessage()
+    public function getLastErrorMessage(): ?string
     {
         return $this->lastErrorMessage;
     }
