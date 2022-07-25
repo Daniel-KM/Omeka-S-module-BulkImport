@@ -107,6 +107,11 @@ class Bulk extends AbstractPlugin
     /**
      * @var array
      */
+    protected $resourceTemplateTitleIds;
+
+    /**
+     * @var array
+     */
     protected $dataTypes;
 
     public function __construct(ServiceLocatorInterface $services)
@@ -464,6 +469,33 @@ class Bulk extends AbstractPlugin
             return empty($v) ? null : (int) $v;
         }, $this->resourceTemplateClassIds);
         return $this->resourceTemplateClassIds;
+    }
+
+    /**
+     * Get all resource title term ids for templates by id.
+     *
+     * @return array Associative array of title term ids by template id.
+     */
+    public function getResourceTemplateTitleIds(): array
+    {
+        if (isset($this->resourceTemplateTitleIds)) {
+            return $this->resourceTemplateTitleIds;
+        }
+
+        $qb = $this->connection->createQueryBuilder();
+        $qb
+            ->select(
+                'resource_template.id AS id',
+                'resource_template.title_property_id AS title_id'
+            )
+            ->from('resource_template', 'resource_template')
+            ->orderBy('resource_template.id', 'asc')
+        ;
+        $this->resourceTemplateTitleIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
+        $this->resourceTemplateTitleIds = array_map(function ($v) {
+            return empty($v) ? null : (int) $v;
+        }, $this->resourceTemplateTitleIds);
+        return $this->resourceTemplateTitleIds;
     }
 
     /**

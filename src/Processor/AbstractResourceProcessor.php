@@ -1666,8 +1666,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (!empty($resource['o:display_title'])) {
             return (string) $resource['o:display_title'];
         }
+        if (!empty($resource['o:resource_template']['o:id'])) {
+            $templateTitleId = $this->bulk->getResourceTemplateTitleIds()[($resource['o:resource_template']['o:id'])] ?? null;
+            if ($templateTitleId && !empty($resource[$templateTitleId][0]['@value'])) {
+                return (string) $resource[$templateTitleId][0]['@value'];
+            }
+        }
         if (!empty($resource['dcterms:title'][0]['@value'])) {
             return (string) $resource['dcterms:title'][0]['@value'];
+        }
+        if (!empty($resource['foaf:name'][0]['@value'])) {
+            return (string) $resource['foaf:name'][0]['@value'];
+        }
+        if (!empty($resource['skos:preferredLabel'][0]['@value'])) {
+            return (string) $resource['skos:preferredLabel'][0]['@value'];
         }
         return null;
     }
