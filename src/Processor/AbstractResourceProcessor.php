@@ -449,6 +449,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             ++$this->totalIndexResources;
             $resource = $this->processEntry($entry);
+
             $this->extractSourceIdentifiers($resource, $entry);
         }
 
@@ -2138,7 +2139,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Store identifiers for linked resources.
         $properties = $this->bulk->getPropertyIds();
-        foreach (array_intersect_key($resource, $properties) as $term => $values) {
+        foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
             if (!is_array($values)) {
                 continue;
             }
