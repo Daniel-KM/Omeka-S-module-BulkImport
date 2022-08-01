@@ -419,7 +419,7 @@ trait ResourceUpdateTrait
      * @param bool $keepIfNull Specify what to do when a value is null.
      * @return array Merged values extracted from the current and new data.
      */
-    protected function mergeMetadata(array $currentData, array $newData, $keepIfNull = false)
+    protected function mergeMetadata(array $currentData, array $newData, $keepIfNull = false): array
     {
         // Merge properties.
         // Current values are cleaned too, because they have the property label.
@@ -489,32 +489,25 @@ trait ResourceUpdateTrait
      * @param array $newData
      * @return array Merged values extracted from the current and new data.
      */
-    protected function replacePropertyValues(array $currentData, array $newData)
+    protected function replacePropertyValues(array $currentData, array $newData): array
     {
         $currentValues = $this->extractPropertyValuesFromResource($currentData);
         $newValues = $this->extractPropertyValuesFromResource($newData);
-        $updatedValues = array_replace($currentValues, $newValues);
-        return $updatedValues ;
+        return array_replace($currentValues, $newValues);
     }
 
     /**
      * Extract property values from a full array of metadata of a resource json.
-     *
-     * @param array $resourceJson
-     * @return array
      */
-    protected function extractPropertyValuesFromResource($resourceJson)
+    protected function extractPropertyValuesFromResource(array $resourceJson): array
     {
         return array_intersect_key($resourceJson, $this->bulk->getPropertyIds());
     }
 
     /**
      * Deduplicate data ids for collections of items set, items, media…
-     *
-     * @param array $data
-     * @return array
      */
-    protected function deduplicateIds($data)
+    protected function deduplicateIds(array $data): array
     {
         $dataBase = $data;
         // Deduplicate data.
@@ -531,32 +524,40 @@ trait ResourceUpdateTrait
 
     /**
      * Deduplicate property values.
-     *
-     * @param array $valuesByProperty
-     * @return array
      */
-    protected function deduplicatePropertyValues($valuesByProperty)
+    protected function deduplicatePropertyValues(array $valuesByProperty): array
     {
         return array_map([$this, 'deduplicateSinglePropertyValues'], $valuesByProperty);
     }
 
     /**
      * Deduplicate values of a single property.
-     *
-     * @param array $values
-     * @return array
      */
-    protected function deduplicateSinglePropertyValues($values)
+    protected function deduplicateSinglePropertyValues(array $values): array
     {
-        static $base;
-
-        if (is_null($base)) {
-            // Base to normalize data in order to deduplicate them in one pass.
-            $base = [];
-            $base['literal'] = ['is_public' => true, 'property_id' => 0, 'type' => 'literal', '@language' => null, '@value' => ''];
-            $base['resource'] = ['is_public' => true, 'property_id' => 0, 'type' => 'resource', 'value_resource_id' => 0];
-            $base['uri'] = ['is_public' => true, 'o:label' => null, 'property_id' => 0, 'type' => 'uri', '@id' => ''];
-        }
+        // Base to normalize data in order to deduplicate them in one pass.
+        $base = [
+            'literal' => [
+                'type' => 'literal',
+                'property_id' => 0,
+                'is_public' => true,
+                '@value' => '',
+                '@language' => null,
+            ],
+            'resource' => [
+                'type' => 'resource',
+                'property_id' => 0,
+                'is_public' => true,
+                'value_resource_id' => 0,
+            ],
+            'uri' => [
+                'type' => 'uri',
+                'property_id' => 0,
+                'is_public' => true,
+                '@id' => '',
+                'o:label' => null,
+            ],
+        ];
 
         return array_values(
             // Deduplicate values.
