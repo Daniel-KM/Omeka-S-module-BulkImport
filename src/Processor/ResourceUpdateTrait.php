@@ -22,20 +22,101 @@ trait ResourceUpdateTrait
     protected $resourceToUpdate;
 
     /**
+     * @var \Omeka\Entity\Resource
+     */
+    protected $resourceToUpdateEntity;
+
+    /**
+     * @var array
+     */
+    protected $resourceToUpdateArray;
+
+    /**
      * @param string $resourceName
      * @param int $resourceId
      */
     protected function prepareResourceToUpdate($resourceName, $resourceId): void
     {
         if (!$resourceName || !$resourceId) {
+            $this->resourceToUpdateEntity = null;
             $this->resourceToUpdate = null;
+            $this->resourceToUpdateArray = [];
         } elseif (!$this->resourceToUpdate || $this->resourceToUpdate->id() != $resourceId) {
-            $this->resourceToUpdate = $this->bulk->api()->read($resourceName, $resourceId)->getContent();
+            try {
+                $this->resourceToUpdateEntity = $this->bulk->api()->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
+                $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
+                $this->resourceToUpdateArray = $this->resourceToUpdateToArray();
+            } catch (\Exception $e) {
+                $this->resourceToUpdateEntity = null;
+                $this->resourceToUpdate = null;
+                $this->resourceToUpdateArray = [];
+            }
         }
     }
 
     /**
+     * Convert a resource into an array (json serialize), without issue.
+     */
+    protected function resourceToUpdateToArray(): array
+    {
+        if (!$this->resourceToUpdate) {
+            return [];
+        }
+
+        // Direct jsonSerialize() keeps sub-objects, so use json decode/encode.
+        // return json_decode(json_encode($resource), true);
+
+        // But in some cases, for linked resources, there may be rights issues,
+        // or the resource may be not reloaded but a partial doctrine entity
+        // converted into a partial representation. So there may be missing
+        // linked resources, so a fatal error can occur when converting a value
+        // resource to its reference. So extract properties manually.
+        // TODO Find where the issues occurs (during a spreadsheed update on the second row).
+
+        $propertyIds = $this->bulk->getPropertyIds();
+
+        // This serialization does not serialize sub-objects as array.
+        $resourceArray = $this->resourceToUpdate->jsonSerialize();
+
+        // There is only issue for properties.
+        $repr = array_diff_key($resourceArray, $propertyIds);
+        $repr = json_decode(json_encode($repr), true);
+
+        $propertiesWithoutResource = array_intersect_key($resourceArray, $propertyIds);
+        foreach ($propertiesWithoutResource as $term => $values) {
+            /** @var \Omeka\Api\Representation\ValueRepresentation|array $value */
+            foreach ($values as $value) {
+                // In some cases (module event), the value is already an array.
+                if (is_object($value)) {
+                    // The issue occurs only for linked resources.
+                    if ($vr = $value->valueResource()) {
+                        $repr[$term][] = [
+                            'type' => $value->type(),
+                            'property_id' => $propertyIds[$term],
+                            'is_public' => $value->isPublic(),
+                            // '@id' => $vr->apiUrl(),
+                            'value_resource_id' => (int) $vr->id(),
+                            'value_resource_name' => $vr->resourceName(),
+                            '@language' => $value->lang() ?: null,
+                            // 'url' => null,
+                            // 'display_title' => $vr->displayTitle(),
+                        ];
+                    } else {
+                        $repr[$term][] = json_decode(json_encode($value), true);
+                    }
+                } else {
+                    $repr[$term][] = $value;
+                }
+            }
+        }
+
+        return $repr;
+    }
+
+    /**
      * Update a resource (append, revise or update with a deduplication check).
+     *
+     * Data should be already checked.
      *
      * Currently, Omeka S has no method to deduplicate, so a first call is done
      * to get all the data and to update them here, with a deduplication for
@@ -53,12 +134,20 @@ trait ResourceUpdateTrait
      * @param array $data Should have an existing and checked "o:id".
      * @return array
      */
-    protected function updateData($resourceName, $data)
+    protected function updateData($resourceName, $data): array
     {
+        // Use arrays to simplify process.
         $this->prepareResourceToUpdate($resourceName, $data['o:id']);
 
-        // Use arrays to simplify process.
-        $currentData = json_decode(json_encode($this->resourceToUpdate), true);
+        if (!$this->resourceToUpdate) {
+            $this->logger->warn(
+                'Index #{index}: The resource {resource} #{id} is not available and cannot be really updated.', // @translate
+                ['index' => $this->indexResource, 'resource' => $resourceName, 'id', $data['o:id']]
+            );
+        }
+
+        $currentData = $this->resourceToUpdateArray;
+
         switch ($this->action) {
             case \BulkImport\Processor\AbstractProcessor::ACTION_APPEND:
                 $merged = $this->mergeMetadata($currentData, $data, true);
