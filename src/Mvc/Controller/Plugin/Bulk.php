@@ -606,6 +606,54 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get main datatype ("literal", "resource" or "uri") from any data type.
+     *
+     * @see \BulkEdit\Module::mainDataType()
+     * @see \BulkImport\Mvc\Controller\Plugin\Bulk::getMainDataType()
+     */
+    protected function getMainDataType(?string $dataType): ?string
+    {
+        if (empty($dataType)) {
+            return null;
+        }
+        $dataType = strtolower($dataType);
+        if (in_array($dataType, ['literal', 'uri'])) {
+            return $dataType;
+        }
+        if (substr($dataType, 0, 8) === 'resource') {
+            return 'resource';
+        }
+        if (
+            // Module DataTypeGeometry.
+            substr($dataType, 0, 8) === 'geometry'
+            || in_array($dataType, [
+                // Module DataTypePlace.
+                'place',
+                // Module DataTypeRdf.
+                'html',
+                'xml',
+                'boolean',
+                // Specific module.
+                'email',
+            ])
+            // Module NumericDataTypes.
+            || substr($dataType, 0, 7) === 'numeric'
+        ) {
+            return 'literal';
+        }
+        // Module ValueSuggest.
+        if (substr($dataType, 0, 12) === 'valuesuggest'
+            || substr($dataType, 0, 15) === 'valuesuggestall'
+        ) {
+            return 'uri';
+        }
+        if (substr($dataType, 0, 11) === 'customvocab') {
+            return $this->getCustomVocabBaseType($dataType);
+        }
+        return null;
+    }
+
+    /**
      * Normalize custom vocab data type from a "customvocab:label".
      *
      *  The check is done against the destination data types.

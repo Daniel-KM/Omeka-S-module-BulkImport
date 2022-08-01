@@ -88,10 +88,11 @@ trait ResourceUpdateTrait
             foreach ($values as $value) {
                 // In some cases (module event), the value is already an array.
                 if (is_object($value)) {
+                    $valueType = $value->type();
                     // The issue occurs only for linked resources.
                     if ($vr = $value->valueResource()) {
                         $repr[$term][] = [
-                            'type' => $value->type(),
+                            'type' => $valueType,
                             'property_id' => $propertyIds[$term],
                             'is_public' => $value->isPublic(),
                             // '@id' => $vr->apiUrl(),
@@ -101,6 +102,11 @@ trait ResourceUpdateTrait
                             // 'url' => null,
                             // 'display_title' => $vr->displayTitle(),
                         ];
+                    } elseif ($this->bulk->getMainDataType($valueType) === 'resource') {
+                        $this->logger->warn(
+                            'Index #{index}: The resource {resource} #{id} has a linked resource for term {term} that is not available and cannot be really updated.', // @translate
+                            ['index' => $this->indexResource, 'resource' => $this->resourceToUpdate->resourceName(), 'id' => $this->resourceToUpdate->id(), 'term' => $term]
+                        );
                     } else {
                         $repr[$term][] = json_decode(json_encode($value), true);
                     }
