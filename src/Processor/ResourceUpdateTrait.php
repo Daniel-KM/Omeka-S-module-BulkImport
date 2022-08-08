@@ -41,7 +41,9 @@ trait ResourceUpdateTrait
             $this->resourceToUpdateEntity = null;
             $this->resourceToUpdate = null;
             $this->resourceToUpdateArray = [];
-        } elseif (!$this->resourceToUpdate || $this->resourceToUpdate->id() != $resourceId) {
+        } else {
+            // Always reload the resource that is currently managed to manage
+            // multiple update of the same resource.
             try {
                 $this->resourceToUpdateEntity = $this->bulk->api()->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
                 $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
