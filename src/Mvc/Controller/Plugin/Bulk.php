@@ -611,7 +611,7 @@ class Bulk extends AbstractPlugin
      * @see \BulkEdit\Module::mainDataType()
      * @see \BulkImport\Mvc\Controller\Plugin\Bulk::getMainDataType()
      */
-    protected function getMainDataType(?string $dataType): ?string
+    public function getMainDataType(?string $dataType): ?string
     {
         if (empty($dataType)) {
             return null;
@@ -650,7 +650,7 @@ class Bulk extends AbstractPlugin
         }
         // Module ValueSuggest.
         if (substr($dataType, 0, 12) === 'valuesuggest'
-            || substr($dataType, 0, 15) === 'valuesuggestall'
+            // || substr($dataType, 0, 15) === 'valuesuggestall'
         ) {
             return 'uri';
         }
