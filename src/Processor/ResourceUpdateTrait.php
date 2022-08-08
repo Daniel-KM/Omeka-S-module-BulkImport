@@ -128,9 +128,10 @@ trait ResourceUpdateTrait
      * to get all the data and to update them here, with a deduplication for
      * values, then a full replacement (not partial).
      *
-     * The difference between revise and update is that all data that are set
-     * replace current ones with "update", but only the filled ones replace
-     * current one with "revise".
+     * The difference between "revise" and "update" is that, with "update", all
+     * data that are set in the source (generally a column in a spreadsheet)
+     * replace current ones, but, with "revise", only the filled ones replace
+     * current one.
      *
      * Note: when the targets are set on multiple columns, all data are removed.
      *
