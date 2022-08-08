@@ -517,7 +517,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->logger->notice(
             'End of initial listing of {total} ids from {count} source identifiers.', // @translate
-            ['total' => count($ids), 'count' => count($this->identifiers['map'])]
+            ['total' => count(array_filter($this->identifiers['map'])), 'count' => count($this->identifiers['map'])]
         );
 
         return $this;
@@ -1095,15 +1095,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $targetLiteral = $target;
                     $targetLiteral['value']['type'] = 'literal';
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
-                    $resource['messageStore']->addNotice('values', new PsrMessage(
-                        'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
-                    ));
+                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    } else {
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    }
                 } else {
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The value "{value}" is not compatible with datatypes "{datatypes}". Try adding "literal" to datatypes or default to it.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
-                    ));
+                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    } else {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    }
                 }
             }
         }
