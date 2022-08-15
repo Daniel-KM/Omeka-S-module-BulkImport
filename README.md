@@ -261,12 +261,13 @@ a xml unimarc source `17890804` into a standard [ISO 8601] numeric date time `17
 /record/datafield[@tag="103"]/subfield[@code="b"] = dcterms:valid ^^numeric:timestamp ~ {{ value|trim|slice(1,4) }}-{{ value|trim|slice(5,2) }}-{{ value|trim|slice(7,2) }}
 ```
 
-Some specific functions are added: `table`, to replace a code with a string,
+Note that in that case of such a date, a simpler function can be used. Indeed,
+some specific functions are added: `table`, to replace a code with a string,
 `dateIso`, `dateSql`, `isbdName`, `isbdNameColl`, `isbdMark`, `unimarcIndex`,
 `unimarcCoordinates`, `unimarcCoordinatesHexa`, `unimarcTimeHexa`.
 
 To see a full example, look to the file that manage [Unimarc conversion to Omeka].
-Note that this file will be improved soon to manage value annotations, an very
+Note that this file will be improved soon to manage value annotations, a very
 interesting improvement for Omeka 3.2.
 
 The Twig filters can be used in conjunction with simple replacements. In that
