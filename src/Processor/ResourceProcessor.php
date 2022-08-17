@@ -138,8 +138,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         switch ($target['target']) {
             case 'resource_name':
-                $value = array_pop($values);
-                $resourceName = preg_replace('~[^a-z]~', '', strtolower((string) $value));
+                $value = trim((string) end($values));
+                $resourceName = preg_replace('~[^a-z]~', '', strtolower($value));
                 if (isset($resourceNames[$resourceName])) {
                     $resource['resource_name'] = $resourceNames[$resourceName];
                 }
@@ -153,7 +153,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             default:
                 return false;
         }
-        return false;
     }
 
     protected function fillItem(ArrayObject $resource, $target, array $values): bool
@@ -180,7 +179,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         // identifiers are stored in the list "map" during first loop.
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not an item set.', // @translate
-                            ['value' => mb_substr((string) $value, 0, 50), 'value' => $value]
+                            ['value' => mb_substr((string) $value, 0, 50)]
                         ));
                     }
                 }
@@ -259,7 +258,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         }
                         return true;
                     } else {
-                        $value = array_pop($values);
+                        $value = end($values);
                         $media = [];
                         $media[$target['target_data']] = $value;
                         $this->appendRelated($resource, $media, 'o:media', $target['target_data']);
@@ -314,7 +313,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         switch ($target['target']) {
             case 'o:is_open':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:is_open'] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'closed'], true)
                     ? false
                     : (bool) $value;
@@ -331,7 +330,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'o:storage_id':
             case 'o:source':
             case 'o:sha256':
-                $value = trim((string) array_pop($values));
+                $value = trim((string) end($values));
                 if (!$value) {
                     return true;
                 }
@@ -348,12 +347,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 return true;
             case 'o:item':
-                $identifier = array_pop($values);
+                $identifier = (string) end($values);
                 $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
                 $itemIds = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
                 if ($itemIds) {
                     $resource['o:item'] = [
-                        'o:id' => array_pop($itemIds),
+                        'o:id' => end($itemIds),
                         'checked_id' => true,
                     ];
                 } elseif (array_key_exists($identifier, $this->identifiers['map'])) {
@@ -367,18 +366,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                     // identifiers are stored in the list "map" during first loop.
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The value "{value}" is not an item.', // @translate
-                        ['value' => mb_substr((string) $value, 0, 50), 'value' => $value]
+                        ['value' => mb_substr($identifier, 0, 50)]
                     ));
                 }
                 return true;
             case 'url':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:ingester'] = 'url';
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
             case 'file':
-                $value = array_pop($values);
+                $value = end($values);
                 if ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
                     $resource['ingest_url'] = $value;
@@ -389,18 +388,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['o:source'] = $value;
                 return true;
             case 'directory':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:ingester'] = 'sideload_dir';
                 $resource['ingest_directory'] = $value;
                 $resource['o:source'] = $value;
                 return true;
             case 'html':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:ingester'] = 'html';
                 $resource['html'] = $value;
                 return true;
             case 'iiif':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:ingester'] = 'iiif';
                 $resource['ingest_url'] = null;
                 if (!$this->bulk->isUrl($value)) {
@@ -409,7 +408,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['o:source'] = $value;
                 return true;
             case 'tile':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource['o:ingester'] = 'tile';
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;

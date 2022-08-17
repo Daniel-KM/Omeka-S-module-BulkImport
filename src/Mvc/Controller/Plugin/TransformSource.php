@@ -813,7 +813,7 @@ class TransformSource extends AbstractPlugin
                     }
                     break;
                 case 'last':
-                    $v = is_array($v) ? array_pop($v) : mb_substr((string) $v, -1);
+                    $v = is_array($v) ? (string) end($v) : mb_substr((string) $v, -1);
                     break;
                 case 'length':
                     $v = is_array($v) ? count($v) : mb_strlen((string) $v);

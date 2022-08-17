@@ -998,7 +998,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 default:
                     // The resource name should be set only in fillSpecific.
                     if ($target['target'] !== 'resource_name') {
-                        $resource[$target['target']] = array_pop($values);
+                        $resource[$target['target']] = end($values);
                     }
                     break;
             }
@@ -1221,7 +1221,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         switch ($target['target']) {
             case 'o:id':
-                $value = (int) array_pop($values);
+                $value = (int) end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1240,7 +1240,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:resource_template':
-                $value = array_pop($values);
+                $value = end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1263,7 +1263,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:resource_class':
-                $value = array_pop($values);
+                $value = end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1286,7 +1286,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:thumbnail':
-                $value = array_pop($values);
+                $value = end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1317,7 +1317,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:owner':
-                $value = array_pop($values);
+                $value = end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1340,7 +1340,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:email':
-                $value = array_pop($values);
+                $value = end($values);
                 if (!$value) {
                     return true;
                 }
@@ -1356,15 +1356,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 return true;
 
             case 'o:is_public':
-                $value = (string) array_pop($values);
-                $resource['o:is_public'] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private'], true)
+                $value = (string) end($values);
+                $resource['o:is_public'] = in_array(strtolower($value), ['0', 'false', 'no', 'off', 'private'], true)
                     ? false
                     : (bool) $value;
                 return true;
 
             case 'o:created':
             case 'o:modified':
-                $value = array_pop($values);
+                $value = end($values);
                 $resource[$target['target']] = is_array($value)
                     ? $value
                     : ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
