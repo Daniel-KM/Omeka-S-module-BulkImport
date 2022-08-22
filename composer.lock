@@ -92,16 +92,16 @@
         },
         {
             "name": "composer/installers",
-            "version": "v2.1.1",
+            "version": "v2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/installers.git",
-                "reference": "af93ba6e52236418f07a278033eba6959ee5b983"
+                "reference": "c29dc4b93137acb82734f672c37e029dfbd95b35"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/installers/zipball/af93ba6e52236418f07a278033eba6959ee5b983",
-                "reference": "af93ba6e52236418f07a278033eba6959ee5b983",
+                "url": "https://api.github.com/repos/composer/installers/zipball/c29dc4b93137acb82734f672c37e029dfbd95b35",
+                "reference": "c29dc4b93137acb82734f672c37e029dfbd95b35",
                 "shasum": ""
             },
             "require": {
@@ -189,6 +189,7 @@
                 "magento",
                 "majima",
                 "mako",
+                "matomo",
                 "mediawiki",
                 "miaoxing",
                 "modulework",
@@ -216,7 +217,7 @@
             ],
             "support": {
                 "issues": "https://github.com/composer/installers/issues",
-                "source": "https://github.com/composer/installers/tree/v2.1.1"
+                "source": "https://github.com/composer/installers/tree/v2.2.0"
             },
             "funding": [
                 {
@@ -232,27 +233,27 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-04-13T09:13:00+00:00"
+            "time": "2022-08-20T06:45:11+00:00"
         },
         {
             "name": "flowjs/flow-php-server",
-            "version": "v1.0.3",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/flowjs/flow-php-server.git",
-                "reference": "c6802bf7c68fe8d1e19b60e484bf08f838861728"
+                "reference": "ab7f6f9a5a47ccd242d48affd20c98e5f785ad14"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/flowjs/flow-php-server/zipball/c6802bf7c68fe8d1e19b60e484bf08f838861728",
-                "reference": "c6802bf7c68fe8d1e19b60e484bf08f838861728",
+                "url": "https://api.github.com/repos/flowjs/flow-php-server/zipball/ab7f6f9a5a47ccd242d48affd20c98e5f785ad14",
+                "reference": "ab7f6f9a5a47ccd242d48affd20c98e5f785ad14",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3"
             },
             "require-dev": {
-                "fabpot/php-cs-fixer": "dev-master",
+                "fabpot/php-cs-fixer": "~2.2",
                 "league/phpunit-coverage-listener": "~1.1",
                 "mikey179/vfsstream": "v1.2.0",
                 "phpunit/phpunit": "4.*"
@@ -286,9 +287,9 @@
             ],
             "support": {
                 "issues": "https://github.com/flowjs/flow-php-server/issues",
-                "source": "https://github.com/flowjs/flow-php-server/tree/master"
+                "source": "https://github.com/flowjs/flow-php-server/tree/v1.1.0"
             },
-            "time": "2017-04-22T08:41:31+00:00"
+            "time": "2020-12-25T10:52:04+00:00"
         },
         {
             "name": "flowjs/flow.js",
@@ -301,16 +302,16 @@
         },
         {
             "name": "hakre/xmlreaderiterator",
-            "version": "v0.1.11",
+            "version": "v0.1.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hakre/XMLReaderIterator.git",
-                "reference": "4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a"
+                "reference": "d32c9878f11e1d94f013d0220cf4b30c93048b84"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hakre/XMLReaderIterator/zipball/4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a",
-                "reference": "4e3e6d38d4927f1d161fef3c10a119f8f1f2a74a",
+                "url": "https://api.github.com/repos/hakre/XMLReaderIterator/zipball/d32c9878f11e1d94f013d0220cf4b30c93048b84",
+                "reference": "d32c9878f11e1d94f013d0220cf4b30c93048b84",
                 "shasum": ""
             },
             "require": {
@@ -349,9 +350,9 @@
             ],
             "support": {
                 "issues": "https://github.com/hakre/XMLReaderIterator/issues",
-                "source": "https://github.com/hakre/XMLReaderIterator/tree/v0.1.11"
+                "source": "https://github.com/hakre/XMLReaderIterator/tree/v0.1.12"
             },
-            "time": "2022-05-13T17:46:05+00:00"
+            "time": "2022-08-18T12:46:46+00:00"
         },
         {
             "name": "mikehaertl/php-pdftk",
