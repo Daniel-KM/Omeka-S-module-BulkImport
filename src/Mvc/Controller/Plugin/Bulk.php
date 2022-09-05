@@ -711,7 +711,7 @@ class Bulk extends AbstractPlugin
 
         if (is_null($customVocabTypes)) {
             $customVocabTypes = [];
-            $types = $this->viewHelpers()->get('customVocabBaseType')();
+            $types = $this->services->get('ViewHelperManager')->get('customVocabBaseType')();
             foreach ($types as $id => $type) {
                 $customVocabTypes[$id] = $type;
                 $customVocabTypes["customvocab:$id"] = $type;
