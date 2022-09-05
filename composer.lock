@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "667e2466c303ec2dc20c1504304fbcfa",
+    "content-hash": "9067c48c3c09e2ff79ca851153792012",
     "packages": [
         {
             "name": "box/spout",
@@ -237,26 +237,31 @@
         },
         {
             "name": "flowjs/flow-php-server",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/flowjs/flow-php-server.git",
-                "reference": "ab7f6f9a5a47ccd242d48affd20c98e5f785ad14"
+                "reference": "fe8890c25e835d0b4f58d8bd91331326ab1808ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/flowjs/flow-php-server/zipball/ab7f6f9a5a47ccd242d48affd20c98e5f785ad14",
-                "reference": "ab7f6f9a5a47ccd242d48affd20c98e5f785ad14",
+                "url": "https://api.github.com/repos/flowjs/flow-php-server/zipball/fe8890c25e835d0b4f58d8bd91331326ab1808ba",
+                "reference": "fe8890c25e835d0b4f58d8bd91331326ab1808ba",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.3"
+                "php": ">=5.4"
             },
             "require-dev": {
+                "ext-mongodb": "*",
                 "fabpot/php-cs-fixer": "~2.2",
                 "league/phpunit-coverage-listener": "~1.1",
                 "mikey179/vfsstream": "v1.2.0",
+                "mongodb/mongodb": "^1.4.0",
                 "phpunit/phpunit": "4.*"
+            },
+            "suggest": {
+                "mongodb/mongodb": "Required to use this package with Mongo DB"
             },
             "type": "library",
             "autoload": {
@@ -287,9 +292,9 @@
             ],
             "support": {
                 "issues": "https://github.com/flowjs/flow-php-server/issues",
-                "source": "https://github.com/flowjs/flow-php-server/tree/v1.1.0"
+                "source": "https://github.com/flowjs/flow-php-server/tree/v1.2.0"
             },
-            "time": "2020-12-25T10:52:04+00:00"
+            "time": "2022-08-26T15:50:37+00:00"
         },
         {
             "name": "flowjs/flow.js",
