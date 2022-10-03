@@ -141,6 +141,7 @@ class XmlReader extends AbstractFileReader
     {
         // To check xml:
         // echo $this->currentData->getSimpleXMLElement()->asXML();
+        // $this->logger->debug($this->currentData->getSimpleXMLElement()->asXML());
         return new XmlEntry($this->currentData, $this->key() + $this->isZeroBased, $this->availableFields, $this->getParams());
     }
 
@@ -244,7 +245,7 @@ class XmlReader extends AbstractFileReader
     protected function checkWellFormedXml($filepath): bool
     {
         // Use xmlReader.
-        $xml_parser = xml_parser_create();
+        $xmlParser = xml_parser_create();
         if (!($fp = fopen($filepath, 'r'))) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" is not readable.', // @translate
@@ -255,14 +256,14 @@ class XmlReader extends AbstractFileReader
 
         $errors = [];
         while ($data = fread($fp, 4096)) {
-            if (!xml_parse($xml_parser, $data, feof($fp))) {
+            if (!xml_parse($xmlParser, $data, feof($fp))) {
                 $errors[] = [
-                    'error' => xml_error_string(xml_get_error_code($xml_parser)),
-                    'line' => xml_get_current_line_number($xml_parser),
+                    'error' => xml_error_string(xml_get_error_code($xmlParser)),
+                    'line' => xml_get_current_line_number($xmlParser),
                 ];
             }
         }
-        xml_parser_free($xml_parser);
+        xml_parser_free($xmlParser);
 
         if ($errors) {
             $this->lastErrorMessage = new PsrMessage(

@@ -4,6 +4,8 @@ namespace BulkImport\Traits;
 
 /**
  * Manage transformSource config, that may be inside multiple files.
+ *
+ * @todo Merge this trait with the controller plugin and use only the plugin.
  */
 trait TransformSourceTrait
 {
@@ -121,7 +123,7 @@ trait TransformSourceTrait
         unset($vars['mapping_config'], $vars['filename']);
         foreach (array_keys($this->transformSourceNormConfig['params']) as $from) {
             // TODO Clarify transform source: the two next lines are the same.
-            // $value = $this->transformSource->setVariables($vars)->convertTargetToString($from, $to);
+            // $value = $this->transformSource->setVariables($vars)->convertTargetToStringJson($from, $to);
             $value = $this->transformSource->setVariables($vars)->convertToString('params', $from);
             $this->transformSourceImportParams[$from] = $value;
             $vars[$from] = $value;

@@ -281,7 +281,7 @@ class TransformSource extends AbstractPlugin
      * @param bool $isDefault When true, the target value "to" is added to the
      * resource without using data.
      */
-    public function convertMappingSection(string $section, array $resource, ?array $data, bool $isDefault = false): array
+    public function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefault = false): array
     {
         if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
             return $resource;
@@ -291,7 +291,9 @@ class TransformSource extends AbstractPlugin
             $flatData = [];
             $fields = [];
         } else {
+            // Flat data and fields are used for jsdot and for replacements.
             $flatData = $this->flatArray($data);
+            // Fields are used only for jsdot.
             $fields = $this->extractFields($data);
         }
 
@@ -311,13 +313,13 @@ class TransformSource extends AbstractPlugin
             }
 
             // @todo When default, "from" is useless: remove it from normalized config.
-            $from = $fromTo['from']['path'] ?? null;
+            $fromPath = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
             $result = [];
             if ($isDefault) {
-                $converted = $this->convertTargetToString($from, $mod);
+                $converted = $this->convertTargetToStringJson($fromPath, $mod);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
@@ -325,12 +327,12 @@ class TransformSource extends AbstractPlugin
             } else {
                 // Check for associative value. "from" is a full path to data:
                 // [key.to.data => "value"]
-                if (array_key_exists($from, $flatData)) {
-                    $values = $flatData[$from];
+                if (array_key_exists($fromPath, $flatData)) {
+                    $values = $flatData[$fromPath];
                 }
                 // Check for a repetitive value, starting with "fields[].".
-                elseif (mb_substr($from, 0, 9) === 'fields[].') {
-                    $values = $fields[mb_substr($from, 9)] ?? [];
+                elseif (mb_substr($fromPath, 0, 9) === 'fields[].') {
+                    $values = $fields[mb_substr($fromPath, 9)] ?? [];
                 } else {
                     continue;
                 }
@@ -341,8 +343,8 @@ class TransformSource extends AbstractPlugin
                 foreach ($values as $value) {
                     // Allows to use multiple mappings in one pattern, managing fields.
                     $source = $flatData;
-                    $source[$from] = $value;
-                    $converted = $this->convertTargetToString($from, $mod, $source);
+                    $source[$fromPath] = $value;
+                    $converted = $this->convertTargetToStringJson($fromPath, $mod, $source);
                     if ($converted === [] || $converted === '' || $converted === null) {
                         continue;
                     }
@@ -369,8 +371,6 @@ class TransformSource extends AbstractPlugin
      * multiple times.
      * @param bool $isDefault When true, the target value "to" is added to the
      * resource without using data.
-     *
-     * @todo Merge convertMappingSectionXml() with convertMappingSection()?
      */
     public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefault = false): array
     {
@@ -451,11 +451,11 @@ class TransformSource extends AbstractPlugin
         }
         return $data instanceof \SimpleXMLElement
             ? $this->convertTargetToStringXml($name, $toMod, $data)
-            : $this->convertTargetToString($name, $toMod, $data);
+            : $this->convertTargetToStringJson($name, $toMod, $data);
     }
 
     /**
-     * Convert a single field from the config into a string.
+     * Convert a single field from the config into a string via a "jsdot".
      *
      * Example:
      * ```php
@@ -477,7 +477,7 @@ class TransformSource extends AbstractPlugin
      * $output = 'https://example.com/api/id/1850'
      * ```
      *
-     * @todo Clarify arguments of function convertTargetToString().
+     * @todo Clarify arguments of function convertTargetToStringJson().
      * @internal For internal use only.
      *
      * @param string|array $from The key, or an array with key "path", where to
@@ -489,7 +489,7 @@ class TransformSource extends AbstractPlugin
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToString($from, $mod, ?array $data = null): ?string
+    protected function convertTargetToStringJson($from, $mod, ?array $data = null): ?string
     {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -501,7 +501,9 @@ class TransformSource extends AbstractPlugin
 
         $mod = $mod['mod'] ?? $mod;
 
+        // Flat data is used for replacement too.
         $flatData = $this->flatArray($data);
+
         $fromValue = $flatData[$from] ?? null;
         $this->addVariable('value', $fromValue);
 
@@ -571,7 +573,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Convert a single field from the config into a string.
+     * Convert a single field from the config into a string via a "xpath".
      *
      * Example:
      * ```php
@@ -782,9 +784,11 @@ class TransformSource extends AbstractPlugin
                 case 'abs':
                     $v = is_numeric($w) ? (string) abs($w) : $w;
                     break;
+
                 case 'capitalize':
                     $v = ucfirst((string) $w);
                     break;
+
                 case 'date':
                     $format = $args;
                     try {
@@ -795,13 +799,16 @@ class TransformSource extends AbstractPlugin
                         // Nothing: keep value.
                     }
                     break;
+
                 case 'e':
                 case 'escape':
                     $v = htmlspecialchars((string) $w, ENT_COMPAT | ENT_HTML5);
                     break;
+
                 case 'first':
                     $v = is_array($v) ? $w : mb_substr((string) $v, 0, 1);
                     break;
+
                 case 'format':
                     $args = $extractList($args);
                     if ($args) {
@@ -812,21 +819,26 @@ class TransformSource extends AbstractPlugin
                         }
                     }
                     break;
+
                 case 'last':
                     $v = is_array($v) ? (string) end($v) : mb_substr((string) $v, -1);
                     break;
+
                 case 'length':
                     $v = is_array($v) ? count($v) : mb_strlen((string) $v);
                     break;
+
                 case 'lower':
                     $v = mb_strtolower((string) $w);
                     break;
+
                 case 'replace':
                     $args = $extractAssociative($args);
                     if ($args) {
                         $v = str_replace(array_keys($args), array_values($args), $w);
                     }
                     break;
+
                 case 'slice':
                     $args = $extractList($args);
                     $start = (int) ($args[0] ?? 0);
@@ -835,6 +847,7 @@ class TransformSource extends AbstractPlugin
                         ? array_slice($v, $start, $length, !empty($args[2]))
                         : mb_substr((string) $w, $start, $length);
                     break;
+
                 case 'split':
                     $args = $extractList($args);
                     $delimiter = $args[0] ?? '';
@@ -843,9 +856,11 @@ class TransformSource extends AbstractPlugin
                         ? explode($delimiter, (string) $w, $limit)
                         : str_split((string) $w, $limit);
                     break;
+
                 case 'striptags':
                     $v = strip_tags((string) $w);
                     break;
+
                 case 'table':
                     // table() (included).
                     $first = mb_substr($args, 0, 1);
@@ -861,9 +876,11 @@ class TransformSource extends AbstractPlugin
                         $v = $this->tables[$name][$w] ?? $w;
                     }
                     break;
+
                 case 'title':
                     $v = ucwords((string) $w);
                     break;
+
                 case 'trim':
                     $args = $extractList($args);
                     $characterMask = $args[0] ?? '';
@@ -880,12 +897,15 @@ class TransformSource extends AbstractPlugin
                         $v = trim((string) $w, $characterMask);
                     }
                     break;
+
                 case 'upper':
                     $v = mb_strtoupper((string) $w);
                     break;
+
                 case 'url_encode':
                     $v = rawurlencode((string) $w);
                     break;
+
                 // Special filters and functions to manage common values.
                 case 'dateIso':
                     // "d1605110512" => "1605-11-05T12" (date iso).
@@ -909,6 +929,7 @@ class TransformSource extends AbstractPlugin
                         }
                     }
                     break;
+
                 case 'dateSql':
                     // Unimarc 005.
                     // "19850901141236.0" => "1985-09-01 14:12:36" (date sql).
@@ -916,6 +937,7 @@ class TransformSource extends AbstractPlugin
                     $v = mb_substr($v, 0, 4) . '-' . mb_substr($v, 4, 2) . '-' . mb_substr($v, 6, 2)
                         . ' ' . mb_substr($v, 8, 2) . ':' . mb_substr($v, 10, 2) . ':' . mb_substr($v, 12, 2);
                     break;
+
                 case 'isbdName':
                     // isbdName(a, b, c, d, f, g, k, o, p, 5) (function).
                     /* Unimarc 700 et suivants :
@@ -953,6 +975,7 @@ class TransformSource extends AbstractPlugin
                         . ($args['5'] ? ', ' . $args['5'] : '')
                     ;
                     break;
+
                 case 'isbdNameColl':
                     // isbdNameColl(a, b, c, d, e, f, g, h, o, p, r, 5) (function).
                     /* Unimarc 710/720/740 et suivants :
@@ -994,6 +1017,7 @@ class TransformSource extends AbstractPlugin
                         . ($args['5'] ? ', ' . $args['5'] : '')
                     ;
                     break;
+
                 case 'isbdMark':
                     /* Unimarc 716 :
                     $a Élément d’entrée
@@ -1008,6 +1032,7 @@ class TransformSource extends AbstractPlugin
                         . ($args['c'] ? (' (' . $args['c'] . ')') : '')
                     ;
                     break;
+
                 case 'unimarcIndex':
                     $args = $extractList($args);
                     $index = $args[0] ?? '';
@@ -1029,6 +1054,7 @@ class TransformSource extends AbstractPlugin
                         }
                     }
                     break;
+
                 case 'unimarcCoordinates':
                     // "w0241207" => "W 24°12’7”".
                     // Hemisphere "+" / "-" too.
@@ -1040,10 +1066,12 @@ class TransformSource extends AbstractPlugin
                         . intval(mb_substr($v, 4, 2)) . '’'
                         . intval(mb_substr($v, 6, 2)) . '”';
                     break;
+
                 case 'unimarcCoordinatesHexa':
                     $v = (string) $w;
                     $v = mb_substr($v, 0, 2) . '°' . mb_substr($v, 2, 2) . '’' . mb_substr($v, 4, 2) . '”';
                     break;
+
                 case 'unimarcTimeHexa':
                     // "150027" => "15h0m27s".
                     $v = (string) $w;
@@ -1054,6 +1082,7 @@ class TransformSource extends AbstractPlugin
                         . ($m ? $m . 'm' : ($h && $s ? '0m' : ''))
                         . ($s ? $s . 's' : '');
                     break;
+
                 // This is not a reserved keyword, so check for a variable.
                 case 'value':
                 default:
@@ -1738,7 +1767,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Get result from a xpah expression on a xml.
+     * Get result from a xpath expression on a xml.
      *
      * If the xpath contains a function (like `substring(xpath, 2)`),
      * `evaluate()` is used and the output may be a simple string.

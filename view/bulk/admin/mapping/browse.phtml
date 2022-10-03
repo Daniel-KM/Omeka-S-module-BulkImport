@@ -1,7 +1,8 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
- * @var \BulkImport\Api\Representation\MappingRepresentation[] $mappings
+ * @var \BulkImport\Api\Representation\MappingRepresentation[] $bulkMappings
+ * @var \BulkImport\Api\Representation\MappingRepresentation[] $resources
  */
 
 use BulkImport\Interfaces\Configurable as ConfigurableImport;
@@ -23,7 +24,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <h2><?= $escape($translate('Configuration of mappings')) ?></h2>
 
-<?php if (count($mappings)): ?>
+<?php if (count($bulkMappings)): ?>
 <table class="tablesaw batch-edit" data-tablesaw-mode="stack">
     <thead>
         <tr>
@@ -32,7 +33,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($mappings as $mapping): ?>
+    <?php foreach ($bulkMappings as $mapping): ?>
         <?php $userIsAllowedUpdate = $mapping->userIsAllowed('update'); ?>
         <?php $userIsAllowedDelete = $mapping->userIsAllowed('delete'); ?>
         <tr>

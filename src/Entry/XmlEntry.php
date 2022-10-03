@@ -278,6 +278,7 @@ class XmlEntry extends BaseEntry
                 break;
 
                 // Module Data type Rdf.
+
             case 'html':
             case 'rdf:HTML':
             case 'http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML':

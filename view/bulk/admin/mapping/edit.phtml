@@ -1,13 +1,15 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\MappingRepresentation $bulkMapping
+ * @var \BulkImport\Api\Representation\MappingRepresentation $resource
  * @var \BulkImport\Form\MappingForm $form
- * @var \BulkImport\Api\Representation\MappingRepresentation $entity
  */
 
-$escape = $this->plugin('escapeHtml');
-$assetUrl = $this->plugin('assetUrl');
-$translate = $this->plugin('translate');
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings edit');
 $this->headLink()

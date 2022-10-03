@@ -35,7 +35,7 @@ class MappingController extends AbstractActionController
         $mappings = $response->getContent();
 
         return new ViewModel([
-            'mappings' => $mappings,
+            'bulkMappings' => $mappings,
             'resources' => $mappings,
         ]);
     }
@@ -49,7 +49,7 @@ class MappingController extends AbstractActionController
     {
         $id = (int) $this->params()->fromRoute('id');
         /** @var \BulkImport\Api\Representation\MappingRepresentation $entity */
-        $entity = ($id) ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
+        $entity = $id ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
 
         if ($id && !$entity) {
             $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
@@ -88,13 +88,15 @@ class MappingController extends AbstractActionController
 
         return new ViewModel([
             'form' => $form,
+            'bulkMapping' => $entity,
+            'resource' => $entity,
         ]);
     }
 
     public function deleteAction()
     {
         $id = (int) $this->params()->fromRoute('id');
-        $entity = ($id) ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
+        $entity = $id ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
 
         if (!$entity) {
             $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
@@ -124,7 +126,8 @@ class MappingController extends AbstractActionController
         }
 
         return new ViewModel([
-            'entity' => $entity,
+            'resource' => $entity,
+            'bulkMapping' => $entity,
             'form' => $form,
         ]);
     }

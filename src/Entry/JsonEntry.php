@@ -7,15 +7,14 @@ class JsonEntry extends BaseEntry
     protected function init(): void
     {
         // Convert the data according to the mapping here.
-        if (!empty($this->options['is_formatted'])) {
+        if (!empty($this->options['is_formatted'])
+            || empty($this->options['transformSource'])
+        ) {
             return;
         }
 
         /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
         $transformSource = $this->options['transformSource'];
-        if (!$transformSource) {
-            return;
-        }
 
         // Avoid an issue when the config is incorrect or incomplete or when the
         // source is not available.
@@ -30,8 +29,8 @@ class JsonEntry extends BaseEntry
 
         // The real resource type is set via config or via processor.
         $resource = [];
-        $resource = $transformSource->convertMappingSection('default', $resource, $this->data, true);
-        $resource = $transformSource->convertMappingSection('mapping', $resource, $this->data);
+        $resource = $transformSource->convertMappingSectionJson('default', $resource, $this->data, true);
+        $resource = $transformSource->convertMappingSectionJson('mapping', $resource, $this->data);
 
         if (!empty($this->data['@context'])) {
             if ($this->data['@context'] === 'http://iiif.io/api/presentation/2/context.json') {
