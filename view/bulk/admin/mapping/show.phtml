@@ -1,0 +1,35 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var bool $isBulkMapping
+ * @var \BulkImport\Api\Representation\MappingRepresentation $bulkMapping
+ * @var \BulkImport\Api\Representation\MappingRepresentation $ressource
+ * @var string $label
+ * @var string $content
+ */
+
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$translate = $plugins->get('translate');
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-mappings show');
+$this->headLink()
+    ->appendStylesheet($assetUrl('vendor/codemirror/lib/codemirror.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('vendor/codemirror/addon/hint/show-hint.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headScript()
+    ->appendFile($assetUrl('vendor/codemirror/lib/codemirror.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/display/placeholder.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/hint/show-hint.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/addon/hint/xml-hint.js', 'BulkImport'))
+    ->appendFile($assetUrl('vendor/codemirror/mode/xml/xml.js', 'BulkImport'))
+    ->appendFile($assetUrl('js/bulk-import-admin.js', 'BulkImport'));
+?>
+
+<?= $this->pageTitle($translate('Show mapping'), 1, $translate('Bulk import')) ?>
+
+<div id="content">
+    <h2 class="label"><?= sprintf($translate('Showing "%s"'), $escape($label)) ?></h2>
+    <textarea name="o-module-bulk:mapping" id="o-module-bulk-mapping" rows="30" class="codemirror-code" rows="30"><?= $escape($content) ?></textarea>
+</div>

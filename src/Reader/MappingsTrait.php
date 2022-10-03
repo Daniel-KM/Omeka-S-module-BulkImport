@@ -133,4 +133,26 @@ trait MappingsTrait
         }
         return $realPath;
     }
+
+    protected function getMapping(string $mappingName): ?string
+    {
+        $services = $this->getServiceLocator();
+        $config = $services->get('Config');
+        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $filepath = &$mappingName;
+
+        if (mb_substr($filepath, 0, 5) === 'user:') {
+            $filepath = $basePath . '/mapping/' . mb_substr($filepath, 5);
+        } elseif (mb_substr($filepath, 0, 7) === 'module:') {
+            $filepath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($filepath, 7);
+        } else {
+            return null;
+        }
+
+        $path = realpath($filepath) ?: null;
+        if (!$path || !is_file($path) || !is_readable($path)) {
+            return null;
+        }
+        return file_get_contents($path);
+    }
 }

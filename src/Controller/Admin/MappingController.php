@@ -51,6 +51,60 @@ class MappingController extends AbstractActionController
         ]);
     }
 
+    public function showAction()
+    {
+        $id = ((int) $this->params()->fromRoute('id'))
+            ?: $this->params()->fromQuery('id');
+
+        if (!$id) {
+            $message = new PsrMessage('No mapping id set.'); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+        }
+
+        /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
+        if (is_numeric($id)) {
+            $entity = $this->api()->read('bulk_mappings', ['id' => $id])->getContent();
+            $isBulkMapping = true;
+        } else {
+            $mappings = $this->listMappings([
+                ['base' => 'ini'],
+                ['base' => 'xml'],
+                ['json' => 'ini'],
+                ['json' => 'xml'],
+                ['xml' => 'ini'],
+                ['xml' => 'xml'],
+                ['xsl' => 'xsl'],
+            ])['module']['options'];
+            $entity = isset($mappings[$id]) ? $id : null;
+            $isBulkMapping = false;
+        }
+
+         if ($id && !$entity) {
+            $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+        }
+
+        if ($isBulkMapping) {
+            return new ViewModel([
+                'isBulkMapping' => true,
+                'bulkMapping' => $entity,
+                'resource' => $entity,
+                'label' => $entity->label(),
+                'content' => $entity->mapping(),
+            ]);
+        }
+
+        return new ViewModel([
+            'isBulkMapping' => false,
+            'bulkMapping' => null,
+            'resource' => null,
+            'label' => $mappings[$id],
+            'content' => $this->getMapping($id),
+        ]);
+    }
+
     public function addAction()
     {
         return $this->editAction();

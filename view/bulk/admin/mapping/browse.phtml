@@ -44,7 +44,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <?php $userIsAllowedDelete = $mapping->userIsAllowed('delete'); ?>
         <tr>
             <td>
-                <?= $mapping->link($mapping->label(), 'edit') ?>
+                <?= $mapping->link($mapping->label(), 'show') ?>
                 <ul class="actions">
                     <?php if ($userIsAllowedUpdate): ?>
                     <li><?= $mapping->link('', 'edit', [
@@ -95,7 +95,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <?php foreach ($internalMappings as $id => $name): ?>
         <tr>
             <td>
-                <?= $escape($name) ?>
+                <a href="<?= $escapeAttr($urlHelper('admin/bulk/default', ['controller' => 'mapping', 'action' => 'show'], ['query' => ['id' => $id]])) ?>"><?= $escape($name) ?></a>
             </td>
             <td>
                 <?= strtok(mb_substr($id, 7), '/') ?>
