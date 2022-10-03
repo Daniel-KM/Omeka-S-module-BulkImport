@@ -1086,7 +1086,7 @@ class MetaMapper extends AbstractPlugin
 
         $twigProcess = function ($v, string $filter) use ($twigVars, $extractList, $extractAssociative) {
             $matches = [];
-            if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~', $filter, $matches) > 0) {
+            if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~U', $filter, $matches) > 0) {
                 $function = $matches['function'];
                 $args = $matches['args'];
             } else {
