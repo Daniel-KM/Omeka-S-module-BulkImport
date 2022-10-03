@@ -1136,6 +1136,30 @@ class MetaMapper extends AbstractPlugin
                     }
                     break;
 
+                // The twig filter is "join", but here "implode" is a function.
+                case 'implode':
+                    $args = $extractList($args);
+                    if (count($args)) {
+                        $delimiter = array_shift($args);
+                        $v = implode($delimiter, $args);
+                    } else {
+                        $v = '';
+                    }
+                    break;
+
+                // Implode only real values, not empty string.
+                case 'implodev':
+                    $args = $extractList($args);
+                    if (count($args)) {
+                        $args = array_filter($args, 'strlen');
+                        // The string avoids strict type issue with empty array.
+                        $delimiter = (string) array_shift($args);
+                        $v = implode($delimiter, $args);
+                    } else {
+                        $v = '';
+                    }
+                    break;
+
                 case 'last':
                     $v = is_array($v) ? (string) end($v) : mb_substr((string) $v, -1);
                     break;
