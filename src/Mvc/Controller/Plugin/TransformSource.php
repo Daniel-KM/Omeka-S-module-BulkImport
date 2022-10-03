@@ -66,6 +66,19 @@ class TransformSource extends AbstractPlugin
     protected static $isInit = false;
 
     /**
+     * A ini config has a static parser (the same for all maps), but a xml
+     * config has a dynamic parser (set as attribute key of element "from").
+     *
+     * @var bool|null
+     */
+    protected $isDynamicParser;
+
+    /**
+     * @var string
+     */
+    protected $defaultParser;
+
+    /**
      * @var array
      */
     protected $importParams = [];
@@ -98,6 +111,11 @@ class TransformSource extends AbstractPlugin
      * @array
      */
     protected $tables = [];
+
+    /**
+     * @var bool
+     */
+    protected $hasError = false;
 
     public function __construct(
         Logger $logger,
@@ -166,6 +184,9 @@ class TransformSource extends AbstractPlugin
      * ]
      * ```
      *
+     * Note that a ini config has a static parser (the same for all maps), but a
+     * xml config has a dynamic parser (set as attribute key of element "from").
+     *
      * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}
      */
     public function __invoke(): self
@@ -201,7 +222,14 @@ class TransformSource extends AbstractPlugin
 
         self::$isInit = true;
 
+        $this->tempConfig = null;
+
         return $this;
+    }
+
+    public function hasError(): bool
+    {
+        return $this->hasError;
     }
 
     private function prepareNormConfig(string $mappingConfig): self
@@ -265,7 +293,7 @@ class TransformSource extends AbstractPlugin
             }
         }
 
-        // Init $this->normConfig.
+        // Init defaultParser, isDynamicParser and normConfig.
         $this
             ->setConfigSections([
                 'info' => 'raw',
@@ -300,6 +328,46 @@ class TransformSource extends AbstractPlugin
             $value = $this->setVariables($vars)->convertToString('params', $from);
             $this->importParams[$from] = $value;
             $vars[$from] = $value;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set the type of the parser and the default parser.
+     *
+     * Require the temp config to be set first.
+     *
+     * Note that a ini config has a static parser (the same for all maps), but a
+     * xml config has a dynamic parser (set as attribute key of element "from").
+     */
+    private function setParserInfo(): self
+    {
+        $this->isDynamicParser = null;
+        $this->defaultParser = null;
+
+        if (empty($this->tempConfig)) {
+            return $this;
+        }
+
+        // An ini config cannot manage dynamic parser.
+        $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
+        $this->isDynamicParser = $isXml;
+
+        if ($this->isDynamicParser) {
+            return $this;
+        }
+
+        $this->defaultParser = $this->normConfig['info']['parser'] ?? null;
+        if ($this->defaultParser) {
+            return $this;
+        }
+
+        $lines = $this->bulk->stringToList($this->tempConfig);
+        $result = preg_grep('~^parser\s*=\s*(?:jsdot|xpath)\s*$~', $lines);
+        if ($result) {
+            $line = trim(reset($result));
+            $this->defaultParser = trim(mb_substr($line, mb_strpos($line, '=') + 1));
         }
 
         return $this;
@@ -361,13 +429,6 @@ class TransformSource extends AbstractPlugin
         return $this;
     }
 
-    protected function setConfig(?string $config): self
-    {
-        $this->tempConfig = $config;
-        $this->normalizeConfig();
-        return $this;
-    }
-
     /**
      * Allow to use a generic config completed by a specific one.
      */
@@ -375,7 +436,18 @@ class TransformSource extends AbstractPlugin
     {
         $mergedMappings = [];
         foreach (array_filter($configs) as $config) {
-            $this->tempConfig = $config;
+            // The config should be trimmed to check the first character.
+            $this->tempConfig = trim($config);
+            // Only the called config can set the type of parser and the default
+            // parser, so set it here.
+            if (is_null($this->isDynamicParser)) {
+                $this->setParserInfo();
+                if (!$this->isDynamicParser && !$this->defaultParser) {
+                    $this->hasError = true;
+                    $this->logger->err('The parser must be set in the config.'); // @translate
+                    return $this;
+                }
+            }
             $this->normalizeConfig();
             // Merge the sections, but don't replace them as a whole, so no
             // array_merge_recursive() neither array_replace_recursive().
@@ -1295,7 +1367,6 @@ class TransformSource extends AbstractPlugin
         }
 
         // When first character is "<", it's an xml because it cannot be ini.
-        $this->tempConfig = trim($this->tempConfig);
         $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
         return $isXml
             ? $this->normalizeConfigXml()
@@ -1347,7 +1418,8 @@ class TransformSource extends AbstractPlugin
                 if (preg_match('~^\[[a-zA-Z][^\]]*\]\s*\S.*$~', $line)) {
                     preg_match('~^\[\s*(?<service>[a-zA-Z][a-zA-Z0-9]*)\s*(?:\:\s*(?<sub>[a-zA-Z][a-zA-Z0-9:]*))?\s*(?:#\s*(?<variant>[^\]]+))?\s*\]\s*(?:=?\s*(?<label>.*))$~', $line, $matches);
                     if (empty($matches['service'])) {
-                        $this->logger->err(sprintf('The autofillers "%s" has no service.', $line));
+                        $this->hasError = true;
+                        $this->logger->err(sprintf('The autofillers "%s" has no service.', $line)); // @translate
                         continue;
                     }
                     $autofillerKey = $matches['service']
@@ -1391,12 +1463,14 @@ class TransformSource extends AbstractPlugin
                 ? mb_strpos($line, '=')
                 : mb_strrpos(strtok($line, '~'), '=');
             if ($pos === false) {
-                $this->logger->err(sprintf('The mapping "%s" has no source or destination.', $line));
+                $this->hasError = true;
+                $this->logger->err(sprintf('The mapping "%s" has no source or destination.', $line)); // @translate
                 continue;
             }
             $from = trim(mb_substr($line, 0, $pos));
             if (!strlen($from)) {
-                $this->logger->err(sprintf('The mapping "%s" has no source.', $line));
+                $this->hasError = true;
+                $this->logger->err(sprintf('The mapping "%s" has no source.', $line)); // @translate
                 continue;
             }
 
@@ -1427,7 +1501,8 @@ class TransformSource extends AbstractPlugin
             } else {
                 // Section type is "mapping".
                 if (!strlen($to)) {
-                    $this->logger->warn(sprintf('The mapping "%s" has no destination.', trim($line, "= \t\n\r\0\x0B")));
+                    $this->hasError = true;
+                    $this->logger->err(sprintf('The mapping "%s" has no destination.', trim($line, "= \t\n\r\0\x0B"))); // @translate
                     continue;
                 }
                 // Manage default values: dcterms:license = "Public domain"
@@ -1436,12 +1511,13 @@ class TransformSource extends AbstractPlugin
                 $toDest = $isRaw ? $from . ' ~ ' . $originalTo : $to;
                 $ton = $this->normalizeDestination($toDest);
                 if (!$ton) {
-                    $this->logger->err(sprintf('The destination "%s" is invalid.', $to));
+                    $this->hasError = true;
+                    $this->logger->err(sprintf('The destination "%s" is invalid.', $to)); // @translate
                     continue;
                 }
                 $result = [
                     'from' => [
-                        'type' => $this->typePath($from),
+                        'type' => $this->defaultParser,
                         'path' => $from,
                     ],
                     'to' => array_intersect_key($ton, $toKeys),
@@ -1473,14 +1549,16 @@ class TransformSource extends AbstractPlugin
             } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
                 $result['from'] = ['type' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
             } else {
-                $this->logger->err(sprintf('The mapping "%s" has no source.', $index));
+                $this->hasError = true;
+                $this->logger->err(sprintf('The mapping "%s" has no source.', $index)); // @translate
                 return null;
             }
 
             if (!isset($xmlArray['to']['@attributes']['field'])
                 || !strlen((string) $xmlArray['to']['@attributes']['field'])
             ) {
-                $this->logger->err(sprintf('The mapping "%s" has no destination.', $index));
+                $this->hasError = true;
+                $this->logger->err(sprintf('The mapping "%s" has no destination.', $index)); // @translate
                 return null;
             }
 
@@ -1625,41 +1703,6 @@ class TransformSource extends AbstractPlugin
         }
 
         return $result;
-    }
-
-    /**
-     * Determine if expression is a js dot object notation or an xpath.
-     *
-     * Note: a simple string with only letters can be anything.
-     * To force the type of an expression, the xml mapping can be used.
-     *
-     * @return string|null "jsdot" (default) or "xpath".
-     */
-    protected function typePath(?string $path): ?string
-    {
-        if (is_null($path) || !strlen($path)) {
-            return null;
-        }
-
-        // A simple string is a jsdot by default.
-        // A sub-array is represented as "xxx.0.yyy" only compliant as jsdot,
-        // even if it can be inside a key, but very rare in real world.
-        if (preg_match('~^[\w_]+$|\.\d+\.~', $path)) {
-            return 'jsdot';
-        }
-
-        // A quick check.
-        $first = mb_substr($path, 0, 1);
-        if ($first === '/' || preg_match('~^\d~', $path)) {
-            return 'xpath';
-        }
-
-        $xpath = new DOMXPath(new DOMDocument);
-        if (@$xpath->query($path)) {
-            return 'xpath';
-        }
-
-        return 'jsdot';
     }
 
     /**

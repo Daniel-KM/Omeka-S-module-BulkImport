@@ -2267,6 +2267,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
                 $transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
                 $transformSource->init($mappingConfig, $this->reader->getParams());
+                if ($transformSource->hasError()) {
+                    return $this;
+                }
                 $mappingSource = array_merge(
                     $transformSource->getSection('default'),
                     $transformSource->getSection('mapping')

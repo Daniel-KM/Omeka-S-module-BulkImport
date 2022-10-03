@@ -187,7 +187,11 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+
         $this->transformSource->init($mappingConfig, $this->params);
+        if ($this->transformSource->hasError()) {
+            return $this;
+        }
 
         // Prepare specific data for the reader.
         $this->endpoint = $this->transformSource->getImportParam('endpoint') ?: $this->getParam('url');

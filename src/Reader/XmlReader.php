@@ -214,7 +214,12 @@ class XmlReader extends AbstractFileReader
         // The mapping file is not required when the main xsl file creates the
         // resource directly.
         $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+
         $this->transformSource->init($mappingConfig, $this->params);
+        if ($this->transformSource->hasError()) {
+            return $this;
+        }
+
         $this->params['transformSource'] = $this->transformSource;
 
         // @todo See pagination in JsonReader.
