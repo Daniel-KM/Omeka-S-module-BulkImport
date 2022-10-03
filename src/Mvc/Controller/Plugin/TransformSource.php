@@ -76,17 +76,17 @@ class TransformSource extends AbstractPlugin
     protected static $isInit = false;
 
     /**
-     * A ini config has a static parser (the same for all maps), but a xml
-     * config has a dynamic parser (set as attribute key of element "from").
+     * A ini config has a static querier (the same for all maps), but a xml
+     * config has a dynamic querier (set as attribute key of element "from").
      *
      * @var bool|null
      */
-    protected $isDynamicParser;
+    protected $isDynamicQuerier;
 
     /**
      * @var string
      */
-    protected $defaultParser;
+    protected $defaultQuerier;
 
     /**
      * @var array
@@ -170,7 +170,7 @@ class TransformSource extends AbstractPlugin
      * [
      *     [
      *          'from' => [
-     *              'type' => 'xpath',
+     *              'querier' => 'xpath',
      *              'path' => '/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']',
      *          ],
      *          'to' => [
@@ -196,8 +196,8 @@ class TransformSource extends AbstractPlugin
      * ]
      * ```
      *
-     * Note that a ini config has a static parser (the same for all maps), but a
-     * xml config has a dynamic parser (set as attribute key of element "from").
+     * Note that a ini config has a static querier (the same for all maps), but
+     * a xml config has a dynamic querier (set as attribute of element "from").
      *
      * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}
      */
@@ -305,7 +305,7 @@ class TransformSource extends AbstractPlugin
             }
         }
 
-        // Init defaultParser, isDynamicParser and normConfig.
+        // Init defaultQuerier, isDynamicQuerier and normConfig.
         $this
             ->setConfigSections([
                 'info' => 'raw',
@@ -344,40 +344,40 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Set the type of the parser and the default parser.
+     * Set the type of the querier (static or dynamic) and the default querier.
      *
      * Require the temp config to be set first.
      *
-     * Note that a ini config has a static parser (the same for all maps), but a
-     * xml config has a dynamic parser (set as attribute key of element "from").
+     * Note that a ini config has a static querier (the same for all maps), but
+     * a xml config has a dynamic querier (set as attribute of element "from").
      */
-    private function setParserInfo(): self
+    private function setQuerierInfo(): self
     {
-        $this->isDynamicParser = null;
-        $this->defaultParser = null;
+        $this->isDynamicQuerier = null;
+        $this->defaultQuerier = null;
 
         if (empty($this->tempConfig)) {
             return $this;
         }
 
-        // An ini config cannot manage dynamic parser.
+        // An ini config cannot manage dynamic querier.
         $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
-        $this->isDynamicParser = $isXml;
+        $this->isDynamicQuerier = $isXml;
 
-        if ($this->isDynamicParser) {
+        if ($this->isDynamicQuerier) {
             return $this;
         }
 
-        $this->defaultParser = $this->normConfig['info']['parser'] ?? null;
-        if ($this->defaultParser) {
+        $this->defaultQuerier = $this->normConfig['info']['querier'] ?? null;
+        if ($this->defaultQuerier) {
             return $this;
         }
 
         $lines = $this->bulk->stringToList($this->tempConfig);
-        $result = preg_grep('~^parser\s*=\s*(?:jsdot|jmespath|xpath)\s*$~', $lines);
+        $result = preg_grep('~^querier\s*=\s*(?:jsdot|jmespath|xpath)\s*$~', $lines);
         if ($result) {
             $line = trim(reset($result));
-            $this->defaultParser = trim(mb_substr($line, mb_strpos($line, '=') + 1));
+            $this->defaultQuerier = trim(mb_substr($line, mb_strpos($line, '=') + 1));
         }
 
         return $this;
@@ -448,13 +448,13 @@ class TransformSource extends AbstractPlugin
         foreach (array_filter($configs) as $config) {
             // The config should be trimmed to check the first character.
             $this->tempConfig = trim($config);
-            // Only the called config can set the type of parser and the default
-            // parser, so set it here.
-            if (is_null($this->isDynamicParser)) {
-                $this->setParserInfo();
-                if (!$this->isDynamicParser && !$this->defaultParser) {
+            // Only the called config can set the type of querier and the
+            // default querier, so set it here.
+            if (is_null($this->isDynamicQuerier)) {
+                $this->setQuerierInfo();
+                if (!$this->isDynamicQuerier && !$this->defaultQuerier) {
                     $this->hasError = true;
-                    $this->logger->err('The parser must be set in the config.'); // @translate
+                    $this->logger->err('The querier must be set in the config.'); // @translate
                     return $this;
                 }
             }
@@ -512,7 +512,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Convert all mappings from a section with type "mapping".
+     * Convert all mappings from a section with section type "mapping".
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
@@ -531,7 +531,7 @@ class TransformSource extends AbstractPlugin
             $fields = [];
         } else {
             // Flat data and fields are used for jsdot.
-            // Prepare in all cases, because the parser can be set dynamically.
+            // Prepare in all cases, because the querier can be set dynamically.
             $flatData = $this->flatArray($data);
             $fields = $this->extractFields($data);
         }
@@ -554,20 +554,20 @@ class TransformSource extends AbstractPlugin
             }
 
             // @todo When default, "from" is useless: remove it from normalized config.
-            $parser = $fromTo['from']['type'] ?? 'jsdot';
+            $querier = $fromTo['from']['querier'] ?? 'jsdot';
             $fromPath = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
             $result = [];
             if ($isDefaultSection) {
-                $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $parser);
+                $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $querier);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
                 $result[] = $prepend . $converted . $append;
             } else {
-                if ($parser === 'jmespath') {
+                if ($querier === 'jmespath') {
                     $values = $this->jmesPathEnv->search($fromPath, $data);
                     if ($values === [] || $values === '' || $values === null) {
                         continue;
@@ -578,7 +578,7 @@ class TransformSource extends AbstractPlugin
                         if (!is_scalar($value)) {
                             continue;
                         }
-                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $parser);
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $querier);
                         if ($converted === [] || $converted === '' || $converted === null) {
                             continue;
                         }
@@ -604,7 +604,7 @@ class TransformSource extends AbstractPlugin
                         // Allows to use multiple mappings in one pattern, managing fields.
                         $source = $flatData;
                         $source[$fromPath] = $value;
-                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $parser);
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $querier);
                         if ($converted === [] || $converted === '' || $converted === null) {
                             continue;
                         }
@@ -626,7 +626,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Convert all mappings from a section with type "mapping" for xml.
+     * Convert all mappings from a section with section type "mapping" for xml.
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
@@ -713,16 +713,16 @@ class TransformSource extends AbstractPlugin
         } elseif ($data instanceof \SimpleXMLElement) {
             return $this->convertTargetToStringXml($name, $fromToMod, $data);
         }
-        $type = is_array($fromToMod) && isset($fromToMod['from']['type'])
-            ? $fromToMod['from']['type']
+        $querier = is_array($fromToMod) && isset($fromToMod['from']['querier'])
+            ? $fromToMod['from']['querier']
             : 'jsdot';
-        switch ($type) {
+        switch ($querier) {
             default:
-                $type = 'jsdot';
+                $querier = 'jsdot';
                 // no break.
             case 'jsdot':
             case 'jmespath':
-                return $this->convertTargetToStringJson($name, $fromToMod, $data, $type);
+                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier);
             case 'xpath':
                 return $this->convertTargetToStringXml($name, $fromToMod, $data);
         }
@@ -760,11 +760,11 @@ class TransformSource extends AbstractPlugin
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
-     * @param string $parser "jsdot" (default) or "jmespath".
+     * @param string $querier "jsdot" (default) or "jmespath".
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToStringJson($from, $mod, ?array $data = null, ?string $parser = null): ?string
+    protected function convertTargetToStringJson($from, $mod, ?array $data = null, ?string $querier = null): ?string
     {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -776,12 +776,12 @@ class TransformSource extends AbstractPlugin
 
         $mod = $mod['mod'] ?? $mod;
 
-        // Parser is jsdot by default.
-        if ($parser === 'jmespath') {
+        // Querier is jsdot by default.
+        if ($querier === 'jmespath') {
             // TODO Check if data for jmespath are cacheable or automatically cached.
             $fromValue = $data ? $this->jmesPathEnv->search($from, $data) : null;
         } else {
-            $parser = 'jsdot';
+            $querier = 'jsdot';
             $flatData = $this->flatArray($data);
             $fromValue = $flatData[$from] ?? null;
         }
@@ -816,7 +816,7 @@ class TransformSource extends AbstractPlugin
                         continue;
                     }
                     $query = mb_substr($wrappedQuery, 2, -2);
-                    if ($parser === 'jmespath') {
+                    if ($querier === 'jmespath') {
                         $replace[$wrappedQuery] = $this->jmesPathEnv->search($query, $data);
                     } else {
                         $replace[$wrappedQuery] = $flatData[$query] ?? '';
@@ -1570,7 +1570,7 @@ class TransformSource extends AbstractPlugin
                 }
                 $result = [
                     'from' => [
-                        'type' => $this->defaultParser,
+                        'querier' => $this->defaultQuerier,
                         'path' => $from,
                     ],
                     'to' => array_intersect_key($ton, $toKeys),
@@ -1598,11 +1598,11 @@ class TransformSource extends AbstractPlugin
             if ($isDefaultSection) {
                 $result['from'] = null;
             } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
-                $result['from'] = ['type' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
+                $result['from'] = ['querier' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
             } elseif (isset($xmlArray['from']['@attributes']['jmespath']) && strlen((string) $xmlArray['from']['@attributes']['jmespath'])) {
-                $result['from'] = ['type' => 'jmespath', 'path' => (string) $xmlArray['from']['@attributes']['jmespath']];
+                $result['from'] = ['querier' => 'jmespath', 'path' => (string) $xmlArray['from']['@attributes']['jmespath']];
             } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
-                $result['from'] = ['type' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
+                $result['from'] = ['querier' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
             } else {
                 $this->hasError = true;
                 $this->logger->err(sprintf('The mapping "%s" has no source.', $index)); // @translate
