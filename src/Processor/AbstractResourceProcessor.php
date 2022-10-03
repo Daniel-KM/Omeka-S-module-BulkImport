@@ -1469,7 +1469,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $email = empty($value['o:email']) ? null : $value['o:email'];
-                    $value = $id ?? $email ?? reset($value);
+                    $value = $id ?? $email
+                        // Check standard value too, that may be created by a
+                        // xml flat mapping.
+                        // TODO Remove this fix: it should be checked earlier.
+                        ?? $value['@value'] ?? $value['value_resource_id']
+                        ?? reset($value);
                 }
                 $id = $this->bulk->getUserId($value);
                 if ($id) {

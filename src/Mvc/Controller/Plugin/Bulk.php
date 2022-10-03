@@ -844,9 +844,14 @@ class Bulk extends AbstractPlugin
 
     /**
      * Get a user id by email or id or name.
+     *
+     * @var string|int $emailOrIdOrName
      */
     public function getUserId($emailOrIdOrName): ?int
     {
+        if (empty($emailOrIdOrName) || !is_scalar($emailOrIdOrName)) {
+            return null;
+        }
         if (is_numeric($emailOrIdOrName)) {
             $data = ['id' => $emailOrIdOrName];
         } elseif (filter_var($emailOrIdOrName, FILTER_VALIDATE_EMAIL)) {
