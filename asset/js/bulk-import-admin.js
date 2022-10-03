@@ -51,6 +51,7 @@
                 attrs: {
                     code: null,
                     lang: null,
+                    info: null,
                 },
                 children: ['label', 'list'],
             },

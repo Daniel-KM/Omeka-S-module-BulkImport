@@ -4447,6 +4447,7 @@ Le code "#" est utilisé pour " ".
     </map>
 
     <!-- 606 – Point d’accès sujet – Nom commun (2019) -->
+    <!-- Avant mise à jour sru et ne conserver que l'intitulé.
     <map>
         <from xpath="/record/datafield[@tag='606']/subfield[@code='3']"/>
         <to field="dcterms:subject"
@@ -4454,13 +4455,26 @@ Le code "#" est utilisé pour " ".
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
-        <from xpath="/record/datafield[@tag='606'][not(/subfield[@code='3'])]/subfield[@code!='3']"/>
+        <from xpath="/record/datafield[@tag='606'][not(/subfield[@code='3'])][not(/subfield[@code='a'])]/subfield[@code!='3']"/>
         <to field="dcterms:subject"/>
         <mod prepend="Point d’accès sujet – Nom commun "
             pattern="[{{@code}}] : {{ value }}"/>
     </map>
+    -->
+    <map>
+        <from xpath="/record/datafield[@tag='606'][subfield[@code='2']/text() = 'rameau'][not(subfield[@code='x' or @code='y' or @code='z'])]/subfield[@code='a']"/>
+        <to field="dcterms:subject"
+            datatype="literal"/>
+    </map>
+    <map>
+        <from xpath="/record/datafield[@tag='606'][subfield[@code='2']/text() = 'rameau'][subfield[@code='x' or @code='y' or @code='z']]/subfield[@code='a']"/>
+        <to field="dcterms:subject"
+            datatype="literal"/>
+        <mod pattern="{{ implodev(' -- ', '{{../subfield[@code='a']}}', '{{../subfield[@code='x'][1]}}', '{{../subfield[@code='x'][2]}}', '{{../subfield[@code='x'][3]}}', '{{../subfield[@code='x'][4]}}', '{{../subfield[@code='x'][5]}}', '{{../subfield[@code='y'][1]}}', '{{../subfield[@code='y'][2]}}', '{{../subfield[@code='y'][3]}}', '{{../subfield[@code='y'][4]}}', '{{../subfield[@code='y'][5]}}', '{{../subfield[@code='z'][1]}}', '{{../subfield[@code='z'][2]}}', '{{../subfield[@code='z'][3]}}', '{{../subfield[@code='z'][4]}}', '{{../subfield[@code='z'][5]}}') }}"/>
+    </map>
 
     <!-- 607 – Vedette matière – Nom géographique (2013) -->
+    <!-- Avant mise à jour sru et ne conserver que l'intitulé.
     <map>
         <from xpath="/record/datafield[@tag='607']/subfield[@code='3']"/>
         <to field="dcterms:spatial"
@@ -4473,8 +4487,23 @@ Le code "#" est utilisé pour " ".
         <mod prepend="Point d’accès sujet – Nom géographique "
             pattern="[{{@code}}] : {{ value }}"/>
     </map>
+    -->
+    <map>
+        <from xpath="/record/datafield[@tag='607'][subfield[@code='2']/text() = 'rameau'][not(subfield[@code='x' or @code='y' or @code='z'])]/subfield[@code='a']"/>
+        <!-- Utiliser subject -->
+        <to field="dcterms:subject"
+            datatype="literal"/>
+    </map>
+    <map>
+        <from xpath="/record/datafield[@tag='607'][subfield[@code='2']/text() = 'rameau'][subfield[@code='x' or @code='y' or @code='z']]/subfield[@code='a']"/>
+        <!-- Utiliser subject -->
+        <to field="dcterms:subject"
+            datatype="literal"/>
+        <mod pattern="{{ implodev(' -- ', '{{../subfield[@code='a']}}', '{{../subfield[@code='x'][1]}}', '{{../subfield[@code='x'][2]}}', '{{../subfield[@code='x'][3]}}', '{{../subfield[@code='x'][4]}}', '{{../subfield[@code='x'][5]}}', '{{../subfield[@code='y'][1]}}', '{{../subfield[@code='y'][2]}}', '{{../subfield[@code='y'][3]}}', '{{../subfield[@code='y'][4]}}', '{{../subfield[@code='y'][5]}}', '{{../subfield[@code='z'][1]}}', '{{../subfield[@code='z'][2]}}', '{{../subfield[@code='z'][3]}}', '{{../subfield[@code='z'][4]}}', '{{../subfield[@code='z'][5]}}') }}"/>
+    </map>
 
     <!-- 608 – Point d’accès forme, genre ou caractéristiques physiques (2019) -->
+    <!-- Avant mise à jour sru et ne conserver que l'intitulé.
     <map>
         <from xpath="/record/datafield[@tag='608']/subfield[@code='3']"/>
         <to field="dcterms:subject"
@@ -4486,6 +4515,18 @@ Le code "#" est utilisé pour " ".
         <to field="dcterms:subject"/>
         <mod prepend="Point d’accès forme, genre ou caractéristiques physiques "
             pattern="[{{@code}}] : {{ value }}"/>
+    </map>
+    -->
+    <map>
+        <from xpath="/record/datafield[@tag='608'][subfield[@code='2']/text() = 'rameau'][not(subfield[@code='x' or @code='y' or @code='z'])]/subfield[@code='a']"/>
+        <to field="dcterms:subject"
+            datatype="literal"/>
+    </map>
+    <map>
+        <from xpath="/record/datafield[@tag='608'][subfield[@code='2']/text() = 'rameau'][subfield[@code='x' or @code='y' or @code='z']]/subfield[@code='a']"/>
+        <to field="dcterms:subject"
+            datatype="literal"/>
+        <mod pattern="{{ implodev(' -- ', '{{../subfield[@code='a']}}', '{{../subfield[@code='x'][1]}}', '{{../subfield[@code='x'][2]}}', '{{../subfield[@code='x'][3]}}', '{{../subfield[@code='x'][4]}}', '{{../subfield[@code='x'][5]}}', '{{../subfield[@code='y'][1]}}', '{{../subfield[@code='y'][2]}}', '{{../subfield[@code='y'][3]}}', '{{../subfield[@code='y'][4]}}', '{{../subfield[@code='y'][5]}}', '{{../subfield[@code='z'][1]}}', '{{../subfield[@code='z'][2]}}', '{{../subfield[@code='z'][3]}}', '{{../subfield[@code='z'][4]}}', '{{../subfield[@code='z'][5]}}') }}"/>
     </map>
 
     <!-- 610 – Indexation en vocabulaire libre (2013) -->
@@ -8860,6 +8901,61 @@ cartographique, sous forme de livret, d’opuscule, de couverture volante, etc.<
             <term code="i">livraison(s)</term>
             <term code="x">ne s’applique pas</term>
             <term code="#">sans objet</term>
+        </list>
+    </table>
+
+    <table code="unimarc-annexe-g" info="https://www.transition-bibliographique.fr/wp-content/uploads/2018/07/AnnexeG-5-2007.pdf">
+        <label>Annexe G : Systèmes d’indexation</label>
+        <list>
+            <term code="agrovoc">AGROVOC Thesaurus</term>
+            <term code="bic">BIC Subject Categories</term>
+            <term code="bmsi">British Museum Subject Index</term>
+            <term code="cae">National Library of Canada (English) Subject Headings</term>
+            <term code="caf">Vedettes matières (françaises) de la Bibliothèque nationale du Canada</term>
+            <term code="ericd">Thesaurus of ERIC Descriptors</term>
+            <term code="francis">Vocabulaires de la base de données bibliographiques en sciences humaines et sociales FRANCIS</term>
+            <term code="gmgpc">Thesaurus for Graphic Materials II: Genre and Physical Characteristic Terms (TGM II)</term>
+            <term code="gsafd">Guidelines on Subject Access to Individual Works of Fiction, Drama, etc.</term>
+            <term code="inist">INIS Multilingual Thesaurus</term>
+            <term code="inspec">INSPEC Thesaurus</term>
+            <term code="lc">Library of Congress Subject Headings</term>
+            <term code="lcch">Library of Congress Children’s Subject Headings</term>
+            <term code="lctgm">Thesaurus for Graphic Materials I: Subject Terms (TGM I)</term>
+            <term code="mesh">Medical Subject Headings</term>
+            <term code="nal">NAL Agricultural Thesaurus</term>
+            <term code="pascal">Vocabulaires de la base de données bibliographiques en science, technologies et médecine PASCAL</term>
+            <term code="rameau">RAMEAU : répertoire d’autorité-matière encyclopédique et alphabétique unifié</term>
+            <term code="rbbin">Binding terms : a thesaurus for use in rare book and special collections cataloging</term>
+            <term code="rbgenr">Genre Terms: A Thesaurus for Use in Rare Book and Special Collections Cataloguing</term>
+            <term code="rbpap">Paper terms : a thesaurus for use in rare book and special collections cataloging</term>
+            <term code="rbpri">Printing and publishing evidence : a thesaurus for use in rare book and special collections cataloging</term>
+            <term code="rbprov">Provenance evidence : a thesaurus for use in rare book and special collections cataloging</term>
+            <term code="rbtyp">Type evidence : a thesaurus for use in rare book and special collections cataloging</term>
+            <term code="sears">Sears, Minnie Earl. Sears List of Subject Headings</term>
+            <term code="she">SHE : Subject Headings for Engineers</term>
+            <term code="test">TEST : Thesaurus of Engineering and Scientific Terms</term>
+            <term code="watrest">Thesaurus of Water Resources Terms : a collection of water resources and related terms for use in indexing technical information</term>
+            <term code="bipa">Thesaurus de la Banque d’Information Politique et d’Actualité</term>
+            <term code="delphes">Thésaurus Delphes</term>
+            <term code="eudised">Thésaurus EUDISED European Documentation and Information System for Education</term>
+            <term code="fmesh">Le MeSH bilingue français-anglais</term>
+            <term code="laval">Répertoire de vedettes-matière</term>
+            <term code="unesco">Thésaurus de l’UNESCO</term>
+            <term code="urbamet">Thésaurus Urbamet</term>
+            <term code="bisac">Book Industry Standards and Communications (BISAC) Subject Headings</term>
+            <term code="ddc">Dewey Decimal Classification (DDC)</term>
+            <term code="fast">Faceted application of subject terminology</term>
+            <term code="lcc">Library of Congress Classification (LCC)</term>
+            <term code="pcdm">Principes de classement des documents musicaux applicables aux collections de prêt</term>
+            <term code="rubbk">Library Bibliographic Classification Schedules for Research Libraries</term>
+            <term code="rugasnti">State Rubricator for Scientific and Technical Information</term>
+            <term code="sab">SAB - Klassifikationssystem för svenska bibliotek</term>
+            <term code="udc">Universal Decimal Classification (UDC)</term>
+            <term code="usnal">National Agricultural Library Classification</term>
+            <term code="usnlm">National Library of Medicine Classification</term>
+            <term code="frTAV">Typologies audiovisuelles de la Bibliothèque nationale de France</term>
+            <term code="fei">Fingerprints = Empreintes = Impronte</term>
+            <term code="local">Les codes utilisés se réfèrent à une liste qui n’est pas une norme nationale</term>
         </list>
     </table>
 
