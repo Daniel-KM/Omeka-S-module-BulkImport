@@ -164,8 +164,8 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'name' => 'allow_duplicate_identifiers',
                 'type' => Element\Checkbox::class,
                 'options' => [
-                    'label' => 'Allow duplicate identifiers', // @translate
-                    'info' => 'Not recommended, but needed to be compliant with old databases. Duplicates are logged.', // @translate
+                    'label' => 'Allow missing identifiers and duplicate identifiers', // @translate
+                    'info' => 'Not recommended, but needed to be compliant with old databases. Missings and duplicates are logged.', // @translate
                 ],
                 'attributes' => [
                     'id' => 'allow_duplicate_identifiers',

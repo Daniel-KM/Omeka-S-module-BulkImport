@@ -324,22 +324,22 @@ abstract class AbstractProcessor implements Processor
             if (count($flipped) > 1) {
                 if (isset($resource['messageStore'])) {
                     $resource['messageStore']->addWarning('identifier', new PsrMessage(
-                        'Resource doesn’t have a unique identifier.' // @translate
+                        'Resource doesn’t have a unique identifier. You may check options for resource identifiers.' // @translate
                     ));
                 } else {
                     $this->logger->warn(
-                        'Index #{index}: Resource doesn’t have a unique identifier.', // @translate
+                        'Index #{index}: Resource doesn’t have a unique identifier. You may check options for resource identifiers.', // @translate
                         ['index' => $this->indexResource]
                     );
                 }
                 if (!$this->bulk->getAllowDuplicateIdentifiers()) {
                     if (isset($resource['messageStore'])) {
                         $resource['messageStore']->addError('identifier', new PsrMessage(
-                            'Duplicate identifiers are not allowed.' // @translate
+                            'Duplicate identifiers are not allowed. You may check options for resource identifiers.' // @translate
                         ));
                     } else {
                         $this->logger->err(
-                            'Index #{index}: Duplicate identifiers are not allowed.', // @translate
+                            'Index #{index}: Duplicate identifiers are not allowed. You may check options for resource identifiers.', // @translate
                             ['index' => $this->indexResource]
                         );
                         $resource['has_error'] = true;
