@@ -27,6 +27,7 @@
                 attrs: {
                     jsdot: null,
                     jmespath: null,
+                    jsonpath: null,
                     xpath: null,
                 },
             },

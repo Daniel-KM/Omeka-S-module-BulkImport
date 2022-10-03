@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9067c48c3c09e2ff79ca851153792012",
+    "content-hash": "e35acbd538b2e612e909af9ac0e5a005",
     "packages": [
         {
             "name": "box/spout",
@@ -304,6 +304,57 @@
                 "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.30.0/flow.min.js"
             },
             "type": "omeka-addon-asset"
+        },
+        {
+            "name": "galbar/jsonpath",
+            "version": "2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Galbar/JsonPath-PHP.git",
+                "reference": "346de727387b46148562209a0df2b9ae6cb551cd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Galbar/JsonPath-PHP/zipball/346de727387b46148562209a0df2b9ae6cb551cd",
+                "reference": "346de727387b46148562209a0df2b9ae6cb551cd",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0",
+                "sami/sami": ">=3.3.0",
+                "satooshi/php-coveralls": ">=1.0.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "JsonPath\\": "src/Galbar/JsonPath",
+                    "Utilities\\": "src/Galbar/Utilities"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Alessio Linares",
+                    "email": "alessio@alessio.cc"
+                }
+            ],
+            "description": "JSONPath implementation for querying and updating JSON objects",
+            "keywords": [
+                "json",
+                "jsonpath",
+                "path"
+            ],
+            "support": {
+                "issues": "https://github.com/Galbar/JsonPath-PHP/issues",
+                "source": "https://github.com/Galbar/JsonPath-PHP/tree/2.1"
+            },
+            "time": "2022-08-18T13:55:30+00:00"
         },
         {
             "name": "hakre/xmlreaderiterator",

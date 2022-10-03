@@ -10,7 +10,8 @@
         "mikehaertl/php-pdftk": "^0.9",
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",
-        "phpoffice/phpword": "^0.18.2"
+        "phpoffice/phpword": "^0.18.2",
+        "galbar/jsonpath": "^2.1"
     },
     "replace": {
         "laminas/laminas-escaper": "*",

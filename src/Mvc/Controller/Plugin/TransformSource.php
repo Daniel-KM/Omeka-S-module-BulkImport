@@ -33,6 +33,9 @@ use DOMDocument;
 use DOMNode;
 use DOMNodeList;
 use DOMXPath;
+use JmesPath\Env as JmesPathEnv;
+use JmesPath\Parser as JmesPathParser;
+use JsonPath\JsonObject as JsonPathQuerier;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use SimpleXMLElement;
@@ -67,6 +70,11 @@ class TransformSource extends AbstractPlugin
      * @var \JmesPath\Parser
      */
     protected $jmesPathParser;
+
+    /**
+     * @var \JsonPath\JsonObject
+     */
+    protected $jsonPathQuerier;
 
     /**
      * @var bool
@@ -135,8 +143,9 @@ class TransformSource extends AbstractPlugin
         $this->logger = $logger;
         $this->automapFields = $automapFields;
         $this->bulk = $bulk;
-        $this->jmesPathEnv = new \JmesPath\Env;
-        $this->jmesPathParser = new \JmesPath\Parser;
+        $this->jmesPathEnv = new JmesPathEnv;
+        $this->jmesPathParser = new JmesPathParser;
+        $this->jsonPathQuerier = new JsonPathQuerier;
     }
 
     /**
@@ -374,7 +383,7 @@ class TransformSource extends AbstractPlugin
         }
 
         $lines = $this->bulk->stringToList($this->tempConfig);
-        $result = preg_grep('~^querier\s*=\s*(?:jsdot|jmespath|xpath)\s*$~', $lines);
+        $result = preg_grep('~^querier\s*=\s*(?:jsdot|jmespath|jsonpath|xpath)\s*$~', $lines);
         if ($result) {
             $line = trim(reset($result));
             $this->defaultQuerier = trim(mb_substr($line, mb_strpos($line, '=') + 1));
@@ -530,10 +539,12 @@ class TransformSource extends AbstractPlugin
             $flatData = [];
             $fields = [];
         } else {
-            // Flat data and fields are used for jsdot.
             // Prepare in all cases, because the querier can be set dynamically.
+            // Flat data and fields are used by jsdot.
             $flatData = $this->flatArray($data);
             $fields = $this->extractFields($data);
+            // Prepare JsonPath querier.
+            $this->jsonPathQuerier = new JsonPathQuerier($data);
         }
 
         foreach ($this->getSection($section) as $fromTo) {
@@ -566,9 +577,15 @@ class TransformSource extends AbstractPlugin
                     continue;
                 }
                 $result[] = $prepend . $converted . $append;
+            } elseif (is_null($fromPath)) {
+                continue;
             } else {
-                if ($querier === 'jmespath') {
-                    $values = $this->jmesPathEnv->search($fromPath, $data);
+                if ($querier === 'jmespath' || $querier === 'jsonpath') {
+                    if ($querier === 'jmespath') {
+                        $values = $this->jmesPathEnv->search($fromPath, $data);
+                    } else {
+                        $values = $this->jsonPathQuerier->get($fromPath);
+                    }
                     if ($values === [] || $values === '' || $values === null) {
                         continue;
                     }
@@ -722,6 +739,7 @@ class TransformSource extends AbstractPlugin
                 // no break.
             case 'jsdot':
             case 'jmespath':
+            case 'jsonpath':
                 return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier);
             case 'xpath':
                 return $this->convertTargetToStringXml($name, $fromToMod, $data);
@@ -760,7 +778,7 @@ class TransformSource extends AbstractPlugin
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
-     * @param string $querier "jsdot" (default) or "jmespath".
+     * @param string $querier "jsdot" (default), "jmespath" or "jsonpath".
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
@@ -779,7 +797,15 @@ class TransformSource extends AbstractPlugin
         // Querier is jsdot by default.
         if ($querier === 'jmespath') {
             // TODO Check if data for jmespath are cacheable or automatically cached.
-            $fromValue = $data ? $this->jmesPathEnv->search($from, $data) : null;
+            $fromValue = $data && !is_null($from) ? $this->jmesPathEnv->search($from, $data) : null;
+        } elseif ($querier === 'jsonpath') {
+            // TODO Check if data for jsonpath are cacheable or automatically cached.
+            $this->jsonPathQuerier = new JsonPathQuerier($data);
+            if ($data && !is_null($from)) {
+                $fromValue = $this->jsonPathQuerier->get($from);
+            } else {
+                $fromValue = null;
+            }
         } else {
             $querier = 'jsdot';
             $flatData = $this->flatArray($data);
@@ -818,6 +844,8 @@ class TransformSource extends AbstractPlugin
                     $query = mb_substr($wrappedQuery, 2, -2);
                     if ($querier === 'jmespath') {
                         $replace[$wrappedQuery] = $this->jmesPathEnv->search($query, $data);
+                    } elseif ($querier === 'jsonpath') {
+                        $replace[$wrappedQuery] = $this->jsonPathQuerier->get($query);
                     } else {
                         $replace[$wrappedQuery] = $flatData[$query] ?? '';
                     }
@@ -1601,6 +1629,8 @@ class TransformSource extends AbstractPlugin
                 $result['from'] = ['querier' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
             } elseif (isset($xmlArray['from']['@attributes']['jmespath']) && strlen((string) $xmlArray['from']['@attributes']['jmespath'])) {
                 $result['from'] = ['querier' => 'jmespath', 'path' => (string) $xmlArray['from']['@attributes']['jmespath']];
+            } elseif (isset($xmlArray['from']['@attributes']['jsonpath']) && strlen((string) $xmlArray['from']['@attributes']['jsonpath'])) {
+                $result['from'] = ['querier' => 'jsonpath', 'path' => (string) $xmlArray['from']['@attributes']['jsonpath']];
             } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
                 $result['from'] = ['querier' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
             } else {
