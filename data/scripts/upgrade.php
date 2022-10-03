@@ -536,3 +536,18 @@ SET `config` = '{}'
 SQL;
     $connection->executeStatement($sql);
 }
+
+if (version_compare($oldVersion, '3.3.34.0', '<')) {
+    require_once __DIR__ . '/upgrade_vocabulary.php';
+
+    $messenger = new Messenger();
+    $messenger->addSuccess($message);
+    $message = new Message(
+        'New mappers where added to import iiif manifests.' // @translate
+    );
+    $messenger->addSuccess($message);
+    $message = new Message(
+        'Two new formats are supported to write mappings: jsonpath and  jmespath. See examples with iiif manifest mappings.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
