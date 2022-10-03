@@ -33,9 +33,9 @@ use DOMDocument;
 use DOMNode;
 use DOMNodeList;
 use DOMXPath;
+use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
-use JsonPath\JsonObject as JsonPathQuerier;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use SimpleXMLElement;
@@ -72,7 +72,7 @@ class TransformSource extends AbstractPlugin
     protected $jmesPathParser;
 
     /**
-     * @var \JsonPath\JsonObject
+     * @var \Flow\JSONPath\JSONPath
      */
     protected $jsonPathQuerier;
 
@@ -145,7 +145,7 @@ class TransformSource extends AbstractPlugin
         $this->bulk = $bulk;
         $this->jmesPathEnv = new JmesPathEnv;
         $this->jmesPathParser = new JmesPathParser;
-        $this->jsonPathQuerier = new JsonPathQuerier;
+        $this->jsonPathQuerier = new JSONPath;
     }
 
     /**
@@ -544,7 +544,7 @@ class TransformSource extends AbstractPlugin
             $flatData = $this->flatArray($data);
             $fields = $this->extractFields($data);
             // Prepare JsonPath querier.
-            $this->jsonPathQuerier = new JsonPathQuerier($data);
+            $this->jsonPathQuerier = new JSONPath($data);
         }
 
         foreach ($this->getSection($section) as $fromTo) {
@@ -584,7 +584,7 @@ class TransformSource extends AbstractPlugin
                     if ($querier === 'jmespath') {
                         $values = $this->jmesPathEnv->search($fromPath, $data);
                     } else {
-                        $values = $this->jsonPathQuerier->get($fromPath);
+                        $values = $this->jsonPathQuerier->find($fromPath)->getData();
                     }
                     if ($values === [] || $values === '' || $values === null) {
                         continue;
@@ -800,9 +800,9 @@ class TransformSource extends AbstractPlugin
             $fromValue = $data && !is_null($from) ? $this->jmesPathEnv->search($from, $data) : null;
         } elseif ($querier === 'jsonpath') {
             // TODO Check if data for jsonpath are cacheable or automatically cached.
-            $this->jsonPathQuerier = new JsonPathQuerier($data);
+            $this->jsonPathQuerier = new JSONPath($data);
             if ($data && !is_null($from)) {
-                $fromValue = $this->jsonPathQuerier->get($from);
+                $fromValue = $this->jsonPathQuerier->find($from)->getData();
             } else {
                 $fromValue = null;
             }
@@ -845,7 +845,7 @@ class TransformSource extends AbstractPlugin
                     if ($querier === 'jmespath') {
                         $replace[$wrappedQuery] = $this->jmesPathEnv->search($query, $data);
                     } elseif ($querier === 'jsonpath') {
-                        $replace[$wrappedQuery] = $this->jsonPathQuerier->get($query);
+                        $replace[$wrappedQuery] = $this->jsonPathQuerier->find($query)->getData();
                     } else {
                         $replace[$wrappedQuery] = $flatData[$query] ?? '';
                     }

@@ -11,7 +11,7 @@
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",
         "phpoffice/phpword": "^0.18.2",
-        "galbar/jsonpath": "^2.1"
+        "softcreatr/jsonpath": "^0.7.5"
     },
     "replace": {
         "laminas/laminas-escaper": "*",
