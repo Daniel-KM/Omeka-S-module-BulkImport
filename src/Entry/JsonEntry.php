@@ -43,11 +43,6 @@ class JsonEntry extends BaseEntry
         }
         unset($datas);
 
-        $smartDownload = $transformSource->getSectionSetting('params', 'smart_download_contentdm');
-        if (in_array($smartDownload, ['1', true, 'true'])) {
-            $resource = $this->smartDownloadContentDm($resource);
-        }
-
         $this->data = $resource;
     }
 
@@ -63,7 +58,7 @@ class JsonEntry extends BaseEntry
         // IIIF.
         if (in_array($mediaUrlMode, ['iiif_service_or_id', 'iiif_id_or_service', 'iiif_service', 'iiif_id'])) {
             if (empty($this->data['@context'])) {
-                return;
+                return $resource;
             }
             // IIIF v2.
             if ($this->data['@context'] === 'http://iiif.io/api/presentation/2/context.json') {
@@ -105,33 +100,31 @@ class JsonEntry extends BaseEntry
                 $resource['url'] = array_values(array_unique(array_filter($resource['url'])));
             }
         }
-
-        return $resource;
-    }
-
-    protected function smartDownloadContentDm(array $resource): array
-    {
-        if (empty($resource['url ~ {{ endpoint }}{{ value }}']) || empty($resource['iiif ~ {{ endpoint }}{{ value }}'])) {
-            return $resource;
-        }
-        $urls = [];
-        $iiif = [];
-        foreach ($resource['url ~ {{ endpoint }}{{ value }}'] as $index => $url) {
-            $code = preg_replace('~.*collection/([^/]+)/id/([^/]+)/.*~m', '$1:$2', $url);
-            if ($code && $code !== $url) {
-                $urls[$code] = $index;
+        // Content-DM.
+        elseif ($mediaUrlMode === 'contentdm') {
+            if (empty($resource['url ~ {{ endpoint }}{{ value }}']) || empty($resource['iiif ~ {{ endpoint }}{{ value }}'])) {
+                return $resource;
+            }
+            $urls = [];
+            $iiif = [];
+            foreach ($resource['url ~ {{ endpoint }}{{ value }}'] as $index => $url) {
+                $code = preg_replace('~.*collection/([^/]+)/id/([^/]+)/.*~m', '$1:$2', $url);
+                if ($code && $code !== $url) {
+                    $urls[$code] = $index;
+                }
+            }
+            foreach ($resource['iiif ~ {{ endpoint }}{{ value }}'] as $index => $url) {
+                $code = preg_replace('~^.*/([^/]+:[^/]+)/info.json$~m', '$1', $url);
+                if ($code && $code !== $url) {
+                    $iiif[$code] = $index;
+                }
+            }
+            $duplicates = array_intersect_key($urls, $iiif);
+            if ($duplicates) {
+                $resource['url ~ {{ endpoint }}{{ value }}'] = array_values(array_diff_key($resource['url ~ {{ endpoint }}{{ value }}'], array_flip($duplicates)));
             }
         }
-        foreach ($resource['iiif ~ {{ endpoint }}{{ value }}'] as $index => $url) {
-            $code = preg_replace('~^.*/([^/]+:[^/]+)/info.json$~m', '$1', $url);
-            if ($code && $code !== $url) {
-                $iiif[$code] = $index;
-            }
-        }
-        $duplicates = array_intersect_key($urls, $iiif);
-        if ($duplicates) {
-            $resource['url ~ {{ endpoint }}{{ value }}'] = array_values(array_diff_key($resource['url ~ {{ endpoint }}{{ value }}'], array_flip($duplicates)));
-        }
+
         return $resource;
     }
 }
