@@ -18,7 +18,7 @@ class XmlEntry extends BaseEntry
 
         $array = $this->attributes($simpleData);
 
-        if ($this->options['metaMapper']) {
+        if (!empty($this->options['metaMapper'])) {
             $this->initWithMetaMapper($simpleData);
             return;
         }

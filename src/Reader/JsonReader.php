@@ -106,7 +106,7 @@ class JsonReader extends AbstractPaginatedReader
 
         // Sometime, resource data should be sub-fetched: the current data may
         // be incomplete or used only for a quick listing (see content-dm, or
-        // even Omeka for sub-resources).
+        // even Omeka for item medias or linked resources).
         $resourceUrl = $this->metaMapper->getImportParam('resource_url');
         if ($resourceUrl) {
             $resourceUrl = $this->metaMapper
@@ -135,9 +135,7 @@ class JsonReader extends AbstractPaginatedReader
             $current = json_decode($content, true) ?: [];
         }
 
-        return new JsonEntry($current, $this->key() + $this->isZeroBased, [], [
-            'metaMapper' => $this->metaMapper,
-        ]);
+        return new JsonEntry($current, $this->key() + $this->isZeroBased, [], $this->getParams());
     }
 
     public function isValid(): bool
@@ -180,6 +178,10 @@ class JsonReader extends AbstractPaginatedReader
 
         /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
         $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
+
+        // In some cases, the mapper is prepared in a sooner process, so add it.
+        // TODO Simplify the flow.
+        $this->params['metaMapper'] = $this->metaMapper;
 
         // Prepare mapper one time.
         if ($this->metaMapper->isInit()) {

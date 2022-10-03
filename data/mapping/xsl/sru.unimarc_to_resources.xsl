@@ -7,8 +7,10 @@
     de façon à pouvoir les traiter. Il supprime les éléments liés à la recherche SRU.
 
     Contrairement à "sru.unimarc_to_omeka.xsl", cette feuille xsl ne permet pas
-    de créer directement des ressources Omeka. Elle nécessite un fichier d'alignement
-    ou une configuration dans le module.
+    de créer directement des ressources Omeka. Elle nécessite un fichier d'alignement,
+    par exemple "unimarc_to_omeka.xml", ou une configuration dans le module.
+
+    Exemple de fichier xml source : https://bu.unistra.fr/opac/sru?version=1.1&operation=searchRetrieve&query=(dc.source=BUSBN)and(dc.identifier=BUS4683173)&recordSchema=unimarcxml
 
     @copyright Daniel Berthereau, 2021-2022
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt

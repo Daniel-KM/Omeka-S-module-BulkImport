@@ -14,6 +14,8 @@
     Les mentions locales (9xx, x9x, etc.) ne sont pas importées.
     Les mentions d'exemplaire (995) ne sont pas importées.
 
+    Exemple de fichier xml source : https://bu.unistra.fr/opac/sru?version=1.1&operation=searchRetrieve&query=(dc.source=BUSBN)and(dc.identifier=BUS4683173)&recordSchema=unimarcxml
+
     @copyright Daniel Berthereau, 2021-2022
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->

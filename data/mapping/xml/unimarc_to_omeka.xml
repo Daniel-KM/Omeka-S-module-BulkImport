@@ -59,6 +59,8 @@ Le code "#" est utilisé pour " ".
 
 @todo Value Suggest utilise le Rameau de IdRef (Abes) et non le Rameau de la Bnf : les identifiants ne sont pas les mêmes et il faut donc vérifier chaque sujet…
 
+@example https://bu.unistra.fr/opac/sru?version=1.1&operation=searchRetrieve&query=(dc.source=BUSBN)and(dc.identifier=BUS4683173)&recordSchema=unimarcxml
+
 @copyright Daniel Berthereau, 2021-2022 pour Numistral
 @license http://www.apache.org/licenses/LICENSE-2.0.html
 -->
@@ -1506,13 +1508,13 @@ Le code "#" est utilisé pour " ".
         <from xpath="substring(/record/datafield[@tag='141']/subfield[@code='a'][substring(., 7, 1) != ' ' and substring(., 7, 1) != '|' and substring(., 7, 1) != '#'], 7, 1)"/>
         <to field="dcterms:medium"/>
         <mod prepend="État de conservation – Corps de l’ouvrage : "
-            pattern="{'141-a-6') }}"/>
+            pattern="{{ value|table('141-a-6') }}"/>
     </map>
     <map>
         <from xpath="substring(/record/datafield[@tag='141']/subfield[@code='a'][substring(., 8, 1) != ' ' and substring(., 8, 1) != '|' and substring(., 8, 1) != '#'], 8, 1)"/>
         <to field="dcterms:medium"/>
         <mod prepend="État de conservation – Corps de l’ouvrage : "
-            pattern="{'141-a-6') }}"/>
+            pattern="{{ value|table('141-a-6') }}"/>
     </map>
     <map>
         <from xpath="substring(/record/datafield[@tag='141']/subfield[@code='b'][substring(., 1, 2) != '  ' and substring(., 1, 2) != '||' and substring(., 1, 2) != '##'], 1, 2)"/>

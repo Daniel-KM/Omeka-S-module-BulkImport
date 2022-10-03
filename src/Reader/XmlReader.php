@@ -131,6 +131,8 @@ class XmlReader extends AbstractFileReader
 
     public function current()
     {
+        // TODO Import a list of files, like json.
+
         $this->isReady();
         $this->currentData = $this->iterator->current();
         if (is_object($this->currentData) && $this->currentData instanceof XMLReaderNode) {
@@ -206,6 +208,10 @@ class XmlReader extends AbstractFileReader
         /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
         $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
 
+        // In some cases, the mapper is prepared in a sooner process, so add it.
+        // TODO Simplify the flow.
+        $this->params['metaMapper'] = $this->metaMapper;
+
         // Prepare mapper one time.
         if ($this->metaMapper->isInit()) {
             return $this;
@@ -220,11 +226,9 @@ class XmlReader extends AbstractFileReader
             return $this;
         }
 
-        $this->params['metaMapper'] = $this->metaMapper;
-
         // @todo See pagination in JsonReader.
         // @todo See listFiles in JsonReader.
-        // @todo Build a generic pagination mechanism (query, path, token).
+        // @todo Build a generic pagination mechanism (query, path, token), but rare in xml (but oai-pmh…).
 
         return $this;
     }
