@@ -37,9 +37,9 @@ class XmlReader extends AbstractFileReader
     ];
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\TransformSource
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
      */
-    protected $transformSource;
+    protected $metaMapper;
 
     /**
      * @var XMLReaderNode
@@ -199,15 +199,15 @@ class XmlReader extends AbstractFileReader
      */
     protected function initArgs(): \BulkImport\Reader\Reader
     {
-        if ($this->transformSource) {
+        if ($this->metaMapper) {
             return $this;
         }
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
-        $this->transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
 
         // Prepare mapper one time.
-        if ($this->transformSource->isInit()) {
+        if ($this->metaMapper->isInit()) {
             return $this;
         }
 
@@ -215,12 +215,12 @@ class XmlReader extends AbstractFileReader
         // resource directly.
         $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
 
-        $this->transformSource->init($mappingConfig, $this->params);
-        if ($this->transformSource->hasError()) {
+        $this->metaMapper->init($mappingConfig, $this->params);
+        if ($this->metaMapper->hasError()) {
             return $this;
         }
 
-        $this->params['transformSource'] = $this->transformSource;
+        $this->params['metaMapper'] = $this->metaMapper;
 
         // @todo See pagination in JsonReader.
         // @todo See listFiles in JsonReader.

@@ -2253,7 +2253,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Add automapped metadata for properties (language and datatypes).
      *
-     * @todo Merge this method with transformSource::getNormalizedConfig().
+     * @todo Merge this method with metaMapper::getNormalizedConfig().
      */
     protected function prepareMapping(): \BulkImport\Processor\Processor
     {
@@ -2264,15 +2264,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $isPrepared = true;
                 $mapping = [];
                 // TODO Avoid to prepare the mapping a second time when the reader prepared it.
-                /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
-                $transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
-                $transformSource->init($mappingConfig, $this->reader->getParams());
-                if ($transformSource->hasError()) {
+                /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+                $metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
+                $metaMapper->init($mappingConfig, $this->reader->getParams());
+                if ($metaMapper->hasError()) {
                     return $this;
                 }
                 $mappingSource = array_merge(
-                    $transformSource->getSection('default'),
-                    $transformSource->getSection('mapping')
+                    $metaMapper->getSection('default'),
+                    $metaMapper->getSection('mapping')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.
@@ -2289,7 +2289,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 unset($datas);
 
                 // These mappings are added automatically with JsonEntry.
-                // TODO Find a way to add automatic mapping in transformSource or default mapping.
+                // TODO Find a way to add automatic mapping in metaMapper or default mapping.
                 if (!isset($mapping['url'])) {
                     $mapping['url'] = ['url'];
                 }
@@ -2311,7 +2311,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // The automap is only used for language, datatypes and visibility:
         // the properties are the one that are set by the user.
-        // TODO Avoid remapping or factorize when done in transformSource.
+        // TODO Avoid remapping or factorize when done in metaMapper.
         /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
         $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
         $sourceFields = $automapFields(array_keys($mapping), ['output_full_matches' => true]);

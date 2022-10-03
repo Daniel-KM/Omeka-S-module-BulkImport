@@ -139,7 +139,7 @@ trait StatisticsTrait
      *
      * Normally, "o:id" should not be overridden.
      *
-     * @todo Use transformSource().
+     * @todo Use metaMapper().
      */
     protected function fillHit(array $source, array $hit): array
     {

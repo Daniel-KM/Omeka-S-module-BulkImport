@@ -431,7 +431,7 @@ TODO
 - [ ] Convert specific importer into standard resource processor + pattern.
 - [ ] Why are there 752 missing ids with direct sql creation in Spip?
 - [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
-- [ ] Use transformSource() for sql imports (so convert special processors) or convert rows early (like spreadsheets).
+- [ ] Use metaMapper() for sql imports (so convert special processors) or convert rows early (like spreadsheets).
 - [ ] For sql import, use a direct sql queries when mapping is table to table (like eprints statistics).
 - [ ] Count of skipping or empty rows is different during check and real process.
 - [ ] Check default item set, template and class (they may be not set during creation or update or replace via spreadsheet).

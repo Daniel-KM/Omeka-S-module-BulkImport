@@ -8,13 +8,13 @@ class JsonEntry extends BaseEntry
     {
         // Convert the data according to the mapping here.
         if (!empty($this->options['is_formatted'])
-            || empty($this->options['transformSource'])
+            || empty($this->options['metaMapper'])
         ) {
             return;
         }
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
-        $transformSource = $this->options['transformSource'];
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $metaMapper = $this->options['metaMapper'];
 
         // Avoid an issue when the config is incorrect or incomplete or when the
         // source is not available.
@@ -29,10 +29,10 @@ class JsonEntry extends BaseEntry
 
         // The real resource type is set via config or via processor.
         $resource = [];
-        $resource = $transformSource->convertMappingSectionJson('default', $resource, $this->data, true);
-        $resource = $transformSource->convertMappingSectionJson('mapping', $resource, $this->data);
+        $resource = $metaMapper->convertMappingSectionJson('default', $resource, $this->data, true);
+        $resource = $metaMapper->convertMappingSectionJson('mapping', $resource, $this->data);
 
-        $importMedia = $transformSource->getSectionSetting('params', 'import_media');
+        $importMedia = $metaMapper->getSectionSetting('params', 'import_media');
         if (in_array($importMedia, ['1', true, 'true'])) {
             $resource = $this->appendMedias($resource);
         }
@@ -48,9 +48,9 @@ class JsonEntry extends BaseEntry
 
     protected function appendMedias(array $resource): array
     {
-        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
-        $transformSource = $this->options['transformSource'];
-        $mediaUrlMode = $transformSource->getSectionSetting('params', 'media_url_mode');
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $metaMapper = $this->options['metaMapper'];
+        $mediaUrlMode = $metaMapper->getSectionSetting('params', 'media_url_mode');
         if (!$mediaUrlMode) {
             return $resource;
         }

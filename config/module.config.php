@@ -122,7 +122,7 @@ return [
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
-            'transformSource' => Service\ControllerPlugin\TransformSourceFactory::class,
+            'metaMapper' => Service\ControllerPlugin\MetaMapperFactory::class,
         ],
         'aliases' => [
             'findResourcesFromIdentifiers' => Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class,

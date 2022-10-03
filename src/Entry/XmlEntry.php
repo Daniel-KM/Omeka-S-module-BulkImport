@@ -18,8 +18,8 @@ class XmlEntry extends BaseEntry
 
         $array = $this->attributes($simpleData);
 
-        if ($this->options['transformSource']) {
-            $this->initWithTransformSource($simpleData);
+        if ($this->options['metaMapper']) {
+            $this->initWithMetaMapper($simpleData);
             return;
         }
 
@@ -424,10 +424,10 @@ class XmlEntry extends BaseEntry
     /**
      * @see \BulkImport\Entry\JsonEntry::init()
      */
-    protected function initWithTransformSource(SimpleXMLElement $data): void
+    protected function initWithMetaMapper(SimpleXMLElement $data): void
     {
-        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
-        $transformSource = $this->options['transformSource'];
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $metaMapper = $this->options['metaMapper'];
 
         // Remove wrapper to keep mapping simple with xpath adapted to source.
         $unwrappedData = null;
@@ -442,8 +442,8 @@ class XmlEntry extends BaseEntry
 
         // The real resource type is set via config or via processor.
         $resource = [];
-        $resource = $transformSource->convertMappingSectionXml('default', $resource, $unwrappedData, true);
-        $resource = $transformSource->convertMappingSectionXml('mapping', $resource, $unwrappedData);
+        $resource = $metaMapper->convertMappingSectionXml('default', $resource, $unwrappedData, true);
+        $resource = $metaMapper->convertMappingSectionXml('mapping', $resource, $unwrappedData);
 
         // Filter duplicated and null values.
         foreach ($resource as &$datas) {

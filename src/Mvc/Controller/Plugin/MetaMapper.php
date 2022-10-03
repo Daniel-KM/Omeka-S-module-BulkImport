@@ -44,7 +44,7 @@ use SimpleXMLElement;
  * @todo Separate xml and json process into two plugins and make this one an abstract one. But a complex config may mix various paths? In real world?
  * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
  */
-class TransformSource extends AbstractPlugin
+class MetaMapper extends AbstractPlugin
 {
     /**
      * @var \Laminas\Log\Logger
@@ -224,7 +224,7 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Manage transformSource config, that may be inside multiple files.
+     * Manage metaMapper config, that may be inside multiple files.
      *
      * Only one config is managed at a time for now.
      *
@@ -330,7 +330,7 @@ class TransformSource extends AbstractPlugin
     /**
      * Prepare the list of variables and params.
      *
-     * "importParams" is different from the transformSource config: it contains
+     * "importParams" is different from the metaMapper config: it contains
      * converted data.
      */
     private function prepareImportParams(array $params): self
