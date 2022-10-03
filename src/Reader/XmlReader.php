@@ -205,6 +205,15 @@ class XmlReader extends AbstractFileReader
             return $this;
         }
 
+        // The mapping file is not required when the main xsl file creates the
+        // resource directly.
+        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+        if (!$mappingConfig) {
+            $this->metaMapper = null;
+            $this->params['metaMapper'] = null;
+            return $this;
+        }
+
         /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
         $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
 
@@ -216,10 +225,6 @@ class XmlReader extends AbstractFileReader
         if ($this->metaMapper->isInit()) {
             return $this;
         }
-
-        // The mapping file is not required when the main xsl file creates the
-        // resource directly.
-        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
 
         $this->metaMapper->init($mappingConfig, $this->params);
         if ($this->metaMapper->hasError()) {

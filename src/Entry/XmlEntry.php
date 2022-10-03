@@ -23,6 +23,7 @@ class XmlEntry extends BaseEntry
             return;
         }
 
+        // TODO For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
                 ? $simpleData->children($namespace)
