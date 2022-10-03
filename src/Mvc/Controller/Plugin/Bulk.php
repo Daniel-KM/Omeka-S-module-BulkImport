@@ -72,6 +72,13 @@ class Bulk extends AbstractPlugin
     protected $findResourcesFromIdentifiers;
 
     /**
+     * Base path of the files.
+     *
+     * @var string
+     */
+    protected $basePath;
+
+    /**
      * @var bool
      */
     protected $allowDuplicateIdentifiers = false;
@@ -121,6 +128,9 @@ class Bulk extends AbstractPlugin
         $this->connection = $services->get('Omeka\Connection');
         $this->dataTypeManager = $services->get('Omeka\DataTypeManager');
 
+        $config = $services->get('Config');
+        $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+
         // The controller is not yet available here.
         $pluginManager = $services->get('ControllerPluginManager');
         $this->api = $pluginManager->get('api');
@@ -135,6 +145,16 @@ class Bulk extends AbstractPlugin
     public function __invoke(): self
     {
         return $this;
+    }
+
+    /**
+     * Base path of the files.
+     *
+     * @var string
+     */
+    public function getBasePath(): string
+    {
+        return $this->basePath;
     }
 
     /**

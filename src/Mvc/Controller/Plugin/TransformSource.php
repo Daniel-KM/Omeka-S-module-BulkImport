@@ -38,7 +38,7 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use SimpleXMLElement;
 
 /**
- * @todo Separate xml and json process into two plugins and make this one an abstract one.
+ * @todo Separate xml and json process into two plugins and make this one an abstract one. But a complex config may mix various paths? In real world?
  * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
  */
 class TransformSource extends AbstractPlugin
@@ -59,6 +59,18 @@ class TransformSource extends AbstractPlugin
     protected $bulk;
 
     /**
+     * @var bool
+     *
+     * @deprecated Will be removed (allow muliple config).
+     */
+    protected static $isInit = false;
+
+    /**
+     * @var array
+     */
+    protected $importParams = [];
+
+    /**
      * @var array
      */
     protected $variables = [];
@@ -69,9 +81,11 @@ class TransformSource extends AbstractPlugin
     protected $configSections = [];
 
     /**
+     * This is a temp config, not the final one, that is normConfig.
+     *
      * @var ?string
      */
-    protected $config;
+    protected $tempConfig;
 
     /**
      * @var array
@@ -159,9 +173,146 @@ class TransformSource extends AbstractPlugin
         return $this;
     }
 
-    public function bulk(): Bulk
+    /**
+     * @deprecated Will be removed (allow muliple config).
+     */
+    public function isInit(): bool
     {
-        return $this->bulk;
+        return self::$isInit;
+    }
+
+    /**
+     * Manage transformSource config, that may be inside multiple files.
+     *
+     * Only one config is managed at a time for now.
+     *
+     * @todo Allow to use multiple mapping configs and params (add an array for configs).
+     */
+    public function init(string $mappingConfig, array $params): self
+    {
+        if (self::$isInit) {
+            return $this;
+        }
+
+        $this
+            ->prepareNormConfig($mappingConfig)
+            ->prepareImportParams($params)
+        ;
+
+        self::$isInit = true;
+
+        return $this;
+    }
+
+    private function prepareNormConfig(string $mappingConfig): self
+    {
+        // The mapping file is in the config.
+        if (!$mappingConfig) {
+            return $this;
+        }
+
+        $getConfig = function (?string $mappingConfig): ?string {
+            if (empty($mappingConfig)) {
+                return null;
+            }
+            if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($mappingConfig, 8);
+                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                $mapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+                return $mapping
+                    ? $mapping->mapping()
+                    : null;
+            }
+            $filename = basename($mappingConfig);
+            if (empty($filename)) {
+                return null;
+            }
+            $prefixes = [
+                'user' => $this->bulk->getBasePath() . '/mapping/',
+                'module' => dirname(__DIR__, 4) . '/data/mapping/',
+                'base' => dirname(__DIR__, 4) . '/data/mapping/base/',
+            ];
+            $prefix = strtok($mappingConfig, ':');
+            if (!isset($prefixes[$prefix])) {
+                return null;
+            }
+            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
+            $filepath = $prefixes[$prefix] . $file;
+            if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
+                return file_get_contents($filepath);
+            }
+            return null;
+        };
+
+        $conf = $getConfig($mappingConfig);
+        if (!$conf) {
+            return $this;
+        }
+
+        // Check if the config has a main config.
+        $mainConfig = null;
+        $isInfo = false;
+        $matches = [];
+        foreach ($this->bulk->stringToList($conf) as $line) {
+            if ($line === '[info]') {
+                $isInfo = true;
+            } elseif (substr($line, 0, 1) === '[') {
+                $isInfo = false;
+            } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_.-]*)*$~', $line, $matches)) {
+                // @todo Currently, the base mapper is always an ini.
+                $mainConfig = $getConfig('base:' . $matches['master'] . '.ini');
+                break;
+            }
+        }
+
+        // Init $this->normConfig.
+        $this
+            ->setConfigSections([
+                'info' => 'raw',
+                'params' => 'raw_or_pattern',
+                'default' => 'mapping',
+                'mapping' => 'mapping',
+            ])
+            ->setConfigs($mainConfig, $conf);
+
+        return $this;
+    }
+
+    /**
+     * Prepare the list of variables and params.
+     *
+     * "importParams" is different from the transformSource config: it contains
+     * converted data.
+     */
+    private function prepareImportParams(array $params): self
+    {
+        $this->importParams = [];
+
+        if (empty($this->normConfig['params'])) {
+            return $this;
+        }
+
+        $vars = $params;
+        unset($vars['mapping_config'], $vars['filename']);
+        foreach (array_keys($this->normConfig['params']) as $from) {
+            // TODO Clarify transform source: the two next lines are the same.
+            // $value = $this->setVariables($vars)->convertTargetToStringJson($from, $to);
+            $value = $this->setVariables($vars)->convertToString('params', $from);
+            $this->importParams[$from] = $value;
+            $vars[$from] = $value;
+        }
+
+        return $this;
+    }
+
+    public function getImportParams(): array
+    {
+        return $this->importParams;
+    }
+
+    public function getImportParam(string $key, $default = null)
+    {
+        return $this->importParams[$key] ?? $default;
     }
 
     public function addVariable(string $name, $value): self
@@ -204,15 +355,15 @@ class TransformSource extends AbstractPlugin
     /**
      * Set the sections that contains raw data, pattern data, or full mapping.
      */
-    public function setConfigSections(array $configSections): self
+    protected function setConfigSections(array $configSections): self
     {
         $this->configSections = $configSections;
         return $this;
     }
 
-    public function setConfig(?string $config): self
+    protected function setConfig(?string $config): self
     {
-        $this->config = $config;
+        $this->tempConfig = $config;
         $this->normalizeConfig();
         return $this;
     }
@@ -220,11 +371,11 @@ class TransformSource extends AbstractPlugin
     /**
      * Allow to use a generic config completed by a specific one.
      */
-    public function setConfigs(?string ...$configs): self
+    protected function setConfigs(?string ...$configs): self
     {
         $mergedMappings = [];
         foreach (array_filter($configs) as $config) {
-            $this->config = $config;
+            $this->tempConfig = $config;
             $this->normalizeConfig();
             // Merge the sections, but don't replace them as a whole, so no
             // array_merge_recursive() neither array_replace_recursive().
@@ -283,6 +434,7 @@ class TransformSource extends AbstractPlugin
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
+     *
      * @param bool $isDefault When true, the target value "to" is added to the
      * resource without using data.
      */
@@ -374,6 +526,7 @@ class TransformSource extends AbstractPlugin
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
+     *
      * @param bool $isDefault When true, the target value "to" is added to the
      * resource without using data.
      */
@@ -1137,13 +1290,13 @@ class TransformSource extends AbstractPlugin
     protected function normalizeConfig(): self
     {
         $this->normConfig = [];
-        if (!$this->config) {
+        if (!$this->tempConfig) {
             return $this;
         }
 
         // When first character is "<", it's an xml because it cannot be ini.
-        $this->config = trim($this->config);
-        $isXml = mb_substr($this->config, 0, 1) === '<';
+        $this->tempConfig = trim($this->tempConfig);
+        $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
         return $isXml
             ? $this->normalizeConfigXml()
             : $this->normalizeConfigIni();
@@ -1171,7 +1324,7 @@ class TransformSource extends AbstractPlugin
         ];
 
         // Lines are trimmed. Empty lines are removed.
-        $lines = $this->bulk->stringToList($this->config);
+        $lines = $this->bulk->stringToList($this->tempConfig);
 
         $matches = [];
         $section = null;
@@ -1307,7 +1460,7 @@ class TransformSource extends AbstractPlugin
     {
         // The config is always a small file (less than some megabytes), so it
         // can be managed directly with SimpleXml.
-        $xmlConfig = new SimpleXMLElement($this->config);
+        $xmlConfig = new SimpleXMLElement($this->tempConfig);
 
         $xmlMapToArray = function (SimpleXMLElement $element, int $index, bool $isDefault = false): ?array {
             // Since anything is set inside attributes, use a json conversion.
@@ -1611,7 +1764,7 @@ class TransformSource extends AbstractPlugin
     {
         // The config is always a small file (less than some megabytes), so it
         // can be managed directly with SimpleXml.
-        $xmlConfig = new SimpleXMLElement($this->config);
+        $xmlConfig = new SimpleXMLElement($this->tempConfig);
         foreach ($xmlConfig->table as $table) {
             $code = (string) $table['code'];
             if (!$code) {

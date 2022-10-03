@@ -9,7 +9,6 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Stdlib\MessageStore;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
-use BulkImport\Traits\TransformSourceTrait;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
@@ -22,7 +21,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     use CheckTrait;
     use FileTrait;
     use ResourceUpdateTrait;
-    use TransformSourceTrait;
 
     /**
      * @var string
@@ -2266,10 +2264,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $isPrepared = true;
                 $mapping = [];
                 // TODO Avoid to prepare the mapping a second time when the reader prepared it.
-                $this->initTransformSource($mappingConfig, $this->reader->getParams());
+                /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
+                $transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
+                $transformSource->init($mappingConfig, $this->reader->getParams());
                 $mappingSource = array_merge(
-                    $this->transformSource->getSection('default'),
-                    $this->transformSource->getSection('mapping')
+                    $transformSource->getSection('default'),
+                    $transformSource->getSection('mapping')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.

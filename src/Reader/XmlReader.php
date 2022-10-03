@@ -6,7 +6,6 @@ use BulkImport\Entry\Entry;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
-use BulkImport\Traits\TransformSourceTrait;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 use XMLElementIterator;
@@ -19,8 +18,6 @@ use XMLReaderNode;
  */
 class XmlReader extends AbstractFileReader
 {
-    use TransformSourceTrait;
-
     protected $label = 'XML'; // @translate
     protected $mediaType = 'text/xml';
     protected $configFormClass = XmlReaderConfigForm::class;
@@ -38,6 +35,11 @@ class XmlReader extends AbstractFileReader
         'xsl_sheet',
         'mapping_config',
     ];
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\TransformSource
+     */
+    protected $transformSource;
 
     /**
      * @var XMLReaderNode
@@ -197,18 +199,23 @@ class XmlReader extends AbstractFileReader
      */
     protected function initArgs(): \BulkImport\Reader\Reader
     {
+        if ($this->transformSource) {
+            return $this;
+        }
+
+        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
+        $this->transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
+
         // Prepare mapper one time.
-        if (isset($this->transformSourceImportParams)) {
+        if ($this->transformSource->isInit()) {
             return $this;
         }
 
         // The mapping file is not required when the main xsl file creates the
         // resource directly.
         $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
-        if ($mappingConfig) {
-            $this->initTransformSource($mappingConfig, $this->params);
-            $this->params['transformSource'] = $this->transformSource;
-        }
+        $this->transformSource->init($mappingConfig, $this->params);
+        $this->params['transformSource'] = $this->transformSource;
 
         // @todo See pagination in JsonReader.
         // @todo See listFiles in JsonReader.

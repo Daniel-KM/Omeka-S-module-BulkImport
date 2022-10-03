@@ -17,7 +17,7 @@ class ContentDmReader extends JsonReader
     protected function initArgs(): \BulkImport\Reader\Reader
     {
         // Prepare mapper one time.
-        if (isset($this->transformSourceImportParams)) {
+        if ($this->transformSource) {
             return $this;
         }
 

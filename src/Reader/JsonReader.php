@@ -7,7 +7,6 @@ use BulkImport\Entry\BaseEntry;
 use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
-use BulkImport\Traits\TransformSourceTrait;
 use Laminas\Http\Response;
 use Log\Stdlib\PsrMessage;
 
@@ -22,7 +21,6 @@ use Log\Stdlib\PsrMessage;
 class JsonReader extends AbstractPaginatedReader
 {
     use HttpClientTrait;
-    use TransformSourceTrait;
 
     protected $label = 'Json';
     protected $configFormClass = JsonReaderConfigForm::class;
@@ -44,6 +42,11 @@ class JsonReader extends AbstractPaginatedReader
     protected $mediaType = 'application/json';
 
     protected $charset = 'utf-8';
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\TransformSource
+     */
+    protected $transformSource;
 
     /**
      * @var ?string
@@ -104,10 +107,10 @@ class JsonReader extends AbstractPaginatedReader
         // Sometime, resource data should be sub-fetched: the current data may
         // be incomplete or used only for a quick listing (see content-dm, or
         // even Omeka for sub-resources).
-        $resourceUrl = $this->transformSourceImportParams['resource_url'] ?? null;
+        $resourceUrl = $this->transformSource->getImportParam('resource_url');
         if ($resourceUrl) {
             $resourceUrl = $this->transformSource
-                ->setVariables($this->transformSourceImportParams)
+                ->setVariables($this->transformSource->getImportParams())
                 ->convertToString('params', 'resource_url', $current);
             $this->transformSource->addVariable('url_resource', $resourceUrl);
             if (!$this->listFiles) {
@@ -171,26 +174,27 @@ class JsonReader extends AbstractPaginatedReader
 
     protected function initArgs(): \BulkImport\Reader\Reader
     {
+        if ($this->transformSource) {
+            return $this;
+        }
+
+        /** @var \BulkImport\Mvc\Controller\Plugin\TransformSource $transformSource */
+        $this->transformSource = $this->getServiceLocator()->get('ControllerPluginManager')->get('transformSource');
+
         // Prepare mapper one time.
-        if (isset($this->transformSourceImportParams)) {
+        if ($this->transformSource->isInit()) {
             return $this;
         }
 
         $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
-        $this->initTransformSource($mappingConfig, $this->params);
+        $this->transformSource->init($mappingConfig, $this->params);
 
         // Prepare specific data for the reader.
-        $this->endpoint = empty($this->transformSourceImportParams['endpoint'])
-            ? $this->getParam('url')
-            : $this->transformSourceImportParams['endpoint'];
+        $this->endpoint = $this->transformSource->getImportParam('endpoint') ?: $this->getParam('url');
 
         // To manage complex pagination mechanism, the url can be transformed.
-        if (!empty($this->transformSourceImportParams['path'])) {
-            $this->path = $this->transformSourceImportParams['path'];
-        }
-        if (!empty($this->transformSourceImportParams['subpath'])) {
-            $this->subpath = $this->transformSourceImportParams['subpath'];
-        }
+        $this->path = $this->transformSource->getImportParam('path') ?: null;
+        $this->subpath = $this->transformSource->getImportParam('subpath') ?: null;
 
         // Manage a simple list of url/filepath to json.
         $fileList = $this->getParam('list_files');
@@ -323,8 +327,8 @@ class JsonReader extends AbstractPaginatedReader
     protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
     {
         // TODO Manage pagination query that is not "page".
-        if ($page && !empty($this->transformSourceImportParams['pagination'])) {
-            $vars = $this->transformSourceImportParams;
+        if ($page && $this->transformSource->getImportParam('pagination')) {
+            $vars = $this->transformSource->getImportParams();
             $vars['url'] = $this->getParam('url');
             if (!is_null($path)) {
                 $vars['path'] = $path;
