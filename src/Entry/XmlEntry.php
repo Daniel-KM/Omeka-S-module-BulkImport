@@ -30,6 +30,7 @@ class XmlEntry extends BaseEntry
                 : $simpleData->children();
             foreach ($nsElements as $element) {
                 $term = ($prefix ? $prefix . ':' : '') . $element->getName();
+                $singleValue = false;
                 switch ($term) {
                     case 'o:item_set':
                         $value = $this->initItemSet($element);
@@ -37,13 +38,31 @@ class XmlEntry extends BaseEntry
                     case 'o:media':
                         $value = $this->initMedia($element);
                         break;
+                    case 'o:class':
+                        $term = 'o:resource_class';
+                        // no break.
+                    case 'o:resource_class':
+                        $singleValue = true;
+                        $value = $this->innerXml($element);
+                        break;
+                    case 'o:template':
+                        $term = 'o:resource_template';
+                        // no break.
+                    case 'o:resource_template':
+                        $singleValue = true;
+                        $value = $this->innerXml($element);
+                        break;
                     // Properties.
                     default:
                         $value = $this->initPropertyValue($element, $prefix);
                         break;
                 }
                 if ($value) {
-                    $array[$term][] = $value;
+                    if ($singleValue) {
+                        $array[$term] = $value;
+                    } else {
+                        $array[$term][] = $value;
+                    }
                 }
             }
         }
