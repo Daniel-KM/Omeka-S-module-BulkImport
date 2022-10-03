@@ -103,12 +103,21 @@ class MappingController extends AbstractActionController
         $form = $this->getForm(MappingForm::class);
         if ($entity) {
             if ($isInternalMapping) {
+                $label = $this->getInternalBulkMappings()[$entity];
+                if ($action === 'copy') {
+                    $label = sprintf($this->translate('Copy of %s'), str_ireplace( // @translate
+                        ['.jsondot', '.jsonpath', '.jmespath', '.ini', '.xslt1', '.xslt2', '.xslt3', '.xslt', '.xsl', '.xml'], '', $label
+                    ));
+                }
                 $form->setData([
-                    'o:label' => $this->getInternalBulkMappings()[$entity],
+                    'o:label' => $label,
                     'o-module-bulk:mapping' => $this->getMapping($entity),
                 ]);
             } else {
                 $data = $entity->getJsonLd();
+                if ($action === 'copy') {
+                    $data['o:label'] = sprintf($this->translate('Copy of %s'), $data['o:label']); // @translate
+                }
                 $form->setData($data);
             }
         }
@@ -123,13 +132,11 @@ class MappingController extends AbstractActionController
                     $data['o:owner'] = $this->identity();
                     $response = $this->api($form)->create('bulk_mappings', $data);
                 }
-                if (!$response) {
-                    $this->messenger()->addError('Save of mapping failed'); // @translate
-                    return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping'], true);
-                } else {
+                if ($response) {
                     $this->messenger()->addSuccess('Mapping successfully saved'); // @translate
                     return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping', 'action' => 'browse'], true);
                 }
+                $this->messenger()->addError('Save of mapping failed'); // @translate
             } else {
                 $this->messenger()->addFormErrors($form);
             }
