@@ -59,6 +59,16 @@ class TransformSource extends AbstractPlugin
     protected $bulk;
 
     /**
+     * @var \JmesPath\Env
+     */
+    protected $jmesPathEnv;
+
+    /**
+     * @var \JmesPath\Parser
+     */
+    protected $jmesPathParser;
+
+    /**
      * @var bool
      *
      * @deprecated Will be removed (allow muliple config).
@@ -125,6 +135,8 @@ class TransformSource extends AbstractPlugin
         $this->logger = $logger;
         $this->automapFields = $automapFields;
         $this->bulk = $bulk;
+        $this->jmesPathEnv = new \JmesPath\Env;
+        $this->jmesPathParser = new \JmesPath\Parser;
     }
 
     /**
@@ -323,8 +335,6 @@ class TransformSource extends AbstractPlugin
         $vars = $params;
         unset($vars['mapping_config'], $vars['filename']);
         foreach (array_keys($this->normConfig['params']) as $from) {
-            // TODO Clarify transform source: the two next lines are the same.
-            // $value = $this->setVariables($vars)->convertTargetToStringJson($from, $to);
             $value = $this->setVariables($vars)->convertToString('params', $from);
             $this->importParams[$from] = $value;
             $vars[$from] = $value;
@@ -364,7 +374,7 @@ class TransformSource extends AbstractPlugin
         }
 
         $lines = $this->bulk->stringToList($this->tempConfig);
-        $result = preg_grep('~^parser\s*=\s*(?:jsdot|xpath)\s*$~', $lines);
+        $result = preg_grep('~^parser\s*=\s*(?:jsdot|jmespath|xpath)\s*$~', $lines);
         if ($result) {
             $line = trim(reset($result));
             $this->defaultParser = trim(mb_substr($line, mb_strpos($line, '=') + 1));
@@ -507,22 +517,22 @@ class TransformSource extends AbstractPlugin
      * This method should be used when a mapping source ("from") is used
      * multiple times.
      *
-     * @param bool $isDefault When true, the target value "to" is added to the
+     * @param bool $isDefaultSection When true, the target value "to" is added to the
      * resource without using data.
      */
-    public function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefault = false): array
+    public function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefaultSection = false): array
     {
         if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
             return $resource;
         }
 
-        if ($isDefault || empty($data)) {
+        if ($isDefaultSection || empty($data)) {
             $flatData = [];
             $fields = [];
         } else {
-            // Flat data and fields are used for jsdot and for replacements.
+            // Flat data and fields are used for jsdot.
+            // Prepare in all cases, because the parser can be set dynamically.
             $flatData = $this->flatArray($data);
-            // Fields are used only for jsdot.
             $fields = $this->extractFields($data);
         }
 
@@ -531,6 +541,8 @@ class TransformSource extends AbstractPlugin
             if (empty($to)) {
                 continue;
             }
+
+            // TODO For default section, remove useless "from path".
 
             $mod = $fromTo['mod'] ?? [];
             $raw = $mod['raw'] ?? '';
@@ -542,42 +554,62 @@ class TransformSource extends AbstractPlugin
             }
 
             // @todo When default, "from" is useless: remove it from normalized config.
+            $parser = $fromTo['from']['type'] ?? 'jsdot';
             $fromPath = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
             $result = [];
-            if ($isDefault) {
-                $converted = $this->convertTargetToStringJson($fromPath, $mod);
+            if ($isDefaultSection) {
+                $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $parser);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
                 }
                 $result[] = $prepend . $converted . $append;
             } else {
-                // Check for associative value. "from" is a full path to data:
-                // [key.to.data => "value"]
-                if (array_key_exists($fromPath, $flatData)) {
-                    $values = $flatData[$fromPath];
-                }
-                // Check for a repetitive value, starting with "fields[].".
-                elseif (mb_substr($fromPath, 0, 9) === 'fields[].') {
-                    $values = $fields[mb_substr($fromPath, 9)] ?? [];
-                } else {
-                    continue;
-                }
-                if ($values === [] || $values === '' || $values === null) {
-                    continue;
-                }
-                $values = is_array($values) ? array_values($values) : [$values];
-                foreach ($values as $value) {
-                    // Allows to use multiple mappings in one pattern, managing fields.
-                    $source = $flatData;
-                    $source[$fromPath] = $value;
-                    $converted = $this->convertTargetToStringJson($fromPath, $mod, $source);
-                    if ($converted === [] || $converted === '' || $converted === null) {
+                if ($parser === 'jmespath') {
+                    $values = $this->jmesPathEnv->search($fromPath, $data);
+                    if ($values === [] || $values === '' || $values === null) {
                         continue;
                     }
-                    $result[] = $prepend . $converted . $append;
+                    $values = is_array($values) ? array_values($values) : [$values];
+                    foreach ($values as $value) {
+                        // Values should not be array of array.
+                        if (!is_scalar($value)) {
+                            continue;
+                        }
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $parser);
+                        if ($converted === [] || $converted === '' || $converted === null) {
+                            continue;
+                        }
+                        $result[] = $prepend . $converted . $append;
+                    }
+                } else {
+                    // Check for associative value. "from" is a full path to data:
+                    // [key.to.data => "value"]
+                    if (array_key_exists($fromPath, $flatData)) {
+                        $values = $flatData[$fromPath];
+                    }
+                    // Check for a repetitive value, starting with "fields[].".
+                    elseif (mb_substr($fromPath, 0, 9) === 'fields[].') {
+                        $values = $fields[mb_substr($fromPath, 9)] ?? [];
+                    } else {
+                        continue;
+                    }
+                    if ($values === [] || $values === '' || $values === null) {
+                        continue;
+                    }
+                    $values = is_array($values) ? array_values($values) : [$values];
+                    foreach ($values as $value) {
+                        // Allows to use multiple mappings in one pattern, managing fields.
+                        $source = $flatData;
+                        $source[$fromPath] = $value;
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $parser);
+                        if ($converted === [] || $converted === '' || $converted === null) {
+                            continue;
+                        }
+                        $result[] = $prepend . $converted . $append;
+                    }
                 }
             }
 
@@ -599,10 +631,10 @@ class TransformSource extends AbstractPlugin
      * This method should be used when a mapping source ("from") is used
      * multiple times.
      *
-     * @param bool $isDefault When true, the target value "to" is added to the
-     * resource without using data.
+     * @param bool $isDefaultSection When true, the target value "to" is added
+     * to the resource without using data.
      */
-    public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefault = false): array
+    public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefaultSection = false): array
     {
         if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
             return $resource;
@@ -636,7 +668,7 @@ class TransformSource extends AbstractPlugin
             $append = $mod['append'] ?? '';
 
             $result = [];
-            if ($isDefault) {
+            if ($isDefaultSection) {
                 $converted = $this->convertTargetToStringXml($from, $mod);
                 if ($converted === [] || $converted === '' || $converted === null) {
                     continue;
@@ -684,10 +716,15 @@ class TransformSource extends AbstractPlugin
         $type = is_array($fromToMod) && isset($fromToMod['from']['type'])
             ? $fromToMod['from']['type']
             : 'jsdot';
-        if ($type === 'xpath') {
-            return $this->convertTargetToStringXml($name, $fromToMod, $data);
-        } else {
-            return $this->convertTargetToStringJson($name, $fromToMod, $data, false);
+        switch ($type) {
+            default:
+                $type = 'jsdot';
+                // no break.
+            case 'jsdot':
+            case 'jmespath':
+                return $this->convertTargetToStringJson($name, $fromToMod, $data, $type);
+            case 'xpath':
+                return $this->convertTargetToStringXml($name, $fromToMod, $data);
         }
     }
 
@@ -723,10 +760,11 @@ class TransformSource extends AbstractPlugin
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
+     * @param string $parser "jsdot" (default) or "jmespath".
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToStringJson($from, $mod, ?array $data = null): ?string
+    protected function convertTargetToStringJson($from, $mod, ?array $data = null, ?string $parser = null): ?string
     {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -738,10 +776,16 @@ class TransformSource extends AbstractPlugin
 
         $mod = $mod['mod'] ?? $mod;
 
-        // Flat data is used for replacement too.
-        $flatData = $this->flatArray($data);
+        // Parser is jsdot by default.
+        if ($parser === 'jmespath') {
+            // TODO Check if data for jmespath are cacheable or automatically cached.
+            $fromValue = $data ? $this->jmesPathEnv->search($from, $data) : null;
+        } else {
+            $parser = 'jsdot';
+            $flatData = $this->flatArray($data);
+            $fromValue = $flatData[$from] ?? null;
+        }
 
-        $fromValue = $flatData[$from] ?? null;
         $this->addVariable('value', $fromValue);
 
         if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
@@ -764,14 +808,19 @@ class TransformSource extends AbstractPlugin
         $replace = [];
         if (!empty($mod['replace'])) {
             if ($data) {
+                // Manage the exceptions: there is no value here, neither label or list.
+                $wrappedQueryExceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
                 foreach ($mod['replace'] as $wrappedQuery) {
-                    // Manage the exceptions: there is no value here, neither label or list.
-                    if (in_array($wrappedQuery, ['{{ value }}', '{{ label }}', '{{ list }}'])) {
+                    if (in_array($wrappedQuery, $wrappedQueryExceptions)) {
                         $replace[$wrappedQuery] = '';
                         continue;
                     }
                     $query = mb_substr($wrappedQuery, 2, -2);
-                    $replace[$wrappedQuery] = $flatData[$query] ?? '';
+                    if ($parser === 'jmespath') {
+                        $replace[$wrappedQuery] = $this->jmesPathEnv->search($query, $data);
+                    } else {
+                        $replace[$wrappedQuery] = $flatData[$query] ?? '';
+                    }
                 }
             } else {
                 $replace = array_fill_keys($mod['replace'], '');
@@ -782,6 +831,7 @@ class TransformSource extends AbstractPlugin
         // Note that there are exceptions in variables (value, list, label), so
         // replacement is done in all cases.
         foreach ($this->variables as $name => $value) {
+            // Normally never a xml.
             if ($value instanceof \DOMNode) {
                 $replace["{{ $name }}"] = (string) $value->nodeValue;
             } elseif (is_scalar($value)) {
@@ -888,9 +938,10 @@ class TransformSource extends AbstractPlugin
         $replace = [];
         if (!empty($mod['replace'])) {
             if ($data) {
+                $wrappedQueryExceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
                 foreach ($mod['replace'] as $wrappedQuery) {
                     // Manage the exceptions: there is no value here, neither label or list.
-                    if (in_array($wrappedQuery, ['{{ value }}', '{{ label }}', '{{ list }}'])) {
+                    if (in_array($wrappedQuery, $wrappedQueryExceptions)) {
                         $replace[$wrappedQuery] = '';
                         continue;
                     }
@@ -1415,6 +1466,8 @@ class TransformSource extends AbstractPlugin
             // Check start of a new section.
             if ($first === '[') {
                 // Check of a new autofiller.
+                // A section name should start with a letter and cannot contain
+                // "]".
                 if (preg_match('~^\[[a-zA-Z][^\]]*\]\s*\S.*$~', $line)) {
                     preg_match('~^\[\s*(?<service>[a-zA-Z][a-zA-Z0-9]*)\s*(?:\:\s*(?<sub>[a-zA-Z][a-zA-Z0-9:]*))?\s*(?:#\s*(?<variant>[^\]]+))?\s*\]\s*(?:=?\s*(?<label>.*))$~', $line, $matches);
                     if (empty($matches['service'])) {
@@ -1453,9 +1506,9 @@ class TransformSource extends AbstractPlugin
 
             // Add a key/value pair to the current section.
 
-            // The left part can be a xpath with a "=". On the right part, only
-            // a pattern can contain a "=". So split the line according to the
-            // presence of a pattern prefixed with a `~`.
+            // The left part can be a xpath, a jmespath, etc. with a "=". On the
+            // right part, only a pattern can contain a "=". So split the line
+            // according to the presence of a pattern prefixed with a `~`.
             // The left part may be a destination field too when the right part
             // is a raw content (starting with « " » or « ' »).
             // TODO The left part cannot contain a "~" for now.
@@ -1538,14 +1591,16 @@ class TransformSource extends AbstractPlugin
         // can be managed directly with SimpleXml.
         $xmlConfig = new SimpleXMLElement($this->tempConfig);
 
-        $xmlMapToArray = function (SimpleXMLElement $element, int $index, bool $isDefault = false): ?array {
+        $xmlMapToArray = function (SimpleXMLElement $element, int $index, bool $isDefaultSection = false): ?array {
             // Since anything is set inside attributes, use a json conversion.
             $xmlArray = json_decode(json_encode($element), true);
 
-            if ($isDefault) {
+            if ($isDefaultSection) {
                 $result['from'] = null;
             } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
                 $result['from'] = ['type' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
+            } elseif (isset($xmlArray['from']['@attributes']['jmespath']) && strlen((string) $xmlArray['from']['@attributes']['jmespath'])) {
+                $result['from'] = ['type' => 'jmespath', 'path' => (string) $xmlArray['from']['@attributes']['jmespath']];
             } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
                 $result['from'] = ['type' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
             } else {
@@ -1871,6 +1926,7 @@ class TransformSource extends AbstractPlugin
      * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::flatArray()
      * @see \ValueSuggestAny\Suggester\JsonLd\JsonLdSuggester::flatArray()
      * @todo Factorize flatArray() between modules.
+     * @todo Cache flat array (at least the last ones, checked via a hash).
      */
     public function flatArray(?array $array): array
     {
@@ -1889,7 +1945,7 @@ class TransformSource extends AbstractPlugin
     /**
      * Recursive helper to flat an array with separator ".".
      *
-     * @todo Find a way to keep the last level of array (list of subjects…), currently managed with fields.
+     * @todo Find a way to keep the last level of array (list of subjects…), currently managed with fields. Useless: use jsonpath or jmespath.
      */
     private function _flatArray(array &$array, array &$flatArray, ?string $keys = null): void
     {
