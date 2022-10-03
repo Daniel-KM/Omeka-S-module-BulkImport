@@ -10,8 +10,8 @@
 <https://omeka.org/s/vocabs/curation/> a owl:Ontology ;
     dcterms:title "Curation"@en ;
     dcterms:title "Curation"@fr ;
-    dcterms:description "Generic and common properties that are useful internally for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible."@en ;
-    dcterms:description "Propriétés génériques et courantes utiles pour la gestion interne des ressources. Le recours à des ontologies plus courantes ou plus précises est recommandé lorsque cela est possible."@fr ;
+    dcterms:description "Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible."@en ;
+    dcterms:description "Propriétés génériques et courantes utiles pour la gestion des ressources dans Omeka. Le recours à des ontologies plus courantes ou plus précises est recommandé lorsque c’est possible."@fr ;
     vs:term_status "experimental" .
 
 curation:access a rdf:Property ;
@@ -102,6 +102,13 @@ curation:type a rdf:Property ;
     rdfs:comment "A type that can be used for some purposes."@en ;
     rdfs:comment "Un type pouvant être utilisé dans certains cas."@fr ;
     rdfs:subPropertyOf dcterms:type ;
+    vs:term_status "experimental" .
+
+curation:coordinates a rdf:Property ;
+    rdfs:label "Coordinates"@en ;
+    rdfs:label "Coordonnées"@fr ;
+    rdfs:comment "Numerical coordinates related to the resource, generaly the geographic position."@en ;
+    rdfs:comment "Coordonnées numériques liées à la ressource, généralement la position géographique."@fr ;
     vs:term_status "experimental" .
 
 curation:data a rdf:Property ;
