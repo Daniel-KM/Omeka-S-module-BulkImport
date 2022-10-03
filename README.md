@@ -34,8 +34,11 @@ This module requires the module [Log] and optionaly [Generic]. An external xslt 
 processor may be needed if you import xml files that are not importable with
 xlt 1. Some specific readers or processors may need some other modules.
 
-**Important**: If you use the module [CSV Import] in parallel, you should apply
-[this patch] or use [this version].
+**Warning**: Some parts of this module may not support use of remote files: only
+files saved locally on the server may be managed.
+
+**Important**: If you use the module [CSV Import] in parallel, you should use a
+version equal or greater than 2.3.0.
 
 **Important**: If you use the module [Numeric Data Types], you should apply this
 [other patch] or use this [other version].
@@ -138,8 +141,8 @@ data between the source and the omeka json representation of resources.
 
 The config can be selected in the first form. New config can be added in the
 directory "data/mapping" of the module (default ones) or in the directory
-"files/mapping" of Omeka (user ones). They can be edited online in the menu
-"Mappings" too.
+"files/mapping" of Omeka (user ones, deprecated: use config files). They can be
+edited online in the menu "Mappings" too.
 
 ### Config files
 
@@ -164,34 +167,12 @@ be imported and all the details about the destination field.
 ### Config of the mappings
 
 The config contains a list of mappings between source data and destination data.
-Mapping can be done in two formats: ini or xml.
+Mapping can be done in two formats: key-value pair or xml.
 
 For example:
 
 ```
-source or xpath = dcterms:title @fr-fr ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
-```
-
-will be converted internally and used to create a resource like that:
-
-```php
-[
-     'from' => 'source or xpath',
-     'to' => [
-         'field' => 'dcterms:title',
-         'property_id' => 1,
-         'type' => 'literal',
-         '@language' => 'fr-fr',
-         'is_public' => false,
-         'pattern' => 'pattern for the {{ value|trim }} with {{/source/record/data}}',
-         'replace' => [
-             '{{/source/record/data}}',
-         ],
-         'twig' => [
-             '{{ value|trim }}',
-         ],
-     ],
-]
+/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
 ```
 
 For xml, the mapping is like that:
@@ -200,20 +181,59 @@ For xml, the mapping is like that:
 <mapping>
     <map>
         <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
-        <to field="dcterms:title" datatypes="literal" language="" visibility="" raw="" prepend="" pattern="" append=""/>
+        <to field="dcterms:title" datatype="literal" language="fra" visibility="private"/>
+        <mod raw="" prepend="pattern for the " pattern="{{ value|trim }} with {{/source/record/data}}" append=""/>
     </map>
 </mapping>
 ```
 
-A config is composed of multiple lines. The sections like "[info]" are managed:
-the next lines will be a sub-array.
+For developers, these mappings will be converted internally and used to create a
+resource like that:
+
+```php
+[
+    [
+        'from' => [
+            'type' => 'xpath',
+            'path' => "/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']",
+        ],
+        'to' => [
+            'field' => 'dcterms:title',
+            'property_id' => 1,
+            'type' => 'literal',
+            'language' => 'fra',
+            'is_public' => false,
+        ],
+        'mod' => [
+            'raw' => null,
+            'prepend' => 'pattern for the ',
+            'pattern' => '{{ value|trim }} with {{/source/record/data}}',
+            'append' => null,
+            'replace' => [
+                '{{/source/record/data}}',
+            ],
+            'twig' => [
+                '{{ value|trim }}',
+            ],
+        ],
+    ],
+]
+```
+
+The xml format is clearer, but the key-value pair can be used anywhere, included
+the headers of a spreadsheet.
+
+Of course a config may be composed with multiple maps. In the The sections like "[info]"
+are managed: the next lines will be a sub-array.
+
+#### Key-value pair notation
 
 Each line is formatted with a source and a destination separated with the sign
 "=". The format of each part (left and right of the "=") of each line is
 checked, but not if it has a meaning.
 
-The source part may be the key in an array, or in a sub-array (`dcterms:title.0.@value`),
-or a xpath (used when the input is xml).
+The source part can be specified in three ways: javascript dot notation,
+jsonpath (more precisely jmespath) or xpath (see below).
 
 The destination part is an automap field. It has till five components and only
 the first is required.
@@ -232,7 +252,46 @@ The visibility is prefixed with a `§`: `§public` or `§private`.
 
 The last component is a pattern used to transform the source value when needed.
 It is prefixed with a `~`. It can be a simple replacement string, or a complex
-pattern with some [Twig] commands.
+pattern with some [Twig] commands (see below).
+
+For default values, the right part may be a simple string starting and ending
+with a simple or double quotes, in which case the left part is the destination.
+Next three lines are equivalent:
+
+```
+dcterms:license = "Public domain"
+dcterms:license = ^^literal ~ "Public domain"
+dcterms:license = dcterms:license ^^literal ~ "Public domain"
+```
+
+#### xml mapping
+
+The example above is clear and contains main elements and attributes. See the
+[example mapping for Unimarc].
+
+Xml allows to specify mapping tables for codes (for example to convert an iso
+code to a literal).
+
+### Defining the source of the value
+
+Three formats are supported, the first two for a json endpoint, and the last for
+an xml source:
+
+- Javascript dot object notation: The source is set nearly like a javascript
+  with dot notation (even invalid): `dcterms:title.0.value`. `.` and `\` must be
+  escaped with a `\`.
+
+- [JmesPath]: This is a port of xpath for json: `"dcterms:title"[0]"@value"`,
+  and it can manage a lot of expressions, filters, functions, etc. JmesPath is
+  an improvement of the original idea for a [jsonpath], but not compatible.
+
+- XPath: it can use any standard XPath: `/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']`
+  when the source is xml.
+
+### Defining the transformation (raw value, prepend/append, replacements)
+
+If you need to alter the source value and format it differently, you can use
+some patterns.
 
 A simple replacement string is a pattern with some replacement values:
 ```
@@ -416,6 +475,7 @@ TODO
 ----
 
 - [ ] See todo in code.
+- [ ] Add more tests.
 - [x] Full dry-run.
 - [ ] Extract list of metadata names during dry-run and output it to help building mapping.
 - [ ] Fix numeric data type (doctrine issue): see fix in https://github.com/omeka-s-modules/NumericDataTypes/pull/29.
@@ -428,15 +488,21 @@ TODO
 - [ ] Allow to set a query for Omeka S import.
 - [ ] Add check, in particular with multi-sheets.
 - [ ] Manage import of Custom vocab with items.
-- [ ] Convert specific importer into standard resource processor + pattern.
-- [ ] Why are there 752 missing ids with direct sql creation in Spip?
-- [ ] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
+- [-] Why are there 752 missing ids with direct sql creation in Spip?
+- [-] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
 - [ ] Use metaMapper() for sql imports (so convert special processors) or convert rows early (like spreadsheets).
-- [ ] For sql import, use a direct sql queries when mapping is table to table (like eprints statistics).
+- [x] For sql import, use a direct sql query when mapping is table to table (like eprints statistics).
+- [ ] Convert specific importer into standard resource processor + pattern.
+- [ ] Deprecate all direct converters that don't use metaMapper() (so upgrade spreadsheet process).
 - [ ] Count of skipping or empty rows is different during check and real process.
 - [ ] Check default item set, template and class (they may be not set during creation or update or replace via spreadsheet).
 - [ ] Check a resource with o:item_set[dcterms:title].
 - [ ] Add action "error" for unidentified resources.
+- [ ] Add import multiple xml files like json.
+- [ ] Show details for mappings: add list of used configuration as importer and as parent/child.
+- [ ] Add automatic determination of the source (csv, file, iiif, multiple iiif, omeka classic, etc.).
+- [ ] Replace internal jsdot by RoNoLo/json-query or binary-cube/dot-array or jasny/dotkey? Probably useless.
+- [ ] Compile jmespath.
 
 
 Warning
@@ -493,7 +559,9 @@ of the CeCILL license and that you accept its terms.
 
 - CodeMirror
 
-  Licence [MIT}
+  Licence [MIT]
+
+See licences of other libraries in composer.json.
 
 ### Data
 
@@ -527,11 +595,12 @@ by [BibLibre].
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
-[this patch]: https://github.com/omeka-s-modules/CSVImport/pull/182
-[this version]: https://gitlab.com/Daniel-KM/Omeka-S-module-CSVImport
 [other patch]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
 [other version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
+[example mapping for Unimarc]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
+[jmespath.org]: https://jmespath.org
+[jsonpath]: https://goessner.net/articles/JsonPath/index.html
 [Unimarc conversion to Omeka]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
