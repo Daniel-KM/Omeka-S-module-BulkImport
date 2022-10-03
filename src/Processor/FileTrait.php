@@ -645,8 +645,8 @@ trait FileTrait
                 fclose($fp);
             } else {
                 // copy($url, $tempname);
-                $result = file_put_contents($tempname,(string) file_get_contents($fileOrUrl), \LOCK_EX);
-                if ($result ===  false) {
+                $result = file_put_contents($tempname, (string) file_get_contents($fileOrUrl), \LOCK_EX);
+                if ($result === false) {
                     return [
                         'status' => 'error',
                         'message' => new PsrMessage(

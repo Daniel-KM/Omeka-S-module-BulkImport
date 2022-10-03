@@ -490,7 +490,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         );
 
         // Process only identifiers without ids (normally all of them).
-        $emptyIdentifiers = array_filter($this->identifiers['map'], function($v) {
+        $emptyIdentifiers = array_filter($this->identifiers['map'], function ($v) {
             return empty($v);
         });
 
@@ -2094,7 +2094,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
-        $storeMain = function ($idOrIdentifier) use ($resource) {
+        $storeMain = function ($idOrIdentifier) use ($resource): void {
             if ($idOrIdentifier) {
                 // No check for duplicates here: it depends on action.
                 $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier;
@@ -2109,7 +2109,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         };
 
-        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId) {
+        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId): void {
             // As soon as an array exists, a check can be done on identifier,
             // even if the id is defined later. The same for map.
             if (!isset($this->identifiers['revert'][$idOrIdentifier])) {
