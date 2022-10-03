@@ -1220,9 +1220,16 @@ class TransformSource extends AbstractPlugin
             } elseif ($sectionType === 'pattern') {
                 $normConfigRef[$from] = $this->preparePattern($originalTo);
             } elseif ($sectionType === 'raw_or_pattern') {
-                $normConfigRef[$from] = $isRaw || mb_substr($to, 0, 1) !== '~'
-                    ? $to
-                    : $this->preparePattern(trim(mb_substr($to, 1)));
+                if ($isRaw || mb_substr($to, 0, 1) !== '~') {
+                    if ($isRaw) {
+                        $normConfigRef[$from] = $to;
+                    } else {
+                        $mapRaw = ['true' => true, 'false' => false, 'null' => null];
+                        $normConfigRef[$from] = $mapRaw[strtolower($to)] ?? $to;
+                    }
+                } else {
+                    $normConfigRef[$from] = $this->preparePattern(trim(mb_substr($to, 1)));
+                }
             } else {
                 // Section type is "mapping".
                 if (!strlen($to)) {
