@@ -55,9 +55,9 @@ class Module extends AbstractModule
 
     protected function preInstall(): void
     {
+        $services = $this->getServiceLocator();
         $js = __DIR__ . '/asset/vendor/flow.js/flow.min.js';
         if (!file_exists($js)) {
-            $services = $this->getServiceLocator();
             $t = $services->get('MvcTranslator');
             throw new ModuleCannotInstallException(
                 sprintf(
@@ -68,7 +68,7 @@ class Module extends AbstractModule
             );
         }
 
-        $config = $this->getServiceLocator()->get('Config');
+        $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         if (!$this->checkDestinationDir($basePath . '/xsl')) {
             $message = new PsrMessage(
@@ -86,16 +86,39 @@ class Module extends AbstractModule
             throw new ModuleCannotInstallException((string) $message);
         }
 
-        // TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
-        /*
+        // The version of Box/Spout should be >= 3.0.
+        // This check is needed, because CSV Import < 2.3 uses version 2.7.
+        // The patch https://github.com/omeka-s-modules/CSVImport/pull/182 was
+        // included in vesion 2.3..
+        $moduleName = 'CSVImport';
+        $version = '2.3';
+        $required = false;
+        $translator = $services->get('MvcTranslator');
+        $message = new \Omeka\Stdlib\Message(
+            $translator->translate('This module requires the module "%1$s", version %2$s or above.'), // @translate
+            $moduleName, $version
+        );
+        if (method_exists($this, 'checkModuleAvailability')) {
+            $this->checkModuleAvailability($moduleName, $version, $required, true);
+        } else {
+            // @todo Adaptation from Generic method, to be removed in next version.
+            $module = $services->get('Omeka\ModuleManager')->getModule($moduleName);
+            if (!$module || !$this->isModuleActive($moduleName)) {
+                if ($required) {
+                    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+                }
+                // Else throw message below (required module).
+            } elseif ($version && version_compare($module->getIni('version') ?? '', $version, '<')) {
+                throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+            }
+        }
+
         // The version of Box/Spout should be >= 3.0, but there is no version
         // inside the library, so check against a class.
-        // This check is needed, because CSV Import still uses version 2.7.
-        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
+        if (class_exists('Box\Spout\Reader\ReaderFactory')) {
             $message = 'The dependency Box/Spout version should be >= 3.0. See readme.'; // @translate
             throw new \Omeka\Module\Exception\ModuleCannotInstallException($message);
         }
-        */
     }
 
     protected function postInstall(): void
