@@ -452,7 +452,9 @@ class XmlEntry extends BaseEntry
         // Remove wrapper to keep mapping simple with xpath adapted to source.
         $unwrappedData = null;
         foreach ($data->xpath('/resource/child::*[1]') as $node) {
-            $unwrappedData = new \SimpleXMLElement($node->asXML());
+            // Avoid warning on missing namespaces. But here, it doesn't matter.
+            // TODO Log warning on missing namespaces instead of output.
+            $unwrappedData = @new \SimpleXMLElement($node->asXML());
             break;
         }
         if (!$unwrappedData) {
