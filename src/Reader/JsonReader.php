@@ -266,10 +266,18 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         $resourcesRoot = $this->transformSource->getSectionSetting('params', 'resources_root');
-        $json = $this->transformSource->extractSubValue($json, $resourcesRoot, []);
-        if (!is_array($json)) {
-            $json = [];
+        if ($resourcesRoot) {
+            $json = $this->transformSource->extractSubValue($json, $resourcesRoot, []);
+            if (!is_array($json)) {
+                $json = [];
+            }
         }
+
+        $resourceSingle = $this->transformSource->getSectionSetting('params', 'resource_single');
+        if ($resourceSingle) {
+            $json = [$json];
+        }
+
         $this->setInnerIterator(new ArrayIterator($json));
     }
 
