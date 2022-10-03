@@ -83,7 +83,7 @@ trait TransformSourceTrait
         $mainConfig = null;
         $isInfo = false;
         $matches = [];
-        foreach ($this->transformSource->stringToList($config) as $line) {
+        foreach ($this->transformSource->bulk()->stringToList($config) as $line) {
             if ($line === '[info]') {
                 $isInfo = true;
             } elseif (substr($line, 0, 1) === '[') {

@@ -898,6 +898,26 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get each line of a multi-line string separately.
+     *
+     * Empty lines are removed.
+     */
+    public function stringToList($string): array
+    {
+        return array_filter(array_map('trim', explode("\n", $this->fixEndOfLine($string))), 'strlen');
+    }
+
+    /**
+     * Clean the text area from end of lines.
+     *
+     * This method fixes Windows and Apple copy/paste from a textarea input.
+     */
+    public function fixEndOfLine($string): string
+    {
+        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
+    }
+
+    /**
      * Check if a string seems to be an url.
      *
      * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.

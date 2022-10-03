@@ -159,6 +159,11 @@ class TransformSource extends AbstractPlugin
         return $this;
     }
 
+    public function bulk(): Bulk
+    {
+        return $this->bulk;
+    }
+
     public function addVariable(string $name, $value): self
     {
         $this->variables[$name] = $value;
@@ -1159,7 +1164,7 @@ class TransformSource extends AbstractPlugin
         ];
 
         // Lines are trimmed. Empty lines are removed.
-        $lines = $this->stringToList($this->config);
+        $lines = $this->bulk->stringToList($this->config);
 
         $matches = [];
         $section = null;
@@ -1817,26 +1822,6 @@ class TransformSource extends AbstractPlugin
             $result[] = $item;
         }
         return $result;
-    }
-
-    /**
-     * Get each line of a multi-line string separately.
-     *
-     * Empty lines are removed.
-     */
-    public function stringToList($string): array
-    {
-        return array_filter(array_map('trim', explode("\n", $this->fixEndOfLine($string))), 'strlen');
-    }
-
-    /**
-     * Clean the text area from end of lines.
-     *
-     * This method fixes Windows and Apple copy/paste from a textarea input.
-     */
-    protected function fixEndOfLine($string): string
-    {
-        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
     }
 
     /**
