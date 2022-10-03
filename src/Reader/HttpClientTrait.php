@@ -81,6 +81,10 @@ trait HttpClientTrait
         ?string $contentType = null,
         ?string $charset = null
     ): bool {
+        if (!$this->endpoint && !strlen($path) && !strlen($subpath)) {
+            $this->lastErrorMessage = new PsrMessage('No file, url or endpoint was defined.'); // @translate
+            return false;
+        }
         try {
             $response = $this->fetchData($path, $subpath, $params);
         } catch (\Laminas\Http\Exception\RuntimeException $e) {
@@ -99,6 +103,10 @@ trait HttpClientTrait
      */
     protected function isValidDirectUrl(string $url, ?string $contentType = null, ?string $charset = null): bool
     {
+        if (!strlen($url)) {
+            $this->lastErrorMessage = new PsrMessage('No url was defined.'); // @translate
+            return false;
+        }
         try {
             $response = $this->fetchUrl($url);
         } catch (\Laminas\Http\Exception\RuntimeException $e) {
