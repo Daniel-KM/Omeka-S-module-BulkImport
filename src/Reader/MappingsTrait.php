@@ -134,6 +134,25 @@ trait MappingsTrait
         return $realPath;
     }
 
+    protected function getInternalBulkMappings(): array
+    {
+        static $internalBulkMappings;
+
+        if (is_null($internalBulkMappings)) {
+            $internalBulkMappings = $this->listMappings([
+                ['base' => 'ini'],
+                ['base' => 'xml'],
+                ['json' => 'ini'],
+                ['json' => 'xml'],
+                ['xml' => 'ini'],
+                ['xml' => 'xml'],
+                ['xsl' => 'xsl'],
+            ])['module']['options'];
+        }
+
+        return $internalBulkMappings;
+    }
+
     protected function getMapping(string $mappingName): ?string
     {
         $services = $this->getServiceLocator();

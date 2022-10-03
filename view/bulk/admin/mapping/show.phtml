@@ -12,6 +12,7 @@ $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
 $assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
+$urlHelper = $plugins->get('url');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings show');
 $this->headLink()
@@ -29,7 +30,16 @@ $this->headScript()
 
 <?= $this->pageTitle($translate('Show mapping'), 1, $translate('Bulk import')) ?>
 
+<div id="page-actions">
+    <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')): ?>
+    <?php if (is_object($bulkMapping) && $bulkMapping->userIsAllowed('update')): ?>
+    <?= $this->hyperlink($translate('Edit'), $urlHelper(null, ['action' => 'edit'], true), ['class' => 'button']) ?>
+    <?php endif; ?>
+    <?= $this->hyperlink($translate('Copy'), $urlHelper(null, ['action' => 'copy'], ['query' => $this->params()->fromQuery()], true), ['class' => 'button']) ?>
+    <?php endif; ?>
+</div>
+
 <div id="content">
-    <h2 class="label"><?= sprintf($translate('Showing "%s"'), $escape($label)) ?></h2>
+    <h2 class="label"><?= $escape($label) ?></h2>
     <textarea name="o-module-bulk:mapping" id="o-module-bulk-mapping" rows="30" class="codemirror-code" rows="30"><?= $escape($content) ?></textarea>
 </div>

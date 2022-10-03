@@ -39,51 +39,17 @@ class MappingController extends AbstractActionController
         return new ViewModel([
             'bulkMappings' => $mappings,
             'resources' => $mappings,
-            'internalMappings' => $this->listMappings([
-                ['base' => 'ini'],
-                ['base' => 'xml'],
-                ['json' => 'ini'],
-                ['json' => 'xml'],
-                ['xml' => 'ini'],
-                ['xml' => 'xml'],
-                ['xsl' => 'xsl'],
-            ])['module']['options'],
+            'internalMappings' => $this->getInternalBulkMappings(),
         ]);
     }
 
     public function showAction()
     {
-        $id = ((int) $this->params()->fromRoute('id'))
-            ?: $this->params()->fromQuery('id');
-
-        if (!$id) {
-            $message = new PsrMessage('No mapping id set.'); // @translate
-            $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
-        }
-
-        /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
-        if (is_numeric($id)) {
-            $entity = $this->api()->read('bulk_mappings', ['id' => $id])->getContent();
-            $isBulkMapping = true;
-        } else {
-            $mappings = $this->listMappings([
-                ['base' => 'ini'],
-                ['base' => 'xml'],
-                ['json' => 'ini'],
-                ['json' => 'xml'],
-                ['xml' => 'ini'],
-                ['xml' => 'xml'],
-                ['xsl' => 'xsl'],
-            ])['module']['options'];
-            $entity = isset($mappings[$id]) ? $id : null;
-            $isBulkMapping = false;
-        }
-
-         if ($id && !$entity) {
-            $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
-            $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+        $entity = $this->getBulkMapping();
+        $isBulkMapping = is_object($entity) && $entity instanceof \BulkImport\Api\Representation\MappingRepresentation;
+        $isInternalMapping = is_string($entity);
+        if (!$isBulkMapping && !$isInternalMapping) {
+            return $entity;
         }
 
         if ($isBulkMapping) {
@@ -100,45 +66,63 @@ class MappingController extends AbstractActionController
             'isBulkMapping' => false,
             'bulkMapping' => null,
             'resource' => null,
-            'label' => $mappings[$id],
-            'content' => $this->getMapping($id),
+            'label' => $this->getInternalBulkMappings()[$entity],
+            'content' => $this->getMapping($entity),
         ]);
     }
 
     public function addAction()
     {
-        return $this->editAction();
+        return $this->edit('add');
+    }
+
+    public function copyAction()
+    {
+        return $this->edit('copy');
     }
 
     public function editAction()
     {
-        $id = (int) $this->params()->fromRoute('id');
-        /** @var \BulkImport\Api\Representation\MappingRepresentation $entity */
-        $entity = $id ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
+        return $this->edit('edit');
+    }
 
-        if ($id && !$entity) {
-            $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
-            $this->messenger()->addError($message);
-            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+    protected function edit(string $action)
+    {
+        if ($action === 'add') {
+            $entity = null;
+        } else {
+            $entity = $this->getBulkMapping();
+            $isBulkMapping = is_object($entity) && $entity instanceof \BulkImport\Api\Representation\MappingRepresentation;
+            $isInternalMapping = is_string($entity);
+            if (!$isBulkMapping && !$isInternalMapping) {
+                return $entity;
+            }
         }
 
+        /** @var \BulkImport\Form\MappingForm $form */
         $form = $this->getForm(MappingForm::class);
         if ($entity) {
-            $data = $entity->getJsonLd();
-            $form->setData($data);
+            if ($isInternalMapping) {
+                $form->setData([
+                    'o:label' => $this->getInternalBulkMappings()[$entity],
+                    'o-module-bulk:mapping' => $this->getMapping($entity),
+                ]);
+            } else {
+                $data = $entity->getJsonLd();
+                $form->setData($data);
+            }
         }
 
         if ($this->getRequest()->isPost()) {
             $data = $this->params()->fromPost();
             $form->setData($data);
             if ($form->isValid()) {
-                if ($entity) {
+                if ($isBulkMapping && $entity && $action === 'edit') {
                     $response = $this->api($form)->update('bulk_mappings', $this->params('id'), $data, [], ['isPartial' => true]);
                 } else {
                     $data['o:owner'] = $this->identity();
                     $response = $this->api($form)->create('bulk_mappings', $data);
                 }
-
                 if (!$response) {
                     $this->messenger()->addError('Save of mapping failed'); // @translate
                     return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping'], true);
@@ -151,11 +135,15 @@ class MappingController extends AbstractActionController
             }
         }
 
-        return new ViewModel([
+        $viewModel = new ViewModel([
             'form' => $form,
             'bulkMapping' => $entity,
             'resource' => $entity,
         ]);
+        if ($action === 'copy') {
+            $viewModel->setTemplate('bulk/admin/mapping/add');
+        }
+        return $viewModel;
     }
 
     public function deleteAction()
@@ -195,5 +183,33 @@ class MappingController extends AbstractActionController
             'bulkMapping' => $entity,
             'form' => $form,
         ]);
+    }
+
+    protected function getBulkMapping()
+    {
+        $id = ((int) $this->params()->fromRoute('id'))
+            ?: $this->params()->fromQuery('id');
+
+        if (!$id) {
+            $message = new PsrMessage('No mapping id set.'); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+        }
+
+        /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
+        if (is_numeric($id)) {
+            $entity = $this->api()->read('bulk_mappings', ['id' => $id])->getContent();
+        } else {
+            $internalMappings = $this->getInternalBulkMappings();
+            $entity = isset($internalMappings[$id]) ? $id : null;
+        }
+
+        if (!$entity) {
+            $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate
+            $this->messenger()->addError($message);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
+        }
+
+        return $entity;
     }
 }

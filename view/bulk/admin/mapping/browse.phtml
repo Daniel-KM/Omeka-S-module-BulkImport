@@ -17,6 +17,8 @@ $escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings browse');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+
+$userIsAllowedCreate = $this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')
 ?>
 
 <?= $this->pageTitle($translate('Mappings'), 1, $translate('Bulk import')) ?>
@@ -50,6 +52,12 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                     <li><?= $mapping->link('', 'edit', [
                         'class' => 'o-icon-edit',
                         'title' => $translate('Edit'),
+                    ]) ?></li>
+                    <?php endif; ?>
+                    <?php if ($userIsAllowedCreate): ?>
+                    <li><?= $mapping->link('', 'copy', [
+                        'class' => 'o-icon- fa-solid fa-copy',
+                        'title' => $translate('Copy'),
                     ]) ?></li>
                     <?php endif; ?>
                     <?php if ($userIsAllowedDelete): ?>
@@ -96,6 +104,11 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <tr>
             <td>
                 <a href="<?= $escapeAttr($urlHelper('admin/bulk/default', ['controller' => 'mapping', 'action' => 'show'], ['query' => ['id' => $id]])) ?>"><?= $escape($name) ?></a>
+                <ul class="actions">
+                    <?php if ($userIsAllowedCreate): ?>
+                    <li><a class="o-icon- fa-solid fa-copy" title="<?= $escapeAttr($translate('Copy as new mapping')) ?>" href="<?= $escapeAttr($urlHelper('admin/bulk/default', ['controller' => 'mapping', 'action' => 'copy'], ['query' => ['id' => $id]])) ?>"></a></li>
+                    <?php endif; ?>
+                </ul>
             </td>
             <td>
                 <?= strtok(mb_substr($id, 7), '/') ?>

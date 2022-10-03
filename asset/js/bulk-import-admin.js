@@ -111,7 +111,8 @@
                 "'='": completeIfInTag,
                 'Ctrl-Space': 'autocomplete'
             },
-            hintOptions: {schemaInfo: tags}
+            hintOptions: {schemaInfo: tags},
+            readOnly: window.location.href.includes('/show'),
         });
 
     });
