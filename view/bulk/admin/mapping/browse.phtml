@@ -3,12 +3,17 @@
  * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \BulkImport\Api\Representation\MappingRepresentation[] $bulkMappings
  * @var \BulkImport\Api\Representation\MappingRepresentation[] $resources
+ * @var array $internalMappings
  */
 
 use BulkImport\Interfaces\Configurable as ConfigurableImport;
 
-$escape = $this->plugin('escapeHtml');
-$translate = $this->plugin('translate');
+
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
+$urlHelper = $plugins->get('url');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings browse');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
@@ -24,6 +29,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <h2><?= $escape($translate('Configuration of mappings')) ?></h2>
 
+<h3><?= $escape($translate('Configured mappings')) ?></h3>
 <?php if (count($bulkMappings)): ?>
 <table class="tablesaw batch-edit" data-tablesaw-mode="stack">
     <thead>
@@ -73,6 +79,28 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 </table>
 <?php else: ?>
 <div class="no-resources">
-    <p><?= $escape($translate('No mappings yet.')) ?></p>
+    <p><?= $escape($translate('No configured mappings yet.')) ?></p>
 </div>
 <?php endif; ?>
+
+<h3><?= $escape($translate('Internal mappings (to copy)')) ?></h3>
+<table class="tablesaw batch-edit" data-tablesaw-mode="stack">
+    <thead>
+        <tr>
+            <th><?= $escape($translate('Name')) ?></th>
+            <th><?= $escape($translate('Source')) ?></th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($internalMappings as $id => $name): ?>
+        <tr>
+            <td>
+                <?= $escape($name) ?>
+            </td>
+            <td>
+                <?= strtok(mb_substr($id, 7), '/') ?>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>

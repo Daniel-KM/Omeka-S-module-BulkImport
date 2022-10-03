@@ -4,6 +4,7 @@ namespace BulkImport\Controller\Admin;
 
 use BulkImport\Form\MappingDeleteForm;
 use BulkImport\Form\MappingForm;
+use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\ServiceManager\ServiceLocatorInterface;
@@ -13,6 +14,7 @@ use Log\Stdlib\PsrMessage;
 class MappingController extends AbstractActionController
 {
     use ServiceLocatorAwareTrait;
+    use MappingsTrait;
 
     /**
      * @param ServiceLocatorInterface $serviceLocator
@@ -37,6 +39,15 @@ class MappingController extends AbstractActionController
         return new ViewModel([
             'bulkMappings' => $mappings,
             'resources' => $mappings,
+            'internalMappings' => $this->listMappings([
+                ['base' => 'ini'],
+                ['base' => 'xml'],
+                ['json' => 'ini'],
+                ['json' => 'xml'],
+                ['xml' => 'ini'],
+                ['xml' => 'xml'],
+                ['xsl' => 'xsl'],
+            ])['module']['options'],
         ]);
     }
 
