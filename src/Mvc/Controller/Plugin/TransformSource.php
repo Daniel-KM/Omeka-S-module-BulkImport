@@ -450,13 +450,20 @@ class TransformSource extends AbstractPlugin
     {
         // Note: for section type "mapping", the output is the whole setting
         // including "from", "to" and "mod".
-        $toMod = $this->getSectionSetting($section, $name);
-        if (!$toMod) {
+        $fromToMod = $this->getSectionSetting($section, $name);
+        if (!$fromToMod) {
             return null;
+        } elseif ($data instanceof \SimpleXMLElement) {
+            return $this->convertTargetToStringXml($name, $fromToMod, $data);
         }
-        return $data instanceof \SimpleXMLElement
-            ? $this->convertTargetToStringXml($name, $toMod, $data)
-            : $this->convertTargetToStringJson($name, $toMod, $data);
+        $type = is_array($fromToMod) && isset($fromToMod['from']['type'])
+            ? $fromToMod['from']['type']
+            : 'jsdot';
+        if ($type === 'xpath') {
+            return $this->convertTargetToStringXml($name, $fromToMod, $data);
+        } else {
+            return $this->convertTargetToStringJson($name, $fromToMod, $data, false);
+        }
     }
 
     /**
@@ -1311,7 +1318,7 @@ class TransformSource extends AbstractPlugin
             } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
                 $result['from'] = ['type' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
             } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
-                $result['from'] = ['type' => 'xmlpath', 'path' => (string) $xmlArray['from']['@attributes']['xmlpath']];
+                $result['from'] = ['type' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
             } else {
                 $this->logger->err(sprintf('The mapping "%s" has no source.', $index));
                 return null;
@@ -1468,7 +1475,10 @@ class TransformSource extends AbstractPlugin
     }
 
     /**
-     * Determine if an expression is a js dot object notation or an xpath.
+     * Determine if expression is a js dot object notation or an xpath.
+     *
+     * Note: a simple string with only letters can be anything.
+     * To force the type of an expression, the xml mapping can be used.
      *
      * @return string|null "jsdot" (default) or "xpath".
      */
@@ -1478,25 +1488,25 @@ class TransformSource extends AbstractPlugin
             return null;
         }
 
-        // Keys with "/", "'", """, etc. are very rare in json, so not a jsdot.
-        if (strpos($path, '/') !== false
-            || strpos($path, '"') !== false
-            || strpos($path, "'") !== false
-            || strpos($path, '::') !== false
-            || strpos($path, '=') !== false
-        ) {
-            return 'xpath';
-        }
-
-        // A sub-array is represented as "xxx.0.yyy", so a jsdot.
-        if (preg_match('~\.\d+\.~', $path)) {
+        // A simple string is a jsdot by default.
+        // A sub-array is represented as "xxx.0.yyy" only compliant as jsdot,
+        // even if it can be inside a key, but very rare in real world.
+        if (preg_match('~^[\w_]+$|\.\d+\.~', $path)) {
             return 'jsdot';
         }
 
+        // A quick check.
+        $first = mb_substr($path, 0, 1);
+        if ($first === '/' || preg_match('~^\d~', $path)) {
+            return 'xpath';
+        }
+
         $xpath = new DOMXPath(new DOMDocument);
-        return @$xpath->query($path)
-            ? 'xpath'
-            : 'jsdot';
+        if (@$xpath->query($path)) {
+            return 'xpath';
+        }
+
+        return 'jsdot';
     }
 
     /**
