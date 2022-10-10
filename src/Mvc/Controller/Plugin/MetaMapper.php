@@ -1031,6 +1031,7 @@ class MetaMapper extends AbstractPlugin
      * @todo Separate preparation and process. Previous version in AdvancedResourceTemplate was simpler (but string only).
      * @todo Check for issues with separators or parenthesis included in values.
      * @todo Update \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::twig().
+     * @fixme The args extractor does not manage escaped quote and double quote in arguments.
      *
      * @param string $pattern The full pattern to process.
      * @param array $twigVars Associative list of twig expressions and value to
@@ -1074,11 +1075,11 @@ class MetaMapper extends AbstractPlugin
 
         $extractList = function (string $args, array $keys = []) use ($patternVars, $twigVars): array {
             $matches = [];
-            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
+            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\'|[+-]?(?:\d*\.)?\d+)\s*,?\s*~', $args, $matches);
             $args = array_map(function ($arg) use ($twigVars) {
-                // If this is a var, take it, else this is a string, so remove
-                // the quotes.
-                return $twigVars['{{ ' . $arg . ' }}'] ?? mb_substr($arg, 1, -1);
+                // If this is a var, take it, else this is a string or a number,
+                // so remove the quotes if any.
+                return $twigVars['{{ ' . $arg . ' }}'] ?? (is_numeric($arg)? $arg : mb_substr($arg, 1, -1));
             }, $matches['args']);
             $countKeys = count($keys);
             return $countKeys
@@ -1089,13 +1090,13 @@ class MetaMapper extends AbstractPlugin
         $extractAssociative = function (string $args) use ($patternVars, $twigVars): array {
             // TODO Improve the regex to extract keys and values directly.
             $matches = [];
-            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
+            preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\'|[+-]?(?:\d*\.)?\d+)\s*,?\s*~', $args, $matches);
             $output = [];
             foreach (array_chunk($matches['args'], 2) as $keyValue) {
                 if (count($keyValue) === 2) {
-                    // The key cannot be a value.
-                    $key = mb_substr($keyValue[0], 1, -1);
-                    $value = $twigVars['{{ ' . $keyValue[1] . ' }}'] ?? mb_substr($keyValue[1], 1, -1);
+                    // The key cannot be a value, but may be numeric.
+                    $key = is_numeric($keyValue[0])? $keyValue[0] : mb_substr($keyValue[0], 1, -1);
+                    $value = $twigVars['{{ ' . $keyValue[1] . ' }}'] ?? (is_numeric($keyValue[1])? $keyValue[1] : mb_substr($keyValue[1], 1, -1));
                     $output[$key] = $value;
                 }
             }
