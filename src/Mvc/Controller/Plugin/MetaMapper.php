@@ -43,6 +43,8 @@ use SimpleXMLElement;
 /**
  * @todo Separate xml and json process into two plugins and make this one an abstract one. But a complex config may mix various paths? In real world?
  * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
+ * @todo Simplify process of init and allow multiple init with static cache.
+ * @todo Add unit tests.
  */
 class MetaMapper extends AbstractPlugin
 {
@@ -1025,6 +1027,22 @@ class MetaMapper extends AbstractPlugin
      *
      * Only some common filters and some filter arguments are managed, and some
      * special functions for dates and index uris.
+     *
+     * @todo Separate preparation and process. Previous version in AdvancedResourceTemplate was simpler (but string only).
+     * @todo Check for issues with separators or parenthesis included in values.
+     * @todo Update \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::twig().
+     *
+     * @param string $pattern The full pattern to process.
+     * @param array $twigVars Associative list of twig expressions and value to
+     *   use for quick and direct replacement. Contains generally "value" from
+     *   the source.
+     * @param array $twig List of twig expressions extracted from the pattern to
+     *   use to transform value.
+     * @param bool[] $twigHasReplace Associative list to Indicate if each twig
+     *   expression has values to replace.
+     * @param array $replace Associative list of replacements to use when the
+     *   twig expression has values to replace.
+     * @return string
      */
     protected function twig(string $pattern, array $twigVars, array $twig, array $twigHasReplace, array $replace): string
     {
@@ -1054,7 +1072,7 @@ class MetaMapper extends AbstractPlugin
             $patternVars = '';
         }
 
-        $extractList = function ($args, array $keys = []) use ($patternVars, $twigVars) {
+        $extractList = function (string $args, array $keys = []) use ($patternVars, $twigVars): array {
             $matches = [];
             preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
             $args = array_map(function ($arg) use ($twigVars) {
@@ -1068,7 +1086,7 @@ class MetaMapper extends AbstractPlugin
                 : $args;
         };
 
-        $extractAssociative = function ($args) use ($patternVars, $twigVars) {
+        $extractAssociative = function (string $args) use ($patternVars, $twigVars): array {
             // TODO Improve the regex to extract keys and values directly.
             $matches = [];
             preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\')\s*,?\s*~', $args, $matches);
@@ -1084,6 +1102,11 @@ class MetaMapper extends AbstractPlugin
             return $output;
         };
 
+        /**
+         * @param mixed $v Value to process, generally a string but may be an array.
+         * @param string $filter The full function with arguments, like "slice(1, 4)".
+         * @return string|array
+         */
         $twigProcess = function ($v, string $filter) use ($twigVars, $extractList, $extractAssociative) {
             $matches = [];
             if (preg_match('~\s*(?<function>[a-zA-Z0-9_]+)\s*\(\s*(?<args>.*?)\s*\)\s*~U', $filter, $matches) > 0) {
@@ -1093,16 +1116,20 @@ class MetaMapper extends AbstractPlugin
                 $function = $filter;
                 $args = '';
             }
+            // TODO Remove this exception.
+            if ($v instanceof \DOMNode) {
+                $v = (string) $v->nodeValue;
+            }
             // Most of the time, a string is required, but a function can return
             // an array. Only some functions can manage an array.
-            $w = is_array($v) ? reset($v) : $v;
+            $w = (string) (is_array($v) ? reset($v) : $v);
             switch ($function) {
                 case 'abs':
                     $v = is_numeric($w) ? (string) abs($w) : $w;
                     break;
 
                 case 'capitalize':
-                    $v = ucfirst((string) $w);
+                    $v = ucfirst($w);
                     break;
 
                 case 'date':
@@ -1118,18 +1145,18 @@ class MetaMapper extends AbstractPlugin
 
                 case 'e':
                 case 'escape':
-                    $v = htmlspecialchars((string) $w, ENT_COMPAT | ENT_HTML5);
+                    $v = htmlspecialchars($w, ENT_COMPAT | ENT_HTML5);
                     break;
 
                 case 'first':
-                    $v = is_array($v) ? $w : mb_substr((string) $v, 0, 1);
+                    $v = is_array($v) ? $w : mb_substr($v, 0, 1);
                     break;
 
                 case 'format':
-                    $args = $extractList($args);
-                    if ($args) {
+                    $arga = $extractList($args);
+                    if ($arga) {
                         try {
-                            $v = @vsprintf($w, $args);
+                            $v = @vsprintf($w, $arga);
                         } catch (\Exception $e) {
                             // Nothing: keep value.
                         }
@@ -1138,10 +1165,10 @@ class MetaMapper extends AbstractPlugin
 
                 // The twig filter is "join", but here "implode" is a function.
                 case 'implode':
-                    $args = $extractList($args);
-                    if (count($args)) {
-                        $delimiter = array_shift($args);
-                        $v = implode($delimiter, $args);
+                    $arga = $extractList($args);
+                    if (count($arga)) {
+                        $delimiter = array_shift($arga);
+                        $v = implode($delimiter, $arga);
                     } else {
                         $v = '';
                     }
@@ -1149,12 +1176,12 @@ class MetaMapper extends AbstractPlugin
 
                 // Implode only real values, not empty string.
                 case 'implodev':
-                    $args = $extractList($args);
-                    if (count($args)) {
-                        $args = array_filter($args, 'strlen');
+                    $arga = $extractList($args);
+                    if (count($arga)) {
+                        $args = array_filter($arga, 'strlen');
                         // The string avoids strict type issue with empty array.
-                        $delimiter = (string) array_shift($args);
-                        $v = implode($delimiter, $args);
+                        $delimiter = (string) array_shift($arga);
+                        $v = implode($delimiter, $arga);
                     } else {
                         $v = '';
                     }
@@ -1165,40 +1192,40 @@ class MetaMapper extends AbstractPlugin
                     break;
 
                 case 'length':
-                    $v = is_array($v) ? count($v) : mb_strlen((string) $v);
+                    $v = (string) (is_array($v) ? count($v) : mb_strlen((string) $v));
                     break;
 
                 case 'lower':
-                    $v = mb_strtolower((string) $w);
+                    $v = mb_strtolower($w);
                     break;
 
                 case 'replace':
-                    $args = $extractAssociative($args);
-                    if ($args) {
-                        $v = str_replace(array_keys($args), array_values($args), $w);
+                    $arga = $extractAssociative($args);
+                    if ($arga) {
+                        $v = str_replace(array_keys($arga), array_values($arga), $w);
                     }
                     break;
 
                 case 'slice':
-                    $args = $extractList($args);
-                    $start = (int) ($args[0] ?? 0);
-                    $length = (int) ($args[1] ?? 1);
+                    $arga = $extractList($args);
+                    $start = (int) ($arga[0] ?? 0);
+                    $length = (int) ($arga[1] ?? 1);
                     $v = is_array($v)
-                        ? array_slice($v, $start, $length, !empty($args[2]))
-                        : mb_substr((string) $w, $start, $length);
+                        ? array_slice($v, $start, $length, !empty($arga[2]))
+                        : mb_substr($w, $start, $length);
                     break;
 
                 case 'split':
-                    $args = $extractList($args);
-                    $delimiter = $args[0] ?? '';
-                    $limit = (int) ($args[1] ?? 1);
+                    $arga = $extractList($args);
+                    $delimiter = $arga[0] ?? '';
+                    $limit = (int) ($arga[1] ?? 1);
                     $v = strlen($delimiter)
-                        ? explode($delimiter, (string) $w, $limit)
-                        : str_split((string) $w, $limit);
+                        ? explode($delimiter, $w, $limit)
+                        : str_split($w, $limit);
                     break;
 
                 case 'striptags':
-                    $v = strip_tags((string) $w);
+                    $v = strip_tags($w);
                     break;
 
                 case 'table':
@@ -1218,41 +1245,42 @@ class MetaMapper extends AbstractPlugin
                     break;
 
                 case 'title':
-                    $v = ucwords((string) $w);
+                    $v = ucwords($w);
                     break;
 
                 case 'trim':
-                    $args = $extractList($args);
-                    $characterMask = $args[0] ?? '';
+                    $arga = $extractList($args);
+                    $characterMask = $arga[0] ?? '';
                     if (!strlen($characterMask)) {
                         $characterMask = " \t\n\r\0\x0B";
                     }
-                    $side = $args[1] ?? '';
+                    $side = $arga[1] ?? '';
                     // Side is "both" by default.
                     if ($side === 'left') {
-                        $v = ltrim((string) $w, $characterMask);
+                        $v = ltrim($w, $characterMask);
                     } elseif ($side === 'right') {
-                        $v = rtrim((string) $w, $characterMask);
+                        $v = rtrim($w, $characterMask);
                     } else {
-                        $v = trim((string) $w, $characterMask);
+                        $v = trim($w, $characterMask);
                     }
                     break;
 
                 case 'upper':
-                    $v = mb_strtoupper((string) $w);
+                    $v = mb_strtoupper($w);
                     break;
 
                 case 'url_encode':
-                    $v = rawurlencode((string) $w);
+                    $v = rawurlencode($w);
                     break;
 
                 // Special filters and functions to manage common values.
+
                 case 'dateIso':
                     // "d1605110512" => "1605-11-05T12" (date iso).
                     // "[1984]-" => kept.
                     // Missing numbers may be set as "u", but this is not
                     // manageable as iso 8601.
-                    $v = (string) $w;
+                    $v = $w;
                     if (mb_strlen($v) && mb_strpos($v, 'u') === false) {
                         $firstChar = mb_substr($v, 0, 1);
                         if (in_array($firstChar, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'c', 'd'])) {
@@ -1273,7 +1301,7 @@ class MetaMapper extends AbstractPlugin
                 case 'dateSql':
                     // Unimarc 005.
                     // "19850901141236.0" => "1985-09-01 14:12:36" (date sql).
-                    $v = (string) $w;
+                    $v = trim($w);
                     $v = mb_substr($v, 0, 4) . '-' . mb_substr($v, 4, 2) . '-' . mb_substr($v, 6, 2)
                         . ' ' . mb_substr($v, 8, 2) . ':' . mb_substr($v, 10, 2) . ':' . mb_substr($v, 12, 2);
                     break;
@@ -1292,27 +1320,27 @@ class MetaMapper extends AbstractPlugin
                     $p Affiliation / adresse
                     $5 Institution à laquelle s’applique la zone
                      */
-                    $args = $extractList($args, ['a', 'b', 'c', 'd', 'f', 'g', 'k', 'o', 'p', '5']);
+                    $arga = $extractList($args, ['a', 'b', 'c', 'd', 'f', 'g', 'k', 'o', 'p', '5']);
                     // @todo Improve isbd for names.
-                    $v = $args['a']
-                        . ($args['b'] ? ', ' . $args['b'] : '')
-                        . ($args['g'] ? ' (' . $args['g'] . ')' : '')
-                        . ($args['d'] ? ', ' . $args['d'] : '')
+                    $v = $arga['a']
+                        . ($arga['b'] ? ', ' . $arga['b'] : '')
+                        . ($arga['g'] ? ' (' . $arga['g'] . ')' : '')
+                        . ($arga['d'] ? ', ' . $arga['d'] : '')
                         . (
-                            $args['f']
-                            ? ' (' . $args['f']
-                                . ($args['c'] ? ' ; ' . $args['c'] : '')
-                                . ($args['k'] ? ' ; ' . $args['k'] : '')
+                            $arga['f']
+                            ? ' (' . $arga['f']
+                                . ($arga['c'] ? ' ; ' . $arga['c'] : '')
+                                . ($arga['k'] ? ' ; ' . $arga['k'] : '')
                                 . ')'
                             : (
-                                $args['c']
-                                ? (' (' . $args['c'] . ($args['k'] ? ' ; ' . $args['k'] : '') . ')')
-                                : ($args['k'] ? ' (' . $args['k'] . ')' : '')
+                                $arga['c']
+                                ? (' (' . $arga['c'] . ($arga['k'] ? ' ; ' . $arga['k'] : '') . ')')
+                                : ($arga['k'] ? ' (' . $arga['k'] . ')' : '')
                             )
                         )
-                        . ($args['o'] ? ' {' . $args['o'] . '}' : '')
-                        . ($args['p'] ? ', ' . $args['p'] : '')
-                        . ($args['5'] ? ', ' . $args['5'] : '')
+                        . ($arga['o'] ? ' {' . $arga['o'] . '}' : '')
+                        . ($arga['p'] ? ', ' . $arga['p'] : '')
+                        . ($arga['5'] ? ', ' . $arga['5'] : '')
                     ;
                     break;
 
@@ -1335,26 +1363,26 @@ class MetaMapper extends AbstractPlugin
                     $3 Identifiant de la notice d’autorité
                     $4 Code de fonction
                      */
-                    $args = $extractList($args, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'o', 'p', 'r', '5']);
+                    $arga = $extractList($args, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'o', 'p', 'r', '5']);
                     // @todo Improve isbd for organizations.
-                    $v = $args['a']
-                        . ($args['b'] ? ', ' . $args['b'] : '')
-                        . ($args['g']
-                            ? ' (' . $args['g'] . ($args['h'] ? ' ; ' . $args['h'] . '' : '') . ')'
-                            : ($args['h'] ? ' (' . $args['h'] . ')' : ''))
-                        . ($args['d'] ? ', ' . $args['d'] : '')
-                        . ($args['e'] ? ', ' . $args['e'] : '')
+                    $v = $arga['a']
+                        . ($arga['b'] ? ', ' . $arga['b'] : '')
+                        . ($arga['g']
+                            ? ' (' . $arga['g'] . ($arga['h'] ? ' ; ' . $arga['h'] . '' : '') . ')'
+                            : ($arga['h'] ? ' (' . $arga['h'] . ')' : ''))
+                        . ($arga['d'] ? ', ' . $arga['d'] : '')
+                        . ($arga['e'] ? ', ' . $arga['e'] : '')
                         . (
-                            $args['f']
-                            ? ' (' . $args['f']
-                                . ($args['c'] ? ' ; ' . $args['c'] : '')
-                                . ')'
-                            : ($args['c'] ? (' (' . $args['c'] . ')') : '')
+                            $arga['f']
+                                ? ' (' . $arga['f']
+                                    . ($arga['c'] ? ' ; ' . $arga['c'] : '')
+                                    . ')'
+                                : ($arga['c'] ? (' (' . $arga['c'] . ')') : '')
                         )
-                        . ($args['o'] ? ' {' . $args['o'] . '}' : '')
-                        . ($args['p'] ? ', ' . $args['p'] : '')
-                        . ($args['r'] ? ', ' . $args['r'] : '')
-                        . ($args['5'] ? ', ' . $args['5'] : '')
+                        . ($arga['o'] ? ' {' . $arga['o'] . '}' : '')
+                        . ($arga['p'] ? ', ' . $arga['p'] : '')
+                        . ($arga['r'] ? ', ' . $arga['r'] : '')
+                        . ($arga['5'] ? ', ' . $arga['5'] : '')
                     ;
                     break;
 
@@ -1365,20 +1393,20 @@ class MetaMapper extends AbstractPlugin
                     $f Dates
                      */
                     // isbdMark(a, b, c) (function).
-                    $args = $extractList($args, ['a', 'b', 'c']);
+                    $arga = $extractList($args, ['a', 'b', 'c']);
                     // @todo Improve isbd for marks.
-                    $v = $args['a']
-                        . ($args['b'] ? ', ' . $args['b'] : '')
-                        . ($args['c'] ? (' (' . $args['c'] . ')') : '')
+                    $v = $arga['a']
+                        . ($arga['b'] ? ', ' . $arga['b'] : '')
+                        . ($arga['c'] ? (' (' . $arga['c'] . ')') : '')
                     ;
                     break;
 
                 case 'unimarcIndex':
-                    $args = $extractList($args);
-                    $index = $args[0] ?? '';
+                    $arga = $extractList($args);
+                    $index = $arga[0] ?? '';
                     if ($index) {
                         // Unimarc Index uri (filter or function).
-                        $code = count($args) === 1 ? $w : ($args[1] ?? '');
+                        $code = count($arga) === 1 ? $w : ($arga[1] ?? '');
                         // Unimarc Annexe G.
                         // @link https://www.transition-bibliographique.fr/wp-content/uploads/2018/07/AnnexeG-5-2007.pdf
                         switch ($index) {
@@ -1398,7 +1426,7 @@ class MetaMapper extends AbstractPlugin
                 case 'unimarcCoordinates':
                     // "w0241207" => "W 24°12’7”".
                     // Hemisphere "+" / "-" too.
-                    $v = (string) $w;
+                    $v = $w;
                     $firstChar = mb_strtoupper(mb_substr($v, 0, 1));
                     $mappingChars = ['+' => 'N', '-' => 'S', 'W' => 'W', 'E' => 'E', 'N' => 'N', 'S' => 'S'];
                     $v = ($mappingChars[$firstChar] ?? '?') . ' '
@@ -1408,13 +1436,13 @@ class MetaMapper extends AbstractPlugin
                     break;
 
                 case 'unimarcCoordinatesHexa':
-                    $v = (string) $w;
+                    $v = $w;
                     $v = mb_substr($v, 0, 2) . '°' . mb_substr($v, 2, 2) . '’' . mb_substr($v, 4, 2) . '”';
                     break;
 
                 case 'unimarcTimeHexa':
                     // "150027" => "15h0m27s".
-                    $v = (string) $w;
+                    $v = $w;
                     $h = (int) trim(mb_substr($v, 0, 2));
                     $m = (int) trim(mb_substr($v, 2, 2));
                     $s = (int) trim(mb_substr($v, 4, 2));
@@ -1427,12 +1455,11 @@ class MetaMapper extends AbstractPlugin
                 case 'value':
                 default:
                     $v = $twigVars['{{ ' . $filter . ' }}'] ?? $twigVars[$filter] ?? $v;
-                    if ($v instanceof \DOMNode) {
-                        $v = (string) $v->nodeValue;
-                    }
                     break;
             }
-            return $v;
+            return is_array($v)
+                ? $v
+                : (string) $v;
         };
 
         $twigReplace = [];
@@ -1449,9 +1476,9 @@ class MetaMapper extends AbstractPlugin
                     ? $twigProcess($v, str_replace(array_keys($replace), array_values($replace), $filter))
                     : $twigProcess($v, $filter);
             }
-            // Avoid an issue when the twig pattern returns an array.
+            // A twig pattern may return an array.
             if (is_array($v)) {
-                $v = reset($v);
+                $v = (string) reset($v);
             }
             if ($hasReplaceQuery) {
                 $twigReplace[str_replace(array_keys($replace), array_values($replace), $query)] = $v;

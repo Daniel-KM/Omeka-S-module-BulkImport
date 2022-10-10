@@ -37,6 +37,8 @@ use Log\Stdlib\PsrMessage;
 /**
  * Adapted from the controller plugin of the module Csv Import
  *
+ * @todo Separate generic methods and specific ones in two.
+ * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\MapperHelper
  * @see \CSVImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
  */
 class Bulk extends AbstractPlugin
