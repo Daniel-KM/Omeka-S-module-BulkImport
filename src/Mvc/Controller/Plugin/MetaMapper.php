@@ -1280,11 +1280,12 @@ class MetaMapper extends AbstractPlugin
                     // "[1984]-" => kept.
                     // Missing numbers may be set as "u", but this is not
                     // manageable as iso 8601.
+                    // The first character may be a space to manage Unimarc.
                     $v = $w;
                     if (mb_strlen($v) && mb_strpos($v, 'u') === false) {
                         $firstChar = mb_substr($v, 0, 1);
-                        if (in_array($firstChar, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'c', 'd'])) {
-                            if (in_array($firstChar, ['-', '+', 'c', 'd'])) {
+                        if (in_array($firstChar, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'c', 'd', ' '])) {
+                            if (in_array($firstChar, ['-', '+', 'c', 'd', ' '])) {
                                 $d = $firstChar === '-' || $firstChar === 'c' ? '-' : '';
                                 $v = mb_substr($v, 1);
                             } else {
