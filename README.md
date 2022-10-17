@@ -233,7 +233,7 @@ Each line is formatted with a source and a destination separated with the sign
 checked, but not if it has a meaning.
 
 The source part can be specified in three ways: javascript dot notation,
-jsonpath (more precisely jmespath) or xpath (see below).
+JsonPath, JMESPath, or xpath (see below).
 
 The destination part is an automap field. It has till five components and only
 the first is required.
@@ -274,16 +274,19 @@ code to a literal).
 
 ### Defining the source of the value
 
-Three formats are supported, the first two for a json endpoint, and the last for
-an xml source:
+Four formats are supported, the first three for a json endpoint, and the last
+for an xml source:
 
 - Javascript dot object notation: The source is set nearly like a javascript
   with dot notation (even invalid): `dcterms:title.0.value`. `.` and `\` must be
   escaped with a `\`.
 
-- [JmesPath]: This is a port of xpath for json: `"dcterms:title"[0]"@value"`,
-  and it can manage a lot of expressions, filters, functions, etc. JmesPath is
-  an improvement of the original idea for a [jsonpath], but not compatible.
+- [JsonPath]: This is a port of xpath for json: `$.['dcterms:title'][0].['@value']`,
+  and it can manage a lot of expressions, filters, functions, etc.
+
+- [JMESPath]: This is a port of xpath for json: `"dcterms:title"[0]"@value"`,
+  and it can manage a lot of expressions, filters, functions, etc. JMESPath is
+  similar to the original idea for a [JsonPath], but not compatible.
 
 - XPath: it can use any standard XPath: `/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']`
   when the source is xml.
@@ -599,8 +602,8 @@ by [BibLibre].
 [other version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
 [example mapping for Unimarc]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
-[jmespath.org]: https://jmespath.org
-[jsonpath]: https://goessner.net/articles/JsonPath/index.html
+[JsonPath]: https://goessner.net/articles/JsonPath/index.html
+[JMESPath]: https://jmespath.org
 [Unimarc conversion to Omeka]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
