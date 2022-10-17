@@ -49,9 +49,17 @@ return [
         ],
     ],
     'view_helpers' => [
+        'invokables' => [
+            'formNote' => Form\View\Helper\FormNote::class,
+        ],
         'factories' => [
             // Copy from AdvancedResourceTemplate. Copy in BulkExport, BulkEdit and BulkImport. Used in Contribute.
             'customVocabBaseType' => Service\ViewHelper\CustomVocabBaseTypeFactory::class,
+        ],
+        'delegators' => [
+            'Laminas\Form\View\Helper\FormElement' => [
+                Service\Delegator\FormElementDelegatorFactory::class,
+            ],
         ],
     ],
     // TODO Merge the forms.
