@@ -26,15 +26,17 @@ class CustomVocabBaseType extends AbstractHelper
     /**
      * Get the sub type of a customvocab ("literal", "resource", "uri") or all.
      *
+     * @param string|int|null The custom vocab data type or its id.
      * @return array|string|null
      */
-    public function __invoke($customVocabId = null)
+    public function __invoke($customVocab = null)
     {
         if (is_null($this->customVocabBaseTypes)) {
-            return is_null($customVocabId) ? [] : null;
+            return is_null($customVocab) ? [] : null;
         }
-        return is_null($customVocabId)
-            ? $this->customVocabBaseTypes ?? []
-            : ($this->customVocabBaseTypes[(int) $customVocabId] ?? null);
+        if (is_null($customVocab)) {
+            return $this->customVocabBaseTypes ?? [];
+        }
+        return $this->customVocabBaseTypes[is_numeric($customVocab) ? (int) $customVocab : (int) substr($customVocab, 12)] ?? null;
     }
 }
