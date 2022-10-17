@@ -2,6 +2,7 @@
 
 namespace BulkImport;
 
+use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 use Omeka\Stdlib\Message;
 
@@ -527,7 +528,24 @@ CHANGE `processor_class` `processor_class` VARCHAR(190) DEFAULT NULL,
 CHANGE `processor_config` `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)'
 ;
 SQL;
-    $connection->executeStatement($sql);
+    try {
+        $connection->executeStatement($sql);
+    } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+        // May be an issue with an old install. So reinstall it.
+        $filepath = dirname(__DIR__) . '/install/schema.sql';
+        if (!file_exists($filepath) || !filesize($filepath) || !is_readable($filepath)) {
+            throw new ModuleCannotInstallException('Install sql file does not exist'); // @translate
+        }
+        $sql = file_get_contents($filepath);
+        $sqls = array_filter(array_map('trim', explode(";\n", $sql)));
+        foreach ($sqls as $sql) {
+            try {
+                // Avoid issue on table exists.
+                $connection->executeStatement($sql);
+            } catch (\Exception $e) {
+            }
+        }
+    }
 
     $sql = <<<'SQL'
 UPDATE `bulk_importer`
