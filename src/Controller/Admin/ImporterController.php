@@ -337,7 +337,11 @@ class ImporterController extends AbstractActionController
                         $reader->handleParamsForm($form);
                         $session->reader = $reader->getParams();
                         if (method_exists($reader, 'currentSheetName')) {
-                            $sheetName = $reader->currentSheetName();
+                            try {
+                                $sheetName = $reader->currentSheetName();
+                            } catch (\Exception $e) {
+                                $sheetName = null;
+                            }
                             if ($sheetName) {
                                 $this->messenger()->addSuccess(new PsrMessage(
                                     'Current sheet: "{name}"', // @translate
@@ -346,16 +350,29 @@ class ImporterController extends AbstractActionController
                             }
                         }
                         if (method_exists($reader, 'count')) {
-                            $count = $reader->count();
+                            try {
+                                $count = $reader->count();
+                            } catch (\Exception $e) {
+                                $count = 0;
+                                $next = 'reader';
+                                $this->messenger()->addError($reader->getLastErrorMessage());
+                            }
                             if ($count) {
                                 $this->messenger()->addSuccess(new PsrMessage(
                                     'Total resources or rows: {total}', // @translate
                                     ['total' => $count]
                                 ));
+                            } else {
+                                $next = 'reader';
+                                $this->messenger()->addError(new PsrMessage(
+                                    'The source has no resource to import.' // @translate
+                                ));
                             }
                         }
                         if (!$reader->isValid()) {
+                            $next = 'reader';
                             $this->messenger()->addError($reader->getLastErrorMessage());
+                        } elseif (method_exists($reader, 'count') && empty($count)) {
                             $next = 'reader';
                         } else {
                             $next = isset($formsCallbacks['processor']) ? 'processor' : 'start';
