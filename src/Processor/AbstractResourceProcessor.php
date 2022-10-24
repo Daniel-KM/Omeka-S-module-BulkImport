@@ -12,7 +12,8 @@ use BulkImport\Traits\ParametrizableTrait;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
-use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
+use Omeka\Api\Representation\AbstractEntityRepresentation;
+use Omeka\Api\Representation\AssetRepresentation;
 use Omeka\Api\Request;
 
 /**
@@ -1204,6 +1205,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     return false;
                 }
                 $entity->setItem($entityItem);
+            } elseif ($resource['resource_name'] === 'assets') {
+                $entity->setName($resource['o:name'] ?? '');
             }
         } else {
             $request
@@ -1253,6 +1256,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($resource['messageStore']->hasErrors() || $errorStore->hasErrors()) {
             $resource['messageStore']->mergeErrors($errorStore);
             return false;
+        }
+
+        // TODO Check the file for asset.
+        if ($resource['resource_name'] === 'assets') {
+            return !$resource['messageStore']->hasErrors();
         }
 
         // Don't check new files twice. Furthermore, the media are pre-hydrated
@@ -1651,7 +1659,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $resource = $response->getContent();
             $resources[$resource->id()] = $resource;
             $this->storeSourceIdentifiersIds($dataResource, $resource);
-            if ($resource->resourceName() === 'media') {
+            if (!$resource instanceof AssetRepresentation && $resource->resourceName() === 'media') {
                 $this->logger->notice(
                     'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
                     ['index' => $this->indexResource, 'media_id' => $resource->id(), 'item_id' => $resource->item()->id()]
@@ -2074,14 +2082,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Identifiers are already stored during first loop. So just set final id.
      */
-    protected function storeSourceIdentifiersIds(array $dataResource, AbstractResourceEntityRepresentation $resource): \BulkImport\Processor\Processor
+    protected function storeSourceIdentifiersIds(array $dataResource, AbstractEntityRepresentation $resource): \BulkImport\Processor\Processor
     {
         $resourceId = $resource->id();
         if (empty($resourceId) || empty($dataResource['source_index'])) {
             return $this;
         }
 
-        $mainResourceName = $this->mainResourceNames[$resource->resourceName()];
+        $resouceName = $resource instanceof AssetRepresentation ? 'assets' : $resource->resourceName();
+        $mainResourceName = $this->mainResourceNames[$resouceName];
 
         // Source indexes to resource id (filled when found or created).
         $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . '§' . $mainResourceName;

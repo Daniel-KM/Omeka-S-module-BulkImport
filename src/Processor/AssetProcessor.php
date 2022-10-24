@@ -184,7 +184,6 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 break;
 
             case 'o:name':
-                // TODO Use asset o:name as an identifier? Probably not.
                 $value = end($values);
                 if ($value) {
                     $resource[$field] = $value;
@@ -289,6 +288,24 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
     protected function checkEntitySpecific(ArrayObject $resource): bool
     {
         // TODO Remove all properties for a spreadsheet imported with mixed content.
+
+        // A resource must be a string and must have a name. Else, the filename
+        // is used by default.
+        // @see \Omeka\Api\Adapter\AssetAdapter::validateEntity()
+        // Warning: during update, it should not be modifid if not set.
+
+        if ($this->action === self::ACTION_CREATE) {
+            if (!isset($resource['o:name']) || trim((string) $resource['o:name']) === '') {
+                $resource['o:name'] = $resource['url'] ?? $resource['file']
+                    ?? $resource['ingest_url'] ?? $resource['ingest_filename']
+                    ?? null;
+            } else {
+                $resource['o:name'] = trim((string) $resource['o:name']);
+            }
+        } elseif (array_key_exists('o:name', $resource)) {
+            $resource['o:name'] = trim((string) $resource['o:name']);
+        }
+
         return true;
     }
 
@@ -396,8 +413,12 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
         $owner = $entityManager->find(\Omeka\Entity\User::class, $dataResource['o:owner']['o:id'] ?? $this->userId);
 
+        $name = strlen(trim((string) ($dataResource['o:name'] ?? '')))
+            ? trim($dataResource['o:name'])
+            : ($isUrl ? $pathOrUrl : $filename);
+
         $asset = new \Omeka\Entity\Asset;
-        $asset->setName($dataResource['o:name'] ?? ($isUrl ? $pathOrUrl : $filename));
+        $asset->setName($name);
         // TODO Use the user specified in the config (owner).
         $asset->setOwner($owner);
         $asset->setStorageId($storageId);
@@ -435,6 +456,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             ++$this->totalErrors;
             return null;
         }
+
+        // A name is required.
 
         return $dataResource;
     }
