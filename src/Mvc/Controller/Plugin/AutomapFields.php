@@ -166,6 +166,8 @@ class AutomapFields extends AbstractPlugin
      *
      * @see \CSVImport\Mvc\Controller\Plugin\AutomapHeadersToMetadata
      *
+     * @todo Make the map and list of allowed fields an option, so it will be usable with assets, users, etc.? In fact, resources is the exception, so create a simple generic automap fields? A two-steps process?
+     *
      * @param array $fields
      * @param array $options Associative array of options:
      * - map (array) Complement for the default mapping.

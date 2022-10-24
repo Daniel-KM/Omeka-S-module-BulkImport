@@ -373,12 +373,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 return true;
             case 'url':
+                // TODO Check value first here?
                 $value = end($values);
                 $resource['o:ingester'] = 'url';
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
             case 'file':
+                // TODO Check value first here?
                 $value = end($values);
                 if ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';

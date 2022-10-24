@@ -215,6 +215,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
+    /**
+     * @todo Factorize with AssetProcessor if needed.
+     * {@inheritDoc}
+     * @see \BulkImport\Processor\Processor::process()
+     */
     public function process(): void
     {
         $this->initFileTrait();
@@ -2506,6 +2511,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * Add automapped metadata for properties (language and datatypes).
      *
      * @todo Merge this method with metaMapper::getNormalizedConfig().
+     * @see \BulkImport\Processor\AssetProcessor::prepareMapping()
      */
     protected function prepareMapping(): \BulkImport\Processor\Processor
     {
@@ -2516,15 +2522,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $isPrepared = true;
                 $mapping = [];
                 // TODO Avoid to prepare the mapping a second time when the reader prepared it.
-                /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
-                $metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
-                $metaMapper->init($mappingConfig, $this->reader->getParams());
-                if ($metaMapper->hasError()) {
+                $this->metaMapper->init($mappingConfig, $this->reader->getParams());
+                if ($this->metaMapper->hasError()) {
                     return $this;
                 }
                 $mappingSource = array_merge(
-                    $metaMapper->getSection('default'),
-                    $metaMapper->getSection('mapping')
+                    $this->metaMapper->getSection('default'),
+                    $this->metaMapper->getSection('mapping')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.

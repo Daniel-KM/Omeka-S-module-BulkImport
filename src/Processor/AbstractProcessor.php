@@ -85,6 +85,16 @@ abstract class AbstractProcessor implements Processor
     protected $bulk;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
+     */
+    protected $metaMapper;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     */
+    protected $metaMapperConfig;
+
+    /**
      * @var \Laminas\Mvc\I18n\Translator
      */
     protected $translator;
@@ -127,6 +137,8 @@ abstract class AbstractProcessor implements Processor
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
+        $this->metaMapper = $plugins->get('metaMapper');
+        $this->metaMapperConfig = $plugins->get('metaMapperConfig');
         $this->translator = $services->get('MvcTranslator');
 
         $config = $services->get('Config');

@@ -874,6 +874,7 @@ class Bulk extends AbstractPlugin
     public function getEntityClass($name): ?string
     {
         $entityClasses = [
+            'assets' => \Omeka\Entity\Asset::class,
             'items' => \Omeka\Entity\Item::class,
             'item_sets' => \Omeka\Entity\ItemSet::class,
             'media' => \Omeka\Entity\Media::class,
@@ -884,19 +885,23 @@ class Bulk extends AbstractPlugin
             'resource:media' => \Omeka\Entity\Media::class,
             'resource:annotation' => \Annotate\Entity\Annotation::class,
             // Avoid a check and make the plugin more flexible.
+            \Omeka\Entity\Asset::class => \Omeka\Entity\Asset::class,
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
             \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
             \Omeka\Entity\Resource::class => '',
             \Annotate\Entity\Annotation::class => \Annotate\Entity\Annotation::class,
+            'o:asset' => \Omeka\Entity\Asset::class,
             'o:item' => \Omeka\Entity\Item::class,
             'o:item_set' => \Omeka\Entity\ItemSet::class,
             'o:media' => \Omeka\Entity\Media::class,
+            'o:Asset' => \Omeka\Entity\Asset::class,
             'o:Item' => \Omeka\Entity\Item::class,
             'o:ItemSet' => \Omeka\Entity\ItemSet::class,
             'o:Media' => \Omeka\Entity\Media::class,
             'o:Annotation' => \Annotate\Entity\Annotation::class,
             // Other resource types or badly written types.
+            'asset' => \Omeka\Entity\Asset::class,
             'item' => \Omeka\Entity\Item::class,
             'item_set' => \Omeka\Entity\ItemSet::class,
             'item-set' => \Omeka\Entity\ItemSet::class,
@@ -912,6 +917,7 @@ class Bulk extends AbstractPlugin
     {
         $entityClass = $this->getEntityClass($name);
         $tableResources = [
+            \Omeka\Entity\Asset::class => 'asset',
             \Omeka\Entity\Item::class => 'item',
             \Omeka\Entity\ItemSet::class => 'item_set',
             \Omeka\Entity\Media::class => 'media',
@@ -970,6 +976,7 @@ class Bulk extends AbstractPlugin
     public function label($resourceName): ?string
     {
         $labels = [
+            'assets' => 'asset', // @translate
             'items' => 'item', // @translate
             'item_sets' => 'item set', // @translate
             'media' => 'media', // @translate
@@ -990,6 +997,7 @@ class Bulk extends AbstractPlugin
     public function labelPlural($resourceName): ?string
     {
         $labels = [
+            'assets' => 'assets', // @translate
             'items' => 'items', // @translate
             'item_sets' => 'item sets', // @translate
             'media' => 'media', // @translate
