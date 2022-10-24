@@ -574,7 +574,15 @@ class MetaMapperConfig extends AbstractPlugin
                     ['config_name' => $this->name]
                 );
             }
-            $normalizedMapping[] = $normalizedMap;
+            // An input map can create multiple maps, for example a name mapped
+            // to foaf:name and foaf:familyName.
+            if (!empty($normalizedMap) && is_numeric(key($normalizedMap))) {
+                foreach ($normalizedMap as $normalizedMapp) {
+                    $normalizedMapping[] = $normalizedMapp;
+                }
+            } else {
+                $normalizedMapping[] = $normalizedMap;
+            }
         }
 
         return $normalizedMapping;
@@ -600,15 +608,29 @@ class MetaMapperConfig extends AbstractPlugin
             && empty($map['has_error']);
     }
 
+    /**
+     * Warning: a map can be normalized to multiple maps, for example a name
+     * mapped to foaf:name and foaf:familyName.
+     */
     public function normalizeMap($map, array $options = []): array
     {
-        if (is_null($map)) {
-            return $this->normalizeMapFromNull($map, $options);
+        if (empty($map)) {
+            return $this->normalizeMapFromEmpty($map, $options);
         }
         if (is_string($map)) {
             return $this->normalizeMapFromString($map, $options);
         }
         if (is_array($map)) {
+            // When the map is an array of maps, each map can be a string or an
+            // array, so do a recursive loop in such a case.
+            // Only one level is allowed.
+            if (is_numeric(key($map))) {
+                $result = [];
+                foreach ($map as $mapp) {
+                    $result[] = $this->normalizeMap($mapp, $options);
+                }
+                return $result;
+            }
             return $this->normalizeMapFromArray($map, $options);
         }
         return [
@@ -619,7 +641,7 @@ class MetaMapperConfig extends AbstractPlugin
         ];
     }
 
-    protected function normalizeMapFromNull($map, array $options): array
+    protected function normalizeMapFromEmpty($map, array $options): array
     {
         return [
             'from' => [],
@@ -921,6 +943,9 @@ class MetaMapperConfig extends AbstractPlugin
         return $result;
     }
 
+    /**
+     * Here, the array should be already tested and no a nested array.
+     */
     protected function normalizeMapFromArray(array $map, array $options): array
     {
         $map = array_intersect_key($map, array_flip(['from', 'to', 'mod']));

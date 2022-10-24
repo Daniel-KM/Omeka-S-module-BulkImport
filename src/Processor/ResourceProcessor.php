@@ -296,6 +296,13 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
+    protected function prepareMetaConfig(): \BulkImport\Processor\Processor
+    {
+        // TODO Don't map header that are not included in the manual mapping.
+        // TODO Allow to have multiple targets.
+        return $this;
+    }
+
     /**
      * Prepare full mapping one time to simplify and speed process.
      *
