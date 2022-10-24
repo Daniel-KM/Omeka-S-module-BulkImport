@@ -80,6 +80,8 @@ return [
             Form\ImporterDeleteForm::class => Service\Form\FormFactory::class,
             Form\ImporterForm::class => Service\Form\FormFactory::class,
             Form\ImporterStartForm::class => Service\Form\FormFactory::class,
+            Form\Processor\AssetProcessorConfigForm::class => Service\Form\FormFactory::class,
+            Form\Processor\AssetProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\EprintsProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\EprintsProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemProcessorConfigForm::class => Service\Form\FormFactory::class,
@@ -350,6 +352,7 @@ return [
             Reader\FakeReader::class => Reader\FakeReader::class,
         ],
         'processors' => [
+            Processor\AssetProcessor::class => Processor\AssetProcessor::class,
             Processor\ItemProcessor::class => Processor\ItemProcessor::class,
             Processor\ItemSetProcessor::class => Processor\ItemSetProcessor::class,
             Processor\MediaProcessor::class => Processor\MediaProcessor::class,

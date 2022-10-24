@@ -96,6 +96,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                         ],
                     ],
                     'term_as_value' => true,
+                    'used_terms' => true,
                 ],
                 'attributes' => [
                     'id' => 'identifier_name',
