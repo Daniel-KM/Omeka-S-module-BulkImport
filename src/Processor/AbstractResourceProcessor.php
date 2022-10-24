@@ -184,25 +184,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $defaults = [
             'processing' => 'stop_on_error',
+            'entries_to_skip' => 0,
+            'entries_max' => 0,
+            'entries_by_batch' => null,
+
             'action' => null,
             'action_unidentified' => null,
             'identifier_name' => null,
+            'value_datatype_literal' => false,
             'allow_duplicate_identifiers' => false,
             'action_identifier_update' => null,
             'action_media_update' => null,
             'action_item_set_update' => null,
-
-            'value_datatype_literal' => false,
 
             'o:resource_template' => null,
             'o:resource_class' => null,
             'o:thumbnail' => null,
             'o:owner' => null,
             'o:is_public' => null,
-
-            'entries_to_skip' => 0,
-            'entries_max' => 0,
-            'entries_by_batch' => null,
         ];
 
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
