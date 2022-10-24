@@ -6,10 +6,16 @@ use ArrayObject;
 use BulkImport\Form\Processor\ResourceProcessorConfigForm;
 use BulkImport\Form\Processor\ResourceProcessorParamsForm;
 use Log\Stdlib\PsrMessage;
-use Omeka\Api\Request;
+use BulkImport\Entry\Entry;
+use BulkImport\Stdlib\MessageStore;
 
+/**
+ * Can be used for all derivative of AbstractResourceEntityRepresentation.
+ */
 class ResourceProcessor extends AbstractResourceProcessor
 {
+    use ResourceUpdateTrait;
+
     protected $resourceName = 'resources';
 
     protected $resourceLabel = 'Mixed resources'; // @translate
@@ -17,6 +23,139 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected $configFormClass = ResourceProcessorConfigForm::class;
 
     protected $paramsFormClass = ResourceProcessorParamsForm::class;
+
+    /**
+     * @see \Omeka\Api\Representation\ItemRepresentation
+     *
+     * @var array
+     */
+    protected $metadataData = [
+        // Assets metadata and file.
+        'fields' => [
+            'file',
+            'url',
+            'o:id',
+            'o:owner',
+            // TODO Incomplete, but not used currently
+        ],
+        'meta_mapper_config' => [
+            'to_keys' => [
+                'field' => null,
+                'property_id' => null,
+                'datatype' => null,
+                'language' => null,
+                'is_public' => null,
+            ],
+        ],
+        'skip' => [],
+        // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
+        'boolean' => [
+            'o:is_public' => true,
+            'o:is_open' => true,
+        ],
+        'single_data' => [
+            // Generic.
+            'o:id' => null,
+            // Resource.
+            'resource_name' => null,
+            // Media.
+            'o:lang' => null,
+            'o:ingester' => null,
+            'o:source' => null,
+            'ingest_filename' => null,
+            'ingest_directory' => null,
+            'ingest_url' => null,
+            'html' => null,
+        ],
+        'single_entity' => [
+            // Generic.
+            'o:resource_template' => null,
+            'o:resource_class' => null,
+            'o:thumbnail' => null,
+            'o:owner' => null,
+            // Media.
+            'o:item' => null,
+        ],
+        'multiple_entities' => [
+            'o:item_set' => null,
+            'o:media' => null,
+        ],
+    ];
+
+
+    /**
+     * @see \Omeka\Api\Representation\AssetRepresentation
+     * @var array
+     */
+    protected $fields = [
+        // Assets metadata and file.
+        'file',
+        'url',
+        'o:id',
+        'o:name',
+        'o:storage_id',
+        'o:owner',
+        'o:alt_text',
+        // To attach resources.
+        'o:resource',
+    ];
+
+    /**
+     * @var string
+     */
+    protected $actionIdentifier;
+
+    /**
+     * @var string
+     */
+    protected $actionMedia;
+
+    /**
+     * @var string
+     */
+    protected $actionItemSet;
+
+    /**
+     * @deprecated
+     * @var bool
+     */
+    protected $hasMapping;
+
+    /**
+     * @deprecated
+     * @var array
+     */
+    protected $mapping;
+
+    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    {
+        $defaults = [
+            'processing' => 'stop_on_error',
+            'entries_to_skip' => 0,
+            'entries_max' => 0,
+            'entries_by_batch' => null,
+
+            'action' => null,
+            'action_unidentified' => null,
+            'identifier_name' => null,
+            'value_datatype_literal' => false,
+            'allow_duplicate_identifiers' => false,
+            'action_identifier_update' => null,
+            'action_media_update' => null,
+            'action_item_set_update' => null,
+
+            'o:resource_template' => null,
+            'o:resource_class' => null,
+            'o:thumbnail' => null,
+            'o:owner' => null,
+            'o:is_public' => null,
+        ];
+
+        $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
+        $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
+        $args->exchangeArray($result);
+        return $this;
+    }
 
     protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
     {
@@ -59,14 +198,423 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
+    protected function prepareSpecific(): \BulkImport\Processor\Processor
+    {
+        $this
+            ->prepareActionIdentifier()
+            ->prepareActionMedia()
+            ->prepareActionItemSet()
+
+            ->appendInternalParams()
+
+            ->prepareMapping();
+
+        return $this;
+    }
+
+    protected function prepareActionIdentifier(): \BulkImport\Processor\Processor
+    {
+        if (!in_array($this->action, [
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->actionIdentifier = self::ACTION_SKIP;
+            return $this;
+        }
+
+        // This option doesn't apply when "o:id" is the only one identifier.
+        $identifierNames = $this->bulk->getIdentifierNames();
+        if (empty($identifierNames)
+            || (count($identifierNames) === 1 && reset($identifierNames) === 'o:id')
+        ) {
+            $this->actionIdentifier = self::ACTION_SKIP;
+            return $this;
+        }
+
+        $this->actionIdentifier = $this->getParam('action_identifier_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionIdentifier, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->logger->err(
+                'Action "{action}" for identifier is not managed.', // @translate
+                ['action' => $this->actionIdentifier]
+            );
+            $this->actionIdentifier = self::ACTION_APPEND;
+        }
+
+        // TODO Prepare the list of identifiers one time (only properties) (see extractIdentifiers())?
+        return $this;
+    }
+
+    protected function prepareActionMedia(): \BulkImport\Processor\Processor
+    {
+        $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionMedia, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->logger->err(
+                'Action "{action}" for media (update of item) is not managed.', // @translate
+                ['action' => $this->actionMedia]
+            );
+            $this->actionMedia = self::ACTION_APPEND;
+        }
+        return $this;
+    }
+
+    protected function prepareActionItemSet(): \BulkImport\Processor\Processor
+    {
+        $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
+        if (!in_array($this->actionItemSet, [
+            self::ACTION_APPEND,
+            self::ACTION_UPDATE,
+        ])) {
+            $this->logger->err(
+                'Action "{action}" for item set (update of item) is not managed.', // @translate
+                ['action' => $this->actionItemSet]
+            );
+            $this->actionItemSet = self::ACTION_APPEND;
+        }
+        return $this;
+    }
+
+    /**
+     * Prepare other internal data.
+     */
+    protected function appendInternalParams(): \BulkImport\Processor\Processor
+    {
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $internalParams = [];
+        $internalParams['iiifserver_media_api_url'] = $settings->get('iiifserver_media_api_url', '');
+        if ($internalParams['iiifserver_media_api_url']
+            && mb_substr($internalParams['iiifserver_media_api_url'], -1) !== '/'
+        ) {
+            $internalParams['iiifserver_media_api_url'] .= '/';
+        }
+        $this->setParams(array_merge($this->getParams() + $internalParams));
+        return $this;
+    }
+
+    /**
+     * Prepare full mapping one time to simplify and speed process.
+     *
+     * Add automapped metadata for properties (language and datatypes).
+     *
+     * @see \BulkImport\Processor\AssetProcessor::prepareMapping()
+     * @deprecated Use MetaMapperConfig.
+     */
+    protected function prepareMapping(): \BulkImport\Processor\Processor
+    {
+        $isPrepared = false;
+        if (method_exists($this->reader, 'getConfigParam')) {
+            $mappingConfig = $this->reader->getParam('mapping_config') ?: $this->reader->getConfigParam('mapping_config');
+            if ($mappingConfig) {
+                $isPrepared = true;
+                $mapping = [];
+                // TODO Avoid to prepare the mapping a second time when the reader prepared it.
+                $this->metaMapper->init($mappingConfig, $this->reader->getParams());
+                if ($this->metaMapper->hasError()) {
+                    return $this;
+                }
+                $mappingSource = array_merge(
+                    $this->metaMapper->getSection('default'),
+                    $this->metaMapper->getSection('mapping')
+                );
+                foreach ($mappingSource as $fromTo) {
+                    // The from is useless here, the entry takes care of it.
+                    if (isset($fromTo['to']['dest'])) {
+                        // Manage multimapping: there may be multiple target fields.
+                        // TODO Improve multimapping management (for spreadsheet in fact).
+                        $mapping[$fromTo['to']['dest']][] = $fromTo['to']['field'] ?? null;
+                    }
+                }
+                // Filter duplicated and null values.
+                foreach ($mapping as &$datas) {
+                    $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
+                }
+                unset($datas);
+
+                // These mappings are added automatically with JsonEntry.
+                // TODO Find a way to add automatic mapping in metaMapper or default mapping.
+                $mapping['url'] = $mapping['url'] ?? ['url'];
+                $mapping['iiif'] = $mapping['iiif'] ?? ['iiif'];
+            }
+        }
+
+        if (!$isPrepared) {
+            $mapping = $this->getParam('mapping', []);
+        }
+
+        if (!count($mapping)) {
+            $this->hasMapping = false;
+            $this->mapping = [];
+            return $this;
+        }
+
+        // The automap is only used for language, datatypes and visibility:
+        // the properties are the one that are set by the user.
+        // TODO Avoid remapping or factorize when done in metaMapper.
+        /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
+        $automapFields = $this->getServiceLocator()->get('ControllerPluginManager')->get('automapFields');
+        $sourceFields = $automapFields(array_keys($mapping), ['output_full_matches' => true]);
+
+        $index = -1;
+        foreach ($mapping as $sourceField => $targets) {
+            ++$index;
+            if (empty($targets)) {
+                continue;
+            }
+
+            // The automap didn't find any matching.
+            if (empty($sourceFields[$index])) {
+                foreach ($targets as $target) {
+                    $sourceFields[$index][] = [
+                        'field' => $target,
+                        'language' => null,
+                        'type' => null,
+                        'is_public' => null,
+                    ];
+                }
+            }
+
+            // Default metadata (datatypes, language and visibility).
+            // For consistency, only the first metadata is used.
+            $metadatas = $sourceFields[$index];
+            $metadata = reset($metadatas);
+
+            $fullTargets = [];
+            foreach ($targets as $target) {
+                $result = [];
+                // Field is the property found by automap, or any other metadata.
+                // This value is not used, but may be useful for messages.
+                $result['field'] = $metadata['field'];
+
+                // Manage the property of a target when it is a resource type,
+                // like "o:item_set [dcterms:title]".
+                // It is used to set a metadata for derived resource (media for
+                // item) or to find another resource (item set for item, as an
+                // identifier name).
+                $pos = strpos($target, '[');
+                if ($pos) {
+                    $targetData = trim(substr($target, $pos + 1), '[] ');
+                    $target = trim(substr($target, $pos));
+                    $result['target'] = $target;
+                    $result['target_data'] = $targetData;
+                    $propertyId = $this->bulk->getPropertyId($targetData);
+                    if ($propertyId) {
+                        $subValue = [];
+                        $subValue['property_id'] = $propertyId;
+                        // TODO Allow different types for subvalues (inside "[]").
+                        $subValue['type'] = 'literal';
+                        $subValue['is_public'] = true;
+                        $result['target_data_value'] = $subValue;
+                    }
+                } else {
+                    $result['target'] = $target;
+                }
+
+                $propertyId = $this->bulk->getPropertyId($target);
+                if ($propertyId) {
+                    $datatypes = [];
+                    // Normally already checked.
+                    foreach ($metadata['datatype'] ?? [] as $datatype) {
+                        $datatypes[] = $this->bulk->getDataTypeName($datatype);
+                    }
+                    $datatypes = array_filter(array_unique($datatypes));
+                    if (empty($datatypes)) {
+                        $datatype = 'literal';
+                    } elseif (count($datatypes) === 1) {
+                        $datatype = reset($datatypes);
+                    } else {
+                        $datatype = null;
+                    }
+                    $result['value']['property_id'] = $propertyId;
+                    $result['value']['type'] = $datatype;
+                    $result['value']['@language'] = $metadata['language'];
+                    $result['value']['is_public'] = $metadata['is_public'] !== 'private';
+                    if (is_null($datatype)) {
+                        $result['datatype'] = $datatypes;
+                    }
+                }
+                // A specific or module field. These fields may be useless.
+                // TODO Check where this exception is used.
+                else {
+                    $result['full_field'] = $sourceField;
+                    $result['@language'] = $metadata['language'];
+                    $result['type'] = empty($metadata['datatype'])
+                        ? null
+                        : (is_array($metadata['datatype']) ? reset($metadata['datatype']) : (string) $metadata['datatype']);
+                    $result['is_public'] = $metadata['is_public'] !== 'private';
+                }
+
+                $fullTargets[] = $result;
+            }
+            $mapping[$sourceField] = $fullTargets;
+        }
+
+        // Filter the mapping to avoid to loop entries without target.
+        $this->mapping = array_filter($mapping);
+        // Some readers don't need a mapping (xml reader do the process itself).
+        $this->hasMapping = (bool) $this->mapping;
+
+        return $this;
+    }
+
+    /**
+     * Process one entry to create one resource (and eventually attached ones).
+     */
+    protected function processEntry(Entry $entry): ?ArrayObject
+    {
+        if ($entry->isEmpty()) {
+            ++$this->totalSkipped;
+            return null;
+        }
+
+        // TODO Use MetaMapper.
+        return !$this->hasMapping
+            ? $this->processEntryFromReader($entry)
+            : $this->processEntryFromProcessor($entry);
+    }
+
+    /**
+     * Convert a prepared entry into a resource, setting ids for each key.
+     *
+     * Reader-driven extraction of data.
+     *
+     * So fill owner id, resource template id, resource class id, property ids.
+     * Check boolean values too for is public and is open.
+     */
+    protected function processEntryFromReader(Entry $entry): ArrayObject
+    {
+        $resource = parent::processEntryFromReader($entry);
+
+        // Clean the property id in all cases.
+        $properties = $this->bulk->getPropertyIds();
+        foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
+            foreach (array_keys($values) as $key) {
+                $resource[$term][$key]['property_id'] = $properties[$term];
+            }
+        }
+
+        // TODO Fill the source identifiers of the main resource.
+
+        $fillPropertiesAndResourceData = function (array $resourceArray) use ($properties): array {
+            // Fill the properties.
+            foreach (array_intersect_key($resourceArray, $properties) as $term => $values) {
+                foreach (array_keys($values) as $key) {
+                    $resourceArray[$term][$key]['property_id'] = $properties[$term];
+                }
+            }
+            // Fill other metadata (for media and item set).
+            $resourceObject = new ArrayObject($resourceArray);
+            foreach (array_keys($this->metadataData['boolean']) as $key) {
+                if (array_key_exists($key, $resourceArray)) {
+                    $this->fillBoolean($resourceObject, $key, $resourceObject[$key]);
+                }
+            }
+            foreach (array_keys($this->metadataData['single_entity']) as $key) {
+                if (array_key_exists($key, $resourceArray)) {
+                    $this->fillSingleEntity($resourceObject, $key, $resourceObject[$key]);
+                }
+            }
+            // TODO Fill the source identifiers of related resources and other single data.
+            return $resourceObject->getArrayCopy();
+        };
+
+        // Do the same for sub-resources (multiple entity keys: ''o:media" and
+        // "o:item_set" for items).
+        foreach (array_keys($this->metadataData['multiple_entities']) as $key) {
+            if (!empty($resource[$key])) {
+                foreach ($resource[$key] as &$resourceData) {
+                    $resourceData = $fillPropertiesAndResourceData($resourceData);
+                }
+            }
+        }
+
+        return $resource;
+    }
+
+    /**
+     * Processor-driven extraction of data.
+     *
+     * @todo Upgrade to use the metamapper.
+     */
+    protected function processEntryFromProcessor(Entry $entry): ArrayObject
+    {
+        /** @var \ArrayObject $resource */
+        $resource = clone $this->base;
+        $resource['source_index'] = $entry->index();
+        $resource['messageStore']->clearMessages();
+
+        $this->skippedSourceFields = [];
+        foreach ($this->mapping as $sourceField => $targets) {
+            // Check if the entry has a value for this source field.
+            if (!isset($entry[$sourceField])) {
+                // Probably an issue in the config.
+                /*
+                // TODO Warn when it is not a multisheet. Check updates with a multisheet.
+                if (!$entry->offsetExists($sourceField)) {
+                    $resource['messageStore']->addWarning('values', new PsrMessage(
+                        'The source field "{field}" is set in the mapping, but not in the entry. The params may have an issue.', // @translate
+                        ['field' => $sourceField]
+                    ));
+                }
+                 */
+                $this->skippedSourceFields[] = $sourceField;
+                continue;
+            }
+
+            $values = $entry[$sourceField];
+            if (!count($values)) {
+                $this->skippedSourceFields[] = $sourceField;
+                continue;
+            }
+
+            $this->fillResource($resource, $targets, $values);
+        }
+
+        return $resource;
+    }
+
     protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
+        $this->baseResourceCommon($resource);
         // Determined by the entry, but prepare all possible types in the case
         // there is a mapping.
         $this->baseItem($resource);
         $this->baseItemSet($resource);
         $this->baseMedia($resource);
         $resource['resource_name'] = $this->getParam('resource_name');
+        return $this;
+    }
+
+    protected function baseResourceCommon(ArrayObject $resource): \BulkImport\Processor\Processor
+    {
+        $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
+        if ($ownerId === 'current') {
+            $identity = $this->getServiceLocator()->get('ControllerPluginManager')
+                ->get('identity');
+            $ownerId = $identity()->getId();
+        }
+        $resource['o:owner'] = ['o:id' => $ownerId];
+
+        $resourceTemplateId = $this->getParam('o:resource_template');
+        if ($resourceTemplateId) {
+            $resource['o:resource_template'] = ['o:id' => $resourceTemplateId];
+        }
+
+        $resourceClassId = $this->getParam('o:resource_class');
+        if ($resourceClassId) {
+            $resource['o:resource_class'] = ['o:id' => $resourceClassId];
+        }
+
+        $thumbnailId = $this->getParam('o:thumbnail');
+        if ($thumbnailId) {
+            $resource['o:thumbnail'] = ['o:id' => $thumbnailId];
+        }
+
+        $resource['o:is_public'] = $this->getParam('o:is_public') !== 'false';
         return $this;
     }
 
@@ -91,6 +639,529 @@ class ResourceProcessor extends AbstractResourceProcessor
         $resource['resource_name'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
         return $this;
+    }
+
+    /**
+     * @todo Factorize with fillGeneric().
+     */
+    protected function fillSingleEntity(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
+    {
+        if (empty($value)) {
+            $resource[$key] = null;
+            return $this;
+        }
+
+        // Get the entity id.
+        switch ($key) {
+            case 'o:resource_template':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $label = empty($value['o:label']) ? null : $value['o:label'];
+                    $value = $id ?? $label ?? reset($value);
+                }
+                $id = $this->bulk->getResourceTemplateId($value);
+                if ($id) {
+                    $resource['o:resource_template'] = empty($label)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:label' => $label];
+                } else {
+                    $resource['o:resource_template'] = null;
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The resource template "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            case 'o:resource_class':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $term = empty($value['o:term']) ? null : $value['o:term'];
+                    $value = $id ?? $term ?? reset($value);
+                }
+                $id = $this->bulk->getResourceClassId($value);
+                if ($id) {
+                    $resource['o:resource_class'] = empty($term)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:term' => $term];
+                } else {
+                    $resource['o:resource_class'] = null;
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The resource class "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            case 'o:thumbnail':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
+                    $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
+                    $value = $id ?? $url ?? null;
+                }
+                if (is_numeric($value)) {
+                    $id = $this->bulk->getAssetId($value);
+                } elseif (is_string($value)) {
+                    // TODO Temporary creation of the asset.
+                    $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                    $id = $asset ? $asset->getId() : null;
+                }
+                if ($id) {
+                    $resource['o:thumbnail'] = empty($altText)
+                        ? ['o:id' => $id]
+                        // TODO Check if the alt text is updated.
+                        : ['o:id' => $id, 'o:alt_text' => $altText];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The thumbnail "{source}" does not exist or cannot be created.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            case 'o:owner':
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $email = empty($value['o:email']) ? null : $value['o:email'];
+                    $value = $id ?? $email
+                        // Check standard value too, that may be created by a
+                        // xml flat mapping.
+                        // TODO Remove this fix: it should be checked earlier.
+                        ?? $value['@value'] ?? $value['value_resource_id']
+                        ?? reset($value);
+                }
+                $id = $this->bulk->getUserId($value);
+                if ($id) {
+                    $resource['o:owner'] = empty($email)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:email' => $email];
+                } else {
+                    $resource['o:owner'] = null;
+                    $resource['messageStore']->addError('resource', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            case 'o:item':
+                // For media.
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $value = $id ?? reset($value);
+                }
+                $id = $this->identifiers['mapx'][$resource['source_index']]
+                    ?? $this->bulk->findResourceFromIdentifier($value, null, null, $resource['messageStore']);
+                if ($id) {
+                    $resource['o:item'] = ['o:id' => $id];
+                } else {
+                    $resource['o:item'] = null;
+                    $resource['messageStore']->addError('resource', new PsrMessage(
+                        'The item "{source}" for media does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return $this;
+
+            default:
+                return $this;
+        }
+    }
+
+    /**
+     * @todo Use the MetaMapper.
+     */
+    protected function fillResource(ArrayObject $resource, array $targets, array $values): \BulkImport\Processor\Processor
+    {
+        foreach ($targets as $target) {
+            switch ($target['target']) {
+                // Check properties first for performance.
+                case $this->fillProperty($resource, $target, $values):
+                    break;
+                case $this->fillGeneric($resource, $target, $values):
+                    break;
+                case $this->fillSpecific($resource, $target, $values):
+                    break;
+                default:
+                    // The resource name should be set only in fillSpecific.
+                    if ($target['target'] !== 'resource_name') {
+                        $resource[$target['target']] = end($values);
+                    }
+                    break;
+            }
+        }
+        return $this;
+    }
+
+    protected function fillGeneric(ArrayObject $resource, $target, array $values): bool
+    {
+        switch ($target['target']) {
+            case 'o:id':
+                $value = (int) end($values);
+                if (!$value) {
+                    return true;
+                }
+                $resourceName = $resource['resource_name'] ?? null;
+                $id = $this->identifiers['mapx'][$resource['source_index']]
+                    ?? $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName, $resource['messageStore']);
+                if ($id) {
+                    $resource['o:id'] = $id;
+                    $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
+                } else {
+                    $resource['messageStore']->addError('resource', new PsrMessage(
+                        'Internal id #{id} cannot be found. The entry is skipped.', // @translate
+                        ['id' => $id]
+                    ));
+                }
+                return true;
+
+            case 'o:resource_template':
+                $value = end($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $label = empty($value['o:label']) ? null : $value['o:label'];
+                    $value = $id ?? $label ?? reset($value);
+                }
+                $id = $this->bulk->getResourceTemplateId($value);
+                if ($id) {
+                    $resource['o:resource_template'] = empty($label)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:label' => $label];
+                } else {
+                    $resource['messageStore']->addError('template', new PsrMessage(
+                        'The resource template "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
+            case 'o:resource_class':
+                $value = end($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $term = empty($value['o:term']) ? null : $value['o:term'];
+                    $value = $id ?? $term ?? reset($value);
+                }
+                $id = $this->bulk->getResourceClassId($value);
+                if ($id) {
+                    $resource['o:resource_class'] = empty($term)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:term' => $term];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The resource class "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
+            case 'o:thumbnail':
+                $value = end($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
+                    $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
+                    $value = $id ?? $url ?? null;
+                }
+                if (is_numeric($value)) {
+                    $id = $this->bulk->getAssetId($value);
+                } elseif (is_string($value)) {
+                    // TODO Temporary creation of the asset.
+                    $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                    $id = $asset ? $asset->getId() : null;
+                }
+                if ($id) {
+                    $resource['o:thumbnail'] = empty($altText)
+                        ? ['o:id' => $id]
+                        // TODO Check if the alt text is updated.
+                        : ['o:id' => $id, 'o:alt_text' => $altText];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The thumbnail "{source}" does not exist or cannot be created.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
+            case 'o:owner':
+                $value = end($values);
+                if (!$value) {
+                    return true;
+                }
+                if (is_array($value)) {
+                    $id = empty($value['o:id']) ? null : $value['o:id'];
+                    $email = empty($value['o:email']) ? null : $value['o:email'];
+                    $value = $id ?? $email ?? reset($value);
+                }
+                $id = $this->bulk->getUserId($value);
+                if ($id) {
+                    $resource['o:owner'] = empty($email)
+                        ? ['o:id' => $id]
+                        : ['o:id' => $id, 'o:email' => $email];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
+            case 'o:email':
+                $value = end($values);
+                if (!$value) {
+                    return true;
+                }
+                $id = $this->bulk->getUserId($value);
+                if ($id) {
+                    $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
+                } else {
+                    $resource['messageStore']->addError('values', new PsrMessage(
+                        'The user "{source}" does not exist.', // @translate
+                        ['source' => $value]
+                    ));
+                }
+                return true;
+
+            case 'o:is_public':
+                $value = (string) end($values);
+                $resource['o:is_public'] = in_array(strtolower($value), ['0', 'false', 'no', 'off', 'private'], true)
+                    ? false
+                    : (bool) $value;
+                return true;
+
+            case 'o:created':
+            case 'o:modified':
+                $value = end($values);
+                $resource[$target['target']] = is_array($value)
+                    ? $value
+                    : ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    protected function fillProperty(ArrayObject $resource, $target, array $values): bool
+    {
+        // Return true in all other cases, when this is a property process, with
+        // or without issue.
+        if (!isset($target['value']['property_id'])) {
+            return false;
+        }
+
+        if (!empty($target['value']['type'])) {
+            $datatypeNames = [$target['value']['type']];
+        } elseif (!empty($target['datatype'])) {
+            $datatypeNames = $target['datatype'];
+        } else {
+            // Normally not possible, so use "literal", whatever the option is.
+            $datatypeNames = ['literal'];
+        }
+
+        // The datatype should be checked for each value. The value is checked
+        // against each datatype and get the first valid one.
+        // TODO Factorize instead of doing check twice.
+        foreach ($values as $value) {
+            $hasDatatype = false;
+            // The data type name is normally already checked, but may be empty.
+            foreach ($datatypeNames as $datatypeName) {
+                /** @var \Omeka\DataType\DataTypeInterface $datatype */
+                $datatype = $this->bulk->getDataType($datatypeName);
+                if (!$datatype) {
+                    continue;
+                }
+                $datatypeName = $datatype->getName();
+                $target['value']['type'] = $datatypeName;
+                if ($datatypeName === 'literal') {
+                    $this->fillPropertyForValue($resource, $target, $value);
+                    $hasDatatype = true;
+                    break;
+                } elseif (substr($datatypeName, 0, 8) === 'resource') {
+                    $vrId = $this->identifiers['map'][$value]
+                        ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                    // Normally always true after first loop: all identifiers
+                    // are stored first.
+                    if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
+                        $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
+                        $hasDatatype = true;
+                        break;
+                    }
+                } elseif (substr($datatypeName, 0, 11) === 'customvocab') {
+                    // The resource is not checked for custom vocab member here.
+                    if ($this->bulk->getCustomVocabBaseType($datatypeName) === 'resource') {
+                        $vrId = $this->identifiers['map'][$value]
+                            ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                        // Normally always true after first loop: all
+                        // identifiers are stored first.
+                        if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
+                            $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
+                            $hasDatatype = true;
+                            break;
+                        }
+                    } elseif ($this->bulk->isCustomVocabMember($datatypeName, $value)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
+                } elseif (substr($datatypeName, 0, 3) === 'uri'
+                    || substr($datatypeName, 0, 12) === 'valuesuggest'
+                ) {
+                    if ($this->bulk->isUrl($value)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
+                } else {
+                    // Some data types may be more complex than "@value", but it
+                    // manages most of the common other modules.
+                    $valueArray = [
+                        '@value' => $value,
+                    ];
+                    if ($datatype->isValid($valueArray)) {
+                        $this->fillPropertyForValue($resource, $target, $value);
+                        $hasDatatype = true;
+                        break;
+                    }
+                }
+            }
+            // TODO Add an option for literal data-type by default.
+            if (!$hasDatatype) {
+                if ($this->getParam('value_datatype_literal')) {
+                    $targetLiteral = $target;
+                    $targetLiteral['value']['type'] = 'literal';
+                    $this->fillPropertyForValue($resource, $targetLiteral, $value);
+                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    } else {
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    }
+                } else {
+                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    } else {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
+                        ));
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected function fillPropertyForValue(ArrayObject $resource, $target, $value, ?int $vrId = null): bool
+    {
+        // Prepare the new resource value from the target.
+        $resourceValue = $target['value'];
+        $datatype = $resourceValue['type'];
+        switch ($datatype) {
+            default:
+            case 'literal':
+                $resourceValue['@value'] = $value;
+                break;
+
+                // "uri-label" is deprecated: use simply "uri".
+            case 'uri-label':
+            case 'uri':
+            case substr($datatype, 0, 12) === 'valuesuggest':
+                if (strpos($value, ' ')) {
+                    list($uri, $label) = explode(' ', $value, 2);
+                    $label = trim($label);
+                    if (!strlen($label)) {
+                        $label = null;
+                    }
+                    $resourceValue['@id'] = $uri;
+                    $resourceValue['o:label'] = $label;
+                } else {
+                    $resourceValue['@id'] = $value;
+                    // $resourceValue['o:label'] = null;
+                }
+                break;
+
+            case 'resource':
+            case 'resource:item':
+            case 'resource:itemset':
+            case 'resource:media':
+                $resourceValue['value_resource_id'] = $vrId;
+                $resourceValue['@language'] = null;
+                $resourceValue['source_identifier'] = $value;
+                break;
+
+            case substr($datatype, 0, 11) === 'customvocab':
+                $customVocabBaseType = $this->bulk->getCustomVocabBaseType($datatype);
+                $result = $this->bulk->isCustomVocabMember($datatype, $vrId ?? $value);
+                if ($result || ($customVocabBaseType === 'resource' && !$vrId)) {
+                    switch ($customVocabBaseType) {
+                        default:
+                        case 'literal':
+                            $resourceValue['@value'] = $value;
+                            break;
+                        case 'uri':
+                            if (strpos($value, ' ')) {
+                                list($uri, $label) = explode(' ', $value, 2);
+                                $label = trim($label);
+                                if (!strlen($label)) {
+                                    $label = null;
+                                }
+                                $resourceValue['@id'] = $uri;
+                                $resourceValue['o:label'] = $label;
+                            } else {
+                                $resourceValue['@id'] = $value;
+                                // $resourceValue['o:label'] = null;
+                            }
+                            break;
+                        case 'resource':
+                            $resourceValue['value_resource_id'] = $vrId;
+                            $resourceValue['@language'] = null;
+                            // TODO Check identifier as member of custom vocab later.
+                            $resourceValue['source_identifier'] = $value;
+                            break;
+                    }
+                } else {
+                    if ($this->getParam('value_datatype_literal')) {
+                        $resourceValue['@value'] = $value;
+                        $resourceValue['type'] = 'literal';
+                        $resource['messageStore']->addNotice('values', new PsrMessage(
+                            'The value "{value}" is not member of custom vocab "{customvocab}". A literal value is used instead.', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'customvocab' => $datatype]
+                        ));
+                    } else {
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not member of custom vocab "{customvocab}".', // @translate
+                            ['value' => mb_substr((string) $value, 0, 50), 'customvocab' => $datatype]
+                        ));
+                    }
+                }
+                break;
+
+            // TODO Support other special data t$this->fillItem($resource, $target, $values)ypes for geometry, numeric, etc.
+        }
+        $resource[$target['target']][] = $resourceValue;
+
+        return true;
     }
 
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
@@ -136,6 +1207,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // entry).
         $resourceName = empty($resource['resource_name']) ? true : $resource['resource_name'];
 
+        // TODO Replace by a if/else, but take care of return when no output.
         switch ($target['target']) {
             case 'resource_name':
                 $value = trim((string) end($values));
@@ -472,188 +1544,20 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
-        // The parent is checked first, because id may be needed in next checks.
-        if (!parent::checkEntity($resource)) {
-            return false;
-        }
+        return parent::checkEntity($resource);
+    }
 
-        switch ($resource['resource_name']) {
-            case 'items':
-                if (!$this->checkItem($resource)) {
-                    return false;
-                }
-                break;
-            case 'item_sets':
-                if (!$this->checkItemSet($resource)) {
-                    return false;
-                }
-                break;
-            case 'media':
-                if (!$this->checkMedia($resource)) {
-                    return false;
-                }
-                break;
-            default:
-                // Never.
-                return !$resource['messageStore']->hasErrors();
-        }
-
-        // Don't do more check for deletion, check only for update or create.
-        $operation = $this->standardOperation($this->action);
-        if (!$operation) {
+    protected function checkEntitySpecific(ArrayObject $resource): bool
+    {
+        if ($resource['resource_name'] === 'items') {
+            return $this->checkItem($resource);
+        } elseif ($resource['resource_name'] === 'item_sets') {
+            return $this->checkItemSet($resource);
+        } elseif ($resource['resource_name'] === 'media') {
+            return $this->checkMedia($resource);
+        } else {
             return !$resource['messageStore']->hasErrors();
         }
-
-        /** @see \Omeka\Api\Manager::execute() */
-        if (!$this->checkAdapter($resource['resource_name'], $operation)) {
-            $resource['messageStore']->addError('rights', new PsrMessage(
-                'User has no rights to "{action}" {resource_name}.', // @translate
-                ['action' => $operation, 'resource_name' => $resource['resource_name']]
-            ));
-            return false;
-        }
-
-        // Check through hydration and standard api.
-        /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
-        $adapter = $this->adapterManager->get($resource['resource_name']);
-
-        // Some options are useless here, but added anyway.
-        /** @see \Omeka\Api\Request::setOption() */
-        $requestOptions = [
-            'continueOnError' => true,
-            'flushEntityManager' => false,
-            'responseContent' => 'resource',
-        ];
-
-        $request = new Request($operation, $resource['resource_name']);
-        $request
-            ->setContent($resource->getArrayCopy())
-            ->setOption($requestOptions);
-
-        if (empty($resource['o:id'])
-            && $operation !== Request::CREATE
-            && $this->actionUnidentified === self::ACTION_SKIP
-        ) {
-            return true;
-        } elseif ($operation === Request::CREATE
-            || (empty($resource['o:id']) && $this->actionUnidentified === self::ACTION_CREATE)
-        ) {
-            $entityClass = $adapter->getEntityClass();
-            $entity = new $entityClass;
-            if ($resource['resource_name'] === 'media') {
-                $entityItem = null;
-                // Already checked, except when a source identifier is used.
-                if (empty($resource['o:item']['o:id'])) {
-                    if (!empty($resource['o:item']['source_identifier']) && !empty($resource['o:item']['checked_id'])) {
-                        $entityItem = new \Omeka\Entity\Item;
-                    }
-                } else {
-                    try {
-                        $entityItem = $adapter->getAdapter('items')->findEntity($resource['o:item']['o:id']);
-                    } catch (\Exception $e) {
-                        // Managed below.
-                    }
-                }
-                if (!$entityItem) {
-                    $resource['messageStore']->addError('media', new PsrMessage(
-                        'Media must belong to an item.' // @translate
-                    ));
-                    return false;
-                }
-                $entity->setItem($entityItem);
-            }
-        } else {
-            $request
-                ->setId($resource['o:id']);
-
-            $entity = $adapter->findEntity($resource['o:id']);
-            // \Omeka\Api\Adapter\AbstractEntityAdapter::authorize() is protected.
-            if (!$this->acl->userIsAllowed($entity, $operation)) {
-                $resource['messageStore']->addError('rights', new PsrMessage(
-                    'User has no rights to "{action}" {resource_name} {resource_id}.', // @translate
-                    ['action' => $operation, 'resource_name' => $resource['resource_name'], 'resource_id' => $resource['o:id']]
-                ));
-                return false;
-            }
-
-            // For deletion, just check rights.
-            if ($operation === Request::DELETE) {
-                return !$resource['messageStore']->hasErrors();
-            }
-        }
-
-        // Complete from api modules (api.execute/create/update.pre).
-        /** @see \Omeka\Api\Manager::initialize() */
-        try {
-            $this->apiManager->initialize($adapter, $request);
-        } catch (\Exception $e) {
-            $resource['messageStore']->addError('modules', new PsrMessage(
-                'Initialization exception: {exception}', // @translate
-                ['exception' => $e]
-            ));
-            return false;
-        }
-
-        // Check new files for items and media before hydration to speed process
-        // because files are checked during hydration too, but with a full
-        // download.
-        $this->checkNewFiles($resource);
-
-        // The entity is checked here to store error when there is a file issue.
-        $errorStore = new \Omeka\Stdlib\ErrorStore;
-        $adapter->validateRequest($request, $errorStore);
-        $adapter->validateEntity($entity, $errorStore);
-
-        // TODO Process hydration checks except files or use an event to check files differently during hydration or store loaded url in order to get all results one time.
-        // TODO In that case, check iiif image or other media that may have a file or url too.
-
-        if ($resource['messageStore']->hasErrors() || $errorStore->hasErrors()) {
-            $resource['messageStore']->mergeErrors($errorStore);
-            return false;
-        }
-
-        // Don't check new files twice. Furthermore, the media are pre-hydrated
-        // and a flush somewhere may duplicate the item.
-        // TODO Use a second entity manager.
-        /*
-        $isItem = $resource['resource_name'] === 'items';
-        if ($isItem) {
-            $res = $request->getContent();
-            unset($res['o:media']);
-            $request->setContent($res);
-        }
-        */
-
-        // Process hydration checks for remaining checks, in particular media.
-        // This is the same operation than api create/update, but without
-        // persisting entity.
-        // Normally, all data are already checked, except actual medias.
-        $errorStore = new \Omeka\Stdlib\ErrorStore;
-        try {
-            $adapter->hydrateEntity($request, $entity, $errorStore);
-        } catch (\Exception $e) {
-            $resource['messageStore']->addError('validation', new PsrMessage(
-                'Validation exception: {exception}', // @translate
-                ['exception' => $e]
-            ));
-            return false;
-        }
-
-        // Remove pre-hydrated entities from entity manager: it was only checks.
-        // TODO Ideally, checks should be done on a different entity manager, so modify service before and after.
-        /** @var \Doctrine\ORM\EntityManager $entityManager */
-        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
-        $entityManager->clear();
-
-        // Merge error store with resource message store.
-        $resource['messageStore']->mergeErrors($errorStore, 'validation');
-        if ($resource['messageStore']->hasErrors()) {
-            return false;
-        }
-
-        // TODO Check finalize (post) api process. Note: some modules flush results.
-
-        return !$resource['messageStore']->hasErrors();
     }
 
     protected function checkItem(ArrayObject $resource): bool
@@ -699,7 +1603,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             unset($resource['o:item']);
         }
 
-        return true;
+        return !$resource['messageStore']->hasErrors();
     }
 
     protected function checkItemSet(ArrayObject $resource): bool
@@ -714,7 +1618,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         if (property_exists($resource, 'o:media')) {
             unset($resource['o:media']);
         }
-        return true;
+        return !$resource['messageStore']->hasErrors();
     }
 
     protected function checkMedia(ArrayObject $resource): bool
@@ -761,7 +1665,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         if (property_exists($resource, 'o:media')) {
             unset($resource['o:media']);
         }
-        return true;
+        return !$resource['messageStore']->hasErrors();
     }
 
     protected function processEntities(array $data): \BulkImport\Processor\Processor
@@ -776,6 +1680,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             return $this;
         }
 
+        // TODO Remove when ENTRIES_BY_BATCH will be removed.
         // Process all resources, but keep order, so process them by type.
         // Useless when the batch is 1.
         // TODO Create an option for full order by id for items, then media.
@@ -797,5 +1702,78 @@ class ResourceProcessor extends AbstractResourceProcessor
             $this->resourceName = 'resources';
         }
         return $this;
+    }
+
+    /**
+     * Create a new asset from a url.
+     *
+     * @see \BulkImport\Processor\AssetProcessor::createAsset()
+     */
+    protected function createAssetFromUrl(string $pathOrUrl, ?MessageStore $messageStore = null): ?\Omeka\Entity\Asset
+    {
+        $this->checkAssetMediaType = true;
+
+        // AssetAdapter requires an uploaded file, but it's common to use urls
+        // in bulk import.
+        $result = $this->checkFileOrUrl($pathOrUrl, $messageStore);
+        if (!$result) {
+            return null;
+        }
+
+        $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
+        $filename = mb_substr(basename($pathOrUrl), 0, 255);
+        // TODO Set the real extension via tempFile().
+        $extension = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
+
+        $isUrl = $this->bulk->isUrl($pathOrUrl);
+        if ($isUrl) {
+            $result = $this->fetchUrl(
+                'asset',
+                $filename,
+                $filename,
+                $storageId,
+                $extension,
+                $pathOrUrl
+            );
+            if ($result['status'] !== 'success') {
+                $messageStore->addError('file', $result['message']);
+                return null;
+            }
+            $fullPath = $result['data']['fullpath'];
+        } else {
+            $isAbsolutePathInsideDir = strpos($pathOrUrl, $this->sideloadPath) === 0;
+            $fileinfo = $isAbsolutePathInsideDir
+                ? new \SplFileInfo($pathOrUrl)
+                : new \SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $pathOrUrl);
+            $realPath = $fileinfo->getRealPath();
+            $this->store->put($realPath, 'asset/' . $storageId . '.' . $extension);
+            $fullPath = $this->basePath . '/asset/' . $storageId . '.' . $extension;
+        }
+
+        // A check to get the real media-type and extension.
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mediaType = $finfo->file($fullPath);
+        $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
+        // TODO Get the extension from the media type or use standard asset uploaded.
+
+        // This doctrine resource should be reloaded each time the entity
+        // manager is cleared, else a error may occur on big import.
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
+        $this->user = $entityManager->find(\Omeka\Entity\User::class, $this->userId);
+
+        $asset = new \Omeka\Entity\Asset;
+        $asset->setName($filename);
+        // TODO Use the user specified in the config (owner).
+        $asset->setOwner($this->user);
+        $asset->setStorageId($storageId);
+        $asset->setExtension($extension);
+        $asset->setMediaType($mediaType);
+        $asset->setAltText(null);
+
+        // TODO Remove this flush (required because there is a clear() after checks).
+        $entityManager->persist($asset);
+        $entityManager->flush();
+
+        return $asset;
     }
 }

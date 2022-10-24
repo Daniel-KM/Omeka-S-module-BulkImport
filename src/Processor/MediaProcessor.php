@@ -24,25 +24,13 @@ class MediaProcessor extends ResourceProcessor
 
     protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
+        $this->baseResourceCommon($resource);
         $this->baseMedia($resource);
         return $this;
     }
 
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
-        switch ($target['target']) {
-            case $this->fillMedia($resource, $target, $values):
-                return true;
-            default:
-                return false;
-        }
-        return false;
-    }
-
-    protected function checkEntity(ArrayObject $resource): bool
-    {
-        parent::checkEntity($resource);
-        $this->checkMedia($resource);
-        return !$resource['messageStore']->hasErrors();
+        return $this->fillMedia($resource, $target, $values);
     }
 }

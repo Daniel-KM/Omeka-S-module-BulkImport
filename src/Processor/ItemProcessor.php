@@ -24,31 +24,13 @@ class ItemProcessor extends ResourceProcessor
 
     protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
     {
+        $this->baseResourceCommon($resource);
         $this->baseItem($resource);
         return $this;
     }
 
-    public function process(): void
-    {
-        $this->reader->setObjectType('items');
-        parent::process();
-    }
-
     protected function fillSpecific(ArrayObject $resource, $target, array $values): bool
     {
-        switch ($target['target']) {
-            case $this->fillItem($resource, $target, $values):
-                return true;
-            default:
-                return false;
-        }
-        return false;
-    }
-
-    protected function checkEntity(ArrayObject $resource): bool
-    {
-        parent::checkEntity($resource);
-        $this->checkItem($resource);
-        return !$resource['messageStore']->hasErrors();
+        return $this->fillItem($resource, $target, $values);
     }
 }
