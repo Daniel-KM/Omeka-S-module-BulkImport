@@ -174,9 +174,12 @@ class AutomapFields extends AbstractPlugin
      * - check_names_alone (boolean): Check property local name without prefix.
      * - single_target (boolean): Allows to output multiple targets from one string.
      * - output_full_matches (boolean): Returns the language and data types too.
+     * - output_property_id (boolean): Returns the property id when the field is
+     *   a property. Requires output_full_matches.
      * @return array Associative array of all fields with the normalized name,
      * or with their normalized name, data types and language when option
-     * "output_full_matches" is set, or null.
+     * "output_full_matches" is set, and property id when "ouput_property_id" is
+     * set, or null.
      */
     public function __invoke(array $fields, array $options = []): array
     {
@@ -187,6 +190,7 @@ class AutomapFields extends AbstractPlugin
             'check_names_alone' => true,
             'single_target' => false,
             'output_full_matches' => false,
+            'output_property_id' => false,
         ];
         $options += $defaultOptions;
 
@@ -206,6 +210,7 @@ class AutomapFields extends AbstractPlugin
         $checkNamesAlone = (bool) $options['check_names_alone'];
         $singleTarget = (bool) $options['single_target'];
         $outputFullMatches = (bool) $options['output_full_matches'];
+        $outputProperty = $outputFullMatches && $options['output_property_id'];
 
         $this->map = array_merge($this->map, $options['map']);
         unset($options['map']);
@@ -295,6 +300,9 @@ class AutomapFields extends AbstractPlugin
                             $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                            if ($outputProperty) {
+                                $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                            }
                             $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
                         } else {
@@ -320,6 +328,9 @@ class AutomapFields extends AbstractPlugin
                             $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                            if ($outputProperty) {
+                                $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                            }
                             $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
                         } else {
@@ -348,6 +359,7 @@ class AutomapFields extends AbstractPlugin
 
         $singleTarget = (bool) $options['single_target'];
         $outputFullMatches = (bool) $options['output_full_matches'];
+        $outputProperty = $outputFullMatches && $options['output_property_id'];
         unset($options['map']);
 
         $matches = [];
@@ -375,6 +387,9 @@ class AutomapFields extends AbstractPlugin
                     $result['language'] = empty($matches['language']) ? null : trim($matches['language']);
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
+                    if ($outputProperty) {
+                        $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                    }
                     $result = $this->appendPattern($result);
                     $automaps[$index][] = $result;
                 } else {
@@ -416,7 +431,7 @@ class AutomapFields extends AbstractPlugin
         } else {
             $matches['datatype'] = [];
         }
-        return $matches;
+        return $matches['datatype'];
     }
 
     /**

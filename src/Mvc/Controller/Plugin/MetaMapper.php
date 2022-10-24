@@ -1836,28 +1836,20 @@ class MetaMapper extends AbstractPlugin
 
     protected function normalizeDestination(string $string): ?array
     {
-        // TODO Add an option to fill the property id directly in automapFields().
-        $result = $this->automapFields->__invoke([$string], ['check_field' => false, 'output_full_matches' => true]);
+        $result = $this->automapFields->__invoke([$string], [
+            'check_field' => false,
+            'output_full_matches' => true,
+            'output_property_id' => true,
+        ]);
         if (empty($result)) {
             return null;
         }
 
         // With output_full_matches, there is one more level, so reset twice.
         $result = reset($result);
-        if (!$result) {
-            return null;
-        }
-        $result = reset($result);
-
-        // Append the property id when the field is a property term.
-        if (isset($result['field'])) {
-            $termId = $this->bulk->getPropertyId($result['field']);
-            if ($termId) {
-                $result['property_id'] = $termId;
-            }
-        }
-
-        return $result;
+        return $result
+            ? reset($result)
+            : null;
     }
 
     /**
