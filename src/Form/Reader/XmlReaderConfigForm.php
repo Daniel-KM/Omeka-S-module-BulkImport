@@ -25,7 +25,8 @@ class XmlReaderConfigForm extends Form
                 'name' => 'url',
                 'type' => BulkImportElement\OptionalUrl::class,
                 'options' => [
-                    'label' => 'XML url', // @translate
+                    'label' => 'XML url or server filepath', // @translate
+                    'info' => 'The filepath on the server should be prefixed by the protocol "file://" (so three "/").', // @translate
                 ],
                 'attributes' => [
                     'id' => 'url',

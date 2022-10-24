@@ -163,7 +163,7 @@ class MetaMapper extends AbstractPlugin
      * For example:
      *
      * ```
-     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for the {{ value|trim }} with {{/source/record/data}}
+     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for {{ value|trim }} with {{/source/record/data}}
      * ```
      *
      * or the same mapping as xml:
@@ -173,7 +173,7 @@ class MetaMapper extends AbstractPlugin
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
      *         <to field="dcterms:title" language="fra" datatype="literal" visibility="private"/>
-     *         <mod pattern="pattern for the {{ value|trim }} with {{/source/record/data}}"/>
+     *         <mod pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
      * ```
@@ -196,7 +196,7 @@ class MetaMapper extends AbstractPlugin
      *          ],
      *          'mod' => [
      *              'raw' => null,
-     *              'prepend' => 'pattern for the ',
+     *              'prepend' => 'pattern for ',
      *              'pattern' => '{{ value|trim }} with {{/source/record/data}}',
      *              'append' => null,
      *              'replace' => [
