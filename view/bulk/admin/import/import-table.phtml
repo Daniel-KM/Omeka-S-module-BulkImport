@@ -26,10 +26,14 @@ $(document).ready(function(){
             <th><?= $escape($translate('Label / Comment')) ?></th>
             <th><?= $escape($translate('Status')) ?></th>
             <th><?= $escape($translate('Process')) ?></th>
+            <th><?= $escape($translate('Owner')) ?></th>
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($imports as $import): ?>
+        <?php foreach ($imports as $import):
+            $job = $import->job();
+            $owner = $job ? $job->owner() : null;
+            ?>
         <tr>
             <td>
                 <?php $comment = $import->comment() ?>
@@ -93,6 +97,7 @@ $(document).ready(function(){
                     <?php endif; ?>
                 <?php endif; ?>
             </td>
+            <td><?= $owner ? $hyperlink($owner->name(), $url('admin/id', array('controller' => 'user', 'action' => 'show', 'id' => $owner->id()))) : '' ?></td>
         </tr>
         <?php endforeach; ?>
     </tbody>
