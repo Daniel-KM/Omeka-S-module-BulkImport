@@ -167,6 +167,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         $resource['o:item_set'][] = [
                             'o:id' => $itemSetId,
                             'checked_id' => true,
+                            // TODO Set the source identifier anywhere.
                         ];
                     } elseif (array_key_exists($value, $this->identifiers['map'])) {
                         $resource['o:item_set'][] = [
@@ -354,6 +355,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resource['o:item'] = [
                         'o:id' => end($itemIds),
                         'checked_id' => true,
+                        // TODO Set the source identifier anywhere.
                     ];
                 } elseif (array_key_exists($identifier, $this->identifiers['map'])) {
                     $resource['o:item'] = [

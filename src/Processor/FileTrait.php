@@ -108,6 +108,8 @@ trait FileTrait
 
     /**
      * Check if a file exists and is readable.
+     *
+     * @todo Add an option to check media types for assets.
      */
     protected function checkFile($filepath, ?ErrorStore $messageStore = null): bool
     {

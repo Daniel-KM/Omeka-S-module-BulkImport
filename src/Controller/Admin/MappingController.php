@@ -192,6 +192,13 @@ class MappingController extends AbstractActionController
         ]);
     }
 
+    /**
+     * Get current bulk mapping.
+     *
+     * The bulk mapping may be an object or an id for internal mapping.
+     *
+     * @return \BulkImport\Api\Representation\MappingRepresentation|string|\Laminas\Http\Response
+     */
     protected function getBulkMapping()
     {
         $id = ((int) $this->params()->fromRoute('id'))
@@ -203,8 +210,8 @@ class MappingController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping']);
         }
 
-        /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
         if (is_numeric($id)) {
+            /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
             $entity = $this->api()->read('bulk_mappings', ['id' => $id])->getContent();
         } else {
             $internalMappings = $this->getInternalBulkMappings();

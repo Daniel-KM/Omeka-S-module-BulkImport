@@ -12,6 +12,7 @@ use Omeka\Entity\ItemSet;
 
 /**
  * @todo The processor is only parametrizable currently.
+ * @deprecated Use MetaMapper and convert full processors into standard processors and make a multi-processor for full migration.
  */
 abstract class AbstractFullProcessor extends AbstractProcessor implements Parametrizable
 {
@@ -548,6 +549,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $identity = $services->get('ControllerPluginManager')->get('identity');
             $this->owner = $identity();
         } elseif ($ownerIdParam) {
+            // TODO Use getReference() when possible in all the module.
             $this->owner = $this->entityManager->find(\Omeka\Entity\User::class, $ownerIdParam);
         }
         $this->ownerId = $this->owner ? $this->owner->getId() : null;

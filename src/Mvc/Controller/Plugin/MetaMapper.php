@@ -749,7 +749,7 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * Convert a single field from the config into a string via a "jsdot".
+     * Convert a single field from the config into a string via a json path.
      *
      * Example:
      * ```php
@@ -836,6 +836,7 @@ class MetaMapper extends AbstractPlugin
         $replace = [];
         if (!empty($mod['replace'])) {
             if ($data) {
+                // TODO Remove exceptions for replace/twig.
                 // Manage the exceptions: there is no value here, neither label or list.
                 $wrappedQueryExceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
                 foreach ($mod['replace'] as $wrappedQuery) {

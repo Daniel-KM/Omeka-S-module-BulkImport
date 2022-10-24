@@ -225,7 +225,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
      */
     protected function appendInternalParams(): \BulkImport\Reader\Reader
     {
-        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $services = $this->getServiceLocator();
+        $settings = $services->get('Omeka\Settings');
+
         $internalParams = [];
         $internalParams['iiifserver_media_api_url'] = $settings->get('iiifserver_media_api_url', '');
         if ($internalParams['iiifserver_media_api_url']
@@ -233,7 +235,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         ) {
             $internalParams['iiifserver_media_api_url'] .= '/';
         }
+
         $this->setParams(array_merge($this->getParams() + $internalParams));
+
         return $this;
     }
 }

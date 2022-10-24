@@ -56,7 +56,7 @@ abstract class AbstractFileReader extends AbstractReader
             $filename = $this->fetchUrlToTempFile($url);
             if (!$filename) {
                 $this->lastErrorMessage = new PsrMessage(
-                    'Url "{url}" is invalid or empty or unavailable.', // @translate
+                    'Url "{url}" is invalid, empty or unavailable.', // @translate
                     ['url' => $url]
                 );
                 return false;

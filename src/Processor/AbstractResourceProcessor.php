@@ -293,9 +293,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $entityManager->flush();
         }
 
-        $this->prepareListOfIdentifiers();
+        // Step 1/3: list and prepare identifiers.
 
-        $this->prepareListOfIds();
+        $this
+            ->prepareListOfIdentifiers()
+            ->prepareListOfIds();
+
+        // Step 2/3: process all rows to get errors.
 
         // Reset counts.
         $this->totalIndexResources = 0;
@@ -344,6 +348,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ->finalizeCheckOutput();
             return;
         }
+
+        // Step 3/3: process real import.
 
         // Reset counts.
         $this->totalIndexResources = 0;
@@ -727,7 +733,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ++$this->processing;
             ++$this->totalProcessed;
 
-//             $dataToProcess[] = is_array($resource) ? $resource : $resource->getArrayCopy();
             $dataToProcess[] = $resource;
 
             // Only add every X for batch import (1 by default anyway).
@@ -782,18 +787,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return null;
         }
 
-        return $this->hasMapping
-            ? $this->processEntryWithMapping($entry)
-            : $this->processEntryDirectly($entry);
+        return !$this->hasMapping
+            ? $this->processEntryFromReader($entry)
+            : $this->processEntryFromProcessor($entry);
     }
 
     /**
      * Convert a prepared entry into a resource, setting ids for each key.
      *
+     * Reader-driven extraction of data.
+     *
      * So fill owner id, resource template id, resource class id, property ids.
      * Check boolean values too for is public and is open.
      */
-    protected function processEntryDirectly(Entry $entry): ArrayObject
+    protected function processEntryFromReader(Entry $entry): ArrayObject
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
@@ -838,6 +845,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'o:owner' => null,
             // Media.
             'o:item' => null,
+        ];
+
+        $multipleEntityKeys = [
+            'o:item_set' => null,
+            'o:media' => null,
         ];
 
         foreach ($entry as $key => $values) {
@@ -892,7 +904,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Do the same for sub-resources (multiple entity keys: ''o:media" and
         // "o:item_set" for items).
-        foreach (['o:item_set', 'o:media'] as $key) {
+        foreach (array_keys($multipleEntityKeys) as $key) {
             if (!empty($resource[$key])) {
                 foreach ($resource[$key] as &$resourceData) {
                     $resourceData = $fillPropertiesAndResourceData($resourceData);
@@ -903,7 +915,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function processEntryWithMapping(Entry $entry): ArrayObject
+    /**
+     * Processor-driven extraction of data.
+     */
+    protected function processEntryFromProcessor(Entry $entry): ArrayObject
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
@@ -1527,6 +1542,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if (!$this->actionRequiresId()) {
                 if ($this->bulk->getAllowDuplicateIdentifiers()) {
                     // Action is create or skip.
+                    // TODO This feature is not clear: disallow the action create when o:id is set in the source (allow only a found identifier).
                     if ($this->action === self::ACTION_CREATE) {
                         unset($resource['o:id']);
                     }
@@ -1602,6 +1618,224 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         return !$resource['messageStore']->hasErrors();
+    }
+
+    /**
+     * Check the id of a resource.
+     *
+     * The action should be checked separately, else the result may have no
+     * meaning.
+     */
+    protected function checkId(ArrayObject $resource): bool
+    {
+        if (!empty($resource['checked_id'])) {
+            return !empty($resource['o:id']);
+        }
+
+        // The id is set, but not checked. So check it.
+        if ($resource['o:id']) {
+            // TODO getResourceName() is only in child AbstractResourceProcessor.
+            if (empty($resource['resource_name'])) {
+                $resourceName = method_exists($this, 'getResourceName') ? $this->getResourceName() : null;
+            } else {
+                $resourceName = $resource['resource_name'];
+            }
+            if (empty($resourceName) || $resourceName === 'resources') {
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addError('resource_name', new PsrMessage(
+                        'The resource id cannot be checked: the resource type is undefined.' // @translate
+                    ));
+                } else {
+                    $this->logger->err(
+                        'Index #{index}: The resource id cannot be checked: the resource type is undefined.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                    $resource['has_error'] = true;
+                }
+            } else {
+                $id = $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
+                if (!$id) {
+                    if (isset($resource['messageStore'])) {
+                        $resource['messageStore']->addError('resource_id', new PsrMessage(
+                            'The id of this resource doesn’t exist.' // @translate
+                        ));
+                    } else {
+                        $this->logger->err(
+                            'Index #{index}: The id of this resource doesn’t exist.', // @translate
+                            ['index' => $this->indexResource]
+                        );
+                        $resource['has_error'] = true;
+                    }
+                }
+            }
+        }
+
+        $resource['checked_id'] = true;
+        return !empty($resource['o:id']);
+    }
+
+    /**
+     * Fill id of a resource if not set. No check is done if set, so use
+     * checkId() first.
+     *
+     * The resource type is required, so this method should be used in the end
+     * of the process.
+     *
+     * @return bool True if id is set.
+     */
+    protected function fillId(ArrayObject $resource): bool
+    {
+        if (is_numeric($resource['o:id'])) {
+            return true;
+        }
+
+        // TODO getResourceName() is only in child AbstractResourceProcessor.
+        $resourceName = empty($resource['resource_name'])
+            ? $this->getResourceName()
+            : $resource['resource_name'];
+        if (empty($resourceName) || $resourceName === 'resources') {
+            if (isset($resource['messageStore'])) {
+                $resource['messageStore']->addError('resource_name', new PsrMessage(
+                    'The resource id cannot be filled: the resource type is undefined.' // @translate
+                ));
+            } else {
+                $this->logger->err(
+                    'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
+                    ['index' => $this->indexResource]
+                );
+                $resource['has_error'] = true;
+            }
+        }
+
+        $identifierNames = $this->bulk->getIdentifierNames();
+        $key = array_search('o:id', $identifierNames);
+        if ($key !== false) {
+            unset($identifierNames[$key]);
+        }
+        if (empty($identifierNames)) {
+            if ($this->bulk->getAllowDuplicateIdentifiers()) {
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
+                        'The resource has no identifier.' // @translate
+                    ));
+                } else {
+                    $this->logger->notice(
+                        'Index #{index}: The resource has no identifier.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                }
+            } else {
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addError('identifier', new PsrMessage(
+                        'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
+                    ));
+                } else {
+                    $this->logger->err(
+                        'Index #{index}: The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                    $resource['has_error'] = true;
+                }
+            }
+            return false;
+        }
+
+        // Don't try to fill id when resource has an error, but allow warnings.
+        if (!empty($resource['has_error'])
+            || (isset($resource['messageStore']) && $resource['messageStore']->hasErrors())
+        ) {
+            return false;
+        }
+
+        foreach (array_keys($identifierNames) as $identifierName) {
+            // Get the list of identifiers from the resource metadata.
+            $identifiers = [];
+            if (!empty($resource[$identifierName])) {
+                // Check if it is a property value.
+                if (is_array($resource[$identifierName])) {
+                    foreach ($resource[$identifierName] as $value) {
+                        if (is_array($value)) {
+                            // Check the different type of value. Only value is
+                            // managed currently.
+                            // TODO Check identifier that is not a property value.
+                            if (isset($value['@value']) && strlen($value['@value'])) {
+                                $identifiers[] = $value['@value'];
+                            }
+                        }
+                    }
+                } else {
+                    // TODO Check identifier that is not a property.
+                    $identifiers[] = $value;
+                }
+            }
+
+            if (!$identifiers) {
+                continue;
+            }
+
+            // Use source index first, because resource may have no identifier.
+            $ids = !empty($this->identifiers['mapx'][$resource['source_index']])
+                ? [$this->identifiers['mapx'][$resource['source_index']]]
+                : $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+            if (!$ids) {
+                continue;
+            }
+
+            $flipped = array_flip($ids);
+            if (count($flipped) > 1) {
+                if (isset($resource['messageStore'])) {
+                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
+                        'Resource doesn’t have a unique identifier. You may check options for resource identifiers.' // @translate
+                    ));
+                } else {
+                    $this->logger->warn(
+                        'Index #{index}: Resource doesn’t have a unique identifier. You may check options for resource identifiers.', // @translate
+                        ['index' => $this->indexResource]
+                    );
+                }
+                if (!$this->bulk->getAllowDuplicateIdentifiers()) {
+                    if (isset($resource['messageStore'])) {
+                        $resource['messageStore']->addError('identifier', new PsrMessage(
+                            'Duplicate identifiers are not allowed. You may check options for resource identifiers.' // @translate
+                        ));
+                    } else {
+                        $this->logger->err(
+                            'Index #{index}: Duplicate identifiers are not allowed. You may check options for resource identifiers.', // @translate
+                            ['index' => $this->indexResource]
+                        );
+                        $resource['has_error'] = true;
+                    }
+                    break;
+                }
+            }
+            $resource['o:id'] = reset($ids);
+            $resource['checked_id'] = true;
+            if (isset($resource['messageStore'])) {
+                $resource['messageStore']->addInfo('identifier', new PsrMessage(
+                    'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                    [
+                        'identifier' => key($ids),
+                        'metadata' => $identifierName,
+                        'resource_name' => $this->bulk->label($resourceName),
+                        'resource_id' => $resource['o:id'],
+                    ]
+                ));
+            } else {
+                $this->logger->info(
+                    'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                    [
+                        'index' => $this->indexResource,
+                        'identifier' => key($ids),
+                        'metadata' => $identifierName,
+                        'resource_name' => $this->bulk->label($resourceName),
+                        'resource_id' => $resource['o:id'],
+                    ]
+                );
+            }
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1911,6 +2145,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return (string) $resource['skos:preferredLabel'][0]['@value'];
         }
         return null;
+    }
+
+    protected function standardOperation(string $action): ?string
+    {
+        $actionsToOperations = [
+            self::ACTION_CREATE => \Omeka\Api\Request::CREATE,
+            self::ACTION_APPEND => \Omeka\Api\Request::UPDATE,
+            self::ACTION_REVISE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_UPDATE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_REPLACE => \Omeka\Api\Request::UPDATE,
+            self::ACTION_DELETE => \Omeka\Api\Request::DELETE,
+            self::ACTION_SKIP => null,
+        ];
+        return $actionsToOperations[$action] ?? null;
     }
 
     protected function actionRequiresId($action = null): bool
@@ -2295,12 +2543,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
                 // These mappings are added automatically with JsonEntry.
                 // TODO Find a way to add automatic mapping in metaMapper or default mapping.
-                if (!isset($mapping['url'])) {
-                    $mapping['url'] = ['url'];
-                }
-                if (!isset($mapping['iiif'])) {
-                    $mapping['iiif'] = ['iiif'];
-                }
+                $mapping['url'] = $mapping['url'] ?? ['url'];
+                $mapping['iiif'] = $mapping['iiif'] ?? ['iiif'];
             }
         }
 
@@ -2448,15 +2692,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected function createAssetFromUrl(string $pathOrUrl, ?MessageStore $messageStore = null): ?Asset
     {
+        $this->checkAssetMediaType = true;
+
         // AssetAdapter requires an uploaded file, but it's common to use urls
         // in bulk import.
-        $isUrl = $this->bulk->isUrl($pathOrUrl);
-        $this->checkAssetMediaType = true;
-        if ($isUrl) {
-            $result = $this->checkUrl($pathOrUrl, $messageStore);
-        } else {
-            $result = $this->checkFile($pathOrUrl, $messageStore);
-        }
+        $result = $this->checkFileOrUrl($pathOrUrl, $messageStore);
         if (!$result) {
             return null;
         }
@@ -2466,6 +2706,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Set the real extension via tempFile().
         $extension = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
 
+        $isUrl = $this->bulk->isUrl($pathOrUrl);
         if ($isUrl) {
             $result = $this->fetchUrl(
                 'asset',
@@ -2490,7 +2731,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $fullPath = $this->basePath . '/asset/' . $storageId . '.' . $extension;
         }
 
-        // A check to get the real medai-type and extension.
+        // A check to get the real media-type and extension.
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mediaType = $finfo->file($fullPath);
         $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
@@ -2515,5 +2756,70 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $entityManager->flush();
 
         return $asset;
+    }
+
+    protected function checkAdapter(string $resourceName, string $operation): bool
+    {
+        static $checks = [];
+        if (!isset($checks[$resourceName][$operation])) {
+            $adapter = $this->adapterManager->get($resourceName);
+            $checks[$resourceName][$operation] = $this->acl->userIsAllowed($adapter, $operation);
+        }
+        return $checks[$resourceName][$operation];
+    }
+
+    protected function listValidationMessages(ValidationException $e): array
+    {
+        $messages = [];
+        foreach ($e->getErrorStore()->getErrors() as $error) {
+            foreach ($error as $message) {
+                // Some messages can be nested.
+                if (is_array($message)) {
+                    $result = [];
+                    array_walk_recursive($message, function ($v) use (&$result): void {
+                        $result[] = $v;
+                    });
+                    $message = $result;
+                    unset($result);
+                } else {
+                    $message = [$message];
+                }
+                $messages = array_merge($messages, array_values($message));
+            }
+        }
+        return $messages;
+    }
+
+    /**
+     * @param \Omeka\Api\Representation\AbstractRepresentation[] $resources
+     */
+    protected function recordCreatedResources(array $resources): void
+    {
+        // TODO Store the bulk import id instead of the job id in order to manage regular task?
+        $jobId = $this->job->getJob()->getId();
+        if (!$jobId) {
+            return;
+        }
+
+        $classes = [];
+
+        $importeds = [];
+        foreach ($resources as $resource) {
+            // The simplest way to get the adapter from any representation, when
+            // the api name is unavailable.
+            $class = get_class($resource);
+            if (empty($classes[$class])) {
+                $classes[$class] = $this->adapterManager
+                    ->get(substr_replace(str_replace('\\Representation\\', '\\Adapter\\', get_class($resource)), 'Adapter', -14))
+                    ->getResourceName();
+            }
+            $importeds[] = [
+                'o:job' => ['o:id' => $jobId],
+                'entity_id' => $resource->id(),
+                'entity_name' => $classes[$class],
+            ];
+        }
+
+        $this->bulk->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
     }
 }

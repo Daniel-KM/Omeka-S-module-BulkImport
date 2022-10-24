@@ -90,7 +90,7 @@ class Bulk extends AbstractPlugin
      */
     protected $identifierNames = [
         'o:id',
-        'dcterms:identifier',
+        // 'dcterms:identifier',
     ];
 
     /**
@@ -568,7 +568,7 @@ class Bulk extends AbstractPlugin
     /**
      * Check if a string is a managed data type.
      */
-    public function isDataType($dataType): bool
+    public function isDataType(?string $dataType): bool
     {
         return array_key_exists($dataType, $this->getDataTypeNames());
     }
@@ -576,7 +576,7 @@ class Bulk extends AbstractPlugin
     /**
      * Get a data type object.
      */
-    public function getDataType($dataType): ?\Omeka\DataType\DataTypeInterface
+    public function getDataType(?string $dataType): ?\Omeka\DataType\DataTypeInterface
     {
         $dataType = $this->getDataTypeName($dataType);
         return $dataType
@@ -587,8 +587,11 @@ class Bulk extends AbstractPlugin
     /**
      * Check if a datatype exists and normalize its name.
      */
-    public function getDataTypeName($dataType): ?string
+    public function getDataTypeName(?string $dataType): ?string
     {
+        if (!$dataType) {
+            return null;
+        }
         $datatypes = $this->getDataTypeNames();
         return $datatypes[$dataType]
             // Manage exception for customvocab, that may use label as name.
@@ -951,6 +954,9 @@ class Bulk extends AbstractPlugin
      */
     public function isUrl($string): bool
     {
+        if (empty($string)) {
+            return false;
+        }
         return strpos($string, 'https:') === 0
             || strpos($string, 'http:') === 0
             || strpos($string, 'ftp:') === 0

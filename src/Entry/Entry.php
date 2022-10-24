@@ -16,8 +16,6 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
 {
     /**
      * Indicates that the entry has no content, so probably to be skipped.
-     *
-     * @return bool
      */
     public function isEmpty(): bool;
 
@@ -25,8 +23,6 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      * Get the full entry as an array, instead of value by value.
      *
      * Generally the same output than jsonSerialize().
-     *
-     * @return array
      */
     public function getArrayCopy(): array;
 
@@ -40,7 +36,7 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      * {@inheritDoc}
      * @see \Iterator::current()
      *
-     * @return array The list of values for the current field of the entry.
+     * @return array List of values of the current field or column of the entry.
      */
     #[\ReturnTypeWillChange]
     public function current();
