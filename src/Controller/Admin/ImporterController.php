@@ -349,7 +349,11 @@ class ImporterController extends AbstractActionController
                                 ));
                             }
                         }
-                        if (method_exists($reader, 'count')) {
+                        // Some readers can't get the total of resources: sql,
+                        // omekas, etc., so don't go back if empty.
+                        $isCountable = $reader instanceof \BulkImport\Reader\SpreadsheetReader
+                            || $reader instanceof \BulkImport\Reader\AbstractSpreadsheetFileReader;
+                        if ($isCountable && method_exists($reader, 'count')) {
                             try {
                                 $count = $reader->count();
                             } catch (\Exception $e) {
@@ -359,20 +363,19 @@ class ImporterController extends AbstractActionController
                             }
                             if ($count) {
                                 $this->messenger()->addSuccess(new PsrMessage(
-                                    'Total resources or rows: {total}', // @translate
+                                    'Total resources, items or rows: {total}', // @translate
                                     ['total' => $count]
                                 ));
                             } else {
-                                $next = 'reader';
-                                $this->messenger()->addError(new PsrMessage(
-                                    'The source has no resource to import.' // @translate
+                                $this->messenger()->addWarning(new PsrMessage(
+                                    'The source seems to have no resource to import or the total cannot be determined.' // @translate
                                 ));
                             }
                         }
                         if (!$reader->isValid()) {
                             $next = 'reader';
                             $this->messenger()->addError($reader->getLastErrorMessage());
-                        } elseif (method_exists($reader, 'count') && empty($count)) {
+                        } elseif ($isCountable && method_exists($reader, 'count') && empty($count)) {
                             $next = 'reader';
                         } else {
                             $next = isset($formsCallbacks['processor']) ? 'processor' : 'start';
