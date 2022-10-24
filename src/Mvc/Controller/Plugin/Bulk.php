@@ -1047,6 +1047,8 @@ class Bulk extends AbstractPlugin
         // TODO Remove message store.
         ?\BulkImport\Stdlib\MessageStore $messageStore = null
     ) {
+        // TODO Manage non-resources here? Or a different helper for assets?
+
         $identifierName = $identifierName ?: $this->getIdentifierNames();
         $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
 

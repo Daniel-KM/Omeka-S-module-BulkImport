@@ -3,11 +3,11 @@
 namespace BulkImport\Processor;
 
 use ArrayObject;
+use BulkImport\Entry\Entry;
 use BulkImport\Form\Processor\ResourceProcessorConfigForm;
 use BulkImport\Form\Processor\ResourceProcessorParamsForm;
-use Log\Stdlib\PsrMessage;
-use BulkImport\Entry\Entry;
 use BulkImport\Stdlib\MessageStore;
+use Log\Stdlib\PsrMessage;
 
 /**
  * Can be used for all derivative of AbstractResourceEntityRepresentation.
@@ -81,7 +81,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             'o:media' => null,
         ],
     ];
-
 
     /**
      * @see \Omeka\Api\Representation\AssetRepresentation
@@ -758,8 +757,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $value = $id ?? reset($value);
                 }
-                $id = $this->identifiers['mapx'][$resource['source_index']]
-                    ?? $this->bulk->findResourceFromIdentifier($value, null, null, $resource['messageStore']);
+                $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                    ? $this->bulk->findResourceFromIdentifier($value, null, null, $resource['messageStore'])
+                    : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
                 if ($id) {
                     $resource['o:item'] = ['o:id' => $id];
                 } else {
@@ -810,15 +810,16 @@ class ResourceProcessor extends AbstractResourceProcessor
                     return true;
                 }
                 $resourceName = $resource['resource_name'] ?? null;
-                $id = $this->identifiers['mapx'][$resource['source_index']]
-                    ?? $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName, $resource['messageStore']);
+                $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                    ? $this->bulk->findResourceFromIdentifier($value, 'o:id', $resourceName, $resource['messageStore'])
+                    : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
                 } else {
                     $resource['messageStore']->addError('resource', new PsrMessage(
-                        'Internal id #{id} cannot be found. The entry is skipped.', // @translate
-                        ['id' => $id]
+                        'source index #{index}: Internal id cannot be found. The entry is skipped.', // @translate
+                        ['index' => $resource['source_index']]
                     ));
                 }
                 return true;
@@ -959,7 +960,6 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
     }
 
-
     protected function fillProperty(ArrayObject $resource, $target, array $values): bool
     {
         // Return true in all other cases, when this is a property process, with
@@ -996,11 +996,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $hasDatatype = true;
                     break;
                 } elseif (substr($datatypeName, 0, 8) === 'resource') {
-                    $vrId = $this->identifiers['map'][$value]
-                        ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                    $vrId = empty($this->identifiers['map'][$value . '§resources'])
+                        ? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore'])
+                        : (int) strtok($this->identifiers['map'][$value . '§resources'], '§');
                     // Normally always true after first loop: all identifiers
                     // are stored first.
-                    if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
+                    if ($vrId || !empty($this->identifiers['map'][$value . '§resources'])) {
                         $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                         $hasDatatype = true;
                         break;
@@ -1008,11 +1009,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 } elseif (substr($datatypeName, 0, 11) === 'customvocab') {
                     // The resource is not checked for custom vocab member here.
                     if ($this->bulk->getCustomVocabBaseType($datatypeName) === 'resource') {
-                        $vrId = $this->identifiers['map'][$value]
-                            ?? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore']);
+                        $vrId = empty($this->identifiers['map'][$value . '§resources'])
+                            ? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore'])
+                            : (int) strtok($this->identifiers['map'][$value . '§resources'], '§');
                         // Normally always true after first loop: all
                         // identifiers are stored first.
-                        if ($vrId || array_key_exists($value, $this->identifiers['map'])) {
+                        if ($vrId || !empty($this->identifiers['map'][$value . '§resources'])) {
                             $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                             $hasDatatype = true;
                             break;
@@ -1248,9 +1250,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                             'checked_id' => true,
                             // TODO Set the source identifier anywhere.
                         ];
-                    } elseif (array_key_exists($value, $this->identifiers['map'])) {
+                    } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
                         $resource['o:item_set'][] = [
-                            'o:id' => $this->identifiers['map'][$value],
+                            'o:id' => (int) strtok($this->identifiers['map'][$value . '§resources'], '§'),
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
@@ -1414,8 +1416,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (!$value) {
                     return true;
                 }
-                $id = $this->identifiers['mapx'][$resource['source_index']]
-                    ?? $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media', $resource['messageStore']);
+                $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                    ? $this->bulk->findResourceFromIdentifier($value, $target['target'], 'media', $resource['messageStore'])
+                    : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
                 if ($id) {
                     $resource['o:id'] = $id;
                     $resource['checked_id'] = true;
@@ -1436,9 +1439,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                         'checked_id' => true,
                         // TODO Set the source identifier anywhere.
                     ];
-                } elseif (array_key_exists($identifier, $this->identifiers['map'])) {
+                } elseif (!empty($this->identifiers['map'][$identifier . '§resources'])) {
                     $resource['o:item'] = [
-                        'o:id' => $this->identifiers['map'][$identifier],
+                        'o:id' => (int) strtok($this->identifiers['map'][$identifier . '§resources'], '§'),
                         'checked_id' => true,
                         'source_identifier' => $identifier,
                     ];

@@ -146,15 +146,16 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 if (!$value) {
                     break;
                 }
-                $id = $this->identifiers['mapx'][$resource['source_index']]
-                    ?? $this->bulk->api()->searchOne('assets', ['id' => $value])->getContent();
+                $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                    ? $this->bulk->api()->searchOne('assets', ['id' => $value])->getContent()
+                    : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
                 if ($id) {
                     $resource['o:id'] = is_object($id) ? $id->id() : $id;
                     $resource['checked_id'] = true;
                 } else {
                     $resource['messageStore']->addError('resource', new PsrMessage(
-                        'Internal id #{id} cannot be found. The entry is skipped.', // @translate
-                        ['id' => $id]
+                        'Source index #{index}: Internal id cannot be found. The entry is skipped.', // @translate
+                        ['index' => $resource['source_index']]
                     ));
                 }
                 break;
@@ -196,8 +197,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     break;
                 }
                 try {
-                    $id = $this->identifiers['mapx'][$resource['source_index']]
-                        ?? $this->bulk->api()->read('assets', ['storage_id' => $value])->getContent();
+                    $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                        ? $this->bulk->api()->read('assets', ['storage_id' => $value])->getContent()
+                        : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
                 } catch (\Exception $e) {
                     $id = null;
                 }
@@ -206,8 +208,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $resource['checked_id'] = true;
                 } else {
                     $resource['messageStore']->addError('resource', new PsrMessage(
-                        'Storage id #{id} cannot be found. The entry is skipped.', // @translate
-                        ['id' => $id]
+                        'Source index #{index}: Storage id cannot be found. The entry is skipped.', // @translate
+                        ['index' => $resource['source_index']]
                     ));
                 }
                 break;
@@ -253,7 +255,6 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 break;
 
             case 'o:resource':
-                // FIXME Ids of assets are separated from the resource ones: a collision can occur.
                 $identifierNames = $this->bulk->getIdentifierNames();
                 // Check values one by one to manage source identifiers.
                 foreach ($values as $value) {
@@ -264,9 +265,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                             'checked_id' => true,
                             // TODO Set the source identifier anywhere.
                         ];
-                    } elseif (array_key_exists($value, $this->identifiers['map'])) {
+                    } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
                         $resource['o:resource'][] = [
-                            'o:id' => $this->identifiers['map'][$value],
+                            'o:id' => (int) strtok($this->identifiers['map'][$value . '§resources'], '§'),
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
@@ -478,5 +479,47 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $this->updateResources('resources', $thumbnailResources);
         $this->action = $assetAction;
         return $this;
+    }
+
+    protected function findAssetsFromIdentifiers(array $identifiers, $identifierNames): array
+    {
+        // There are only two unique columns in assets and the table is
+        // generally small and the api doesn't allow to search them, so extract
+        // them all. The name is allowed too, even if not unique.
+
+        if (!$identifiers || !$identifierNames) {
+            return [];
+        }
+
+        $idNames = [];
+        if (in_array('o:name', $identifierNames)) {
+            $idNames = $this->bulk->api()->search('assets', [], ['returnScalar' => 'name'])->getContent();
+        }
+        $idStorages = [];
+        if (in_array('o:storage_id', $identifierNames)) {
+            $idStorages = $this->bulk->api()->search('assets', [], ['returnScalar' => 'storageId'])->getContent();
+        }
+        if (empty($idNames) && empty($idStorages)) {
+            return [];
+        }
+
+        $result = array_fill_keys($identifiers, null);
+
+        // Start by name to override it because it is not unique.
+        if (in_array('o:name', $identifierNames)) {
+            $result = array_replace($result, array_flip($idNames));
+        }
+
+        if (in_array('o:storage_id', $identifierNames)) {
+            $result = array_replace($result, array_flip($idStorages));
+        }
+
+        if (in_array('o:id', $identifierNames)) {
+            $ids = array_keys($idStorages ?: $idNames);
+            $ids = array_combine($ids, $ids);
+            $result = array_replace($result, $ids);
+        }
+
+        return $result;
     }
 }

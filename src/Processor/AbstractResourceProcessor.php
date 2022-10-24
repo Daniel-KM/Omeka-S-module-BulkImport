@@ -95,19 +95,36 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * The keys are filled during first loop and values when found or available.
      *
+     * Identifiers are the id and the main resource name: "§resources" or
+     * "§assets" is appended to the numeric id.
+     *
      * @todo Remove "mapx" and "revert" ("revert" is only used to get "mapx"). "mapx" is a short to map[source index]. But a source can have no identifier and only an index.
      *
      * @var array
      */
     protected $identifiers = [
-        // Source index to identifiers.
+        // Source index to identifiers + suffix (array).
         'source' => [],
-        // Identifiers to source indexes.
+        // Identifiers  + suffix to source indexes (array).
         'revert' => [],
-        // Source indexes to resource id.
+        // Source indexes to resource id + suffix.
         'mapx' => [],
-        // Source identifiers to resource id.
+        // Source identifiers + suffix to resource id + suffix.
         'map' => [],
+    ];
+
+    /**
+     * Manage ids from different tables.
+     *
+     * @var array
+     */
+    protected $mainResourceNames = [
+        'resources' => 'resources',
+        'items' => 'resources',
+        'item_sets' => 'resources',
+        'media' => 'resources',
+        'annotations' => 'resources',
+        'assets' => 'assets',
     ];
 
     /**
@@ -220,6 +237,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             ->prepareMetaConfig();
 
+        $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?? null;
+        if (!$mainResourceName) {
+            $this->logger->err(
+                'The resource name is not set.' // @translate
+            );
+            ++$this->totalErrors;
+            return;
+        }
+
         $this->bulk->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
 
         $this->totalToProcess = method_exists($this->reader, 'count')
@@ -274,7 +300,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Step 1/3: list and prepare identifiers.
 
-        // FIXME Ids of assets are separated from the resource ones: a collision can occur.
         $this
             ->prepareListOfIdentifiers()
             ->prepareListOfIds();
@@ -470,17 +495,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected function prepareListOfIdentifiers(): \BulkImport\Processor\Processor
     {
-        $this->identifiers = [
-            // Source index to identifiers.
-            'source' => [],
-            // Identifiers to source indexes.
-            'revert' => [],
-            // Source indexes to resource id.
-            'mapx' => [],
-            // Source identifiers to resource id.
-            'map' => [],
-        ];
-
         $identifierNames = $this->bulk->getIdentifierNames();
         if (empty($identifierNames)) {
             return $this;
@@ -559,11 +573,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Clean identifiers for duplicates.
         $this->identifiers['source'] = array_map('array_unique', $this->identifiers['source']);
         $this->identifiers['revert'] = array_map('array_unique', $this->identifiers['revert']);
+        // Empty identifiers should be null to use isset().
         $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ? (int) $v : null;
+            return $v ?: null;
         }, $this->identifiers['mapx']);
         $this->identifiers['map'] = array_map(function ($v) {
-            return $v ? (int) $v : null;
+            return $v ?: null;
         }, $this->identifiers['map']);
 
         $this->logger->notice(
@@ -594,28 +609,43 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ['count' => count($this->identifiers['map'])]
         );
 
+        $mainResourceName = $this->mainResourceNames[$this->getResourceName()];
+
         // Process only identifiers without ids (normally all of them).
-        $emptyIdentifiers = array_filter($this->identifiers['map'], function ($v) {
-            return empty($v);
-        });
+        $emptyIdentifiers = [];
+        foreach ($this->identifiers['map'] as $identifier => $id) {
+            if (empty($id)) {
+                $emptyIdentifiers[] = strtok($identifier, '§');
+            }
+        }
 
         $identifierNames = $this->bulk->getIdentifierNames();
-        $ids = $this->bulk->findResourcesFromIdentifiers(array_keys($emptyIdentifiers), $identifierNames);
 
-        $this->identifiers['map'] = array_replace($this->identifiers['map'], $ids);
+        if ($mainResourceName === 'assets') {
+            $ids = $this->findAssetsFromIdentifiers($emptyIdentifiers, $identifierNames);
+        } elseif ($mainResourceName === 'resources') {
+            $ids = $this->bulk->findResourcesFromIdentifiers($emptyIdentifiers, $identifierNames);
+        }
+
+        foreach ($ids as $identifier => $id) {
+            $this->identifiers['map'][$identifier . '§' . $mainResourceName] = $id
+                ? $id . '§' . $mainResourceName
+                : null;
+        }
 
         // Fill mapx when possible.
         foreach ($ids as $identifier => $id) {
-            if (!empty($this->identifiers['revert'][$identifier])) {
-                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier])] = $id;
+            if (!empty($this->identifiers['revert'][$identifier . '§' . $mainResourceName])) {
+                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . '§' . $mainResourceName])]
+                    = $id . '§' . $mainResourceName;
             }
         }
 
         $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ? (int) $v : null;
+            return $v ?: null;
         }, $this->identifiers['mapx']);
         $this->identifiers['map'] = array_map(function ($v) {
-            return $v ? (int) $v : null;
+            return $v ?: null;
         }, $this->identifiers['map']);
 
         $this->logger->notice(
@@ -1464,9 +1494,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             // Use source index first, because resource may have no identifier.
-            $ids = !empty($this->identifiers['mapx'][$resource['source_index']])
-                ? [$this->identifiers['mapx'][$resource['source_index']]]
-                : $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+            $ids = [];
+            if (empty($this->identifiers['mapx'][$resource['source_index']])) {
+                $mainResourceName = $this->mainResourceNames[$resourceName];
+                if ($mainResourceName === 'assets') {
+                    $ids = $this->findAssetsFromIdentifiers($identifiers, $identifierName);
+                } elseif ($mainResourceName === 'resources') {
+                    $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+                }
+            } elseif (!empty($this->identifiers['mapx'][$resource['source_index']])) {
+                $ids = [(int) strtok($this->identifiers['mapx'][$resource['source_index']], '§')];
+            }
             if (!$ids) {
                 continue;
             }
@@ -1929,58 +1967,67 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
-        $storeMain = function ($idOrIdentifier) use ($resource): void {
+        $storeMain = function ($idOrIdentifier, $mainResourceName) use ($resource): void {
             if ($idOrIdentifier) {
                 // No check for duplicates here: it depends on action.
-                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier;
-                $this->identifiers['revert'][$idOrIdentifier][] = $this->indexResource;
+                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . '§' . $mainResourceName;
+                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName][] = $this->indexResource;
             }
             // Source indexes to resource id.
-            $this->identifiers['mapx'][$this->indexResource] = $resource['o:id'] ?? null;
+            $this->identifiers['mapx'][$this->indexResource] = empty($resource['o:id'])
+                ? null
+                : $resource['o:id'] . '§' . $mainResourceName;
             if ($idOrIdentifier) {
                 // Source identifiers to resource id.
                 // No check for duplicate here: last map is the right one.
-                $this->identifiers['map'][$idOrIdentifier] = $resource['o:id'] ?? null;
+                $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = empty($resource['o:id'])
+                    ? null
+                    : $resource['o:id'] . '§' . $mainResourceName;
             }
         };
 
-        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId): void {
+        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
             // As soon as an array exists, a check can be done on identifier,
             // even if the id is defined later. The same for map.
-            if (!isset($this->identifiers['revert'][$idOrIdentifier])) {
-                $this->identifiers['revert'][$idOrIdentifier] = [];
+            if (!isset($this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName])) {
+                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName] = [];
             }
-            $this->identifiers['map'][$idOrIdentifier] = $vrId;
+            $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = $vrId;
         };
+
+        $mainResourceName = $this->mainResourceNames[$this->getResourceName()];
 
         // Main identifiers.
         $identifierNames = $this->bulk->getIdentifierNames();
         foreach ($identifierNames as $identifierName) {
             if ($identifierName === 'o:id') {
-                $storeMain($resource['o:id'] ?? null);
+                $storeMain($resource['o:id'] ?? null, $mainResourceName);
             } elseif ($identifierName === 'o:storage_id') {
-                $storeMain($resource['o:storage_id'] ?? null);
+                $storeMain($resource['o:storage_id'] ?? null, $mainResourceName);
+            } elseif ($identifierName === 'o:name') {
+                $storeMain($resource['o:name'] ?? null, $mainResourceName);
             } else {
                 $term = $this->bulk->getPropertyTerm($identifierName);
                 foreach ($resource[$term] ?? [] as $value) {
                     if (!empty($value['@value'])) {
-                        $storeMain($value['@value']);
+                        $storeMain($value['@value'], 'resources');
                     }
                 }
             }
         }
 
         // TODO Move these checks in resouce and asset processors.
+
         // Specific identifiers for items (item sets and media).
         if ($resource['resource_name'] === 'items') {
             foreach ($resource['o:item_set'] ?? [] as $itemSet) {
                 if (!empty($itemSet['source_identifier'])) {
-                    $storeLinkedIdentifier($itemSet['source_identifier'], $itemSet['o:id'] ?? null);
+                    $storeLinkedIdentifier($itemSet['source_identifier'], $itemSet['o:id'] ?? null, 'resources');
                 }
             }
             foreach ($resource['o:media'] ?? [] as $media) {
                 if (!empty($media['source_identifier'])) {
-                    $storeLinkedIdentifier($media['source_identifier'], $media['o:id'] ?? null);
+                    $storeLinkedIdentifier($media['source_identifier'], $media['o:id'] ?? null, 'resources');
                 }
             }
         }
@@ -1988,7 +2035,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Specific identifiers for media (item).
         elseif ($resource['resource_name'] === 'media') {
             if (!empty($resource['o:item']['source_identifier'])) {
-                $storeLinkedIdentifier($resource['o:item']['source_identifier'], $resource['o:item']['o:id'] ?? null);
+                $storeLinkedIdentifier($resource['o:item']['source_identifier'], $resource['o:item']['o:id'] ?? null, 'resources');
             }
         }
 
@@ -1996,10 +2043,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         elseif ($resource['resource_name'] === 'assets') {
             foreach ($resource['o:resource'] ?? [] as $thumbnailForResource) {
                 if (!empty($thumbnailForResource['source_identifier'])) {
-                    $storeLinkedIdentifier($thumbnailForResource['source_identifier'], $thumbnailForResource['o:id'] ?? null);
+                    $storeLinkedIdentifier($thumbnailForResource['source_identifier'], $thumbnailForResource['o:id'] ?? null, 'resources');
                 }
             }
         }
+
+        // TODO It's now possible to store an identifier for the asset from the resource.
 
         // Store identifiers for linked resources.
         $properties = $this->bulk->getPropertyIds();
@@ -2012,7 +2061,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && isset($value['property_id'])
                     && !empty($value['source_identifier'])
                 ) {
-                    $storeLinkedIdentifier($value['source_identifier'], $value['value_resource_id'] ?? null);
+                    $storeLinkedIdentifier($value['source_identifier'], $value['value_resource_id'] ?? null, 'resources');
                 }
             }
         }
@@ -2032,13 +2081,15 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
+        $mainResourceName = $this->mainResourceNames[$resource->resourceName()];
+
         // Source indexes to resource id (filled when found or created).
-        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId;
+        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . '§' . $mainResourceName;
 
         // Source identifiers to resource id (filled when found or created).
         // No check for duplicate here: last map is the right one.
         foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifier) {
-            $this->identifiers['map'][$idOrIdentifier] = $resourceId;
+            $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = $resourceId . '§' . $mainResourceName;
         }
 
         return $this;
@@ -2054,7 +2105,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             && !empty($resource['source_index'])
             && !empty($this->identifiers['mapx'][$resource['source_index']])
         ) {
-            $resource['o:id'] = $this->identifiers['mapx'][$resource['source_index']];
+            $resource['o:id'] = (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
         }
 
         // TODO Move these checks into the right processor.
@@ -2064,10 +2115,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($resource['o:item_set'] ?? [] as $key => $itemSet) {
                 if (empty($itemSet['o:id'])
                     && !empty($itemSet['source_identifier'])
-                    && !empty($this->identifiers['map'][$itemSet['source_identifier']])
+                    && !empty($this->identifiers['map'][$itemSet['source_identifier'] . '§resources'])
                     // TODO Add a check for item set identifier.
                 ) {
-                    $resource['o:item_set'][$key]['o:id'] = $this->identifiers['map'][$itemSet['source_identifier']];
+                    $resource['o:item_set'][$key]['o:id'] = (int) strtok($this->identifiers['map'][$itemSet['source_identifier'] . '§resources'], '§');
                 }
             }
             // TODO Fill media identifiers for update here?
@@ -2076,10 +2127,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($resource['resource_name'] === 'media'
             && empty($resource['o:item']['o:id'])
             && !empty($resource['o:item']['source_identifier'])
-            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier']])
+            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'])
             // TODO Add a check for item identifier.
         ) {
-            $resource['o:item']['o:id'] = $this->identifiers['map'][$resource['o:item']['source_identifier']];
+            $resource['o:item']['o:id'] = (int) strtok($this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'], '§');
         }
 
         // TODO Useless for now with assets: don't create resource on unknown resources. Maybe separate options create/skip for main resources and related resources.
@@ -2087,10 +2138,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($resource['o:resource'] ?? [] as $key => $thumbnailForResource) {
                 if (empty($thumbnailForResource['o:id'])
                     && !empty($thumbnailForResource['source_identifier'])
-                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier']])
+                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'])
                     // TODO Add a check for resource identifier.
                 ) {
-                    $resource['o:resource'][$key]['o:id'] = $this->identifiers['map'][$thumbnailForResource['source_identifier']];
+                    $resource['o:resource'][$key]['o:id'] = (int) strtok($this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'], '§');
                 }
             }
         }
@@ -2106,9 +2157,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && array_key_exists('value_resource_id', $value)
                     && empty($value['value_resource_id'])
                     && !empty($value['source_identifier'])
-                    && !empty($this->identifiers['map'][$value['source_identifier']])
+                    && !empty($this->identifiers['map'][$value['source_identifier'] . '§resources'])
                 ) {
-                    $resource[$term][$key]['value_resource_id'] = $this->identifiers['map'][$value['source_identifier']];
+                    $resource[$term][$key]['value_resource_id'] = (int) strtok($this->identifiers['map'][$value['source_identifier'] . '§resources'], '§');
                 }
             }
         }
