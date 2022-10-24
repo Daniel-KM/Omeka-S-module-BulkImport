@@ -41,6 +41,7 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use SimpleXMLElement;
 
 /**
+ * @todo Separate preparation of the config (read and merge config) and processing transform.
  * @todo Separate xml and json process into two plugins and make this one an abstract one. But a complex config may mix various paths? In real world?
  * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
  * @todo Simplify process of init and allow multiple init with static cache.
@@ -226,13 +227,20 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * Manage metaMapper config, that may be inside multiple files.
+     * Manage metaMapper config to use.
+     *
+     * The config may be inside multiple files, or a database config, or a
+     * dynamic config (generally spreadsheets headers).
      *
      * Only one config is managed at a time for now.
-     *
      * @todo Allow to use multiple mapping configs and params (add an array for configs).
+     * @todo Cache prepared configs.
+     *
+     * @param string|array|int The mapping config is a filepath (module, base or
+     * user), a mapping id stored in the database, or an config ready (useful
+     * for simple mappings).
      */
-    public function init(string $mappingConfig, array $params): self
+    public function init($mappingConfig, array $params): self
     {
         if (self::$isInit) {
             return $this;
@@ -255,14 +263,19 @@ class MetaMapper extends AbstractPlugin
         return $this->hasError;
     }
 
-    private function prepareNormConfig(string $mappingConfig): self
+    /**
+     *
+     * @param unknown $mappingConfig
+     * @return self
+     */
+    private function prepareNormConfig($mappingConfig): self
     {
         // The mapping file is in the config.
         if (!$mappingConfig) {
             return $this;
         }
 
-        $getConfig = function (?string $mappingConfig): ?string {
+        $getConfig = function ($mappingConfig): ?string {
             if (empty($mappingConfig)) {
                 return null;
             }
@@ -295,6 +308,19 @@ class MetaMapper extends AbstractPlugin
             return null;
         };
 
+        if (is_array($mappingConfig)) {
+            // Init defaultQuerier, isDynamicQuerier and normConfig.
+            $this
+                ->setConfigSections([
+                    'info' => 'raw',
+                    'params' => 'raw_or_pattern',
+                    'default' => 'mapping',
+                    'mapping' => 'mapping',
+                ])
+                ->setNormalizedConfig($mappingConfig);
+            return $this;
+        }
+
         $conf = $getConfig($mappingConfig);
         if (!$conf) {
             return $this;
@@ -323,8 +349,11 @@ class MetaMapper extends AbstractPlugin
                 'params' => 'raw_or_pattern',
                 'default' => 'mapping',
                 'mapping' => 'mapping',
-            ])
-            ->setConfigs($mainConfig, $conf);
+            ]);
+        $normalizedConfigs = $this
+            ->normalizeConfigs($mainConfig, $conf);
+        $this
+            ->setNormalizedConfig($normalizedConfigs);
 
         return $this;
     }
@@ -451,42 +480,11 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * Allow to use a generic config completed by a specific one.
+     * Set the normalized config directly, without check.
      */
-    protected function setConfigs(?string ...$configs): self
+    protected function setNormalizedConfig(array $normalizedConfig): self
     {
-        $mergedMappings = [];
-        foreach (array_filter($configs) as $config) {
-            // The config should be trimmed to check the first character.
-            $this->tempConfig = trim($config);
-            // Only the called config can set the type of querier and the
-            // default querier, so set it here.
-            if (is_null($this->isDynamicQuerier)) {
-                $this->setQuerierInfo();
-                if (!$this->isDynamicQuerier && !$this->defaultQuerier) {
-                    $this->hasError = true;
-                    $this->logger->err('The querier must be set in the config.'); // @translate
-                    return $this;
-                }
-            }
-            $this->normalizeConfig();
-            // Merge the sections, but don't replace them as a whole, so no
-            // array_merge_recursive() neither array_replace_recursive().
-            foreach ($this->normConfig as $key => $value) {
-                $mergedMappings[$key] = empty($mergedMappings[$key])
-                    ? $value
-                    : array_merge($mergedMappings[$key], $value);
-            }
-        }
-        // Avoid to duplicate data.
-        // Don't do array_unique on key values.
-        // The function array_unique() doesn't work with multilevel arrays.
-        foreach ($mergedMappings as $key => $mapping) {
-            if (is_numeric(key($mapping))) {
-                $mergedMappings[$key] = array_values(array_map('unserialize', array_unique(array_map('serialize', $mapping))));
-            }
-        }
-        $this->normConfig = $mergedMappings;
+        $this->normConfig = $normalizedConfig;
         return $this;
     }
 
@@ -1495,6 +1493,46 @@ class MetaMapper extends AbstractPlugin
             }
         }
         return str_replace(array_keys($twigReplace), array_values($twigReplace), $pattern);
+    }
+
+    /**
+     * Allow to use a generic config completed by a specific one.
+     */
+    protected function normalizeConfigs(?string ...$configs): array
+    {
+        $mergedMappings = [];
+        foreach (array_filter($configs) as $config) {
+            // The config should be trimmed to check the first character.
+            $this->tempConfig = trim($config);
+            // Only the called config can set the type of querier and the
+            // default querier, so set it here.
+            if (is_null($this->isDynamicQuerier)) {
+                $this->setQuerierInfo();
+                if (!$this->isDynamicQuerier && !$this->defaultQuerier) {
+                    $this->hasError = true;
+                    $this->logger->err('The querier must be set in the config.'); // @translate
+                    return $this;
+                }
+            }
+            $this->normalizeConfig();
+            // Merge the sections, but don't replace them as a whole, so no
+            // array_merge_recursive() neither array_replace_recursive().
+            foreach ($this->normConfig as $key => $value) {
+                $mergedMappings[$key] = empty($mergedMappings[$key])
+                    ? $value
+                    : array_merge($mergedMappings[$key], $value);
+            }
+        }
+        // Avoid to duplicate data.
+        // Don't do array_unique on key values.
+        // The function array_unique() doesn't work with multilevel arrays.
+        foreach ($mergedMappings as $key => $mapping) {
+            if (is_numeric(key($mapping))) {
+                $mergedMappings[$key] = array_values(array_map('unserialize', array_unique(array_map('serialize', $mapping))));
+            }
+        }
+        $this->normConfig = $mergedMappings;
+        return $this;
     }
 
     protected function normalizeConfig(): self
