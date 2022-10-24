@@ -1118,13 +1118,14 @@ class MetaMapper extends AbstractPlugin
                 $function = $filter;
                 $args = '';
             }
-            // TODO Remove this exception.
+            // TODO Remove this exception about xml process here and below (make string or array of string outside the function).
             if ($v instanceof \DOMNode) {
                 $v = (string) $v->nodeValue;
             }
             // Most of the time, a string is required, but a function can return
             // an array. Only some functions can manage an array.
-            $w = (string) (is_array($v) ? reset($v) : $v);
+            $w = is_array($v) ? reset($v) : $v;
+            $w = (string) ($w instanceof \DOMNode ? $v->nodeValue : $w);
             switch ($function) {
                 case 'abs':
                     $v = is_numeric($w) ? (string) abs($w) : $w;
@@ -1151,7 +1152,7 @@ class MetaMapper extends AbstractPlugin
                     break;
 
                 case 'first':
-                    $v = is_array($v) ? $w : mb_substr($v, 0, 1);
+                    $v = is_array($v) ? $w : mb_substr((string) $v, 0, 1);
                     break;
 
                 case 'format':
@@ -1460,8 +1461,11 @@ class MetaMapper extends AbstractPlugin
                     $v = $twigVars['{{ ' . $filter . ' }}'] ?? $twigVars[$filter] ?? $v;
                     break;
             }
-            return is_array($v)
-                ? $v
+            if (is_array($v)) {
+                return $v;
+            }
+            return $v instanceof \DOMNode
+                ? (string) $v->nodeValue
                 : (string) $v;
         };
 
@@ -1481,7 +1485,8 @@ class MetaMapper extends AbstractPlugin
             }
             // A twig pattern may return an array.
             if (is_array($v)) {
-                $v = (string) reset($v);
+                $v = reset($v);
+                $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
             }
             if ($hasReplaceQuery) {
                 $twigReplace[str_replace(array_keys($replace), array_values($replace), $query)] = $v;
