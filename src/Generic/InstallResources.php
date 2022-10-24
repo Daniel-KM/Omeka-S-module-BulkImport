@@ -34,7 +34,6 @@ use Omeka\Api\Exception\RuntimeException;
 use Omeka\Api\Representation\ResourceTemplateRepresentation;
 use Omeka\Entity\Vocabulary;
 use Omeka\Module\Exception\ModuleCannotInstallException;
-use Omeka\Mvc\Controller\Plugin\Messenger;
 use Omeka\Stdlib\Message;
 
 class InstallResources
@@ -303,7 +302,7 @@ class InstallResources
             if (rtrim($vocabularyRepresentation->namespaceUri(), '#/') === rtrim($vocabularyData['vocabulary']['o:namespace_uri'], '#/')) {
                 $message = new Message('The vocabulary "%s" was already installed and was kept.', // @translate
                     $vocabularyData['vocabulary']['o:label']);
-                $messenger = new Messenger();
+                $messenger = $this->services->get('ControllerPluginManager')->get('messenger');
                 $messenger->addWarning($message);
                 return false;
             }
@@ -341,8 +340,8 @@ class InstallResources
         $namespaceUri = $vocabularyData['vocabulary']['o:namespace_uri'];
         $oldNameSpaceUri = $vocabularyData['update']['namespace_uri'] ?? null;
 
-        /** @var \Omeka\Entity\Vocabulary $vocabulary */
         if ($oldNameSpaceUri) {
+            /** @var \Omeka\Entity\Vocabulary $vocabulary */
             $vocabulary = $this->api->searchOne('vocabularies', ['namespace_uri' => $oldNameSpaceUri], ['responseContent' => 'resource'])->getContent();
         }
         // The old vocabulary may have been already updated.
@@ -444,7 +443,7 @@ class InstallResources
 
         // Update names of classes and properties in the case where they where
         // not updated before diff.
-        $messenger = new Messenger();
+        $messenger = $this->services->get('ControllerPluginManager')->get('messenger');
         /** @var \Doctrine\DBAL\Connection $connection */
         $connection = $this->services->get('Omeka\Connection');
         $hasReplace = false;
@@ -544,7 +543,7 @@ SQL;
                 'The resource template named "%s" is already available and is skipped.', // @translate
                 $label
             );
-            $messenger = new Messenger();
+            $messenger = $this->services->get('ControllerPluginManager')->get('messenger');
             $messenger->addWarning($message);
             return $resourceTemplate;
         }
