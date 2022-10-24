@@ -6,6 +6,7 @@
 
 $plugins = $this->getHelperPluginManager();
 $url = $plugins->get('url');
+$i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
@@ -24,8 +25,7 @@ $(document).ready(function(){
         <tr>
             <th><?= $escape($translate('Label / Comment')) ?></th>
             <th><?= $escape($translate('Status')) ?></th>
-            <th><?= $escape($translate('Started')) ?></th>
-            <th><?= $escape($translate('Completed')) ?></th>
+            <th><?= $escape($translate('Process')) ?></th>
         </tr>
     </thead>
     <tbody>
@@ -73,23 +73,26 @@ $(document).ready(function(){
                     <?php endif; ?>
                 </ul>
             </td>
-            <?php if ($import->undoJob()): ?>
-            <td><?= $translate($import->undoStatusLabel()) ?></td>
-            <td>
-                <?php if ($import->started()) echo sprintf($translate('Import: %s'), $import->started()->format('Y-m-d H:i:s')); ?>
+            <td><?= $import->undoJob() ? $translate($import->undoStatusLabel()) : $translate($import->statusLabel()) ?></td>
+            <td class="process">
+                <?php if (!$import->started() && !$import->undoStarted()): ?>
+                <?php // Nothing. ?>
+                <?php elseif ($import->started() && !$import->undoStarted()): ?>
+                <span class="process-do started"><?= sprintf($translate('Start: %s'), $i18n->dateFormat($import->started(), 'medium', 'short')) ?></span>
+                    <?php if ($import->ended()): ?>
                 <br/>
-                <?php if ($import->undoStarted()) echo sprintf($translate('Undo: %s'), $import->undoStarted()->format('Y-m-d H:i:s')); ?>
-            </td>
-            <td>
-                <?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?>
+                <span class="process-do ended"><?= sprintf($translate('End: %s'), $i18n->dateFormat($import->ended(), 'medium', 'short')) ?></span>
+                    <?php endif; ?>
+                <?php elseif ($import->started() && $import->undoStarted()): ?>
+                <span class="process-do started"><?= sprintf($translate('Import: %s'), $i18n->dateFormat($import->started(), 'medium', 'short')) ?></span>
                 <br/>
-                <?php if ($import->undoEnded()) echo $import->undoEnded()->format('Y-m-d H:i:s'); ?>
+                    <?php if (!$import->undoEnded()): ?>
+                <span class="process-undo started"><?= sprintf($translate('Undo started: %s'), $i18n->dateFormat($import->undoStarted(), 'medium', 'short')) ?></span>
+                    <?php else: ?>
+                <span class="process-undo ended"><?= sprintf($translate('Undo: %s'), $i18n->dateFormat($import->undoEnded(), 'medium', 'short')) ?></span>
+                    <?php endif; ?>
+                <?php endif; ?>
             </td>
-            <?php else: ?>
-            <td><?= $translate($import->statusLabel()) ?></td>
-            <td><?php if ($import->started()) echo $import->started()->format('Y-m-d H:i:s'); ?></td>
-            <td><?php if ($import->ended()) echo $import->ended()->format('Y-m-d H:i:s'); ?></td>
-            <?php endif; ?>
         </tr>
         <?php endforeach; ?>
     </tbody>

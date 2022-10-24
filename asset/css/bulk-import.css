@@ -23,9 +23,8 @@
         content: '  ';
     }
 
-    .bulk-imports.log.browse td:first-child,
-    .bulk-imports.log.browse th:first-child {
-        width: 67%;
+    .bulk-imports.browse table td.process .tablesaw-cell-content {
+        display: block;
     }
 
     .bulk-imports .actions .dry-run {
