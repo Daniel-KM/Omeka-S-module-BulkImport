@@ -213,7 +213,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             }
         }
         // Next, identifierName is a string or an integer.
-        elseif ($identifierName === 'o:id') {
+        elseif ($identifierName === 'o:id'
+            // "internal_id" is used for compatibitily with module CSV Import.
+            || $identifierName === 'internal_id'
+        ) {
             $identifierType = 'o:id';
             $identifierTypeName = 'o:id';
         } elseif (is_numeric($identifierName)) {
