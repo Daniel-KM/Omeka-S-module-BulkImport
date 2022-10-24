@@ -131,6 +131,7 @@ return [
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
             'metaMapper' => Service\ControllerPlugin\MetaMapperFactory::class,
+            'metaMapperConfig' => Service\ControllerPlugin\MetaMapperConfigFactory::class,
         ],
         'aliases' => [
             'findResourcesFromIdentifiers' => Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class,

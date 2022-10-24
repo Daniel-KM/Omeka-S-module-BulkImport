@@ -152,6 +152,8 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
+     * @todo Finalize separation with MetaMapperConfig for all readers and processors.
+     *
      * Prepare a config to simplify any import into Omeka and transform a source.
      *
      * It can be used as headers of a spreadsheet, or in an import config, or to
@@ -233,8 +235,7 @@ class MetaMapper extends AbstractPlugin
      * dynamic config (generally spreadsheets headers).
      *
      * Only one config is managed at a time for now.
-     * @todo Allow to use multiple mapping configs and params (add an array for configs).
-     * @todo Cache prepared configs.
+     * @deprecated Use MetaMapperConfig.
      *
      * @param string|array|int The mapping config is a filepath (module, base or
      * user), a mapping id stored in the database, or an config ready (useful
@@ -264,8 +265,7 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     *
-     * @param unknown $mappingConfig
+     * @param mixed $mappingConfig
      * @return self
      */
     private function prepareNormConfig($mappingConfig): self
