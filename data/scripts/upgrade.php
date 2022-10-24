@@ -455,7 +455,7 @@ SQL;
     $connection->executeStatement($sql);
 
     // Module resources are not available during upgrade.
-    // Update mapping files.
+    // Update importer files.
     $qb = $connection->createQueryBuilder();
     $qb
         ->select('bulk_importer.id', 'bulk_importer.reader_config')
@@ -555,7 +555,7 @@ SQL;
     $connection->executeStatement($sql);
 }
 
-if (version_compare($oldVersion, '3.3.34.0', '<')) {
+if (version_compare($oldVersion, '3.3.34', '<')) {
     require_once __DIR__ . '/upgrade_vocabulary.php';
 
     $messenger = new Messenger();
@@ -568,4 +568,82 @@ if (version_compare($oldVersion, '3.3.34.0', '<')) {
         'Two new formats are supported to write mappings: jsonpath and  jmespath. See examples with iiif manifest mappings.' // @translate
     );
     $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.3.35', '<')) {
+    $user = $services->get('Omeka\AuthenticationService')->getIdentity();
+
+    // The resource "bulk_importers" is not available during upgrade.
+    require_once dirname(__DIR__, 2) . '/src/Entity/Import.php';
+    require_once dirname(__DIR__, 2) . '/src/Entity/Importer.php';
+
+    $filenames = [
+        'csv - assets.php',
+        'ods - assets.php',
+        'tsv - assets.php',
+    ];
+    foreach ($filenames as $filename) {
+        $filepath = dirname(__DIR__) . '/importers/' . $filename;
+        $data = include $filepath;
+        $data['owner'] = $user;
+        $entity = new \BulkImport\Entity\Importer();
+        foreach ($data as $key => $value) {
+            $method = 'set' . ucfirst($key);
+            $entity->$method($value);
+        }
+        $entityManager->persist($entity);
+    }
+    $entityManager->flush();
+
+    // Check configs for new formats.
+    // Module resources are not available during upgrade.
+    // Update mapping files.
+    $replaceIni = [];
+    $replaceXml = [];
+    $dataTypes = $services->get('Omeka\DataTypeManager')->getRegisteredNames();
+    $dataTypes[] = 'customvocab:';
+    foreach ($dataTypes as $dataType) {
+        $replaceIni[' ; ' . $dataType] = ' ^^' . $dataType;
+        $replaceIni['; ' . $dataType] = ' ^^' . $dataType;
+        $replaceIni[' ;' . $dataType] = ' ^^' . $dataType;
+        $replaceIni[';' . $dataType] = ' ^^' . $dataType;
+        $replaceXml[' ; ' . $dataType] = ' ' . $dataType;
+        $replaceXml['; ' . $dataType] = ' ' . $dataType;
+        $replaceXml[' ;' . $dataType] = ' ' . $dataType;
+        $replaceXml[';' . $dataType] = ' ' . $dataType;
+    }
+    $qb = $connection->createQueryBuilder();
+    $qb
+        ->select('bulk_mapping.id', 'bulk_mapping.mapping')
+        ->from('bulk_mapping', 'bulk_mapping')
+        ->orderBy('bulk_mapping.id', 'asc');
+    $mappingConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
+    foreach ($mappingConfigs as $id => $mappingConfig) {
+        $mappingConfig = substr(trim($mappingConfigs), 0, 1) === '<'
+            ? str_replace(array_keys($replaceXml), array_values($replaceXml), $mappingConfig)
+            : str_replace(array_keys($replaceIni), array_values($replaceIni), $mappingConfig);
+        $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `reader_config` = ?
+WHERE
+    `id` = ?
+;
+SQL;
+        $connection->executeStatement($sql, [
+            $mappingConfig,
+            $id,
+        ]);
+    }
+
+    $messenger = new Messenger();
+    $message = new Message(
+        'It’s now possible to import and update assets and to attach them to resources.' // @translate
+    );
+    $messenger->addSuccess($message);
+
+    $message = new Message(
+        'The format of destination metadata has been improved: spaces after "^^", "@" and "§" are no more managed; for multiple datatypes, the ";" was replaced by "^^"; for custom vocab with a label, the label should be wrapped by quotes or double quotes. Check your custom configs if needed.' // @translate
+    );
+    $messenger->addWarning($message);
 }
