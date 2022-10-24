@@ -221,6 +221,29 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
+     * Convert a string with a map.
+     *
+     * The string is generally extracted from a source via a mapping.
+     * Warning: Here, the conversion cannot use another data from the source.
+     * Indeed, the full entry is not provided.
+     */
+    public function convertSimpleString(?string $value, array $map, array $options = []): string
+    {
+        if (is_null($value)) {
+            return '';
+        }
+        if (empty($map['mod'])) {
+            return $value;
+        }
+        if (isset($map['mod']['raw'])) {
+            return $map['mod']['raw'];
+        }
+        return ($map['prepend'] ?? '')
+            . $this->convertTargetToStringJson($value, $map, null, 'value')
+            . ($map['append'] ?? '');
+    }
+
+    /**
      * @deprecated Will be removed (allow muliple config).
      */
     public function isInit(): bool
@@ -732,11 +755,13 @@ class MetaMapper extends AbstractPlugin
         }
         $querier = is_array($fromToMod) && isset($fromToMod['from']['querier'])
             ? $fromToMod['from']['querier']
-            : 'jsdot';
+            : 'value';
         switch ($querier) {
             default:
-                $querier = 'jsdot';
-                // no break.
+                $querier = 'value';
+                // no break
+            case 'value':
+                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier);
             case 'jsdot':
             case 'jmespath':
             case 'jsonpath':
@@ -806,10 +831,11 @@ class MetaMapper extends AbstractPlugin
             } else {
                 $fromValue = null;
             }
-        } else {
-            $querier = 'jsdot';
+        } elseif ($querier === 'jsdot') {
             $flatData = $this->flatArray($data);
             $fromValue = $flatData[$from] ?? null;
+        } else {
+            $fromValue = $from;
         }
 
         $this->addVariable('value', $fromValue);
@@ -847,8 +873,11 @@ class MetaMapper extends AbstractPlugin
                         $replace[$wrappedQuery] = $this->jmesPathEnv->search($query, $data);
                     } elseif ($querier === 'jsonpath') {
                         $replace[$wrappedQuery] = $this->jsonPathQuerier->find($query)->getData();
-                    } else {
+                    } elseif ($querier === 'jsdot') {
                         $replace[$wrappedQuery] = $flatData[$query] ?? '';
+                    } else {
+                        // TODO A value requires an entry as data.
+                        $replace[$wrappedQuery] = '';
                     }
                 }
             } else {

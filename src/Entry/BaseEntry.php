@@ -39,6 +39,16 @@ class BaseEntry implements Entry
      */
     protected $valid;
 
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper|null
+     */
+    protected $metaMapper;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig|null
+     */
+    protected $metaMapperConfig;
+
     public function __construct($data, int $index, array $fields, array $options = [])
     {
         $this->data = $data;
@@ -52,6 +62,14 @@ class BaseEntry implements Entry
     {
         if (!empty($this->options['is_formatted'])) {
             return;
+        }
+
+        if (!empty($this->options['metaMapper'])) {
+            $this->metaMapper = $this->options['metaMapper'];
+        }
+
+        if (!empty($this->options['metaMapperConfig'])) {
+            $this->metaMapperConfig = $this->options['metaMapperConfig'];
         }
 
         // Don't keep data that are not attached to a field.
@@ -94,6 +112,11 @@ class BaseEntry implements Entry
     public function getArrayCopy(): array
     {
         return $this->data;
+    }
+
+    public function valuesFromMap(array $map): array
+    {
+        return [];
     }
 
     public function getIterator()

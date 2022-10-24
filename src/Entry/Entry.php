@@ -27,6 +27,16 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
     public function getArrayCopy(): array;
 
     /**
+     * Get values according to a map.
+     *
+     * The map is an array that sets "from", "to" and "mod".
+     * @see \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     *
+     * @experimental May be removed in a future version.
+     */
+    public function valuesFromMap(array $map): array;
+
+    /**
      * @return int The 1-based source index of the resource.
      * It should be the same than the key output via a loop on the reader.
      */
