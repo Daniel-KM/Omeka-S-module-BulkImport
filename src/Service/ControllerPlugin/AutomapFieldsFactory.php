@@ -14,7 +14,9 @@ class AutomapFieldsFactory implements FactoryInterface
         $plugins = $services->get('ControllerPluginManager');
         return new AutomapFields(
             $map,
-            $plugins->get('api'),
+            $services->get('Omeka\Logger'),
+            $plugins->get('messenger'),
+            $services->get('Omeka\ApiManager'),
             $plugins->get('bulk')
         );
     }

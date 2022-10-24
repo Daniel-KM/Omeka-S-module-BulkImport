@@ -254,13 +254,13 @@ Le code "#" est utilisé pour " ".
         <!-- @todo 100 - Il faudrait tenir compte du type de date et ajouter la seconde date. -->
         <from xpath="substring(/record/datafield[@tag='100']/subfield[@code='a'][substring(., 10, 4) != '9999' and substring(., 10, 4) != '    ' and substring(., 10, 4) != '||||'], 10, 4)"/>
         <to field="dcterms:created"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
     </map>
     <map>
         <!-- @todo 100 - Trouver date de fin de publication -->
         <from xpath="substring(/record/datafield[@tag='100']/subfield[@code='a'][substring(., 14, 4) != '9999' and substring(., 14, 4) != '    ' and substring(., 10, 4) != '||||'], 14, 4)"/>
         <to field="dcterms:date"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
     </map>
     <map>
         <from xpath="substring(/record/datafield[@tag='100']/subfield[@code='a'][substring(., 18, 1) != 'x' and substring(., 18, 1) != ' ' and substring(., 18, 1) != '|'], 18, 1)"/>
@@ -644,7 +644,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="substring(/record/datafield[@tag='115']/subfield[@code='b'][substring(., 10, 6) != '      ' and substring(., 10, 6) != '||||||' and substring(., 10, 6) != '######'], 10, 6)"/>
         <to field="dcterms:dateAccepted"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|slice(0, 4) }}-{{ value|slice(4, 2) }}"/>
     </map>
 
@@ -874,7 +874,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="substring(/record/datafield[@tag='121']/subfield[@code='b'][substring(., 3, 2) != '  ' and substring(., 3, 2) != '||' and substring(., 3, 2) != '##'], 3, 2)"/>
         <to field="dcterms:medium"
-            datatype="numeric:integer; literal"/>
+            datatype="numeric:integer literal"/>
         <mod prepend="Bandes spectrales : "
             pattern="{{ value|table('121-b-2') }}"/>
     </map>
@@ -901,7 +901,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='122']/subfield[@code='a']"/>
         <to field="dcterms:temporal"
-            datatype="numeric:timestamp; literal"
+            datatype="numeric:timestamp literal"
             pattern="{{ value|dateIso }}"/>
     </map>
 
@@ -984,13 +984,13 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='123']/subfield[@code='n']"/>
         <to field="dcterms:temporal"
-            datatype="numeric:integer; literal"/>
+            datatype="numeric:integer literal"/>
         <mod prepend="Équinoxe : "/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='123']/subfield[@code='o']"/>
         <to field="dcterms:temporal"
-            datatype="numeric:integer; literal"/>
+            datatype="numeric:integer literal"/>
         <mod prepend="Époque : "/>
     </map>
     <map>
@@ -1231,7 +1231,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="substring(/record/datafield[@tag='130']/subfield[@code='a'][substring(., 5, 3) != '   ' and substring(., 5, 3) != '|||' and substring(., 5, 3) != '###'], 5, 3)"/>
         <to field="dcterms:extent"
-            datatype="numeric:integer; literal"/>
+            datatype="numeric:integer literal"/>
         <mod prepend="Échelle de réduction spécifique : "/>
     </map>
     <map>
@@ -1304,7 +1304,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="substring(/record/datafield[@tag='135']/subfield[@code='a'][substring(., 6, 3) != '   ' and substring(., 6, 3) != '|||' and substring(., 6, 3) != '###'], 6, 3)"/>
         <to field="dcterms:medium"
-            datatype="numeric:integer; literal"/>
+            datatype="numeric:integer literal"/>
         <mod prepend="Nombre de bits par pixel : "
             pattern="{{ value|table('135-a-5') }}"/>
     </map>
@@ -2050,7 +2050,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='210']/subfield[@code='d']"/>
         <to field="dcterms:issued"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='210']/subfield[@code='e']"/>
@@ -2088,7 +2088,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='211']/subfield[@code='a']"/>
         <!-- On le met directement dans "issued", c’est destiné à des bibliothèques patrimoniales. -->
         <to field="dcterms:issued"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|dateIso }}"/>
     </map>
 
@@ -2119,7 +2119,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='214'][@ind2=' ' or @ind2='0']/subfield[@code='d']"/>
         <!-- Quand l’indicateur 2 = "4" n’est pas utilisé, la date indiquée peut avoir deux sens. -->
         <to field="dcterms:issued"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|replace({'C ': 'Copyright : ', 'DL ': 'Dépôt légal : ', 'P ': 'Protection : '}) }}"/>
     </map>
     <map>
@@ -2142,7 +2142,7 @@ Le code "#" est utilisé pour " ".
         <!-- Quand l’indicateur 2 = "4" n’est pas utilisé, la date indiquée peut avoir deux sens. -->
         <!-- @todo 214 - Attention : dcterms:created est utilisé pour la production et la fabrication. -->
         <to field="dcterms:created"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|replace({'C ': 'Copyright : ', 'DL ': 'Dépôt légal : ', 'P ': 'Protection : '}) }}"/>
     </map>
     <map>
@@ -2164,7 +2164,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='214'][@ind2='2']/subfield[@code='d']"/>
         <!-- Quand l’indicateur 2 = "4" n’est pas utilisé, la date indiquée peut avoir deux sens. -->
         <to field="fabio:hasDistributionDate"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|replace({'C ': 'Copyright : ', 'DL ': 'Dépôt légal : ', 'P ': 'Protection : '}) }}"/>
     </map>
     <map>
@@ -2187,27 +2187,27 @@ Le code "#" est utilisé pour " ".
         <!-- Quand l’indicateur 2 = "4" n’est pas utilisé, la date indiquée peut avoir deux sens. -->
         <!-- @todo 214 - Attention : dcterms:created est utilisé pour la production et la fabrication. -->
         <to field="dcterms:created"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|replace({'C ': 'Copyright : ', 'DL ': 'Dépôt légal : ', 'P ': 'Protection : '}) }}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='214'][@ind2='4'][substring(/subfield[@code='d'], 1, 2)='C ']/subfield[@code='d']"/>
         <to field="dcterms:dateCopyrighted"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|slice(2, 8) }}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='214'][@ind2='4'][substring(/subfield[@code='d'], 1, 3)='DL ']/subfield[@code='d']"/>
         <!-- @todo 214-d - Trouver mieux pour "Dépôt légal" que "fabio:hasDepositDate". -->
         <to field="fabio:hasDepositDate"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|slice(3, 8) }}"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='214'][@ind2='4'][substring(/subfield[@code='d'], 1, 2)='P ']/subfield[@code='d']"/>
         <!-- @todo 214-d - Trouver mieux pour "Protection" que "fabio:hasDecisionDate". -->
         <to field="fabio:hasDecisionDate"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|slice(2, 8) }}"/>
     </map>
     <map>
@@ -2544,7 +2544,7 @@ Le code "#" est utilisé pour " ".
         <!-- Omeka distingue automatiquement le label et l’uri.'-->
         <!-- @todo 316-u : Améliorer le rapprochement entre a et u en cas de multiples. -->
         <to field="dcterms:hasFormat"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value }} {{/record/datafield[@tag='316'][/subfield[@code='u']]/subfield[@code='a']}}"/>
     </map>
     <map>
@@ -2565,7 +2565,7 @@ Le code "#" est utilisé pour " ".
         <!-- Omeka distingue automatiquement le label et l’uri.'-->
         <!-- @todo 317-u : Améliorer le rapprochement entre a et u en cas de multiples. -->
         <to field="dcterms:provenance"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value }} {{/record/datafield[@tag='317'][/subfield[@code='u']]/subfield[@code='a']}}"/>
     </map>
     <map>
@@ -2676,7 +2676,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='318']/subfield[@code='u']"/>
         <to field="curation:note"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Action de préservation"/>
     </map>
     <map>
@@ -2734,7 +2734,7 @@ Le code "#" est utilisé pour " ".
         <!-- Omeka distingue automatiquement le label et l’uri.'-->
         <!-- @todo 320-u : Améliorer le rapprochement entre a et u en cas de multiples. -->
         <to field="curation:note"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Note sur les bibliographies ou les index contenus dans la ressource"/>
     </map>
 
@@ -2766,7 +2766,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='321'][@ind1=' ']/subfield[@code='u']"/>
         <to field="dcterms:relation"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Note sur les index, extraits et citations publiés séparément"/>
     </map>
     <map>
@@ -2797,7 +2797,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='321'][@ind1='0']/subfield[@code='u']"/>
         <to field="dcterms:isReferencedBy"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Note sur les index, extraits et citations publiés séparément"/>
     </map>
     <map>
@@ -2828,7 +2828,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='321'][@ind1='1']/subfield[@code='u']"/>
         <to field="bibo:citedBy"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Note sur les index, extraits et citations publiés séparément"/>
     </map>
     <map>
@@ -2964,7 +2964,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='325']/subfield[@code='u']"/>
         <to field="curation:note"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Note sur la reproduction"/>
     </map>
     <map>
@@ -3034,7 +3034,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='327']/subfield[@code='u']"/>
         <to field="dcterms:tableOfContents"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='327']/subfield[@code='z']"/>
@@ -3067,7 +3067,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='328']/subfield[@code='d']"/>
         <to field="fabio:hasDecisionDate"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|dateIso }}"/>
     </map>
     <map>
@@ -3104,7 +3104,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='329']/subfield[@code='d']"/>
         <to field="bibo:annotates"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod pattern="{{ value|dateIso }}"/>
     </map>
     <map>
@@ -3187,7 +3187,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='334']/subfield[@code='u']"/>
         <to field="curation:note"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Récompense"/>
     </map>
 
@@ -3223,7 +3223,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='335']/subfield[@code='u']"/>
         <to field="dcterms:rightsHolder"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='335']/subfield[@code='8']"/>
@@ -3248,7 +3248,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='337']/subfield[@code='u']"/>
         <to field="bibo:medium"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Configuration requise (ressources électroniques)"/>
     </map>
 
@@ -3329,7 +3329,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='345']/subfield[@code='u']"/>
         <to field="curation:note"
-            datatype="uri; literal"
+            datatype="uri literal"
             append=" Modalités d’acquisition"/>
     </map>
 
@@ -4379,7 +4379,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='600']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4393,7 +4393,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='601']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4407,7 +4407,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='602']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4422,7 +4422,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='604']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4436,7 +4436,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='605']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4451,7 +4451,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='606']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4478,7 +4478,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='607']/subfield[@code='3']"/>
         <to field="dcterms:spatial"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4507,7 +4507,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='608']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4541,7 +4541,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='615']/subfield[@code='3']"/>
         <to field="curation:theme"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4554,7 +4554,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='616']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4568,7 +4568,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='617']/subfield[@code='3']"/>
         <to field="dcterms:spatial"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4610,7 +4610,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='620']/subfield[@code='3']"/>
         <to field="fabio:hasPlaceOfPublication"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4655,7 +4655,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='620'][not(/subfield[@code='3'])]/subfield[@code='i']"/>
         <to field="dcterms:date"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod prepend="Date de fin : {{ value|dateIso }}"/>
     </map>
     <map>
@@ -4701,7 +4701,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='621']/subfield[@code='3']"/>
         <to field="dcterms:provenance"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4746,7 +4746,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='621'][not(/subfield[@code='3'])]/subfield[@code='i']"/>
         <to field="dcterms:date"
-            datatype="numeric:timestamp; literal"/>
+            datatype="numeric:timestamp literal"/>
         <mod prepend="Date de fin : "
             pattern="{{ value|dateIso }}"/>
     </map>
@@ -4782,7 +4782,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='623']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4834,7 +4834,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='631']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4882,7 +4882,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='632']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4934,7 +4934,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='675']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('cdu', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4947,7 +4947,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='676']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('cdd', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4960,7 +4960,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='680']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('lc', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -4981,7 +4981,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='686']/subfield[@code='3']"/>
         <to field="dcterms:subject"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('{{../subfield[@code='2']}}', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5027,7 +5027,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='700']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5040,7 +5040,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='701']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5056,7 +5056,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='702']/subfield[@code='3']"/>
         <to field="dcterms:contributor"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5072,7 +5072,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='703']/subfield[@code='3']"/>
         <to field="bibo:owner"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5100,7 +5100,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='710']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5113,7 +5113,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='711']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5130,7 +5130,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='712']/subfield[@code='3']"/>
         <to field="dcterms:contributor"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5146,7 +5146,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='713']/subfield[@code='3']"/>
         <to field="bibo:owner"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5166,7 +5166,7 @@ Le code "#" est utilisé pour " ".
         <from xpath="/record/datafield[@tag='716']/subfield[@code='3']"/>
         <!-- @todo 716 - Trouver une meilleure propriété pour la marque (point d'accès = creator? subject?) -->
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5190,7 +5190,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='720']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5203,7 +5203,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='721']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5220,7 +5220,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='722']/subfield[@code='3']"/>
         <to field="dcterms:contributor"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5236,7 +5236,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='723']/subfield[@code='3']"/>
         <to field="dcterms:contributor"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5257,7 +5257,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='740']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5270,7 +5270,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='741']/subfield[@code='3']"/>
         <to field="dcterms:creator"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5283,7 +5283,7 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='742']/subfield[@code='3']"/>
         <to field="dcterms:contributor"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
         <mod pattern="{{ value|unimarcIndex('unimarc/a', '{{../subfield[@code='3']}}') }} {{../subfield[@code='a']}}"/>
     </map>
     <map>
@@ -5477,12 +5477,12 @@ Le code "#" est utilisé pour " ".
     <map>
         <from xpath="/record/datafield[@tag='852']/subfield[@code='2']"/>
         <to field="bibo:uri"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='852']/subfield[@code='u']"/>
         <to field="bibo:uri"
-            datatype="uri; literal"/>
+            datatype="uri literal"/>
     </map>
     <map>
         <from xpath="/record/datafield[@tag='852']/subfield[@code='a']"/>

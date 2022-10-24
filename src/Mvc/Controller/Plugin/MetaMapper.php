@@ -1715,12 +1715,15 @@ class MetaMapper extends AbstractPlugin
                 $result['to']['property_id'] = $termId;
             }
 
+            if (isset($xmlArray['to']['@attributes']['datatype']) && $xmlArray['to']['@attributes']['datatype'] !== '') {
+                // TODO Support short data types and customvocab labels.
+                $result['to']['datatype'] = array_filter(array_map('trim', explode(' ', (string) $xmlArray['to']['@attributes']['datatype'])));
+            } else {
+                $result['to']['datatype'] = [];
+            }
             $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])
                 ? (string) $xmlArray['to']['@attributes']['language']
                 : null;
-            $result['to']['datatype'] = isset($xmlArray['to']['@attributes']['datatype'])
-                ? array_filter(array_map('trim', explode(';', (string) $xmlArray['to']['@attributes']['datatype'])))
-                : [];
             $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
                 ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
                 : null;
@@ -1755,12 +1758,13 @@ class MetaMapper extends AbstractPlugin
                 }
             }
 
-            // @todo Remove the short destination (used in processor and when converting to avoid duplicates)?
+            // @todo Remove the short destination (used in processor and when converting to avoid duplicates).
             $fullPattern = $hasNoRaw
                 ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
                 : (string) $result['mod']['raw'];
             $result['to']['dest'] = $result['to']['field']
-                . (count($result['to']['datatype']) ? ' ^^' . implode('; ', $result['to']['datatype']) : '')
+                // TODO Here, the short datatypes and custom vocab labels are already cleaned.
+                . (count($result['to']['datatype']) ? ' ^^' . implode(' ^^', $result['to']['datatype']) : '')
                 . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
                 . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
                 . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')

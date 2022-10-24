@@ -71,7 +71,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'type' => Element\Checkbox::class,
                 'options' => [
                     'label' => 'Use data type "literal" when a value is invalid', // @translate
-                    'info' => 'The mapping can be used for more precise process with "^^xxx; literal".', // @translate
+                    'info' => 'The mapping can be used for automatic and more precise process when specifying data types "^^resource:item ^^literal", for example.', // @translate
                 ],
                 'attributes' => [
                     'id' => 'value_datatype_literal',

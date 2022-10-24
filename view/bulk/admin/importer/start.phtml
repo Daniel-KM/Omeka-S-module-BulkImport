@@ -26,7 +26,8 @@ if ($storeAsTask) {
     <h2><?= $escape($storeAsTask ? $translate('Store import') : $translate('Start import')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <?php if ($form instanceof \BulkImport\Form\Reader\SpreadsheetReaderConfigForm): ?>
-    <p><?= sprintf($translate('See the %sread me%s to learn how to write spreadsheets headers for a quick mapping, with data type and language.'), '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#spreadsheet">', '</a>') // @translate ?></p>
+    <p><?= sprintf($translate('See the %1$ssread me%2$s to learn how to write spreadsheets headers for a quick mapping, with data type and language. Example : %3$s'),
+        '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#spreadsheet">', '</a>', 'dcterms:date ^^timestamp ^^literal @fra §private') // @translate ?></p>
     <?php endif; ?>
     <?php if (isset($importArgs)): ?>
     <?php $comment = $importArgs['comment']; ?>
