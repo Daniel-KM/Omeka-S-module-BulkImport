@@ -1715,11 +1715,18 @@ class MetaMapper extends AbstractPlugin
                 $result['to']['property_id'] = $termId;
             }
 
+            $result['to']['datatype'] = [];
             if (isset($xmlArray['to']['@attributes']['datatype']) && $xmlArray['to']['@attributes']['datatype'] !== '') {
-                // TODO Support short data types and customvocab labels.
-                $result['to']['datatype'] = array_filter(array_map('trim', explode(' ', (string) $xmlArray['to']['@attributes']['datatype'])));
-            } else {
-                $result['to']['datatype'] = [];
+                // Support short data types and custom vocab labels.
+                // @see \BulkImport\Mvc\Controller\Plugin::PATTERN_DATATYPES
+                $matchesDataTypes = [];
+                $patternDataTypes = '#(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*))#';
+                if (preg_match_all($patternDataTypes, (string) $xmlArray['to']['@attributes']['datatype'], $matchesDataTypes, PREG_SET_ORDER, 0)) {
+                    foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
+                        $result['to']['datatype'] = $this->bulk->getDataTypeName($datatype);
+                    }
+                    $result['to']['datatype'] = array_filter(array_unique($result['to']['datatype']));
+                }
             }
             $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])
                 ? (string) $xmlArray['to']['@attributes']['language']
@@ -1763,7 +1770,7 @@ class MetaMapper extends AbstractPlugin
                 ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
                 : (string) $result['mod']['raw'];
             $result['to']['dest'] = $result['to']['field']
-                // TODO Here, the short datatypes and custom vocab labels are already cleaned.
+                // Here, the short datatypes and custom vocab labels are already cleaned.
                 . (count($result['to']['datatype']) ? ' ^^' . implode(' ^^', $result['to']['datatype']) : '')
                 . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
                 . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
