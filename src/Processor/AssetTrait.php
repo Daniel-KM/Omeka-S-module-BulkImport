@@ -52,7 +52,7 @@ SELECT `asset`.`id` AS `d`
 FROM `asset` AS `asset`
 WHERE `asset`.`storage_id` IN ($storageIds);
 SQL;
-        $existingAssets = array_map('intval', $this->connection->executeQuery($sql)->fetchAllFirstColumn());
+        $existingAssets = array_map('intval', $this->connection->executeQuery($sql)->fetchFirstColumn());
 
         $sql = '';
         // Save the ids as storage, it should be unique anyway, except in case

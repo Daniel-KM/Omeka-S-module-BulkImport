@@ -76,7 +76,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                         // 'vocabularies' => 'Vocabularies', // @translate
                         // 'resource_templates' => 'Resource templates', // @translate
                         // 'custom_vocabs' => 'Custom vocabs', // @translate
-                        'mappings' => 'Mappings', // @translate
+                        'mappings' => 'Mappings / markers', // @translate
                     ],
                 ],
                 'attributes' => [

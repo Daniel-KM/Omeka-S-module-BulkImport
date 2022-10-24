@@ -35,6 +35,8 @@ class OmekaSProcessor extends AbstractFullProcessor
         'users' => [
             'source' => 'users',
             'key_id' => 'o:id',
+            'key_email' => 'o:email',
+            'key_name' => 'o:name',
         ],
         'assets' => [
             'source' => 'assets',
@@ -47,6 +49,7 @@ class OmekaSProcessor extends AbstractFullProcessor
         'media' => [
             'source' => 'media',
             'key_id' => 'o:id',
+            'key_parent_id' => 'item_id',
         ],
         'item_sets' => [
             'source' => 'item_sets',
@@ -80,13 +83,23 @@ class OmekaSProcessor extends AbstractFullProcessor
             'source' => 'mapping_markers',
             'key_id' => 'o:id',
         ],
+        'concepts' => [
+            'source' => null,
+        ],
+        'hits' => [
+            'source' => 'hit',
+            'key_id' => 'id',
+            // The mode "sql" allows to import hits directly and is recommended
+            // because the list of hit is generally very big.
+            'mode' => 'sql',
+        ],
     ];
 
     protected function fillResource(array $source): void
     {
         if (!empty($source['o:resource_class']['o:id'])) {
             $originalId = $source['o:resource_class']['o:id'];
-            $source['o:resource_class']['o:id'] = $this->map['resource_classes'][$originalId] ?? null;
+            $source['o:resource_class']['o:id'] = $this->map['by_id']['resource_classes'][$originalId] ?? null;
             if (!$source['o:resource_class']['o:id']) {
                 $this->logger->warn(
                     'Resource class (source class id: {original_id}) for resource #{id} (source #{source_id}) is not available.', // @translate
@@ -199,7 +212,7 @@ class OmekaSProcessor extends AbstractFullProcessor
     {
         // Don't check entity twice, so no log here.
         $source['o:id'] = $this->map['item_sets'][$source['o:id']] ?? null;
-        parent::fillItem($source);
+        parent::fillItemSet($source);
     }
 
     protected function fillMappingMapping(array $source): void

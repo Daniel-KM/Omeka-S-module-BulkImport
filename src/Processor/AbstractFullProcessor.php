@@ -1430,8 +1430,12 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             ]);
         }
 
+        // TODO Fix issue on value annotation indexing.
         $this->logger->notice('Reindexing full text search. It may take about some minutes to one hour.'); // @translate
-        $this->dispatchJob(\Omeka\Job\IndexFulltextSearch::class);
+        try {
+            $this->dispatchJob(\Omeka\Job\IndexFulltextSearch::class);
+        } catch (\Exception $e) {
+        }
         $this->logger->notice('Full text search reindexed.'); // @translate
 
         // TODO Run derivative files job.

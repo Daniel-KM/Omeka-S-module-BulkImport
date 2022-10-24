@@ -87,7 +87,7 @@ trait UserTrait
                 }
             }
 
-            $email = mb_strtolower($user['email']);
+            $email = mb_strtolower((string) $user['email']);
             if (!$validator->isValid($email)) {
                 $cleanName = empty($user['name'])
                     ?$this->randomString(5)
