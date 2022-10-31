@@ -51,7 +51,7 @@ class Imported extends AbstractEntity
 
     /**
      * API resource name (not necessarily an Omeka main Resource).
-
+     *
      * @var string
      *
      * @Column(
