@@ -616,7 +616,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $emptyIdentifiers = [];
         foreach ($this->identifiers['map'] as $identifier => $id) {
             if (empty($id)) {
-                $emptyIdentifiers[] = strtok($identifier, '§');
+                $emptyIdentifiers[] = strtok((string) $identifier, '§');
             }
         }
 
@@ -1511,7 +1511,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
                 }
             } elseif (!empty($this->identifiers['mapx'][$resource['source_index']])) {
-                $ids = [(int) strtok($this->identifiers['mapx'][$resource['source_index']], '§')];
+                $ids = [(int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§')];
             }
             if (!$ids) {
                 continue;
@@ -2114,7 +2114,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             && !empty($resource['source_index'])
             && !empty($this->identifiers['mapx'][$resource['source_index']])
         ) {
-            $resource['o:id'] = (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
+            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
         }
 
         // TODO Move these checks into the right processor.
@@ -2127,7 +2127,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && !empty($this->identifiers['map'][$itemSet['source_identifier'] . '§resources'])
                     // TODO Add a check for item set identifier.
                 ) {
-                    $resource['o:item_set'][$key]['o:id'] = (int) strtok($this->identifiers['map'][$itemSet['source_identifier'] . '§resources'], '§');
+                    $resource['o:item_set'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$itemSet['source_identifier'] . '§resources'], '§');
                 }
             }
             // TODO Fill media identifiers for update here?
@@ -2139,7 +2139,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'])
             // TODO Add a check for item identifier.
         ) {
-            $resource['o:item']['o:id'] = (int) strtok($this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'], '§');
+            $resource['o:item']['o:id'] = (int) strtok((string) $this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'], '§');
         }
 
         // TODO Useless for now with assets: don't create resource on unknown resources. Maybe separate options create/skip for main resources and related resources.
@@ -2150,7 +2150,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'])
                     // TODO Add a check for resource identifier.
                 ) {
-                    $resource['o:resource'][$key]['o:id'] = (int) strtok($this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'], '§');
+                    $resource['o:resource'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'], '§');
                 }
             }
         }
@@ -2168,7 +2168,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && !empty($value['source_identifier'])
                     && !empty($this->identifiers['map'][$value['source_identifier'] . '§resources'])
                 ) {
-                    $resource[$term][$key]['value_resource_id'] = (int) strtok($this->identifiers['map'][$value['source_identifier'] . '§resources'], '§');
+                    $resource[$term][$key]['value_resource_id'] = (int) strtok((string) $this->identifiers['map'][$value['source_identifier'] . '§resources'], '§');
                 }
             }
         }

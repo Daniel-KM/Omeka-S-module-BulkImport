@@ -148,7 +148,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 }
                 $id = empty($this->identifiers['mapx'][$resource['source_index']])
                     ? $this->bulk->api()->searchOne('assets', ['id' => $value])->getContent()
-                    : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
+                    : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
                 if ($id) {
                     $resource['o:id'] = is_object($id) ? $id->id() : $id;
                     $resource['checked_id'] = true;
@@ -198,7 +198,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 try {
                     $id = empty($this->identifiers['mapx'][$resource['source_index']])
                         ? $this->bulk->api()->read('assets', ['storage_id' => $value])->getContent()
-                        : (int) strtok($this->identifiers['mapx'][$resource['source_index']], '§');
+                        : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
                 } catch (\Exception $e) {
                     $id = null;
                 }
@@ -266,7 +266,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         ];
                     } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
                         $resource['o:resource'][] = [
-                            'o:id' => (int) strtok($this->identifiers['map'][$value . '§resources'], '§'),
+                            'o:id' => (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§'),
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
