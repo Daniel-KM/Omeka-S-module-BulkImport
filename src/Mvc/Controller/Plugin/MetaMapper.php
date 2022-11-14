@@ -1790,7 +1790,7 @@ class MetaMapper extends AbstractPlugin
                 $patternDataTypes = '#(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*))#';
                 if (preg_match_all($patternDataTypes, (string) $xmlArray['to']['@attributes']['datatype'], $matchesDataTypes, PREG_SET_ORDER, 0)) {
                     foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
-                        $result['to']['datatype'] = $this->bulk->getDataTypeName($datatype);
+                        $result['to']['datatype'][] = $this->bulk->getDataTypeName($datatype);
                     }
                     $result['to']['datatype'] = array_filter(array_unique($result['to']['datatype']));
                 }
