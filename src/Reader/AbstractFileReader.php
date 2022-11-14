@@ -7,6 +7,7 @@ use Log\Stdlib\PsrMessage;
 
 /**
  * @todo Replace all abstract reader by a single IteratorIterator and prepare data separately.
+ * @todo Extend AbstractFileReader from AbstractFileMultipleReader.
  */
 abstract class AbstractFileReader extends AbstractReader
 {
