@@ -339,24 +339,27 @@ return [
         ],
     ],
     'bulk_import' => [
+        // Ordered by most common.
         'readers' => [
             Reader\JsonReader::class => Reader\JsonReader::class,
-            Reader\ContentDmReader::class => Reader\ContentDmReader::class,
-            Reader\OmekaSReader::class => Reader\OmekaSReader::class,
             Reader\SqlReader::class => Reader\SqlReader::class,
             Reader\XmlReader::class => Reader\XmlReader::class,
             Reader\SpreadsheetReader::class => Reader\SpreadsheetReader::class,
             Reader\CsvReader::class => Reader\CsvReader::class,
             Reader\TsvReader::class => Reader\TsvReader::class,
             Reader\OpenDocumentSpreadsheetReader::class => Reader\OpenDocumentSpreadsheetReader::class,
+            // TODO Deprecated these reader and create pofiles for json/sql/xml/spreadsheet readers.
+            Reader\ContentDmReader::class => Reader\ContentDmReader::class,
+            Reader\OmekaSReader::class => Reader\OmekaSReader::class,
             Reader\FakeReader::class => Reader\FakeReader::class,
         ],
         'processors' => [
-            Processor\AssetProcessor::class => Processor\AssetProcessor::class,
             Processor\ItemProcessor::class => Processor\ItemProcessor::class,
             Processor\ItemSetProcessor::class => Processor\ItemSetProcessor::class,
             Processor\MediaProcessor::class => Processor\MediaProcessor::class,
             Processor\ResourceProcessor::class => Processor\ResourceProcessor::class,
+            Processor\AssetProcessor::class => Processor\AssetProcessor::class,
+            // TODO Deprecated these processors and create meta-processor.
             Processor\EprintsProcessor::class => Processor\EprintsProcessor::class,
             Processor\ManiocProcessor::class => Processor\ManiocProcessor::class,
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,

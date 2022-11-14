@@ -233,9 +233,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this
             ->prepareIdentifierNames()
-
             ->prepareSpecific()
-
             ->prepareMetaConfig();
 
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?? null;

@@ -39,13 +39,13 @@ class FakeReader extends AbstractReader
     {
     }
 
+    public function rewind(): void
+    {
+    }
+
     public function valid(): bool
     {
         return false;
-    }
-
-    public function rewind(): void
-    {
     }
 
     protected function reset(): \BulkImport\Reader\Reader

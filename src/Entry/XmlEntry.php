@@ -13,8 +13,8 @@ class XmlEntry extends BaseEntry
         $namespaces = [null] + $simpleData->getNamespaces(true);
 
         // Fix issue with cdata (no: it will escape html tags).
-        $simpleData = new SimpleXMLElement($simpleData->asXML(), LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS
-                | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
+        $simpleData = new SimpleXMLElement($simpleData->asXML(),
+            LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
 
         $array = $this->attributes($simpleData);
 

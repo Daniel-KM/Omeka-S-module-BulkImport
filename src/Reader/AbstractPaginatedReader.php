@@ -97,51 +97,10 @@ abstract class AbstractPaginatedReader extends AbstractReader
         return $this;
     }
 
-    /**
-     * @param iterable $iterator Should be validable and countable too (ArrayIterator).
-     * @return \BulkImport\Reader\AbstractPaginatedReader
-     */
-    protected function setInnerIterator(iterable $iterator)
+    public function isValid(): bool
     {
-        $this->innerIterator = $iterator;
-        return $this;
-    }
-
-    public function getInnerIterator()
-    {
-        return $this->innerIterator;
-    }
-
-    public function count(): int
-    {
-        return (int) $this->totalCount;
-    }
-
-    public function rewind(): void
-    {
-        $this->currentPage = $this->firstPage;
-        $this->currentIndex = 0;
-        $this->getInnerIterator()->rewind();
-        $this->currentPage();
-    }
-
-    /**
-     * Check if the current position is valid.
-     *
-     * This meaning of this method is different in some iterator classes.
-     *
-     * @return bool
-     */
-    public function valid(): bool
-    {
-        if (!$this->isValid) {
-            return false;
-        }
-        $valid = $this->getInnerIterator()->valid();
-        if ($this->currentPage < $this->lastPage) {
-            return true;
-        }
-        return $valid;
+        $this->initArgs();
+        return true;
     }
 
     /**
@@ -172,11 +131,36 @@ abstract class AbstractPaginatedReader extends AbstractReader
             : $this->getInnerIterator()->next();
     }
 
-    public function hasNext(): bool
+    public function rewind(): void
     {
-        $inner = $this->getInnerIterator();
-        return $inner->key() + 1 >= $inner->count()
-            || $this->currentPage < $this->lastPage;
+        $this->currentPage = $this->firstPage;
+        $this->currentIndex = 0;
+        $this->getInnerIterator()->rewind();
+        $this->currentPage();
+    }
+
+    /**
+     * Check if the current position is valid.
+     *
+     * This meaning of this method is different in some iterator classes.
+     *
+     * @return bool
+     */
+    public function valid(): bool
+    {
+        if (!$this->isValid) {
+            return false;
+        }
+        $valid = $this->getInnerIterator()->valid();
+        if ($this->currentPage < $this->lastPage) {
+            return true;
+        }
+        return $valid;
+    }
+
+    public function count(): int
+    {
+        return (int) $this->totalCount;
     }
 
     public function getArrayCopy(): array
@@ -193,10 +177,26 @@ abstract class AbstractPaginatedReader extends AbstractReader
         return $this->getArrayCopy();
     }
 
-    public function isValid(): bool
+    public function hasNext(): bool
     {
-        $this->initArgs();
-        return true;
+        $inner = $this->getInnerIterator();
+        return $inner->key() + 1 >= $inner->count()
+            || $this->currentPage < $this->lastPage;
+    }
+
+    public function getInnerIterator()
+    {
+        return $this->innerIterator;
+    }
+
+    /**
+     * @param iterable $iterator Should be validable and countable too (ArrayIterator).
+     * @return \BulkImport\Reader\AbstractPaginatedReader
+     */
+    protected function setInnerIterator(iterable $iterator)
+    {
+        $this->innerIterator = $iterator;
+        return $this;
     }
 
     /**

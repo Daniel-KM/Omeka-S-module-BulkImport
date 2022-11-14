@@ -99,6 +99,29 @@ class JsonReader extends AbstractPaginatedReader
         return $this;
     }
 
+    public function isValid(): bool
+    {
+        $this->initArgs();
+
+        // TODO Check mapping if any (xml, ini, base) (for all readers).
+
+        if ($this->listFiles) {
+            return true;
+        }
+
+        if (empty($this->params['url'])) {
+            if (!$this->isValidUrl('', '', [], $this->mediaType, $this->charset)) {
+                return false;
+            }
+        } else {
+            if (!$this->isValidDirectUrl($this->params['url'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function current()
     {
         $this->isReady();
@@ -136,29 +159,6 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         return new JsonEntry($current, $this->key() + $this->isZeroBased, [], $this->getParams());
-    }
-
-    public function isValid(): bool
-    {
-        $this->initArgs();
-
-        // TODO Check mapping if any (xml, ini, base) (for all readers).
-
-        if ($this->listFiles) {
-            return true;
-        }
-
-        if (empty($this->params['url'])) {
-            if (!$this->isValidUrl('', '', [], $this->mediaType, $this->charset)) {
-                return false;
-            }
-        } else {
-            if (!$this->isValidDirectUrl($this->params['url'])) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     public function rewind(): void
