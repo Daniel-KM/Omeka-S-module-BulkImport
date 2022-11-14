@@ -169,20 +169,12 @@ class XmlEntry extends BaseEntry
                 : $resource;
         }
 
-        $ingester = $resource['o:ingester'] ?? 'url';
+        $ingester = $resource['o:ingester'] ?? 'file ';
         switch ($ingester) {
             default:
-            case 'url':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'url',
-                    'ingest_url' => $value,
-                    'o:source' => $value,
-                ];
-                break;
-
             case 'file':
                 if ($this->isUrl($value)) {
+                    $resource['o:ingester'] = 'url';
                     $resource += [
                         'resource_name' => 'media',
                         'o:ingester' => 'url',
@@ -190,6 +182,7 @@ class XmlEntry extends BaseEntry
                         'o:source' => $value,
                     ];
                 } else {
+                    $resource['o:ingester'] = 'sideload';
                     $resource += [
                         'resource_name' => 'media',
                         'o:ingester' => 'sideload',
@@ -199,7 +192,28 @@ class XmlEntry extends BaseEntry
                 }
                 break;
 
+            case 'url':
+                $resource += [
+                    'resource_name' => 'media',
+                    'o:ingester' => 'url',
+                    'ingest_url' => $value,
+                    'o:source' => $value,
+                ];
+                break;
+
+            case 'sideload':
+                $resource += [
+                    'resource_name' => 'media',
+                    'o:ingester' => 'sideload',
+                    'ingest_filename' => $value,
+                    'o:source' => $value,
+                ];
+                break;
+
             case 'directory':
+                $resource['o:ingester'] = 'sideload_dir';
+                // no break.
+            case 'sideload_dir':
                 $resource += [
                     'resource_name' => 'media',
                     'o:ingester' => 'sideload_dir',
