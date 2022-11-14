@@ -104,6 +104,8 @@ return [
     'files' => 'file',
     'filename' => 'file',
     'filenames' => 'file',
+    'file name' => 'file',
+    'file names' => 'file',
     'upload' => 'file',
     'sideload' => 'file',
     'file sideload' => 'file',
