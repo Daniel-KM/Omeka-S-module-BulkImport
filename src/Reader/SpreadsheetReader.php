@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use BulkImport\Entry\BaseEntry;
 use BulkImport\Form\Reader\CsvReaderConfigForm;
 use BulkImport\Form\Reader\SpreadsheetReaderParamsForm;
 
@@ -16,6 +17,7 @@ class SpreadsheetReader extends AbstractGenericFileReader
     ];
     protected $configFormClass = CsvReaderConfigForm::class;
     protected $paramsFormClass = SpreadsheetReaderParamsForm::class;
+    protected $entryClass = BaseEntry::class;
 
     protected $configKeys = [
         'url',

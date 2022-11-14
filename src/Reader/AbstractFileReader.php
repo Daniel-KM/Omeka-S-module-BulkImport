@@ -2,9 +2,6 @@
 
 namespace BulkImport\Reader;
 
-use BulkImport\Entry\BaseEntry;
-use BulkImport\Entry\Entry;
-use Iterator;
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
 
@@ -14,23 +11,6 @@ use Log\Stdlib\PsrMessage;
 abstract class AbstractFileReader extends AbstractReader
 {
     use FileAndUrlTrait;
-
-    /**
-     * @var \Iterator
-     */
-    protected $iterator;
-
-    /**
-     * For spreadsheets, the total entries should not include headers.
-     *
-     * @var int
-     */
-    protected $totalEntries;
-
-    /**
-     * @var array
-     */
-    protected $currentData = [];
 
     public function handleParamsForm(Form $form)
     {
@@ -101,110 +81,5 @@ abstract class AbstractFileReader extends AbstractReader
         $file = $this->getParam('file') ?: [];
         $filepath = $this->getParam('filename');
         return $this->isValidFilepath($filepath, $file);
-    }
-
-    #[\ReturnTypeWillChange]
-    public function current()
-    {
-        $this->isReady();
-        $this->currentData = $this->iterator->current();
-        return is_array($this->currentData)
-            ? $this->currentEntry()
-            : null;
-    }
-
-    /**
-     * Helper to manage the current entry.
-     *
-     * May be overridden with a different entry sub-class.
-     */
-    protected function currentEntry(): Entry
-    {
-        return new BaseEntry($this->currentData, $this->key(), $this->availableFields, $this->getParams());
-    }
-
-    #[\ReturnTypeWillChange]
-    public function key()
-    {
-        $this->isReady();
-        return $this->iterator->key();
-    }
-
-    public function next(): void
-    {
-        $this->isReady();
-        $this->iterator->next();
-    }
-
-    public function rewind(): void
-    {
-        $this->isReady();
-        $this->iterator->rewind();
-    }
-
-    public function valid(): bool
-    {
-        $this->isReady();
-        return $this->iterator->valid();
-    }
-
-    public function count(): int
-    {
-        $this->isReady();
-        return $this->totalEntries;
-    }
-
-    /**
-     * Reset the iterator to allow to use it with different params.
-     */
-    protected function reset(): \BulkImport\Reader\Reader
-    {
-        parent::reset();
-        $this->iterator = null;
-        $this->totalEntries = null;
-        $this->currentData = [];
-        return $this;
-    }
-
-    /**
-     * @throws \Omeka\Service\Exception\RuntimeException
-     */
-    protected function prepareIterator(): \BulkImport\Reader\Reader
-    {
-        $this->reset();
-        if (!$this->isValid()) {
-            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
-        }
-
-        $this->initializeReader();
-
-        $this->finalizePrepareIterator();
-        $this->prepareAvailableFields();
-
-        $this->isReady = true;
-        return $this;
-    }
-
-    /**
-     * Initialize the reader iterator.
-     */
-    abstract protected function initializeReader(): \BulkImport\Reader\Reader;
-
-    /**
-     * Called only by prepareIterator() after opening reader.
-     */
-    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
-    {
-        $this->totalEntries = iterator_count($this->iterator);
-        $this->iterator->rewind();
-        return $this;
-    }
-
-    /**
-     * The fields are an array.
-     */
-    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
-    {
-        return $this;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace BulkImport\Reader;
 
-use BulkImport\Entry\Entry;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
@@ -22,6 +21,7 @@ class XmlReader extends AbstractFileReader
     protected $mediaType = 'text/xml';
     protected $configFormClass = XmlReaderConfigForm::class;
     protected $paramsFormClass = XmlReaderParamsForm::class;
+    protected $entryClass = XmlEntry::class;
 
     protected $configKeys = [
         'url',
@@ -37,9 +37,9 @@ class XmlReader extends AbstractFileReader
     ];
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
+     * @var \XMLElementIterator
      */
-    protected $metaMapper;
+    protected $iterator;
 
     /**
      * @var XMLReaderNode
@@ -55,11 +55,6 @@ class XmlReader extends AbstractFileReader
      * @var string
      */
     protected $normalizedXmlpath;
-
-    /**
-     * @var \XMLElementIterator
-     */
-    protected $iterator;
 
     public function __construct(ServiceLocatorInterface $services)
     {
@@ -139,14 +134,6 @@ class XmlReader extends AbstractFileReader
             return $this->currentEntry();
         }
         return null;
-    }
-
-    protected function currentEntry(): Entry
-    {
-        // To check xml:
-        // echo $this->currentData->getSimpleXMLElement()->asXML();
-        // $this->logger->debug($this->currentData->getSimpleXMLElement()->asXML());
-        return new XmlEntry($this->currentData, $this->key() + $this->isZeroBased, $this->availableFields, $this->getParams());
     }
 
     public function rewind(): void

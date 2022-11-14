@@ -2,11 +2,13 @@
 
 namespace BulkImport\Reader;
 
-use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
 
 abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
 {
+    // TODO Use the Box Spout Row as current data? Probably useless.
+    protected $entryClass = SpreadsheetEntry::class;
+
     /*
      * TODO Re-enable the check when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
     public function isValid(): bool
@@ -34,17 +36,5 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
             $this->currentData = $this->currentData->toArray();
         }
         return $this->currentEntry();
-    }
-
-    protected function currentEntry(): Entry
-    {
-        // TODO Use the Box Spout Row as current data? Probably useless.
-        return new SpreadsheetEntry(
-            $this->currentData,
-            $this->key(),
-            $this->availableFields,
-            $this->getParams()
-                + ['metaMapper' => $this->metaMapper, 'metaMapperConfig' => $this->metaMapperConfig]
-        );
     }
 }

@@ -2,6 +2,8 @@
 
 namespace BulkImport\Reader;
 
+use BulkImport\Entry\BaseEntry;
+use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Traits\ConfigurableTrait;
@@ -14,6 +16,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 {
     // TODO Remove these traits so sub reader won't be all configurable.
     use ConfigurableTrait, ParametrizableTrait, ServiceLocatorAwareTrait;
+
+    /**
+     * @var string
+     */
+    protected $entryClass = BaseEntry::class;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper|null
@@ -86,9 +93,30 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $paramsKeys = [];
 
     /**
+     * The main iterator to loop on.
+     * May be \IteratorIterator, so the index may be a duplicate, so use it in
+     * conjunction with the main iterator index when needed.
+     *
+     * @var \Iterator|\IteratorIterator
+     */
+    protected $iterator;
+
+    /**
      * @var bool
      */
     protected $isReady = false;
+
+    /**
+     * For spreadsheets, the total entries should not include headers.
+     *
+     * @var int
+     */
+    protected $totalEntries;
+
+    /**
+     * @var mixed
+     */
+    protected $currentData;
 
     /**
      * Reader constructor.
@@ -188,6 +216,69 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
+    #[\ReturnTypeWillChange]
+    public function current()
+    {
+        $this->isReady();
+        $this->currentData = $this->iterator->current();
+        return $this->currentData
+            ? $this->currentEntry()
+            : null;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function key()
+    {
+        $this->isReady();
+        return $this->iterator->key();
+    }
+
+    public function next(): void
+    {
+        $this->isReady();
+        $this->iterator->next();
+    }
+
+    public function rewind(): void
+    {
+        $this->isReady();
+        $this->iterator->rewind();
+    }
+
+    public function valid(): bool
+    {
+        $this->isReady();
+        return $this->iterator->valid();
+    }
+
+    public function count(): int
+    {
+        $this->isReady();
+        if (is_null($this->totalEntries)) {
+            $this->totalEntries = method_exists($this->iterator, 'count')
+                ? $this->iterator->count()
+                : iterator_count($this->iterator);
+        }
+        return (int) $this->totalEntries;
+    }
+
+    /**
+     * Get the current data mapped as an Entry, by default for an array.
+     */
+    protected function currentEntry(): Entry
+    {
+        $class = $this->entryClass;
+        return new $class(
+            $this->currentData,
+            $this->key(),
+            [],
+            $this->getParams() + [
+                'metaMapper' => $this->metaMapper,
+                'metaMapperConfig' => $this->metaMapperConfig,
+            ]
+        );
+    }
+
     /**
      * Check if the reader is ready, or prepare it.
      */
@@ -196,7 +287,6 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         if ($this->isReady) {
             return true;
         }
-
         $this->prepareIterator();
         return $this->isReady;
     }
@@ -210,6 +300,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->objectType = null;
         $this->lastErrorMessage = null;
         $this->isReady = false;
+        $this->iterator = null;
+        $this->totalEntries = null;
+        $this->currentData = null;
         return $this;
     }
 
@@ -218,15 +311,42 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
      */
     protected function prepareIterator(): \BulkImport\Reader\Reader
     {
+        // The params should be checked and valid.
         $this->reset();
         if (!$this->isValid()) {
             throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
 
+        $this->initializeReader();
+        $this->finalizePrepareIterator();
+        $this->prepareAvailableFields();
+
         $this->isReady = true;
         return $this;
     }
 
+    /**
+     * Initialize the reader iterator.
+     */
+    abstract protected function initializeReader(): \BulkImport\Reader\Reader;
+
+    /**
+     * Called only by prepareIterator() after opening reader.
+     */
+    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
+    {
+        $this->totalEntries = iterator_count($this->iterator);
+        $this->iterator->rewind();
+        return $this;
+    }
+
+    /**
+     * The list of available fields are an array.
+     */
+    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
+    {
+        return $this;
+    }
     /**
      * Prepare other internal data.
      */

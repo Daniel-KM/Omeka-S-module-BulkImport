@@ -6,7 +6,8 @@ use ArrayIterator;
 
 /**
  * A simple and quick paginator, since each source data is read as a whole.
- * @todo Replace with an IteratorIterator.
+
+ * @todo Replace with an IteratorIterator or AppendIterator (a iterator can be appended in a foreach loop).
  *
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
  * TODO Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?
@@ -191,6 +192,14 @@ abstract class AbstractPaginatedReader extends AbstractReader
     }
 
     /**
+     * @todo Merge with method initArgs().
+     */
+    protected function initializeReader(): \BulkImport\Reader\Reader
+    {
+        return $this;
+    }
+
+    /**
      * @param iterable $iterator Should be validable and countable too (ArrayIterator).
      * @return \BulkImport\Reader\AbstractPaginatedReader
      */
@@ -202,6 +211,8 @@ abstract class AbstractPaginatedReader extends AbstractReader
 
     /**
      * This method is called from the method setObjectType() and isValid().
+     *
+     * @todo Use method initializeReader().
      */
     protected function initArgs(): \BulkImport\Reader\Reader
     {

@@ -4,7 +4,6 @@ namespace BulkImport\Reader;
 
 use ArrayIterator;
 use BulkImport\Entry\BaseEntry;
-use BulkImport\Entry\Entry;
 use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
@@ -26,6 +25,7 @@ class JsonReader extends AbstractPaginatedReader
     protected $label = 'Json';
     protected $configFormClass = JsonReaderConfigForm::class;
     protected $paramsFormClass = JsonReaderParamsForm::class;
+    protected $entryClass = JsonEntry::class;
 
     protected $configKeys = [
         'url',
@@ -43,16 +43,6 @@ class JsonReader extends AbstractPaginatedReader
     protected $mediaType = 'application/json';
 
     protected $charset = 'utf-8';
-
-    /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
-     */
-    protected $metaMapper;
-
-    /**
-     * @var array
-     */
-    protected $currentData = null;
 
     /**
      * @var ?string
@@ -75,6 +65,8 @@ class JsonReader extends AbstractPaginatedReader
     protected $baseUrl = '';
 
     /**
+     * @todo Use list inside iterator.
+     *
      * @var array
      */
     protected $listFiles = [];
@@ -184,11 +176,6 @@ class JsonReader extends AbstractPaginatedReader
         }
 
         return null;
-    }
-
-    protected function currentEntry(): Entry
-    {
-        return new JsonEntry($this->currentData, $this->key(), [], $this->getParams());
     }
 
     public function rewind(): void

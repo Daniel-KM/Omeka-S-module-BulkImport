@@ -17,6 +17,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $mediaType = 'application/vnd.oasis.opendocument.spreadsheet';
     protected $configFormClass = OpenDocumentSpreadsheetReaderConfigForm::class;
     protected $paramsFormClass = OpenDocumentSpreadsheetReaderParamsForm::class;
+    protected $entryClass = SpreadsheetEntry::class;
 
     protected $configKeys = [
         'url',
@@ -105,8 +106,10 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->processAllSheets
                 ? $this->availableFieldsMultiSheets[$this->sheetIndex]
                 : $this->availableFields,
-            $this->getParams()
-                + ['metaMapper' => $this->metaMapper, 'metaMapperConfig' => $this->metaMapperConfig]
+            $this->getParams() + [
+                'metaMapper' => $this->metaMapper,
+                'metaMapperConfig' => $this->metaMapperConfig,
+            ]
         );
     }
 

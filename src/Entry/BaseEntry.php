@@ -72,6 +72,11 @@ class BaseEntry implements Entry
             $this->metaMapperConfig = $this->options['metaMapperConfig'];
         }
 
+        if (is_null($this->data)) {
+            $this->data = [];
+            return;
+        }
+
         // Don't keep data that are not attached to a field.
         // Avoid issue when number of data is greater than number of fields.
         // TODO Collect data without field as garbage (for empty field "")?

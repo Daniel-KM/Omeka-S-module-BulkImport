@@ -8,6 +8,15 @@ class XmlEntry extends BaseEntry
 {
     protected function init(): void
     {
+        // To check xml:
+        // echo $this->data->getSimpleXMLElement()->asXML();
+        // $this->logger->debug($this->data->getSimpleXMLElement()->asXML());
+
+        if (is_null($this->data)) {
+            $this->data = [];
+            return;
+        }
+
         /** @var \XMLReaderNode $data */
         $simpleData = $this->data->getSimpleXMLElement();
         $namespaces = [null] + $simpleData->getNamespaces(true);
