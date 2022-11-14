@@ -366,19 +366,14 @@ class MetaMapper extends AbstractPlugin
         }
 
         // Init defaultQuerier, isDynamicQuerier and normConfig.
-        $this
+        return $this
             ->setConfigSections([
                 'info' => 'raw',
                 'params' => 'raw_or_pattern',
                 'default' => 'mapping',
                 'mapping' => 'mapping',
-            ]);
-        $normalizedConfigs = $this
+            ])
             ->normalizeConfigs($mainConfig, $conf);
-        $this
-            ->setNormalizedConfig($normalizedConfigs);
-
-        return $this;
     }
 
     /**
@@ -1527,7 +1522,7 @@ class MetaMapper extends AbstractPlugin
     /**
      * Allow to use a generic config completed by a specific one.
      */
-    protected function normalizeConfigs(?string ...$configs): array
+    protected function normalizeConfigs(?string ...$configs): self
     {
         $mergedMappings = [];
         foreach (array_filter($configs) as $config) {
