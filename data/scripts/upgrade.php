@@ -3,7 +3,6 @@
 namespace BulkImport;
 
 use Omeka\Module\Exception\ModuleCannotInstallException;
-use Omeka\Mvc\Controller\Plugin\Messenger;
 use Omeka\Stdlib\Message;
 
 /**
@@ -14,15 +13,17 @@ use Omeka\Stdlib\Message;
  *
  * @var \Doctrine\DBAL\Connection $connection
  * @var \Doctrine\ORM\EntityManager $entityManager
- * @var \Omeka\Settings\Settings $settings
  * @var \Omeka\Api\Manager $api
+ * @var \Omeka\Settings\Settings $settings
+ * @var \Omeka\Mvc\Controller\Plugin\Messenger $messenger
  */
 $services = $serviceLocator;
-$connection = $services->get('Omeka\Connection');
-$entityManager = $services->get('Omeka\EntityManager');
 $plugins = $services->get('ControllerPluginManager');
 $config = $services->get('Config');
+$connection = $services->get('Omeka\Connection');
+$entityManager = $services->get('Omeka\EntityManager');
 $api = $plugins->get('api');
+$messenger = $plugins->get('messenger');
 
 if (version_compare($oldVersion, '3.0.1', '<')) {
     $this->checkDependency();
@@ -387,7 +388,6 @@ SQL;
 }
 
 if (version_compare($oldVersion, '3.3.30.0', '<')) {
-    $messenger = new Messenger();
     $message = new Message(
         'It’s now possible to upload files and directories in bulk in item form.' // @translate
     );
@@ -501,7 +501,6 @@ SQL;
         ]);
     }
 
-    $messenger = new Messenger();
     $message = new Message(
         'It’s now possible to edit online the mappings between any json or xml source and omeka resources.' // @translate
     );
@@ -558,7 +557,6 @@ SQL;
 if (version_compare($oldVersion, '3.3.34', '<')) {
     require_once __DIR__ . '/upgrade_vocabulary.php';
 
-    $messenger = new Messenger();
     $messenger->addSuccess($message);
     $message = new Message(
         'New mappers where added to import iiif manifests.' // @translate
@@ -636,7 +634,6 @@ SQL;
         ]);
     }
 
-    $messenger = new Messenger();
     $message = new Message(
         'It’s now possible to import and update assets and to attach them to resources.' // @translate
     );
@@ -646,4 +643,34 @@ SQL;
         'The format of destination metadata has been improved: spaces after "^^", "@" and "§" are no more managed; for multiple datatypes, the ";" was replaced by "^^"; for custom vocab with a label, the label should be wrapped by quotes or double quotes. Check your custom configs if needed.' // @translate
     );
     $messenger->addWarning($message);
+}
+
+if (version_compare($oldVersion, '3.3.36', '<')) {
+    $user = $services->get('Omeka\AuthenticationService')->getIdentity();
+
+    // The resource "bulk_importers" is not available during upgrade.
+    require_once dirname(__DIR__, 2) . '/src/Entity/Import.php';
+    require_once dirname(__DIR__, 2) . '/src/Entity/Importer.php';
+
+    $filenames = [
+        'xml - mets.php',
+        'xml - mods.php',
+    ];
+    foreach ($filenames as $filename) {
+        $filepath = dirname(__DIR__) . '/importers/' . $filename;
+        $data = include $filepath;
+        $data['owner'] = $user;
+        $entity = new \BulkImport\Entity\Importer();
+        foreach ($data as $key => $value) {
+            $method = 'set' . ucfirst($key);
+            $entity->$method($value);
+        }
+        $entityManager->persist($entity);
+    }
+    $entityManager->flush();
+
+    $message = new Message(
+        'It is now possible to import xml mets and xml mods.' // @translate
+    );
+    $messenger->addSuccess($message);
 }
