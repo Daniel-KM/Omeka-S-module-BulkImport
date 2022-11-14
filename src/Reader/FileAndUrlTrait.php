@@ -106,11 +106,21 @@ trait FileAndUrlTrait
      */
     protected function isValidFilepath($filepath, array $file = []): bool
     {
-        $file += ['name' => '[unknown]', 'type' => null];
+        $file += [
+            'name' => $filepath ? basename($filepath) : '[unknown]',
+            'type' => null,
+        ];
 
         if (empty($filepath)) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" doesn’t exist.', // @translate
+                ['filename' => $file['name']]
+            );
+            return false;
+        }
+        if (!file_exists($filepath)) {
+            $this->lastErrorMessage = new PsrMessage(
+                'File "{filename}" does not exist.', // @translate
                 ['filename' => $file['name']]
             );
             return false;
