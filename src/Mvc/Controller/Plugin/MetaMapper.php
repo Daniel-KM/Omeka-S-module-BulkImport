@@ -1704,7 +1704,10 @@ class MetaMapper extends AbstractPlugin
                 // Section type is "mapping".
                 if (!strlen($to)) {
                     $this->hasError = true;
-                    $this->logger->err(sprintf('The mapping "%s" has no destination.', trim($line, "= \t\n\r\0\x0B"))); // @translate
+                    $this->logger->err(sprintf(
+                        'The mapping "%s" has no destination.', // @translate
+                        trim($line, "= \t\n\r\0\x0B")
+                    ));
                     continue;
                 }
                 // Manage default values: dcterms:license = "Public domain"
