@@ -105,23 +105,13 @@ class ImporterForm extends Form
 
     protected function getReaderOptions(): array
     {
-        $options = [];
-        $readerManager = $this->getServiceLocator()->get(ReaderManager::class);
-        $readers = $readerManager->getPlugins();
-        foreach ($readers as $key => $reader) {
-            $options[$key] = $reader->getLabel();
-        }
-        return $options;
+        return $this->getServiceLocator()->get(ReaderManager::class)
+            ->getRegisteredLabels();
     }
 
     protected function getProcessorOptions(): array
     {
-        $options = [];
-        $processorManager = $this->getServiceLocator()->get(ProcessorManager::class);
-        $processors = $processorManager->getPlugins();
-        foreach ($processors as $key => $processor) {
-            $options[$key] = $processor->getLabel();
-        }
-        return $options;
+        return $this->getServiceLocator()->get(ProcessorManager::class)
+            ->getRegisteredLabels();
     }
 }

@@ -5,9 +5,17 @@ namespace BulkImport;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
+/**
+ * @todo Convert into a standard factory. But without load at init or bootstrap, because it's rarely used.
+ */
 abstract class AbstractPluginManager
 {
     use ServiceLocatorAwareTrait;
+
+    /**
+     * @var array
+     */
+    protected $registeredNames;
 
     /**
      * @var array
@@ -36,37 +44,63 @@ abstract class AbstractPluginManager
 
     public function getPlugins()
     {
-        if ($this->plugins) {
+        if (is_array($this->plugins)) {
             return $this->plugins;
         }
 
         $this->plugins = [];
 
-        // @todo Use a standard factory? But without load at init or bootstrap, because it's rarely used.
-
+        $this->getRegisteredNames();
         $services = $this->getServiceLocator();
-        $name = $this->getName();
-        $config = $services->get('Config');
-        $interface = $this->getInterface();
-
-        $items = $config['bulk_import'][$name];
-        foreach ($items as $name => $class) {
-            if (class_exists($class) && in_array($interface, class_implements($class))) {
-                $this->plugins[$name] = new $class($services);
-            }
+        foreach ($this->registeredNames as $name => $class) {
+            $this->plugins[$name] = new $class($services);
         }
+
         return $this->plugins;
     }
 
     public function has($name)
     {
-        $plugins = $this->getPlugins();
-        return isset($plugins[$name]);
+        $this->getRegisteredNames();
+        return isset($this->registeredNames[$name]);
     }
 
     public function get($name)
     {
-        $plugins = $this->getPlugins();
-        return $plugins[$name] ?? null;
+        $this->getRegisteredNames();
+        if (isset($this->registeredNames[$name])) {
+            $class = $this->registeredNames[$name];
+            return new $class($this->getServiceLocator());
+        }
+        return null;
+    }
+
+    public function getRegisteredNames(): array
+    {
+        if (is_array($this->registeredNames)) {
+            return array_keys($this->registeredNames);
+        }
+
+        $this->registeredNames = [];
+
+        $services = $this->getServiceLocator();
+        $items = $services->get('Config')['bulk_import'][$this->getName()];
+        $interface = $this->getInterface();
+        foreach ($items as $name => $class) {
+            if (class_exists($class) && in_array($interface, class_implements($class))) {
+                $this->registeredNames[$name] = $class;
+            }
+        }
+
+        return array_keys($this->registeredNames);
+    }
+
+    public function getRegisteredLabels(): array
+    {
+        $labels = [];
+        foreach ($this->getPlugins() as $key => $reader) {
+            $labels[$key] = $reader->getLabel();
+        }
+        return $labels;
     }
 }
