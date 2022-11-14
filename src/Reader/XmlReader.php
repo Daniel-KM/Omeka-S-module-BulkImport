@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use AppendIterator;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
@@ -15,7 +16,7 @@ use XMLReaderNode;
  * Once transformed into a normalized xml, the reader uses XmlElementIterator
  * instead of XmlReader, that is forward only.
  */
-class XmlReader extends AbstractFileReader
+class XmlReader extends AbstractFileMultipleReader
 {
     protected $label = 'XML'; // @translate
     protected $mediaType = 'text/xml';
@@ -25,6 +26,7 @@ class XmlReader extends AbstractFileReader
 
     protected $configKeys = [
         'url',
+        'list_files',
         'xsl_sheet',
         'mapping_config',
     ];
@@ -32,19 +34,30 @@ class XmlReader extends AbstractFileReader
     protected $paramsKeys = [
         'filename',
         'url',
+        'list_files',
         'xsl_sheet',
         'mapping_config',
     ];
 
     /**
-     * @var \XMLElementIterator
+     * With AppendIterator, the key of the foreach can be the same in a loop.
+     * @see https://www.php.net/manual/en/appenditerator.construct.php
+     *
+     * @var \AppendIterator of \XMLElementIterator
      */
     protected $iterator;
 
     /**
-     * @var XMLReaderNode
+     * XmlReader does not support rewind, so reprepare the iterator when needed.
+     *
+     * @var bool
      */
-    protected $currentData = null;
+    protected $doRewind = false;
+
+    /**
+     * @var \XMLReaderNode
+     */
+    protected $currentData;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\ProcessXslt
@@ -64,7 +77,7 @@ class XmlReader extends AbstractFileReader
 
     public function isValid(): bool
     {
-        // Check if the xsl file is ok, if any.
+        // Before checking each xml file, check if the xsl file is ok, if any.
         // It may be empty if the input is a flat xml file with resources.
         $xslconfig = $this->getParam('xsl_sheet');
         if ($xslconfig) {
@@ -117,30 +130,21 @@ class XmlReader extends AbstractFileReader
 
         // TODO Check mapping if any (xml, ini, base) (for all readers).
 
-        if (!parent::isValid()) {
-            return false;
-        }
-
-        return $this->checkWellFormedXml($this->getParam('filename'));
+        return parent::isValid();
     }
 
-    public function current()
+    protected function isValidMore(): bool
     {
-        // TODO Import a list of files, like json.
-
-        $this->isReady();
-        $this->currentData = $this->iterator->current();
-        if (is_object($this->currentData) && $this->currentData instanceof XMLReaderNode) {
-            return $this->currentEntry();
-        }
-        return null;
+        return $this->checkWellFormedXml($this->currentFilepath);
     }
 
     public function rewind(): void
     {
+        // XmlReader cannot rewind and the XmlIterator may not manage it, so
+        // reprepare the main iterator, but with local files and without check.
+        // Note: AppendIterator is uncloneable.
+        $this->doRewind = true;
         $this->isReady();
-        // $this->iterator->rewind();
-        $this->initializeXmlReader();
     }
 
     /**
@@ -149,62 +153,52 @@ class XmlReader extends AbstractFileReader
      */
     public function valid(): bool
     {
-        $this->isReady();
-        return (bool) $this->iterator->valid();
+        return (bool) parent::valid();
+    }
+
+    protected function isReady(): bool
+    {
+        if ($this->isReady) {
+            if ($this->doRewind) {
+                $this->initializeReader();
+                $this->doRewind = false;
+            }
+            return true;
+        }
+        $this->prepareIterator();
+        return $this->isReady;
     }
 
     protected function initializeReader(): \BulkImport\Reader\Reader
     {
-        $xmlpath = $this->getParam('filename');
+        $this->initArgs();
 
-        // When no transformation is needed, use the input as normalized path.
-        $xslpath = $this->xslpath();
-        if (empty($xslpath)) {
-            $this->normalizedXmlpath = $xmlpath;
-        } else {
-            try {
-                $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath);
-                if (empty($tmpPath)) {
-                    $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
-                    throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
-                }
-            } catch (\Exception $e) {
-                $this->lastErrorMessage = new PsrMessage(
-                    'An issue occurred during initial transformation by the xsl sheet "{xslname}": {message}.', // @translate
-                    ['filename' => basename($this->getParam('file')['name']), 'xslname' => basename($xslpath), 'message' => $e->getMessage()]
-                );
-                throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+        $this->iterator = new AppendIterator();
+
+        // The list of files is prepared during check in isValid().
+        foreach ($this->listFiles as $fileUrl) {
+            if (!$fileUrl) {
+                continue;
             }
-            $this->normalizedXmlpath = $tmpPath;
+            $normalizedCurrentPath = $this->preprocessXslt($fileUrl);
+            $reader = new XMLReaderCore();
+            $reader->open($normalizedCurrentPath);
+            $xmlIterator = new XMLElementIterator($reader, 'resource');
+            // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
+            $xmlIterator->rewind();
+            $this->iterator->append($xmlIterator);
         }
 
-        return $this
-            ->initializeXmlReader()
-            ->initArgs();
+        return $this;
     }
 
     /**
      * @todo Merge with JsonReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
+     * @todo Build a generic pagination mechanism like in json (query, path, token), but rare in xml (probably only for oai-pmh anyway).
+     * @deprecated Use initializeReader only.
      */
     protected function initArgs(): \BulkImport\Reader\Reader
     {
-        if ($this->metaMapper) {
-            return $this;
-        }
-
-        // The mapping file is not required when the main xsl file creates the
-        // resource directly.
-        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
-        if (!$mappingConfig) {
-            $this->metaMapper = null;
-            $this->params['metaMapper'] = null;
-            return $this;
-        }
-
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
-        $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
-
-        // In some cases, the mapper is prepared in a sooner process, so add it.
         // TODO Simplify the flow.
         $this->params['metaMapper'] = $this->metaMapper;
 
@@ -213,45 +207,58 @@ class XmlReader extends AbstractFileReader
             return $this;
         }
 
+        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
+
         $this->metaMapper->init($mappingConfig, $this->params);
         if ($this->metaMapper->hasError()) {
             return $this;
         }
 
-        // @todo See pagination in JsonReader.
-        // @todo See listFiles in JsonReader.
-        // @todo Build a generic pagination mechanism (query, path, token), but rare in xml (but oai-pmh…).
-
         return $this;
     }
 
     /**
-     * Called only by prepareIterator() after opening reader.
+     * Convert a xml file with the specified xsl path.
+     *
+     * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
+    protected function preprocessXslt($xmlpath): string
     {
-        $this->totalEntries = iterator_count($this->iterator);
-        $this->initializeXmlReader();
-        return $this;
-    }
+        // When no transformation is needed, use the input as normalized path.
+        $xslpath = $this->xslpath();
+        if (!$xslpath) {
+            return $xmlpath;
+        }
 
-    protected function initializeXmlReader(): \BulkImport\Reader\Reader
-    {
-        $reader = new XMLReaderCore();
-        $reader->open($this->normalizedXmlpath);
-        $this->iterator = new XMLElementIterator($reader, 'resource');
-        // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
-        $this->iterator->rewind();
-        return $this;
+        try {
+            $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath);
+            if (empty($tmpPath)) {
+                $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
+                throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
+            }
+        } catch (\Exception $e) {
+            $this->lastErrorMessage = new PsrMessage(
+                'An issue occurred during initial transformation by the xsl sheet "{xslname}": {message}.', // @translate
+                ['filename' => basename($this->getParam('file')['name']), 'xslname' => basename($xslpath), 'message' => $e->getMessage()]
+            );
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+        }
+
+        return $tmpPath;
     }
 
     /**
      * @link https://stackoverflow.com/questions/13858074/validating-a-large-xml-file-400mb-in-php#answer-13858478
+     *
      * @param string $filepath
      * @return bool
      */
-    protected function checkWellFormedXml($filepath): bool
+    protected function checkWellFormedXml(?string $filepath): bool
     {
+        if (!$filepath) {
+            return true;
+        }
+
         // Use xmlReader.
         $xmlParser = xml_parser_create();
         if (!($fp = fopen($filepath, 'r'))) {
@@ -275,11 +282,12 @@ class XmlReader extends AbstractFileReader
 
         if ($errors) {
             $this->lastErrorMessage = new PsrMessage(
-                'The file to import is not well formed: {message} (line #{line}).', // @translate
-                ['message' => $errors[0]['error'], 'line' => $errors[0]['line']]
+                'The file "{filename}" to import is not well formed: {message} (line #{line}).', // @translate
+                ['filename' => basename($filepath), 'message' => $errors[0]['error'], 'line' => $errors[0]['line']]
             );
             return false;
         }
+
         return true;
     }
 

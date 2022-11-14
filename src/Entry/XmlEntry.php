@@ -25,12 +25,14 @@ class XmlEntry extends BaseEntry
         $simpleData = new SimpleXMLElement($simpleData->asXML(),
             LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
 
-        $array = $this->attributes($simpleData);
-
+        /*
         if (!empty($this->options['metaMapper'])) {
             $this->initWithMetaMapper($simpleData);
             return;
         }
+        */
+
+        $array = $this->attributes($simpleData);
 
         // TODO For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
         foreach ($namespaces as $prefix => $namespace) {

@@ -7,6 +7,7 @@ use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
+use Omeka\Form\Element as OmekaElement;
 
 class XmlReaderConfigForm extends Form
 {
@@ -25,11 +26,21 @@ class XmlReaderConfigForm extends Form
                 'name' => 'url',
                 'type' => BulkImportElement\OptionalUrl::class,
                 'options' => [
-                    'label' => 'XML url or server filepath', // @translate
-                    'info' => 'The filepath on the server should be prefixed by the protocol "file://" (so three "/").', // @translate
+                    'label' => 'XML url', // @translate
                 ],
                 'attributes' => [
                     'id' => 'url',
+                    'required' => false,
+                ],
+            ])
+            ->add([
+                'name' => 'list_files',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'List of files or urls', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'list_files',
                     'required' => false,
                 ],
             ])

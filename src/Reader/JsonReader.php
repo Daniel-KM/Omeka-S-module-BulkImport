@@ -189,20 +189,10 @@ class JsonReader extends AbstractPaginatedReader
 
     /**
      * @todo Merge with XmlReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
+     * @deprecated Use initializeReader only.
      */
     protected function initArgs(): \BulkImport\Reader\Reader
     {
-        if ($this->metaMapper) {
-            return $this;
-        }
-
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
-        $this->metaMapper = $this->getServiceLocator()->get('ControllerPluginManager')->get('metaMapper');
-
-        // In some cases, the mapper is prepared in a sooner process, so add it.
-        // TODO Simplify the flow.
-        $this->params['metaMapper'] = $this->metaMapper;
-
         // Prepare mapper one time.
         if ($this->metaMapper->isInit()) {
             return $this;
@@ -222,6 +212,7 @@ class JsonReader extends AbstractPaginatedReader
         $this->path = $this->metaMapper->getImportParam('path') ?: null;
         $this->subpath = $this->metaMapper->getImportParam('subpath') ?: null;
 
+        // @todo Use a paginated iterator. See XmlReader.
         // Manage a simple list of url/filepath to json.
         $fileList = $this->getParam('list_files');
         if ($fileList) {

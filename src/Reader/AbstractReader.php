@@ -12,6 +12,9 @@ use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Form;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
+/**
+ * @todo The reader itself may be an iterator or an array. Here too?
+ */
 abstract class AbstractReader implements Reader, Configurable, Parametrizable
 {
     // TODO Remove these traits so sub reader won't be all configurable.
