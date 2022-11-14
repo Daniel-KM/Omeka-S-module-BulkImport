@@ -2,11 +2,11 @@
 
 return [
     'owner' => null,
-    'label' => 'Xml - Items', // @translate
+    'label' => 'Xml - Mods', // @translate
     'config' => [],
     'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
-        'xsl_sheet' => 'module:xsl/identity.xslt1.xsl',
+        'xsl_sheet' => 'module:xsl/mods_to_omeka.xsl',
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [
