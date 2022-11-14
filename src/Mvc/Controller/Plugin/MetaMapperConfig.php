@@ -218,7 +218,7 @@ class MetaMapperConfig extends AbstractPlugin
         return $this->getMergedConfig($name);
     }
 
-    public function getMergedConfig(?string $name): ?array
+    public function getMergedConfig(?string $name = null): ?array
     {
         $config = $this->getSimpleConfig($name);
         if (is_null($config)) {
@@ -230,12 +230,12 @@ class MetaMapperConfig extends AbstractPlugin
         return $config;
     }
 
-    public function getSimpleConfig(?string $name): ?array
+    public function getSimpleConfig(?string $name = null): ?array
     {
         return $this->configs[$name ?? $this->name] ?? null;
     }
 
-    public function isValidConfig(?string $name): ?array
+    public function isValidConfig(?string $name = null): ?array
     {
         $config = $this->getConfig($name);
         return is_null($config)

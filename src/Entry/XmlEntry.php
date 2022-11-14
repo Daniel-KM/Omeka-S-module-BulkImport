@@ -12,6 +12,13 @@ class XmlEntry extends BaseEntry
         // echo $this->data->getSimpleXMLElement()->asXML();
         // $this->logger->debug($this->data->getSimpleXMLElement()->asXML());
 
+        // Convert the data according to the mapping here.
+        if (!empty($this->options['is_formatted'])
+            || empty($this->options['metaMapper'])
+        ) {
+            return;
+        }
+
         if (is_null($this->data)) {
             $this->data = [];
             return;
@@ -25,13 +32,46 @@ class XmlEntry extends BaseEntry
         $simpleData = new SimpleXMLElement($simpleData->asXML(),
             LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
 
-        /*
-        if (!empty($this->options['metaMapper'])) {
-            $this->initWithMetaMapper($simpleData);
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig $metaMapperConfig */
+        $metaMapperConfig = $this->options['metaMapperConfig'];
+        if (!$metaMapperConfig->getMergedConfig()) {
+            $this->extractWithoutMetaConfig($simpleData, $namespaces);
             return;
         }
-        */
 
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $metaMapper = $this->options['metaMapper'];
+
+        // TODO Manage multiple resources inside one file.
+        // Remove wrapper to keep mapping simple with xpath adapted to source.
+        $unwrappedData = null;
+        foreach ($simpleData->xpath('/resource/child::*[1]') as $node) {
+            // Avoid warning on missing namespaces. But here, it doesn't matter.
+            // TODO Log warning on missing namespaces instead of output.
+            $unwrappedData = @new \SimpleXMLElement($node->asXML());
+            break;
+        }
+        if (!$unwrappedData) {
+            $this->data = [];
+            return;
+        }
+
+        // The real resource type is set via config or via processor.
+        $resource = [];
+        $resource = $metaMapper->convertMappingSectionXml('default', $resource, $unwrappedData, true);
+        $resource = $metaMapper->convertMappingSectionXml('mapping', $resource, $unwrappedData);
+
+        // Filter duplicated and null values.
+        foreach ($resource as &$datas) {
+            $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
+        }
+        unset($datas);
+
+        $this->data = $resource;
+    }
+
+    protected function extractWithoutMetaConfig($simpleData, $namespaces)
+    {
         $array = $this->attributes($simpleData);
 
         // TODO For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
@@ -464,43 +504,6 @@ class XmlEntry extends BaseEntry
     {
         // Unlike Entry, data are filtered during array conversion.
         return !count($this->data);
-    }
-
-    /**
-     * @see \BulkImport\Entry\JsonEntry::init()
-     */
-    protected function initWithMetaMapper(SimpleXMLElement $data): void
-    {
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
-        $metaMapper = $this->options['metaMapper'];
-
-        // Remove wrapper to keep mapping simple with xpath adapted to source.
-        $unwrappedData = null;
-        foreach ($data->xpath('/resource/child::*[1]') as $node) {
-            // Avoid warning on missing namespaces. But here, it doesn't matter.
-            // TODO Log warning on missing namespaces instead of output.
-            $unwrappedData = @new \SimpleXMLElement($node->asXML());
-            break;
-        }
-        if (!$unwrappedData) {
-            $this->data = [];
-            return;
-        }
-
-        // The real resource type is set via config or via processor.
-        $resource = [];
-        $resource = $metaMapper->convertMappingSectionXml('default', $resource, $unwrappedData, true);
-        $resource = $metaMapper->convertMappingSectionXml('mapping', $resource, $unwrappedData);
-
-        // Filter duplicated and null values.
-        foreach ($resource as &$datas) {
-            $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
-        }
-        unset($datas);
-
-        // Cf. JsonEntry to manage files (check urls).
-
-        $this->data = $resource;
     }
 
     /**
