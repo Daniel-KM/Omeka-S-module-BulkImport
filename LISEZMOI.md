@@ -502,12 +502,13 @@ TODO
 - [ ] Vérifier une ressource avec `o:item_set[dcterms:title]`.
 - [ ] Ajout d’une action "error" pour les ressources non identifiées.
 - [ ] Séparer l’option "autoriser doublons" en "autoriser manquant" et "autoriser doublons" ?
-- [ ] Ajouter l’importation de fichiers xml multiples comme json.
+- [x] Ajouter l’importation de fichiers xml multiples comme json.
 - [ ] Afficher les détails des alignements : ajouter la liste des configurations utilisées comme importeur et comme parent/enfant.
 - [ ] Ajouter la détermination automatique de la source (csv, fichier, iiif, iiif multiple, omeka classic, etc.).
 - [ ] Remplacer jsdot interne par RoNoLo/json-query ou binary-cube/dot-array ou jasny/dotkey ? Probablement inutile.
 - [ ] Compiler jmespath.
 - [ ] Import/màj des annotations de valeur.
+- [ ] Supprimer les importés quand la ressource est supprimée.
 
 
 Avertissement

@@ -473,12 +473,13 @@ TODO
 - [ ] Check a resource with `o:item_set[dcterms:title]`.
 - [ ] Add action "error" for unidentified resources.
 - [ ] Divide option "allow duplicate" as "allow missing" and "allow duplicate"?
-- [ ] Add import multiple xml files like json.
+- [x] Add import multiple xml files like json.
 - [ ] Show details for mappings: add list of used configuration as importer and as parent/child.
 - [ ] Add automatic determination of the source (csv, file, iiif, multiple iiif, omeka classic, etc.).
 - [ ] Replace internal jsdot by RoNoLo/json-query or binary-cube/dot-array or jasny/dotkey? Probably useless.
 - [ ] Compile jmespath.
 - [ ] Import/update value annotations.
+- [ ] Remove importeds when resource is removed.
 
 
 Warning
