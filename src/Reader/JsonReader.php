@@ -4,6 +4,7 @@ namespace BulkImport\Reader;
 
 use ArrayIterator;
 use BulkImport\Entry\BaseEntry;
+use BulkImport\Entry\Entry;
 use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
@@ -47,6 +48,11 @@ class JsonReader extends AbstractPaginatedReader
      * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
      */
     protected $metaMapper;
+
+    /**
+     * @var array
+     */
+    protected $currentData = null;
 
     /**
      * @var ?string
@@ -105,6 +111,8 @@ class JsonReader extends AbstractPaginatedReader
 
         // TODO Check mapping if any (xml, ini, base) (for all readers).
 
+        // TODO Do a early check of each file or url.
+        // Validity will be checked for each file or url.
         if ($this->listFiles) {
             return true;
         }
@@ -141,6 +149,7 @@ class JsonReader extends AbstractPaginatedReader
             }
         }
 
+        // When it is a list of files, the iterator returns a url or a filepath.
         if ($this->listFiles) {
             $content = @file_get_contents($current);
             if ($content === false) {
@@ -154,11 +163,32 @@ class JsonReader extends AbstractPaginatedReader
                 );
                 return new BaseEntry([], $this->key() + $this->isZeroBased, []);
             }
+            if (empty($content)) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'File "{fileurl}" is empty.', // @translate
+                    ['fileurl' => $current]
+                );
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    $this->lastErrorMessage->getMessage(),
+                    $this->lastErrorMessage->getContext()
+                );
+                return new BaseEntry([], $this->key() + $this->isZeroBased, []);
+            }
             $this->metaMapper->addVariable('url_resource', $current);
             $current = json_decode($content, true) ?: [];
         }
 
-        return new JsonEntry($current, $this->key() + $this->isZeroBased, [], $this->getParams());
+        $this->currentData = $current ?: null;
+        if ($this->currentData) {
+            return $this->currentEntry();
+        }
+
+        return null;
+    }
+
+    protected function currentEntry(): Entry
+    {
+        return new JsonEntry($this->currentData, $this->key() + $this->isZeroBased, [], $this->getParams());
     }
 
     public function rewind(): void
@@ -170,6 +200,9 @@ class JsonReader extends AbstractPaginatedReader
         }
     }
 
+    /**
+     * @todo Merge with XmlReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
+     */
     protected function initArgs(): \BulkImport\Reader\Reader
     {
         if ($this->metaMapper) {
