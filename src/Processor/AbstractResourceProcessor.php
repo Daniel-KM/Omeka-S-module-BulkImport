@@ -508,11 +508,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $maxRemaining = $maxEntries;
 
         // Manage the case where the reader is zero-based or one-based.
-        $firstIndexBase = null;
-        foreach ($this->reader as $index => $entry) {
-            if (is_null($firstIndexBase)) {
-                $firstIndexBase = (int) empty($index);
-            }
+        // Note: AppendIterator can return the same index multiple times (inner
+        // iterator), so use an incrementor and use the combinaison of the main
+        // iterator and the inner iterator for logs.
+        // TODO Add log for the main iterator and the inner iterator.
+        $mainIndex = 0;
+
+        foreach ($this->reader as /* $innerIndex => */ $entry) {
+            ++$mainIndex;
             if ($this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped during initial listing of identifiers.', // @translate
@@ -544,8 +547,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
             }
 
-            // The first entry is #1, but the iterator (array) may number it 0.
-            $this->indexResource = $index + $firstIndexBase;
+            // Note: a resource from the reader may contain multiple resources.
+            $this->indexResource = $mainIndex;
 
             if ($toSkip) {
                 --$toSkip;
@@ -681,11 +684,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Do a first loop to get all identifiers and linked resources to speed up process.
 
         // Manage the case where the reader is zero-based or one-based.
-        $firstIndexBase = null;
-        foreach ($this->reader as $index => $entry) {
-            if (is_null($firstIndexBase)) {
-                $firstIndexBase = (int) empty($index);
-            }
+        // Note: AppendIterator can return the same index multiple times (inner
+        // iterator), so use an incrementor and use the combinaison of the main
+        // iterator and the inner iterator for logs.
+        // TODO Add log for the main iterator and the inner iterator.
+        $mainIndex = 0;
+
+        foreach ($this->reader as /* $innerIndex => */ $entry) {
+            ++$mainIndex;
             if ($this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped during initial checks.', // @translate
@@ -717,8 +723,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
             }
 
-            // The first entry is #1, but the iterator (array) may number it 0.
-            $this->indexResource = $index + $firstIndexBase;
+            // Note: a resource from the reader may contain multiple resources.
+            $this->indexResource = $mainIndex;
 
             if ($toSkip) {
                 $this->logCheckedResource(null, null);
@@ -793,12 +799,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $shouldStop = false;
         $dataToProcess = [];
+
         // Manage the case where the reader is zero-based or one-based.
-        $firstIndexBase = null;
-        foreach ($this->reader as $index => $entry) {
-            if (is_null($firstIndexBase)) {
-                $firstIndexBase = (int) empty($index);
-            }
+        // Note: AppendIterator can return the same index multiple times (inner
+        // iterator), so use an incrementor and use the combinaison of the main
+        // iterator and the inner iterator for logs.
+        // TODO Add log for the main iterator and the inner iterator.
+        $mainIndex = 0;
+
+        foreach ($this->reader as /* $innerIndex => */ $entry) {
+            ++$mainIndex;
             if ($shouldStop = $this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped.', // @translate
@@ -836,8 +846,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             ++$this->totalIndexResources;
-            // The first entry is #1, but the iterator (array) may number it 0.
-            $this->indexResource = $index + $firstIndexBase;
+
+            // Note: a resource from the reader may contain multiple resources.
+            $this->indexResource = $mainIndex;
 
             if ($maxEntries) {
                 --$maxRemaining;

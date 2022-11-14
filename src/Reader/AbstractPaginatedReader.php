@@ -6,6 +6,7 @@ use ArrayIterator;
 
 /**
  * A simple and quick paginator, since each source data is read as a whole.
+ * @todo Replace with an IteratorIterator.
  *
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
  * TODO Implement Caching ? ArrayAccess, Seekable, Limit, Filter, OuterIterator…? Or only Reader interface?

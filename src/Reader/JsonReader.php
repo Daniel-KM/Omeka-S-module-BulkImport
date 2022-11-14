@@ -161,7 +161,7 @@ class JsonReader extends AbstractPaginatedReader
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
-                return new BaseEntry([], $this->key() + $this->isZeroBased, []);
+                return new BaseEntry([], $this->key(), []);
             }
             if (empty($content)) {
                 $this->lastErrorMessage = new PsrMessage(
@@ -172,7 +172,7 @@ class JsonReader extends AbstractPaginatedReader
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
-                return new BaseEntry([], $this->key() + $this->isZeroBased, []);
+                return new BaseEntry([], $this->key(), []);
             }
             $this->metaMapper->addVariable('url_resource', $current);
             $current = json_decode($content, true) ?: [];
@@ -188,7 +188,7 @@ class JsonReader extends AbstractPaginatedReader
 
     protected function currentEntry(): Entry
     {
-        return new JsonEntry($this->currentData, $this->key() + $this->isZeroBased, [], $this->getParams());
+        return new JsonEntry($this->currentData, $this->key(), [], $this->getParams());
     }
 
     public function rewind(): void

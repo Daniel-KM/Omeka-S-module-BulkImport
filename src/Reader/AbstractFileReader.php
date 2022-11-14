@@ -128,7 +128,7 @@ abstract class AbstractFileReader extends AbstractReader
      */
     protected function currentEntry(): Entry
     {
-        return new BaseEntry($this->currentData, $this->key() + $this->isZeroBased, $this->availableFields, $this->getParams());
+        return new BaseEntry($this->currentData, $this->key(), $this->availableFields, $this->getParams());
     }
 
     #[\ReturnTypeWillChange]

@@ -41,7 +41,7 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
         // TODO Use the Box Spout Row as current data? Probably useless.
         return new SpreadsheetEntry(
             $this->currentData,
-            $this->key() + $this->isZeroBased,
+            $this->key(),
             $this->availableFields,
             $this->getParams()
                 + ['metaMapper' => $this->metaMapper, 'metaMapperConfig' => $this->metaMapperConfig]
