@@ -237,6 +237,7 @@ class InstallResources
         $label = $data['o:label'];
         try {
             // Custom vocab cannot be searched.
+            /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
             $customVocab = $this->api->read('custom_vocabs', ['label' => $label])->getContent();
         } catch (NotFoundException $e) {
             return false;
@@ -248,8 +249,9 @@ class InstallResources
             return null;
         }
 
+        // TODO Manage uri and item ids.
         $newTerms = $data['o:terms'] ?? [];
-        $existingTerms = explode("\n", $customVocab->terms());
+        $existingTerms = method_exists($customVocab, 'listTerms') ? $customVocab->terms() : explode("\n", $customVocab->terms());
         sort($newTerms);
         sort($existingTerms);
         if ($newTerms !== $existingTerms) {
@@ -800,6 +802,7 @@ SQL;
 
         $label = $data['o:label'];
         try {
+            /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
             $customVocab = $this->api->read('custom_vocabs', ['label' => $label])->getContent();
         } catch (NotFoundException $e) {
             throw new RuntimeException(
@@ -810,11 +813,12 @@ SQL;
             );
         }
 
-        $terms = array_map('trim', explode(PHP_EOL, $customVocab->terms()));
+        //  TODO Manage uris and item ids.
+        $terms = method_exists($customVocab, 'typeValues') ? $customVocab->terms() : array_map('trim', explode(PHP_EOL, $customVocab->terms()));
         $terms = array_merge($terms, $data['o:terms']);
         $this->api->update('custom_vocabs', $customVocab->id(), [
             'o:label' => $label,
-            'o:terms' => implode(PHP_EOL, $terms),
+            'o:terms' => $this->isModuleVersionAtLeast('CustomVocab', '1.7.0') ? $terms : implode(PHP_EOL, $terms),
         ], [], ['isPartial' => true]);
 
         return $customVocab;
@@ -867,6 +871,27 @@ SQL;
         } catch (NotFoundException $e) {
         }
         return $this;
+    }
+
+    /**
+     * Check the version of a module.
+     *
+     * It is recommended to use checkModuleAvailability(), that manages the fact
+     * that the module may be required or not.
+     */
+    protected function isModuleVersionAtLeast(string $module, string $version): bool
+    {
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $this->services->get('Omeka\ModuleManager');
+        $module = $moduleManager->getModule($module);
+        if (!$module) {
+            return false;
+        }
+
+        $moduleVersion = $module->getIni('version');
+        return $moduleVersion
+            ? version_compare($moduleVersion, $version, '>=')
+            : false;
     }
 
     /**

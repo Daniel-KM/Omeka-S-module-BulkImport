@@ -774,12 +774,22 @@ class Bulk extends AbstractPlugin
             $customVocabs[$customVocabDataType]['cv'] = $customVocab->id();
 
             // Support in v1.4.0, but v1.3.0 supports Omeka 3.0.0.
-            if (method_exists($customVocabs[$customVocabDataType]['cv'], 'uris') && $uris = $customVocab->uris()) {
-                $uris = array_filter(array_map('trim', explode("\n", $uris)));
-                $list = [];
-                foreach ($uris as $uriLabel) {
-                    $list[] = $uriLabel;
-                    $list[] = strtok($uriLabel, ' ');
+            // TODO Simplify custom vocabs in Omeka v4.
+            if (method_exists($customVocab, 'uris') && $uris = $customVocab->uris()) {
+                if (method_exists($customVocab, 'listUriLabels')) {
+                    $uris = $customVocab->listUriLabels();
+                    $list = [];
+                    foreach ($uris as $uri => $label) {
+                        $list[] = trim($uri . ' ' . $label);
+                        $list[] = $uri;
+                    }
+                } else {
+                    $uris = array_filter(array_map('trim', explode("\n", $uris)));
+                    $list = [];
+                    foreach ($uris as $uriLabel) {
+                        $list[] = $uriLabel;
+                        $list[] = strtok($uriLabel, ' ');
+                    }
                 }
                 $customVocabs[$customVocabDataType]['type'] = 'uri';
                 $customVocabs[$customVocabDataType]['uris'] = $list;
@@ -789,7 +799,9 @@ class Bulk extends AbstractPlugin
                 $customVocabs[$customVocabDataType]['item_set_id'] = (int) $itemSet->id();
             } else {
                 $customVocabs[$customVocabDataType]['type'] = 'literal';
-                $customVocabs[$customVocabDataType]['terms'] = array_filter(array_map('trim', explode("\n", $customVocab->terms())), 'strlen');
+                $customVocabs[$customVocabDataType]['terms'] = method_exists($customVocab, 'listTerms')
+                    ? $customVocab->terms()
+                    : array_filter(array_map('trim', explode("\n", $customVocab->terms())), 'strlen');
             }
         }
 
