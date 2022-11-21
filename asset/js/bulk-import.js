@@ -201,19 +201,27 @@
             var sortFunction;
             if (sortType === 'ascii') {
                 sortFunction = function (x, y) {
-                    return x.name === y.name ? 0 : (x.name > y.name ? 1 : -1);
+                    return x === null || y === null || x.name === y.name
+                        ? 0
+                        : (x.name > y.name ? 1 : -1);
                 }
             } else if (sortType === 'alpha') {
                 sortFunction = function (x, y) {
-                    return x.name.localeCompare(y.name);
+                    return x === null || y === null
+                        ? 0
+                        : x.name.localeCompare(y.name);
                 }
             } else if (sortType === 'ascii-path') {
                 sortFunction = function (x, y) {
-                    return x.path === y.path ? 0 : (x.path > y.path ? 1 : -1);
+                    return  x === null || y === null || x.path === y.path
+                        ? 0
+                        : (x.path > y.path ? 1 : -1);
                 }
             } else if (sortType === 'alpha-path') {
                 sortFunction = function (x, y) {
-                    return x.path.localeCompare(y.path);
+                    return x === null || y === null
+                        ? 0
+                        : x.path.localeCompare(y.path);
                 }
             } else {
                 return;
@@ -225,7 +233,11 @@
 
             var listNames = [];
             $(listUploaded).find('li').each(function () {
-                listNames.push({li: this, name: $(this).data('filename'), path: $(this).data('filepath')});
+                listNames.push({
+                    li: this,
+                    name: $(this).data('filename'),
+                    path: $(this).data('filepath'),
+                });
             });
             listNames.sort(sortFunction);
             var html = '';
