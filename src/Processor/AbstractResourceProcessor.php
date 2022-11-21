@@ -173,6 +173,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * @var int
      */
+    protected $totalEmpty = 0;
+
+    /**
+     * @var int
+     */
     protected $totalErrors = 0;
 
     public function getResourceName(): ?string
@@ -324,6 +329,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->processing = 0;
         $this->totalSkipped = 0;
         $this->totalProcessed = 0;
+        $this->totalEmpty = 0;
         $this->totalErrors = 0;
 
         $this->prepareFullRun();
@@ -375,6 +381,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->processing = 0;
         $this->totalSkipped = 0;
         $this->totalProcessed = 0;
+        $this->totalEmpty = 0;
         $this->totalErrors = 0;
 
         $this->processFullRun();
@@ -543,20 +550,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
                 if ($this->totalToProcess) {
                     $this->logger->notice(
-                        '{total_processed}/{total_resources} resources processed during initial listing of identifiers, {total_skipped} skipped or blank, {total_errors} errors.', // @translate
+                        '{total_processed}/{total_resources} resources processed during initial listing of identifiers, {total_skipped} skipped, {total_empty} empty, {total_errors} errors.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_resources' => $this->totalToProcess,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
                 } else {
                     $this->logger->notice(
-                        '{total_processed} resources processed during initial listing of identifiers, {total_skipped} skipped or blank, {total_errors} errors.', // @translate
+                        '{total_processed} resources processed during initial listing of identifiers, {total_skipped} skipped, {total_empty} empty, {total_errors} errors.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
@@ -568,6 +577,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             if ($toSkip) {
                 --$toSkip;
+                ++$this->totalSkipped;
                 continue;
             }
 
@@ -607,12 +617,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }, $this->identifiers['map']);
 
         $this->logger->notice(
-            'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors.', // @translate
+            'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_identifiers' => count($this->identifiers['map']),
                 'total_skipped' => $this->totalSkipped,
                 'total_processed' => $this->totalProcessed,
+                'total_empty' => $this->totalEmpty,
                 'total_errors' => $this->totalErrors,
             ]
         );
@@ -726,20 +737,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
                 if ($this->totalToProcess) {
                     $this->logger->notice(
-                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_resources' => $this->totalToProcess,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
                 } else {
                     $this->logger->notice(
-                        '{total_processed} resources checked, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        '{total_processed} resources checked, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
@@ -752,6 +765,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if ($toSkip) {
                 $this->logCheckedResource(null, null);
                 --$toSkip;
+                ++$this->totalSkipped;
                 continue;
             }
 
@@ -794,11 +808,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->logger->notice(
-            'End of global check: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data.', // @translate
+            'End of global check: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_skipped' => $this->totalSkipped,
                 'total_processed' => $this->totalProcessed,
+                'total_empty' => $this->totalEmpty,
                 'total_errors' => $this->totalErrors,
             ]
         );
@@ -843,20 +858,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
                 if ($this->totalToProcess) {
                     $this->logger->notice(
-                        '{total_processed}/{total_resources} resources processed, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        '{total_processed}/{total_resources} resources processed, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_resources' => $this->totalToProcess,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
                 } else {
                     $this->logger->notice(
-                        '{total_processed} resources processed, {total_skipped} skipped or blank, {total_errors} errors inside data.', // @translate
+                        '{total_processed} resources processed, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
                         [
                             'total_processed' => $this->totalProcessed,
                             'total_skipped' => $this->totalSkipped,
+                            'total_empty' => $this->totalEmpty,
                             'total_errors' => $this->totalErrors,
                         ]
                     );
@@ -865,6 +882,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             if ($toSkip) {
                 --$toSkip;
+                ++$this->totalSkipped;
                 continue;
             }
 
@@ -927,11 +945,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped or blank, {total_processed} processed, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+            'End of process: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
                 'total_skipped' => $this->totalSkipped,
                 'total_processed' => $this->totalProcessed,
+                'total_empty' => $this->totalEmpty,
                 'total_errors' => $this->totalErrors,
             ]
         );
@@ -944,8 +963,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected function processEntry(Entry $entry): ?ArrayObject
     {
+        // Generally, empty entries in spreadsheet are empty rows. But it may be
+        // a bad conversion for other formats.
         if ($entry->isEmpty()) {
-            ++$this->totalSkipped;
+            ++$this->totalEmpty;
             return null;
         }
 
