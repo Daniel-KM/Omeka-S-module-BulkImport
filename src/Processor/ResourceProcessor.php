@@ -544,7 +544,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
-        $resource['source_index'] = $entry->index();
+        $resource['source_index'] = $this->indexResource;
         $resource['messageStore']->clearMessages();
 
         $this->skippedSourceFields = [];

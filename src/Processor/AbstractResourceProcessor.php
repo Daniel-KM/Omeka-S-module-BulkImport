@@ -129,6 +129,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     ];
 
     /**
+     * Index of the current entry.
+     *
+     * The entry may be 0-based or 1-based, or inconsistent (IteratorIterator).
+     * So this index is a stable one-based index.
+     *
+     * @todo It is a duplicate of indexResource for now.
+     *
+     * @var int
+     */
+    protected $currentEntryIndex = 0;
+
+    /**
      * @var int
      */
     protected $totalToProcess = 0;
@@ -306,6 +318,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Step 2/3: process all rows to get errors.
 
         // Reset counts.
+        $this->currentEntryIndex = 0;
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
         $this->processing = 0;
@@ -356,6 +369,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Step 3/3: process real import.
 
         // Reset counts.
+        $this->currentEntryIndex = 0;
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
         $this->processing = 0;
@@ -512,10 +526,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // iterator), so use an incrementor and use the combinaison of the main
         // iterator and the inner iterator for logs.
         // TODO Add log for the main iterator and the inner iterator.
-        $mainIndex = 0;
+        $this->currentEntryIndex = 0;
+
+        // The main index is human one-based.
 
         foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$mainIndex;
+            ++$this->currentEntryIndex;
             if ($this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped during initial listing of identifiers.', // @translate
@@ -548,7 +564,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $mainIndex;
+            $this->indexResource = $this->currentEntryIndex;
 
             if ($toSkip) {
                 --$toSkip;
@@ -574,7 +590,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Clean identifiers for duplicates.
         $this->identifiers['source'] = array_map('array_unique', $this->identifiers['source']);
+
+        // Simplify identifiers revert.
         $this->identifiers['revert'] = array_map('array_unique', $this->identifiers['revert']);
+        foreach ($this->identifiers['revert'] as &$values) {
+            $values = array_combine($values, $values);
+        }
+        unset($values);
+
         // Empty identifiers should be null to use isset().
         $this->identifiers['mapx'] = array_map(function ($v) {
             return $v ?: null;
@@ -688,10 +711,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // iterator), so use an incrementor and use the combinaison of the main
         // iterator and the inner iterator for logs.
         // TODO Add log for the main iterator and the inner iterator.
-        $mainIndex = 0;
+        $this->currentEntryIndex = 0;
 
         foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$mainIndex;
+            ++$this->currentEntryIndex;
             if ($this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped during initial checks.', // @translate
@@ -724,7 +747,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $mainIndex;
+            $this->indexResource = $this->currentEntryIndex;
 
             if ($toSkip) {
                 $this->logCheckedResource(null, null);
@@ -805,10 +828,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // iterator), so use an incrementor and use the combinaison of the main
         // iterator and the inner iterator for logs.
         // TODO Add log for the main iterator and the inner iterator.
-        $mainIndex = 0;
+        $this->currentEntryIndex = 0;
 
         foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$mainIndex;
+            ++$this->currentEntryIndex;
             if ($shouldStop = $this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped.', // @translate
@@ -848,7 +871,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ++$this->totalIndexResources;
 
             // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $mainIndex;
+            $this->indexResource = $this->currentEntryIndex;
 
             if ($maxEntries) {
                 --$maxRemaining;
@@ -946,13 +969,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
 
-        $resource['source_index'] = $entry->index();
+        $resource['source_index'] = $this->indexResource;
 
         $keys = $this->metadataData;
 
         // Added for security.
         $keys['skip'] = [
             'checked_id' => null,
+            // The human source index is one-based, so it means undetermined.
             'source_index' => 0,
             'messageStore' => null,
         ] + ($keys['skip'] ?? []);
@@ -985,7 +1009,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         /** @var \ArrayObject $resource */
         $resource = clone $this->base;
-        $resource['source_index'] = $entry->index();
+        $resource['source_index'] = $this->indexResource;
         $resource['messageStore']->clearMessages();
 
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
@@ -1017,6 +1041,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
         $resource['o:id'] = null;
+        // The human source index is one-based, so it means undetermined.
         $resource['source_index'] = 0;
         $resource['checked_id'] = false;
         $resource['messageStore'] = new MessageStore();
@@ -1368,6 +1393,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // The id is set, but not checked. So check it.
+        // TODO Check if the resource name is the good one.
         if ($resource['o:id']) {
             $resourceName = $resource['resource_name'] ?: $this->getResourceName();
             if (empty($resourceName) || $resourceName === 'resources') {
@@ -1518,8 +1544,40 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 } elseif ($mainResourceName === 'resources') {
                     $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
                 }
+                $ids = array_filter($ids);
+                // Store the id one time.
+                // TODO Merge with storeSourceIdentifiersIds().
+                if ($ids) {
+                    foreach ($ids as $identifier => $id) {
+                        $idEntity = $id . '§' . $mainResourceName;
+                        $this->identifiers['mapx'][$resource['source_index']] = $idEntity;
+                        $this->identifiers['map'][$identifier . '§' . $mainResourceName] = $idEntity;
+                    }
+                    if (isset($resource['messageStore'])) {
+                        $resource['messageStore']->addInfo('identifier', new PsrMessage(
+                            'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                            [
+                                'identifier' => key($ids),
+                                'metadata' => $identifierName,
+                                'resource_name' => $this->bulk->label($resourceName),
+                                'resource_id' => $resource['o:id'],
+                            ]
+                        ));
+                    } else {
+                        $this->logger->info(
+                            'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
+                            [
+                                'index' => $this->indexResource,
+                                'identifier' => key($ids),
+                                'metadata' => $identifierName,
+                                'resource_name' => $this->bulk->label($resourceName),
+                                'resource_id' => $resource['o:id'],
+                            ]
+                        );
+                    }
+                }
             } elseif (!empty($this->identifiers['mapx'][$resource['source_index']])) {
-                $ids = [(int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§')];
+                $ids = array_fill_keys($identifiers, (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§'));
             }
             if (!$ids) {
                 continue;
@@ -1552,30 +1610,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     break;
                 }
             }
+
             $resource['o:id'] = reset($ids);
             $resource['checked_id'] = true;
-            if (isset($resource['messageStore'])) {
-                $resource['messageStore']->addInfo('identifier', new PsrMessage(
-                    'Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
-                    [
-                        'identifier' => key($ids),
-                        'metadata' => $identifierName,
-                        'resource_name' => $this->bulk->label($resourceName),
-                        'resource_id' => $resource['o:id'],
-                    ]
-                ));
-            } else {
-                $this->logger->info(
-                    'Index #{index}: Identifier "{identifier}" ({metadata}) matches {resource_name} #{resource_id}.', // @translate
-                    [
-                        'index' => $this->indexResource,
-                        'identifier' => key($ids),
-                        'metadata' => $identifierName,
-                        'resource_name' => $this->bulk->label($resourceName),
-                        'resource_id' => $resource['o:id'],
-                    ]
-                );
-            }
             return true;
         }
 
@@ -1987,7 +2024,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if ($idOrIdentifier) {
                 // No check for duplicates here: it depends on action.
                 $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . '§' . $mainResourceName;
-                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName][] = $this->indexResource;
+                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName][$this->indexResource] = $this->indexResource;
             }
             // Source indexes to resource id.
             $this->identifiers['mapx'][$this->indexResource] = empty($resource['o:id'])
