@@ -55,19 +55,19 @@ class ImporterController extends AbstractActionController
 
     public function editAction()
     {
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        /** @var \BulkImport\Api\Representation\ImporterRepresentation $entity */
-        $entity = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
 
-        if ($id && !$entity) {
+        if ($id && !$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         $form = $this->getForm(ImporterForm::class);
-        if ($entity) {
-            $data = $entity->getJsonLd();
+        if ($importer) {
+            $data = $importer->getJsonLd();
             $form->setData($data);
         }
 
@@ -76,7 +76,7 @@ class ImporterController extends AbstractActionController
             $form->setData($post);
             if ($form->isValid()) {
                 $data = $form->getData();
-                if ($entity) {
+                if ($importer) {
                     $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
                 } else {
                     $data['o:owner'] = $this->identity();
@@ -96,16 +96,18 @@ class ImporterController extends AbstractActionController
         }
 
         return new ViewModel([
+            'importer' => $importer,
             'form' => $form,
         ]);
     }
 
     public function deleteAction()
     {
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $entity = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
 
-        if (!$entity) {
+        if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
@@ -120,7 +122,7 @@ class ImporterController extends AbstractActionController
         }
 
         $form = $this->getForm(ImporterDeleteForm::class);
-        $form->setData($entity->getJsonLd());
+        $form->setData($importer->getJsonLd());
 
         if ($this->getRequest()->isPost()) {
             $data = $this->params()->fromPost();
@@ -139,25 +141,25 @@ class ImporterController extends AbstractActionController
         }
 
         return new ViewModel([
-            'entity' => $entity,
+            'importer' => $importer,
             'form' => $form,
         ]);
     }
 
     public function configureReaderAction()
     {
-        /** @var \BulkImport\Api\Representation\ImporterRepresentation $entity */
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $entity = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
 
-        if (!$entity) {
+        if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         /** @var \BulkImport\Reader\Reader $reader */
-        $reader = $entity->reader();
+        $reader = $importer->reader();
         $form = $this->getForm($reader->getConfigFormClass());
         $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
         $form->setData($readerConfig);
@@ -195,6 +197,7 @@ class ImporterController extends AbstractActionController
         }
 
         return new ViewModel([
+            'importer' => $importer,
             'reader' => $reader,
             'form' => $form,
         ]);
@@ -202,17 +205,18 @@ class ImporterController extends AbstractActionController
 
     public function configureProcessorAction()
     {
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $entity = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
 
-        if (!$entity) {
+        if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'importer']);
         }
 
         /** @var \BulkImport\Processor\Processor $processor */
-        $processor = $entity->processor();
+        $processor = $importer->processor();
         $form = $this->getForm($processor->getConfigFormClass());
         $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
         $form->setData($processorConfig);
@@ -251,6 +255,7 @@ class ImporterController extends AbstractActionController
         }
 
         return new ViewModel([
+            'importer' => $importer,
             'processor' => $processor,
             'form' => $form,
         ]);

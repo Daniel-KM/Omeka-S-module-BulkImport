@@ -1,8 +1,8 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
  * @var \BulkImport\Form\ImporterDeleteForm $form
- * @var \BulkImport\Api\Representation\ImporterRepresentation $entity
  */
 
 $translate = $this->plugin('translate');
@@ -13,10 +13,10 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Delete importer'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?= $escape(sprintf($translate('Delete importer (%s)'), $entity->label())) ?></h2>
+    <h2><?= $escape(sprintf($translate('Delete importer (%s)'), $importer->label())) ?></h2>
     <p><?= $escape($translate('Are you sure you want to delete this importer?')) ?></p>
     <?php
     echo $this->form()->openTag($form);

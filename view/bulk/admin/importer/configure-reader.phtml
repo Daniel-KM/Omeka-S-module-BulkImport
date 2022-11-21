@@ -1,6 +1,7 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
  * @var \BulkImport\Reader\Reader $reader
  * @var \Laminas\Form\Form $form
  */
@@ -13,10 +14,11 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Configure reader'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
-    <h2><?= $escape($translate('Configure reader')); ?></h2>
+    <h2><?= $escape($translate('Configure reader')) ?></h2>
+    <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <h3><?= $escape(sprintf($translate('Reader: %s'), $reader->getLabel())) ?></h3>
     <p><?= $escape($translate('Fill the default values of the reader.')) ?></p>
     <?php

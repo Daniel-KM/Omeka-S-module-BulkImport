@@ -1,8 +1,8 @@
 <?php
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
  * @var \BulkImport\Form\ImporterDeleteForm $form
- * @var \BulkImport\Api\Representation\ImporterRepresentation $entity
  */
 
 $translate = $this->plugin('translate');
@@ -13,7 +13,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Edit importer'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
 
 <div id="content">
     <h2><?= $escape($translate('Edit importer')) ?></h2>
