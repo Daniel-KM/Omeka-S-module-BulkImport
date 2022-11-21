@@ -274,7 +274,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return new $class(
             $this->currentData,
             $this->key(),
-            [],
+            $this->availableFields,
             $this->getParams() + [
                 'metaMapper' => $this->metaMapper,
                 'metaMapperConfig' => $this->metaMapperConfig,
