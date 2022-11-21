@@ -480,6 +480,7 @@ TODO
 - [ ] Compile jmespath.
 - [ ] Import/update value annotations.
 - [ ] Remove importeds when resource is removed.
+- [ ] Output a one-based index from the entry.
 
 
 Warning
