@@ -1409,8 +1409,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * Fill id of a resource if not set. No check is done if set, so use
-     * checkId() first.
+     * Fill id of resource if not set. No check if set, so use checkId() first.
      *
      * The resource type is required, so this method should be used in the end
      * of the process.
