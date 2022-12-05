@@ -808,6 +808,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->logger->notice(
+            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when resources are not found.', // @translate
+            ['names' => implode(', ', array_keys($this->bulk->getIdentifierNames()))]
+        );
+
+        $this->logger->notice(
             'End of global check: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
