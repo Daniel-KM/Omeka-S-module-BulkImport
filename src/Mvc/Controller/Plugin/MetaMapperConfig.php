@@ -145,6 +145,7 @@ class MetaMapperConfig extends AbstractPlugin
      *          ],
      *          'mod' => [
      *              'raw' => null,
+     *              'val' => null,
      *              'prepend' => 'pattern for ',
      *              'pattern' => '{{ value|trim }} with {{/source/record/data}}',
      *              'append' => null,
@@ -166,7 +167,7 @@ class MetaMapperConfig extends AbstractPlugin
      * For example, the ini map for the map above is:
      *
      * ```
-     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for {{ value|trim }} with {{/source/record/data}}
+     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §public ~ pattern for {{ value|trim }} with {{/source/record/data}}
      * ```
      *
      * The same mapping for the xml is:
@@ -175,7 +176,7 @@ class MetaMapperConfig extends AbstractPlugin
      * <mapping>
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
-     *         <to field="dcterms:title" language="fra" datatype="literal" visibility="private"/>
+     *         <to field="dcterms:title" language="fra" datatype="literal" visibility="public"/>
      *         <mod pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
@@ -794,6 +795,7 @@ class MetaMapperConfig extends AbstractPlugin
 
         $modKeys = $options['mod_keys'] ?? [
             'raw' => null,
+            'val' => null,
             'prepend' => null,
             'pattern' => null,
             'append' => null,
@@ -898,22 +900,36 @@ class MetaMapperConfig extends AbstractPlugin
             ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
             : null;
 
-        $result['mod']['raw'] = isset($xmlArray['mod']['@attributes']['raw']) && strlen($xmlArray['mod']['@attributes']['raw'])
+        $result['mod']['raw'] = isset($xmlArray['mod']['@attributes']['raw']) && strlen((string) $xmlArray['mod']['@attributes']['raw'])
             ? (string) $xmlArray['mod']['@attributes']['raw']
             : null;
         $hasNoRaw = is_null($result['mod']['raw']);
-        $result['mod']['prepend'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['prepend'])
+        $result['mod']['val'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['val']) && strlen((string) $xmlArray['mod']['@attributes']['val'])
+            ? (string) $xmlArray['mod']['@attributes']['val']
+            : null;
+        $hasNoVal = is_null($result['mod']['val']);
+        $hasNoRawVal = $hasNoRaw && $hasNoVal;
+        $result['mod']['prepend'] = $hasNoRawVal && isset($xmlArray['mod']['@attributes']['prepend'])
             ? (string) $xmlArray['mod']['@attributes']['prepend']
             : null;
-        $result['mod']['append'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['append'])
+        $result['mod']['append'] = $hasNoRawVal && isset($xmlArray['mod']['@attributes']['append'])
             ? (string) $xmlArray['mod']['@attributes']['append']
             : null;
         $result['mod']['pattern'] = null;
-        if ($hasNoRaw && isset($xmlArray['mod']['@attributes']['pattern'])) {
+        if ($hasNoRawVal && isset($xmlArray['mod']['@attributes']['pattern'])) {
             $r = $this->preparePattern((string) $xmlArray['mod']['@attributes']['pattern']);
             if (isset($r['raw']) && strlen($r['raw'])) {
                 $result['mod']['raw'] = $r['raw'];
+                $result['mod']['val'] = null;
                 $hasNoRaw = false;
+                $hasNoVal = true;
+                $hasNoRawVal = false;
+            } elseif (isset($r['val']) && strlen($r['val'])) {
+                $result['mod']['raw'] = null;
+                $result['mod']['val'] = $r['val'];
+                $hasNoRaw = true;
+                $hasNoVal = false;
+                $hasNoRawVal = false;
             } else {
                 if (isset($r['prepend']) && strlen($r['prepend'])) {
                     $result['mod']['prepend'] = $r['prepend'];
@@ -929,9 +945,9 @@ class MetaMapperConfig extends AbstractPlugin
         }
 
         // @todo Remove the short destination (used in processor and when converting to avoid duplicates).
-        $fullPattern = $hasNoRaw
+        $fullPattern = $hasNoRawVal
             ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
-            : (string) $result['mod']['raw'];
+            : (isset($result['mod']['raw']) ? (string) $result['mod']['raw'] : (string) $result['mod']['val']);
         $result['to']['dest'] = $result['to']['field']
             // Here, the short datatypes and custom vocab labels are already cleaned.
             . (count($result['to']['datatype']) ? ' ^^' . implode(' ^^', $result['to']['datatype']) : '')
