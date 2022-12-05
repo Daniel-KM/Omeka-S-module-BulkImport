@@ -1375,8 +1375,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                     ];
                 }
                 return true;
+            default:
+                return false;
         }
-        return false;
     }
 
     protected function fillItemSet(ArrayObject $resource, $target, array $values): bool
@@ -1388,8 +1389,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                     ? false
                     : (bool) $value;
                 return true;
+            default:
+                return false;
         }
-        return false;
     }
 
     protected function fillMedia(ArrayObject $resource, $target, array $values): bool
@@ -1497,6 +1499,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
+            default:
+                return false;
         }
     }
 
