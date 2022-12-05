@@ -996,7 +996,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         : (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§');
                     // Normally always true after first loop: all identifiers
                     // are stored first.
-                    if ($vrId || !empty($this->identifiers['map'][$value . '§resources'])) {
+                    if ($vrId || array_key_exists($value . '§resources', $this->identifiers['map'])) {
                         $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
                         $hasDatatype = true;
                         break;
@@ -1104,6 +1104,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resourceValue['value_resource_id'] = $vrId;
                 $resourceValue['@language'] = null;
                 $resourceValue['source_identifier'] = $value;
+                $resourceValue['checked_id'] = true;
                 break;
 
             case substr($datatype, 0, 11) === 'customvocab':
@@ -1234,6 +1235,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                                 'o:id' => $itemSetId,
                                 'checked_id' => true,
                                 // TODO Set the source identifier anywhere.
+                            ];
+                        } elseif (array_key_exists($value . '§resources', $this->identifiers['map'])) {
+                            $resource['o:item_set'][] = [
+                                // To be filled during real import if empty.
+                                'o:id' => null,
+                                'checked_id' => true,
+                                'source_identifier' => $value,
                             ];
                         } else {
                             // Only for first loop. Normally not possible after: all
@@ -1426,6 +1434,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                             'o:id' => end($itemIds),
                             'checked_id' => true,
                             // TODO Set the source identifier anywhere.
+                        ];
+                    } elseif (array_key_exists($identifier . '§resources', $this->identifiers['map'])) {
+                        $resource['o:item'] = [
+                            // To be filled during real import.
+                            'o:id' => null,
+                            'checked_id' => true,
+                            'source_identifier' => $identifier,
                         ];
                     } else {
                         // Only for first loop. Normally not possible after: all
