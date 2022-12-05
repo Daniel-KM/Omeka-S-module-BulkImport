@@ -985,13 +985,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 $datatypeName = $datatype->getName();
                 $target['value']['type'] = $datatypeName;
+                $mainDataType = $this->bulk->getMainDataType($datatypeName);
                 if ($datatypeName === 'literal') {
                     $this->fillPropertyForValue($resource, $target, $value);
                     $hasDatatype = true;
                     break;
-                } elseif (substr($datatypeName, 0, 8) === 'resource') {
+                } elseif ($mainDataType === 'resource') {
                     $vrId = empty($this->identifiers['map'][$value . '§resources'])
-                        ? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore'])
+                        ? $this->bulk->findResourceFromIdentifier($value, null, substr($datatypeName, 0, 11) === 'customvocab' ? 'item' : $datatypeName, $resource['messageStore'])
                         : (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§');
                     // Normally always true after first loop: all identifiers
                     // are stored first.
@@ -1001,25 +1002,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                         break;
                     }
                 } elseif (substr($datatypeName, 0, 11) === 'customvocab') {
-                    // The resource is not checked for custom vocab member here.
-                    if ($this->bulk->getCustomVocabBaseType($datatypeName) === 'resource') {
-                        $vrId = empty($this->identifiers['map'][$value . '§resources'])
-                            ? $this->bulk->findResourceFromIdentifier($value, null, $datatypeName, $resource['messageStore'])
-                            : (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§');
-                        // Normally always true after first loop: all
-                        // identifiers are stored first.
-                        if ($vrId || !empty($this->identifiers['map'][$value . '§resources'])) {
-                            $this->fillPropertyForValue($resource, $target, $value, $vrId ? (int) $vrId : null);
-                            $hasDatatype = true;
-                            break;
-                        }
-                    } elseif ($this->bulk->isCustomVocabMember($datatypeName, $value)) {
+                    if ($this->bulk->isCustomVocabMember($datatypeName, $value)) {
                         $this->fillPropertyForValue($resource, $target, $value);
                         $hasDatatype = true;
                         break;
                     }
-                } elseif (substr($datatypeName, 0, 3) === 'uri'
-                    || substr($datatypeName, 0, 12) === 'valuesuggest'
+                } elseif ($mainDataType === 'uri'
+                    // Deprecated.
+                    || $datatypeName === 'uri-label'
                 ) {
                     if ($this->bulk->isUrl($value)) {
                         $this->fillPropertyForValue($resource, $target, $value);
@@ -1039,7 +1029,6 @@ class ResourceProcessor extends AbstractResourceProcessor
                     }
                 }
             }
-            // TODO Add an option for literal data-type by default.
             if (!$hasDatatype) {
                 if ($this->getParam('value_datatype_literal')) {
                     $targetLiteral = $target;
@@ -1080,6 +1069,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Prepare the new resource value from the target.
         $resourceValue = $target['value'];
         $datatype = $resourceValue['type'];
+        $mainDataType = $this->bulk->getMainDataType($datatype);
         switch ($datatype) {
             default:
             case 'literal':
@@ -1088,8 +1078,9 @@ class ResourceProcessor extends AbstractResourceProcessor
 
                 // "uri-label" is deprecated: use simply "uri".
             case 'uri-label':
-            case 'uri':
-            case substr($datatype, 0, 12) === 'valuesuggest':
+            case $mainDataType === 'uri':
+            // case 'uri':
+            // case substr($datatype, 0, 12) === 'valuesuggest':
                 if (strpos($value, ' ')) {
                     list($uri, $label) = explode(' ', $value, 2);
                     $label = trim($label);
@@ -1104,10 +1095,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 break;
 
-            case 'resource':
-            case 'resource:item':
-            case 'resource:itemset':
-            case 'resource:media':
+            // case 'resource':
+            // case 'resource:item':
+            // case 'resource:itemset':
+            // case 'resource:media':
+            case $mainDataType === 'resource':
+                // TODO Check identifier as member of custom vocab later (anyway item sets of an item can change).
                 $resourceValue['value_resource_id'] = $vrId;
                 $resourceValue['@language'] = null;
                 $resourceValue['source_identifier'] = $value;
@@ -1116,32 +1109,23 @@ class ResourceProcessor extends AbstractResourceProcessor
             case substr($datatype, 0, 11) === 'customvocab':
                 $customVocabBaseType = $this->bulk->getCustomVocabBaseType($datatype);
                 $result = $this->bulk->isCustomVocabMember($datatype, $vrId ?? $value);
-                if ($result || ($customVocabBaseType === 'resource' && !$vrId)) {
-                    switch ($customVocabBaseType) {
-                        default:
-                        case 'literal':
-                            $resourceValue['@value'] = $value;
-                            break;
-                        case 'uri':
-                            if (strpos($value, ' ')) {
-                                list($uri, $label) = explode(' ', $value, 2);
-                                $label = trim($label);
-                                if (!strlen($label)) {
-                                    $label = null;
-                                }
-                                $resourceValue['@id'] = $uri;
-                                $resourceValue['o:label'] = $label;
-                            } else {
-                                $resourceValue['@id'] = $value;
-                                // $resourceValue['o:label'] = null;
+                if ($result) {
+                    if ($customVocabBaseType === 'uri') {
+                        if (strpos($value, ' ')) {
+                            list($uri, $label) = explode(' ', $value, 2);
+                            $label = trim($label);
+                            if (!strlen($label)) {
+                                $label = null;
                             }
-                            break;
-                        case 'resource':
-                            $resourceValue['value_resource_id'] = $vrId;
-                            $resourceValue['@language'] = null;
-                            // TODO Check identifier as member of custom vocab later.
-                            $resourceValue['source_identifier'] = $value;
-                            break;
+                            $resourceValue['@id'] = $uri;
+                            $resourceValue['o:label'] = $label;
+                        } else {
+                            $resourceValue['@id'] = $value;
+                            // $resourceValue['o:label'] = null;
+                        }
+                    } else {
+                        // Literal.
+                        $resourceValue['@value'] = $value;
                     }
                 } else {
                     if ($this->getParam('value_datatype_literal')) {
@@ -1237,26 +1221,28 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $identifierNames = $target['target_data'] ?? $this->bulk->getIdentifierNames();
                 // Check values one by one to manage source identifiers.
                 foreach ($values as $value) {
-                    $itemSetId = $this->bulk->findResourcesFromIdentifiers($value, $identifierNames, 'item_sets', $resource['messageStore']);
-                    if ($itemSetId) {
-                        $resource['o:item_set'][] = [
-                            'o:id' => $itemSetId,
-                            'checked_id' => true,
-                            // TODO Set the source identifier anywhere.
-                        ];
-                    } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
+                    if (!empty($this->identifiers['map'][$value . '§resources'])) {
                         $resource['o:item_set'][] = [
                             'o:id' => (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§'),
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
                     } else {
-                        // Only for first loop. Normally not possible after: all
-                        // identifiers are stored in the list "map" during first loop.
-                        $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" is not an item set.', // @translate
-                            ['value' => mb_substr((string) $value, 0, 50)]
-                        ));
+                        $itemSetId = $this->bulk->findResourcesFromIdentifiers($value, $identifierNames, 'item_sets', $resource['messageStore']);
+                        if ($itemSetId) {
+                            $resource['o:item_set'][] = [
+                                'o:id' => $itemSetId,
+                                'checked_id' => true,
+                                // TODO Set the source identifier anywhere.
+                            ];
+                        } else {
+                            // Only for first loop. Normally not possible after: all
+                            // identifiers are stored in the list "map" during first loop.
+                            $resource['messageStore']->addError('values', new PsrMessage(
+                                'The value "{value}" is not an item set.', // @translate
+                                ['value' => mb_substr((string) $value, 0, 50)]
+                            ));
+                        }
                     }
                 }
                 return true;
@@ -1425,27 +1411,30 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return true;
             case 'o:item':
                 $identifier = (string) end($values);
-                $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
-                $itemIds = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
-                if ($itemIds) {
+                if (!empty($this->identifiers['map'][$identifier . '§resources'])) {
                     $resource['o:item'] = [
-                        'o:id' => end($itemIds),
-                        'checked_id' => true,
-                        // TODO Set the source identifier anywhere.
-                    ];
-                } elseif (!empty($this->identifiers['map'][$identifier . '§resources'])) {
-                    $resource['o:item'] = [
-                        'o:id' => (int) strtok((string) $this->identifiers['map'][$identifier . '§resources'], '§'),
+                        // To be filled during real import.
+                        'o:id' => (int) strtok((string) $this->identifiers['map'][$identifier . '§resources'], '§') ?: null,
                         'checked_id' => true,
                         'source_identifier' => $identifier,
                     ];
                 } else {
-                    // Only for first loop. Normally not possible after: all
-                    // identifiers are stored in the list "map" during first loop.
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The value "{value}" is not an item.', // @translate
-                        ['value' => mb_substr($identifier, 0, 50)]
-                    ));
+                    $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
+                    $itemIds = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
+                    if ($itemIds) {
+                        $resource['o:item'] = [
+                            'o:id' => end($itemIds),
+                            'checked_id' => true,
+                            // TODO Set the source identifier anywhere.
+                        ];
+                    } else {
+                        // Only for first loop. Normally not possible after: all
+                        // identifiers are stored in the list "map" during first loop.
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The value "{value}" is not an item.', // @translate
+                            ['value' => mb_substr($identifier, 0, 50)]
+                        ));
+                    }
                 }
                 return true;
             case 'url':

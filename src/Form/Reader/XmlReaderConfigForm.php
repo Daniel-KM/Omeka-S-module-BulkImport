@@ -48,7 +48,7 @@ class XmlReaderConfigForm extends Form
                 'name' => 'xsl_sheet',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
-                    'label' => 'XSLT file used to normalize source', // @translate
+                    'label' => 'XSLT file used to separate resources or normalize source', // @translate
                     'value_options' => $xslConfig,
                     'empty_option' => '',
                 ],

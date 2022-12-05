@@ -14,16 +14,16 @@ use Omeka\Stdlib\Message;
  * @var \Doctrine\DBAL\Connection $connection
  * @var \Doctrine\ORM\EntityManager $entityManager
  * @var \Omeka\Api\Manager $api
- * @var \Omeka\Settings\Settings $settings
  * @var \Omeka\Mvc\Controller\Plugin\Messenger $messenger
+ * @var \Omeka\Settings\Settings $settings
  */
 $services = $serviceLocator;
 $plugins = $services->get('ControllerPluginManager');
+$api = $plugins->get('api');
 $config = $services->get('Config');
 $connection = $services->get('Omeka\Connection');
-$entityManager = $services->get('Omeka\EntityManager');
-$api = $plugins->get('api');
 $messenger = $plugins->get('messenger');
+$entityManager = $services->get('Omeka\EntityManager');
 
 if (version_compare($oldVersion, '3.0.1', '<')) {
     $this->checkDependency();
@@ -33,7 +33,7 @@ if (version_compare($oldVersion, '3.0.1', '<')) {
     $module = $moduleManager->getModule('Log');
     $version = $module->getDb('version');
     if (version_compare($version, '3.2.2', '<')) {
-        throw new \Omeka\Module\Exception\ModuleCannotInstallException(
+        throw new ModuleCannotInstallException(
             'BulkImport requires module Log version 3.2.2 or higher.' // @translate
         );
     }
@@ -193,7 +193,7 @@ $migrate_3_3_22_0 = function () use ($services, $connection, $config): void {
             'This module requires the module "%s", version %s or above.', // @translate
             'Log', '3.3.12.7'
         );
-        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+        throw new ModuleCannotInstallException((string) $message);
     }
 
     $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -202,7 +202,7 @@ $migrate_3_3_22_0 = function () use ($services, $connection, $config): void {
             'The directory "%s" is not writeable.', // @translate
             $basePath . '/xsl'
         );
-        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+        throw new ModuleCannotInstallException((string) $message);
     }
 
     if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
@@ -210,7 +210,7 @@ $migrate_3_3_22_0 = function () use ($services, $connection, $config): void {
             'The directory "%s" is not writeable.', // @translate
             $basePath . '/bulk_import'
         );
-        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+        throw new ModuleCannotInstallException((string) $message);
     }
 
     $sql = <<<'SQL'

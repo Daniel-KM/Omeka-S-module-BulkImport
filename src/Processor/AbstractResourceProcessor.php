@@ -2090,7 +2090,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        // TODO Move these checks in resouce and asset processors.
+        // TODO Move these checks in resource and asset processors.
 
         // Specific identifiers for items (item sets and media).
         if ($resource['resource_name'] === 'items') {
@@ -2155,16 +2155,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
-        $resouceName = $resource instanceof AssetRepresentation ? 'assets' : $resource->resourceName();
-        $mainResourceName = $this->mainResourceNames[$resouceName];
+        $resourceName = $resource instanceof AssetRepresentation ? 'assets' : $resource->resourceName();
+        $mainResourceName = $this->mainResourceNames[$resourceName];
 
         // Source indexes to resource id (filled when found or created).
         $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . '§' . $mainResourceName;
 
         // Source identifiers to resource id (filled when found or created).
         // No check for duplicate here: last map is the right one.
-        foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifier) {
-            $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = $resourceId . '§' . $mainResourceName;
+        foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifierWithResourceName) {
+            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . '§' . $mainResourceName;
         }
 
         return $this;
