@@ -674,3 +674,40 @@ if (version_compare($oldVersion, '3.3.36', '<')) {
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.3.38', '<')) {
+    $user = $services->get('Omeka\AuthenticationService')->getIdentity();
+
+    // The resource "bulk_importers" is not available during upgrade.
+    require_once dirname(__DIR__, 2) . '/src/Entity/Import.php';
+    require_once dirname(__DIR__, 2) . '/src/Entity/Importer.php';
+
+    $filenames = [
+        'xml - ead.php',
+    ];
+    foreach ($filenames as $filename) {
+        $filepath = dirname(__DIR__) . '/importers/' . $filename;
+        $data = include $filepath;
+        $data['owner'] = $user;
+        $entity = new \BulkImport\Entity\Importer();
+        foreach ($data as $key => $value) {
+            $method = 'set' . ucfirst($key);
+            $entity->$method($value);
+        }
+        $entityManager->persist($entity);
+    }
+    $entityManager->flush();
+
+    $message = new Message(
+        'It is now possible to import xml ead.' // @translate
+    );
+    $messenger->addSuccess($message);
+    $message = new Message(
+        'It is now possible to pass params to xsl conversion for xml sources.' // @translate
+    );
+    $messenger->addSuccess($message);
+    $message = new Message(
+        'It is now possible to create table of contents for IIIF viewer from mets and ead sources.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
