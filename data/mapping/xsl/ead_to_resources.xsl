@@ -15,6 +15,9 @@
 
     Pour configuer la copie des métadonnées des composants supérieurs, utiliser les paramètres suivants :
 
+    - "frontmatter_separate" :
+        "0" (défaut) ou "1" pour créer une ressources séparée de "eadheader" pour la présentation de l’inventaire.
+
     - "parent_copy_select" :
         - "all" (par défaut) : copier tous les éléments supérieurs.
         - "list" : copier les éléments supérieurs listés dans "parent_copy_list".
@@ -65,6 +68,9 @@
     <xsl:strip-space elements="*"/>
 
     <!-- Paramètres -->
+
+    <!-- Créer une ressource séparée de "eadheader" pour "frontmatter" (0 / 1). -->
+    <xsl:param name="frontmatter_separate">0</xsl:param>
 
     <!-- Copie des éléments parents (all / list / no). -->
     <xsl:param name="parent_copy_select">all</xsl:param>
@@ -120,10 +126,19 @@
             <eadheader id="{eadheader/eadid/text()}">
                 <xsl:apply-templates select="@*|node()"/>
             </eadheader>
-            <xsl:copy>
-                <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
-            </xsl:copy>
+            <xsl:if test="$frontmatter_separate != '1'">
+                <xsl:copy>
+                    <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
+                </xsl:copy>
+            </xsl:if>
         </resource>
+        <xsl:if test="$frontmatter_separate = '1'">
+            <resource type="frontmatter">
+                <xsl:copy>
+                    <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
+                </xsl:copy>
+            </resource>
+        </xsl:if>
     </xsl:template>
 
     <xsl:template match="archdesc">
