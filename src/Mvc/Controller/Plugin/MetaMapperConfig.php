@@ -148,8 +148,8 @@ class MetaMapperConfig extends AbstractPlugin
      *          'mod' => [
      *              'raw' => null,
      *              'val' => null,
-     *              'prepend' => 'pattern for ',
-     *              'pattern' => '{{ value|trim }} with {{/source/record/data}}',
+     *              'prepend' => 'Title is: ',
+     *              'pattern' => 'pattern for {{ value|trim }} with {{/source/record/data}}',
      *              'append' => null,
      *              'replace' => [
      *                  '{{/source/record/data}}',
@@ -179,7 +179,7 @@ class MetaMapperConfig extends AbstractPlugin
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
      *         <to field="dcterms:title" language="fra" datatype="literal" visibility="public"/>
-     *         <mod pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
+     *         <mod append="Title is: " pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
      * ```
@@ -1011,7 +1011,9 @@ class MetaMapperConfig extends AbstractPlugin
                 $hasNoRaw = false;
                 $hasNoVal = true;
                 $hasNoRawVal = false;
-            } elseif (isset($r['val']) && strlen($r['val'])) {
+            }
+            // Not possible anyway.
+            elseif (isset($r['val']) && strlen($r['val'])) {
                 $result['mod']['raw'] = null;
                 $result['mod']['val'] = $r['val'];
                 $hasNoRaw = true;
@@ -1107,33 +1109,6 @@ class MetaMapperConfig extends AbstractPlugin
             $result['raw'] = trim(mb_substr($pattern, 1, -1));
             $result['pattern'] = null;
             return $result;
-        }
-
-        // Check for incomplete replacement or twig patterns.
-        $prependPos = mb_strpos($pattern, '{{');
-        $appendPos = mb_strrpos($pattern, '}}');
-
-        // A quick check.
-        if ($prependPos === false || $appendPos === false) {
-            $result['raw'] = trim($pattern);
-            $result['pattern'] = null;
-            return $result;
-        }
-
-        // To simplify process and remove the empty values, check if the pattern
-        // contains a prepend/append string.
-        // Replace only complete patterns, so check append too.
-        $isNormalPattern = $prependPos < $appendPos;
-        if ($isNormalPattern && $prependPos && $appendPos) {
-            $result['prepend'] = mb_substr($pattern, 0, $prependPos);
-            $pattern = mb_substr($pattern, $prependPos);
-            $result['pattern'] = $pattern;
-            $appendPos = mb_strrpos($pattern, '}}');
-        }
-        if ($isNormalPattern && $appendPos !== mb_strlen($pattern) - 2) {
-            $result['append'] = mb_substr($pattern, $appendPos + 2);
-            $pattern = mb_substr($pattern, 0, $appendPos + 2);
-            $result['pattern'] = $pattern;
         }
 
         // Manage exceptions.

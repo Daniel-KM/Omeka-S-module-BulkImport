@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2022 Daniel Berthereau
+ * Copyright 2017-2023 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -173,7 +173,7 @@ class MetaMapper extends AbstractPlugin
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
      *         <to field="dcterms:title" language="fra" datatype="literal" visibility="public"/>
-     *         <mod pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
+     *         <mod append="Title is: " pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
      * ```
@@ -197,8 +197,8 @@ class MetaMapper extends AbstractPlugin
      *          'mod' => [
      *              'raw' => null,
      *              'val' => null,
-     *              'prepend' => 'pattern for ',
-     *              'pattern' => '{{ value|trim }} with {{/source/record/data}}',
+     *              'prepend' => 'Title is: ',
+     *              'pattern' => 'pattern for {{ value|trim }} with {{/source/record/data}}',
      *              'append' => null,
      *              'replace' => [
      *                  '{{/source/record/data}}',
@@ -212,7 +212,11 @@ class MetaMapper extends AbstractPlugin
      * ```
      *
      * "mod/raw" is the raw value set in all cases, even without source value.
-     * "mod/val" is the raw value set only when "from" is a value.
+     * "mod/val" is the raw value set only when "from" is a value, that may be
+     * extracted with a path.
+     * "mod/prepend" and "mod/append" are used only when the pattern returns a
+     * value with at least one replacement. So a pattern without replacements
+     * (simple or twig) should be a "val".
      *
      * Note that a ini config has a static querier (the same for all maps), but
      * a xml config has a dynamic querier (set as attribute of element "from").
@@ -246,9 +250,10 @@ class MetaMapper extends AbstractPlugin
         if (isset($map['mod']['val'])) {
             return $map['mod']['val'];
         }
-        return ($map['prepend'] ?? '')
-            . $this->convertTargetToStringJson($value, $map, null, 'value')
-            . ($map['append'] ?? '');
+        $result = $this->convertTargetToStringJson($value, $map, null, 'value', true);
+        return is_null($result) || !strlen($result)
+            ? ''
+            : (($map['prepend'] ?? '') . $result . ($map['append'] ?? ''));
     }
 
     /**
@@ -659,7 +664,7 @@ class MetaMapper extends AbstractPlugin
             // Val is returned only when there is a value from.
             $result = [];
             if ($isDefaultSection) {
-                $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $querier);
+                $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $querier, true);
                 if ($converted === null || $converted === '') {
                     continue;
                 }
@@ -684,7 +689,7 @@ class MetaMapper extends AbstractPlugin
                         if (!is_scalar($value)) {
                             continue;
                         }
-                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $querier);
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $querier, true);
                         if ($converted === null || $converted === '') {
                             continue;
                         }
@@ -715,7 +720,7 @@ class MetaMapper extends AbstractPlugin
                         // Allows to use multiple mappings in one pattern, managing fields.
                         $source = $flatData;
                         $source[$fromPath] = $value;
-                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $querier);
+                        $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $querier, true);
                         if ($converted === null || $converted === '') {
                             continue;
                         }
@@ -786,7 +791,7 @@ class MetaMapper extends AbstractPlugin
             // Val is returned only when there is a value from.
             $result = [];
             if ($isDefaultSection) {
-                $converted = $this->convertTargetToStringXml($from, $mod);
+                $converted = $this->convertTargetToStringXml($from, $mod, null, null, true);
                 if ($converted === null || $converted === '') {
                     continue;
                 }
@@ -799,7 +804,7 @@ class MetaMapper extends AbstractPlugin
                 }
                 $values = $this->xpathQuery($doc, $from);
                 foreach ($values as $value) {
-                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value);
+                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value, true);
                     if ($converted === null || $converted === '') {
                         continue;
                     }
@@ -834,7 +839,7 @@ class MetaMapper extends AbstractPlugin
         if (!$fromToMod) {
             return null;
         } elseif ($data instanceof \SimpleXMLElement) {
-            return $this->convertTargetToStringXml($name, $fromToMod, $data);
+            return $this->convertTargetToStringXml($name, $fromToMod, $data, null, true);
         }
         $querier = is_array($fromToMod) && isset($fromToMod['from']['querier'])
             ? $fromToMod['from']['querier']
@@ -844,13 +849,13 @@ class MetaMapper extends AbstractPlugin
                 $querier = 'value';
                 // no break
             case 'value':
-                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier);
+                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier, true);
             case 'jsdot':
             case 'jmespath':
             case 'jsonpath':
-                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier);
+                return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier, true);
             case 'xpath':
-                return $this->convertTargetToStringXml($name, $fromToMod, $data);
+                return $this->convertTargetToStringXml($name, $fromToMod, $data, null, true);
         }
     }
 
@@ -887,6 +892,8 @@ class MetaMapper extends AbstractPlugin
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
      * @param string $querier "jsdot" (default), "jmespath" or "jsonpath".
+     * @param bool $atLeastOneReplacement When set, don't return a value when a
+     * pattern has no replacement,
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
@@ -894,7 +901,8 @@ class MetaMapper extends AbstractPlugin
         $from,
         $mod,
         ?array $data = null,
-        ?string $querier = null
+        ?string $querier = null,
+        bool $atLeastOneReplacement = false
     ): ?string {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -1006,6 +1014,12 @@ class MetaMapper extends AbstractPlugin
             $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
         }
 
+        if ($atLeastOneReplacement
+            && !$this->checkAtLeastOneReplacement($fromValue, $value, ['mod' => $mod])
+        ) {
+            return null;
+        }
+
         return $value;
     }
 
@@ -1041,6 +1055,8 @@ class MetaMapper extends AbstractPlugin
      * @param \DOMDocument|\SimpleXMLElement $data The resource from which
      * extract the data, if needed.
      * @param \DOMNode|string $fromValue
+     * @param bool $atLeastOneReplacement When set, don't return a value when a
+     * pattern has no replacement,
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
@@ -1048,7 +1064,8 @@ class MetaMapper extends AbstractPlugin
         $from,
         $mod,
         $data = null,
-        $fromValue = null
+        $fromValue = null,
+        bool $atLeastOneReplacement = false
     ): ?string {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -1147,6 +1164,12 @@ class MetaMapper extends AbstractPlugin
 
         if (!empty($mod['twig'])) {
             $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
+        }
+
+        if ($atLeastOneReplacement
+            && !$this->checkAtLeastOneReplacement((string) ($fromValue instanceof \DOMNode ? $fromValue->nodeValue : $fromValue), $value, ['mod' => $mod])
+        ) {
+            return null;
         }
 
         return $value;
@@ -1627,6 +1650,36 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
+     * Check if the result of a transformation with string and twig replacements
+     * has at least one replacement, so at least one value.
+     *
+     * It avoids to return something when there is no transformation or no
+     * value. For example for pattern "pattern for {{ value|trim }} with {{/source/record/data}}",
+     * if there is no value and no source record data, the transformation
+     * returns something, the raw text of the pattern, but this is useless.
+     *
+     * This method does not check for transformation with "raw" or "val".
+     */
+    protected function checkAtLeastOneReplacement(?string $value, ?string $result, array $map): bool
+    {
+        if (is_null($value)
+            || is_null($result)
+            || !strlen($result)
+            || empty($map['mod'])
+            || empty($map['mod']['pattern'])
+        ) {
+            return false;
+        }
+        $allReplacements = array_merge(
+            // TODO Remove exceptions {{ value }}, {{ label }}, {{ list }}.
+            ['{{ value }}', '{{ label }}', '{{ list }}'],
+            $map['mod']['replace'] ?? [],
+            $map['mod']['twig'] ?? []
+        );
+        return str_replace($allReplacements, '', $value) !== $result;
+    }
+
+    /**
      * Allow to use a generic config completed by a specific one.
      */
     protected function normalizeConfigs(?string ...$configs): self
@@ -1932,7 +1985,9 @@ class MetaMapper extends AbstractPlugin
                     $hasNoRaw = false;
                     $hasNoVal = true;
                     $hasNoRawVal = false;
-                } elseif (isset($r['val']) && strlen($r['val'])) {
+                }
+                // Not possible anyway.
+                elseif (isset($r['val']) && strlen($r['val'])) {
                     $result['mod']['raw'] = null;
                     $result['mod']['val'] = $r['val'];
                     $hasNoRaw = true;
@@ -2059,33 +2114,6 @@ class MetaMapper extends AbstractPlugin
             $result['raw'] = trim(mb_substr($pattern, 1, -1));
             $result['pattern'] = null;
             return $result;
-        }
-
-        // Check for incomplete replacement or twig patterns.
-        $prependPos = mb_strpos($pattern, '{{');
-        $appendPos = mb_strrpos($pattern, '}}');
-
-        // A quick check.
-        if ($prependPos === false || $appendPos === false) {
-            $result['raw'] = trim($pattern);
-            $result['pattern'] = null;
-            return $result;
-        }
-
-        // To simplify process and remove the empty values, check if the pattern
-        // contains a prepend/append string.
-        // Replace only complete patterns, so check append too.
-        $isNormalPattern = $prependPos < $appendPos;
-        if ($isNormalPattern && $prependPos && $appendPos) {
-            $result['prepend'] = mb_substr($pattern, 0, $prependPos);
-            $pattern = mb_substr($pattern, $prependPos);
-            $result['pattern'] = $pattern;
-            $appendPos = mb_strrpos($pattern, '}}');
-        }
-        if ($isNormalPattern && $appendPos !== mb_strlen($pattern) - 2) {
-            $result['append'] = mb_substr($pattern, $appendPos + 2);
-            $pattern = mb_substr($pattern, 0, $appendPos + 2);
-            $result['pattern'] = $pattern;
         }
 
         // Manage exceptions.
