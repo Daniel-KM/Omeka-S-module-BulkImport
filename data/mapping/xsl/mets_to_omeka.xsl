@@ -41,6 +41,10 @@
     <!-- Chemin ou url jusqu'au dossier d'import. Inclure le "/" final. -->
     <xsl:param name="basepath"></xsl:param>
 
+    <!-- Ajouter la table des matières pour iiif (cf. module IIIF Server). -->
+    <!-- TODO Dans l'idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page". -->
+    <xsl:param name="toc_iiif">1</xsl:param>
+
     <!-- Constantes -->
 
     <!-- Templates -->
@@ -56,6 +60,9 @@
                     <xsl:apply-templates select="mets:metsHdr/@LASTMODDATE"/>
                 </xsl:attribute>
                 <xsl:apply-templates select="mets:dmdSec"/>
+                <xsl:if test="$toc_iiif = '1'">
+                    <xsl:apply-templates select="mets:structMap" mode="toc"/>
+                </xsl:if>
                 <!-- Fichiers -->
                 <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence la carte physique. -->
                 <xsl:choose>
@@ -116,6 +123,70 @@
     <!-- Warning: timezone is lost. -->
     <xsl:template match="@CREATEDATE | @LASTMODDATE">
         <xsl:value-of select="substring(., 1, 19)"/>
+    </xsl:template>
+
+    <!-- Création de la table des matières. -->
+    <!-- La table n'est pas la liste de l'ensemble des pages, mais uniquement celle des divisions. -->
+    <!-- TODO Ajouter le type de document (book). -->
+    <!-- TODO Ajouter le type de structure (physical/logical). -->
+    <xsl:template match="mets:structMap" mode="toc">
+        <dcterms:tableOfContents o:type="xml">
+            <xsl:apply-templates select="mets:div" mode="toc"/>
+        </dcterms:tableOfContents>
+    </xsl:template>
+
+    <xsl:template match="mets:div" mode="toc">
+        <c>
+            <xsl:attribute name="id">
+                <xsl:text>r</xsl:text>
+                <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+            </xsl:attribute>
+            <xsl:attribute name="label">
+                <xsl:value-of select="@LABEL"/>
+            </xsl:attribute>
+            <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles. -->
+            <xsl:attribute name="range">
+                <xsl:apply-templates select="mets:div" mode="range"/>
+            </xsl:attribute>
+            <!-- Le nom du fichier est généralement inutile.
+            <xsl:attribute name="file">
+                <xsl:value-of select="$basepath"/>
+                <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
+            </xsl:attribute>
+            -->
+            <xsl:apply-templates select="mets:div[mets:div]" mode="toc"/>
+        </c>
+    </xsl:template>
+
+    <!-- Liste des sections ou des positions de page. -->
+    <!-- Attention : ne pas compter les divs, mais les fptr, c'est à dire la position des fichiers dans les div. -->
+    <xsl:template match="mets:div" mode="range">
+        <xsl:variable name="position_fptr">
+            <xsl:apply-templates select="mets:fptr" mode="position"/>
+        </xsl:variable>
+        <xsl:choose>
+            <!-- Section nommée contenant des pages ou des sous-sections. -->
+            <!-- Attention : contient "self" qui peut contenir un fptr sans sous div. -->
+            <xsl:when test="mets:div">
+                <xsl:if test="position() != 1">
+                    <xsl:text>; </xsl:text>
+                </xsl:if>
+                <xsl:text>r</xsl:text>
+                <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:if test="position() != 1">
+                    <xsl:text>; </xsl:text>
+                </xsl:if>
+                <xsl:value-of select="$position_fptr"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <!-- Position du pointeur en cours dans la structure en cours. -->
+    <xsl:template match="mets:fptr" mode="position">
+        <xsl:variable name="structMapId" select="ancestor::mets:structMap/@ID"/>
+        <xsl:value-of select="count(preceding::mets:fptr[ancestor::mets:structMap/@ID = $structMapId]) + 1"/>
     </xsl:template>
 
     <!-- Identity template -->
