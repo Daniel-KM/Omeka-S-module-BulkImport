@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Description : Convertit ead en Omeka S pour la présentation du guide.
+
+    EadHeader et FrontMatter sont généralement fusionnés en fonction de la division opérée via la feuille xsl de séparation des ressources.
+
+    @todo Frontmatter
+
+    @copyright Daniel Berthereau, 2015-2023
+    @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
+-->
+
+<mapping>
+
+    <!-- EAD Header -->
+
+    <map>
+        <from xpath="/eadheader"/>
+        <to field="resource_name"/>
+        <mod val="o:Item"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/eadid/@identifier"/>
+        <to field="dcterms:identifier"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/eadid[not(@identifier)]"/>
+        <to field="dcterms:identifier"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/@langencoding"/>
+        <to field="dcterms:isFormatOf"
+            datatype="uri"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/eadid/@mainagencycode"/>
+        <to field="dcterms:publisher"
+            datatype="literal"/>
+        <mod
+            prepend="calames:"
+            pattern="{{/eadheader/eadid/@countrycode}}-{{/eadheader/eadid/@mainagencycode}}"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/titlestmt/titleproper"/>
+        <to field="dcterms:title"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/titlestmt/subtitle"/>
+        <to field="dcterms:alternative"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/editionstmt/edition"/>
+        <to field="bibo:edition"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/titlestmt/author"/>
+        <to field="dcterms:creator"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/titlestmt/sponsor"/>
+        <to field="foaf:fundedBy"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/publisher"/>
+        <to field="dcterms:publisher"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/address"/>
+        <to field="dcterms:publisher"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/date/@normal"/>
+        <to field="dcterms:date"
+            datatype="numeric:timestamp"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/date[@type = 'date_de_la_première_édition']/@normal"/>
+        <to field="dcterms:date"
+            datatype="numeric:timestamp"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/date[@type = 'date_de_la_version_électronique']/@normal"/>
+        <to field="dcterms:issued"
+            datatype="numeric:timestamp"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/publicationstmt/date[not(@normal)]"/>
+        <to field="dcterms:date"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/filedesc/notestmt/note"/>
+        <to field="bibo:annotates"
+            datatype="html"/>
+     </map>
+
+    <map>
+        <from xpath="/eadheader/profiledesc/creation"/>
+        <to field="dcterms:description"
+            datatype="html"/>
+     </map>
+
+    <map>
+        <from xpath="/eadheader/profiledesc/langusage"/>
+        <to field="dcterms:language"
+            datatype="html"/>
+     </map>
+
+     <!-- Front Matter -->
+
+    <map>
+        <from xpath="/frontmatter"/>
+        <to field="resource_name"/>
+        <mod val="o:Item"/>
+    </map>
+
+</mapping>

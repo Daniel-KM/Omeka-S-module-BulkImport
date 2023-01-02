@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Alignement de EAD avec les vocabulaires Omeka (dcterms, bibo, foaf, bio, curation).
+
+    Le but n’est pas de faire une correspondance exacte et réversible, mais de valoriser
+    des documents numérisés gérés en EAD.
+
+    Cet alignement convertit chaque composant en contenu Omeka (item) préalablement séparés via "ead_to_resources.xsl".
+
+    Par ailleurs, Rdf étant une norme conçue pour représenter des relations, il conviendrait
+    de créer des autorités ou des ressources ou des fiches spécifiques (auteurs, éditeurs,
+    collections, opérations, etc.) et faire des relations.
+
+    @todo Créer ou récupérer les ressources pour les entités (auteurs, éditeurs, etc.), voire créer des listes d'autorité.
+    @todo Utiliser value annotations d'Omeka S 3.2.
+    @todo Utiliser les vocabulaires Value Suggest / rda.
+
+    @see https://www.loc.gov/ead
+    @copyright Daniel Berthereau, 2015-2023 pour Ecole des Mines (2015-2016) puis Numistral
+    @license http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+
+<mapping>
+
+    <!-- Header et Front Matter. -->
+
+    <include mapping="ead_presentation_to_omeka.xml"/>
+
+    <!-- Archival Description / Component -->
+
+    <include mapping="ead_components_to_omeka.xml"/>
+
+</mapping>

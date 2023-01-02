@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Description : Convertit ead en Omeka S pour la description du fonds ("archdesc") et les composants.
+
+    Cet alignement convertit chaque composant en contenu Omeka (item).
+
+     Archival Description et Component sont très proches, sauf que les composants peuvent être
+     subdivisés en "cXX" "head" et "thead", mais pas "runner". On utilise donc un seul schéma pour
+     les deux. En outre, selon le séparateur xsl, les fichiers ("item" ou pièces au sens EAD), sont
+     traités de la même façon.
+
+     @copyright Daniel Berthereau, 2015-2023
+    @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
+-->
+
+<mapping>
+
+    <!-- Tout importer comme item : une image = un item avec des relations. -->
+
+    <map>
+        <to field="resource_name"/>
+        <mod raw="o:Item"/>
+    </map>
+
+    <!-- Archival Description et Components -->
+    <!-- Les componants de type "<cxx>" doivent avoir été remplacés par des "<c>" via le xsl de séparation. -->
+
+    <map>
+        <from xpath="/archdesc"/>
+        <to field="resource_name"/>
+        <mod val="o:Item"/>
+    </map>
+
+    <!-- Ajouter un modèle de ressource "Archival Item" pour distinguer les pièces des descriptions d’ensemble. -->
+    <!--
+    <map>
+        <from xpath="/c[@level = 'item']"/>
+        <to field="o:resource_template"/>
+        <mod val="Archival Item"/>
+    </map>
+    -->
+
+    <!-- Import de chaque image en tant qu'item : donc lien comme les autres. -->
+     <map>
+        <from xpath="/archdesc[@_parentid and @_parentid != '']/@_parentid
+            | /c[@_parentid and @_parentid != '']/@_parentid"/>
+        <to field="dcterms:isPartOf"
+            datatype="resource:item"/>
+     </map>
+
+     <map>
+        <from xpath="/archdesc/did/unittitle | /c/did/unittitle"/>
+        <to field="dcterms:title"
+            datatype="literal"/>
+     </map>
+
+    <map>
+        <from xpath="/archdesc/runner"/>
+        <to field="bibo:shortTitle"
+            datatype="literal"/>
+     </map>
+
+   <map>
+        <from xpath="/archdesc/did/unitid/@identifier | /c/did/unitid/@identifier | /c/@id"/>
+        <to field="dcterms:identifier"
+            datatype="literal"/>
+     </map>
+
+   <map>
+        <from xpath="/archdesc/did/unitid[@type = 'cote'] | /c/did/unitid[@type = 'cote']"/>
+        <to field="bibo:locator"
+            datatype="literal"/>
+    </map>
+
+   <map>
+        <from xpath="/archdesc/did/unitdate | /c/did/unitdate"/>
+        <to field="dcterms:temporal"
+            datatype="numeric:interval, numeric:timestamp, literal"/>
+    </map>
+
+   <map>
+        <from xpath="/archdesc/did/physloc | /c/did/physloc"/>
+        <to field="dcterms:provenance"
+            datatype="literal"/>
+        <mod prepend="Emplacement physique : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/head"/>
+        <to field="dcterms:description"
+            datatype="literal"/>
+     </map>
+
+    <map>
+        <from xpath="/archdesc/did/physdesc/extent | /c/did/physdesc/extent"/>
+        <to field="bibo:pages"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/archdesc/did/physdesc/dimensions | /c/did/physdesc/dimensions"/>
+        <to field="dcterms:extent"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/archdesc/did/physdesc/physfacet[@type = 'technique'] | /c/did/physdesc/physfacet[@type = 'technique']"/>
+        <to field="dcterms:format"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/archdesc/did/repository"/>
+        <to field="dcterms:alternative"
+            datatype="literal"/>
+        <mod prepend="Entrepôt : "/>
+    </map>
+
+    <!-- Item EAD / media Omeka -->
+
+    <map>
+        <from xpath="/c/dao/@href"/>
+        <to field="file"/>
+    </map>
+
+</mapping>
