@@ -82,6 +82,7 @@ trait FileTrait
         $this->store = $services->get('Omeka\File\Store');
 
         $settings = $services->get('Omeka\Settings');
+        $this->isFileSideloadActive = $this->bulk->isFileSideloadActive();
         $this->disableFileValidation = (bool) $settings->get('disable_file_validation');
         $this->allowedMediaTypes = $settings->get('media_type_whitelist') ?: [];
         $this->allowedExtensions = $settings->get('extension_whitelist') ?: [];
@@ -115,6 +116,15 @@ trait FileTrait
     {
         if (!$this->isInitFileTrait) {
             $this->initFileTrait();
+        }
+
+        if (!$this->isFileSideloadActive) {
+            if ($messageStore) {
+                $messageStore->addError('file', new PsrMessage(
+                    'Cannot sideload file: module FileSideload inactive or not installed.' // @translate
+                ));
+            }
+            return false;
         }
 
         $filepath = (string) $filepath;
