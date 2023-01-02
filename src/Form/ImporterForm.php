@@ -24,6 +24,7 @@ class ImporterForm extends Form
         parent::init();
 
         $this
+            ->setAttribute('id', 'importer-form')
             ->add([
                 'name' => 'o:label',
                 'type' => Element\Text::class,

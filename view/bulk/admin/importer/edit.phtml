@@ -19,8 +19,13 @@ $form->prepare();
 <div id="content">
     <h2><?= $escape($translate('Edit importer')) ?></h2>
     <?php
+    $form->get('importer_submit')->remove('submit');
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);
     echo $this->form()->closeTag();
     ?>
+</div>
+
+<div id="page-actions">
+    <button type="submit" form="<?= $form->getAttribute('importer-form') ?>" class="button"><?= $translate('Submit') ?></button>
 </div>
