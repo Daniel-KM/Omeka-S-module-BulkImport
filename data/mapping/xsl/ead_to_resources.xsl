@@ -64,26 +64,9 @@
 
     <!-- Constantes. -->
 
-    <xsl:variable name="did_sub_elements">
-        <e>abstract</e>
-        <e>container</e>
-        <e>dao</e>
-        <e>daogrp</e>
-        <e>head</e>
-        <e>langmaterial</e>
-        <e>materialspec</e>
-        <e>note</e>
-        <e>origination</e>
-        <e>physdesc</e>
-        <e>physloc</e>
-        <e>repository</e>
-        <e>unitdate</e>
-        <e>unitid</e>
-        <e>unittitle</e>
-    </xsl:variable>
-
     <xsl:variable name="parent_set" select="exsl:node-set($parent_elements_list)"/>
-    <xsl:variable name="did_sub_set" select="exsl:node-set($did_sub_elements)"/>
+
+    <xsl:variable name="ead_tags" select="document('ead_tags.xml')/tags"/>
 
     <!-- Templates. -->
 
@@ -140,8 +123,8 @@
                 <!-- Copie uniquement du premier élément ancètre : dans la liste des parents qui ont un did avec un élément, prendre le plus proche. -->
                 <xsl:when test="$parent_elements = 'list_missing'">
                     <!-- TODO Enlever le for-each. -->
-                    <xsl:for-each select="$parent_set/e[. = $did_sub_set/e]">
-                        <xsl:variable name="element" select="text()"/>
+                    <xsl:for-each select="$parent_set/e[. = $ead_tags/e[@name = 'did']/e/@name]">
+                        <xsl:variable name="element" select="normalize-space(text())"/>
                         <xsl:if test="not($node/*[local-name() = $element])">
                             <xsl:apply-templates select="$node/ancestor::*[did/*[local-name() = $element]][1]/did/*[local-name() = $element]" mode="ancestor"/>
                         </xsl:if>
@@ -154,6 +137,60 @@
                 </xsl:when>
             </xsl:choose>
             <!-- Dans tous les cas, on prend les éléments en cours. -->
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
+    </xsl:template>
+
+    <!-- Copie des sous-éléments du did et ceux des éléments parents. -->
+    <xsl:template match="did/node()">
+        <xsl:variable name="node" select="."/>
+        <xsl:variable name="node_name" select="local-name()"/>
+        <xsl:copy>
+            <xsl:choose>
+                <xsl:when test="$parent_elements = 'list_missing'">
+                    <!-- TODO Vérifier que le sous-élément appartient à l'élément. -->
+                    <!-- TODO On ne peut pas filtrer sur substring-before et substring-after dans /e. Pourtant "substring-after('physdesc/dimensions', '/')", sans le ".", fonctionne.
+                        and normalize-space(substring-after(., '/')) = $ead_tags/e[@name = 'did']/e/e/@name
+                        and normalize-space(substring-after('physdesc/dimensions', '/')) = $ead_tags/e[@name = 'did']/e/e/@name
+                    -->
+                    <xsl:for-each select="$parent_set
+                        /e
+                            [
+                                contains(., '/')
+                                and $node_name = normalize-space(substring-before(., '/'))
+                                and $ead_tags/e[@name = 'did']/e[@name = $node_name]
+                            ]
+                        ">
+                        <xsl:variable name="element_1" select="normalize-space(substring-before(., '/'))"/>
+                        <xsl:variable name="element_2" select="normalize-space(substring-after(., '/'))"/>
+                        <xsl:if test="
+                            $ead_tags
+                            /e[@name = $element_1]
+                            /e[@name = $element_2]
+                            and
+                            not(
+                                $node
+                                /*[local-name() = $element_1]
+                                /*[local-name() = $element_2]
+                            )
+                            ">
+                            <xsl:apply-templates select="
+                                $node
+                                /ancestor::*
+                                    [
+                                        did
+                                        /*[local-name() = $element_1]
+                                        /*[local-name() = $element_2]
+                                    ]
+                                    [1]
+                                /did
+                                /*[local-name() = $element_1]
+                                /*[local-name() = $element_2]
+                                " mode="ancestor"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:when>
+            </xsl:choose>
             <xsl:apply-templates select="@*|node()"/>
         </xsl:copy>
     </xsl:template>

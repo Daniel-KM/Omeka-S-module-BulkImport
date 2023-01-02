@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Description : Liste des éléments Ead des composants "c" pour "did".
+
+    Extraite du schéma EAD 2002 via "ead_schema_to_list.xsl".
+
+    @todo Utiliser le schéma directement.
+
+    @copyright Daniel Berthereau, 2015-2023
+    @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
+-->
+
+<tags>
+
+    <e name="did">
+        <e name="abstract"/>
+        <e name="container"/>
+        <e name="dao"/>
+        <e name="daogrp"/>
+        <e name="head"/>
+        <e name="langmaterial"/>
+        <e name="materialspec"/>
+        <e name="note"/>
+        <e name="origination"/>
+        <e name="physdesc"/>
+        <e name="physloc"/>
+        <e name="repository"/>
+        <e name="unitdate"/>
+        <e name="unitid"/>
+        <e name="unittitle"/>
+    </e>
+
+</tags>
