@@ -45,6 +45,9 @@
     <!-- TODO Dans l'idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page". -->
     <xsl:param name="toc_iiif">1</xsl:param>
 
+    <!-- Ajouter la table des matières avec toutes les pages. -->
+    <xsl:param name="toc_full">0</xsl:param>
+
     <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections. -->
     <xsl:param name="full_page_ranges">0</xsl:param>
 
@@ -75,6 +78,11 @@
                 <xsl:apply-templates select="mets:dmdSec"/>
                 <xsl:if test="$toc_iiif = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc"/>
+                </xsl:if>
+                <xsl:if test="$toc_full = '1'">
+                    <xsl:apply-templates select="mets:structMap" mode="toc">
+                        <xsl:with-param name="full_toc" select="true()"/>
+                    </xsl:apply-templates>
                 </xsl:if>
                 <!-- Fichiers -->
                 <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence la carte physique. -->
@@ -143,12 +151,16 @@
     <!-- TODO Ajouter le type de document (book). -->
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
+        <xsl:param name="full_toc" select="false()"/>
         <dcterms:tableOfContents o:type="xml">
-            <xsl:apply-templates select="mets:div" mode="toc"/>
+            <xsl:apply-templates select="mets:div" mode="toc">
+                <xsl:with-param name="full_toc" select="$full_toc"/>
+            </xsl:apply-templates>
         </dcterms:tableOfContents>
     </xsl:template>
 
     <xsl:template match="mets:div" mode="toc">
+        <xsl:param name="full_toc" select="false()"/>
         <c>
             <xsl:attribute name="id">
                 <xsl:text>r</xsl:text>
@@ -158,24 +170,51 @@
                 <xsl:value-of select="@LABEL"/>
             </xsl:attribute>
             <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles. -->
-            <xsl:attribute name="range">
-                <xsl:choose>
-                    <xsl:when test="$subdiv_fptr">
-                        <xsl:apply-templates select="mets:div" mode="range"/>
-                    </xsl:when>
-                    <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                    <xsl:otherwise>
-                        <xsl:apply-templates select=". | mets:div" mode="range"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:attribute>
-            <!-- Le nom du fichier est généralement inutile.
-            <xsl:attribute name="file">
-                <xsl:value-of select="$basepath"/>
-                <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
-            </xsl:attribute>
-            -->
-            <xsl:apply-templates select="mets:div[mets:div]" mode="toc"/>
+            <xsl:choose>
+                <xsl:when test="$full_toc">
+                    <!--
+                    <xsl:if test="@TYPE and @TYPE != ''">
+                        <xsl:attribute name="type">
+                            <xsl:value-of select="@TYPE"/>
+                        </xsl:attribute>
+                    </xsl:if>
+                    -->
+                    <xsl:if test="mets:fptr">
+                        <xsl:attribute name="index">
+                            <xsl:apply-templates select="mets:fptr" mode="position"/>
+                        </xsl:attribute>
+                        <!-- Le nom du fichier est généralement inutile.
+                        <xsl:attribute name="file">
+                            <xsl:value-of select="$basepath"/>
+                            <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
+                        </xsl:attribute>
+                        -->
+                    </xsl:if>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:attribute name="range">
+                        <xsl:choose>
+                            <xsl:when test="$subdiv_fptr">
+                                <xsl:apply-templates select="mets:div" mode="range"/>
+                            </xsl:when>
+                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                            <xsl:otherwise>
+                                <xsl:apply-templates select=". | mets:div" mode="range"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:attribute>
+                </xsl:otherwise>
+            </xsl:choose>
+            <xsl:choose>
+                <xsl:when test="$full_toc">
+                    <xsl:apply-templates select="mets:div" mode="toc">
+                        <xsl:with-param name="full_toc" select="$full_toc"/>
+                    </xsl:apply-templates>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:apply-templates select="mets:div[mets:div]" mode="toc"/>
+                </xsl:otherwise>
+            </xsl:choose>
         </c>
     </xsl:template>
 
