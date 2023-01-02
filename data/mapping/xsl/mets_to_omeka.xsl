@@ -2,7 +2,7 @@
 <!--
     Description : Convertit un fichier mets en un item Omeka S avec les fichiers.
 
-    Seuls les options couramment utilisées par les prestataires de numérisation sont gérées.
+    Seules les options couramment utilisées par les prestataires de numérisation sont gérées.
 
     @copyright Daniel Berthereau, 2021-2022
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -28,6 +28,7 @@
 
     exclude-result-prefixes="
         xsl rdf rdfs skos
+        mets xlink xsi dc
         "
     >
 
@@ -35,22 +36,19 @@
 
     <xsl:strip-space elements="*"/>
 
-    <!-- Constantes -->
-
     <!-- Paramètres -->
+
+    <!-- Chemin ou url jusqu'au dossier d'import. Inclure le "/" final. -->
     <xsl:param name="basepath"></xsl:param>
 
-    <!-- Identity template -->
-    <xsl:template match="@*|node()">
-        <xsl:copy>
-            <xsl:apply-templates select="@*|node()"/>
-        </xsl:copy>
-    </xsl:template>
+    <!-- Constantes -->
+
+    <!-- Templates -->
 
     <xsl:template match="/mets:mets">
         <resources>
             <!-- Item principal -->
-            <xsl:element name="resource">
+            <resource>
                 <xsl:attribute name="o:created">
                     <xsl:apply-templates select="mets:metsHdr/@CREATEDATE"/>
                 </xsl:attribute>
@@ -59,57 +57,57 @@
                 </xsl:attribute>
                 <xsl:apply-templates select="mets:dmdSec"/>
                 <!-- Fichiers -->
-                <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence l'index physique. -->
+                <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence la carte physique. -->
                 <xsl:choose>
                     <xsl:when test="mets:structMap[@TYPE = 'physical']">
-                        <xsl:apply-templates select="mets:structMap[@TYPE = 'physical']/descendant::mets:fptr"/>
+                        <xsl:apply-templates select="mets:structMap[@TYPE = 'physical']//mets:fptr"/>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:apply-templates select="mets:structMap[1]/descendant::mets:fptr"/>
+                        <xsl:apply-templates select="mets:structMap[1]//mets:fptr"/>
                     </xsl:otherwise>
                 </xsl:choose>
-            </xsl:element>
+            </resource>
         </resources>
     </xsl:template>
 
     <xsl:template match="mets:dmdSec">
         <xsl:choose>
-        <!-- Certains mets mettent un "dc:dc" intermédiaire. -->
-        <xsl:when test="mets:mdWrap/@MDTYPE = 'DC' and mets:mdWrap/mets:xmlData/dc:dc">
-                <xsl:apply-templates select="mets:mdWrap/mets:xmlData/dc:dc/*"/>
-            </xsl:when>
-            <xsl:when test="mets:mdWrap/@MDTYPE = 'DC'">
-                <xsl:apply-templates select="mets:mdWrap/mets:xmlData/*"/>
-            </xsl:when>
-            <xsl:when test="mets:mdWrap/@MDTYPE = 'DCTERMS' and mets:mdWrap/mets:xmlData/dcterms:dcterms">
-                <xsl:copy-of select="mets:mdWrap/@MDTYPE = 'DCTERMS' and mets:mdWrap/mets:xmlData/dcterms:dcterms/dcterms:*"/>
-            </xsl:when>
-            <xsl:when test="mets:mdWrap/@MDTYPE = 'DCTERMS'">
-                <xsl:copy-of select="mets:mdWrap/@MDTYPE = 'DCTERMS' and mets:mdWrap/mets:xmlData/dcterms:*"/>
+            <!-- Certains mets mettent un "dc:dc" ou un "record" intermédiaire. -->
+            <!-- Certains indiquent utiliser "dc" mais utilisent aussi "dcterms". -->
+            <xsl:when test="mets:mdWrap/@MDTYPE = 'DC' or mets:mdWrap/@MDTYPE = 'DCTERMS'">
+                <xsl:apply-templates select="mets:mdWrap/mets:xmlData//dc:*[not(self::dc:dc)] | mets:mdWrap/mets:xmlData//dcterms:*[not(self::dcterms:dcterms)]"/>
             </xsl:when>
         </xsl:choose>
     </xsl:template>
 
     <xsl:template match="dc:*">
         <xsl:element name="dcterms:{local-name()}">
-            <xsl:apply-templates select="@* | node()"/>
+            <xsl:apply-templates select="@*|node()"/>
         </xsl:element>
     </xsl:template>
 
     <xsl:template match="mets:fptr">
-        <xsl:variable name="fptr" select="."/>
+        <xsl:variable name="file">
+            <xsl:apply-templates select="." mode="file"/>
+        </xsl:variable>
         <o:media o:ingester="file">
-            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+            <xsl:value-of select="concat($basepath, $file)"/>
         </o:media>
+    </xsl:template>
+
+    <!-- Les pointeurs renvoient vers des numéros et non des noms de fichier. -->
+    <xsl:template match="mets:fptr" mode="file">
+        <xsl:variable name="fptr" select="."/>
+        <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
     </xsl:template>
 
     <xsl:template match="@xlink:href">
         <xsl:choose>
             <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                <xsl:value-of select="concat($basepath, translate(substring(., 3), '\', '/'))"/>
+                <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="concat($basepath, translate(., '\', '/'))"/>
+                <xsl:value-of select="translate(., '\', '/')"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -118,6 +116,13 @@
     <!-- Warning: timezone is lost. -->
     <xsl:template match="@CREATEDATE | @LASTMODDATE">
         <xsl:value-of select="substring(., 1, 19)"/>
+    </xsl:template>
+
+    <!-- Identity template -->
+    <xsl:template match="@*|node()">
+        <xsl:copy>
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
     </xsl:template>
 
 </xsl:stylesheet>
