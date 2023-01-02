@@ -9,6 +9,7 @@ return [
         'xsl_sheet_pre' => '',
         'xsl_sheet' => 'module:xsl/identity.xslt1.xsl',
         'mapping_config' => '',
+        'xsl_params' => [],
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [

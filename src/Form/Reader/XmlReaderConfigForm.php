@@ -91,6 +91,21 @@ class XmlReaderConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'xsl_params',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'Params to pass to xsl sheets', // @translate
+                    // 'info' => 'Check the xsl sheets or the documentation to know about params.', // @translate
+                    'as_key_value' => true,
+                ],
+                'attributes' => [
+                    'id' => 'xsl_params',
+                    'rows' => '6',
+                    'placeholder' => 'basepath = xxx/
+param_2 = 2',
+                ],
+            ])
+            ->add([
                 'name' => 'mapping_automatic',
                 'type' => Element\Hidden::class,
                 'attributes' => [

@@ -9,6 +9,7 @@ return [
         'xsl_sheet_pre' => '',
         'xsl_sheet' => 'module:xsl/mets_to_omeka.xsl',
         'mapping_config' => '',
+        'xsl_params' => [],
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [

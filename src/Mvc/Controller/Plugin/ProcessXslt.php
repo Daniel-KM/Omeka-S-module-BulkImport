@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2015-2020 Daniel Berthereau
+ * Copyright 2015-2022 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -69,7 +69,7 @@ class ProcessXslt extends AbstractPlugin
      * @return string|null Path to the output file if ok, null else.
      * @throws \Exception
      */
-    public function __invoke($uri, $stylesheet, $output = '', array $parameters = [])
+    public function __invoke($uri, $stylesheet, $output = '', array $parameters = []): ?string
     {
         // The readability is a very common error, so it is checked separately.
         // Furthermore, the input should be local to be processed by php or cli.

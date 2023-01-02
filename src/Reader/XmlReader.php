@@ -30,6 +30,7 @@ class XmlReader extends AbstractFileMultipleReader
         'xsl_sheet_pre',
         'xsl_sheet',
         'mapping_config',
+        'xsl_params',
     ];
 
     protected $paramsKeys = [
@@ -39,6 +40,7 @@ class XmlReader extends AbstractFileMultipleReader
         'xsl_sheet_pre',
         'xsl_sheet',
         'mapping_config',
+        'xsl_params',
     ];
 
     /**
@@ -231,9 +233,10 @@ class XmlReader extends AbstractFileMultipleReader
      */
     protected function preprocessXslt($xmlpath): string
     {
+        $xslParams = $this->getParam('xsl_params') ?: [];
         foreach ($this->xslpaths() as $xslpath) {
             try {
-                $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath);
+                $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath, '', $xslParams);
                 if (empty($tmpPath)) {
                     $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
                     throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
