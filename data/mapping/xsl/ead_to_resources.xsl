@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Description : Convertit un inventaire ead en liste de ressources avec indication du parent.
+    Description : Convertit un inventaire ead en liste de ressources avec indication du parent et copie des valeurs des composants supérieurs.
 
     Remarques :
     - Ead Header et Front Matter sont fusionnés en une ressource.
     - Tous les "cXX" sont convertis en "c" simples pour faciliter l’alignement.
-    - Les attributs "_depth" et "_parentid" sont ajoutés sur chaque unité (archival description et
-        composants) pour faciliter la création des relations.
     - Aucun titre n’est ajouté par défaut.
+    - Les attributs "_depth" et "_parentid" sont ajoutés sur chaque unité (archival description et composants) pour faciliter la création des relations.
+    - L'attribut "_uid" est ajouté sur chaque valeur copiée pour indiquer son origine.
 
-    Pour reprendre les métadonnées des composants supérieurs, utiliser les paramètres suivants :
+    Attention : seuls les éléments dans "did" sont copiés.
+
+    La conversion en contenus Omeka, notamment la distinction entre item et media, s'effectue via l'alignement "ead_to_omeka.xml".
+
+    Pour configuer la copie des métadonnées des composants supérieurs, utiliser les paramètres suivants :
 
     - "parent_copy_select" :
         - "all" (par défaut) : copier tous les éléments supérieurs.
@@ -21,7 +25,9 @@
             Par exemple, si le composant a une description, les descriptions supérieures ne sont pas reprises.
         - "all" : copier tous les éléments supérieurs, même présent dans le niveau en cours.
 
-    Attention : seuls les éléments dans "did" sont copiés.
+    - "parent_copy_list"
+        Liste des éléments à copier correspondant au 1er niveau ("physdesc") ou au second niveau ("physdesc/dimensions").
+        Les chemins à copier peuvent être enveloppés de l'élément "e" ou séparés d'une espace ou d'un saut de ligne.
 
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -67,8 +73,15 @@
     <xsl:param name="parent_copy_mode">missing</xsl:param>
 
     <!-- Liste des éléments parents à inclure pour l’option "list". -->
+    <!-- Le tag "<e>" est optionnel et la liste peut être simplement séparée d’espaces. -->
     <xsl:param name="parent_copy_list">
         <e>physdesc</e>
+        <e>physdesc/date</e>
+        <e>physdesc/dimensions</e>
+        <e>physdesc/extent</e>
+        <e>physdesc/physfacet</e>
+        <e>physdesc/subject</e>
+        <e>physdesc/title</e>
         <e>physloc</e>
         <e>repository</e>
         <e>unitdate</e>
@@ -293,7 +306,22 @@
 
     <!-- Préparation de la liste des éléments et sous-éléments. -->
     <xsl:template name="parent_set_list">
-        <xsl:for-each select="exsl:node-set($parent_copy_list)/e">
+        <xsl:variable name="list">
+            <xsl:choose>
+                <xsl:when test="string-length(normalize-space($parent_copy_list)) = 0">
+                    <!-- Rien. -->
+                </xsl:when>
+                <xsl:when test="exsl:node-set($parent_copy_list)/e">
+                    <xsl:copy-of select="exsl:node-set($parent_copy_list)/e"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:call-template name="explode_e">
+                        <xsl:with-param name="text" select="$parent_copy_list"/>
+                    </xsl:call-template>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:for-each select="exsl:node-set($list)/e">
             <xsl:apply-templates select="text()" mode="split_to_elements"/>
         </xsl:for-each>
     </xsl:template>
@@ -319,6 +347,26 @@
                         </xsl:call-template>
                     </e>
                 </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <xsl:template name="explode_e">
+        <xsl:param name="text" select="."/>
+        <xsl:variable name="ntext" select="normalize-space($text)"/>
+        <xsl:choose>
+            <xsl:when test="string-length($text) = 0">
+                <!-- Rien. -->
+            </xsl:when>
+            <xsl:when test="not(contains($text, ' '))">
+                <e><xsl:value-of select="$text"/></e>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="first_part" select="normalize-space(substring-before(concat($text, ' '), ' '))"/>
+                <e><xsl:value-of select="$first_part"/></e>
+                <xsl:call-template name="explode_e">
+                    <xsl:with-param name="text" select="normalize-space(substring-after($text, ' '))"/>
+                </xsl:call-template>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
