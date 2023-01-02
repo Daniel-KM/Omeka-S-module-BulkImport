@@ -38,8 +38,14 @@
 
     <!-- Paramètres -->
 
-    <!-- Chemin ou url jusqu'au dossier d'import. Inclure le "/" final. -->
-    <xsl:param name="basepath"></xsl:param>
+    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d'insérér le dossier du fichier xml. -->
+    <xsl:param name="basepath">__dirpath__</xsl:param>
+
+    <!-- Url ou chemin du fichier xml, automatiquement passée. -->
+    <xsl:param name="filepath"></xsl:param>
+
+    <!-- Url ou chemin du dossier du fichier xml, automatiquement passée. -->
+    <xsl:param name="dirpath"></xsl:param>
 
     <!-- Ajouter la table des matières pour iiif (cf. module IIIF Server). -->
     <!-- TODO Dans l'idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page". -->
@@ -135,6 +141,14 @@
     </xsl:template>
 
     <xsl:template match="@xlink:href">
+        <xsl:choose>
+            <xsl:when test="$basepath = '__dirpath__'">
+                <xsl:value-of select="concat($dirpath, '/')"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$basepath"/>
+            </xsl:otherwise>
+        </xsl:choose>
         <xsl:choose>
             <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
                 <xsl:value-of select="translate(substring(., 3), '\', '/')"/>

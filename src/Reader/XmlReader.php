@@ -234,6 +234,8 @@ class XmlReader extends AbstractFileMultipleReader
     protected function preprocessXslt($xmlpath): string
     {
         $xslParams = $this->getParam('xsl_params') ?: [];
+        $xslParams['filepath'] = $xmlpath;
+        $xslParams['dirpath'] = dirname($xmlpath);
         foreach ($this->xslpaths() as $xslpath) {
             try {
                 $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath, '', $xslParams);

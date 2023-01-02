@@ -34,7 +34,7 @@
 
     - Le chemin pour les fichiers peut être configuré avec le paramètre "basepath". Inclure le "/" final.
         Le chemin est une url. Si vous utilisez un chemin sur le serveur, le module FileSideload est nécessaire.
-
+        La valeur `__dirpath__` permet de passer l'url ou le chemin du fichier xml.
 
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -73,8 +73,14 @@
 
     <!-- Paramètres -->
 
-    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. -->
-    <xsl:param name="basepath"></xsl:param>
+    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d'insérér le dossier du fichier xml. -->
+    <xsl:param name="basepath">__dirpath__</xsl:param>
+
+    <!-- Url ou chemin du fichier xml, automatiquement passée. -->
+    <xsl:param name="filepath"></xsl:param>
+
+    <!-- Url ou chemin du dossier du fichier xml, automatiquement passée. -->
+    <xsl:param name="dirpath"></xsl:param>
 
     <!-- Créer une ressource séparée de "eadheader" pour "frontmatter" (0 / 1). -->
     <xsl:param name="frontmatter_separate">0</xsl:param>
@@ -264,7 +270,14 @@
     <!-- Correction du chemin des fichiers. -->
     <xsl:template match="dao/@href">
         <xsl:attribute name="href">
-            <xsl:value-of select="concat($basepath, .)"/>
+            <xsl:choose>
+                <xsl:when test="$basepath = '__dirpath__'">
+                    <xsl:value-of select="concat($dirpath, '/', .)"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="concat($basepath, .)"/>
+                </xsl:otherwise>
+            </xsl:choose>
         </xsl:attribute>
     </xsl:template>
 
