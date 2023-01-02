@@ -46,6 +46,8 @@
     <xsl:param name="toc_iiif">1</xsl:param>
 
     <!-- Ajouter la table des matières avec toutes les pages. -->
+    <!-- Ce n'est donc plus une table des matières. -->
+    <!-- Une option dans le module IiifServer permet d'afficher cette table complète via le table courte. -->
     <xsl:param name="toc_full">0</xsl:param>
 
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
@@ -182,30 +184,21 @@
             <xsl:attribute name="label">
                 <xsl:value-of select="@LABEL"/>
             </xsl:attribute>
-            <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles. -->
-            <xsl:choose>
-                <xsl:when test="$full_toc">
-                    <!--
-                    <xsl:if test="@TYPE and @TYPE != ''">
-                        <xsl:attribute name="type">
-                            <xsl:value-of select="@TYPE"/>
-                        </xsl:attribute>
-                    </xsl:if>
-                    -->
-                    <xsl:if test="mets:fptr">
-                        <xsl:attribute name="index">
-                            <xsl:apply-templates select="mets:fptr" mode="position"/>
-                        </xsl:attribute>
-                        <!-- Le nom du fichier est généralement inutile.
-                        <xsl:attribute name="file">
-                            <xsl:value-of select="$basepath"/>
-                            <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
-                        </xsl:attribute>
-                        -->
-                    </xsl:if>
-                </xsl:when>
-                <xsl:otherwise>
-                    <xsl:attribute name="range">
+            <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles (à gérer dans IIIF Server). -->
+            <xsl:attribute name="range">
+                <xsl:choose>
+                    <xsl:when test="$full_toc">
+                        <xsl:choose>
+                            <xsl:when test="$subdiv_fptr">
+                                <xsl:apply-templates select="mets:div" mode="range_full"/>
+                            </xsl:when>
+                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                            <xsl:otherwise>
+                                <xsl:apply-templates select=". | mets:div" mode="range_full"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:otherwise>
                         <xsl:choose>
                             <xsl:when test="$subdiv_fptr">
                                 <xsl:apply-templates select="mets:div" mode="range"/>
@@ -215,9 +208,26 @@
                                 <xsl:apply-templates select=". | mets:div" mode="range"/>
                             </xsl:otherwise>
                         </xsl:choose>
-                    </xsl:attribute>
-                </xsl:otherwise>
-            </xsl:choose>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:attribute>
+            <!-- Ajout d'information : position et nom du fichier, généralement inutile ; le type pourrait être utilisé pour bien distinguer section et pages. -->
+            <!--
+            <xsl:if test="@TYPE and @TYPE != ''">
+                <xsl:attribute name="type">
+                    <xsl:value-of select="@TYPE"/>
+                </xsl:attribute>
+            </xsl:if>
+            <xsl:if test="mets:fptr">
+                <xsl:attribute name="index">
+                    <xsl:apply-templates select="mets:fptr" mode="position"/>
+                </xsl:attribute>
+                <xsl:attribute name="file">
+                    <xsl:value-of select="$basepath"/>
+                    <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
+                </xsl:attribute>
+            </xsl:if>
+            -->
             <xsl:choose>
                 <xsl:when test="$full_toc">
                     <xsl:apply-templates select="mets:div" mode="toc">
@@ -240,16 +250,28 @@
         <xsl:text>, </xsl:text>
         <xsl:value-of select="@LABEL"/>
         <xsl:text>, </xsl:text>
-        <xsl:if test="not($full_toc)">
-            <xsl:choose>
-                <xsl:when test="$subdiv_fptr">
-                    <xsl:apply-templates select="mets:div" mode="range"/>
-                </xsl:when>
-                <xsl:otherwise>
-                    <xsl:apply-templates select=". | mets:div" mode="range"/>
-                </xsl:otherwise>
-            </xsl:choose>
-        </xsl:if>
+        <xsl:choose>
+            <xsl:when test="$full_toc">
+                <xsl:choose>
+                    <xsl:when test="$subdiv_fptr">
+                        <xsl:apply-templates select="mets:div" mode="range_full"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:apply-templates select=". | mets:div" mode="range_full"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:choose>
+                    <xsl:when test="$subdiv_fptr">
+                        <xsl:apply-templates select="mets:div" mode="range"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:apply-templates select=". | mets:div" mode="range"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
         <xsl:text>&#xA;</xsl:text>
         <xsl:choose>
             <xsl:when test="$full_toc">
@@ -317,6 +339,16 @@
                 </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
+    </xsl:template>
+
+    <!-- Liste des sections ou des positions de page pour la liste complète. -->
+    <!-- Attention : ne pas compter les divs, mais les fptr, c'est à dire la position des fichiers dans les div. -->
+    <xsl:template match="mets:div" mode="range_full">
+        <xsl:if test="position() != 1">
+            <xsl:text>; </xsl:text>
+        </xsl:if>
+        <xsl:text>r</xsl:text>
+        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
     </xsl:template>
 
     <!-- Position du pointeur en cours dans la structure en cours. -->
