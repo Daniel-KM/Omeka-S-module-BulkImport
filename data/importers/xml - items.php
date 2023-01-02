@@ -6,7 +6,9 @@ return [
     'config' => [],
     'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
+        'xsl_sheet_pre' => '',
         'xsl_sheet' => 'module:xsl/identity.xslt1.xsl',
+        'mapping_config' => '',
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [

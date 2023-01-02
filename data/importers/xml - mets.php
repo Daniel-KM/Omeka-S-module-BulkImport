@@ -6,7 +6,9 @@ return [
     'config' => [],
     'readerClass' => \BulkImport\Reader\XmlReader::class,
     'readerConfig' => [
+        'xsl_sheet_pre' => '',
         'xsl_sheet' => 'module:xsl/mets_to_omeka.xsl',
+        'mapping_config' => '',
     ],
     'processorClass' => \BulkImport\Processor\ItemProcessor::class,
     'processorConfig' => [

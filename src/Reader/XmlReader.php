@@ -27,6 +27,7 @@ class XmlReader extends AbstractFileMultipleReader
     protected $configKeys = [
         'url',
         'list_files',
+        'xsl_sheet_pre',
         'xsl_sheet',
         'mapping_config',
     ];
@@ -35,6 +36,7 @@ class XmlReader extends AbstractFileMultipleReader
         'filename',
         'url',
         'list_files',
+        'xsl_sheet_pre',
         'xsl_sheet',
         'mapping_config',
     ];
@@ -79,15 +81,18 @@ class XmlReader extends AbstractFileMultipleReader
     {
         // Before checking each xml file, check if the xsl file is ok, if any.
         // It may be empty if the input is a flat xml file with resources.
-        $xslconfig = $this->getParam('xsl_sheet');
-        if ($xslconfig) {
+        $xslConfigs = array_filter([
+            $this->getParam('xsl_sheet_pre'),
+            $this->getParam('xsl_sheet'),
+        ]);
+        foreach ($xslConfigs as $xslConfig) {
             // Check if the basepath is inside Omeka path for security.
-            if (mb_substr($xslconfig, 0, 5) === 'user:' || mb_substr($xslconfig, 0, 7) === 'module:') {
-                $filepath = $this->xslpath();
+            if (mb_substr($xslConfig, 0, 5) === 'user:' || mb_substr($xslConfig, 0, 7) === 'module:') {
+                $filepath = $this->xslpath($xslConfig);
                 if (!$filepath) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
-                        ['filename' => $xslconfig]
+                        ['filename' => $xslConfig]
                     );
                     return false;
                 }
@@ -96,7 +101,7 @@ class XmlReader extends AbstractFileMultipleReader
                 if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
-                        ['filename' => $xslconfig]
+                        ['filename' => $xslConfig]
                     );
                     return false;
 
@@ -108,8 +113,8 @@ class XmlReader extends AbstractFileMultipleReader
                         return false;
                     }
                 }
-            } elseif (mb_substr($xslconfig, 0, 8) === 'mapping:') {
-                $mappingId = (int) mb_substr($xslconfig, 8);
+            } elseif (mb_substr($xslConfig, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($xslConfig, 8);
                 /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
                 $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
                 if (!$mapping) {
@@ -122,7 +127,7 @@ class XmlReader extends AbstractFileMultipleReader
             } else {
                 $this->lastErrorMessage = new PsrMessage(
                     'Xsl config "{name}" is invalid.', // @translate
-                    ['name' => $xslconfig]
+                    ['name' => $xslConfig]
                 );
                 return false;
             }
@@ -220,31 +225,29 @@ class XmlReader extends AbstractFileMultipleReader
     /**
      * Convert a xml file with the specified xsl path.
      *
+     * When no transformation is needed, use the input as normalized path.
+     *
      * @throws \Omeka\Service\Exception\RuntimeException
      */
     protected function preprocessXslt($xmlpath): string
     {
-        // When no transformation is needed, use the input as normalized path.
-        $xslpath = $this->xslpath();
-        if (!$xslpath) {
-            return $xmlpath;
-        }
-
-        try {
-            $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath);
-            if (empty($tmpPath)) {
-                $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
-                throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
+        foreach ($this->xslpaths() as $xslpath) {
+            try {
+                $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath);
+                if (empty($tmpPath)) {
+                    $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
+                    throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
+                }
+            } catch (\Exception $e) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'An issue occurred during initial transformation by the xsl sheet "{xslname}": {message}.', // @translate
+                    ['filename' => basename($this->getParam('file')['name']), 'xslname' => basename($xslpath), 'message' => $e->getMessage()]
+                );
+                throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
             }
-        } catch (\Exception $e) {
-            $this->lastErrorMessage = new PsrMessage(
-                'An issue occurred during initial transformation by the xsl sheet "{xslname}": {message}.', // @translate
-                ['filename' => basename($this->getParam('file')['name']), 'xslname' => basename($xslpath), 'message' => $e->getMessage()]
-            );
-            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+            $xmlpath = $tmpPath;
         }
-
-        return $tmpPath;
+        return $xmlpath;
     }
 
     /**
@@ -291,19 +294,31 @@ class XmlReader extends AbstractFileMultipleReader
         return true;
     }
 
-    protected function xslpath(): ?string
+    protected function xslpaths(): array
     {
-        $filepath = $this->getParam('xsl_sheet');
-        if (!$filepath) {
+        $result = [];
+        $xslConfigs = array_filter([
+            $this->getParam('xsl_sheet_pre'),
+            $this->getParam('xsl_sheet'),
+        ]);
+        foreach ($xslConfigs as $xslConfig) {
+            $result[] = $this->xslpath($xslConfig);
+        }
+        return array_filter($result);
+    }
+
+    protected function xslpath(?string $xslpath): ?string
+    {
+        if (!$xslpath) {
             return null;
         }
-        if (mb_substr($filepath, 0, 5) === 'user:') {
-            $filepath = $this->basePath . '/mapping/' . mb_substr($filepath, 5);
-        } elseif (mb_substr($filepath, 0, 7) === 'module:') {
-            $filepath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($filepath, 7);
+        if (mb_substr($xslpath, 0, 5) === 'user:') {
+            $xslpath = $this->basePath . '/mapping/' . mb_substr($xslpath, 5);
+        } elseif (mb_substr($xslpath, 0, 7) === 'module:') {
+            $xslpath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($xslpath, 7);
         } else {
             return null;
         }
-        return realpath($filepath) ?: null;
+        return realpath($xslpath) ?: null;
     }
 }

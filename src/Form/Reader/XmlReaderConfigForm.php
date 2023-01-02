@@ -45,6 +45,21 @@ class XmlReaderConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'xsl_sheet_pre',
+                'type' => BulkImportElement\OptionalSelect::class,
+                'options' => [
+                    'label' => 'XSLT file used to preprocess xml or normalize source', // @translate
+                    'value_options' => $xslConfig,
+                    'empty_option' => '',
+                ],
+                'attributes' => [
+                    'id' => 'xsl_sheet_pre',
+                    'value' => '',
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select the xsl for transformation…', // @translate
+                ],
+            ])
+            ->add([
                 'name' => 'xsl_sheet',
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
