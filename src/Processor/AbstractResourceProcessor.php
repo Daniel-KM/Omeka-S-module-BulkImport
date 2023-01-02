@@ -828,7 +828,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->logger->notice(
-            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when resources are not found.', // @translate
+            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when existing or linked resources are not found.', // @translate
             ['names' => implode(', ', array_keys($this->bulk->getIdentifierNames()))]
         );
 
