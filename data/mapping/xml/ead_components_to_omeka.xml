@@ -31,7 +31,7 @@
         <mod val="o:Item"/>
     </map>
 
-    <!-- Ajouter un modèle de ressource "Archival Item" pour distinguer les pièces des descriptions d’ensemble. -->
+    <!-- Ajouter un modèle de ressource "Archival Item" et "Image" pour distinguer les pièces des descriptions d’ensemble. -->
     <!--
     <map>
         <from xpath="/c[@level = 'item']"/>
@@ -42,8 +42,7 @@
 
     <!-- Import de chaque image en tant qu'item : donc lien comme les autres. -->
      <map>
-        <from xpath="/archdesc[@_parentid and @_parentid != '']/@_parentid
-            | /c[@_parentid and @_parentid != '']/@_parentid"/>
+        <from xpath="/archdesc[@_parent_id and @_parent_id != '']/@_parent_id | /c[@_parent_id and @_parent_id != '']/@_parent_id"/>
         <to field="dcterms:isPartOf"
             datatype="resource:item"/>
      </map>
