@@ -75,7 +75,7 @@ class MetaMapperConfig extends AbstractPlugin
      * @var array
      */
     protected $configs = [
-        '40cd750bba9870f18aada2478b24840a' => [
+        'ec58905619984f5c3dbb308c5556df58' => [
             'info' => [
                 // Label is the only required data.
                 'label' => 'Empty config', // @translate
@@ -86,6 +86,8 @@ class MetaMapperConfig extends AbstractPlugin
             'params' => [],
             'default' => [],
             'mapping' => [],
+            // List of tables (associative arrays) indexed by their name.
+            'tables' => [],
             'has_error' => false,
         ],
     ];
@@ -324,6 +326,8 @@ class MetaMapperConfig extends AbstractPlugin
             'params' => $options['params'] ?? [],
             'default' => $options['default'] ?? [],
             'mapping' => $config,
+            // TODO Options or config to store tables in config list (for spreadsheet)?
+            'tables' => $options['tables'] ?? [],
             'has_error' => false,
         ];
 
@@ -396,6 +400,7 @@ class MetaMapperConfig extends AbstractPlugin
                 'params' => [],
                 'default' => [],
                 'mapping' => $config,
+                'tables' => [],
                 'has_error' => false,
             ];
         }
@@ -479,6 +484,8 @@ class MetaMapperConfig extends AbstractPlugin
             }
         }
 
+        // TODO Add tables for config ini.
+
         return $normalizedConfig;
     }
 
@@ -494,6 +501,7 @@ class MetaMapperConfig extends AbstractPlugin
             'params' => [],
             'default' => [],
             'mapping' => [],
+            'tables' => [],
             'has_error' => false,
         ];
 
@@ -522,11 +530,16 @@ class MetaMapperConfig extends AbstractPlugin
         // @todo Remove [to][dest] and "k".
         $k = 0;
         foreach (['default', 'mapping'] as $section) {
+            $isDefault = $section === 'default';
             // TODO Use an attribute or a sub-element ?
             $i = 0;
             $options['section'] = $section;
+            // TODO Include xml includes here.
             foreach ($xmlConfig->map as $element) {
-                if ($element->from['xpath']) {
+                $hasXpath = (bool) $element->from['xpath'];
+                if (($isDefault && $hasXpath)
+                    || (!$isDefault && !$hasXpath)
+                ) {
                     continue;
                 }
                 $options['index'] = ++$i;
@@ -539,9 +552,20 @@ class MetaMapperConfig extends AbstractPlugin
         }
 
         // Prepare tables.
-        $this->normalizeTables();
+        foreach ($xmlConfig->table as $table) {
+            $code = (string) $table['code'];
+            if (!$code) {
+                continue;
+            }
+            foreach ($table->list[0]->term as $term) {
+                $termCode = (string) $term['code'];
+                if (strlen($termCode)) {
+                    $normalizedConfig['tables'][$code][$termCode] = (string) $term[0];
+                }
+            }
+        }
 
-        return $this;
+        return $normalizedConfig;
     }
 
     /**
@@ -833,7 +857,8 @@ class MetaMapperConfig extends AbstractPlugin
 
     protected function normalizeMapFromXml(SimpleXMLElement $map, array $options): array
     {
-        // Since anything is set inside attributes, use a json conversion..
+        // Since anything is set inside attributes, convert it into an array
+        // via a json conversion.
         $xmlArray = json_decode(json_encode($map), true);
 
         $index = $options['index'] ?? 0;
@@ -888,7 +913,7 @@ class MetaMapperConfig extends AbstractPlugin
             $patternDataTypes = '#(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*))#';
             if (preg_match_all($patternDataTypes, (string) $xmlArray['to']['@attributes']['datatype'], $matchesDataTypes, PREG_SET_ORDER, 0)) {
                 foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
-                    $result['to']['datatype'] = $this->bulk->getDataTypeName($datatype);
+                    $result['to']['datatype'][] = $this->bulk->getDataTypeName($datatype);
                 }
                 $result['to']['datatype'] = array_filter(array_unique($result['to']['datatype']));
             }
@@ -998,5 +1023,103 @@ class MetaMapperConfig extends AbstractPlugin
         return $result
             ? reset($result)
             : null;
+    }
+
+    /**
+     * @todo Factorize with AutomapFields::appendPattern()
+     * @see \BulkImport\Mvc\Controller\Plugin\AutomapFields::appendPattern()
+     */
+    protected function preparePattern(string $pattern): array
+    {
+        $result = [
+            'pattern' => $pattern,
+        ];
+        if (empty($pattern)) {
+            return $result;
+        }
+
+        // There is no escape for simple/double quotes.
+        $isQuoted = (mb_substr($pattern, 0, 1) === '"' && mb_substr($pattern, -1) === '"')
+        || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
+        if ($isQuoted) {
+            $result['raw'] = trim(mb_substr($pattern, 1, -1));
+            $result['pattern'] = null;
+            return $result;
+        }
+
+        // Check for incomplete replacement or twig patterns.
+        $prependPos = mb_strpos($pattern, '{{');
+        $appendPos = mb_strrpos($pattern, '}}');
+
+        // A quick check.
+        if ($prependPos === false || $appendPos === false) {
+            $result['raw'] = trim($pattern);
+            $result['pattern'] = null;
+            return $result;
+        }
+
+        // To simplify process and remove the empty values, check if the pattern
+        // contains a prepend/append string.
+        // Replace only complete patterns, so check append too.
+        $isNormalPattern = $prependPos < $appendPos;
+        if ($isNormalPattern && $prependPos && $appendPos) {
+            $result['prepend'] = mb_substr($pattern, 0, $prependPos);
+            $pattern = mb_substr($pattern, $prependPos);
+            $result['pattern'] = $pattern;
+            $appendPos = mb_strrpos($pattern, '}}');
+        }
+        if ($isNormalPattern && $appendPos !== mb_strlen($pattern) - 2) {
+            $result['append'] = mb_substr($pattern, $appendPos + 2);
+            $pattern = mb_substr($pattern, 0, $appendPos + 2);
+            $result['pattern'] = $pattern;
+        }
+
+        // Manage exceptions.
+        // TODO Remove twig / replacement exception (value, label, and list).
+        $exceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
+
+        if (in_array($pattern, $exceptions)) {
+            $result['replace'][] = $pattern;
+            return $result;
+        }
+
+        // Separate simple replacement strings (`{{/xpath/from/source}}` and the
+        // twig filters (`{{ value|trim }}`).
+        // The difference is the presence of spaces surrounding sub-patterns.
+        // Sub-patterns cannot be nested for now, but combined.
+        $matches = [];
+        if (preg_match_all('~\{\{( value | label | list |\S+?|\S.*?\S)\}\}~', $pattern, $matches) !== false) {
+            $result['replace'] = empty($matches[0]) ? [] : array_values(array_unique($matches[0]));
+        }
+
+        // In order to allow replacements inside twig patterns, the replacements
+        // are replaced (since replacements are done before twig transforms).
+        if (empty($result['replace'])) {
+            $replacements = [];
+            $cleanPattern = $pattern;
+        } else {
+            foreach ($result['replace'] as $i => $replacement) {
+                $replacements[$replacement] = '__To_Be_Replaced__' . $i . '__';
+            }
+            $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
+        }
+
+        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $cleanPattern, $matches) !== false) {
+            $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
+            // Avoid to use twig when a replacement is enough.
+            $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
+            // Keep original replacements values.
+            if (!empty($replacements)) {
+                foreach ($result['twig'] as $key => $twigPattern) {
+                    $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                    $result['twig'][$key] = $originalPattern;
+                    // When there are replacements, the twig transformation
+                    // should be done on real value or on a transformed filter.
+                    $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
+                }
+            }
+        }
+
+        return $result;
     }
 }
