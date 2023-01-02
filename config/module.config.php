@@ -77,9 +77,9 @@ return [
         ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
+            Form\ImporterConfirmForm::class => Service\Form\FormFactory::class,
             Form\ImporterDeleteForm::class => Service\Form\FormFactory::class,
             Form\ImporterForm::class => Service\Form\FormFactory::class,
-            Form\ImporterStartForm::class => Service\Form\FormFactory::class,
             Form\Processor\AssetProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\AssetProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\EprintsProcessorConfigForm::class => Service\Form\FormFactory::class,

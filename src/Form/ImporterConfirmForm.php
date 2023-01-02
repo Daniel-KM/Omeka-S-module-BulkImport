@@ -7,7 +7,7 @@ use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Form\Form;
 
-class ImporterStartForm extends Form
+class ImporterConfirmForm extends Form
 {
     use ServiceLocatorAwareTrait;
 
@@ -15,11 +15,11 @@ class ImporterStartForm extends Form
     {
         $this
             ->add([
-                'name' => 'start_submit',
+                'name' => 'confirm_submit',
                 'type' => Fieldset::class,
             ]);
 
-        $this->get('start_submit')
+        $this->get('confirm_submit')
             ->add([
                 'name' => 'submit',
                 'type' => Element\Submit::class,

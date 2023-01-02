@@ -3,9 +3,9 @@
 namespace BulkImport\Controller\Admin;
 
 use BulkImport\Api\Representation\ImporterRepresentation;
+use BulkImport\Form\ImporterConfirmForm;
 use BulkImport\Form\ImporterDeleteForm;
 use BulkImport\Form\ImporterForm;
-use BulkImport\Form\ImporterStartForm;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Job\Import as JobImport;
@@ -262,7 +262,11 @@ class ImporterController extends AbstractActionController
     }
 
     /**
+     * The process to start a bulk import uses, if any,  the reader form, the
+     * processor form and the confirm form.
+     *
      * @todo Simplify code of this three steps process.
+     *
      * @return \Laminas\Http\Response|\Laminas\View\Model\ViewModel
      */
     public function startAction()
@@ -295,7 +299,7 @@ class ImporterController extends AbstractActionController
 
         /** @var \Laminas\Session\SessionManager $sessionManager */
         $sessionManager = Container::getDefaultManager();
-        $session = new Container('ImporterStartForm', $sessionManager);
+        $session = new Container('BulkImport', $sessionManager);
 
         if (!$this->getRequest()->isPost()) {
             $session->exchangeArray([]);
@@ -383,7 +387,7 @@ class ImporterController extends AbstractActionController
                         } elseif ($isCountable && method_exists($reader, 'count') && empty($count)) {
                             $next = 'reader';
                         } else {
-                            $next = isset($formsCallbacks['processor']) ? 'processor' : 'start';
+                            $next = isset($formsCallbacks['processor']) ? 'processor' : 'confirm';
                         }
                         $formCallback = $formsCallbacks[$next];
                         break;
@@ -393,15 +397,15 @@ class ImporterController extends AbstractActionController
                         $session->comment = trim((string) $data['comment']);
                         $session->storeAsTask = !empty($data['store_as_task']);
                         $session->processor = $processor->getParams();
-                        $next = 'start';
-                        $formCallback = $formsCallbacks['start'];
+                        $next = 'confirm';
+                        $formCallback = $formsCallbacks['confirm'];
                         if (!empty($session->storeAsTask)) {
                             $message = new PsrMessage('This import will be stored to be run as a task.'); // @translate
                             $this->messenger()->addWarning($message);
                         }
                         break;
 
-                    case 'start':
+                    case 'confirm':
                         $importData = [];
                         $importData['o-module-bulk:comment'] = trim((string) $session['comment']) ?: null;
                         $importData['o-module-bulk:importer'] = $importer->getResource();
@@ -490,7 +494,7 @@ class ImporterController extends AbstractActionController
             'storeAsTask' => !empty($session->storeAsTask),
         ]);
 
-        if ($next === 'start') {
+        if ($next === 'confirm') {
             $importArgs = [];
             $importArgs['comment'] = $session['comment'];
             $importArgs['reader'] = $session['reader'];
@@ -599,14 +603,14 @@ class ImporterController extends AbstractActionController
         }
 
         /* @return \Laminas\Form\Form */
-        $formsCallbacks['start'] = function () use ($controller) {
-            $startForm = $controller->getForm(ImporterStartForm::class);
+        $formsCallbacks['confirm'] = function () use ($controller) {
+            $startForm = $controller->getForm(ImporterConfirmForm::class);
             $startForm
                 ->add([
                     'name' => 'current_form',
                     'type' => Element\Hidden::class,
                     'attributes' => [
-                        'value' => 'start',
+                        'value' => 'confirm',
                     ],
                 ]);
             return $startForm;
