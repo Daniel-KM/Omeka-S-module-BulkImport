@@ -20,6 +20,22 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
     protected $messages = [];
 
     /**
+     * @var bool
+     */
+    protected $storeNewErrorAsWarning = false;
+
+    public function setStoreNewErrorAsWarning(bool $storeNewErrorAsWarning): self
+    {
+        $this->storeNewErrorAsWarning = $storeNewErrorAsWarning;
+        return $this;
+    }
+
+    public function getStoreNewErrorAsWarning(): bool
+    {
+        return $this->storeNewErrorAsWarning;
+    }
+
+    /**
      * Add a message.
      *
      * @param string $key
@@ -29,6 +45,9 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function addMessage($key, $message, $severity = Logger::ERR): self
     {
+        if ($this->storeNewErrorAsWarning && $severity === Logger::ERR) {
+            $severity === Logger::WARN;
+        }
         $this->messages[$severity][$key][] = $message;
         return $this;
     }
@@ -38,7 +57,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function addError($key, $message): self
     {
-        $this->messages[Logger::ERR][$key][] = $message;
+        $this->messages[$this->storeNewErrorAsWarning ? Logger::WARN : Logger::ERR][$key][] = $message;
         return $this;
     }
 
