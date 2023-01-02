@@ -47,6 +47,16 @@
 
     <!-- Constantes -->
 
+    <!--
+    Certaines structures contiennent ou non un div pour les pointeurs :
+    - <div><div><fptr></div><div><fptr></div></div>
+    - <div><fptr><div><fptr></div></div>
+    Le premier cas distingue clairement les sections et les pages.
+    Le second cas est plus complexe à gérer pour créer la table des matières pour les groupes de pages.
+    Cette valeur permet de déterminer le type de structure.
+    -->
+    <xsl:variable name="subdiv_fptr" select="count(/mets:mets/mets:structMap//mets:div[mets:div and mets:fptr]) = 0"/>
+
     <!-- Templates -->
 
     <xsl:template match="/mets:mets">
@@ -146,7 +156,15 @@
             </xsl:attribute>
             <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles. -->
             <xsl:attribute name="range">
-                <xsl:apply-templates select="mets:div" mode="range"/>
+                <xsl:choose>
+                    <xsl:when test="$subdiv_fptr">
+                        <xsl:apply-templates select="mets:div" mode="range"/>
+                    </xsl:when>
+                    <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                    <xsl:otherwise>
+                        <xsl:apply-templates select=". | mets:div" mode="range"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:attribute>
             <!-- Le nom du fichier est généralement inutile.
             <xsl:attribute name="file">
@@ -171,8 +189,15 @@
                 <xsl:if test="position() != 1">
                     <xsl:text>; </xsl:text>
                 </xsl:if>
-                <xsl:text>r</xsl:text>
-                <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+                <xsl:choose>
+                    <xsl:when test="not($subdiv_fptr) and position() = 1">
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>r</xsl:text>
+                        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:if test="position() != 1">
