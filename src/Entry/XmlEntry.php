@@ -6,6 +6,21 @@ use SimpleXMLElement;
 
 class XmlEntry extends BaseEntry
 {
+    protected $xmlOptions = LIBXML_BIGLINES
+        | LIBXML_COMPACT
+        | LIBXML_NOBLANKS
+        // | LIBXML_NOCDATA
+        | LIBXML_NOENT
+        | LIBXML_PARSEHUGE
+        | LIBXML_HTML_NOIMPLIED
+        | LIBXML_HTML_NODEFDTD
+        | LIBXML_NOERROR
+        | LIBXML_NOWARNING
+        // This option is not working on old versions of php.
+        | LIBXML_NOXMLDECL
+        | LIBXML_NSCLEAN
+    ;
+
     protected function init(): void
     {
         // To check xml:
@@ -29,8 +44,7 @@ class XmlEntry extends BaseEntry
         $namespaces = [null] + $simpleData->getNamespaces(true);
 
         // Fix issue with cdata (no: it will escape html tags).
-        $simpleData = new SimpleXMLElement($simpleData->asXML(),
-            LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOBLANKS | /* LIBXML_NOCDATA | */ LIBXML_NOENT | LIBXML_PARSEHUGE);
+        $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
 
         /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $this->options['metaMapperConfig'];
@@ -70,11 +84,13 @@ class XmlEntry extends BaseEntry
         $this->data = $resource;
     }
 
+    /**
+     * @todo For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
+     */
     protected function extractWithoutMetaConfig($simpleData, $namespaces)
     {
         $array = $this->attributes($simpleData);
 
-        // TODO For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
                 ? $simpleData->children($namespace)
@@ -345,7 +361,7 @@ class XmlEntry extends BaseEntry
                 // Module Custom Vocab.
 
             case substr($type, 0, 12) === 'customvocab:':
-                // TODO Manage items by type "customvocab.
+                // TODO Manage items and uri by type for customvocab.
                 $value = [
                     'type' => $type,
                     '@value' => $string,
@@ -521,17 +537,42 @@ class XmlEntry extends BaseEntry
 
         /*
         $value = '';
-        foreach (dom_import_simplexml($element)->childNodes as $child) {
-            $value .= $child->ownerDocument->saveXML($child);
+        $doc = dom_import_simplexml($element);
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput = true;
+        foreach ($doc->childNodes as $child) {
+            $value .= $child->ownerDocument->saveXML($child, $this->xmlOptions) . PHP_EOL;
         }
         $value = trim($value);
         */
+
         $value = trim((string) $element->asXml());
         $pos = mb_strpos($value, '>');
         $value = trim(mb_substr($value, $pos + 1, mb_strrpos($value, '</') - $pos - 1));
-        return mb_substr($value, 0, 9) === '<![CDATA[' && mb_substr($value, -3) === ']]>'
-            ? mb_substr($value, 9, -3)
-            : $value;
+
+        if (mb_substr($value, 0, 9) === '<![CDATA[' && mb_substr($value, -3) === ']]>') {
+            $value = trim(mb_substr($value, 9, -3));
+        }
+
+        // If string is an xml output, indent it because simpleXml removes it.
+        if (mb_substr($value, 0, 1) !== '<' || mb_substr($value, -1) !== '>') {
+            return $value;
+        }
+
+        $doc = new \DomDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput = true;
+        $result = $doc->loadXML($value, $this->xmlOptions);
+        if (!$result) {
+            $result = $doc->loadHTML($value, $this->xmlOptions);
+            return $result
+                ? $doc->saveHTML()
+                : $value;
+        }
+        $output = $doc->saveXML(null, $this->xmlOptions);
+        return mb_substr($output, 0, 2) === '<?'
+            ? trim(mb_substr($output, mb_strpos($output, '?>') + 2))
+            : $output;
     }
 
     /**
