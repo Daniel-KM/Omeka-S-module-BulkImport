@@ -45,6 +45,9 @@
     <!-- TODO Dans l'idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page". -->
     <xsl:param name="toc_iiif">1</xsl:param>
 
+    <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections. -->
+    <xsl:param name="full_page_ranges">0</xsl:param>
+
     <!-- Constantes -->
 
     <!--
@@ -200,10 +203,31 @@
                 </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:if test="position() != 1">
-                    <xsl:text>; </xsl:text>
-                </xsl:if>
-                <xsl:value-of select="$position_fptr"/>
+                <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
+                <!-- Attention : ne pas compter les divs, mais les fptr, c'est à dire la position des fichiers. -->
+                <xsl:variable name="est_premier_dans_serie" select="position() = 1 or generate-id(preceding-sibling::mets:div[1]) != generate-id(preceding-sibling::mets:div[not(mets:div)][1])"/>
+                <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
+                <xsl:choose>
+                    <!-- Liste de toutes les pages. -->
+                    <xsl:when test="$full_page_ranges = '1' or ($est_premier_dans_serie and $est_dernier_dans_serie)">
+                        <xsl:if test="position() != 1">
+                            <xsl:text>; </xsl:text>
+                        </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <!-- Liste des groupes de pages entre deux sections. -->
+                    <xsl:when test="$est_premier_dans_serie">
+                        <xsl:if test="position() != 1">; </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <xsl:when test="$est_dernier_dans_serie">
+                        <!-- Ne pas tenir compte de la section "book". -->
+                        <xsl:if test="$position_fptr != '1'">
+                            <xsl:text>-</xsl:text>
+                        </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
