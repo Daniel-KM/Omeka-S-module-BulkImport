@@ -11,6 +11,7 @@
 -->
 
 <tags>
+    <!-- Premier niveau de composant "c". -->
 
     <e name="did">
         <e name="abstract"/>
@@ -28,6 +29,244 @@
         <e name="unitdate"/>
         <e name="unitid"/>
         <e name="unittitle"/>
+    </e>
+
+    <!-- Deuxième niveau de composant "c". -->
+
+    <e name="abstract" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="container" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="dao">
+        <e name="daodesc"/>
+    </e>
+
+    <e name="daogrp">
+        <e name="arc"/>
+        <e name="daodesc"/>
+        <e name="daoloc"/>
+        <e name="extptrloc"/>
+        <e name="extrefloc"/>
+        <e name="ptrloc"/>
+        <e name="refloc"/>
+        <e name="resource"/>
+    </e>
+
+    <e name="head" pcdata="1">
+        <e name="emph"/>
+        <e name="extptr"/>
+        <e name="lb"/>
+        <e name="ptr"/>
+    </e>
+
+    <e name="langmaterial" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="language"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="materialspec" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="materialspec"/>
+        <e name="num"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="note">
+        <e name="address"/>
+        <e name="blockquote"/>
+        <e name="chronlist"/>
+        <e name="list"/>
+        <e name="note"/>
+        <e name="p"/>
+        <e name="table"/>
+    </e>
+
+    <e name="origination" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="corpname"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="famname"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="name"/>
+        <e name="persname"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="physdesc" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="corpname"/>
+        <e name="date"/>
+        <e name="dimensions"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extent"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="famname"/>
+        <e name="function"/>
+        <e name="genreform"/>
+        <e name="geogname"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="name"/>
+        <e name="occupation"/>
+        <e name="persname"/>
+        <e name="physfacet"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="subject"/>
+        <e name="title"/>
+    </e>
+
+    <e name="physloc" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="repository" pcdata="1">
+        <e name="abbr"/>
+        <e name="address"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="corpname"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="name"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="subarea"/>
+        <e name="title"/>
+    </e>
+
+    <e name="unitdate" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="unitid" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="title"/>
+    </e>
+
+    <e name="unittitle" pcdata="1">
+        <e name="abbr"/>
+        <e name="archref"/>
+        <e name="bibref"/>
+        <e name="bibseries"/>
+        <e name="corpname"/>
+        <e name="date"/>
+        <e name="edition"/>
+        <e name="emph"/>
+        <e name="expan"/>
+        <e name="extptr"/>
+        <e name="extref"/>
+        <e name="famname"/>
+        <e name="function"/>
+        <e name="genreform"/>
+        <e name="geogname"/>
+        <e name="imprint"/>
+        <e name="lb"/>
+        <e name="linkgrp"/>
+        <e name="name"/>
+        <e name="num"/>
+        <e name="occupation"/>
+        <e name="persname"/>
+        <e name="ptr"/>
+        <e name="ref"/>
+        <e name="subject"/>
+        <e name="title"/>
+        <e name="unitdate"/>
     </e>
 
 </tags>

@@ -9,10 +9,19 @@
         composants) pour faciliter la création des relations.
     - Aucun titre n’est ajouté par défaut.
 
-    Pour reprendre les métadonnées des composants supérieurs, utiliser le paramètre "parent_elements" :
-    - "no" (par défaut) : ne pas copier les éléments supérieurs.
-    - "list_missing" : copier seulement les éléments supérieurs définis dans une liste et manquants.
-      Par exemple, si le composant a une description, les descriptions supérieures ne sont pas reprises.
+    Pour reprendre les métadonnées des composants supérieurs, utiliser les paramètres suivants :
+
+    - "parent_copy_select" :
+        - "all" (par défaut) : copier tous les éléments supérieurs.
+        - "list" : copier les éléments supérieurs listés dans "parent_copy_list".
+        - "no" : ne pas copier les éléments supérieurs pour les traiter ultérieurement.
+
+    - "parent_copy_mode" :
+        - "missing" (par défaut) : copier les éléments supérieurs manquants. C'est la logique normale de l'ead.
+            Par exemple, si le composant a une description, les descriptions supérieures ne sont pas reprises.
+        - "all" : copier tous les éléments supérieurs, même présent dans le niveau en cours.
+
+    Attention : seuls les éléments dans "did" sont copiés.
 
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -51,12 +60,15 @@
 
     <!-- Paramètres -->
 
-    <!-- Mode d’inclusion des éléments parents. -->
-    <xsl:param name="parent_elements"></xsl:param>
+    <!-- Copie des éléments parents (all / list / no). -->
+    <xsl:param name="parent_copy_select">all</xsl:param>
 
-    <!-- Liste des éléments parents à inclure. -->
-    <xsl:param name="parent_elements_list">
-        <e>physdesc/dimensions</e>
+    <!-- Mode de copie des éléments parents (missing / all). -->
+    <xsl:param name="parent_copy_mode">missing</xsl:param>
+
+    <!-- Liste des éléments parents à inclure pour l’option "list". -->
+    <xsl:param name="parent_copy_list">
+        <e>physdesc</e>
         <e>physloc</e>
         <e>repository</e>
         <e>unitdate</e>
@@ -64,9 +76,21 @@
 
     <!-- Constantes. -->
 
-    <xsl:variable name="parent_set" select="exsl:node-set($parent_elements_list)"/>
-
     <xsl:variable name="ead_tags" select="document('ead_tags.xml')/tags"/>
+
+    <!-- xslt v1.0 requires an intermediate constant to get a node set. -->
+    <xsl:variable name="parent_set_fragment">
+        <xsl:choose>
+            <xsl:when test="$parent_copy_select = 'all'">
+                <xsl:call-template name="parent_set_ead"/>
+            </xsl:when>
+            <xsl:when test="$parent_copy_select = 'list'">
+                <xsl:call-template name="parent_set_list"/>
+            </xsl:when>
+        </xsl:choose>
+    </xsl:variable>
+
+    <xsl:variable name="parent_set" select="exsl:node-set($parent_set_fragment)"/>
 
     <!-- Templates. -->
 
@@ -121,19 +145,14 @@
             <!-- Ajout des éléments parents selon le paramètre. -->
             <xsl:choose>
                 <!-- Copie uniquement du premier élément ancètre : dans la liste des parents qui ont un did avec un élément, prendre le plus proche. -->
-                <xsl:when test="$parent_elements = 'list_missing'">
+                <xsl:when test="$parent_copy_mode = 'missing'">
                     <!-- TODO Enlever le for-each. -->
-                    <xsl:for-each select="$parent_set/e[. = $ead_tags/e[@name = 'did']/e/@name]">
-                        <xsl:variable name="element" select="normalize-space(text())"/>
+                    <xsl:for-each select="$parent_set/e[not(e)][@name = $ead_tags/e[@name = 'did']/e/@name]">
+                        <xsl:variable name="element" select="@name"/>
                         <xsl:if test="not($node/*[local-name() = $element])">
                             <xsl:apply-templates select="$node/ancestor::*[did/*[local-name() = $element]][1]/did/*[local-name() = $element]" mode="ancestor"/>
                         </xsl:if>
                     </xsl:for-each>
-                    <!-- Exemple direct.
-                    <xsl:if test="$parent_set/e = 'unittitle' and not(unittitle)">
-                        <xsl:apply-templates select="ancestor::*[did/unittitle][1]/did/unittitle" mode="ancestor"/>
-                    </xsl:if>
-                    -->
                 </xsl:when>
             </xsl:choose>
             <!-- Dans tous les cas, on prend les éléments en cours. -->
@@ -145,24 +164,17 @@
     <xsl:template match="did/node()">
         <xsl:variable name="node" select="."/>
         <xsl:variable name="node_name" select="local-name()"/>
+        <xsl:variable name="element_1" select="$node_name"/>
         <xsl:copy>
             <xsl:choose>
-                <xsl:when test="$parent_elements = 'list_missing'">
+                <xsl:when test="$parent_copy_mode = 'missing'">
                     <!-- TODO Vérifier que le sous-élément appartient à l'élément. -->
                     <!-- TODO On ne peut pas filtrer sur substring-before et substring-after dans /e. Pourtant "substring-after('physdesc/dimensions', '/')", sans le ".", fonctionne.
                         and normalize-space(substring-after(., '/')) = $ead_tags/e[@name = 'did']/e/e/@name
                         and normalize-space(substring-after('physdesc/dimensions', '/')) = $ead_tags/e[@name = 'did']/e/e/@name
                     -->
-                    <xsl:for-each select="$parent_set
-                        /e
-                            [
-                                contains(., '/')
-                                and $node_name = normalize-space(substring-before(., '/'))
-                                and $ead_tags/e[@name = 'did']/e[@name = $node_name]
-                            ]
-                        ">
-                        <xsl:variable name="element_1" select="normalize-space(substring-before(., '/'))"/>
-                        <xsl:variable name="element_2" select="normalize-space(substring-after(., '/'))"/>
+                    <xsl:for-each select="$parent_set/e[@name = $node_name]/e">
+                        <xsl:variable name="element_2" select="@name"/>
                         <xsl:if test="
                             $ead_tags
                             /e[@name = $element_1]
@@ -170,7 +182,7 @@
                             and
                             not(
                                 $node
-                                /*[local-name() = $element_1]
+                                [local-name() = $element_1]
                                 /*[local-name() = $element_2]
                             )
                             ">
@@ -265,6 +277,50 @@
         <xsl:for-each select="ancestor::*[local-name() = 'archdesc' or local-name() = 'c'  or local-name() = 'c01'  or local-name() = 'c02'  or local-name() = 'c03'  or local-name() = 'c04'  or local-name() = 'c05'  or local-name() = 'c06'  or local-name() = 'c07'  or local-name() = 'c08'  or local-name() = 'c09'  or local-name() = 'c10'  or local-name() = 'c11'  or local-name() = 'c12' ][1]">
             <xsl:call-template name="depth"/>
         </xsl:for-each>
+    </xsl:template>
+
+    <!-- Préparation de la liste des éléments et sous-éléments à partir du schéma ead. -->
+    <xsl:template name="parent_set_ead">
+        <xsl:for-each select="$ead_tags/e[@name = 'did']/e">
+            <!-- Copie du premier niveau seul et du second niveau. -->
+            <e name="{@name}"/>
+            <e name="{@name}">
+                <xsl:variable name="node" select="@name"/>
+                <xsl:copy-of select="$ead_tags/e[@name = $node]/e"/>
+            </e>
+        </xsl:for-each>
+    </xsl:template>
+
+    <!-- Préparation de la liste des éléments et sous-éléments. -->
+    <xsl:template name="parent_set_list">
+        <xsl:for-each select="exsl:node-set($parent_copy_list)/e">
+            <xsl:apply-templates select="text()" mode="split_to_elements"/>
+        </xsl:for-each>
+    </xsl:template>
+
+    <!-- TODO Vérifier la suite des éléments sur deux niveaux. -->
+    <xsl:template match="text()" name="split_to_elements" mode="split_to_elements">
+        <xsl:param name="text" select="normalize-space(.)"/>
+        <xsl:choose>
+            <xsl:when test="string-length($text) = 0">
+                <!-- Rien. -->
+            </xsl:when>
+            <xsl:when test="not(contains($text, '/'))">
+                <xsl:if test="$ead_tags/e[@name = $text]">
+                    <e name="{$text}"/>
+                </xsl:if>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="first_part" select="normalize-space(substring-before(concat($text, '/'), '/'))"/>
+                <xsl:if test="$ead_tags/e[@name = $first_part]">
+                    <e name="{$first_part}">
+                        <xsl:call-template name="split_to_elements">
+                            <xsl:with-param name="text" select="normalize-space(substring-after($text, '/'))"/>
+                        </xsl:call-template>
+                    </e>
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
 </xsl:stylesheet>
