@@ -32,6 +32,10 @@
         Liste des éléments à copier correspondant au 1er niveau ("physdesc") ou au second niveau ("physdesc/dimensions").
         Les chemins à copier peuvent être enveloppés de l'élément "e" ou séparés d'une espace ou d'un saut de ligne.
 
+    - Le chemin pour les fichiers peut être configuré avec le paramètre "basepath". Inclure le "/" final.
+        Le chemin est une url. Si vous utilisez un chemin sur le serveur, le module FileSideload est nécessaire.
+
+
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
@@ -68,6 +72,9 @@
     <xsl:strip-space elements="*"/>
 
     <!-- Paramètres -->
+
+    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. -->
+    <xsl:param name="basepath"></xsl:param>
 
     <!-- Créer une ressource séparée de "eadheader" pour "frontmatter" (0 / 1). -->
     <xsl:param name="frontmatter_separate">0</xsl:param>
@@ -252,6 +259,13 @@
             </xsl:attribute>
             <xsl:apply-templates select="@*|node()"/>
         </xsl:copy>
+    </xsl:template>
+
+    <!-- Correction du chemin des fichiers. -->
+    <xsl:template match="dao/@href">
+        <xsl:attribute name="href">
+            <xsl:value-of select="concat($basepath, .)"/>
+        </xsl:attribute>
     </xsl:template>
 
     <!-- Identity template -->
