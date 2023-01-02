@@ -12,8 +12,6 @@ use Omeka\Form\Element as OmekaElement;
  */
 class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
 {
-    use ServiceLocatorAwareTrait;
-
     public function init(): void
     {
         $this

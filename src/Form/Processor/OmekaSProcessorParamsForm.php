@@ -8,8 +8,6 @@ use Omeka\Form\Element as OmekaElement;
 
 class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
 {
-    use ServiceLocatorAwareTrait;
-
     public function init(): void
     {
         $this

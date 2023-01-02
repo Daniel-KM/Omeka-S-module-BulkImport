@@ -11,8 +11,8 @@ use Omeka\Form\Element as OmekaElement;
 
 class XmlReaderConfigForm extends Form
 {
-    use ServiceLocatorAwareTrait;
     use MappingsTrait;
+    use ServiceLocatorAwareTrait;
 
     public function init(): void
     {

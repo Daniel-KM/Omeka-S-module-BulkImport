@@ -10,7 +10,6 @@ use Omeka\Form\Element as OmekaElement;
 
 abstract class AbstractResourceProcessorConfigForm extends Form
 {
-    use ServiceLocatorAwareTrait;
     use CommonProcessTrait;
 
     public function init(): void

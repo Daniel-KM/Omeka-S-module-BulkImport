@@ -12,8 +12,6 @@ use Omeka\Form\Element as OmekaElement;
  */
 class SpipProcessorParamsForm extends SpipProcessorConfigForm
 {
-    use ServiceLocatorAwareTrait;
-
     public function init(): void
     {
         $this

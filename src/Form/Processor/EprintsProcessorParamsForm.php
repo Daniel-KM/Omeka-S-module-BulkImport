@@ -12,8 +12,6 @@ use Omeka\Form\Element as OmekaElement;
  */
 class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
 {
-    use ServiceLocatorAwareTrait;
-
     public function init(): void
     {
         $this
