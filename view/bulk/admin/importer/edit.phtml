@@ -5,8 +5,9 @@
  * @var \BulkImport\Form\ImporterDeleteForm $form
  */
 
-$translate = $this->plugin('translate');
-$escape = $this->plugin('escapeHtml');
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-imports edit');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));

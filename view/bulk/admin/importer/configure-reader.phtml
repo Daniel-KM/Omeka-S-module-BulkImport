@@ -6,11 +6,13 @@
  * @var \Laminas\Form\Form $form
  */
 
-$translate = $this->plugin('translate');
-$escape = $this->plugin('escapeHtml');
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers edit');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headLink()->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
 $form->prepare();
 ?>
 

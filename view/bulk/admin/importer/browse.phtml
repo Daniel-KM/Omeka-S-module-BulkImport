@@ -6,9 +6,10 @@
 
 use BulkImport\Interfaces\Configurable as ConfigurableImport;
 
-$translate = $this->plugin('translate');
-$escape = $this->plugin('escapeHtml');
-$hyperlink = $this->plugin('hyperlink');
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
+$hyperlink = $plugins->get('hyperlink');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));

@@ -42,6 +42,7 @@
             mod: {
                 attrs: {
                     raw: null,
+                    val: null,
                     prepend: null,
                     pattern: null,
                     append: null,

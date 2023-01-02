@@ -5,9 +5,11 @@
  * @var \BulkImport\Api\Representation\ImportRepresentation[] $imports
  */
 
-$translate = $this->plugin('translate');
-$escape = $this->plugin('escapeHtml');
-$hyperlink = $this->plugin('hyperlink');
+$plugins = $this->getHelperPluginManager();
+$url = $plugins->get('url');
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
+$hyperlink = $plugins->get('hyperlink');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-imports browse');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
@@ -30,7 +32,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <?php foreach ($importers as $importer): ?>
         <tr>
             <td>
-                <?= $hyperlink($importer->label(), $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])) ?>
+                <?= $hyperlink($importer->label(), $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])) ?>
                 <ul class="actions">
                     <li><?= $importer->link('', 'start', [
                         'class' => 'fas fa-cloud-upload-alt',

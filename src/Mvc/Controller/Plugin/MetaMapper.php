@@ -239,6 +239,7 @@ class MetaMapper extends AbstractPlugin
         if (empty($map['mod'])) {
             return $value;
         }
+        // The map should be well configured: an empty string must be null.
         if (isset($map['mod']['raw'])) {
             return $map['mod']['raw'];
         }
@@ -546,7 +547,7 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * Convert all mappings from a section with section type "mapping".
+     * Convert all mappings from a section.
      *
      * This method should be used when a mapping source ("from") is used
      * multiple times.
@@ -596,10 +597,11 @@ class MetaMapper extends AbstractPlugin
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
+            // Val is returned only when there is a value from.
             $result = [];
             if ($isDefaultSection) {
                 $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, null, $querier);
-                if ($converted === [] || $converted === '' || $converted === null) {
+                if ($converted === null || $converted === '') {
                     continue;
                 }
                 $result[] = strlen($val)
@@ -619,12 +621,12 @@ class MetaMapper extends AbstractPlugin
                     }
                     $values = is_array($values) ? array_values($values) : [$values];
                     foreach ($values as $value) {
-                        // Values should not be array of array.
+                        // Values should not be an array of array.
                         if (!is_scalar($value)) {
                             continue;
                         }
                         $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $data, $querier);
-                        if ($converted === [] || $converted === '' || $converted === null) {
+                        if ($converted === null || $converted === '') {
                             continue;
                         }
                         $result[] = strlen($val)
@@ -648,11 +650,14 @@ class MetaMapper extends AbstractPlugin
                     }
                     $values = is_array($values) ? array_values($values) : [$values];
                     foreach ($values as $value) {
+                        if (!is_scalar($value)) {
+                            continue;
+                        }
                         // Allows to use multiple mappings in one pattern, managing fields.
                         $source = $flatData;
                         $source[$fromPath] = $value;
                         $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $querier);
-                        if ($converted === [] || $converted === '' || $converted === null) {
+                        if ($converted === null || $converted === '') {
                             continue;
                         }
                         $result[] = strlen($val)
@@ -665,6 +670,8 @@ class MetaMapper extends AbstractPlugin
             if ($result === []) {
                 continue;
             }
+
+            $result = array_unique($result);
 
             $resource[$to['dest']] = empty($resource[$to['dest']])
                 ? $result
@@ -717,10 +724,11 @@ class MetaMapper extends AbstractPlugin
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
+            // Val is returned only when there is a value from.
             $result = [];
             if ($isDefaultSection) {
                 $converted = $this->convertTargetToStringXml($from, $mod);
-                if ($converted === [] || $converted === '' || $converted === null) {
+                if ($converted === null || $converted === '') {
                     continue;
                 }
                 $result[] = strlen($val)
@@ -733,7 +741,7 @@ class MetaMapper extends AbstractPlugin
                 $values = $this->xpathQuery($doc, $from);
                 foreach ($values as $value) {
                     $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value);
-                    if ($converted === [] || $converted === '' || $converted === null) {
+                    if ($converted === null || $converted === '') {
                         continue;
                     }
                     $result[] = strlen($val)
@@ -756,6 +764,8 @@ class MetaMapper extends AbstractPlugin
 
     /**
      * Convert a single field into a string.
+     *
+     * @todo Check if "raw" and "val" should be used.
      */
     public function convertToString(string $section, string $name, $data = null): ?string
     {
@@ -821,8 +831,12 @@ class MetaMapper extends AbstractPlugin
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToStringJson($from, $mod, ?array $data = null, ?string $querier = null): ?string
-    {
+    protected function convertTargetToStringJson(
+        $from,
+        $mod,
+        ?array $data = null,
+        ?string $querier = null
+    ): ?string {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
         }
@@ -866,6 +880,7 @@ class MetaMapper extends AbstractPlugin
             return (string) reset($fromValue);
         }
 
+        // TODO Remove or reorganize "raw"/"val" in convertTargetToStringJson().
         if (isset($mod['raw']) && strlen($mod['raw'])) {
             return (string) $mod['raw'];
         }
@@ -966,12 +981,16 @@ class MetaMapper extends AbstractPlugin
      * static value itself.
      * @param \DOMDocument|\SimpleXMLElement $data The resource from which
      * extract the data, if needed.
-     * @param \DOMNode|string  $fromValue
+     * @param \DOMNode|string $fromValue
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
-    protected function convertTargetToStringXml($from, $mod, $data = null, $fromValue = null): ?string
-    {
+    protected function convertTargetToStringXml(
+        $from,
+        $mod,
+        $data = null,
+        $fromValue = null
+    ): ?string {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
         }
@@ -1006,6 +1025,7 @@ class MetaMapper extends AbstractPlugin
             return $first instanceof \DOMNode ? (string) $first->nodeValue : (string) $first;
         }
 
+        // TODO Remove or reorganize "raw"/"val" in convertTargetToStringXml().
         if (isset($mod['raw']) && strlen($mod['raw'])) {
             return (string) $mod['raw'];
         }
@@ -1018,9 +1038,10 @@ class MetaMapper extends AbstractPlugin
         $replace = [];
         if (!empty($mod['replace'])) {
             if ($data) {
+                // TODO Remove exceptions for replace/twig.
+                // Manage the exceptions: there is no value here, neither label or list.
                 $wrappedQueryExceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
                 foreach ($mod['replace'] as $wrappedQuery) {
-                    // Manage the exceptions: there is no value here, neither label or list.
                     if (in_array($wrappedQuery, $wrappedQueryExceptions)) {
                         $replace[$wrappedQuery] = '';
                         continue;
@@ -1606,6 +1627,7 @@ class MetaMapper extends AbstractPlugin
         // on the left and the right part is not quoted.
         // So process by line.
 
+        /** TODO Remove for Omeka v4. */
         if (!function_exists('array_key_last')) {
             function array_key_last(array $array)
             {
