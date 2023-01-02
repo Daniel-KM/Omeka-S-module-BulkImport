@@ -48,6 +48,9 @@
     <!-- Ajouter la table des matières avec toutes les pages. -->
     <xsl:param name="toc_full">0</xsl:param>
 
+    <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
+    <xsl:param name="toc_xml">0</xsl:param>
+
     <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections. -->
     <xsl:param name="full_page_ranges">0</xsl:param>
 
@@ -152,10 +155,20 @@
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
         <xsl:param name="full_toc" select="false()"/>
-        <dcterms:tableOfContents o:type="xml">
-            <xsl:apply-templates select="mets:div" mode="toc">
-                <xsl:with-param name="full_toc" select="$full_toc"/>
-            </xsl:apply-templates>
+        <dcterms:tableOfContents>
+            <xsl:choose>
+                <xsl:when test="$toc_xml = '1'">
+                    <xsl:attribute name="o:type">xml</xsl:attribute>
+                    <xsl:apply-templates select="mets:div" mode="toc">
+                        <xsl:with-param name="full_toc" select="$full_toc"/>
+                    </xsl:apply-templates>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:apply-templates select="mets:div" mode="toc_literal">
+                        <xsl:with-param name="full_toc" select="$full_toc"/>
+                    </xsl:apply-templates>
+                </xsl:otherwise>
+            </xsl:choose>
         </dcterms:tableOfContents>
     </xsl:template>
 
@@ -216,6 +229,41 @@
                 </xsl:otherwise>
             </xsl:choose>
         </c>
+    </xsl:template>
+
+    <xsl:template match="mets:div" mode="toc_literal">
+        <xsl:param name="full_toc" select="false()"/>
+        <xsl:param name="level" select="0"/>
+        <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
+        <xsl:text>r</xsl:text>
+        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+        <xsl:text>, </xsl:text>
+        <xsl:value-of select="@LABEL"/>
+        <xsl:text>, </xsl:text>
+        <xsl:if test="not($full_toc)">
+            <xsl:choose>
+                <xsl:when test="$subdiv_fptr">
+                    <xsl:apply-templates select="mets:div" mode="range"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:apply-templates select=". | mets:div" mode="range"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:if>
+        <xsl:text>&#xA;</xsl:text>
+        <xsl:choose>
+            <xsl:when test="$full_toc">
+                <xsl:apply-templates select="mets:div" mode="toc_literal">
+                    <xsl:with-param name="full_toc" select="$full_toc"/>
+                    <xsl:with-param name="level" select="$level + 1"/>
+                </xsl:apply-templates>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:apply-templates select="mets:div[mets:div]" mode="toc_literal">
+                    <xsl:with-param name="level" select="$level + 1"/>
+                </xsl:apply-templates>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
     <!-- Liste des sections ou des positions de page. -->

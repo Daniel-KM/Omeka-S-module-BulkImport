@@ -102,7 +102,8 @@ class XmlReaderConfigForm extends Form
                     'id' => 'xsl_params',
                     'rows' => '6',
                     'placeholder' => 'basepath = xxx/
-param_2 = 2',
+toc_xml = 1
+param_3 = yyy',
                 ],
             ])
             ->add([
