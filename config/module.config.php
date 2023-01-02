@@ -150,7 +150,7 @@ return [
                 'class' => 'o-icon- fa-cloud-upload-alt',
                 'pages' => [
                     [
-                        'label' => 'Dashboard', // @translate
+                        'label' => 'Import', // @translate
                         'route' => 'admin/bulk/default',
                         'controller' => 'bulk-import',
                         'resource' => 'BulkImport\Controller\Admin\BulkImport',
