@@ -13,13 +13,13 @@ return [
     ],
     'processorClass' => \BulkImport\Processor\AssetProcessor::class,
     'processorConfig' => [
+        'entries_to_skip' => 0,
+        'entries_max' => null,
         'o:owner' => "current",
         'action' => 'create',
         'action_unidentified' => 'skip',
         'identifier_name' => [
             'o:id',
         ],
-        'entries_to_skip' => 0,
-        'entries_max' => null,
     ],
 ];

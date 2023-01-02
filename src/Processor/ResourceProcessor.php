@@ -130,6 +130,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         $defaults = [
             'processing' => 'stop_on_error',
+            'skip_missing_files' => false,
             'entries_to_skip' => 0,
             'entries_max' => 0,
             'entries_by_batch' => null,

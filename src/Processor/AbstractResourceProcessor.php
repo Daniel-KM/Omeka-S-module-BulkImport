@@ -81,6 +81,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $base;
 
     /**
+     * May be :
+     * - dry_run
+     * - stop_on_error
+     * - continue_on_error
+     *
+     * The behavior for missing files is set with "processingSkipMissingFile".
+     *
+     * @var string
+     */
+    protected $processingError;
+
+    /**
+     *
+     * @var bool
+     */
+    protected $skipMissingFiles;
+
+    /**
      * @var string
      */
     protected $action;
@@ -332,10 +350,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->totalEmpty = 0;
         $this->totalErrors = 0;
 
+        $this->processingError = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
+        $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
+
         $this->prepareFullRun();
 
-        $processingType = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
-        $dryRun = $processingType === 'dry_run';
+        $dryRun = $this->processingError === 'dry_run';
         if ($dryRun) {
             $this->logger->notice(
                 'Processing is ended: dry run.' // @translate
@@ -353,7 +373,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     : '{total} errors have been found during checks.', // @translate
                 ['total' => $this->totalErrors]
             );
-            if ($processingType === 'stop_on_error') {
+            if ($this->processingError === 'stop_on_error') {
                 $this->logger->notice(
                     'Processing is stopped because of error. No source was imported.' // @translate
                 );
@@ -1305,6 +1325,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // full download.
         $this->checkNewFiles($resource);
 
+        // Some files may have been removed.
+        if ($this->skipMissingFiles) {
+            $request
+                ->setContent($resource->getArrayCopy());
+        }
+
         // The entity is checked here to store error when there is a file issue.
         $errorStore = new \Omeka\Stdlib\ErrorStore;
         $adapter->validateRequest($request, $errorStore);
@@ -1370,6 +1396,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Check if new files (local system and urls) are available and allowed.
      *
+     * Just warn when a file is missing with mode "skip missing files" (only for
+     * items with medias, not media alone or assets).
+     *
      * By construction, it's not possible to check or modify existing files.
      */
     protected function checkNewFiles(ArrayObject $resource): bool
@@ -1387,6 +1416,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $resourceFiles = [$resource];
         }
 
+        $isItem = $resource['resource_name'] === 'items';
+        if ($this->skipMissingFiles && $isItem) {
+            return $this->checkItemFilesWarn($resource, $resourceFiles);
+        }
+
         foreach ($resourceFiles as $resourceFile) {
             // A file cannot be updated.
             if (!empty($resourceFile['o:id'])) {
@@ -1402,6 +1436,80 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // Add a warning: cannot be checked for other media ingester? Or is it checked somewhere else?
             }
         }
+
+         return !$resource['messageStore']->hasErrors();
+    }
+
+    /**
+     * Warn if new files (local system and urls) are available and allowed.
+     *
+     * By construction, it's not possible to check or modify existing files.
+     * So this method is only for items.
+     */
+    protected function checkItemFilesWarn(ArrayObject $resource): bool
+    {
+        // This array allows to skip check when the same file is imported
+        // multiple times, in particular during tests of an import.
+        static $missingFiles = [];
+
+        $resource['messageStore']->setStoreNewErrorAsWarning(true);
+
+        $ingestData = [
+            'ingest_url' => [
+                'method' => 'checkUrl',
+                'message_msg' => 'Cannot fetch url "{url}". The url is skipped.', // @translate
+                'message_key' => 'url',
+            ],
+            'ingest_filename' => [
+                'method' => 'checkFile',
+                'message_msg' => 'Cannot fetch file "{file}". The file is skipped.', // @translate
+                'message_key' => 'file',
+            ],
+            'ingest_directory' => [
+                'method' => 'checkDirectory',
+                'message_msg' => 'Cannot fetch directory "{file}". The file is skipped.', // @translate
+                'message_key' => 'file',
+            ],
+        ];
+
+        $resourceFiles = $resource['o:media'];
+        foreach ($resourceFiles as $key => $resourceFile) {
+            // A file cannot be updated.
+            if (!empty($resourceFile['o:id'])) {
+                continue;
+            }
+
+            $ingestSourceKey = !empty($resourceFile['ingest_url'])
+                ? 'ingest_url'
+                : (!empty($resourceFile['ingest_filename'])
+                    ? 'ingest_filename'
+                    : (!empty($resourceFile['ingest_directory'])
+                        ? 'ingest_directory'
+                        : null));
+            if (!$ingestSourceKey) {
+                // Add a warning: cannot be checked for other media ingester? Or is it checked somewhere else?
+                continue;
+            }
+
+            $ingestSource = $resourceFile[$ingestSourceKey];
+            $method = $ingestData[$ingestSourceKey]['method'];
+            $messageMsg = $ingestData[$ingestSourceKey]['message_msg'];
+            $messageKey = $ingestData[$ingestSourceKey]['message_key'];
+
+            if (isset($missingFiles[$ingestSourceKey][$ingestSource])) {
+                $resource['messageStore']->addWarning($messageKey, new PsrMessage($messageMsg, [$messageKey => $ingestSource]));
+            } else {
+                $result = $this->$method($ingestSource, $resource['messageStore']);
+                if (!$result) {
+                    $this->missingFiles[$ingestSourceKey][$ingestSource] = true;
+                }
+            }
+            if (isset($this->missingFiles[$ingestSourceKey][$ingestSource])) {
+                unset($resource['o:media'][$key]);
+            }
+        }
+
+        $resource['messageStore']->setStoreNewErrorAsWarning(false);
 
         return !$resource['messageStore']->hasErrors();
     }

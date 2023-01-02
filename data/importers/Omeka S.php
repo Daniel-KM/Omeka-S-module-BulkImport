@@ -9,8 +9,9 @@ return [
     ],
     'processorClass' => \BulkImport\Processor\OmekaSProcessor::class,
     'processorConfig' => [
-        'allow_duplicate_identifiers' => false,
+        'skip_missing_files' => false,
         'entries_to_skip' => 0,
         'entries_max' => null,
+        'allow_duplicate_identifiers' => false,
     ],
 ];

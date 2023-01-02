@@ -10,6 +10,9 @@ return [
     ],
     'processorClass' => \BulkImport\Processor\ResourceProcessor::class,
     'processorConfig' => [
+        'skip_missing_files' => false,
+        'entries_to_skip' => 0,
+        'entries_max' => null,
         'o:resource_template' => '',
         'o:resource_class' => '',
         'o:owner' => "current",
@@ -20,8 +23,6 @@ return [
             'o:id',
         ],
         'allow_duplicate_identifiers' => false,
-        'entries_to_skip' => 0,
-        'entries_max' => null,
         'resource_name' => '',
     ],
 ];
