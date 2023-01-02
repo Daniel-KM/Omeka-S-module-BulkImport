@@ -296,6 +296,8 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
+     * @deprecated Use MetaMapperConfig.
+     *
      * @param mixed $mappingConfig
      * @return self
      */
@@ -305,39 +307,6 @@ class MetaMapper extends AbstractPlugin
         if (!$mappingConfig) {
             return $this;
         }
-
-        $getConfig = function ($mappingConfig): ?string {
-            if (empty($mappingConfig)) {
-                return null;
-            }
-            if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
-                $mappingId = (int) mb_substr($mappingConfig, 8);
-                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
-                $mapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
-                return $mapping
-                    ? $mapping->mapping()
-                    : null;
-            }
-            $filename = basename($mappingConfig);
-            if (empty($filename)) {
-                return null;
-            }
-            $prefixes = [
-                'user' => $this->bulk->getBasePath() . '/mapping/',
-                'module' => dirname(__DIR__, 4) . '/data/mapping/',
-                'base' => dirname(__DIR__, 4) . '/data/mapping/base/',
-            ];
-            $prefix = strtok($mappingConfig, ':');
-            if (!isset($prefixes[$prefix])) {
-                return null;
-            }
-            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
-            $filepath = $prefixes[$prefix] . $file;
-            if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
-                return file_get_contents($filepath);
-            }
-            return null;
-        };
 
         if (is_array($mappingConfig)) {
             // Init defaultQuerier, isDynamicQuerier and normConfig.
@@ -352,12 +321,12 @@ class MetaMapper extends AbstractPlugin
             return $this;
         }
 
-        $conf = $getConfig($mappingConfig);
+        $conf = $this->getConfigFromMappingConfig($mappingConfig);
         if (!$conf) {
             return $this;
         }
 
-        // Check if the config has a main config.
+        // Check if the config has a main config for ini.
         $mainConfig = null;
         $isInfo = false;
         $matches = [];
@@ -368,7 +337,7 @@ class MetaMapper extends AbstractPlugin
                 $isInfo = false;
             } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_.-]*)*$~', $line, $matches)) {
                 // @todo Currently, the base mapper is always an ini.
-                $mainConfig = $getConfig('base:' . $matches['master'] . '.ini');
+                $mainConfig = $this->getConfigFromMappingConfig('base:' . $matches['master'] . '.ini');
                 break;
             }
         }
@@ -385,10 +354,100 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
+     * @deprecated Use MetaMapperConfig.
+     * @see \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig::prepareConfigContent()
+     */
+    private function getConfigFromMappingConfig(?string $mappingConfig, ?string $defaultPrefix = null, int $loop = 0): ?string
+    {
+        if (empty($mappingConfig)) {
+            return null;
+        }
+
+        $prefixes = [
+            'user' => $this->bulk->getBasePath() . '/mapping/',
+            'module' => dirname(__DIR__, 4) . '/data/mapping/',
+            'base' => dirname(__DIR__, 4) . '/data/mapping/base/',
+        ];
+
+        $content = null;
+        if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
+            $mappingId = (int) mb_substr($mappingConfig, 8);
+            /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+            $mapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+            if (!$mapping) {
+                return null;
+            }
+            $content = $mapping->mapping();
+        } else {
+            $filename = basename($mappingConfig);
+            if (empty($filename)) {
+                return null;
+            }
+
+            if (strpos($mappingConfig, ':')) {
+                $prefix = strtok($mappingConfig, ':');
+            } else {
+                $prefix = $defaultPrefix;
+                $mappingConfig = $prefix . ':xml/' . $mappingConfig;
+            }
+            if (!isset($prefixes[$prefix])) {
+                return null;
+            }
+
+            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
+            $filepath = $prefixes[$prefix] . $file;
+            if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
+                $content = trim((string) file_get_contents($filepath));
+            }
+        }
+
+        if (!$content) {
+            return null;
+        }
+
+        // Xml config may include sub mappings, so merge them one time early.
+        if (!mb_substr($content, 0, 1) === '<'
+            || !mb_strpos($content, '<include')
+        ) {
+            return $content;
+        }
+
+        if ($loop > 20) {
+            $this->logger->err('Too many included mappings or recursive mapping.'); // @translate
+            return null;
+        }
+
+        $doc = simplexml_load_string($content);
+        $includes = $doc->xpath('//include[@mapping][@mapping != ""]');
+        $defaultPrefix = strtok($mappingConfig, ':') ?: $defaultPrefix;
+        foreach ($includes as $include) {
+            $subContent = $this->getConfigFromMappingConfig((string) $include['mapping'], $defaultPrefix, ++$loop);
+            // TODO Use standard simple xml way to replace a node,
+            if ($subContent) {
+                /** @see \BulkImport\Mvc\Controller\Plugin\prepareConfigFullXml() */
+                // Currently, the process uses an array conversion to get xml
+                // maps. so sub maps are not managed, so remove mapping here.
+                // TODO Allow to manage sub map or use simplexml way to remove submapping.
+                $subContent = str_replace([
+                    '<?xml version="1.0"?>',
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<mapping>',
+                    '</mapping>',
+                ], '', $subContent);
+                $content = str_replace((string) $include->asXml(), $subContent, $content);
+            }
+        }
+
+        return $content;
+    }
+
+    /**
      * Prepare the list of variables and params.
      *
      * "importParams" is different from the metaMapper config: it contains
      * converted data.
+     *
+     * @deprecated Use MetaMapperConfig.
      */
     private function prepareImportParams(array $params): self
     {
