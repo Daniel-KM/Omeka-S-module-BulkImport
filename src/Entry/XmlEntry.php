@@ -410,11 +410,27 @@ class XmlEntry extends BaseEntry
 
                 // Module DataTypeGeometry.
 
+            case 'geography':
+            case 'geometry':
+            case 'geography:coordinates':
+            case 'geometry:coordinates':
+            case 'geometry:position':
+            case 'http://www.opengis.net/ont/geosparql#wktLiteral':
+            case 'geometry:geography:coordinates':
+            case 'geometry:geometry:coordinates':
+            case 'geometry:geometry:position':
             case 'geometry:geography':
             case 'geometry:geometry':
-            case 'http://www.opengis.net/ont/geosparql#wktLiteral':
+                $geotypes = [
+                    'geometry:geometry' => 'geometry',
+                    'geometry:geography' => 'geography',
+                    'geometry:geometry:position' => 'geometry:position',
+                    'geometry:geometry:coordinates' => 'geometry:coordinates',
+                    'geometry:geography:coordinates' => 'geography:coordinates',
+                    'http://www.opengis.net/ont/geosparql#wktLiteral' => 'geography',
+                ];
                 $value = [
-                    'type' => $type === 'http://www.opengis.net/ont/geosparql#wktLiteral' ? 'geometry:geometry' : $type,
+                    'type' => $geotypes[$type] ?? $type,
                     '@value' => $string,
                     '@language' => null,
                 ];

@@ -136,8 +136,8 @@ class AutomapFields extends AbstractPlugin
      * Default supported datatypes are the ones managed by omeka (cf. config[data_types]:
      * literal, resource, uri, resource:item, resource:itemset, resource:media.
      * Supported datatypes if modules are present:
-     * numeric:timestamp, numeric:integer, numeric:duration, geometry:geometry,
-     * geometry:geography, geometry:geography:coordinates.
+     * numeric:timestamp, numeric:integer, numeric:duration, geometry,
+     * geography, geography:coordinates, geometry:coordinates, geometry:position.
      * The prefixes can be omitted, so item, itemset, media, timestamp, integer,
      * duration, geography, geometry.
      * Datatypes of other modules are supported too (Custom Vocab,

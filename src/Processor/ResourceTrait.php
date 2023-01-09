@@ -495,8 +495,17 @@ SQL;
                         case 'xsd:gMonthDay':
                         case 'xsd:time':
                         // Module DataTypeGeometry.
+                        case 'geography':
+                        case 'geometry':
+                        case 'geography:coordinates':
+                        case 'geometry:coordinates':
+                        case 'geometry:position':
+                        // Deprecated.
                         case 'geometry:geography':
+                        case 'geometry:geography:coordinates':
                         case 'geometry:geometry':
+                        case 'geometry:geometry:coordinates':
+                        case 'geometry:geometry:position':
                             $datatype = 'literal';
                             $value['type'] = 'literal';
                             $toInstall = 'Data Type Geometry';
@@ -593,8 +602,26 @@ SQL;
                         $datatypeAdapter->setEntityValues($dataValue, $entityValue);
                         $this->entityManager->persist($dataValue);
                         break;
+                    // Deprecated Geometry data types.
                     case 'geometry:geography':
+                    case 'geometry:geography:coordinates':
                     case 'geometry:geometry':
+                    case 'geometry:geometry:coordinates':
+                    case 'geometry:geometry:position':
+                        $mapGeometry = [
+                            'geometry:geography' => 'geography',
+                            'geometry:geography:coordinates' => 'geography:coordinates',
+                            'geometry:geometry' => 'geometry',
+                            'geometry:geometry:coordinates' => 'geometry:coordinates',
+                            'geometry:geometry:position' => 'geometry:position',
+                        ];
+                        $datatype = $mapGeometry[$datatype];
+                        // No break.
+                    case 'geography':
+                    case 'geography:coordinates':
+                    case 'geometry':
+                    case 'geometry:coordinates':
+                    case 'geometry:position':
                         $datatypeAdapter = $this->datatypeManager->get($datatype);
                         $class = $datatypeAdapter->getEntityClass();
                         $dataValue = new $class;
@@ -602,7 +629,7 @@ SQL;
                         $dataValue->setProperty($property);
                         $dataValueValue = $datatypeAdapter->getGeometryFromValue($valueValue);
                         if ($this->srid
-                            && $datatype === 'geometry:geography'
+                            && strpos($datatype, 'geography') !== false
                             && empty($dataValueValue->getSrid())
                         ) {
                             $dataValueValue->setSrid($this->srid);

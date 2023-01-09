@@ -652,9 +652,17 @@ class Bulk extends AbstractPlugin
             'resource:annotation' => 'resource',
             'annotation' => 'resource',
             // Module DataTypeGeometry.
-            'geometry:geography:coordinates' => 'literal',
+            'geography' => 'literal',
+            'geography:coordinates' => 'literal',
+            'geometry' => 'literal',
+            'geometry:coordinates' => 'literal',
+            'geometry:position' => 'literal',
+            // Module DataTypeGeometry (deprecated).
             'geometry:geography' => 'literal',
+            'geometry:geography:coordinates' => 'literal',
             'geometry:geometry' => 'literal',
+            'geometry:geometry:coordinates' => 'literal',
+            'geometry:geometry:position' => 'literal',
             // Module DataTypePlace.
             'place' => 'literal',
             // Module DataTypeRdf.
