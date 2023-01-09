@@ -30,7 +30,7 @@ class ArrayText extends Text implements InputProviderInterface
         return $this;
     }
 
-    public function getInputSpecification()
+    public function getInputSpecification(): array
     {
         return [
             'name' => $this->getName(),
