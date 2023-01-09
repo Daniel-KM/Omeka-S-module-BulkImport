@@ -12,14 +12,20 @@ class SettingsFieldset extends Fieldset
      */
     protected $label = 'Bulk Import module'; // @translate
 
+    protected $elementGroups = [
+        'import' => 'Import', // @translate
+    ];
+
     public function init(): void
     {
         $this
             ->setAttribute('id', 'bulk-import')
+            ->setOption('element_groups', $this->elementGroups)
             ->add([
                 'name' => 'bulkimport_convert_html',
                 'type' => BulkImportElement\OptionalMultiCheckbox::class,
                 'options' => [
+                    'element_group' => 'import',
                     'label' => 'Convert new files to html (styles are kept when html purifier is disabled)', // @translate
                     'value_options' => [
                         'doc' => 'Microsoft .doc', // @translate
