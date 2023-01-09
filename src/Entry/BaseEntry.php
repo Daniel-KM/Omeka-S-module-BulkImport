@@ -184,7 +184,7 @@ class BaseEntry implements Entry
         return count($this->data);
     }
 
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return $this->data;
     }
