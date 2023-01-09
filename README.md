@@ -5,6 +5,8 @@ Bulk Import (module for Omeka S)
 > are available on [GitLab], which seems to respect users and privacy better
 > than the previous repository.__
 
+Voir le [Lisez-moi] en fran√ßais.
+
 [Bulk Import] is a module for [Omeka S] that allows to import any type of source
 and is built to be extensible. It allows to manage importers and to process bulk
 import of resources.
@@ -480,7 +482,7 @@ TODO
 - [ ] Compile jmespath.
 - [ ] Import/update value annotations.
 - [ ] Remove importeds when resource is removed.
-- [ ] Output a one-based index from the entry.
+- [ ] Output a one-based index in Entry.
 
 
 Warning
@@ -566,6 +568,7 @@ and for the institutional repository of student works [Dante] of the [Universit√
 
 
 [Bulk Import]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport
+[Lisez-moi]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/LISEZMOI.md
 [Omeka S]: https://omeka.org/s
 [CSV Import]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
@@ -574,7 +577,7 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [Generic]: https://gitlab.com/Daniel-KM/Omeka-S-module-Generic
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
-[installing a module]: http://dev.omeka.org/docs/s/user-manual/modules/#installing-modules
+[Installing a module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [patch]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
 [version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
