@@ -2197,12 +2197,10 @@ SQL;
         $types = [
             'property_ids' => $this->connection::PARAM_INT_ARRAY,
         ];
-        $stmt = $this->connection->executeQuery($sql, $bind, $types);
-        // Fetch by key pair is not supported by doctrine 2.0.
-        $list = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         // Warning: array_column() is used because values are distinct and all
         // of them are strings.
         // Note that numeric topics ("1918") are automatically casted to integer.
+        $list = $this->connection->executeQuery($sql, $bind, $types)->fetchAllAssociative();
         $list = $asKey
             ? array_column($list, 'r', 'v')
             : array_column($list, 'v');

@@ -464,7 +464,7 @@ SQL;
                             }
                             $datatype = 'literal';
                             $value['type'] = 'literal';
-                            $toInstall = 'Data Type Rdf / Numeric Data Types';
+                            $toInstall = 'Numeric Data Types';
                             break;
                         case 'xsd:date':
                         case 'xsd:dateTime':
@@ -487,7 +487,7 @@ SQL;
                             }
                             $datatype = 'literal';
                             $value['type'] = 'literal';
-                            $toInstall = 'Data Type Rdf / Numeric Data Types';
+                            $toInstall = 'Numeric Data Types';
                             break;
                         case 'xsd:decimal':
                         case 'xsd:gDay':

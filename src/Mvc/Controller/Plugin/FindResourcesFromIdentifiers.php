@@ -480,11 +480,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $qb
             ->setParameters($parameters);
 
-        $stmt = $conn->executeQuery($qb, $qb->getParameters());
-        // $stmt->fetchAll(\PDO::FETCH_KEY_PAIR) cannot be used, because it
-        // replaces the first id by later ids in case of true duplicates.
-        // Anyway, count() is needed now.
-        $result = $stmt->fetchAll();
+        // $stmt->fetchAllKeyValue() cannot be used, because it replaces the
+        // first id by later ids in case of true duplicates. Anyway, count() is
+        // needed now.
+        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAllAssociative();
 
         return $this->cleanResult($identifiers, $result);
     }
@@ -506,11 +505,11 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $parameters = [];
 
         $qb
-            ->select([
+            ->select(
                 'MIN(media.' . $column . ') AS "identifier"',
                 'MIN(media.id) AS "id"',
-                'COUNT(media.' . $column . ') AS "count"',
-            ])
+                'COUNT(media.' . $column . ') AS "count"'
+            )
             ->from('media', 'media')
             // ->andWhere('media.source IN (' . implode(',', array_map([$conn, 'quote'], $identifiers)) . ')')
             ->addGroupBy('media.' . $column)
@@ -549,11 +548,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $qb
             ->setParameters($parameters);
 
-        $stmt = $conn->executeQuery($qb, $qb->getParameters());
-        // $stmt->fetchAll(\PDO::FETCH_KEY_PAIR) cannot be used, because it
-        // replaces the first id by later ids in case of true duplicates.
-        // Anyway, count() is needed now.
-        $result = $stmt->fetchAll();
+        // $stmt->fetchAllKeyValue() cannot be used, because it replaces the
+        // first id by later ids in case of true duplicates. Anyway, count() is
+        // needed now.
+        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAllAssociative();
 
         return $this->cleanResult($identifiers, $result);
     }
@@ -572,14 +570,14 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $isPartial = $identifierName === 'o:basename';
 
         $qb
-            ->select([
+            ->select(
                 // TODO There may be no extension.
                 $isPartial
                     ? 'CONCAT(SUBSTRING_INDEX(MIN(media.storage_id), "/", -1), ".", MIN(media.extension)) AS "identifier"'
                     : 'CONCAT(MIN(media.storage_id), ".", MIN(media.extension)) AS "identifier"',
                 'MIN(media.id) AS "id"',
-                'COUNT(media.source) AS "count"',
-            ])
+                'COUNT(media.source) AS "count"'
+            )
             ->from('media', 'media')
             ->addOrderBy('MIN(media.id)', 'ASC');
 
@@ -632,11 +630,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $qb
             ->setParameters($parameters);
 
-        $stmt = $conn->executeQuery($qb, $qb->getParameters());
-        // $stmt->fetchAll(\PDO::FETCH_KEY_PAIR) cannot be used, because it
-        // replaces the first id by later ids in case of true duplicates.
-        // Anyway, count() is needed now.
-        $result = $stmt->fetchAll();
+        // $stmt->fetchAllKeyValues() cannot be used, because it replaces the
+        // first id by later ids in case of true duplicates. Anyway, count() is
+        // needed now.
+        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAll();
 
         return $this->cleanResult($identifiers, $result);
     }
