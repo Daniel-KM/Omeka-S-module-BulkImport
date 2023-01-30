@@ -2,16 +2,18 @@
 
 namespace BulkImport\Reader;
 
-use Box\Spout\Common\Type;
 use BulkImport\Form\Reader\CsvReaderConfigForm;
 use BulkImport\Form\Reader\CsvReaderParamsForm;
 use Log\Stdlib\PsrMessage;
+use OpenSpout\Common\Type;
 use SplFileObject;
 
 /**
- * Box Spout Spreadshet reader doesn't support escape for csv (even if it
+ * OpenSpout Spreadshet reader doesn't support escape for csv (even if it
  * manages end of line and encoding). So the basic file handler is used for csv.
  * The format tsv uses the Spout reader, because there is no escape.
+ *
+ * @todo Check if OpenSpout supports escape for csv.
  */
 class CsvReader extends AbstractSpreadsheetFileReader
 {

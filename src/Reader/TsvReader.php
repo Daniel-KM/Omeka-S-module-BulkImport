@@ -2,11 +2,11 @@
 
 namespace BulkImport\Reader;
 
-use Box\Spout\Common\Type;
 use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
 use BulkImport\Form\Reader\TsvReaderParamsForm;
 use Laminas\Form\Form;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use OpenSpout\Common\Type;
 
 class TsvReader extends CsvReader
 {

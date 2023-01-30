@@ -2,7 +2,6 @@
     "require": {
         "php": ">=7.2",
         "ext-xml": "*",
-        "box/spout": "^3.3",
         "codemirror/codemirror": "^5.65.1",
         "flowjs/flow-php-server": "^1.0",
         "flowjs/flow.js": "^2.14.1",
@@ -10,6 +9,7 @@
         "mikehaertl/php-pdftk": "^0.9",
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",
+        "openspout/openspout": "^3.7",
         "phpoffice/phpword": "^0.18.2",
         "softcreatr/jsonpath": "0.7.5"
     },

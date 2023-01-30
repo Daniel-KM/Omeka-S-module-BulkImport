@@ -2,7 +2,7 @@
 
 namespace BulkImport\Processor;
 
-use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
+use OpenSpout\Reader\Common\Creator\ReaderEntityFactory;
 
 /**
  * Manage specific configs and mappings for some import processes.
@@ -338,27 +338,14 @@ trait ConfigTrait
             return null;
         }
 
-        // TODO Remove when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
-        // Manage compatibility with old version of CSV Import.
-        // For now, it should be first checked.
-        if (class_exists(\Box\Spout\Reader\ReaderFactory::class)) {
-            $spreadsheetReader = \Box\Spout\Reader\ReaderFactory::create(\Box\Spout\Common\Type::ODS);
-        } elseif (class_exists(ReaderEntityFactory::class)) {
-            /** @var \Box\Spout\Reader\ODS\Reader $spreadsheetReader */
-            $spreadsheetReader = ReaderEntityFactory::createODSReader();
-            // Important, else next rows will be skipped.
-            $spreadsheetReader->setShouldPreserveEmptyRows(true);
-        } else {
-            $this->hasError = true;
-            $this->logger->err(
-                'The library to manage OpenDocument spreadsheet is not available.' // @translate
-            );
-            return null;
-        }
+        /** @var \OpenSpout\Reader\ODS\Reader $spreadsheetReader */
+        $spreadsheetReader = ReaderEntityFactory::createODSReader();
+        // Important, else next rows will be skipped.
+        $spreadsheetReader->setShouldPreserveEmptyRows(true);
 
         try {
             $spreadsheetReader->open($filepath);
-        } catch (\Box\Spout\Common\Exception\IOException $e) {
+        } catch (\OpenSpout\Common\Exception\IOException $e) {
             $this->hasError = true;
             $this->logger->err(
                 'File "{filename}" cannot be open.', // @translate
