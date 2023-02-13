@@ -12,8 +12,13 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
     public function current()
     {
         $this->isReady();
-        /* @var \OpenSpout\Common\Entity\Row */
-        $this->currentData = $this->iterator->current();
+        try {
+            /** @var \OpenSpout\Common\Entity\Row */
+            $this->currentData = $this->iterator->current();
+        } catch (\TypeError $e) {
+            $this->currentData = null;
+            return null;
+        }
         if (is_null($this->currentData)) {
             return null;
         }
