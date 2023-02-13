@@ -58,16 +58,21 @@ class Module extends AbstractModule
     protected function preInstall(): void
     {
         $services = $this->getServiceLocator();
+
+        if (PHP_VERSION_ID < 70400) {
+            $message = new PsrMessage(
+                'Since version {version}, this module requires php 7.4.', // @translate
+                ['version' => '3.4.39']
+            );
+            throw new ModuleCannotInstallException((string) $message);
+        }
+
         $js = __DIR__ . '/asset/vendor/flow.js/flow.min.js';
         if (!file_exists($js)) {
-            $t = $services->get('MvcTranslator');
-            throw new ModuleCannotInstallException(
-                sprintf(
-                    $t->translate('The library "%s" should be installed.'), // @translate
-                    'javascript'
-                ) . ' '
-                . $t->translate('See module’s installation documentation.') // @translate
+            $message = new PsrMessage(
+                'The libraries should be installed. See module’s installation documentation.' // @translate
             );
+            throw new ModuleCannotInstallException((string) $message);
         }
 
         $config = $services->get('Config');
