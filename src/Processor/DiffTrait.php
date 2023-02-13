@@ -22,7 +22,12 @@ trait DiffTrait
     /**
      * @var string
      */
-    protected $filepathDiffOds;
+    protected $filepathDiffOdsRow;
+
+    /**
+     * @var string
+     */
+    protected $filepathDiffOdsColumn;
 
     /**
      * Create an output to list diff between existing data and new data.
@@ -30,7 +35,10 @@ trait DiffTrait
     protected function checkDiff(): self
     {
         $this->initializeDiff();
-        if (!$this->filepathDiffJson || !$this->filepathDiffOds) {
+        if (!$this->filepathDiffJson
+            || !$this->filepathDiffOdsRow
+            || !$this->filepathDiffOdsColumn
+        ) {
             // Log is already logged.
             ++$this->totalErrors;
             $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
@@ -80,7 +88,8 @@ trait DiffTrait
         }
         unset($row);
         unset($result);
-        $this->storeDiffOds($flatResult);
+        $this->storeDiffOdsByRow($flatResult);
+        $this->storeDiffOdsByColumn($flatResult);
 
         $this->messageResultFileDiff();
 
@@ -94,53 +103,107 @@ trait DiffTrait
         $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
         $bulk = $plugins->get('bulk');
 
-        $filepath = $bulk->prepareFile('diff', 'json');
+        $importId = (int) $this->job->getArg('bulk_import_id');
+
+        $filepath = $bulk->prepareFile(['name' => $importId . '-diff', 'extension' => 'json']);
         if ($filepath) {
             $this->filepathDiffJson = $filepath;
         }
 
-        $filepath = $bulk->prepareFile('diff', 'ods');
+        $filepath = $bulk->prepareFile(['name' => $importId . '-diff-row', 'extension' => 'ods']);
         if ($filepath) {
-            $this->filepathDiffOds = $filepath;
+            $this->filepathDiffOdsRow = $filepath;
+        }
+
+        $filepath = $bulk->prepareFile(['name' => $importId . '-diff-col', 'extension' => 'ods']);
+        if ($filepath) {
+            $this->filepathDiffOdsColumn = $filepath;
         }
 
         return $this;
     }
 
-    protected function storeDiffOds(array $result): self
+    /**
+     * Prepare a spreadsheet to output diff by three rows.
+     */
+    protected function storeDiffOdsByRow(array $result): self
     {
-        // Prepare columns. Columns can be repeated (properties).
-        $columns = [];
-        $repeated = [];
-        foreach ($result as $resultData) {
-            $i = 0;
-            foreach ($resultData as $diff) {
-                ++$i;
-                if (in_array($diff['meta'], $columns)) {
-                    if (isset($repeated[$diff['meta']])) {
-                        if (($repeated[$diff['meta']] ?? 0) < $i) {
-                            ++$repeated[$diff['meta']];
-                            $columns[] = $diff['meta'];
+        $columns = $this->diffSpreadsheetHeader($result);
+
+        // This is for OpenSpout v3, that allows php 7.2+.
+        // A value cannot be an empty string.
+
+        // Prepare output.
+        $writer = WriterFactory::createFromType(Type::ODS);
+        $writer
+            // ->setTempFolder($this->tempPath)
+            ->openToFile($this->filepathDiffOdsRow);
+
+        // Add headers
+        $row = WriterEntityFactory::createRowFromArray(
+            $columns,
+            (new Style())->setShouldShrinkToFit(true)->setFontBold()
+        );
+        $writer->addRow($row);
+
+        $cellDiffStyles = $this->diffSpreadsheetStyles();
+
+        $cellDataStyle = null;
+
+        // Add rows (three rows by result row).
+        foreach ($result as $resultRow) {
+            foreach (['data1', 'data2', 'diff'] as $subRowType) {
+                $row = [];
+                foreach ($resultRow as $diff) {
+                    if ($subRowType === 'data1' || $subRowType === 'data2') {
+                        $data = $diff[$subRowType];
+                        if (empty($data)) {
+                            $val = null;
+                        } elseif (is_scalar($data)) {
+                            $val = (string) $data;
+                        } elseif (is_array($data)) {
+                            // Only properties are arrays.
+                            if (!empty($data['value_resource_id'])) {
+                                $val = (string) $data['value_resource_id'];
+                            } elseif (!empty($data['@id'])) {
+                                $val = (string) $data['@id'];
+                            } elseif ($data['@value'] === '') {
+                                $val = null;
+                            } else {
+                                $val = (string) $data['@value'];
+                            }
+                        } else {
+                            // Not possible normally.
+                            $val = null;
                         }
+                        $cell = new Cell($val, $cellDataStyle);
                     } else {
-                        $repeated[$diff['meta']] = 1;
-                        $columns[] = $diff['meta'];
+                        $val = $diff['diff'] === '' ? null : $diff['diff'];
+                        $cell = new Cell($val, $cellDiffStyles[$diff['diff']] ?? $cellDiffStyles['?']);
                     }
-                } else {
-                    $columns[] = $diff['meta'];
+                    // Fix issues with strings starting with "=" (formulas).
+                    if ($val !== null) {
+                        $cell->setType(Cell::TYPE_STRING);
+                    }
+                    $row[] = $cell;
                 }
+                $row = WriterEntityFactory::createRow($row);
+                $writer->addRow($row);
             }
         }
 
-        // Store some columns first if present.
-        $first = ['o:id', 'resource', 'has_error'];
-        foreach ($first as $firstColumn) {
-            $key = array_search($firstColumn, $columns);
-            if ($key !== false) {
-                unset($columns[$key]);
-                $columns = [$firstColumn] + $columns;
-            }
-        }
+        // Finalize output.
+        $writer->close();
+
+        return $this;
+    }
+
+    /**
+     * Prepare a spreadsheet to output diff by three columns.
+     */
+    protected function storeDiffOdsByColumn(array $result): self
+    {
+        $columns = $this->diffSpreadsheetHeader($result);
 
         // Each column is divided in three columns (before, after, diff).
         $headerStyleDiff = (new Style())->setShouldShrinkToFit(true);
@@ -158,7 +221,7 @@ trait DiffTrait
         $writer = WriterFactory::createFromType(Type::ODS);
         $writer
             // ->setTempFolder($this->tempPath)
-            ->openToFile($this->filepathDiffOds);
+            ->openToFile($this->filepathDiffOdsColumn);
 
         // Add headers
         $row = WriterEntityFactory::createRow(
@@ -167,16 +230,7 @@ trait DiffTrait
         );
         $writer->addRow($row);
 
-        $cellDiffStyles = [
-            '' => null,
-            '=' => null,
-            '-' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::LIGHT_BLUE),
-            '+' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::LIGHT_GREEN),
-            '≠' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::ORANGE),
-            '×' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::RED),
-            '?' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::DARK_RED),
-        ];
-
+        $cellDiffStyles = $this->diffSpreadsheetStyles();
         $cellDataStyle = null;
 
         // Add rows.
@@ -229,6 +283,59 @@ trait DiffTrait
     }
 
     /**
+     * Prepare columns. Columns can be repeated (properties).
+     */
+    protected function diffSpreadsheetHeader(array $result): array
+    {
+        $columns = [];
+        $repeated = [];
+        foreach ($result as $resultData) {
+            $i = 0;
+            foreach ($resultData as $diff) {
+                ++$i;
+                if (in_array($diff['meta'], $columns)) {
+                    if (isset($repeated[$diff['meta']])) {
+                        if (($repeated[$diff['meta']] ?? 0) < $i) {
+                            ++$repeated[$diff['meta']];
+                            $columns[] = $diff['meta'];
+                        }
+                    } else {
+                        $repeated[$diff['meta']] = 1;
+                        $columns[] = $diff['meta'];
+                    }
+                } else {
+                    $columns[] = $diff['meta'];
+                }
+            }
+        }
+
+        // Store some columns first if present.
+        $first = ['o:id', 'resource', 'has_error'];
+        foreach ($first as $firstColumn) {
+            $key = array_search($firstColumn, $columns);
+            if ($key !== false) {
+                unset($columns[$key]);
+                $columns = [$firstColumn] + $columns;
+            }
+        }
+
+        return $columns;
+    }
+
+    protected function diffSpreadsheetStyles(): array
+    {
+        return [
+            '' => (new Style())->setShouldShrinkToFit(true),
+            '=' => (new Style())->setShouldShrinkToFit(true),
+            '-' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::ORANGE),
+            '+' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::LIGHT_GREEN),
+            '≠' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::LIGHT_BLUE),
+            '×' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::RED),
+            '?' => (new Style())->setShouldShrinkToFit(true)->setBackgroundColor(Color::DARK_RED),
+        ];
+    }
+
+    /**
      * Add a  message with the url to the file.
      */
     protected function messageResultFileDiff(): self
@@ -236,10 +343,11 @@ trait DiffTrait
         $services = $this->getServiceLocator();
         $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         $this->logger->notice(
-            'Differences between resources are available in this json {url_1} and in this spreadsheet {url_2}.', // @translate
+            'Differences between resources are available in this json {url_1} and in this spreadsheet by row {url_2} or by column {url_3}.', // @translate
             [
                 'url_1' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffJson, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_2' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOds, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_2' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsRow, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_3' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsColumn, mb_strlen($this->basePath . '/bulk_import/')),
             ]
         );
         return $this;

@@ -289,7 +289,8 @@ SQL;
             return $this;
         }
 
-        $this->filepathLog = $this->bulk->prepareFile($this->getLabel(), 'tsv');
+        $importId = (int) $this->job->getArg('bulk_import_id');
+        $this->filepathLog = $this->bulk->prepareFile(['name' => $importId . '-log', 'extension' => 'tsv']);
         if (!$this->filepathLog) {
             ++$this->totalErrors;
             $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
