@@ -1247,6 +1247,48 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Normalize a list of property values to allow a strict comparaison.
+     *
+     * @todo Add an aggregated value to simplify comparison.
+     */
+    public function normalizePropertyValues(string $term, ?array $values): array
+    {
+        if (!$values) {
+            return [];
+        }
+
+        $propertyId = $this->getPropertyId($term);
+
+        $order = [
+            'type' => null,
+            'property_id' => $propertyId,
+            // 'property_label' => null,
+            'is_public' => true,
+            '@annotations' => [],
+            '@value' => null,
+            '@id' => null,
+            'value_resource_id' => null,
+            '@language' => null,
+        ];
+
+        foreach ($values as $key => $value) {
+            $values[$key] = array_replace($order, array_intersect_key($value, $order));
+            $values[$key] = [
+                'type' => empty($values[$key]['type']) ? 'literal' : (string) $values[$key]['type'],
+                'property_id' => $propertyId,
+                'is_public' => is_null($values[$key]['is_public']) ? true : (bool) $values[$key]['is_public'],
+                '@annotations' => empty($values[$key]['@annotations']) || !is_array($values[$key]['@annotations']) ? [] : $values[$key]['@annotations'],
+                '@value' => is_scalar($values[$key]['@value']) ? (string) $values[$key]['@value'] : $values[$key]['@value'],
+                '@id' => empty($values[$key]['@id']) ? null : (string) $values[$key]['@id'],
+                'value_resource_id' => empty($values[$key]['value_resource_id']) ? null : (int) $values[$key]['value_resource_id'],
+                '@language' => empty($values[$key]['@language']) ? null : (string) $values[$key]['@language'],
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
      * Escape a value for use in XML.
      *
      * From Omeka Classic application/libraries/globals.php

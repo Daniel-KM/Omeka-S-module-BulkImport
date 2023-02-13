@@ -283,7 +283,7 @@ trait ResourceUpdateTrait
                     array_values($currentData[$propertyTerm]),
                     array_values($data[$propertyTerm])
                 );
-                $data[$propertyTerm] = $this->deduplicateSinglePropertyValues($newData);
+                $data[$propertyTerm] = $this->deduplicateSinglePropertyValues($propertyTerm, $newData);
             } else {
                 $data[$propertyTerm] = $currentData[$propertyTerm];
             }
@@ -465,68 +465,24 @@ trait ResourceUpdateTrait
      */
     protected function deduplicatePropertyValues(array $valuesByProperty): array
     {
-        return array_map([$this, 'deduplicateSinglePropertyValues'], $valuesByProperty);
+        foreach ($valuesByProperty as $term => &$vals) {
+            $newVals = $this->bulk->normalizePropertyValues($term, $vals);
+            // array_unique() does not work on array, so serialize them first.
+            $vals = count($newVals) <= 1
+                ? $newVals
+                : array_map('unserialize', array_unique(array_map('serialize', $newVals)));
+        }
+        unset($vals);
+        return array_filter($valuesByProperty);
     }
 
     /**
      * Deduplicate values of a single property.
      */
-    protected function deduplicateSinglePropertyValues(array $values): array
+    protected function deduplicateSinglePropertyValues(string $term, array $values): array
     {
-        // Base to normalize data in order to deduplicate them in one pass.
-        $base = [
-            'literal' => [
-                'type' => 'literal',
-                'property_id' => 0,
-                'is_public' => true,
-                '@value' => '',
-                '@language' => null,
-            ],
-            'resource' => [
-                'type' => 'resource',
-                'property_id' => 0,
-                'is_public' => true,
-                'value_resource_id' => 0,
-            ],
-            'uri' => [
-                'type' => 'uri',
-                'property_id' => 0,
-                'is_public' => true,
-                '@id' => '',
-                'o:label' => null,
-            ],
-        ];
-
-        return array_values(
-            // Deduplicate values.
-            array_map('unserialize', array_unique(array_map(
-                'serialize',
-                // Normalize values.
-                array_map(function ($v) use ($base) {
-                    // Data types "resource" and "uri" have "@id" (in json).
-                    if (array_key_exists('value_resource_id', $v)) {
-                        $mainType = 'resource';
-                    } else {
-                        $mainType = array_key_exists('@id', $v) ? 'uri' : 'literal';
-                    }
-                    // Keep order and meaning keys.
-                    $r = array_replace($base[$mainType], array_intersect_key($v, $base[$mainType]));
-                    $r['is_public'] = (bool) $r['is_public'];
-                    switch ($mainType) {
-                        case 'literal':
-                            if (empty($r['@language'])) {
-                                $r['@language'] = null;
-                            }
-                            break;
-                        case 'uri':
-                            if (empty($r['o:label'])) {
-                                $r['o:label'] = null;
-                            }
-                            break;
-                    }
-                    return $r;
-                }, $values)
-            )))
-        );
-    }
+        $newVals = $this->bulk->normalizePropertyValues($term, $values);
+        return count($newVals) <= 1
+            ? $newVals
+            : array_map('unserialize', array_unique(array_map('serialize', $newVals)));}
 }

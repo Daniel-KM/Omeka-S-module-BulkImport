@@ -134,6 +134,7 @@ return [
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
             'metaMapper' => Service\ControllerPlugin\MetaMapperFactory::class,
             'metaMapperConfig' => Service\ControllerPlugin\MetaMapperConfigFactory::class,
+            'updateResourceProperties' => Service\ControllerPlugin\UpdateResourcePropertiesFactory::class,
         ],
         'aliases' => [
             'findResourcesFromIdentifiers' => Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class,
