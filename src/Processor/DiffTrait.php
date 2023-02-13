@@ -2,6 +2,7 @@
 
 namespace BulkImport\Processor;
 
+use Omeka\Stdlib\Message;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Style\Color;
 use OpenSpout\Common\Entity\Style\Style;
@@ -34,6 +35,17 @@ trait DiffTrait
      */
     protected function checkDiff(): self
     {
+        $actionsUpdate = [
+            self::ACTION_APPEND,
+            self::ACTION_REVISE,
+            self::ACTION_UPDATE,
+            self::ACTION_REPLACE,
+        ];
+        $updateMode = $this->action;
+        if (!in_array($updateMode, $actionsUpdate)) {
+            return $this;
+        }
+
         $this->initializeDiff();
         if (!$this->filepathDiffJson
             || !$this->filepathDiffOdsRow
@@ -48,7 +60,15 @@ trait DiffTrait
         /** @var \BulkImport\Mvc\Controller\Plugin\DiffResources $diffResources */
         $diffResources = $this->getServiceLocator()->get('ControllerPluginManager')->get('diffResources');
 
-        $result = [];
+        $config = [
+            'update_mode' => $updateMode,
+        ];
+
+        $result = [
+            'request' => $config,
+            'response' => [],
+        ];
+
         // The storage is one-based.
         for ($i = 1; $i <= $this->totalIndexResources; $i++) {
             $resource2 = $this->loadCheckedResource($i);
@@ -62,7 +82,7 @@ trait DiffTrait
                     $resource1 = null;
                 }
             }
-            $result[] = $diffResources($resource1, $resource2)->asArray();
+            $result['response'][] = $diffResources($resource1, $resource2, $updateMode)->asArray();
         }
 
         // For json.
@@ -72,7 +92,7 @@ trait DiffTrait
         // Convert into a flat array instead of reprocessing all checks.
         // The result should be converted in a flat array here for memory.
         $flatResult = [];
-        foreach ($result as $key => &$row) {
+        foreach ($result['response'] as $key => &$row) {
             $flatRow = [];
             foreach ($row as $value) {
                 if (isset($value['meta'])) {
@@ -88,8 +108,9 @@ trait DiffTrait
         }
         unset($row);
         unset($result);
-        $this->storeDiffOdsByRow($flatResult);
-        $this->storeDiffOdsByColumn($flatResult);
+
+        $this->storeDiffOdsByRow($flatResult, $config);
+        $this->storeDiffOdsByColumn($flatResult, $config);
 
         $this->messageResultFileDiff();
 
@@ -125,8 +146,10 @@ trait DiffTrait
 
     /**
      * Prepare a spreadsheet to output diff by three rows.
+     *
+     * @todo Output four row when there is an update mode?
      */
-    protected function storeDiffOdsByRow(array $result): self
+    protected function storeDiffOdsByRow(array $result, array $config): self
     {
         $columns = $this->diffSpreadsheetHeader($result);
 
@@ -134,10 +157,18 @@ trait DiffTrait
         // A value cannot be an empty string.
 
         // Prepare output.
+        /** @var \OpenSpout\Writer\ODS\Writer $writer */
         $writer = WriterFactory::createFromType(Type::ODS);
         $writer
             // ->setTempFolder($this->tempPath)
             ->openToFile($this->filepathDiffOdsRow);
+
+        $writer
+            ->getCurrentSheet()
+            ->setName((string) new Message(
+                'Diff (%s)', // @translate
+                $config['update_mode']
+            ));
 
         // Add headers
         $row = WriterEntityFactory::createRowFromArray(
@@ -201,7 +232,7 @@ trait DiffTrait
     /**
      * Prepare a spreadsheet to output diff by three columns.
      */
-    protected function storeDiffOdsByColumn(array $result): self
+    protected function storeDiffOdsByColumn(array $result, array $config): self
     {
         $columns = $this->diffSpreadsheetHeader($result);
 
@@ -218,10 +249,18 @@ trait DiffTrait
         // A value cannot be an empty string.
 
         // Prepare output.
+        /** @var \OpenSpout\Writer\ODS\Writer $writer */
         $writer = WriterFactory::createFromType(Type::ODS);
         $writer
             // ->setTempFolder($this->tempPath)
             ->openToFile($this->filepathDiffOdsColumn);
+
+        $writer
+            ->getCurrentSheet()
+            ->setName((string) new Message(
+                'Diff (%s)', // @translate
+                $config['update_mode']
+            ));
 
         // Add headers
         $row = WriterEntityFactory::createRow(
@@ -343,7 +382,7 @@ trait DiffTrait
         $services = $this->getServiceLocator();
         $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         $this->logger->notice(
-            'Differences between resources are available in this json {url_1} and in this spreadsheet by row {url_2} or by column {url_3}.', // @translate
+            'Data about update is available in this json {url_1} and in this spreadsheet by row {url_2} or by column {url_3}.', // @translate
             [
                 'url_1' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffJson, mb_strlen($this->basePath . '/bulk_import/')),
                 'url_2' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsRow, mb_strlen($this->basePath . '/bulk_import/')),

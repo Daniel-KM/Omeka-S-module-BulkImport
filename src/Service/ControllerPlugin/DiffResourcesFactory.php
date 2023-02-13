@@ -10,8 +10,10 @@ class DiffResourcesFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $services, $requestedName, array $options = null)
     {
+        $plugins = $services->get('ControllerPluginManager');
         return new DiffResources(
-            $services->get('ControllerPluginManager')->get('bulk')
+            $plugins->get('bulk'),
+            $plugins->get('updateResourceProperties')
         );
     }
 }

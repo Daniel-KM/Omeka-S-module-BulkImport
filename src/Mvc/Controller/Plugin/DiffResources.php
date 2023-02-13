@@ -2,6 +2,7 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use BulkImport\Processor\AbstractProcessor;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 class DiffResources extends AbstractPlugin
@@ -36,6 +37,11 @@ class DiffResources extends AbstractPlugin
     protected $bulk;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\UpdateResourceProperties
+     */
+    protected $updateResourceProperties;
+
+    /**
      * @var array
      */
     protected $resource1;
@@ -46,13 +52,21 @@ class DiffResources extends AbstractPlugin
     protected $resource2;
 
     /**
+     * @var string
+     */
+    protected $updateMode;
+
+    /**
      * @param array
      */
-    protected $diff;
+    protected $result;
 
-    public function __construct(Bulk $bulk)
-    {
+    public function __construct(
+        Bulk $bulk,
+        UpdateResourceProperties $updateResourceProperties
+    ) {
         $this->bulk = $bulk;
+        $this->updateResourceProperties = $updateResourceProperties;
     }
 
     /**
@@ -61,10 +75,12 @@ class DiffResources extends AbstractPlugin
      * Only main values are comparated.
      *
      * The two resources can be the same, before and after an update.
+     * The optional mode allows to diff simulating an update of the first
+     * resource with the data of the second resource.
      */
-    public function __invoke($resource1 = null, $resource2 = null): self
+    public function __invoke($resource1 = null, $resource2 = null, ?string $updateMode = null): self
     {
-        if ($resource1 === null && $resource2 === null) {
+        if ($resource1 === null && $resource2 === null && $updateMode === null) {
             return $this;
         }
 
@@ -76,7 +92,23 @@ class DiffResources extends AbstractPlugin
             ? $resource2
             : $this->bulk->resourceJson($resource2);
 
-        $this->diff = null;
+        // Some of this actions are useless for properties (create), but
+        // normally, this helper is not called in that case.
+        // Here, Create is an alias of Append.
+        $actions = [
+            // AbstractProcessor::ACTION_CREATE,
+            AbstractProcessor::ACTION_APPEND,
+            AbstractProcessor::ACTION_REVISE,
+            AbstractProcessor::ACTION_UPDATE,
+            AbstractProcessor::ACTION_REPLACE,
+            // AbstractProcessor::ACTION_DELETE,
+            // AbstractProcessor::ACTION_SKIP,
+        ];
+        $this->updateMode = in_array($updateMode, $actions)
+            ? $updateMode
+            : null;
+
+        $this->result = null;
 
         return $this;
     }
@@ -86,36 +118,34 @@ class DiffResources extends AbstractPlugin
      */
     public function asArray(): array
     {
-        if ($this->diff === null) {
+        if ($this->result === null) {
             $this->prepareDiff();
         }
-        return $this->diff;
+        return $this->result;
     }
 
     public function asFlatArray(): array
     {
-        if ($this->diff === null) {
+        if ($this->result === null) {
             $this->prepareDiff();
         }
-        $result = [];
-        foreach ($this->diff as $value) {
+        $flat = [];
+        foreach ($this->result as $value) {
             if (isset($value['meta'])) {
-                $result[] = $value;
+                $flat[] = $value;
             } else {
-                $result = array_merge($result, array_values($value));
+                $flat = array_merge($flat, array_values($value));
             }
         }
-        return $result;
+        return $flat;
     }
 
     protected function prepareDiff(): self
     {
-        $this->diff = [];
-
         if (empty($this->resource1)
             && empty($this->resource2)
         ) {
-            $this->diff['resource'] = [
+            $this->result['resource'] = [
                 'meta' => 'resource',
                 'data1' => null,
                 'data2' => null,
@@ -125,7 +155,7 @@ class DiffResources extends AbstractPlugin
         }
 
         if (empty($this->resource1)) {
-            $this->diff['resource'] = [
+            $this->result['resource'] = [
                 'meta' => 'resource',
                 'data1' => null,
                 'data2' => $this->resource2['o:id'] ?? null,
@@ -135,7 +165,7 @@ class DiffResources extends AbstractPlugin
         }
 
         if (empty($this->resource2)) {
-            $this->diff['resource'] = [
+            $this->result['resource'] = [
                 'meta' => 'resource',
                 'data1' => $this->resource1['o:id'] ?? null,
                 'data2' => null,
@@ -147,7 +177,7 @@ class DiffResources extends AbstractPlugin
         if (!empty($this->resource1['has_error'])
             || !empty($this->resource2['has_error'])
         ) {
-            $this->diff['has_error'] = [
+            $this->result['has_error'] = [
                 'meta' => 'has_error',
                 'data1' => $this->resource1['o:id'] ?? null,
                 'data2' => $this->resource2['o:id'] ?? null,
@@ -166,7 +196,7 @@ class DiffResources extends AbstractPlugin
             if (in_array($meta, $this->skip)) {
                 continue;
             }
-            $this->diff[$meta] = $this->checkMetadata($meta, $data1, $data2);
+            $this->result[$meta] = $this->diffMetadata($meta, $data1, $data2);
         }
 
         // Append remaining metadata, missing in resource1.
@@ -175,13 +205,13 @@ class DiffResources extends AbstractPlugin
             if (in_array($meta, $this->skip)) {
                 continue;
             }
-            $this->diff[$meta] = $this->checkMetadata($meta, null, $data2);
+            $this->result[$meta] = $this->diffMetadata($meta, null, $data2);
         }
 
         return $this;
     }
 
-    protected function checkMetadata($meta, $data1, $data2): array
+    protected function diffMetadata(string $meta, $data1, $data2): array
     {
         $resultMeta = [];
 
@@ -234,6 +264,25 @@ class DiffResources extends AbstractPlugin
         // representation.
         $dataNorm1 = $data1 ? $this->bulk->normalizePropertyValues($meta, $data1) : [];
         $dataNorm2 = $data2 ? $this->bulk->normalizePropertyValues($meta, $data2) : [];
+        $data2 = $dataNorm2;
+
+        // For properties, the diff depends on the action, so the new data
+        // should update old data before doing the diff.
+        if ($this->updateMode) {
+            if ($data2) {
+                $dataNorm2 = $this->updateResourceProperties
+                    ->__invoke(
+                        [$meta => $dataNorm1],
+                        [$meta => $dataNorm2],
+                        $this->updateMode
+                    )->asArray();
+                $dataNorm2 = reset($dataNorm2) ?: [];
+            }  else {
+                $dataNorm2 = [];
+            }
+        }
+
+        // Processing the diff.
 
         if (!$dataNorm1 && !$dataNorm2) {
             // But the meta exists, so output it.
