@@ -26,7 +26,7 @@ trait CheckTrait
     /**
      * @var resource
      */
-    protected $handle;
+    protected $handleLog;
 
     /**
      * Default options for output (tsv).
@@ -39,7 +39,7 @@ trait CheckTrait
         'escape' => 0,
     ];
 
-    protected $columns = [
+    protected $columnsLog = [
         'index' => 'Index', // @translate
         'errors' => 'Total errors', // @translate
         'index_message' => 'Index message', // @translate
@@ -51,7 +51,7 @@ trait CheckTrait
     /**
      * @var string
      */
-    protected $filepathCheck;
+    protected $filepathLog;
 
     /**
      * @var \Omeka\Settings\UserSettings
@@ -101,7 +101,7 @@ trait CheckTrait
         }
         if ($resource) {
             $data = $resource->getArrayCopy();
-            // There should not be any object except message store.
+            // There shall not be any object except message store inside array.
             unset($data['messageStore']);
         } else {
             $data = null;
@@ -174,7 +174,7 @@ SQL;
             $row['severity'] = $this->translator->translate('Info');
             $row['type'] = $this->translator->translate('General'); // @translate
             $row['message'] = $this->translator->translate('Skipped'); // @translate
-            $this->writeRow($row);
+            $this->writeRowLog($row);
             return $this;
         }
 
@@ -187,7 +187,7 @@ SQL;
             $row['severity'] = $this->translator->translate('Notice');
             $row['type'] = $this->translator->translate('General');
             $row['message'] = $this->translator->translate('Empty source'); // @translate
-            $this->writeRow($row);
+            $this->writeRowLog($row);
             return $this;
         }
 
@@ -201,7 +201,7 @@ SQL;
             $row['severity'] = $this->translator->translate('Error');
             $row['type'] = $this->translator->translate('General');
             $row['message'] = $this->translator->translate('Source cannot be converted'); // @translate
-            $this->writeRow($row);
+            $this->writeRowLog($row);
             return $this;
         }
 
@@ -269,7 +269,7 @@ SQL;
                     $row['severity'] = $severities[$severity];
                     $row['type'] = $name;
                     $row['message'] = $translating($message);
-                    $this->writeRow($row);
+                    $this->writeRowLog($row);
                 }
             }
         }
@@ -284,7 +284,7 @@ SQL;
      */
     protected function initializeCheckOutput(): \BulkImport\Processor\Processor
     {
-        if (empty($this->columns)) {
+        if (empty($this->columnsLog)) {
             return $this;
         }
 
@@ -293,8 +293,8 @@ SQL;
             return $this;
         }
 
-        $this->handle = fopen($this->filepathCheck, 'w+');
-        if (!$this->handle) {
+        $this->handleLog = fopen($this->filepathLog, 'w+');
+        if (!$this->handleLog) {
             ++$this->totalErrors;
             $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
             $this->logger->err(
@@ -305,7 +305,7 @@ SQL;
         }
 
         // Prepend the utf-8 bom.
-        fwrite($this->handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fwrite($this->handleLog, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
         if ($this->options['enclosure'] === 0) {
             $this->options['enclosure'] = chr(0);
@@ -316,10 +316,10 @@ SQL;
 
         $translator = $this->getServiceLocator()->get('MvcTranslator');
         $row = [];
-        foreach ($this->columns as $column) {
+        foreach ($this->columnsLog as $column) {
             $row[] = $translator->translate($column);
         }
-        $this->writeRow($row);
+        $this->writeRowLog($row);
 
         return $this;
     }
@@ -327,7 +327,7 @@ SQL;
     /**
      * Fill a row (tsv) in the output file.
      */
-    protected function writeRow(array $row): \BulkImport\Processor\Processor
+    protected function writeRowLog(array $row): \BulkImport\Processor\Processor
     {
         static $columnKeys;
         static $total = 0;
@@ -347,7 +347,7 @@ SQL;
         }
 
         if (is_null($columnKeys)) {
-            $columnKeys = array_fill_keys(array_keys($this->columns), null);
+            $columnKeys = array_fill_keys(array_keys($this->columnsLog), null);
         }
 
         // Order row according to the columns when associative array.
@@ -364,7 +364,7 @@ SQL;
             return $v;
         }, $row);
 
-        fputcsv($this->handle, $row, $this->options['delimiter'], $this->options['enclosure'], $this->options['escape']);
+        fputcsv($this->handleLog, $row, $this->options['delimiter'], $this->options['enclosure'], $this->options['escape']);
         return $this;
     }
 
@@ -373,39 +373,39 @@ SQL;
      *
      * @return self
      */
-    protected function finalizeCheckOutput()
+    protected function finalizeCheckLog()
     {
-        if (empty($this->columns)) {
+        if (empty($this->columnsLog)) {
             return $this;
         }
 
         if ($this->job->getJob()->getStatus() === \Omeka\Entity\Job::STATUS_ERROR) {
-            if ($this->handle) {
-                fclose($this->handle);
-                @unlink($this->filepathCheck);
+            if ($this->handleLog) {
+                fclose($this->handleLog);
+                @unlink($this->filepathLog);
             }
             return $this;
         }
 
-        if (!$this->handle) {
+        if (!$this->handleLog) {
             $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
             return $this;
         }
-        fclose($this->handle);
-        $this->messageResultFile();
+        fclose($this->handleLog);
+        $this->messageResultFileLog();
         return $this;
     }
 
     /**
      * Add a  message with the url to the file.
      */
-    protected function messageResultFile(): \BulkImport\Processor\Processor
+    protected function messageResultFileLog(): \BulkImport\Processor\Processor
     {
         $services = $this->getServiceLocator();
         $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         $this->logger->notice(
             'Results are available in this spreadsheet: {url}.', // @translate
-            ['url' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathCheck, mb_strlen($this->basePath . '/bulk_import/'))]
+            ['url' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathLog, mb_strlen($this->basePath . '/bulk_import/'))]
         );
         return $this;
     }
@@ -463,7 +463,7 @@ SQL;
             }
         } while (++$i);
 
-        $this->filepathCheck = $filePath;
+        $this->filepathLog = $filePath;
         return $this;
     }
 }

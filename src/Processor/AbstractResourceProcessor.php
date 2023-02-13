@@ -311,12 +311,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Prepare the file where the checks will be saved.
         $this
             ->initializeCheckStore()
-            ->initializeCheckOutput();
+            ->initializeCheckLog();
 
         if ($this->totalErrors) {
             $this
                 ->purgeCheckStore()
-                ->finalizeCheckOutput();
+                ->finalizeCheckLog();
             return;
         }
 
@@ -325,7 +325,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $jobJob = $this->job->getJob();
         if ($jobJob->getId()) {
             $jobJobArgs = $jobJob->getArgs();
-            $jobJobArgs['filename_check'] = basename($this->filepathCheck);
+            $jobJobArgs['filename_log'] = basename((string) $this->filepathLog);
             $jobJob->setArgs($jobJobArgs);
             $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
             $entityManager->persist($jobJob);
@@ -362,7 +362,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
             $this
                 ->purgeCheckStore()
-                ->finalizeCheckOutput();
+                ->finalizeCheckLog();
             return;
         }
 
@@ -379,7 +379,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 );
                 $this
                     ->purgeCheckStore()
-                    ->finalizeCheckOutput();
+                    ->finalizeCheckLog();
                 return;
             }
         }
@@ -388,7 +388,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($this->job->shouldStop()) {
             $this
                 ->purgeCheckStore()
-                ->finalizeCheckOutput();
+                ->finalizeCheckLog();
             return;
         }
 
@@ -408,7 +408,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this
             ->purgeCheckStore()
-            ->finalizeCheckOutput();
+            ->finalizeCheckLog();
     }
 
     protected function prepareAction(): \BulkImport\Processor\Processor
@@ -819,7 +819,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             $this->processing = 0;
 
-            // Only resources with messages are logged.
+            // Only resources without messages are stored.
             if (!$resource['messageStore']->hasErrors()) {
                 $this->storeCheckedResource($resource);
             }
