@@ -149,6 +149,8 @@ trait ResourceTemplateTrait
      */
     protected function equalResourceTemplates(ResourceTemplateRepresentation $rta, array $rtb): bool
     {
+        // TODO Check if jsonSerialize() can be used.
+        // $rta = $rta->jsonSerialize();
         $rta = json_decode(json_encode($rta), true);
 
         // Don't take the label into account.

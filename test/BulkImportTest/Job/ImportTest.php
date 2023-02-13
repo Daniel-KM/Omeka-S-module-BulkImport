@@ -349,6 +349,7 @@ SQL;
     protected function cleanApiResult(array $resource)
     {
         // Make the representation a pure array.
+        // TODO Check if this is still useful for linked resource or annotations with events.
         $resource = json_decode(json_encode($resource), true);
 
         unset($resource['@context']);

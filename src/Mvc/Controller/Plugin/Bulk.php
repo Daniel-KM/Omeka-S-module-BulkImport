@@ -33,6 +33,7 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
+use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 
 /**
  * Adapted from the controller plugin of the module Csv Import
@@ -1158,6 +1159,91 @@ class Bulk extends AbstractPlugin
         ?\BulkImport\Stdlib\MessageStore $messageStore = null
     ) {
         return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName, $messageStore);
+    }
+
+    /**
+     * Fully recursive serialization of a resource without issue.
+     *
+     * jsonSerialize() does not serialize all sub-data and an error can occur
+     * with them with some events.
+     * `json_decode(json_encode($resource), true)`cannot be used, because in
+     * some cases, for linked resources, there may be rights issues, or the
+     * resource may be not reloaded but a partial doctrine entity converted into
+     * a partial representation. So there may be missing linked resources, so a
+     * fatal error can occur when converting a value resource to its reference.
+     * So the serialization is done manually.
+     *
+     * @todo Find where the issues occurs (during a spreadsheet update on the second row).
+     * @todo Check if the issue occurs with value annotations.
+     * @todo Check if this issue is still existing in v4.
+     */
+    public function resourceJson(?AbstractResourceEntityRepresentation $resource): array
+    {
+        if (!$resource) {
+            return [];
+        }
+
+        $propertyIds = $this->getPropertyIds();
+
+        // This serialization does not serialize sub-objects as array.
+        $resourceArray = $resource->jsonSerialize();
+
+        // There is only issue for properties.
+        $repr = array_diff_key($resourceArray, $propertyIds);
+        $repr = json_decode(json_encode($repr), true);
+
+        $isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
+
+        $propertiesWithoutResource = array_intersect_key($resourceArray, $propertyIds);
+        foreach ($propertiesWithoutResource as $term => $values) {
+            /** @var \Omeka\Api\Representation\ValueRepresentation|array $value */
+            foreach ($values as $value) {
+                // In some cases (module event), the value is already an array.
+                if (is_object($value)) {
+                    $valueType = $value->type();
+                    // The issue occurs for linked resources.
+                    try {
+                        $vr = $value->valueResource();
+                        if ($vr) {
+                            $repr[$term][] = [
+                                'type' => $valueType,
+                                'property_id' => $propertyIds[$term],
+                                // 'property_label' => null,
+                                'is_public' => $value->isPublic(),
+                                '@annotations' => $isOldOmeka ? [] : $value->valueAnnotation(),
+                                // '@id' => $vr->apiUrl(),
+                                'value_resource_id' => (int) $vr->id(),
+                                '@language' => $value->lang() ?: null,
+                                // 'url' => null,
+                                // 'display_title' => $vr->displayTitle(),
+                            ];
+                        } else {
+                            $repr[$term][] = json_decode(json_encode($value), true);
+                        }
+                    } catch (\Exception $e) {
+                        if ($this->getMainDataType($valueType) === 'resource') {
+                            $this->logger->warn(
+                                'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
+                                ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]
+                            );
+                        } else {
+                            try {
+                                $repr[$term][] = $value->jsonSerialize();
+                            } catch (\Exception $e) {
+                                $this->logger->warn(
+                                    'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
+                                    ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    $repr[$term][] = $value;
+                }
+            }
+        }
+
+        return $repr;
     }
 
     /**

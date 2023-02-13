@@ -2857,7 +2857,7 @@ class SpipProcessor extends AbstractFullProcessor
                         } catch (NotFoundException $e) {
                             continue;
                         }
-                        $articleJson = json_decode(json_encode($article), true);
+                        $articleJson = $this->bulk->resourceJson($article);
                         $articleJson['curation:category'] = [[
                             'property_id' => $curationCategoryId,
                             'type' => 'resource:item',
