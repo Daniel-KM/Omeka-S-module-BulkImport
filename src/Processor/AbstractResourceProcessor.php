@@ -258,6 +258,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return;
         }
 
+        $this->logger->notice(
+            'The process will run action "{action}" with option "{mode}" for unindentified resources.', // @translate
+            ['action' => $this->action, 'mode' => $this->actionUnidentified]
+        );
+
         // @todo To set the resource name as object type to reader, is it needed?
         $this->reader->setObjectType($this->getResourceName());
 
