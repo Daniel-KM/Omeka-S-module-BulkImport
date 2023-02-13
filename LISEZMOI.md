@@ -38,6 +38,8 @@ xslt 2 externe peut être nécessaire si vous importez des fichiers xml qui ne
 sont pas importables avec xlt 1. Certains lecteurs ou processeurs spécifiques
 peuvent nécessiter d’autres modules.
 
+À partir de la version 3.4.39, le module requiert php 7.4.
+
 **Avertissement** : Certaines parties de ce module ne supportent pas les
 fichiers distants : seuls ceux enregistrés localement sur le serveur peuvent
 être gérés.
@@ -512,6 +514,7 @@ TODO
 - [ ] Import/màj des annotations de valeur.
 - [ ] Supprimer les importés quand la ressource est supprimée.
 - [ ] Utiliser un index commençant à un dans Entry.
+- [ ] Déplace l’option "convertir en html" dans un autre module.
 
 
 Avertissement

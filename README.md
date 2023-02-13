@@ -35,6 +35,8 @@ This module requires the module [Log] and optionaly [Generic]. An external xslt 
 processor may be needed if you import xml files that are not importable with
 xlt 1. Some specific readers or processors may need some other modules.
 
+Since 3.4.39, the module requires php 7.4.
+
 **Warning**: Some parts of this module may not support use of remote files: only
 files saved locally on the server may be managed.
 
@@ -483,6 +485,7 @@ TODO
 - [ ] Import/update value annotations.
 - [ ] Remove importeds when resource is removed.
 - [ ] Output a one-based index in Entry.
+- [ ] Move option "convert into html" somewhere else.
 
 
 Warning

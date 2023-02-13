@@ -21,6 +21,7 @@ class SettingsFieldset extends Fieldset
         $this
             ->setAttribute('id', 'bulk-import')
             ->setOption('element_groups', $this->elementGroups)
+            // TODO Option "bulkimport_convert_html" is too specific and should be moved somewhere else.
             ->add([
                 'name' => 'bulkimport_convert_html',
                 'type' => BulkImportElement\OptionalMultiCheckbox::class,
@@ -39,6 +40,7 @@ class SettingsFieldset extends Fieldset
                     'required' => false,
                 ],
             ])
+
         ;
     }
 }
