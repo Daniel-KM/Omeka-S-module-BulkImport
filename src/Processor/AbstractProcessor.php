@@ -12,23 +12,6 @@ abstract class AbstractProcessor implements Processor
 {
     use ServiceLocatorAwareTrait;
 
-    /**
-     * Default limit for the loop to avoid heavy sql requests.
-     *
-     * This value has no impact on process, but when it is set to "1" (default),
-     * the order of internal ids will be in the same order than the input and
-     * medias will follow their items. If it is greater, the order will follow
-     * the number of entries by resource types. This option is used only for
-     * creation and deletion. For update, the process requires to manage each
-     * entry separetely, because this is not a bulk edition.
-     * Furthermore, statistics are more precise when this option is "1".
-     *
-     * @var int
-     *
-     * @deprecated Remove import by batch, this is a simple loop anyway.
-     */
-    const ENTRIES_BY_BATCH = 1;
-
     /**#@+
      * Processor actions
      *

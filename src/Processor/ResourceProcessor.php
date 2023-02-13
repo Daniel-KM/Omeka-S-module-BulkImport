@@ -133,7 +133,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             'skip_missing_files' => false,
             'entries_to_skip' => 0,
             'entries_max' => 0,
-            'entries_by_batch' => null,
 
             'action' => null,
             'action_unidentified' => null,
@@ -1679,42 +1678,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             unset($resource['o:media']);
         }
         return !$resource['messageStore']->hasErrors();
-    }
-
-    protected function processEntities(array $data): \BulkImport\Processor\Processor
-    {
-        $resourceName = $this->getResourceName();
-        if ($resourceName !== 'resources') {
-            parent::processEntities($data);
-            return $this;
-        }
-
-        if (!count($data)) {
-            return $this;
-        }
-
-        // TODO Remove when ENTRIES_BY_BATCH will be removed.
-        // Process all resources, but keep order, so process them by type.
-        // Useless when the batch is 1.
-        // TODO Create an option for full order by id for items, then media.
-        $datas = [];
-        $previousResourceName = $data[0]['resource_name'];
-        foreach ($data as $dataResource) {
-            if ($previousResourceName !== $dataResource['resource_name']) {
-                $this->resourceName = $previousResourceName;
-                parent::processEntities($datas);
-                $this->resourceName = 'resources';
-                $previousResourceName = $dataResource['resource_name'];
-                $datas = [];
-            }
-            $datas[] = $dataResource;
-        }
-        if ($datas) {
-            $this->resourceName = $previousResourceName;
-            parent::processEntities($datas);
-            $this->resourceName = 'resources';
-        }
-        return $this;
     }
 
     /**

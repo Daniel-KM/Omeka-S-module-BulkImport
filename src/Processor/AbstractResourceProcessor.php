@@ -176,11 +176,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * @var int
      */
-    protected $processing = 0;
-
-    /**
-     * @var int
-     */
     protected $totalSkipped = 0;
 
     /**
@@ -344,7 +339,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->currentEntryIndex = 0;
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
-        $this->processing = 0;
         $this->totalSkipped = 0;
         $this->totalProcessed = 0;
         $this->totalEmpty = 0;
@@ -398,7 +392,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->currentEntryIndex = 0;
         $this->totalIndexResources = 0;
         $this->indexResource = 0;
-        $this->processing = 0;
         $this->totalSkipped = 0;
         $this->totalProcessed = 0;
         $this->totalEmpty = 0;
@@ -814,10 +807,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 continue;
             }
 
-            // ++$this->processing;
             ++$this->totalProcessed;
-
-            $this->processing = 0;
 
             // Only resources without messages are stored.
             if (!$resource['messageStore']->hasErrors()) {
@@ -855,12 +845,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $toSkip = (int) $this->getParam('entries_to_skip', 0);
         $maxEntries = (int) $this->getParam('entries_max', 0);
         $maxRemaining = $maxEntries;
-        $batch = (int) $this->getParam('entries_by_batch', self::ENTRIES_BY_BATCH);
 
         /** @var \Doctrine\ORM\EntityManager $entityManager */
         $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
 
-        $shouldStop = false;
         $dataToProcess = [];
 
         // Manage the case where the reader is zero-based or one-based.
@@ -872,7 +860,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         foreach ($this->reader as /* $innerIndex => */ $entry) {
             ++$this->currentEntryIndex;
-            if ($shouldStop = $this->job->shouldStop()) {
+            if ($this->job->shouldStop()) {
                 $this->logger->warn(
                     'Index #{index}: The job "Import" was stopped.', // @translate
                     ['index' => $this->indexResource]
@@ -935,23 +923,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ['index' => $this->indexResource]
             );
 
-            ++$this->processing;
             ++$this->totalProcessed;
 
             // The batch is one by one now.
             $dataToProcess[] = $resource;
 
-            // Only add every X for batch import (1 by default anyway).
-            if ($this->processing >= $batch) {
-                $this->processEntities($dataToProcess);
-                // Avoid memory issue.
-                unset($dataToProcess);
-                $entityManager->flush();
-                $entityManager->clear();
-                // Reset for next batch.
-                $dataToProcess = [];
-                $this->processing = 0;
-            }
+            $this->processEntities($dataToProcess);
+            // Avoid memory issue.
+            unset($dataToProcess);
+            $entityManager->flush();
+            $entityManager->clear();
+            // Reset for next.
+            $dataToProcess = [];
         }
 
         if ($maxEntries && $maxRemaining < 0) {
@@ -1747,6 +1730,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     /**
      * Process entities.
+     *
+     * @todo Keep order of resources when process is done by batch.
+     * Useless when batch size of process is one.
+     * @todo Create an option for full order by id for items, then media, but it should be done on all resources, not the batch one.
+     * See previous version (before 3.4.39).
      */
     protected function processEntities(array $dataResources): \BulkImport\Processor\Processor
     {
