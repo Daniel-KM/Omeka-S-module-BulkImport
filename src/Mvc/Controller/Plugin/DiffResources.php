@@ -45,6 +45,11 @@ class DiffResources extends AbstractPlugin
      */
     protected $resource2;
 
+    /**
+     * @param array
+     */
+    protected $diff;
+
     public function __construct(Bulk $bulk)
     {
         $this->bulk = $bulk;
@@ -57,8 +62,12 @@ class DiffResources extends AbstractPlugin
      *
      * The two resources can be the same, before and after an update.
      */
-    public function __invoke($resource1, $resource2): self
+    public function __invoke($resource1 = null, $resource2 = null): self
     {
+        if ($resource1 === null && $resource2 === null) {
+            return $this;
+        }
+
         $this->resource1 = is_null($resource1) || is_array($resource1)
             ? $resource1
             : $this->bulk->resourceJson($resource1);
@@ -66,6 +75,8 @@ class DiffResources extends AbstractPlugin
         $this->resource2 = is_null($resource2) || is_array($resource2)
             ? $resource2
             : $this->bulk->resourceJson($resource2);
+
+        $this->diff = null;
 
         return $this;
     }
@@ -75,50 +86,74 @@ class DiffResources extends AbstractPlugin
      */
     public function asArray(): array
     {
+        if ($this->diff === null) {
+            $this->prepareDiff();
+        }
+        return $this->diff;
+    }
+
+    public function asFlatArray(): array
+    {
+        if ($this->diff === null) {
+            $this->prepareDiff();
+        }
         $result = [];
+        foreach ($this->diff as $value) {
+            if (isset($value['meta'])) {
+                $result[] = $value;
+            } else {
+                $result = array_merge($result, array_values($value));
+            }
+        }
+        return $result;
+    }
+
+    protected function prepareDiff(): self
+    {
+        $this->diff = [];
 
         if (empty($this->resource1)
             && empty($this->resource2)
         ) {
-            $result['resource'] = [
+            $this->diff['resource'] = [
                 'meta' => 'resource',
                 'data1' => null,
                 'data2' => null,
                 'diff' => '',
             ];
-            return $result;
+            return $this;
         }
 
         if (empty($this->resource1)) {
-            $result['resource'] = [
+            $this->diff['resource'] = [
                 'meta' => 'resource',
                 'data1' => null,
                 'data2' => $this->resource2['o:id'] ?? null,
                 'diff' => '+',
             ];
-            return $result;
+            return $this;
         }
 
         if (empty($this->resource2)) {
-            $result['resource'] = [
+            $this->diff['resource'] = [
                 'meta' => 'resource',
                 'data1' => $this->resource1['o:id'] ?? null,
                 'data2' => null,
                 'diff' => '-',
             ];
-            return $result;
+            return $this;
         }
 
         if (!empty($this->resource1['has_error'])
             || !empty($this->resource2['has_error'])
         ) {
-            $result['has_error'] = [
+            $this->diff['has_error'] = [
                 'meta' => 'has_error',
                 'data1' => $this->resource1['o:id'] ?? null,
                 'data2' => $this->resource2['o:id'] ?? null,
                 'diff' => '×',
             ];
-            return $result;
+            return $this;
         }
 
         // Loop metadata for first resource.
@@ -131,7 +166,7 @@ class DiffResources extends AbstractPlugin
             if (in_array($meta, $this->skip)) {
                 continue;
             }
-            $result[$meta] = $this->checkMetadata($meta, $data1, $data2);
+            $this->diff[$meta] = $this->checkMetadata($meta, $data1, $data2);
         }
 
         // Append remaining metadata, missing in resource1.
@@ -140,10 +175,10 @@ class DiffResources extends AbstractPlugin
             if (in_array($meta, $this->skip)) {
                 continue;
             }
-            $result[$meta] = $this->checkMetadata($meta, null, $data2);
+            $this->diff[$meta] = $this->checkMetadata($meta, null, $data2);
         }
 
-        return $result;
+        return $this;
     }
 
     protected function checkMetadata($meta, $data1, $data2): array
