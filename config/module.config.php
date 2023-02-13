@@ -129,6 +129,7 @@ return [
         'factories' => [
             'automapFields' => Service\ControllerPlugin\AutomapFieldsFactory::class,
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
+            'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,

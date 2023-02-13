@@ -23,6 +23,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 {
     use ConfigurableTrait, ParametrizableTrait;
     use CheckTrait;
+    use DiffTrait;
     use FileTrait;
 
     const ACTION_SUB_UPDATE = 'sub_update';
@@ -353,6 +354,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
 
         $this->prepareFullRun();
+
+        $this->checkDiff();
 
         $dryRun = $this->processingError === 'dry_run';
         if ($dryRun) {
@@ -801,23 +804,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // TODO Reuse and complete the resource extracted during listing of identifiers: only the id may be missing. Or store during previous loop.
             ++$this->totalIndexResources;
             $resource = $this->processEntry($entry);
+
             if (!$resource) {
+                $this->storeCheckedResource($resource);
                 $this->logCheckedResource(null, $entry);
                 continue;
             }
 
             if (!$this->checkEntity($resource)) {
                 ++$this->totalErrors;
+                $this->storeCheckedResource($resource);
                 $this->logCheckedResource($resource, $entry);
                 continue;
             }
 
             ++$this->totalProcessed;
-
-            // Only resources without messages are stored.
-            if (!$resource['messageStore']->hasErrors()) {
-                $this->storeCheckedResource($resource);
-            }
+            $this->storeCheckedResource($resource);
 
             $this->logCheckedResource($resource, $entry);
         }
@@ -918,7 +920,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             // TODO Clarify computation of total errors.
             $resource = $this->loadCheckedResource();
-            if (!$resource) {
+            if (!$resource || !empty($resource['has_error'])) {
                 ++$this->totalErrors;
                 continue;
             }
@@ -1070,6 +1072,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // The human source index is one-based, so it means undetermined.
         $resource['source_index'] = 0;
         $resource['checked_id'] = false;
+        // This key is updated only for storage.
+        $resource['has_error'] = null;
         $resource['messageStore'] = new MessageStore();
         $this->baseSpecific($resource);
         return $resource;

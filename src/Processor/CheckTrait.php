@@ -101,6 +101,7 @@ trait CheckTrait
         }
         if ($resource) {
             $data = $resource->getArrayCopy();
+            $data['has_error'] = $data['has_error'] ?? $data['messageStore']->hasErrors();
             // There shall not be any object except message store inside array.
             unset($data['messageStore']);
         } else {
