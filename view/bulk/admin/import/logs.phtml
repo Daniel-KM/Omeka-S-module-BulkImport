@@ -8,9 +8,12 @@
  */
 
 $plugins = $this->getHelperPluginManager();
+$i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
+
+$strLength = 240;
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-imports logs browse');
 
@@ -84,12 +87,13 @@ $('select[name=severity]').on('change', function() {
             <tr>
                 <td class="webui-popover-parent">
                     <span class="log-message">
-                        <?php $text = $log->text(); ?>
-                        <?php $isLong = mb_strlen($text) > 240; ?>
+                        <?php $shouldEscape = $log->text()->escapeHtml(); ?>
+                        <?php $text = $log->text()->translate(); ?>
+                        <?php $isLong = mb_strlen($shouldEscape ? $text : strip_tags($text)) > $strLength; ?>
                         <?php if ($isLong): ?>
-                        <span class="log-message-truncated truncate"><?= nl2br(mb_substr($text, 0, 240)) . '…' ?></span>
+                        <span class="log-message-truncated truncate"><?= nl2br($escape(mb_substr(strip_tags($text), 0, $strLength))) . '…' ?></span>
                         <?php else: ?>
-                        <?= nl2br($text) ?>
+                        <?= $shouldEscape ? $escape($text) : $text ?>
                         <?php endif; ?>
                     </span>
                     <ul class="actions">
@@ -99,13 +103,13 @@ $('select[name=severity]').on('change', function() {
                                 'class' => 'o-icon- fa fa-expand popover',
                                 'title' => $translate('Full log'),
                             ]); ?>
-                            <div class="log-message-full webui-popover-content webui-popover-current"><?= nl2br($escape($text)) ?></div>
+                            <div class="log-message-full webui-popover-content webui-popover-current"><?= $shouldEscape ? nl2br($escape($text)) : nl2br($text) ?></div>
                         </li>
                         <?php endif; ?>
                     </ul>
                 </td>
                 <td><?= $translate($log->severityLabel()) ?> </td>
-                <td><?= $log->created()->format('Y-m-d H:i:s') ?></td>
+                <td><?= $i18n->dateFormat($log->created(), 'medium', 'medium') ?></td>
             </tr>
         <?php } ?>
         </tbody>
