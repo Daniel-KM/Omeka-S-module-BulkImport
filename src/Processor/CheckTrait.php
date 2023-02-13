@@ -73,7 +73,7 @@ trait CheckTrait
      *
      * @todo Use a temporary table or a static table.
      */
-    protected function initializeCheckStore(): \BulkImport\Processor\Processor
+    protected function initializeCheckStore(): self
     {
         $this->purgeCheckStore();
 
@@ -94,7 +94,7 @@ trait CheckTrait
     /**
      * Store a resource to avoid to redo checks and preparation for next step.
      */
-    protected function storeCheckedResource(?ArrayObject $resource, ?int $index = null): \BulkImport\Processor\Processor
+    protected function storeCheckedResource(?ArrayObject $resource, ?int $index = null): self
     {
         if (is_null($index)) {
             $index = $this->indexResource;
@@ -124,7 +124,7 @@ trait CheckTrait
     /**
      * Purge all stored resources, even from previous imports.
      */
-    protected function purgeCheckStore(): \BulkImport\Processor\Processor
+    protected function purgeCheckStore(): self
     {
         $connection = $this->getServiceLocator()->get('Omeka\Connection');
         $sql = <<<'SQL'
@@ -144,7 +144,7 @@ SQL;
      * One log or row by message, and one or more specific rows by sub-resource
      * (media for item, etc.).
      */
-    protected function logCheckedResource(?ArrayObject $resource, ?Entry $entry = null): \BulkImport\Processor\Processor
+    protected function logCheckedResource(?ArrayObject $resource, ?Entry $entry = null): self
     {
         static $severities;
 
@@ -282,7 +282,7 @@ SQL;
      *
      * @todo Use a temporary file and copy result at the end of the process.
      */
-    protected function initializeCheckOutput(): \BulkImport\Processor\Processor
+    protected function initializeCheckLog(): self
     {
         if (empty($this->columnsLog)) {
             return $this;
@@ -333,7 +333,7 @@ SQL;
     /**
      * Fill a row (tsv) in the output file.
      */
-    protected function writeRowLog(array $row): \BulkImport\Processor\Processor
+    protected function writeRowLog(array $row): self
     {
         static $columnKeys;
         static $total = 0;
@@ -405,7 +405,7 @@ SQL;
     /**
      * Add a  message with the url to the file.
      */
-    protected function messageResultFileLog(): \BulkImport\Processor\Processor
+    protected function messageResultFileLog(): self
     {
         $services = $this->getServiceLocator();
         $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';

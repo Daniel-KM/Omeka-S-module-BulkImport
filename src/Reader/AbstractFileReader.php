@@ -13,7 +13,7 @@ abstract class AbstractFileReader extends AbstractReader
 {
     use FileAndUrlTrait;
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         $this->lastErrorMessage = null;
         $values = $form->getData();

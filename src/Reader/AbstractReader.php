@@ -162,7 +162,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this->configFormClass;
     }
 
-    public function handleConfigForm(Form $form)
+    public function handleConfigForm(Form $form): self
     {
         $values = $form->getData();
         $config = array_intersect_key($values, array_flip($this->configKeys));
@@ -176,7 +176,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this->paramsFormClass;
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         $values = $form->getData();
         $params = array_intersect_key($values, array_flip($this->paramsKeys));
@@ -186,19 +186,19 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function setObjectType($objectType): \BulkImport\Reader\Reader
+    public function setObjectType($objectType): self
     {
         $this->objectType = $objectType;
         return $this;
     }
 
-    public function setFilters(?array $filters): \BulkImport\Reader\Reader
+    public function setFilters(?array $filters): self
     {
         $this->filters = $filters ?? [];
         return $this;
     }
 
-    public function setOrders($by, $dir = 'ASC'): \BulkImport\Reader\Reader
+    public function setOrders($by, $dir = 'ASC'): self
     {
         $this->orders = [];
         if (!$by) {
@@ -297,7 +297,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Reset the iterator to allow to use it with different params.
      */
-    protected function reset(): \BulkImport\Reader\Reader
+    protected function reset(): self
     {
         $this->availableFields = [];
         $this->objectType = null;
@@ -312,7 +312,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function prepareIterator(): \BulkImport\Reader\Reader
+    protected function prepareIterator(): self
     {
         // The params should be checked and valid.
         $this->reset();
@@ -331,12 +331,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * Initialize the reader iterator.
      */
-    abstract protected function initializeReader(): \BulkImport\Reader\Reader;
+    abstract protected function initializeReader(): self;
 
     /**
      * Called only by prepareIterator() after opening reader.
      */
-    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
+    protected function finalizePrepareIterator(): self
     {
         $this->totalEntries = iterator_count($this->iterator);
         $this->iterator->rewind();
@@ -346,14 +346,14 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     /**
      * The list of available fields are an array.
      */
-    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
+    protected function prepareAvailableFields(): self
     {
         return $this;
     }
     /**
      * Prepare other internal data.
      */
-    protected function appendInternalParams(): \BulkImport\Reader\Reader
+    protected function appendInternalParams(): self
     {
         $services = $this->getServiceLocator();
         $settings = $services->get('Omeka\Settings');

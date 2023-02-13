@@ -176,7 +176,7 @@ class XmlReader extends AbstractFileMultipleReader
         return $this->isReady;
     }
 
-    protected function initializeReader(): \BulkImport\Reader\Reader
+    protected function initializeReader(): self
     {
         $this->initArgs();
 
@@ -204,7 +204,7 @@ class XmlReader extends AbstractFileMultipleReader
      * @todo Build a generic pagination mechanism like in json (query, path, token), but rare in xml (probably only for oai-pmh anyway).
      * @deprecated Use initializeReader only.
      */
-    protected function initArgs(): \BulkImport\Reader\Reader
+    protected function initArgs(): self
     {
         // TODO Simplify the flow.
         $this->params['metaMapper'] = $this->metaMapper;

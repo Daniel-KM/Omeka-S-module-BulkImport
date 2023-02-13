@@ -254,7 +254,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this->sheetsRowCount[$this->sheetIndex];
     }
 
-    protected function reset(): \BulkImport\Reader\Reader
+    protected function reset(): self
     {
         parent::reset();
         if ($this->spreadsheetReader) {
@@ -263,7 +263,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function prepareIterator(): \BulkImport\Reader\Reader
+    protected function prepareIterator(): self
     {
         parent::prepareIterator();
         // Skip headers, already stored.
@@ -271,7 +271,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function initializeReader(): \BulkImport\Reader\Reader
+    protected function initializeReader(): self
     {
         if ($this->spreadsheetReader) {
             $this->spreadsheetReader->close();
@@ -356,7 +356,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function finalizePrepareIterator(): \BulkImport\Reader\Reader
+    protected function finalizePrepareIterator(): self
     {
         if ($this->processAllSheets) {
             return $this->finalizePrepareIteratorMultiSheets();
@@ -371,7 +371,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function finalizePrepareIteratorMultiSheets(): \BulkImport\Reader\Reader
+    protected function finalizePrepareIteratorMultiSheets(): self
     {
         $this->totalEntries = 0;
         $this->sheetsRowCount = [];
@@ -424,7 +424,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $total;
     }
 
-    protected function prepareAvailableFields(): \BulkImport\Reader\Reader
+    protected function prepareAvailableFields(): self
     {
         if ($this->processAllSheets) {
             return $this->prepareAvailableFieldsMultiSheets();
@@ -444,7 +444,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         return $this;
     }
 
-    protected function prepareAvailableFieldsMultiSheets(): \BulkImport\Reader\Reader
+    protected function prepareAvailableFieldsMultiSheets(): self
     {
         $this->availableFields = [];
         $this->availableFieldsMultiSheets = [];
@@ -473,7 +473,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     /**
      * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
      */
-    protected function prepareAvailableFieldsOld(): \BulkImport\Reader\Reader
+    protected function prepareAvailableFieldsOld(): self
     {
         if ($this->processAllSheets) {
             return $this->prepareAvailableFieldsMultiSheetsOld();
@@ -496,7 +496,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     /**
      * @todo Remove support of old CSV Import when patch https://github.com/omeka-s-modules/CSVImport/pull/182 will be included.
      */
-    protected function prepareAvailableFieldsMultiSheetsOld(): \BulkImport\Reader\Reader
+    protected function prepareAvailableFieldsMultiSheetsOld(): self
     {
         $this->availableFields = [];
         $this->availableFieldsMultiSheets = [];

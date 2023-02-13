@@ -10,7 +10,7 @@ interface Parametrizable
      * @param array $params
      * @return self
      */
-    public function setParams(array $params);
+    public function setParams(array $params): self;
 
     /**
      * @return array
@@ -25,5 +25,5 @@ interface Parametrizable
     /**
      * @param Form $form
      */
-    public function handleParamsForm(Form $form);
+    public function handleParamsForm(Form $form): self;
 }

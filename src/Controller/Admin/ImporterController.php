@@ -182,6 +182,7 @@ class ImporterController extends AbstractActionController
             $form->setData($data);
             if ($form->isValid()) {
                 $reader->handleConfigForm($form);
+
                 $data['reader_config'] = $reader->getConfig();
                 $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
 

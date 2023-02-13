@@ -1,6 +1,5 @@
 {
     "require": {
-        "php": ">=7.2",
         "ext-xml": "*",
         "codemirror/codemirror": "^5.65.1",
         "flowjs/flow-php-server": "^1.0",
@@ -61,6 +60,9 @@
         }
     },
     "config": {
+        "platform": {
+            "php": "7.4"
+        },
         "allow-plugins": {
             "composer/installers": true,
             "oomphinc/composer-installers-extender": true

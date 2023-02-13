@@ -213,7 +213,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form)
+    public function handleConfigForm(Form $form): self
     {
         $values = $form->getData();
         $config = new ArrayObject;
@@ -223,7 +223,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         $values = $form->getData();
         $params = new ArrayObject;
@@ -234,12 +234,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormGeneric(ArrayObject $args, array $values): self
     {
         return $this;
     }
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): self
     {
         return $this;
     }
@@ -404,7 +404,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->finalizeCheckLog();
     }
 
-    protected function prepareAction(): \BulkImport\Processor\Processor
+    protected function prepareAction(): self
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
@@ -424,7 +424,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareActionUnidentified(): \BulkImport\Processor\Processor
+    protected function prepareActionUnidentified(): self
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
@@ -439,7 +439,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareIdentifierNames(): \BulkImport\Processor\Processor
+    protected function prepareIdentifierNames(): self
     {
         $identifierNames = $this->getParam('identifier_name', ['o:id']);
         if (empty($identifierNames)) {
@@ -474,7 +474,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareSpecific(): \BulkImport\Processor\Processor
+    protected function prepareSpecific(): self
     {
         return $this;
     }
@@ -487,7 +487,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * (spreadsheet headers and processor form) or a mapping config.
      * So some processors can be reader-driven or processor-driven.
      */
-    protected function prepareMetaConfig(): \BulkImport\Processor\Processor
+    protected function prepareMetaConfig(): self
     {
         $mappingConfig = null;
         if (method_exists($this->reader, 'getConfigParam')) {
@@ -526,7 +526,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Get the list of identifiers without any check.
      */
-    protected function prepareListOfIdentifiers(): \BulkImport\Processor\Processor
+    protected function prepareListOfIdentifiers(): self
     {
         $identifierNames = $this->bulk->getIdentifierNames();
         if (empty($identifierNames)) {
@@ -647,7 +647,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Get the list of ids from identifiers one time.
      */
-    protected function prepareListOfIds(): \BulkImport\Processor\Processor
+    protected function prepareListOfIds(): self
     {
         if (empty($this->identifiers['map'])) {
             return $this;
@@ -718,7 +718,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Store resources without errors for next step.
      */
-    protected function prepareFullRun(): \BulkImport\Processor\Processor
+    protected function prepareFullRun(): self
     {
         $this->logger->notice(
             'Start checking of source data.' // @translate
@@ -836,7 +836,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function processFullRun(): \BulkImport\Processor\Processor
+    protected function processFullRun(): self
     {
         $this->logger->notice(
             'Start actual import of source data.' // @translate
@@ -1070,12 +1070,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $resource;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseSpecific(ArrayObject $resource): self
     {
         return $this;
     }
 
-    protected function fillBoolean(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
+    protected function fillBoolean(ArrayObject $resource, $key, $value): self
     {
         $resource[$key] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private', 'closed'], true)
             ? false
@@ -1083,7 +1083,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function fillSingleEntity(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
+    protected function fillSingleEntity(ArrayObject $resource, $key, $value): self
     {
         if (empty($value)) {
             $resource[$key] = null;
@@ -1125,7 +1125,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * @todo Make method fillResource a generic one (most metadata are similar).
      */
-    abstract protected function fillResource(ArrayObject $resource, array $map, array $values): \BulkImport\Processor\Processor;
+    abstract protected function fillResource(ArrayObject $resource, array $map, array $values): self;
 
     /**
      * Check if a resource is well-formed.
@@ -1736,7 +1736,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * @todo Create an option for full order by id for items, then media, but it should be done on all resources, not the batch one.
      * See previous version (before 3.4.39).
      */
-    protected function processEntities(array $dataResources): \BulkImport\Processor\Processor
+    protected function processEntities(array $dataResources): self
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
@@ -1761,7 +1761,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of entities.
      */
-    protected function createEntities(array $dataResources): \BulkImport\Processor\Processor
+    protected function createEntities(array $dataResources): self
     {
         $resourceName = $this->getResourceName();
         $this->createResources($resourceName, $dataResources);
@@ -1771,7 +1771,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of resources.
      */
-    protected function createResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
+    protected function createResources($resourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
@@ -1839,7 +1839,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of entities.
      */
-    protected function updateEntities(array $dataResources): \BulkImport\Processor\Processor
+    protected function updateEntities(array $dataResources): self
     {
         $resourceName = $this->getResourceName();
 
@@ -1861,7 +1861,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of resources.
      */
-    protected function updateResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
+    protected function updateResources($resourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
@@ -1969,7 +1969,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of entities.
      */
-    protected function deleteEntities(array $dataResources): \BulkImport\Processor\Processor
+    protected function deleteEntities(array $dataResources): self
     {
         $resourceName = $this->getResourceName();
         $this->deleteResources($resourceName, $dataResources);
@@ -1979,7 +1979,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of resources.
      */
-    protected function deleteResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
+    protected function deleteResources($resourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
@@ -2035,7 +2035,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of entities.
      */
-    protected function skipEntities(array $dataResources): \BulkImport\Processor\Processor
+    protected function skipEntities(array $dataResources): self
     {
         $resourceName = $this->getResourceName();
         $this->skipResources($resourceName, $dataResources);
@@ -2045,7 +2045,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of resources.
      */
-    protected function skipResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
+    protected function skipResources($resourceName, array $dataResources): self
     {
         return $this;
     }
@@ -2128,7 +2128,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * @todo Make a process and an output with all identifiers only.
      * @todo Store the resolved id existing in database one time here (after deduplication), and remove the search of identifiers in second loop.
      */
-    protected function extractSourceIdentifiers(?ArrayObject $resource, ?Entry $entry = null): \BulkImport\Processor\Processor
+    protected function extractSourceIdentifiers(?ArrayObject $resource, ?Entry $entry = null): self
     {
         if (!$resource) {
             return $this;
@@ -2241,7 +2241,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * Identifiers are already stored during first loop. So just set final id.
      */
-    protected function storeSourceIdentifiersIds(array $dataResource, AbstractEntityRepresentation $resource): \BulkImport\Processor\Processor
+    protected function storeSourceIdentifiersIds(array $dataResource, AbstractEntityRepresentation $resource): self
     {
         $resourceId = $resource->id();
         if (empty($resourceId) || empty($dataResource['source_index'])) {

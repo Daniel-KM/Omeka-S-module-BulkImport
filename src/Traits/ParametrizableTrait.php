@@ -12,7 +12,7 @@ trait ParametrizableTrait
     /**
      * @return self
      */
-    public function setParams(array $params)
+    public function setParams(array $params): self
     {
         $this->params = $params;
         return $this;

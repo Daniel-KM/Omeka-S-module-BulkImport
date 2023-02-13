@@ -21,7 +21,7 @@ abstract class AbstractFileMultipleReader extends AbstractReader
      */
     protected $currentFilepath;
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         $this->lastErrorMessage = null;
         $values = $form->getData();

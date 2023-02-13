@@ -511,7 +511,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         return $this->paramsFormClass;
     }
 
-    public function handleConfigForm(Form $form)
+    public function handleConfigForm(Form $form): self
     {
         $values = $form->getData();
         $result = array_intersect_key($values, $this->configDefault) + $this->configDefault;
@@ -519,7 +519,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         return $this;
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         $values = $form->getData();
         $result = array_intersect_key($values, $this->paramsDefault) + $this->paramsDefault;
@@ -1453,7 +1453,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $dispatcher->dispatch($jobClass, $args, $strategy);
     }
 
-    protected function prepareReader(string $resourceName, bool $clone = false): \BulkImport\Reader\Reader
+    protected function prepareReader(string $resourceName, bool $clone = false): self
     {
         // When no source is set, it means that the reader is disabled.
         // For example, disable processing of items and medias when mediaItems

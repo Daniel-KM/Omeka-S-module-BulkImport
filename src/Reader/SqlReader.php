@@ -75,7 +75,7 @@ class SqlReader extends AbstractPaginatedReader
      * @param DbAdapter $dbAdapter
      * @return self
      */
-    public function setDbAdapter(DbAdapter $dbAdapter): \BulkImport\Reader\Reader
+    public function setDbAdapter(DbAdapter $dbAdapter): self
     {
         $this->dbAdapter = $dbAdapter;
         return $this;
@@ -92,7 +92,7 @@ class SqlReader extends AbstractPaginatedReader
         return $this->dbAdapter;
     }
 
-    public function setDbConfig(array $dbConfig): \BulkImport\Reader\Reader
+    public function setDbConfig(array $dbConfig): self
     {
         $this->dbConfig = $dbConfig;
         $this->dbConfig['driver'] = $this->dbConfig['driver'] ?? 'Pdo_Mysql';
@@ -104,7 +104,7 @@ class SqlReader extends AbstractPaginatedReader
         return $this->dbConfig;
     }
 
-    public function setPrefix(string $prefix): \BulkImport\Reader\Reader
+    public function setPrefix(string $prefix): self
     {
         $this->prefix = $prefix;
         return $this;
@@ -357,7 +357,7 @@ SQL;
         return $this->getParam('database');
     }
 
-    protected function initArgs(): \BulkImport\Reader\Reader
+    protected function initArgs(): self
     {
         $this->dbConfig = [];
         $this->dbConfig['database'] = $this->getParam('database', '');

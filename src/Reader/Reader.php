@@ -39,19 +39,19 @@ interface Reader extends \Iterator, \Countable
     /**
      * @param string $objectType An Omeka api key like "items", "vocabularies"…
      */
-    public function setObjectType($objectType): \BulkImport\Reader\Reader;
+    public function setObjectType($objectType): self;
 
     /**
      * Allow to limit results.
      */
-    public function setFilters(?array $filters): \BulkImport\Reader\Reader;
+    public function setFilters(?array $filters): self;
 
     /**
      * Prepare the order of  the result, for example a column for sql.
      *
      * @param string|array $by
      */
-    public function setOrders($by, $dir = 'ASC'): \BulkImport\Reader\Reader;
+    public function setOrders($by, $dir = 'ASC'): self;
 
     /**
      * List of fields used in the input, for example the first spreadsheet row.

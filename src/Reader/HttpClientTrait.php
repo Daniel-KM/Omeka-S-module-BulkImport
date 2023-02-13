@@ -46,7 +46,7 @@ trait HttpClientTrait
      * @param HttpClient $httpClient
      * @return self
      */
-    public function setHttpClient(HttpClient $httpClient): \BulkImport\Reader\Reader
+    public function setHttpClient(HttpClient $httpClient): self
     {
         $this->httpClient = $httpClient;
         return $this;
@@ -65,7 +65,7 @@ trait HttpClientTrait
         return $this->httpClient;
     }
 
-    public function setEndpoint($endpoint): \BulkImport\Reader\Reader
+    public function setEndpoint($endpoint): self
     {
         $this->endpoint = $endpoint;
         return $this;
@@ -162,7 +162,7 @@ trait HttpClientTrait
         return true;
     }
 
-    protected function initArgs(): \BulkImport\Reader\Reader
+    protected function initArgs(): self
     {
         $this->endpoint = $this->getParam('endpoint');
         return $this;

@@ -90,7 +90,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
      */
     protected $currentResponse;
 
-    public function setObjectType($objectType): \BulkImport\Reader\Reader
+    public function setObjectType($objectType): self
     {
         $this->objectType = $objectType;
         $this->initArgs();
@@ -194,7 +194,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
     /**
      * @todo Merge with method initArgs().
      */
-    protected function initializeReader(): \BulkImport\Reader\Reader
+    protected function initializeReader(): self
     {
         return $this;
     }
@@ -214,7 +214,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
      *
      * @todo Use method initializeReader().
      */
-    protected function initArgs(): \BulkImport\Reader\Reader
+    protected function initArgs(): self
     {
         return $this;
     }

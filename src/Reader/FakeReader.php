@@ -31,18 +31,18 @@ class FakeReader extends AbstractReader
         return true;
     }
 
-    protected function reset(): \BulkImport\Reader\Reader
+    protected function reset(): self
     {
         return $this;
     }
 
-    protected function initializeReader(): \BulkImport\Reader\Reader
+    protected function initializeReader(): self
     {
         $this->iterator = new \ArrayIterator([]);
         return $this;
     }
 
-    protected function prepareIterator(): \BulkImport\Reader\Reader
+    protected function prepareIterator(): self
     {
         $this->totalEntries = 0;
         return $this;

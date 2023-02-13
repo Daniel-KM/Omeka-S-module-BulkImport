@@ -16,17 +16,17 @@ interface Processor
     /**
      * @return self
      */
-    public function setReader(Reader $reader): \BulkImport\Processor\Processor;
+    public function setReader(Reader $reader): self;
 
     /**
      * @return self
      */
-    public function setLogger(Logger $logger): \BulkImport\Processor\Processor;
+    public function setLogger(Logger $logger): self;
 
     /**
      * @return self
      */
-    public function setJob(Job $job): \BulkImport\Processor\Processor;
+    public function setJob(Job $job): self;
 
     /**
      * Perform the process.

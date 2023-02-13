@@ -35,7 +35,7 @@ class TsvReader extends CsvReader
         $this->escape = chr(0);
     }
 
-    public function handleParamsForm(Form $form)
+    public function handleParamsForm(Form $form): self
     {
         parent::handleParamsForm($form);
         $params = $this->getParams();
@@ -47,7 +47,7 @@ class TsvReader extends CsvReader
         return $this;
     }
 
-    protected function reset(): \BulkImport\Reader\Reader
+    protected function reset(): self
     {
         parent::reset();
         $this->delimiter = "\t";

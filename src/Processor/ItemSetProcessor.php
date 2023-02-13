@@ -16,13 +16,13 @@ class ItemSetProcessor extends ResourceProcessor
 
     protected $paramsFormClass = ItemSetProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): self
     {
         $this->handleFormItemSet($args, $values);
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseSpecific(ArrayObject $resource): self
     {
         $this->baseResourceCommon($resource);
         $this->baseItemSet($resource);

@@ -92,7 +92,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this->isReady;
     }
 
-    protected function prepareIterator(): \BulkImport\Reader\Reader
+    protected function prepareIterator(): self
     {
         $this->reset();
         if (!$this->isValid()) {
@@ -103,7 +103,7 @@ abstract class AbstractGenericFileReader extends AbstractFileReader
         return $this;
     }
 
-    protected function initializeReader(): \BulkImport\Reader\Reader
+    protected function initializeReader(): self
     {
         $file = $this->getParam('file');
         $readerClass = $this->mediaTypeReaders[$file['type']];

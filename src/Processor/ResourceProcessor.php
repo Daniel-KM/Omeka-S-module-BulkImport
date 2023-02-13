@@ -126,7 +126,7 @@ class ResourceProcessor extends AbstractResourceProcessor
      */
     protected $mapping;
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormGeneric(ArrayObject $args, array $values): self
     {
         $defaults = [
             'processing' => 'stop_on_error',
@@ -156,7 +156,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): self
     {
         if (isset($values['resource_name'])) {
             $args['resource_name'] = $values['resource_name'];
@@ -167,7 +167,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormItem(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormItem(ArrayObject $args, array $values): self
     {
         if (isset($values['o:item_set'])) {
             $ids = $this->bulk->findResourcesFromIdentifiers($values['o:item_set'], 'o:id', 'item_sets');
@@ -178,7 +178,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormItemSet(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormItemSet(ArrayObject $args, array $values): self
     {
         if (isset($values['o:is_open'])) {
             $args['o:is_open'] = $values['o:is_open'] !== 'false';
@@ -186,7 +186,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function handleFormMedia(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormMedia(ArrayObject $args, array $values): self
     {
         if (!empty($values['o:item'])) {
             $id = $this->bulk->findResourceFromIdentifier($values['o:item'], 'o:id', 'items');
@@ -197,7 +197,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function prepareSpecific(): \BulkImport\Processor\Processor
+    protected function prepareSpecific(): self
     {
         $this
             ->prepareActionIdentifier()
@@ -211,7 +211,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function prepareActionIdentifier(): \BulkImport\Processor\Processor
+    protected function prepareActionIdentifier(): self
     {
         if (!in_array($this->action, [
             self::ACTION_REVISE,
@@ -246,7 +246,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function prepareActionMedia(): \BulkImport\Processor\Processor
+    protected function prepareActionMedia(): self
     {
         $this->actionMedia = $this->getParam('action_media_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionMedia, [
@@ -262,7 +262,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function prepareActionItemSet(): \BulkImport\Processor\Processor
+    protected function prepareActionItemSet(): self
     {
         $this->actionItemSet = $this->getParam('action_item_set_update') ?: self::ACTION_APPEND;
         if (!in_array($this->actionItemSet, [
@@ -281,7 +281,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     /**
      * Prepare other internal data.
      */
-    protected function appendInternalParams(): \BulkImport\Processor\Processor
+    protected function appendInternalParams(): self
     {
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
         $internalParams = [];
@@ -304,7 +304,7 @@ class ResourceProcessor extends AbstractResourceProcessor
      * Note: The metaconfig is already prepared in prepareMetaConfig().
      * @deprecated Use MetaMapperConfig.
      */
-    protected function prepareMapping(): \BulkImport\Processor\Processor
+    protected function prepareMapping(): self
     {
         $isPrepared = false;
         if (method_exists($this->reader, 'getConfigParam')) {
@@ -577,7 +577,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $resource;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseSpecific(ArrayObject $resource): self
     {
         $this->baseResourceCommon($resource);
         // Determined by the entry, but prepare all possible types in the case
@@ -589,7 +589,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseResourceCommon(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseResourceCommon(ArrayObject $resource): self
     {
         $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
         if ($ownerId === 'current') {
@@ -618,7 +618,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItem(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseItem(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
@@ -626,7 +626,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItemSet(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseItemSet(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
@@ -634,7 +634,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseMedia(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseMedia(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];
@@ -644,7 +644,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     /**
      * @todo Factorize with fillGeneric().
      */
-    protected function fillSingleEntity(ArrayObject $resource, $key, $value): \BulkImport\Processor\Processor
+    protected function fillSingleEntity(ArrayObject $resource, $key, $value): self
     {
         if (empty($value)) {
             $resource[$key] = null;
@@ -773,7 +773,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     /**
      * @todo Use the MetaMapper.
      */
-    protected function fillResource(ArrayObject $resource, array $targets, array $values): \BulkImport\Processor\Processor
+    protected function fillResource(ArrayObject $resource, array $targets, array $values): self
     {
         foreach ($targets as $target) {
             switch ($target['target']) {
@@ -1522,7 +1522,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         array $related,
         $metadata = 'o:media',
         $check = 'o:ingester'
-    ): \BulkImport\Processor\Processor {
+    ): self {
         if (!empty($resource[$metadata])) {
             foreach ($resource[$metadata] as $key => $values) {
                 if (!array_key_exists($check, $values)) {

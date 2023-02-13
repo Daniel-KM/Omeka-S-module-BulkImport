@@ -10,7 +10,7 @@ interface Configurable
      * @param array $config
      * @return self
      */
-    public function setConfig(array $config);
+    public function setConfig(array $config): self;
 
     /**
      * @return array
@@ -26,5 +26,5 @@ interface Configurable
      * @param Form $form
      * @return self
      */
-    public function handleConfigForm(Form $form);
+    public function handleConfigForm(Form $form): self;
 }

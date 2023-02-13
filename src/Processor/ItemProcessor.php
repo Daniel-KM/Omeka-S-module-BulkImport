@@ -16,13 +16,13 @@ class ItemProcessor extends ResourceProcessor
 
     protected $paramsFormClass = ItemProcessorParamsForm::class;
 
-    protected function handleFormSpecific(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormSpecific(ArrayObject $args, array $values): self
     {
         $this->handleFormItem($args, $values);
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseSpecific(ArrayObject $resource): self
     {
         $this->baseResourceCommon($resource);
         $this->baseItem($resource);

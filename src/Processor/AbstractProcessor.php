@@ -134,24 +134,24 @@ abstract class AbstractProcessor implements Processor
         $this->userId = $this->user->getId();
     }
 
-    public function setReader(Reader $reader): \BulkImport\Processor\Processor
+    public function setReader(Reader $reader): self
     {
         $this->reader = $reader;
         return $this;
     }
 
-    public function getReader(): \BulkImport\Reader\Reader
+    public function getReader(): Reader
     {
         return $this->reader;
     }
 
-    public function setLogger(Logger $logger): \BulkImport\Processor\Processor
+    public function setLogger(Logger $logger): self
     {
         $this->logger = $logger;
         return $this;
     }
 
-    public function setJob(Job $job): \BulkImport\Processor\Processor
+    public function setJob(Job $job): self
     {
         $this->job = $job;
         return $this;

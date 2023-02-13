@@ -79,19 +79,19 @@ class JsonReader extends AbstractPaginatedReader
     /**
      * Many endpoints modify path and subpath by type of resources, for example Omeka.
      */
-    public function setPath(?string $path): \BulkImport\Reader\Reader
+    public function setPath(?string $path): self
     {
         $this->path = $path;
         return $this;
     }
 
-    public function setSubPath(?string $subpath): \BulkImport\Reader\Reader
+    public function setSubPath(?string $subpath): self
     {
         $this->subpath = $subpath;
         return $this;
     }
 
-    public function setQueryParams(array $queryParams): \BulkImport\Reader\Reader
+    public function setQueryParams(array $queryParams): self
     {
         $this->queryParams = $queryParams;
         return $this;
@@ -191,7 +191,7 @@ class JsonReader extends AbstractPaginatedReader
      * @todo Merge with XmlReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
      * @deprecated Use initializeReader only.
      */
-    protected function initArgs(): \BulkImport\Reader\Reader
+    protected function initArgs(): self
     {
         // Prepare mapper one time.
         if ($this->metaMapper->isInit()) {

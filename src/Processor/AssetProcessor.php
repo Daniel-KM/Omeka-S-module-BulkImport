@@ -70,7 +70,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         ],
     ];
 
-    protected function handleFormGeneric(ArrayObject $args, array $values): \BulkImport\Processor\Processor
+    protected function handleFormGeneric(ArrayObject $args, array $values): self
     {
         $defaults = [
             'processing' => 'stop_on_error',
@@ -92,7 +92,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function prepareAction(): \BulkImport\Processor\Processor
+    protected function prepareAction(): self
     {
         $this->action = $this->getParam('action') ?: self::ACTION_CREATE;
         if (!in_array($this->action, [
@@ -109,7 +109,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): \BulkImport\Processor\Processor
+    protected function baseSpecific(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'assets';
 
@@ -132,7 +132,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function fillResource(ArrayObject $resource, array $map, array $values): \BulkImport\Processor\Processor
+    protected function fillResource(ArrayObject $resource, array $map, array $values): self
     {
         $field = $map['to']['field'] ?? null;
 
@@ -313,7 +313,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      *
      * Assets require an uploaded file, so bypass api and parent method.
      */
-    protected function createResources($resourceName, array $dataResources): \BulkImport\Processor\Processor
+    protected function createResources($resourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
