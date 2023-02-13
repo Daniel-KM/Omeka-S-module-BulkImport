@@ -938,6 +938,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ++$this->processing;
             ++$this->totalProcessed;
 
+            // The batch is one by one now.
             $dataToProcess[] = $resource;
 
             // Only add every X for batch import (1 by default anyway).
@@ -951,15 +952,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $dataToProcess = [];
                 $this->processing = 0;
             }
-        }
-
-        // Take care of remainder from the modulo check.
-        if (!$shouldStop && $dataToProcess) {
-            $this->processEntities($dataToProcess);
-            // Avoid memory issue.
-            unset($dataToProcess);
-            $entityManager->flush();
-            $entityManager->clear();
         }
 
         if ($maxEntries && $maxRemaining < 0) {

@@ -1230,4 +1230,60 @@ class Bulk extends AbstractPlugin
     {
         return $this->identifierNames;
     }
+
+    /**
+     * Create the unique file name compatible on various os.
+     *
+     * Note: the destination dir is created during install.
+     *
+     * @return string Path to the return path.
+     */
+    public function prepareFile(string $basename, string $extension): ?string
+    {
+        $destinationDir = $this->basePath . '/bulk_import';
+
+        $base = preg_replace('/[^A-Za-z0-9]/', '_', $basename);
+        $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
+
+        $date = (new \DateTime())->format('Ymd-His');
+
+        // Avoid issue on very big base.
+        $i = 0;
+        do {
+            $filename = sprintf(
+                '%s%s%s%s',
+                $base,
+                $date,
+                $i ? '-' . $i : '',
+                $extension ? '.' . $extension : ''
+            );
+
+            $filePath = $destinationDir . '/' . $filename;
+            if (!file_exists($filePath)) {
+                try {
+                    $result = @touch($filePath);
+                } catch (\Exception $e) {
+                    $this->logger->err(
+                        // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+                        'Error when saving "{filename}" (temp file: "{tempfile}"): {exception}', // @translate
+                        ['filename' => $filename, 'tempfile' => $filePath, 'exception' => $e]
+                    );
+                    return null;
+                }
+
+                if (!$result) {
+                    // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+                    $this->logger->err(
+                        'Error when saving "{filename}" (temp file: "{tempfile}"): {error}', // @translate
+                        ['filename' => $filename, 'tempfile' => $filePath, 'error' => error_get_last()['message']]
+                    );
+                    return null;
+                }
+
+                break;
+            }
+        } while (++$i);
+
+        return $filePath;
+    }
 }

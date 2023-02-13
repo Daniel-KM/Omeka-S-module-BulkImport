@@ -288,7 +288,13 @@ SQL;
             return $this;
         }
 
-        $this->prepareFilename();
+        $this->filepathLog = $this->bulk->prepareFile($this->getLabel(), 'tsv');
+        if (!$this->filepathLog) {
+            ++$this->totalErrors;
+            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            return $this;
+        }
+
         if ($this->job->getJob()->getStatus() === \Omeka\Entity\Job::STATUS_ERROR) {
             return $this;
         }
@@ -407,63 +413,6 @@ SQL;
             'Results are available in this spreadsheet: {url}.', // @translate
             ['url' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathLog, mb_strlen($this->basePath . '/bulk_import/'))]
         );
-        return $this;
-    }
-
-    /**
-     * Create the unique file name compatible on various os.
-     *
-     * Note: the destination dir is created during install.
-     */
-    protected function prepareFilename(): \BulkImport\Processor\Processor
-    {
-        $destinationDir = $this->basePath . '/bulk_import';
-
-        $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->getLabel());
-        $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
-        $date = (new \DateTime())->format('Ymd-His');
-        $extension = 'tsv';
-
-        // Avoid issue on very big base.
-        $i = 0;
-        do {
-            $filename = sprintf(
-                '%s%s%s.%s',
-                $base,
-                $date,
-                $i ? '-' . $i : '',
-                $extension
-            );
-
-            $filePath = $destinationDir . '/' . $filename;
-            if (!file_exists($filePath)) {
-                try {
-                    $result = @touch($filePath);
-                } catch (\Exception $e) {
-                    ++$this->totalErrors;
-                    $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-                    $this->logger->err(
-                        'Error when saving "{filename}" (temp file: "{tempfile}"): {exception}', // @translate
-                        ['filename' => $filename, 'tempfile' => $filePath, 'exception' => $e]
-                    );
-                    return $this;
-                }
-
-                if (!$result) {
-                    ++$this->totalErrors;
-                    $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-                    $this->logger->err(
-                        'Error when saving "{filename}" (temp file: "{tempfile}"): {error}', // @translate
-                        ['filename' => $filename, 'tempfile' => $filePath, 'error' => error_get_last()['message']]
-                    );
-                    return $this;
-                }
-
-                break;
-            }
-        } while (++$i);
-
-        $this->filepathLog = $filePath;
         return $this;
     }
 }
