@@ -246,7 +246,7 @@ class XmlReader extends AbstractFileMultipleReader
             } catch (\Exception $e) {
                 $this->lastErrorMessage = new PsrMessage(
                     'An issue occurred during initial transformation by the xsl sheet "{xslname}": {message}.', // @translate
-                    ['filename' => basename($this->getParam('file')['name']), 'xslname' => basename($xslpath), 'message' => $e->getMessage()]
+                    ['filename' => basename((string) $this->getParam('file')['name']), 'xslname' => basename((string) $xslpath), 'message' => $e->getMessage()]
                 );
                 throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
             }
