@@ -711,3 +711,13 @@ if (version_compare($oldVersion, '3.3.38', '<')) {
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.4.39', '<')) {
+    if (PHP_VERSION_ID < 70400) {
+        $message = new Message(
+            'Since version %s, this module requires php 7.4.', // @translate
+            '3.4.39'
+        );
+        throw new ModuleCannotInstallException((string) $message);
+    }
+}

@@ -1,5 +1,6 @@
 /asset/vendor
 /build
+/cache
 /language/debug.po
 /language/debug.mo
 /language/chef.po

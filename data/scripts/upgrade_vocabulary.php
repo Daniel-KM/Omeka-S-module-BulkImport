@@ -14,7 +14,7 @@ if (!method_exists($this, 'getInstallResources')) {
     throw new ModuleCannotInstallException((string) new Message(
         'This module requires module %s version %s or greater.', // @translate
         'Generic',
-        '3.3.33'
+        '3.4.42'
     ));
 }
 
