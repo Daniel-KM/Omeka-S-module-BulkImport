@@ -1069,7 +1069,7 @@ class MetaMapperConfig extends AbstractPlugin
         return $map;
     }
 
-    protected function normalizeToFromString(string $string, array $options): array
+    protected function normalizeToFromString(string $string, array $options): ?array
     {
         $defaultOptions = [
             'check_field' => false,
