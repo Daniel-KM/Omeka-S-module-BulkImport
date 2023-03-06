@@ -3,6 +3,7 @@
 namespace BulkImport\Form;
 
 use BulkImport\Form\Element as BulkImportElement;
+use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 
 class SettingsFieldset extends Fieldset
@@ -21,6 +22,17 @@ class SettingsFieldset extends Fieldset
         $this
             ->setAttribute('id', 'bulk-import')
             ->setOption('element_groups', $this->elementGroups)
+            ->add([
+                'name' => 'bulkimport_extract_metadata',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'element_group' => 'import',
+                    'label' => 'Extract metadata from files on save (manual or import)', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'bulkimport_extract_metadata',
+                ],
+            ])
             // TODO Option "bulkimport_convert_html" is too specific and should be moved somewhere else.
             ->add([
                 'name' => 'bulkimport_convert_html',
@@ -40,7 +52,6 @@ class SettingsFieldset extends Fieldset
                     'required' => false,
                 ],
             ])
-
         ;
     }
 }

@@ -119,8 +119,8 @@ class MetaMapperConfig extends AbstractPlugin
      * Prepare a config to simplify any import into Omeka and transform a source.
      *
      * It can be used as headers of a spreadsheet, or in an import config, or to
-     * extract metadata from files json or xml files. It contains a list of
-     * mappings between source data and destination data.
+     * extract metadata from files json, or xml files, or for any file.
+     * It contains a list of mappings between source data and destination data.
      *
      * A config contains four sections:
      * - info: label, base mapper if any, querier to use, example of source;
@@ -141,7 +141,9 @@ class MetaMapperConfig extends AbstractPlugin
      *          'to' => [
      *              'field' => 'dcterms:title',
      *              'property_id' => 1,
-     *              'datatype' => 'literal',
+     *              'datatype' => [
+     *                  'literal',
+     *              ],
      *              'language' => 'fra',
      *              'is_public' => false,
      *          ],
@@ -282,7 +284,7 @@ class MetaMapperConfig extends AbstractPlugin
             }
         }
 
-        $this->configs[$this->name] = $normalizedConfig ?: $this->configs['40cd750bba9870f18aada2478b24840a'];
+        $this->configs[$this->name] = $normalizedConfig ?: $this->configs['ec58905619984f5c3dbb308c5556df58'];
         return $this;
     }
 
@@ -540,7 +542,10 @@ class MetaMapperConfig extends AbstractPlugin
 
             $map = $this->normalizeMapFromStringIni($line, $options);
             if (in_array($sectionType, ['raw', 'pattern', 'raw_or_pattern'])) {
-                $normalizedConfig[$section][$map['from']] = $map['to'];
+                if (isset($map['from']) && is_scalar($map['from'])) {
+                    // FIXME Manage section info and params.
+                    $normalizedConfig[$section][$map['from']] = $map['to'];
+                }
             } else {
                 $normalizedConfig[$section][] = $map;
             }
@@ -896,6 +901,8 @@ class MetaMapperConfig extends AbstractPlugin
         $normalizedMap['mod'] = array_filter(array_intersect_key($ton, $modKeys), function ($v) {
             return !is_null($v) && $v !== '' && $v !== [];
         });
+        // TODO Remove "[to][dest]".
+        $normalizedMap['to']['dest'] = $toDest;
         return $normalizedMap;
     }
 

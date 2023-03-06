@@ -5,6 +5,7 @@
         "flowjs/flow-php-server": "^1.0",
         "flowjs/flow.js": "^2.14.1",
         "hakre/xmlreaderiterator": "^0.1.10",
+        "james-heinrich/getid3": "^2.0-dev",
         "mikehaertl/php-pdftk": "^0.9",
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",

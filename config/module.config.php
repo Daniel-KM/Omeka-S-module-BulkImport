@@ -131,6 +131,7 @@ return [
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
+            'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
             'metaMapper' => Service\ControllerPlugin\MetaMapperFactory::class,
@@ -337,6 +338,7 @@ return [
             'bulkimport_allow_empty_files' => false,
         ],
         'settings' => [
+            'bulkimport_extract_metadata' => false,
             'bulkimport_convert_html' => [],
         ],
     ],

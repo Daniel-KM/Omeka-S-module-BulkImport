@@ -234,6 +234,8 @@ class MetaMapper extends AbstractPlugin
      * The string is generally extracted from a source via a mapping.
      * Warning: Here, the conversion cannot use another data from the source.
      * Indeed, the full entry is not provided.
+     *
+     * @todo Manage options.
      */
     public function convertSimpleString(?string $value, array $map, array $options = []): string
     {
@@ -254,6 +256,35 @@ class MetaMapper extends AbstractPlugin
         return is_null($result) || !strlen($result)
             ? ''
             : (($map['prepend'] ?? '') . $result . ($map['append'] ?? ''));
+    }
+
+    /**
+     * Convert data (array or xml) into new data (array) applying a meta config.
+     *
+     * @todo Manage options.
+     */
+    public function convert($data, ?array $metaConfig, array $options = []): array
+    {
+        $result = [];
+        if ($metaConfig
+            && (is_string($data) || is_array($data))
+        ) {
+            $this->configSections = $options['configSections'] ?? [
+                'info' => 'raw',
+                'params' => 'raw_or_pattern',
+                'default' => 'mapping',
+                'mapping' => 'mapping',
+            ];
+            $this->normConfig = $metaConfig;
+            if (is_array($data)) {
+                $result = $this->convertMappingSectionJson('default', $result, $data, true);
+                $result = $this->convertMappingSectionJson('mapping', $result, $data);
+            } elseif (is_string($data)) {
+                $result = $this->convertMappingSectionXml('default', $result, $data, true);
+                $result = $this->convertMappingSectionXml('mapping', $result, $data);
+            }
+        }
+        return $result;
     }
 
     /**

@@ -147,6 +147,7 @@ class Module extends AbstractModule
         );
 
         // Manage the conversion of documents to html.
+        // Manage the extraction of medata from medias.
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
             'api.create.post',
@@ -328,15 +329,25 @@ class Module extends AbstractModule
 
     public function handleAfterSaveItem(Event $event): void
     {
+        // TODO Use a process "pre" to get html and metadata when url file is not stored (rare).
+
         // Process conversion of documents to html if set.
-        // And prepare thumbnailling if needed.
+        // And prepare thumbnailing if needed.
         $needThumbnailing = false;
+
+        // Process extraction of metadata only when there is an original file.
+        $hasFile = false;
+
         /**
          * @var \Omeka\Entity\Item $item
          * @var \Omeka\Entity\Media $media
          */
         $item = $event->getParam('response')->getContent();
         foreach ($item->getMedia() as $media) {
+            if (!$media->getMediaType()) {
+                continue;
+            }
+            $hasFile = true;
             $this->afterSaveMedia($media);
             if (!$needThumbnailing
                 && $media->getIngester() === 'bulk_upload'
@@ -346,13 +357,26 @@ class Module extends AbstractModule
             }
         }
 
+        $services = $this->getServiceLocator();
+        if ($hasFile
+            && $services->get('Omeka\Settings')->get('bulkimport_extract_metadata', false)
+        ) {
+            // For item run a job to avoid the 30 seconds issue with many files.
+            /** @var \Omeka\Job\Dispatcher $dispatcher */
+            $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+            $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, [
+                'itemId' => $item->getId(),
+            ]);
+        }
+
         if (!$needThumbnailing) {
             return;
         }
 
-        // Create the thumbnails for the media ingested with "bulk_upload" via a job.
+        // Create the thumbnails for the media ingested with "bulk_upload" via a
+        // job to avoid the 30 seconds issue with numerous files.
         /** @var \Omeka\Job\Dispatcher $dispatcher */
-        $dispatcher = $this->getServiceLocator()->get(\Omeka\Job\Dispatcher::class);
+        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
         $dispatcher->dispatch(\BulkImport\Job\FileDerivative::class, [
             'item_id' => $item->getId(),
             'ingester' => 'bulk_upload',
@@ -362,11 +386,20 @@ class Module extends AbstractModule
 
     public function handleAfterCreateMedia(Event $event): void
     {
+        /** @var \Omeka\Entity\Media $media */
         $media = $event->getParam('response')->getContent();
-        $this->afterSaveMedia($media);
+        if (!$media->getMediaType()) {
+            return;
+        }
+        $this->afterSaveMedia($media, true);
     }
 
-    protected function afterSaveMedia(Media $media): void
+    /**
+     * @todo Use the same process (job) for extract html and extract metadata.
+     *
+     * @param Media $media Media with a media type.
+     */
+    protected function afterSaveMedia(Media $media, bool $isSingleMediaCreation = false): void
     {
         static $processedMedia = [];
 
@@ -376,14 +409,27 @@ class Module extends AbstractModule
         }
         $processedMedia[$mediaId] = true;
 
+        $services = $this->getServiceLocator();
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
+        $entityManager = $services->get('Omeka\EntityManager');
+
+        if ($isSingleMediaCreation) {
+            $settings = $services->get('Omeka\Settings');
+            if ($settings->get('bulkimport_extract_metadata', false)) {
+                $extractFileMetadata = $services->get('ControllerPluginManager')->get('extractFileMetadata');
+                $result = $extractFileMetadata->__invoke($media);
+                if ($result) {
+                    $entityManager->refresh($media);
+                }
+            }
+        }
+
         $html = $this->convertToHtml($media);
         if (is_null($html)) {
             return;
         }
 
-        $services = $this->getServiceLocator();
         $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $entityManager = $services->get('Omeka\EntityManager');
 
         // There is no thumbnails, else keep them anyway.
         @unlink($basePath . '/original/' . $media->getFilename());
