@@ -486,6 +486,8 @@ TODO
 - [ ] Remove importeds when resource is removed.
 - [ ] Output a one-based index in Entry.
 - [ ] Move option "convert into html" somewhere else.
+- [ ] Normalize config of metadata extraction with metamapper.
+- [ ] Add an automatic mapping for images etc. with xmp.
 
 
 Warning

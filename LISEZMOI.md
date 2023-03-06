@@ -515,6 +515,8 @@ TODO
 - [ ] Supprimer les importés quand la ressource est supprimée.
 - [ ] Utiliser un index commençant à un dans Entry.
 - [ ] Déplace l’option "convertir en html" dans un autre module.
+- [ ] Normaliser la config pour extraire les métadonnées avec metamapper.
+- [ ] Ajouter un alignement automatique pour les images etc. avec xmp.
 
 
 Avertissement
