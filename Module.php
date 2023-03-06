@@ -399,17 +399,35 @@ class Module extends AbstractModule
         }
 
         $services = $this->getServiceLocator();
+
         if ($hasFile
             && $services->get('Omeka\Settings')->get('bulkimport_extract_metadata', false)
         ) {
             $itemId = $item->getId();
             // Run a job for item to avoid the 30 seconds issue with many files.
-            /** @var \Omeka\Job\Dispatcher $dispatcher */
-            $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-            $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, [
+            $args = [
                 'itemId' => $itemId,
                 'skipMediaIds' => $this->storeExistingItemMediaIds($itemId),
-            ]);
+            ];
+            // FIXME Use a plugin, not a fake job. Or strategy "sync", but there is a doctrine exception on owner of the job.
+            // Of course, it is useless for a background job.
+            // $strategy = $this->isBackgroundProcess() ? $services->get(\Omeka\Job\DispatchStrategy\Synchronous::class) : null;
+            $strategy = null;
+            if ($this->isBackgroundProcess()) {
+                $job = new \Omeka\Entity\Job();
+                $job->setPid(null);
+                $job->setStatus(\Omeka\Entity\Job::STATUS_IN_PROGRESS);
+                $job->setClass(\BulkImport\Job\ExtractMediaMetadata::class);
+                $job->setArgs($args);
+                $job->setOwner($services->get('Omeka\AuthenticationService')->getIdentity());
+                $job->setStarted(new \DateTime('now'));
+                $jobClass = new \BulkImport\Job\ExtractMediaMetadata($job, $services);
+                $jobClass->perform();
+            } else {
+                /** @var \Omeka\Job\Dispatcher $dispatcher */
+                $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+                $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, $args, $strategy);
+            }
         }
 
         if (!$needThumbnailing) {
@@ -418,13 +436,30 @@ class Module extends AbstractModule
 
         // Create the thumbnails for the media ingested with "bulk_upload" via a
         // job to avoid the 30 seconds issue with numerous files.
-        /** @var \Omeka\Job\Dispatcher $dispatcher */
-        $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-        $dispatcher->dispatch(\BulkImport\Job\FileDerivative::class, [
+        $args = [
             'item_id' => $item->getId(),
             'ingester' => 'bulk_upload',
             'only_missing' => true,
-        ]);
+        ];
+        // Of course, it is useless for a background job.
+        // FIXME Use a plugin, not a fake job. Or strategy "sync", but there is a doctrine exception on owner of the job.
+        // $strategy = $this->isBackgroundProcess() ? $services->get(\Omeka\Job\DispatchStrategy\Synchronous::class) : null;
+        $strategy = null;
+        if ($this->isBackgroundProcess()) {
+            $job = new \Omeka\Entity\Job();
+            $job->setPid(null);
+            $job->setStatus(\Omeka\Entity\Job::STATUS_IN_PROGRESS);
+            $job->setClass(\BulkImport\Job\FileDerivative::class);
+            $job->setArgs($args);
+            $job->setOwner($services->get('Omeka\AuthenticationService')->getIdentity());
+            $job->setStarted(new \DateTime('now'));
+            $jobClass = new \BulkImport\Job\FileDerivative($job, $services);
+            $jobClass->perform();
+        } else {
+            /** @var \Omeka\Job\Dispatcher $dispatcher */
+            $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+            $dispatcher->dispatch(\BulkImport\Job\FileDerivative::class, $args, $strategy);
+        }
     }
 
     public function handleAfterCreateMedia(Event $event): void
@@ -577,6 +612,22 @@ class Module extends AbstractModule
     }
 
     /**
+     * Check if the current process is a background one.
+     *
+     * The library to get status manages only admin, site or api requests.
+     * A background process is none of them.
+     */
+    protected function isBackgroundProcess(): bool
+    {
+        // Warning: there is a matched route ("site") for backend processes.
+        /** @var \Omeka\Mvc\Status $status */
+        $status = $this->getServiceLocator()->get('Omeka\Status');
+        return !$status->isApiRequest()
+            && !$status->isAdminRequest()
+            && !$status->isSiteRequest();
+    }
+
+   /**
      * Check or create the destination folder.
      *
      * @param string $dirPath Absolute path.

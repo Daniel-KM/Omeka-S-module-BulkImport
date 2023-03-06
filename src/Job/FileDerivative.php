@@ -4,6 +4,9 @@ namespace BulkImport\Job;
 
 use Omeka\Job\AbstractJob;
 
+/**
+ * FIXME Warning: don't use shouldStop(), since it may be a fake job (see Module).
+ */
 class FileDerivative extends AbstractJob
 {
     /**

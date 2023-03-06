@@ -5,6 +5,9 @@ namespace BulkImport\Job;
 use Log\Stdlib\PsrMessage;
 use Omeka\Job\AbstractJob;
 
+/**
+ * FIXME Warning: don't use shouldStop(), since it may be a fake job (see Module).
+ */
 class ExtractMediaMetadata extends AbstractJob
 {
     public function perform(): void

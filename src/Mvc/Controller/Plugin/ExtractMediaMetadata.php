@@ -11,7 +11,6 @@ use JamesHeinrich\GetID3\GetId3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Log\Stdlib\PsrMessage;
-use Omeka\Api\Adapter\MediaAdapter;
 use Omeka\Entity\Media;
 
 /**
