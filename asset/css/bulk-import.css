@@ -39,6 +39,10 @@
     }
 
     /* Resource add/edit media files and folders */
+    /* @todo Improve drag and drop with a file (requires js) */
+    .media-bulk-upload .bulk-drop:hover {
+        outline: 2px dashed grey;
+    }
     #media-list .bulk-upload-actions {
         width: 100%;
     }
