@@ -45,6 +45,11 @@ class ExtractMediaMetadata extends AbstractPlugin
     protected $basePath;
 
     /**
+     * @var bool
+     */
+    protected $logExtractedMetadata = false;
+
+    /**
      * Data to remove from output for security.
      *
      * @var array
@@ -68,13 +73,15 @@ class ExtractMediaMetadata extends AbstractPlugin
         MetaMapper $metaMapper,
         MetaMapperConfig $metaMapperConfig,
         ExtractDataFromPdf $extractDataFromPdf,
-        string $basePath
+        string $basePath,
+        bool $logExtractedMetadata
     ) {
         $this->logger = $logger;
         $this->metaMapper = $metaMapper;
         $this->metaMapperConfig = $metaMapperConfig;
         $this->extractDataFromPdf = $extractDataFromPdf;
         $this->basePath = $basePath;
+        $this->logExtractedMetadata = $logExtractedMetadata;
     }
 
     /**
@@ -133,6 +140,14 @@ class ExtractMediaMetadata extends AbstractPlugin
                 $data = $getId3->analyze($filepath);
                 $data = array_diff_key($data, array_flip($this->ignoredKeys));
                 break;
+        }
+
+        if ($this->logExtractedMetadata) {
+            $this->logger->info(new PsrMessage(
+                'Extracted metadata for media #{media_id}: {json}', // @translate
+                // Use pretty print and JSON_INVALID_UTF8_SUBSTITUTE.
+                ['media_id' => $media->getId(), 'json' => json_encode($data, 2097600)]
+            ));
         }
 
         $resource = $this->metaMapper->convert($data, $metaConfig);

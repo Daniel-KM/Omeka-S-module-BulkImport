@@ -19,7 +19,8 @@ class ExtractMediaMetadataFactory implements FactoryInterface
             $plugins->get('metaMapper'),
             $plugins->get('metaMapperConfig'),
             $plugins->get('extractDataFromPdf'),
-            $basePath
+            $basePath,
+            (bool) $settings->get('bulkimport_extract_metadata_log', false)
         );
     }
 }

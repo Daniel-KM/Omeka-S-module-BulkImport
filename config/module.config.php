@@ -339,6 +339,7 @@ return [
         ],
         'settings' => [
             'bulkimport_extract_metadata' => false,
+            'bulkimport_extract_metadata_log' => false,
             'bulkimport_convert_html' => [],
         ],
     ],
