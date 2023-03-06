@@ -239,6 +239,11 @@ class XmlEntry extends BaseEntry
         $ingester = $resource['o:ingester'] ?? 'file ';
         switch ($ingester) {
             default:
+            case 'tile':
+                // Deprecated: "tile" is only a renderer, no more an ingester
+                // since ImageServer version 3.6.13. All images are
+                // automatically tiled, so "tile" is a format similar to large/medium/square,
+                // but different.
             case 'file':
                 if ($this->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
@@ -310,6 +315,7 @@ class XmlEntry extends BaseEntry
                 ];
                 return true;
 
+            /*
             case 'tile':
                 $resource += [
                     'resource_name' => 'media',
@@ -318,6 +324,7 @@ class XmlEntry extends BaseEntry
                     'o:source' => $value,
                 ];
                 break;
+            */
         }
 
         return $resource;

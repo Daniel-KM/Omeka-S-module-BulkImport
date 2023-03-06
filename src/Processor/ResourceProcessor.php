@@ -1263,6 +1263,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            case 'tile':
+                // Deprecated: tiles are now only a rendering, not an ingester
+                // since ImageServer version 3.6.13. All images are
+                // automatically tiled, so "tile" is a format similar to large/medium/square,
+                // but different.
             case 'file':
                 // A file may be a url for end-user simplicity.
                 foreach ($values as $value) {
@@ -1307,6 +1312,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            /*
             case 'tile':
                 foreach ($values as $value) {
                     $media = [];
@@ -1316,6 +1322,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->appendRelated($resource, $media);
                 }
                 return true;
+            */
             case 'o:media':
                 if (isset($target['target_data'])) {
                     if (isset($target['target_data_value'])) {
@@ -1461,6 +1468,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
+            case 'tile':
+                // Deprecated: "tile" is only a renderer, no more an ingester
+                // since ImageServer version 3.6.13. All images are
+                // automatically tiled, so "tile" is a format similar to large/medium/square,
+                // but different.
             case 'file':
                 // TODO Check value first here?
                 $value = end($values);
@@ -1493,12 +1505,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 $resource['o:source'] = $value;
                 return true;
+            /*
             case 'tile':
                 $value = end($values);
                 $resource['o:ingester'] = 'tile';
                 $resource['ingest_url'] = $value;
                 $resource['o:source'] = $value;
                 return true;
+            */
             default:
                 return false;
         }

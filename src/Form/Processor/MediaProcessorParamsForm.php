@@ -35,7 +35,8 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
                     'directory' => 'Directory', // @translate
                     'html' => 'Html', // @translate
                     'iiif' => 'IIIF Image', // @translate
-                    'tile' => 'Tile', // @translate
+                    // Removed since Image Server 3.6.13.
+                    // 'tile' => 'Tile', // @translate
                 ],
             ],
         ]);
@@ -45,9 +46,11 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
             unset($mapping['media']['options']['directory']);
         }
 
+        /*
         if (!$this->isModuleActive('ImageServer')) {
             unset($mapping['media']['options']['tile']);
         }
+        */
 
         return $mapping;
     }
