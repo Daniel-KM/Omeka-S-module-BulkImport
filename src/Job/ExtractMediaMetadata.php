@@ -46,6 +46,9 @@ class ExtractMediaMetadata extends AbstractJob
             return;
         }
 
+        // Process only new medias if existing medias are set.
+        $skipMediaIds = $this->getArg('skipMediaIds', []);
+
         /**
          * @var \BulkImport\Mvc\Controller\Plugin\Bulk $bulk
          * @var \BulkImport\Mvc\Controller\Plugin\ExtractMediaMetadata $extractMediaMetadata
@@ -65,7 +68,12 @@ class ExtractMediaMetadata extends AbstractJob
         }
 
         $totalExtracted = 0;
+        /** @var \Omeka\Entity\Media $media */
         foreach ($item->getMedia() as $media) {
+            $mediaId = $media->getId();
+            if ($skipMediaIds && in_array($mediaId, $skipMediaIds)) {
+                continue;
+            }
             $extractedData = $extractMediaMetadata->__invoke($media);
             if ($extractedData === null) {
                 continue;

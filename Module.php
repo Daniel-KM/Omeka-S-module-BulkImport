@@ -148,6 +148,13 @@ class Module extends AbstractModule
 
         // Manage the conversion of documents to html.
         // Manage the extraction of medata from medias.
+        // The process should be done only for new medias, so keep the list
+        // of existing medias before processing.
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.update.pre',
+            [$this, 'handleBeforeSaveItem'],
+        );
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\ItemAdapter::class,
             'api.create.post',
@@ -327,6 +334,40 @@ class Module extends AbstractModule
         $request->setContent($data);
     }
 
+    /**
+     * Store ids of existing medias to avoid to process them twice.
+     */
+    public function handleBeforeSaveItem(Event $event): void
+    {
+        /**
+         * @var \Omeka\Api\Request $request
+         */
+        $request = $event->getParam('request');
+
+        $itemId = (int) $request->getId();
+        if (!$itemId) {
+            return;
+        }
+
+        /** @var \Omeka\Api\Manager $api */
+        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+        try {
+            /** @var \Omeka\Api\Representation\ItemRepresentation $item */
+            $item = $api->read('items', $itemId, [], ['initialize' => false, 'finalize' => false])->getContent();
+        } catch (\Exception $e) {
+            return;
+        }
+
+        $mediaIds = [];
+        foreach ($item->getMedia() as $media) {
+            $mediaId = (int) $media->getId() ?? null;;
+            if ($mediaId) {
+                $mediaIds[$mediaId] = $mediaId;
+            }
+        }
+        $this->storeExistingItemMediaIds($itemId, $mediaIds);
+    }
+
     public function handleAfterSaveItem(Event $event): void
     {
         // TODO Use a process "pre" to get html and metadata when url file is not stored (rare).
@@ -361,11 +402,13 @@ class Module extends AbstractModule
         if ($hasFile
             && $services->get('Omeka\Settings')->get('bulkimport_extract_metadata', false)
         ) {
-            // For item run a job to avoid the 30 seconds issue with many files.
+            $itemId = $item->getId();
+            // Run a job for item to avoid the 30 seconds issue with many files.
             /** @var \Omeka\Job\Dispatcher $dispatcher */
             $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
             $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, [
-                'itemId' => $item->getId(),
+                'itemId' => $itemId,
+                'skipMediaIds' => $this->storeExistingItemMediaIds($itemId),
             ]);
         }
 
@@ -561,5 +604,18 @@ class Module extends AbstractModule
             return null;
         }
         return $dirPath;
+    }
+
+    protected function storeExistingItemMediaIds(?int $itemId = null, ?array $mediaIds = null): ?array
+    {
+        static $store = [];
+        if (!$itemId) {
+            return $store;
+        }
+        if  (is_null($mediaIds)) {
+            return $store[$itemId] ?? [];
+        }
+        $store[$itemId] = $mediaIds;
+        return null;
     }
 }
