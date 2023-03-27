@@ -906,6 +906,12 @@ class Bulk extends AbstractPlugin
             'resource:media' => \Omeka\Entity\Media::class,
             'resource:annotation' => \Annotate\Entity\Annotation::class,
             // Avoid a check and make the plugin more flexible.
+            \Omeka\Api\Representation\AssetRepresentation::class => \Omeka\Entity\Asset::class,
+            \Omeka\Api\Representation\ItemRepresentation::class => \Omeka\Entity\Item::class,
+            \Omeka\Api\Representation\ItemSetRepresentation::class => \Omeka\Entity\ItemSet::class,
+            \Omeka\Api\Representation\MediaRepresentation::class => \Omeka\Entity\Media::class,
+            \Omeka\Api\Representation\ResourceReference::class => '',
+            \Annotate\Api\Representation\AnnotationRepresentation::class => \Annotate\Entity\Annotation::class,
             \Omeka\Entity\Asset::class => \Omeka\Entity\Asset::class,
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
