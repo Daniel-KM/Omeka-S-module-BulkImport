@@ -90,7 +90,7 @@ class XmlReader extends AbstractFileMultipleReader
         foreach ($xslConfigs as $xslConfig) {
             // Check if the basepath is inside Omeka path for security.
             if (mb_substr($xslConfig, 0, 5) === 'user:' || mb_substr($xslConfig, 0, 7) === 'module:') {
-                $filepath = $this->xslpath($xslConfig);
+                $filepath = (string) $this->xslpath($xslConfig);
                 if (!$filepath) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
