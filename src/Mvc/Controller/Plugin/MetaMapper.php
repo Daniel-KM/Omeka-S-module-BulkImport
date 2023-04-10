@@ -1485,6 +1485,25 @@ class MetaMapper extends AbstractPlugin
                     }
                     break;
 
+                // TODO Add a "dateFormat" with a dynamic format.
+                case 'dateRevert':
+                    // Default spreadsheet "dd/mm/yy (or yyyy)" into iso ("yyyy-mm-dd").
+                    $v = trim($w);
+                    $mtch = [];
+                    preg_match('/\D/', $v, $mtch);
+                    $sep = mb_substr($mtch[0] ?? '', 0, 1);
+                    if (mb_strlen($sep)) {
+                        $day = (int) strtok($v, $sep);
+                        $month = (int) strtok($sep);
+                        $year = strtok($sep);
+                        $year = (int) (mb_strlen($year) === 2 ? '20' . $year : $year);
+                        $v = sprintf('%04d', $year) . '-' . sprintf('%02d', $month) . '-' . sprintf('%02d', $day);
+                    } else {
+                        $v = (mb_strlen($v) === 6 ? '20' . mb_substr($v, 4, 2) : mb_substr($v, 4, 4))
+                            . '-' . mb_substr($v, 2, 2) . '-' . mb_substr($v, 0, 2);
+                    }
+                    break;
+
                 case 'dateSql':
                     // Unimarc 005.
                     // "19850901141236.0" => "1985-09-01 14:12:36" (date sql).
