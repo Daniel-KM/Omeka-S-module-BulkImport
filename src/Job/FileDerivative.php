@@ -71,41 +71,42 @@ class FileDerivative extends AbstractJob
             $filename = $media->getFilename();
             $sourcePath = $basePath . '/original/' . $filename;
 
+            // To avoid multiple processes, update the ingester in all cases.
+            $media->setIngester('bulk_uploaded');
+
             if (!file_exists($sourcePath)) {
                 $logger->err(
                     'Media #{media_id}: the original file "{filename}" does not exist.', // @translate
                     ['media_id' => $media->getId(), 'filename' => $filename]
                 );
-                continue;
-            }
-
-            if (!is_readable($sourcePath)) {
+            } elseif (!is_readable($sourcePath)) {
                 $logger->err(
                     'Media #{media_id}: the original file "{filename}" is not readable.', // @translate
                     ['media_id' => $media->getId(), 'filename' => $filename]
                 );
-                continue;
+            } else {
+                // Do the process.
+                $tempFile = $tempFileFactory->build();
+                $tempFile->setTempPath($sourcePath);
+                $tempFile->setSourceName($media->getSource());
+                $tempFile->setStorageId($media->getStorageId());
+                $result = $tempFile->storeThumbnails();
+                // No deletion of course.
+
+                // Update the media.
+                if ($result) {
+                    $media->setHasThumbnails(true);
+                } else {
+                    $logger->err(
+                        'Media #{media_id}: an issue occurred during thumbnail creation or it is not thumbnailable.', // @translate
+                        ['media_id' => $media->getId()]
+                    );
+                }
             }
 
-            $tempFile = $tempFileFactory->build();
-            $tempFile->setTempPath($sourcePath);
-            $tempFile->setSourceName($media->getSource());
-            $tempFile->setStorageId($media->getStorageId());
-            $result = $tempFile->storeThumbnails();
-            // No deletion of course.
-
-            // Update the media.
-            if (!$result) {
-                $logger->err(
-                    'Media #{media_id}: an issue occurred during thumbnail creation.', // @translate
-                    ['media_id' => $media->getId()]
-                );
-                continue;
-            }
-
-            $media->setHasThumbnails(true);
             $entityManager->persist($media);
             unset($media);
+
             if (++$key % self::SQL_LIMIT === 0) {
                 $entityManager->flush();
             }
