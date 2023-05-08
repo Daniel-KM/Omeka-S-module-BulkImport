@@ -39,6 +39,11 @@
     }
 
     /* Resource add/edit media files and folders */
+    .media-bulk-upload .bulk-drop {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
     /* @todo Improve drag and drop with a file (requires js) */
     .media-bulk-upload .bulk-drop:hover {
         outline: 2px dashed grey;
@@ -57,9 +62,19 @@
     .bulk-upload-actions-pre .empty {
         display: none;
     }
+    .bulk-upload-actions-pre > div {
+        display: flex;
+        flex-direction: column;
+    }
+    .media-files-input-preview > ol {
+        width: 100%;
+    }
     .media-files-input-preview > ol > li {
         height: 80px;
         margin-bottom: 16px;
+    }
+    .media-files-input-preview > ol > li > div {
+        display: flex;
     }
     .media-files-input-preview .media-info {
         display: inline-flex;

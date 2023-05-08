@@ -22,11 +22,12 @@
         $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', function (e) {
             // Get the last media in media list, that is the new one.
             const mediaField = $('#media-list').find('.media-bulk-upload').last()[0];
+            const wrapper = mediaField.closest('.media-field-wrapper');
             const mainIndex = mediaField.getAttribute('data-main-index');
-            const submitReady = mediaField.parentNode.getElementsByClassName('submit-ready')[0];
             const inputFilesData = mediaField.parentNode.getElementsByClassName('filesdata')[0];
             const uploadActionsPre = mediaField.parentNode.getElementsByClassName('bulk-upload-actions-pre')[0];
             const buttonHideUploaded = uploadActionsPre.getElementsByClassName('hide-uploaded')[0];
+            const buttonSubmitPartial = uploadActionsPre.getElementsByClassName('submit-partial')[0];
             const fullProgress = uploadActionsPre.getElementsByClassName('media-files-input-full-progress')[0];
             const fullProgressCurrent = fullProgress.getElementsByClassName('progress-current')[0];
             const fullProgressTotal = fullProgress.getElementsByClassName('progress-total')[0];
@@ -35,7 +36,7 @@
             const listUploaded = mediaPreview.getElementsByTagName('ol')[0];
             const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files')[0];
             const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory')[0];
-            const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
+            const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
             const buttonSort = bulkUploadActions.getElementsByClassName('button-sort');
@@ -71,7 +72,7 @@
             flow.on('fileAdded', (file, event) => {
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
-                submitReady.setAttribute('required', 'required');
+                updateSubmitPartial(wrapper);
                 uploadActionsPre.classList.remove('empty');
                 fullProgress.classList.remove('empty');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
@@ -93,6 +94,7 @@
                 listItem.setAttribute('data-filepath', file.relativePath);
                 listItem.setAttribute('data-is-valid', listItemIsValid ? '1' : '0');
                 listItem.setAttribute('data-is-uploaded', '0');
+                const dv = document.createElement('div');
                 const div = document.createElement('div');
                 div.classList.add('media-info');
                 if (listItemIsValid) {
@@ -124,16 +126,19 @@
                     span.classList.add('resource-name');
                     span.textContent = `${file.name} (${humanFileSize(file.size)})`;
                     div.appendChild(span);
-                    listItem.appendChild(div);
+                    dv.appendChild(div);
+                    listItem.appendChild(dv);
                     // Create a throbber and attach it to the file.
                     file.ctrl = createThrobber(image);
                 } else {
                     const pError = document.createElement('p');
                     pError.textContent = file.name + ': ' + bulkUpload.data('translate-invalid-file');
                     pError.classList.add('error');
+                    pError.classList.add('upload-error');
                     div.appendChild(pError);
                     div.classList.add('messages');
-                    listItem.appendChild(div);
+                    dv.appendChild(div);
+                    listItem.appendChild(dv);
                     fullProgressTotal.textContent = parseInt(fullProgressTotal.textContent) - 1;
                 }
                 listUploaded.appendChild(listItem);
@@ -167,11 +172,12 @@
                 const listItem = document.getElementById(file.uniqueIdentifier);
                 listItem.setAttribute('data-is-uploaded', '1');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length;
-                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
-                updateVisibility(buttonHideUploaded);
+                updateProgressMessage(wrapper);
+                updateVisibility(wrapper);
+                updateSubmitPartial(wrapper);
             })
             flow.on('fileError', (file, responseJson) => {
-                addError(submitReady, file, responseJson);
+                addError(wrapper, file, responseJson);
             });
 
             buttonPause.onclick = () => {
@@ -182,16 +188,18 @@
                     flow.resume();
                     buttonPause.textContent = mediaField.getAttribute('data-translate-pause');
                 }
-                updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
+                updateProgressMessage(wrapper);
             };
 
             $(buttonSort).on('click', (ev) => {
                 if (!flow.isUploading()) {
-                    listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
+                    listSort(wrapper, ev.target.getAttribute('data-sort-type'));
                 }
             });
 
-            buttonHideUploaded.addEventListener('change', e => { updateVisibility(buttonHideUploaded) });
+            buttonHideUploaded.addEventListener('change', e => { updateVisibility(wrapper) });
+
+            buttonSubmitPartial.addEventListener('change', e => { updateSubmitPartial(wrapper) });
         });
 
         function validateFile(file) {
@@ -203,7 +211,7 @@
                 && (allowEmptyFiles || file.size > 0);
         }
 
-        function listSort (inputFilesData, listUploaded, sortType) {
+        function listSort(wrapper, sortType) {
             var sortFunction;
             if (sortType === 'ascii') {
                 sortFunction = function (x, y) {
@@ -232,6 +240,9 @@
             } else {
                 return;
             }
+
+            const inputFilesData = wrapper.getElementsByClassName('filesdata')[0];
+            const listUploaded = wrapper.getElementsByClassName('media-files-input-preview')[0].getElementsByTagName('ol')[0];
 
             var filesData = JSON.parse(inputFilesData.getAttribute('value'));
             filesData.sort(sortFunction);
@@ -269,19 +280,23 @@
                 + '.png';
         }
 
-        function addError(submitReady, file, responseJson) {
+        function addError(wrapper, file, responseJson) {
             responseJson = fixJson(responseJson);
-            const response = JSON.parse(responseJson);
-            submitReady.setAttribute('required', 'required');
+            var message = wrapper.getElementsByClassName('media-bulk-upload')[0].getAttribute('data-translate-unknown-error')
+            if (isJson(responseJson)) {
+                message = JSON.parse(responseJson).message;
+            }
             const div = document.createElement('div');
             div.classList.add('media-info');
             div.classList.add('messages');
             const pError = document.createElement('p');
-            pError.textContent = response.message;
+            pError.textContent = message;
             pError.classList.add('error');
+            pError.classList.add('upload-error');
             div.appendChild(pError);
             const listItem = document.getElementById(file.uniqueIdentifier);
             listItem.appendChild(div);
+            updateSubmitPartial(wrapper);
         }
 
         function createThrobber(img) {
@@ -304,28 +319,56 @@
             return throbber;
         }
 
-        function updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions) {
-            if (!fullProgressTotal.textContent.length
-                || parseInt(fullProgressTotal.textContent) === 0
-                || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent))
-            ) {
-                submitReady.removeAttribute('required');
+        function updateProgressMessage(wrapper) {
+            const fullProgressWait = wrapper.getElementsByClassName('progress-wait')[0];;
+            const bulkUploadActions = wrapper.getElementsByClassName('bulk-upload-actions')[0];;
+            const submitPartialLabel = wrapper.getElementsByClassName('submit-partial-label')[0];
+            if (checkAllFilesUploaded(wrapper)) {
                 fullProgressWait.style.display = 'none';
                 bulkUploadActions.style.display = 'block';
-                updateProgressMessage
+                 submitPartialLabel.style.display = 'none';
+                updateSubmitPartial(wrapper);
             } else {
-                submitReady.setAttribute('required', 'required');
                 fullProgressWait.style.display = 'block';
                 bulkUploadActions.style.display = 'none';
+                 submitPartialLabel.style.removeProperty('display');
+                updateSubmitPartial(wrapper);
             }
         }
 
-        function updateVisibility(buttonHideUploaded) {
-            const preview = $(buttonHideUploaded).closest('.media-field-wrapper').find('.media-files-input-preview');
+        function checkAllFilesUploaded(wrapper) {
+            const fullProgressCurrent = wrapper.getElementsByClassName('progress-current')[0];
+            const fullProgressTotal = wrapper.getElementsByClassName('progress-total')[0];
+            return !fullProgressTotal.textContent.length
+                || parseInt(fullProgressTotal.textContent) === 0
+                || (parseInt(fullProgressCurrent.textContent) >= parseInt(fullProgressTotal.textContent));
+        }
+
+        function checkHasError(wrapper) {
+            return wrapper.getElementsByClassName('upload-error').length > 0;
+        }
+
+        function updateVisibility(wrapper) {
+            const buttonHideUploaded = wrapper.getElementsByClassName('hide-uploaded')[0];
+            const preview = wrapper.getElementsByClassName('media-files-input-preview');
             if (buttonHideUploaded.checked === true) {
-                preview.find('li[data-is-valid=1][data-is-uploaded=1]').hide();
+                $(preview).find('li[data-is-valid=1][data-is-uploaded=1]').hide();
             } else {
-                preview.find('li').show();
+                $(preview).find('li').show();
+            }
+        }
+
+        function updateSubmitPartial(wrapper) {
+            const buttonSubmitPartial = wrapper.getElementsByClassName('submit-partial')[0];
+            const ready = wrapper.getElementsByClassName('submit-ready')[0];
+            const allFilesUploaded = checkAllFilesUploaded(wrapper);
+            const hasError = checkHasError(wrapper);
+            if (buttonSubmitPartial.checked === true
+                || (allFilesUploaded && !hasError)
+            ) {
+                ready.removeAttribute('required');
+            } else {
+                ready.setAttribute('required', 'required');
             }
         }
 
@@ -340,5 +383,13 @@
                 : json;
         }
 
+        function isJson(string) {
+            try {
+                JSON.parse(string);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        }
     });
 })(jQuery);

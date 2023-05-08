@@ -122,6 +122,7 @@ class BulkUpload implements IngesterInterface
             'data-translate-invalid-file' => $allowEmptyFiles
                 ? $translate('Not a valid file type or extension. Update your selection.') // @translate
                 : $translate('Not a valid file type, extension or size. Update your selection.'), // @translate
+            'data-translate-unknown-error' => $translate('An issue occurred.'), // @translate
         ];
 
         $dataAttributes = $this->arrayToAttributes($view, $data);
@@ -139,6 +140,7 @@ class BulkUpload implements IngesterInterface
         $sortAsciiPath = $translate('Simple (with folder)'); // @translate
         $sortAlphaPath = $translate('Alphabetic (with folder)'); // @translate
         $hideUploaded = $translate('Hide uploaded files'); // @translate
+        $submitPartial = $translate('Allow to submit before full upload'); // @translate
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -147,9 +149,10 @@ class BulkUpload implements IngesterInterface
     </div>
     <div class="inputs bulk-drop">
         <span>$divDrop</span>
-        <button type="button" class="button-browse button-browse-files">$browseFiles</button>
-        <button type="button" class="button-browse button-browse-directory" webkitdirectory="webkitdirectory">$browseDirectory</button>
-        <button type="button" class="button-pause">$buttonPause</button>
+        <div>
+            <button type="button" class="button-browse button-browse-files">$browseFiles</button>
+            <button type="button" class="button-browse button-browse-directory" webkitdirectory="webkitdirectory">$browseDirectory</button>
+        </div>
     </div>
 </div>
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
@@ -161,9 +164,18 @@ class BulkUpload implements IngesterInterface
             <input type="checkbox" class="hide-uploaded" name="hide-uploaded"/>
             <span>$hideUploaded</span>
         </label>
+        <label class="submit-partial-label">
+            <input type="checkbox" class="submit-partial" name="submit-partial"/>
+            <span>$submitPartial</span>
+        </label>
+    </div>
+    <div class="bulk-upload-actions-button">
+        <button type="button" class="button-pause">$buttonPause</button>
     </div>
     <div class="media-files-input-full-progress">
-        <span class="progress-current"></span> / <span class="progress-total"></span>
+        <div class="progress-count">
+            <span class="progress-current"></span> / <span class="progress-total"></span>
+        </div>
         <span class="progress-wait">$wait</span>
     </div>
 </div>

@@ -265,6 +265,11 @@ class Module extends AbstractModule
             $listFiles = [];
             $hasError = false;
             foreach ($filesData['file'][$index] as $subIndex => $fileData) {
+                // The user selected "allow partial upload", so no data for this
+                // index.
+                if (empty($fileData)) {
+                    continue;
+                }
                 // Fix strict type issues in can of an issue on a file.
                 $fileData['name'] ??= '';
                 $fileData['tmp_name'] ??= '';
