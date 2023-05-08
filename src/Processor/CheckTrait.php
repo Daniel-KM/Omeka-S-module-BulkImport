@@ -242,15 +242,15 @@ SQL;
 
         $translating = function ($message): string {
             if (is_string($message)) {
-                return $this->translator->translate($message);
+                return (string) $this->translator->translate($message);
             }
             if (method_exists($message, 'translate')) {
-                return $message->translate();
+                return (string) $message->translate();
             }
             if ($message instanceof \Omeka\Stdlib\Message) {
-                return sprintf($this->translator->translate($message->getMessage()), $message->getArgs());
+                return (string) vsprintf($this->translator->translate($message->getMessage()), $message->getArgs());
             }
-            return $this->translator->translate($message);
+            return (string) $this->translator->translate((string) $message);
         };
 
         $row['resource_name'] = $resource['resource_name'] ?? '';
