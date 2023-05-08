@@ -265,6 +265,9 @@ class Module extends AbstractModule
             $listFiles = [];
             $hasError = false;
             foreach ($filesData['file'][$index] as $subIndex => $fileData) {
+                // Fix strict type issues in can of an issue on a file.
+                $fileData['name'] ??= '';
+                $fileData['tmp_name'] ??= '';
                 if (!empty($fileData['error'])) {
                     $errorStore->addError('upload', new PsrMessage(
                         'File #{index} "{filename}" has an error: {error}.',  // @translate
