@@ -181,11 +181,13 @@ class BulkUpload implements IngesterInterface
 </div>
 <div class="field bulk-upload-actions">
     <div class="bulk-upload-actions-sort">
-        <span>$sortText</span>
-        <button type="button" class="button-sort sort-ascii" data-sort-type="ascii">$sortAscii</button>
-        <button type="button" class="button-sort sort-alpha" data-sort-type="alpha">$sortAlpha</button>
-        <button type="button" class="button-sort sort-ascii-path" data-sort-type="ascii-path">$sortAsciiPath</button>
-        <button type="button" class="button-sort sort-alpha-path" data-sort-type="alpha-path">$sortAlphaPath</button>
+        <select class="select-sort chosen-select" aria-label="$sortText" data-placeholder="${sortText}…">
+            <option value="" selected="selected"></option>
+            <option value="ascii">$sortAscii</option>
+            <option value="alpha">$sortAlpha</option>
+            <option value="ascii-path">$sortAsciiPath</option>
+            <option value="alpha-path">$sortAlphaPath</option>
+        </select>
     </div>
 </div>
 <div class="field media-files-input-preview"><ol></ol></div>

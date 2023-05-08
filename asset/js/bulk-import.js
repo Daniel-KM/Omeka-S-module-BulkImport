@@ -39,7 +39,7 @@
             const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
-            const buttonSort = bulkUploadActions.getElementsByClassName('button-sort');
+            const selectSort = bulkUploadActions.getElementsByClassName('select-sort');
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -191,9 +191,9 @@
                 updateProgressMessage(wrapper);
             };
 
-            $(buttonSort).on('click', (ev) => {
+            $(selectSort).on('change', (ev) => {
                 if (!flow.isUploading()) {
-                    listSort(wrapper, ev.target.getAttribute('data-sort-type'));
+                    listSort(wrapper, ev.target.value);
                 }
             });
 
