@@ -49,7 +49,12 @@
     .media-files-input-full-progress {
         text-align: right;
     }
-    .media-files-input-full-progress.empty {
+    .bulk-upload-actions-pre {
+        display: flex;
+        justify-content: space-between;
+    }
+    .bulk-upload-actions-pre.empty,
+    .bulk-upload-actions-pre .empty {
         display: none;
     }
     .media-files-input-preview > ol > li {

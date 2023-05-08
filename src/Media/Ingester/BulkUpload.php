@@ -138,6 +138,7 @@ class BulkUpload implements IngesterInterface
         $sortAlpha = $translate('Alphabetic'); // @translate
         $sortAsciiPath = $translate('Simple (with folder)'); // @translate
         $sortAlphaPath = $translate('Alphabetic (with folder)'); // @translate
+        $hideUploaded = $translate('Hide uploaded files'); // @translate
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -154,18 +155,28 @@ class BulkUpload implements IngesterInterface
 <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
 <input type="file" value="" class="submit-ready" style="display: none; visibility: hidden"/>
 <input type="hidden" name="filesData[file][__index__]" value="[]" class="filesdata"/>
-<div class="media-files-input-full-progress empty">
-    <span class="progress-current"></span> / <span class="progress-total"></span>
-    <span class="progress-wait">$wait</span>
+<div class="field bulk-upload-actions-pre empty">
+    <div class="bulk-upload-actions-more">
+        <label class="hide-upload-label">
+            <input type="checkbox" class="hide-uploaded" name="hide-uploaded"/>
+            <span>$hideUploaded</span>
+        </label>
+    </div>
+    <div class="media-files-input-full-progress">
+        <span class="progress-current"></span> / <span class="progress-total"></span>
+        <span class="progress-wait">$wait</span>
+    </div>
 </div>
-<div class="bulk-upload-actions">
-    <span>$sortText</span>
-    <button type="button" class="button-sort sort-ascii" data-sort-type="ascii">$sortAscii</button>
-    <button type="button" class="button-sort sort-alpha" data-sort-type="alpha">$sortAlpha</button>
-    <button type="button" class="button-sort sort-ascii-path" data-sort-type="ascii-path">$sortAsciiPath</button>
-    <button type="button" class="button-sort sort-alpha-path" data-sort-type="alpha-path">$sortAlphaPath</button>
+<div class="field bulk-upload-actions">
+    <div class="bulk-upload-actions-sort">
+        <span>$sortText</span>
+        <button type="button" class="button-sort sort-ascii" data-sort-type="ascii">$sortAscii</button>
+        <button type="button" class="button-sort sort-alpha" data-sort-type="alpha">$sortAlpha</button>
+        <button type="button" class="button-sort sort-ascii-path" data-sort-type="ascii-path">$sortAsciiPath</button>
+        <button type="button" class="button-sort sort-alpha-path" data-sort-type="alpha-path">$sortAlphaPath</button>
+    </div>
 </div>
-<div class="media-files-input-preview"><ol></ol></div>
+<div class="field media-files-input-preview"><ol></ol></div>
 HTML;
     }
 

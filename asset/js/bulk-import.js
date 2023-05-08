@@ -25,12 +25,14 @@
             const mainIndex = mediaField.getAttribute('data-main-index');
             const submitReady = mediaField.parentNode.getElementsByClassName('submit-ready')[0];
             const inputFilesData = mediaField.parentNode.getElementsByClassName('filesdata')[0];
-            const fullProgress = mediaField.parentNode.getElementsByClassName('media-files-input-full-progress')[0];
+            const uploadActionsPre = mediaField.parentNode.getElementsByClassName('bulk-upload-actions-pre')[0];
+            const buttonHideUploaded = uploadActionsPre.getElementsByClassName('hide-uploaded')[0];
+            const fullProgress = uploadActionsPre.getElementsByClassName('media-files-input-full-progress')[0];
             const fullProgressCurrent = fullProgress.getElementsByClassName('progress-current')[0];
             const fullProgressTotal = fullProgress.getElementsByClassName('progress-total')[0];
             const fullProgressWait = fullProgress.getElementsByClassName('progress-wait')[0];
-            const preview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
-            const listUploaded = preview.getElementsByTagName('ol')[0];
+            const mediaPreview = mediaField.parentNode.getElementsByClassName('media-files-input-preview')[0];
+            const listUploaded = mediaPreview.getElementsByTagName('ol')[0];
             const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files')[0];
             const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory')[0];
             const buttonPause = mediaField.getElementsByClassName('button-pause')[0];
@@ -70,6 +72,7 @@
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
                 submitReady.setAttribute('required', 'required');
+                uploadActionsPre.classList.remove('empty');
                 fullProgress.classList.remove('empty');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
                 fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
@@ -165,6 +168,7 @@
                 listItem.setAttribute('data-is-uploaded', '1');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length;
                 updateProgressMessage(fullProgressCurrent, fullProgressTotal, submitReady, fullProgressWait, bulkUploadActions);
+                updateVisibility(buttonHideUploaded);
             })
             flow.on('fileError', (file, responseJson) => {
                 addError(submitReady, file, responseJson);
@@ -186,6 +190,8 @@
                     listSort(inputFilesData, listUploaded, ev.target.getAttribute('data-sort-type'));
                 }
             });
+
+            buttonHideUploaded.addEventListener('change', e => { updateVisibility(buttonHideUploaded) });
         });
 
         function validateFile(file) {
@@ -306,10 +312,20 @@
                 submitReady.removeAttribute('required');
                 fullProgressWait.style.display = 'none';
                 bulkUploadActions.style.display = 'block';
+                updateProgressMessage
             } else {
                 submitReady.setAttribute('required', 'required');
                 fullProgressWait.style.display = 'block';
                 bulkUploadActions.style.display = 'none';
+            }
+        }
+
+        function updateVisibility(buttonHideUploaded) {
+            const preview = $(buttonHideUploaded).closest('.media-field-wrapper').find('.media-files-input-preview');
+            if (buttonHideUploaded.checked === true) {
+                preview.find('li[data-is-valid=1][data-is-uploaded=1]').hide();
+            } else {
+                preview.find('li').show();
             }
         }
 
