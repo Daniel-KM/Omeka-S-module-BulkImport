@@ -109,31 +109,37 @@ class UploadController extends AbstractActionController
             . '_' . $flowRequest->getFileName();
         $destination = $this->tempDir . DIRECTORY_SEPARATOR . $uploadFileName;
 
-        $file = new \Flow\File($flowConfig, $flowRequest);
-        if ($request->isGet()) {
-            if ($file->checkChunk()) {
-                // Nothing to do here.
+        try {
+            $file = new \Flow\File($flowConfig, $flowRequest);
+            if ($request->isGet()) {
+                if ($file->checkChunk()) {
+                    // Nothing to do here.
+                } else {
+                    // The 204 response MUST NOT include a message-body, and
+                    // thus is always terminated by the first empty line after
+                    // the header fields.
+                    $this->getResponse()
+                        ->setStatusCode(Response::STATUS_CODE_204);
+                    // Don't use view model, there is no template.
+                    return (new JsonModel())
+                        ->setTerminal(true);
+                }
             } else {
-                // The 204 response MUST NOT include a message-body, and
-                // thus is always terminated by the first empty line after
-                // the header fields.
-                $this->getResponse()
-                    ->setStatusCode(Response::STATUS_CODE_204);
-                // Don't use view model, there is no template.
-                return (new JsonModel())
-                    ->setTerminal(true);
+                if ($file->validateChunk()) {
+                    $file->saveChunk();
+                } else {
+                    // Error, invalid chunk upload request, retry.
+                    $this->getResponse()
+                        ->setStatusCode(Response::STATUS_CODE_400);
+                    // Don't use view model, there is no template.
+                    return (new JsonModel())
+                        ->setTerminal(true);
+                }
             }
-        } else {
-            if ($file->validateChunk()) {
-                $file->saveChunk();
-            } else {
-                // Error, invalid chunk upload request, retry.
-                $this->getResponse()
-                    ->setStatusCode(Response::STATUS_CODE_400);
-                // Don't use view model, there is no template.
-                return (new JsonModel())
-                    ->setTerminal(true);
-            }
+        } catch (\Exception $e) {
+            $this->logger()->err($e);
+            return (new JsonModel())
+                ->setTerminal(true);
         }
 
         // Check if this is the last chunk.
