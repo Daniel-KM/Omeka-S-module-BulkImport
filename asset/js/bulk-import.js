@@ -28,6 +28,8 @@
             const uploadActionsPre = mediaField.parentNode.getElementsByClassName('bulk-upload-actions-pre')[0];
             const buttonHideUploaded = uploadActionsPre.getElementsByClassName('hide-uploaded')[0];
             const buttonSubmitPartial = uploadActionsPre.getElementsByClassName('submit-partial')[0];
+            const submitPartialLabel = wrapper.getElementsByClassName('submit-partial-label')[0];
+            const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             const fullProgress = uploadActionsPre.getElementsByClassName('media-files-input-full-progress')[0];
             const fullProgressCurrent = fullProgress.getElementsByClassName('progress-current')[0];
             const fullProgressTotal = fullProgress.getElementsByClassName('progress-total')[0];
@@ -36,10 +38,9 @@
             const listUploaded = mediaPreview.getElementsByTagName('ol')[0];
             const buttonBrowseFiles = mediaField.getElementsByClassName('button-browse-files')[0];
             const buttonBrowseDirectory = mediaField.getElementsByClassName('button-browse-directory')[0];
-            const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
-            const selectSort = bulkUploadActions.getElementsByClassName('select-sort');
+            const selectSort = bulkUploadActions.getElementsByClassName('select-sort')[0];
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -72,6 +73,8 @@
             flow.on('fileAdded', (file, event) => {
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
+                submitPartialLabel.style.removeProperty('display');
+                buttonPause.style.removeProperty('display');
                 updateSubmitPartial(wrapper);
                 uploadActionsPre.classList.remove('empty');
                 fullProgress.classList.remove('empty');
@@ -197,9 +200,9 @@
                 }
             });
 
-            buttonHideUploaded.addEventListener('change', e => { updateVisibility(wrapper) });
+            buttonHideUploaded.addEventListener('change', () => { updateVisibility(wrapper) });
 
-            buttonSubmitPartial.addEventListener('change', e => { updateSubmitPartial(wrapper) });
+            buttonSubmitPartial.addEventListener('change', () => { updateSubmitPartial(wrapper) });
         });
 
         function validateFile(file) {
@@ -323,15 +326,18 @@
             const fullProgressWait = wrapper.getElementsByClassName('progress-wait')[0];;
             const bulkUploadActions = wrapper.getElementsByClassName('bulk-upload-actions')[0];;
             const submitPartialLabel = wrapper.getElementsByClassName('submit-partial-label')[0];
+            const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             if (checkAllFilesUploaded(wrapper)) {
                 fullProgressWait.style.display = 'none';
                 bulkUploadActions.style.display = 'block';
-                 submitPartialLabel.style.display = 'none';
+                submitPartialLabel.style.display = 'none';
+                buttonPause.style.display = 'none';
                 updateSubmitPartial(wrapper);
             } else {
                 fullProgressWait.style.display = 'block';
                 bulkUploadActions.style.display = 'none';
-                 submitPartialLabel.style.removeProperty('display');
+                submitPartialLabel.style.removeProperty('display');
+                buttonPause.style.removeProperty('display');
                 updateSubmitPartial(wrapper);
             }
         }
@@ -374,13 +380,19 @@
 
         /**
          * A php session warning can be added to the response, breaking process,
-         * so remove it.
+         * so remove it. Or a notice can be prepended.
+         * In output from server, "<" is never used except error.
+         * @todo Manage prepended/appended issues at the same time.
          */
         function fixJson(json) {
-            let errorPos = json.indexOf('}<br');
-            return errorPos > -1
-                ? json.substring(0, errorPos + 1)
-                : json;
+            if (json.substring(0, 1) === '<' && json.indexOf('>')) {
+                console.log(json.substring(0, json.lastIndexOf('>') + 1));
+                return json.substring(json.lastIndexOf('>') + 1);
+            } else if (json.indexOf('<') && json.slice(-1) === '>') {
+                console.log(json.substring(json.indexOf('<')));
+                return json.substring(0, json.indexOf('<'));
+            }
+            return json;
         }
 
         function isJson(string) {
