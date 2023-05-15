@@ -219,6 +219,9 @@ class UploadController extends AbstractActionController
             }
         }
 
+        // Default files used to keep place in temp directory are not removed.
+        $this->cleanTempDirectory();
+
         // Return the data about the file for next step.
         return new JsonModel([
             'status' => self::STATUS_SUCCESS,
@@ -232,5 +235,30 @@ class UploadController extends AbstractActionController
                 ],
             ],
         ]);
+    }
+
+    protected function cleanTempDirectory()
+    {
+        if (!$this->tempDir) {
+            return;
+        }
+        $fileSystemIterator = new \FilesystemIterator($this->tempDir);
+        $threshold = strtotime('-30 day');
+        /** @var \SplFileInfo $file */
+        foreach ($fileSystemIterator as $file) {
+            $filename = $file->getFilename();
+            if ($file->isFile()
+                && $file->isWritable()
+                && $file->getCTime() <= $threshold
+                && (
+                    // Remove any old placeholder.
+                    !$file->getSize()
+                    // Remove all old omeka temp files.
+                    || (mb_substr($filename, 0, 5) === 'omeka' || mb_substr($filename, 0, 4) === 'omk_')
+                )
+            ) {
+                @unlink($this->tempDir . '/' . $file->getFilename());
+            }
+        }
     }
 }
