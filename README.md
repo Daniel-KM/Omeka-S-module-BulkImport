@@ -44,7 +44,7 @@ files saved locally on the server may be managed.
 version equal or greater than 2.3.0.
 
 **Important**: If you use the module [Numeric Data Types], you should apply this
-[patch] or use this [version].
+[patch] or use this [version]. This patch is no more needed since version 4.1.
 
 See general end user documentation for [installing a module].
 
@@ -64,7 +64,7 @@ composer install --no-dev
 
 Note: the library "CodeMirror" has no file "codemirror.js" by default: it is
 created automatically when installing packages with npm. To use it via composer,
-the missing file is added in the package used by composer.
+the zip file from codemirror.net (v5) is used.
 
 Then install it like any other Omeka module.
 
@@ -488,6 +488,7 @@ TODO
 - [ ] Move option "convert into html" somewhere else.
 - [ ] Normalize config of metadata extraction with metamapper.
 - [ ] Add an automatic mapping for images etc. with xmp.
+- [ ] Manage import params and params.
 
 
 Warning
@@ -563,7 +564,7 @@ Copyright
 * Copyright Daniel Berthereau, 2017-2022 (see [Daniel-KM] on GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code from Spip)
 * Copyright 2011-2022, Steffen Fagerström Christensen & alii (libraries [Flow.js] and [flow-php-server])
-* Copyright 2011-2022, Marijn Haverbeke & alii (library [CodeMirror])
+* Copyright 2011-2023, Marijn Haverbeke & alii (library [CodeMirror])
 
 This module was initially inspired by the [Omeka Classic] [Import plugin], built
 by [BibLibre] and has been built for the future digital library [Manioc] of the
