@@ -79,6 +79,45 @@ class XmlReader extends AbstractFileMultipleReader
         $this->processXslt = $services->get('ControllerPluginManager')->get('processXslt');
     }
 
+    public function getConfigMainComments(): array
+    {
+        $xmlConfigs = array_filter([
+            $this->getParam('xsl_sheet_pre'),
+            $this->getParam('xsl_sheet'),
+            $this->getParam('mapping_config'),
+        ]);
+        $result = [];
+        foreach ($xmlConfigs as $xmlConfig) {
+            // Check if the basepath is inside Omeka path for security.
+            if (mb_substr($xmlConfig, 0, 5) === 'user:' || mb_substr($xmlConfig, 0, 7) === 'module:') {
+                $filepath = (string) $this->xslpath($xmlConfig);
+                $result[$xmlConfig] = trim((string) file_get_contents($filepath));
+            } elseif (mb_substr($xmlConfig, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($xmlConfig, 8);
+                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+                if ($mapping) {
+                    $result[$xmlConfig] = trim((string) $mapping->mapping());
+                }
+            }
+        }
+
+        // To get comment before xml is complex, so just do a substring().
+        $result = array_filter($result);
+        foreach ($result as $xmlConfig => $xml) {
+            if (mb_substr($xml, 0, 5) === '<?xml') {
+                $xml = trim(mb_substr($xml, mb_strpos($xml, '>') + 1));
+            }
+            if (mb_substr($xml, 0, 4) === '<!--') {
+                $result[$xmlConfig] = trim(mb_substr($xml, 4, mb_strpos($xml, '-->') - 4));
+            } else {
+                unset($result[$xmlConfig]);
+            }
+        }
+
+        return array_filter($result);
+    }
+
     public function isValid(): bool
     {
         // Before checking each xml file, check if the xsl file is ok, if any.

@@ -497,10 +497,36 @@ class ImporterController extends AbstractActionController
             return $form;
         }
 
+        $messagePre = '';
+        if ($form instanceof \BulkImport\Form\Reader\SpreadsheetReaderConfigForm) {
+            $messagePre = sprintf(
+                $this->translate('See the %1$sread me%2$s to learn how to write spreadsheets headers for a quick mapping, with data type and language. Example : %3$s'), // @translate
+                '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#spreadsheet">', '</a>', 'dcterms:date ^^timestamp ^^literal @fra §private'
+            );
+        }
+
+        $messagePost = '';
+        if ($form instanceof \BulkImport\Form\Reader\XmlReaderConfigForm
+            && $reader instanceof \BulkImport\Reader\XmlReader
+        ) {
+            $reader->setParams([
+                'xsl_sheet_pre' => $form->get('xsl_sheet_pre')->getValue(),
+                'xsl_sheet' => $form->get('xsl_sheet')->getValue(),
+                'mapping_config' => $form->get('mapping_config')->getValue(),
+            ]);
+            $comments = $reader->getConfigMainComments();
+            foreach ($comments as $file => $comment) {
+                $messagePost .= '<h4>' . $file . '</h4>';
+                $messagePost .= '<p>' . nl2br($this->viewHelpers()->get('escapeHtml')($comment)) . '</p>';
+            }
+        }
+
         $view = new ViewModel([
             'importer' => $importer,
             'form' => $form,
             'storeAsTask' => !empty($session->storeAsTask),
+            'messagePre' => $messagePre,
+            'messagePost' => $messagePost,
         ]);
 
         if ($next === 'confirm') {
