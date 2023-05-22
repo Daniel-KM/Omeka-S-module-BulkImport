@@ -22,6 +22,13 @@
 
     Pour configurer la copie des métadonnées des composants supérieurs, utiliser les paramètres suivants :
 
+    - "dao_is_file"
+        "0" (défaut) ou "1": indique si les dao sont des liens vers des fichiers (1) ou non (lien vers une notice, une visionneuse, etc.).
+
+    - Le chemin pour les fichiers peut être configuré avec le paramètre "basepath". Inclure le "/" final.
+        Le chemin est une url. Si vous utilisez un chemin sur le serveur, le module FileSideload est nécessaire.
+        La valeur `__dirpath__` permet de passer l’url ou le chemin du fichier xml.
+
     - "frontmatter_separate" :
         "0" (défaut) ou "1" pour créer une ressource séparée de "eadheader" pour la présentation de l’inventaire.
 
@@ -41,10 +48,6 @@
     - "parent_copy_list"
         Liste des éléments à copier correspondant au 1er niveau ("physdesc") ou au second niveau ("physdesc/dimensions").
         Les chemins à copier peuvent être enveloppés de l’élément "e" ou séparés d’une espace ou d’un saut de ligne.
-
-    - Le chemin pour les fichiers peut être configuré avec le paramètre "basepath". Inclure le "/" final.
-        Le chemin est une url. Si vous utilisez un chemin sur le serveur, le module FileSideload est nécessaire.
-        La valeur `__dirpath__` permet de passer l’url ou le chemin du fichier xml.
 
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -91,6 +94,9 @@
 
     <!-- Url ou chemin du dossier du fichier xml, automatiquement passée. -->
     <xsl:param name="dirpath"></xsl:param>
+
+    <!-- Indique si les dao sont des fichiers ou non. -->
+    <xsl:param name="dao_is_file">0</xsl:param>
 
     <!-- Créer une ressource séparée de "eadheader" pour "frontmatter" (0 / 1). -->
     <xsl:param name="frontmatter_separate">0</xsl:param>
@@ -304,9 +310,13 @@
     </xsl:template>
 
     <!-- Correction du chemin des fichiers. -->
+    <!-- Attention : le dao peut ne pas être un fichier, mais une page web de la notice ou la visionneuse du document. -->
     <xsl:template match="dao/@href">
         <xsl:attribute name="href">
             <xsl:choose>
+                <xsl:when test="substring(., 1, 7) = 'http://' or substring(., 1, 8) = 'https://'">
+                    <xsl:value-of select="."/>
+                </xsl:when>
                 <xsl:when test="$basepath = '__dirpath__'">
                     <xsl:value-of select="concat($dirpath, '/', .)"/>
                 </xsl:when>
@@ -315,6 +325,7 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:attribute>
+        <xsl:attribute name="_file"><xsl:value-of select="$dao_is_file"/></xsl:attribute>
     </xsl:template>
 
     <!-- Identity template -->

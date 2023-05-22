@@ -265,9 +265,16 @@
     <!-- Item EAD / media Omeka -->
 
     <!-- TODO Récupérer daodesc -->
+    <!-- Attention : le dao peut ne pas être un fichier, mais une page web de la notice ou la visionneuse du document. -->
     <map>
-        <from xpath="/c/dao/@href"/>
+        <from xpath="/c/dao[@_file = '1']/@href"/>
         <to field="file"/>
+    </map>
+
+    <map>
+        <from xpath="/c/dao[@_file != '1']/@href"/>
+        <to field="dcterms:relation"
+            datatype="uri"/>
     </map>
 
 </mapping>
