@@ -131,7 +131,7 @@ class ImportController extends AbstractActionController
                 ['import' => $importId]
             );
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute(null, ['action' => 'logs'], true);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk', 'action' => 'bulk-import']);
         }
 
         if (!$import->isUndoable()) {
@@ -140,7 +140,7 @@ class ImportController extends AbstractActionController
                 ['import' => $importId]
             );
             $this->messenger()->addError($message);
-            return $this->redirect()->toRoute(null, ['action' => 'logs'], true);
+            return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk', 'action' => 'bulk-import']);
         }
 
         $dispatcher = $this->jobDispatcher();
@@ -153,6 +153,6 @@ class ImportController extends AbstractActionController
         );
         $this->messenger()->addSuccess($message);
 
-        return $this->redirect()->toRoute(null, ['action' => 'logs'], true);
+        return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk', 'action' => 'bulk-import']);
     }
 }
