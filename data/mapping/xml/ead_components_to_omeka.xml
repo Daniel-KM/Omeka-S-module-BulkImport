@@ -107,7 +107,13 @@
         <from xpath="/c/did/head"/>
         <to field="dcterms:description"
             datatype="literal"/>
-     </map>
+    </map>
+
+    <map>
+        <from xpath="/c/did/langmaterial"/>
+        <to field="dcterms:language"
+            datatype="literal"/>
+    </map>
 
     <map>
         <from xpath="/c/did/physdesc/extent"/>
@@ -122,9 +128,93 @@
     </map>
 
     <map>
+        <from xpath="/c/did/physdesc/geogname"/>
+        <to field="dcterms:spatial"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc[not(@type)]"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+    </map>
+
+    <!-- TODO Utiliser un mod "pattern" pour récuptérer le type. -->
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'codicologie']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Codicologie : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Décoration : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'ecriture']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Écriture : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'estampille']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Estampille : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Décoration : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'illustration']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Illustration : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'marginalia']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Marginalia : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'reliure']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Reliure : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'réglure']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Réglure : "/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'support']"/>
+        <to field="dcterms:format"
+            datatype="xml"/>
+        <mod prepend="Support : "/>
+    </map>
+
+    <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'technique']"/>
         <to field="dcterms:format"
-            datatype="literal"/>
+            datatype="xml"/>
+        <mod prepend="Technique : "/>
     </map>
 
     <map>
@@ -134,8 +224,47 @@
         <mod prepend="Entrepôt : "/>
     </map>
 
+    <map>
+        <from xpath="/c/custodhist"/>
+        <to field="dcterms:provenance"
+            datatype="xml"/>
+    </map>
+
+    <map>
+        <from xpath="/c/acqinfo"/>
+        <to field="dcterms:provenance"
+            datatype="xml"/>
+    </map>
+
+    <map>
+        <from xpath="/c/scopecontent"/>
+        <to field="dcterms:tableOfContents"
+            datatype="xml"/>
+    </map>
+
+    <!-- Une bibliographie contient un plan et des références. Ce qui intéresse ici,
+    ce sont les références, mais on perd le plan. -->
+    <map>
+        <from xpath="/c/bibliography//bibref"/>
+        <to field="dcterms:isReferencedBy"
+            datatype="xml"/>
+    </map>
+
+    <map>
+        <from xpath="/c/altformavail"/>
+        <to field="dcterms:hasFormat"
+            datatype="xml"/>
+    </map>
+
+    <map>
+        <from xpath="/c/processinfo"/>
+        <to field="bibo:annotates"
+            datatype="xml"/>
+    </map>
+
     <!-- Item EAD / media Omeka -->
 
+    <!-- TODO Récupérer daodesc -->
     <map>
         <from xpath="/c/dao/@href"/>
         <to field="file"/>

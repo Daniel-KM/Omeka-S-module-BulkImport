@@ -33,12 +33,6 @@
     </map>
 
     <map>
-        <from xpath="/eadheader/@langencoding"/>
-        <to field="dcterms:isFormatOf"
-            datatype="uri"/>
-    </map>
-
-    <map>
         <from xpath="/eadheader/eadid/@mainagencycode"/>
         <to field="dcterms:publisher"
             datatype="literal"/>
@@ -116,22 +110,34 @@
     <map>
         <from xpath="/eadheader/filedesc/notestmt/note"/>
         <to field="bibo:annotates"
-            datatype="html"/>
-     </map>
+            datatype="xml"/>
+    </map>
 
     <map>
         <from xpath="/eadheader/profiledesc/creation"/>
         <to field="dcterms:description"
-            datatype="html"/>
-     </map>
+            datatype="xml"/>
+    </map>
 
     <map>
         <from xpath="/eadheader/profiledesc/langusage"/>
         <to field="dcterms:language"
-            datatype="html"/>
-     </map>
+            datatype="xml"/>
+    </map>
 
-     <!-- Front Matter -->
+    <map>
+        <from xpath="/eadheader/profiledesc/descrules"/>
+        <to field="bibo:annotates"
+            datatype="xml"/>
+    </map>
+
+    <map>
+        <from xpath="/eadheader/revisiondesc/change"/>
+        <to field="dcterms:hasVersion"
+            datatype="xml"/>
+    </map>
+
+    <!-- Front Matter -->
 
     <map>
         <from xpath="/frontmatter"/>
