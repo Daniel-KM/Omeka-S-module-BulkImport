@@ -143,6 +143,19 @@
 
     <xsl:variable name="parent_set" select="exsl:node-set($parent_set_fragment)"/>
 
+    <!-- Un identifiant est indispensable pour faire les relations. En l'absence, construit un identifiant basé sur eadid. -->
+    <!-- Prendre de préférence eadid/@identifier si présent. -->
+    <xsl:variable name="ead_id">
+        <xsl:choose>
+            <xsl:when test="/ead/eadheader/eadid/@identifier and /ead/eadheader/eadid/@identifier != ''">
+                <xsl:value-of select="/ead/eadheader/eadid/@identifier"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="/ead/eadheader/eadid/text()"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+
     <!-- Templates. -->
 
     <xsl:template match="/ead">
@@ -155,7 +168,7 @@
 
     <xsl:template match="eadheader">
         <resource type="eadheader">
-            <eadheader id="{eadheader/eadid/text()}">
+            <eadheader id="{$ead_id}">
                 <xsl:apply-templates select="@*|node()"/>
             </eadheader>
             <xsl:if test="$frontmatter_separate != '1'">
@@ -192,7 +205,7 @@
                     <xsl:call-template name="id"/>
                 </xsl:attribute>
                 <xsl:attribute name="_parent_id">
-                    <xsl:value-of select="parent::ead/eadheader/eadid/text()"/>
+                    <xsl:value-of select="$ead_id"/>
                 </xsl:attribute>
                 <xsl:apply-templates select="@*|node()"/>
             </xsl:element>
@@ -355,8 +368,11 @@
             <xsl:when test="did/unitid/text() and did/unitid/text() != ''">
                 <xsl:value-of select="did/unitid/text()"/>
             </xsl:when>
+            <!-- Un identifiant est indispensable pour faire les relations. -->
             <xsl:otherwise>
-                <xsl:text></xsl:text>
+                <xsl:value-of select="$ead_id"/>
+                <xsl:text>-</xsl:text>
+                <xsl:value-of select="generate-id()"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
