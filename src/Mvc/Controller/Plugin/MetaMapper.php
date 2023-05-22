@@ -1364,7 +1364,7 @@ class MetaMapper extends AbstractPlugin
                 case 'implodev':
                     $arga = $extractList($args);
                     if (count($arga)) {
-                        $args = array_filter($arga, 'strlen');
+                        $arga = array_filter($arga, 'strlen');
                         // The string avoids strict type issue with empty array.
                         $delimiter = (string) array_shift($arga);
                         $v = implode($delimiter, $arga);
