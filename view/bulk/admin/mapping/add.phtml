@@ -32,8 +32,15 @@ $form->prepare();
 <div id="content">
     <h2><?= $escape($translate('Create new mapping')) ?></h2>
     <?php
+    $submit = $form->get('submit');
+    $submit->setAttribute('form', $form->getAttribute('id'));
+    $form->remove('submit');
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);
     echo $this->form()->closeTag();
     ?>
+</div>
+
+<div id="page-actions">
+    <?= $this->formSubmit($submit) ?>
 </div>

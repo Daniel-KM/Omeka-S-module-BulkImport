@@ -12,6 +12,7 @@ $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
 $assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
+$hyperlink = $plugins->get('hyperlink');
 $urlHelper = $plugins->get('url');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings show');
@@ -33,9 +34,9 @@ $this->headScript()
 <div id="page-actions">
     <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')): ?>
     <?php if (is_object($bulkMapping) && $bulkMapping->userIsAllowed('update')): ?>
-    <?= $this->hyperlink($translate('Edit'), $urlHelper(null, ['action' => 'edit'], true), ['class' => 'button']) ?>
+    <?= $hyperlink($translate('Edit'), $urlHelper(null, ['action' => 'edit'], true), ['class' => 'button']) ?>
     <?php endif; ?>
-    <?= $this->hyperlink($translate('Copy'), $urlHelper(null, ['action' => 'copy'], ['query' => $this->params()->fromQuery()], true), ['class' => 'button']) ?>
+    <?= $hyperlink($translate('Copy'), $urlHelper(null, ['action' => 'copy'], ['query' => $this->params()->fromQuery()], true), ['class' => 'button']) ?>
     <?php endif; ?>
 </div>
 

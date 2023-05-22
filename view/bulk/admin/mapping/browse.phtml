@@ -6,12 +6,10 @@
  * @var array $internalMappings
  */
 
-use BulkImport\Interfaces\Configurable as ConfigurableImport;
-
-
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
+$hyperlink = $plugins->get('hyperlink');
 $urlHelper = $plugins->get('url');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 
@@ -25,7 +23,7 @@ $userIsAllowedCreate = $this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapt
 
 <div id="page-actions">
     <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')): ?>
-    <?= $this->hyperlink($translate('Add new mapping'), $this->url('admin/bulk/default', ['controller' => 'mapping', 'action' => 'add'], true), ['class' => 'button']) ?>
+    <?= $hyperlink($translate('Add new mapping'), $urlHelper('admin/bulk/default', ['controller' => 'mapping', 'action' => 'add'], true), ['class' => 'button']) ?>
     <?php endif; ?>
 </div>
 
