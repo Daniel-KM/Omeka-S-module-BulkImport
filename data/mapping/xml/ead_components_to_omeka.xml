@@ -93,26 +93,26 @@
     <map>
         <from xpath="/c/did/unitdate"/>
         <to field="dcterms:temporal"
-            datatype="numeric:interval, numeric:timestamp, literal"/>
+            datatype="numeric:interval numeric:timestamp literal"/>
     </map>
 
     <map>
         <from xpath="/c/did/physloc"/>
         <to field="dcterms:provenance"
-            datatype="literal"/>
+            datatype="xml literal"/>
         <mod prepend="Emplacement physique : "/>
     </map>
 
     <map>
         <from xpath="/c/did/head"/>
         <to field="dcterms:description"
-            datatype="literal"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/c/did/langmaterial"/>
         <to field="dcterms:language"
-            datatype="literal"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
@@ -136,84 +136,84 @@
     <map>
         <from xpath="/c/did/physdesc[not(@type)]"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <!-- TODO Utiliser un mod "pattern" pour récuptérer le type. -->
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'codicologie']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Codicologie : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Décoration : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'ecriture']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Écriture : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'estampille']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Estampille : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Décoration : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'illustration']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Illustration : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'marginalia']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Marginalia : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'reliure']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Reliure : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'réglure']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Réglure : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'support']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Support : "/>
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'technique']"/>
         <to field="dcterms:format"
-            datatype="xml"/>
+            datatype="xml literal"/>
         <mod prepend="Technique : "/>
     </map>
 
@@ -227,19 +227,19 @@
     <map>
         <from xpath="/c/custodhist"/>
         <to field="dcterms:provenance"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/c/acqinfo"/>
         <to field="dcterms:provenance"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/c/scopecontent"/>
         <to field="dcterms:tableOfContents"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <!-- Une bibliographie contient un plan et des références. Ce qui intéresse ici,
@@ -247,19 +247,19 @@
     <map>
         <from xpath="/c/bibliography//bibref"/>
         <to field="dcterms:isReferencedBy"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/c/altformavail"/>
         <to field="dcterms:hasFormat"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/c/processinfo"/>
         <to field="bibo:annotates"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <!-- Item EAD / media Omeka -->

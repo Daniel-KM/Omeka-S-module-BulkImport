@@ -80,7 +80,7 @@
     <map>
         <from xpath="/eadheader/filedesc/publicationstmt/address"/>
         <to field="dcterms:publisher"
-            datatype="literal"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
@@ -110,31 +110,31 @@
     <map>
         <from xpath="/eadheader/filedesc/notestmt/note"/>
         <to field="bibo:annotates"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/eadheader/profiledesc/creation"/>
         <to field="dcterms:description"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/eadheader/profiledesc/langusage"/>
         <to field="dcterms:language"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/eadheader/profiledesc/descrules"/>
         <to field="bibo:annotates"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <map>
         <from xpath="/eadheader/revisiondesc/change"/>
         <to field="dcterms:hasVersion"
-            datatype="xml"/>
+            datatype="xml literal"/>
     </map>
 
     <!-- Front Matter -->

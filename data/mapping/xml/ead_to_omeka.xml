@@ -14,6 +14,10 @@
     de créer des autorités ou des ressources ou des fiches spécifiques (auteurs, éditeurs,
     collections, opérations, etc.) et faire des relations.
 
+    Important : la conversion utilise généralement le type de données "xml" plutôt que "literal", car cela
+    permet de récupérer les éléments spécifiques de l'EAD. Ce type de données est disponible via le
+    module "DataTypeRdf".
+
     @todo Créer ou récupérer les ressources pour les entités (auteurs, éditeurs, etc.), voire créer des listes d'autorité.
     @todo Utiliser value annotations d'Omeka S 3.2.
     @todo Utiliser les vocabulaires Value Suggest / rda.
