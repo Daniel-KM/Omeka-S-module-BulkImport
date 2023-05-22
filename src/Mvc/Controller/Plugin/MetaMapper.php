@@ -1477,6 +1477,10 @@ class MetaMapper extends AbstractPlugin
                     $v = ucwords($w);
                     break;
 
+                case 'translate':
+                    $v = $this->bulk->translate($w);
+                    break;
+
                 case 'trim':
                     $arga = $extractList($args);
                     $characterMask = $arga[0] ?? '';
