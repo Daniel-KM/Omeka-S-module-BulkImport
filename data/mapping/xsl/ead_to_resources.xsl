@@ -183,6 +183,8 @@
     <xsl:template match="did">
         <xsl:variable name="node" select="."/>
         <xsl:copy>
+            <!-- Copie séparée des attributs et des éléments car on ne peut pas ajouter un attribut quand un élément enfant a été ajouté (XTDE0410). -->
+            <xsl:apply-templates select="@*"/>
             <!-- Ajout des éléments parents selon le paramètre. -->
             <xsl:choose>
                 <!-- Copie uniquement du premier élément ancètre : dans la liste des parents qui ont un did avec un élément, prendre le plus proche. -->
@@ -197,7 +199,7 @@
                 </xsl:when>
             </xsl:choose>
             <!-- Dans tous les cas, on prend les éléments en cours. -->
-            <xsl:apply-templates select="@*|node()"/>
+            <xsl:apply-templates select="node()"/>
         </xsl:copy>
     </xsl:template>
 
@@ -207,6 +209,8 @@
         <xsl:variable name="node_name" select="local-name()"/>
         <xsl:variable name="element_1" select="$node_name"/>
         <xsl:copy>
+            <!-- Copie séparée des attributs et des éléments car on ne peut pas ajouter un attribut quand un élément enfant a été ajouté (XTDE0410). -->
+            <xsl:apply-templates select="@*"/>
             <xsl:choose>
                 <xsl:when test="$parent_copy_mode = 'missing'">
                     <!-- TODO Vérifier que le sous-élément appartient à l'élément. -->
@@ -227,6 +231,7 @@
                                 /*[local-name() = $element_2]
                             )
                             ">
+
                             <xsl:apply-templates select="
                                 $node
                                 /ancestor::*
@@ -244,7 +249,7 @@
                     </xsl:for-each>
                 </xsl:when>
             </xsl:choose>
-            <xsl:apply-templates select="@*|node()"/>
+            <xsl:apply-templates select="node()"/>
         </xsl:copy>
     </xsl:template>
 
