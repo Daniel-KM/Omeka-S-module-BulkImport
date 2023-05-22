@@ -28,9 +28,7 @@ class JsonEntry extends BaseEntry
         // TODO Currently, the conversion via pattern is done here: move it to the processor (?).
 
         // The real resource type is set via config or via processor.
-        $resource = [];
-        $resource = $metaMapper->convertMappingSectionJson('default', $resource, $this->data, true);
-        $resource = $metaMapper->convertMappingSectionJson('mapping', $resource, $this->data);
+        $resource = $metaMapper->convert($this->data);
 
         $importMedia = $metaMapper->getSectionSetting('params', 'import_media');
         if (in_array($importMedia, ['1', true, 'true'])) {

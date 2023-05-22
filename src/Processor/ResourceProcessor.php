@@ -308,18 +308,26 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         $isPrepared = false;
         if (method_exists($this->reader, 'getConfigParam')) {
-            $mappingConfig = $this->reader->getParam('mapping_config') ?: $this->reader->getConfigParam('mapping_config');
+            $mappingConfig = $this->reader->getParam('mapping_config')
+                ?: ($this->reader->getConfigParam('mapping_config') ?: null);
             if ($mappingConfig) {
                 $isPrepared = true;
                 $mapping = [];
-                // TODO Avoid to prepare the mapping a second time when the reader prepared it.
-                $this->metaMapper->init($mappingConfig, $this->reader->getParams());
-                if ($this->metaMapper->hasError()) {
+                $this->metaMapperConfig->__invoke(
+                    'resources',
+                    $mappingConfig,
+                    $this->metadataData['meta_mapper_config']
+                );
+
+                $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
+
+                if ($this->metaMapperConfig->hasConfigError()) {
                     return $this;
                 }
+
                 $mappingSource = array_merge(
-                    $this->metaMapper->getSection('default'),
-                    $this->metaMapper->getSection('mapping')
+                    $this->metaMapperConfig->getSection('default'),
+                    $this->metaMapperConfig->getSection('mapping')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.

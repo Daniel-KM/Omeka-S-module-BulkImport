@@ -149,7 +149,7 @@ class ExtractMediaMetadata extends AbstractPlugin
             ));
         }
 
-        $resource = $this->metaMapper->convert($data, $metaConfig);
+        $resource = $this->metaMapper->__invoke($this->metaMapperConfig, $configName)->convert($data);
         return $resource;
     }
 }

@@ -39,6 +39,9 @@ class XmlEntry extends BaseEntry
             return;
         }
 
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        $metaMapper = $this->options['metaMapper'];
+
         /** @var \XMLReaderNode $data */
         $simpleData = $this->data->getSimpleXMLElement();
         $namespaces = [null] + $simpleData->getNamespaces(true);
@@ -47,7 +50,7 @@ class XmlEntry extends BaseEntry
         $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
 
         /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig $metaMapperConfig */
-        $metaMapperConfig = $this->options['metaMapperConfig'];
+        $metaMapperConfig = $metaMapper->getConfig();
         if (!$metaMapperConfig->getMergedConfig()) {
             $this->extractWithoutMetaConfig($simpleData, $namespaces);
             return;
@@ -62,7 +65,7 @@ class XmlEntry extends BaseEntry
         foreach ($simpleData->xpath('/resource/child::*[1]') as $node) {
             // Avoid warning on missing namespaces. But here, it doesn't matter.
             // TODO Log warning on missing namespaces instead of output.
-            $unwrappedData = @new \SimpleXMLElement($node->asXML());
+            $unwrappedData = @new SimpleXMLElement($node->asXML());
             break;
         }
         if (!$unwrappedData) {
@@ -71,9 +74,7 @@ class XmlEntry extends BaseEntry
         }
 
         // The real resource type is set via config or via processor.
-        $resource = [];
-        $resource = $metaMapper->convertMappingSectionXml('default', $resource, $unwrappedData, true);
-        $resource = $metaMapper->convertMappingSectionXml('mapping', $resource, $unwrappedData);
+        $resource = $metaMapper->convert($unwrappedData);
 
         // Filter duplicated and null values.
         foreach ($resource as &$datas) {
@@ -85,7 +86,7 @@ class XmlEntry extends BaseEntry
     }
 
     /**
-     * @todo For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
+     * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
      */
     protected function extractWithoutMetaConfig($simpleData, $namespaces)
     {

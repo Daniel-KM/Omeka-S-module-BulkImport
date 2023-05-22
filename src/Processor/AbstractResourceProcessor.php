@@ -264,14 +264,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ['action' => $this->action, 'mode' => $this->actionUnidentified]
         );
 
-        // @todo To set the resource name as object type to reader, is it needed?
-        $this->reader->setObjectType($this->getResourceName());
-
-        $this
-            ->prepareIdentifierNames()
-            ->prepareSpecific()
-            ->prepareMetaConfig();
-
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?? null;
         if (!$mainResourceName) {
             $this->logger->err(
@@ -280,6 +272,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ++$this->totalErrors;
             return;
         }
+
+        // @todo To set the resource name as object type to reader, is it needed?
+        $this->reader->setObjectType($this->getResourceName());
+
+        $this
+            ->prepareIdentifierNames()
+            ->prepareSpecific()
+            ->prepareMetaConfig();
 
         $this->bulk->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
 
@@ -500,7 +500,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $mappingConfig = null;
         if (method_exists($this->reader, 'getConfigParam')) {
             $mappingConfig = $this->reader->getParam('mapping_config')
-                ?: $this->reader->getConfigParam('mapping_config');
+                ?: $this->getConfigParam('mapping_config', '');
+                // ?: ($this->getConfigParam('mapping_config', '') ?: null);
         }
         if (is_null($mappingConfig)) {
             $mappingConfig = $this->getParam('mapping', []);
@@ -510,20 +511,21 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
-        $normalizedConfig = $this->metaMapperConfig->__invoke(
+        $this->metaMapperConfig->__invoke(
             $mainResourceName,
             $mappingConfig,
             $this->metadataData['meta_mapper_config']
         );
 
-        if (!empty($normalizedConfig['has_error'])) {
+        $error = $this->metaMapperConfig->hasConfigError();
+        if ($error) {
             ++$this->totalErrors;
-            if ($normalizedConfig['has_error'] === true) {
+            if ($error === true) {
                 $this->logger->err(new PsrMessage('Error in the mapping config.')); // @translate
             } else {
                 $this->logger->err(new PsrMessage(
                     'Error in the mapping config: {message}', // @translate
-                    ['message' => $normalizedConfig['has_error']]
+                    ['message' => $error]
                 ));
             }
         }

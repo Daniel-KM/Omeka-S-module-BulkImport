@@ -57,11 +57,6 @@ class MetaMapper extends AbstractPlugin
     protected $logger;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
-     */
-    protected $automapFields;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
     protected $bulk;
@@ -82,63 +77,21 @@ class MetaMapper extends AbstractPlugin
     protected $jsonPathQuerier;
 
     /**
-     * @var bool
-     *
-     * @deprecated Will be removed (allow muliple config).
+     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
      */
-    protected static $isInit = false;
-
-    /**
-     * A ini config has a static querier (the same for all maps), but a xml
-     * config has a dynamic querier (set as attribute key of element "from").
-     *
-     * @var bool|null
-     */
-    protected $isDynamicQuerier;
+    protected $metaMapperConfig;
 
     /**
      * @var string
      */
-    protected $defaultQuerier;
+    protected $metaMapperConfigName;
 
     /**
-     * @var array
-     */
-    protected $importParams = [];
-
-    /**
+     * @todo Improve management of variables with metaMapperConfig.
+     *
      * @var array
      */
     protected $variables = [];
-
-    /**
-     * @var array
-     */
-    protected $configSections = [];
-
-    /**
-     * This is a temp config, not the final one, that is normConfig.
-     *
-     * @var ?string
-     */
-    protected $tempConfig;
-
-    /**
-     * @var array
-     */
-    protected $normConfig = [];
-
-    /**
-     * List of tables (associative arrays) indexed by their name.
-     *
-     * @array
-     */
-    protected $tables = [];
-
-    /**
-     * @var bool
-     */
-    protected $hasError = false;
 
     public function __construct(
         Logger $logger,
@@ -154,414 +107,64 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * @todo Finalize separation with MetaMapperConfig for all readers and processors.
-     *
-     * Prepare a config to simplify any import into Omeka and transform a source.
-     *
-     * It can be used as headers of a spreadsheet, or in an import config, or to
-     * extract metadata from files json or xml files.
-     *
-     * It contains a list of mappings between source data and destination data.
-     * For example:
-     *
-     * ```
-     * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §private ~ pattern for {{ value|trim }} with {{/source/record/data}}
-     * ```
-     *
-     * or the same mapping as xml:
-     *
-     * ```xml
-     * <mapping>
-     *     <map>
-     *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
-     *         <to field="dcterms:title" language="fra" datatype="literal" visibility="public"/>
-     *         <mod append="Title is: " pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
-     *     </map>
-     * </mapping>
-     * ```
-     *
-     * will be stored internally as:
-     *
-     * ```php
-     * [
-     *     [
-     *          'from' => [
-     *              'querier' => 'xpath',
-     *              'path' => '/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']',
-     *          ],
-     *          'to' => [
-     *              'field' => 'dcterms:title',
-     *              'property_id' => 1,
-     *              'datatype' => [
-     *                  'literal',
-     *              ],
-     *              'language' => 'fra',
-     *              'is_public' => true,
-     *          ],
-     *          'mod' => [
-     *              'raw' => null,
-     *              'val' => null,
-     *              'prepend' => 'Title is: ',
-     *              'pattern' => 'pattern for {{ value|trim }} with {{/source/record/data}}',
-     *              'append' => null,
-     *              'replace' => [
-     *                  '{{/source/record/data}}',
-     *              ],
-     *              'twig' => [
-     *                  '{{ value|trim }}',
-     *              ],
-     *          ],
-     *      ],
-     * ]
-     * ```
-     *
-     * "mod/raw" is the raw value set in all cases, even without source value.
-     * "mod/val" is the raw value set only when "from" is a value, that may be
-     * extracted with a path.
-     * "mod/prepend" and "mod/append" are used only when the pattern returns a
-     * value with at least one replacement. So a pattern without replacements
-     * (simple or twig) should be a "val".
-     *
-     * Note that a ini config has a static querier (the same for all maps), but
-     * a xml config has a dynamic querier (set as attribute of element "from").
-     *
-     * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}
+     * Get this meta mapper.
      */
-    public function __invoke(): self
+    public function __invoke(?MetaMapperConfig $metaMapperConfig = null, ?string $configName = null): self
     {
+        if ($metaMapperConfig) {
+            $this->setConfig($metaMapperConfig);
+        }
+        if ($configName) {
+            $this->setConfigName($configName);
+        }
         return $this;
     }
 
     /**
-     * Convert a string with a map.
-     *
-     * The string is generally extracted from a source via a mapping.
-     * Warning: Here, the conversion cannot use another data from the source.
-     * Indeed, the full entry is not provided.
-     *
-     * @todo Manage options.
+     * Set or reset meta mapper config.
      */
-    public function convertSimpleString(?string $value, array $map, array $options = []): string
+    public function setConfig(?MetaMapperConfig $metaMapperConfig): self
     {
-        if (is_null($value)) {
-            return '';
-        }
-        if (empty($map['mod'])) {
-            return $value;
-        }
-        // The map should be well configured: an empty string must be null.
-        if (isset($map['mod']['raw'])) {
-            return $map['mod']['raw'];
-        }
-        if (isset($map['mod']['val'])) {
-            return $map['mod']['val'];
-        }
-        $result = $this->convertTargetToStringJson($value, $map, null, 'value', true);
-        return is_null($result) || !strlen($result)
-            ? ''
-            : (($map['prepend'] ?? '') . $result . ($map['append'] ?? ''));
-    }
-
-    /**
-     * Convert data (array or xml) into new data (array) applying a meta config.
-     *
-     * @todo Manage options.
-     */
-    public function convert($data, ?array $metaConfig, array $options = []): array
-    {
-        $result = [];
-        if ($metaConfig
-            && (is_string($data) || is_array($data))
-        ) {
-            $this->configSections = $options['configSections'] ?? [
-                'info' => 'raw',
-                'params' => 'raw_or_pattern',
-                'default' => 'mapping',
-                'mapping' => 'mapping',
-            ];
-            $this->normConfig = $metaConfig;
-            if (is_array($data)) {
-                $result = $this->convertMappingSectionJson('default', $result, $data, true);
-                $result = $this->convertMappingSectionJson('mapping', $result, $data);
-            } elseif (is_string($data)) {
-                $result = $this->convertMappingSectionXml('default', $result, $data, true);
-                $result = $this->convertMappingSectionXml('mapping', $result, $data);
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @deprecated Will be removed (allow muliple config).
-     */
-    public function isInit(): bool
-    {
-        return self::$isInit;
-    }
-
-    /**
-     * Manage metaMapper config to use.
-     *
-     * The config may be inside multiple files, or a database config, or a
-     * dynamic config (generally spreadsheets headers).
-     *
-     * Only one config is managed at a time for now.
-     * @deprecated Use MetaMapperConfig.
-     *
-     * @param string|array|int The mapping config is a filepath (module, base or
-     * user), a mapping id stored in the database, or an config ready (useful
-     * for simple mappings).
-     */
-    public function init($mappingConfig, array $params): self
-    {
-        if (self::$isInit) {
-            return $this;
-        }
-
-        $this
-            ->prepareNormConfig($mappingConfig)
-            ->prepareImportParams($params)
-        ;
-
-        self::$isInit = true;
-
-        $this->tempConfig = null;
-
-        return $this;
-    }
-
-    public function hasError(): bool
-    {
-        return $this->hasError;
-    }
-
-    /**
-     * @deprecated Use MetaMapperConfig.
-     *
-     * @param mixed $mappingConfig
-     * @return self
-     */
-    private function prepareNormConfig($mappingConfig): self
-    {
-        // The mapping file is in the config.
-        if (!$mappingConfig) {
-            return $this;
-        }
-
-        if (is_array($mappingConfig)) {
-            // Init defaultQuerier, isDynamicQuerier and normConfig.
-            $this
-                ->setConfigSections([
-                    'info' => 'raw',
-                    'params' => 'raw_or_pattern',
-                    'default' => 'mapping',
-                    'mapping' => 'mapping',
-                ])
-                ->setNormalizedConfig($mappingConfig);
-            return $this;
-        }
-
-        $conf = $this->getConfigFromMappingConfig($mappingConfig);
-        if (!$conf) {
-            return $this;
-        }
-
-        // Check if the config has a main config for ini.
-        $mainConfig = null;
-        $isInfo = false;
-        $matches = [];
-        foreach ($this->bulk->stringToList($conf) as $line) {
-            if ($line === '[info]') {
-                $isInfo = true;
-            } elseif (substr($line, 0, 1) === '[') {
-                $isInfo = false;
-            } elseif ($isInfo && preg_match('~^mapper\s*=\s*(?<master>[a-zA-Z][a-zA-Z0-9_.-]*)*$~', $line, $matches)) {
-                // @todo Currently, the base mapper is always an ini.
-                $mainConfig = $this->getConfigFromMappingConfig('base:' . $matches['master'] . '.ini');
-                break;
-            }
-        }
-
-        // Init defaultQuerier, isDynamicQuerier and normConfig.
-        return $this
-            ->setConfigSections([
-                'info' => 'raw',
-                'params' => 'raw_or_pattern',
-                'default' => 'mapping',
-                'mapping' => 'mapping',
-            ])
-            ->normalizeConfigs($mainConfig, $conf);
-    }
-
-    /**
-     * @deprecated Use MetaMapperConfig.
-     * @see \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig::prepareConfigContent()
-     */
-    private function getConfigFromMappingConfig(?string $mappingConfig, ?string $defaultPrefix = null, int $loop = 0): ?string
-    {
-        if (empty($mappingConfig)) {
-            return null;
-        }
-
-        $prefixes = [
-            'user' => $this->bulk->getBasePath() . '/mapping/',
-            'module' => dirname(__DIR__, 4) . '/data/mapping/',
-            'base' => dirname(__DIR__, 4) . '/data/mapping/base/',
-        ];
-
-        $content = null;
-        if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
-            $mappingId = (int) mb_substr($mappingConfig, 8);
-            /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
-            $mapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
-            if (!$mapping) {
-                return null;
-            }
-            $content = $mapping->mapping();
-        } else {
-            $filename = basename($mappingConfig);
-            if (empty($filename)) {
-                return null;
-            }
-
-            if (strpos($mappingConfig, ':')) {
-                $prefix = strtok($mappingConfig, ':');
-            } else {
-                $prefix = $defaultPrefix;
-                $mappingConfig = $prefix . ':xml/' . $mappingConfig;
-            }
-            if (!isset($prefixes[$prefix])) {
-                return null;
-            }
-
-            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
-            $filepath = $prefixes[$prefix] . $file;
-            if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
-                $content = trim((string) file_get_contents($filepath));
-            }
-        }
-
-        if (!$content) {
-            return null;
-        }
-
-        // Xml config may include sub mappings, so merge them one time early.
-        if (!mb_substr($content, 0, 1) === '<'
-            || !mb_strpos($content, '<include')
-        ) {
-            return $content;
-        }
-
-        if ($loop > 20) {
-            $this->logger->err('Too many included mappings or recursive mapping.'); // @translate
-            return null;
-        }
-
-        $doc = simplexml_load_string($content);
-        $includes = $doc->xpath('//include[@mapping][@mapping != ""]');
-        $defaultPrefix = strtok($mappingConfig, ':') ?: $defaultPrefix;
-        foreach ($includes as $include) {
-            $subContent = $this->getConfigFromMappingConfig((string) $include['mapping'], $defaultPrefix, ++$loop);
-            // TODO Use standard simple xml way to replace a node,
-            if ($subContent) {
-                /** @see \BulkImport\Mvc\Controller\Plugin\prepareConfigFullXml() */
-                // Currently, the process uses an array conversion to get xml
-                // maps. so sub maps are not managed, so remove mapping here.
-                // TODO Allow to manage sub map or use simplexml way to remove submapping.
-                $subContent = str_replace([
-                    '<?xml version="1.0"?>',
-                    '<?xml version="1.0" encoding="UTF-8"?>',
-                    '<mapping>',
-                    '</mapping>',
-                ], '', $subContent);
-                $content = str_replace((string) $include->asXml(), $subContent, $content);
-            }
-        }
-
-        return $content;
-    }
-
-    /**
-     * Prepare the list of variables and params.
-     *
-     * "importParams" is different from the metaMapper config: it contains
-     * converted data.
-     *
-     * @deprecated Use MetaMapperConfig.
-     */
-    private function prepareImportParams(array $params): self
-    {
-        $this->importParams = [];
-
-        if (empty($this->normConfig['params'])) {
-            return $this;
-        }
-
-        $vars = $params;
-        unset($vars['mapping_config'], $vars['filename']);
-        foreach (array_keys($this->normConfig['params']) as $from) {
-            $value = $this->setVariables($vars)->convertToString('params', $from);
-            $this->importParams[$from] = $value;
-            $vars[$from] = $value;
-        }
-
+        $this->metaMapperConfig = $metaMapperConfig;
         return $this;
     }
 
     /**
-     * Set the type of the querier (static or dynamic) and the default querier.
-     *
-     * Require the temp config to be set first.
-     *
-     * Note that a ini config has a static querier (the same for all maps), but
-     * a xml config has a dynamic querier (set as attribute of element "from").
+     * Get meta mapper config if any.
      */
-    private function setQuerierInfo(): self
+    public function getConfig(): ?MetaMapperConfig
     {
-        $this->isDynamicQuerier = null;
-        $this->defaultQuerier = null;
+        return $this->metaMapperConfig;
+    }
 
-        if (empty($this->tempConfig)) {
-            return $this;
+    /**
+     * Set meta mapper config name if any.
+     */
+    public function setConfigName(?string $configName): self
+    {
+        $this->metaMapperConfigName = $configName;
+        if ($this->metaMapperConfig) {
+            $this->metaMapperConfig->__invoke($configName);
         }
-
-        // An ini config cannot manage dynamic querier.
-        $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
-        $this->isDynamicQuerier = $isXml;
-
-        if ($this->isDynamicQuerier) {
-            return $this;
-        }
-
-        $this->defaultQuerier = $this->normConfig['info']['querier'] ?? null;
-        if ($this->defaultQuerier) {
-            return $this;
-        }
-
-        $lines = $this->bulk->stringToList($this->tempConfig);
-        $result = preg_grep('~^querier\s*=\s*(?:jsdot|jmespath|jsonpath|xpath)\s*$~', $lines);
-        if ($result) {
-            $line = trim(reset($result));
-            $this->defaultQuerier = trim(mb_substr($line, mb_strpos($line, '=') + 1));
-        }
-
         return $this;
     }
 
-    public function getImportParams(): array
+    /**
+     * Get meta mapper config name if any.
+     */
+    public function getConfigName(): ?string
     {
-        return $this->importParams;
+        return $this->metaMapperConfigName;
     }
 
-    public function getImportParam(string $key, $default = null)
+    /**
+     * Get current meta mapper config name if any.
+     */
+    public function getCurrentConfig(): ?array
     {
-        return $this->importParams[$key] ?? $default;
-    }
-
-    public function addVariable(string $name, $value): self
-    {
-        $this->variables[$name] = $value;
-        return $this;
+        return $this->metaMapperConfig
+            ? $this->metaMapperConfig->__invoke()->getMergedConfig($this->metaMapperConfigName)
+            : null;
     }
 
     public function setVariables(array $variables): self
@@ -575,74 +178,92 @@ class MetaMapper extends AbstractPlugin
         return $this->variables;
     }
 
+    public function setVariable(string $name, $value): self
+    {
+        $this->variables[$name] = $value;
+        return $this;
+    }
+
     public function getVariable(string $name, $default = null)
     {
         return $this->variables[$name] ?? $default;
     }
 
-    public function getTables(): array
-    {
-        return $this->tables;
-    }
-
-    public function getTable(string $name): array
-    {
-        return $this->tables[$name] ?? [];
-    }
-
-    public function getTableItem(string $name, $key, $default = null): array
-    {
-        return $this->tables[$name][$key] ?? $default;
-    }
-
     /**
-     * Set the sections that contains raw data, pattern data, or full mapping.
-     */
-    protected function setConfigSections(array $configSections): self
-    {
-        $this->configSections = $configSections;
-        return $this;
-    }
-
-    /**
-     * Set the normalized config directly, without check.
-     */
-    protected function setNormalizedConfig(array $normalizedConfig): self
-    {
-        $this->normConfig = $normalizedConfig;
-        return $this;
-    }
-
-    public function getNormalizedConfig(): array
-    {
-        return $this->normConfig;
-    }
-
-    public function getSection(string $section): array
-    {
-        return $this->normConfig[$section] ?? [];
-    }
-
-    /**
-     * Only the settings for the namable sections can be get, of course.
+     * Convert a string with a map.
      *
-     * For sections "mapping", the name is the "from" path and all the setting
-     * is output.
+     * The string is generally extracted from a source via a mapping.
+     * Warning: Here, the conversion cannot use another data from the source.
+     * Indeed, the full entry is not provided.
+     *
+     * Currently only used with Spreadsheet.
+     * @see \BulkImport\Entry/SpreadsheetEntry
+     *
+     * @todo Make Spreadsheet uses MetaMapperConfig.
+     * @todo Manage more options.
      */
-    public function getSectionSetting(string $section, string $name, $default = null)
+    public function convertString(?string $value, array $map = [], array $options = []): string
     {
-        if (!empty($this->configSections[$section])
-            && $this->configSections[$section] === 'mapping'
-            && !empty($this->normConfig[$section])
-        ) {
-            foreach ($this->normConfig[$section] as $fromTo) {
-                if ($name === ($fromTo['from']['path'] ?? null)) {
-                    return $fromTo;
-                }
-            }
-            return $default;
+        if (is_null($value)) {
+            return '';
         }
-        return $this->normConfig[$section][$name] ?? $default;
+        if (empty($map['mod'])) {
+            return $value;
+        }
+        if (empty($map) && !empty($this->metaMapperConfig)) {
+            $name = $options['config_name'] ?? $this->metaMapperConfigName ?? null;
+            $map = $this->metaMapperConfig->getMergedConfig($name) ?: [];
+        }
+
+        // The map should be well configured: an empty string must be null.
+        if (isset($map['mod']['raw'])) {
+            return $map['mod']['raw'];
+        }
+        if (isset($map['mod']['val'])) {
+            return $map['mod']['val'];
+        }
+
+        $result = $this->convertTargetToStringJson($value, $map, null, 'value', true);
+        return is_null($result) || !strlen($result)
+            ? ''
+            : (($map['prepend'] ?? '') . $result . ($map['append'] ?? ''));
+    }
+
+    /**
+     * Convert data (array or xml) into new data (array) applying a meta config.
+     *
+     * Currently only used with ExtractMediaMetadata.
+     * @see \BulkImport\Mvc\Controller\Plugin\ExtractMediaMetadata
+     *
+     * @todo Manage more options.
+     */
+    public function convert($data, ?string $configName = null, array $options = []): array
+    {
+        if (empty($this->metaMapperConfig)) {
+            return [];
+        }
+
+        $result = [];
+
+        if (empty($configName)) {
+            $configName = $options['config_name'] ?? $this->metaMapperConfigName ?? null;
+        }
+        $this->setConfigName($configName);
+
+        $metaConfig = $this->metaMapperConfig->__invoke($configName);
+        if (!$metaConfig) {
+            return [];
+        }
+
+        if (is_array($data)) {
+            $result = $this->convertMappingSectionJson('default', $result, $data, true);
+            $result = $this->convertMappingSectionJson('mapping', $result, $data);
+        } elseif ($data instanceof SimpleXMLElement) {
+            $result = $this->convertMappingSectionXml('default', $result, $data, true);
+            $result = $this->convertMappingSectionXml('mapping', $result, $data);
+        }
+
+        return $result;
     }
 
     /**
@@ -654,9 +275,15 @@ class MetaMapper extends AbstractPlugin
      * @param bool $isDefaultSection When true, the target value "to" is added to the
      * resource without using data.
      */
-    public function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefaultSection = false): array
+    protected function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefaultSection = false): array
     {
-        if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
+        if (empty($this->metaMapperConfig)) {
+            return [];
+        }
+
+        // Only sections "default" and "mapping" are a mapping.
+        $isMapping = $this->metaMapperConfig->getSectionSettingSub('options', 'section_types', $section) === 'mapping';
+        if (!$isMapping) {
             return $resource;
         }
 
@@ -672,7 +299,7 @@ class MetaMapper extends AbstractPlugin
             $this->jsonPathQuerier = new JSONPath($data);
         }
 
-        foreach ($this->getSection($section) as $fromTo) {
+        foreach ($this->metaMapperConfig->getSection($section) as $fromTo) {
             $to = $fromTo['to'] ?? null;
             if (empty($to)) {
                 continue;
@@ -789,9 +416,15 @@ class MetaMapper extends AbstractPlugin
      * @param bool $isDefaultSection When true, the target value "to" is added
      * to the resource without using data.
      */
-    public function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefaultSection = false): array
+    protected function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefaultSection = false): array
     {
-        if (empty($this->configSections[$section]) || $this->configSections[$section] !== 'mapping') {
+        if (empty($this->metaMapperConfig)) {
+            return [];
+        }
+
+        // Only sections "default" and "mapping" are a mapping.
+        $isMapping = $this->metaMapperConfig->getSectionSettingSub('options', 'section_types', $section) === 'mapping';
+        if (!$isMapping) {
             return $resource;
         }
 
@@ -805,7 +438,7 @@ class MetaMapper extends AbstractPlugin
         $doc = new DOMDocument();
         $doc->appendChild($doc->importNode($dom, true));
 
-        foreach ($this->getSection($section) as $fromTo) {
+        foreach ($this->metaMapperConfig->getSection($section) as $fromTo) {
             $to = $fromTo['to'] ?? null;
             if (empty($to)) {
                 continue;
@@ -882,6 +515,7 @@ class MetaMapper extends AbstractPlugin
         } elseif ($data instanceof \SimpleXMLElement) {
             return $this->convertTargetToStringXml($name, $fromToMod, $data, null, true);
         }
+
         $querier = is_array($fromToMod) && isset($fromToMod['from']['querier'])
             ? $fromToMod['from']['querier']
             : 'value';
@@ -974,7 +608,7 @@ class MetaMapper extends AbstractPlugin
             $fromValue = $from;
         }
 
-        $this->addVariable('value', $fromValue);
+        $this->setVariable('value', $fromValue);
 
         if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
             if (is_null($fromValue)) {
@@ -1141,7 +775,7 @@ class MetaMapper extends AbstractPlugin
         }
 
         $fromValue = $first;
-        $this->addVariable('value', $first);
+        $this->setVariable('value', $first);
 
         $keepXmlData = function ($content): string {
             if ($content instanceof \DOMNode) {
@@ -1476,7 +1110,7 @@ class MetaMapper extends AbstractPlugin
                         } elseif ($name === 'iso-3166-french') {
                             $v = Iso3166p1::frenchName($w) ?: $w;
                         } else {
-                            $v = $this->tables[$name][$w] ?? $w;
+                            $v = $this->metaMapperConfig->getSectionSettingSub('tables', $name, $w, $w);
                         }
                     }
                     break;
@@ -1796,565 +1430,6 @@ class MetaMapper extends AbstractPlugin
     }
 
     /**
-     * Allow to use a generic config completed by a specific one.
-     */
-    protected function normalizeConfigs(?string ...$configs): self
-    {
-        $mergedMappings = [];
-        foreach (array_filter($configs) as $config) {
-            // The config should be trimmed to check the first character.
-            $this->tempConfig = trim($config);
-            // Only the called config can set the type of querier and the
-            // default querier, so set it here.
-            if (is_null($this->isDynamicQuerier)) {
-                $this->setQuerierInfo();
-                if (!$this->isDynamicQuerier && !$this->defaultQuerier) {
-                    $this->hasError = true;
-                    $this->logger->err('The querier must be set in the config.'); // @translate
-                    return $this;
-                }
-            }
-            $this->normalizeConfig();
-            // Merge the sections, but don't replace them as a whole, so no
-            // array_merge_recursive() neither array_replace_recursive().
-            foreach ($this->normConfig as $key => $value) {
-                $mergedMappings[$key] = empty($mergedMappings[$key])
-                    ? $value
-                    : array_merge($mergedMappings[$key], $value);
-            }
-        }
-        // Avoid to duplicate data.
-        // Don't do array_unique on key values.
-        // The function array_unique() doesn't work with multilevel arrays.
-        foreach ($mergedMappings as $key => $mapping) {
-            if (is_numeric(key($mapping))) {
-                $mergedMappings[$key] = array_values(array_map('unserialize', array_unique(array_map('serialize', $mapping))));
-            }
-        }
-        $this->normConfig = $mergedMappings;
-        return $this;
-    }
-
-    protected function normalizeConfig(): self
-    {
-        $this->normConfig = [];
-        if (!$this->tempConfig) {
-            return $this;
-        }
-
-        // When first character is "<", it's an xml because it cannot be ini.
-        $isXml = mb_substr($this->tempConfig, 0, 1) === '<';
-        return $isXml
-            ? $this->normalizeConfigXml()
-            : $this->normalizeConfigIni();
-    }
-
-    protected function normalizeConfigIni(): self
-    {
-        // parse_ini_string() cannot be used, because some characters are forbid
-        // on the left and the right part is not quoted.
-        // So process by line.
-
-        /** TODO Remove for Omeka v4. */
-        if (!function_exists('array_key_last')) {
-            function array_key_last(array $array)
-            {
-                return empty($array) ? null : key(array_slice($array, -1, 1, true));
-            }
-        }
-
-        $toKeys = [
-            'field' => null,
-            'property_id' => null,
-            'datatype' => null,
-            'language' => null,
-            'is_public' => null,
-        ];
-
-        // Lines are trimmed. Empty lines are removed.
-        $lines = $this->bulk->stringToList($this->tempConfig);
-
-        $matches = [];
-        $section = null;
-        $sectionType = null;
-        $autofillerKey = null;
-        // The references simplify section management.
-        $normConfigRef = &$this->normConfig;
-        foreach ($lines as $line) {
-            // Skip comments.
-            if (mb_substr($line, 0, 1) === ';') {
-                continue;
-            }
-
-            $first = mb_substr($line, 0, 1);
-            $last = mb_substr($line, -1);
-
-            // Check start of a new section.
-            if ($first === '[') {
-                // Check of a new autofiller.
-                // A section name should start with a letter and cannot contain
-                // "]".
-                if (preg_match('~^\[[a-zA-Z][^\]]*\]\s*\S.*$~', $line)) {
-                    preg_match('~^\[\s*(?<service>[a-zA-Z][a-zA-Z0-9]*)\s*(?:\:\s*(?<sub>[a-zA-Z][a-zA-Z0-9:]*))?\s*(?:#\s*(?<variant>[^\]]+))?\s*\]\s*(?:=?\s*(?<label>.*))$~', $line, $matches);
-                    if (empty($matches['service'])) {
-                        $this->hasError = true;
-                        $this->logger->err(sprintf('The autofillers "%s" has no service.', $line)); // @translate
-                        continue;
-                    }
-                    $autofillerKey = $matches['service']
-                        . (empty($matches['sub']) ? '' : ':' . $matches['sub'])
-                        . (empty($matches['variant']) ? '' : ' #' . $matches['variant']);
-                    $this->normConfig[$autofillerKey] = [
-                        'service' => $matches['service'],
-                        'sub' => $matches['sub'],
-                        'label' => empty($matches['label']) ? null : $matches['label'],
-                        'mapping' => [],
-                    ];
-                    unset($normConfigRef);
-                    $normConfigRef = &$this->normConfig[$autofillerKey]['mapping'];
-                    continue;
-                }
-                // Add a new section.
-                elseif ($last === ']') {
-                    $section = trim(mb_substr($line, 1, -1));
-                    if ($section === '') {
-                        $this->normConfig[] = [];
-                        $section = array_key_last($this->normConfig);
-                    } else {
-                        $this->normConfig[$section] = [];
-                    }
-                    unset($normConfigRef);
-                    $normConfigRef = &$this->normConfig[$section];
-                    $sectionType = $this->configSections[$section] ?? null;
-                    continue;
-                }
-            }
-
-            // Add a key/value pair to the current section.
-
-            // The left part can be a xpath, a jmespath, etc. with a "=". On the
-            // right part, only a pattern can contain a "=". So split the line
-            // according to the presence of a pattern prefixed with a `~`.
-            // The left part may be a destination field too when the right part
-            // is a raw content (starting with « " » or « ' »).
-            // TODO The left part cannot contain a "~" for now.
-            $pos = $first === '~'
-                ? mb_strpos($line, '=')
-                : mb_strrpos(strtok($line, '~'), '=');
-            if ($pos === false) {
-                $this->hasError = true;
-                $this->logger->err(sprintf('The mapping "%s" has no source or destination.', $line)); // @translate
-                continue;
-            }
-            $from = trim(mb_substr($line, 0, $pos));
-            if (!strlen($from)) {
-                $this->hasError = true;
-                $this->logger->err(sprintf('The mapping "%s" has no source.', $line)); // @translate
-                continue;
-            }
-
-            // Trim leading and trailing quote/double quote only when paired.
-            $to = trim(mb_substr($line, $pos + 1));
-            $originalTo = $to;
-            $isRaw = (mb_substr($to, 0, 1) === '"' && mb_substr($to, -1) === '"')
-                || (mb_substr($to, 0, 1) === "'" && mb_substr($to, -1) === "'");
-            if ($isRaw) {
-                $to = trim(mb_substr($to, 1, -1));
-            }
-
-            if ($sectionType === 'raw') {
-                $normConfigRef[$from] = strlen($to) ? $to : null;
-            } elseif ($sectionType === 'pattern') {
-                $normConfigRef[$from] = $this->preparePattern($originalTo);
-            } elseif ($sectionType === 'raw_or_pattern') {
-                if ($isRaw || mb_substr($to, 0, 1) !== '~') {
-                    if ($isRaw) {
-                        $normConfigRef[$from] = $to;
-                    } else {
-                        $mapRaw = ['true' => true, 'false' => false, 'null' => null];
-                        $normConfigRef[$from] = $mapRaw[strtolower($to)] ?? $to;
-                    }
-                } else {
-                    $normConfigRef[$from] = $this->preparePattern(trim(mb_substr($to, 1)));
-                }
-            } else {
-                // Section type is "mapping".
-                if (!strlen($to)) {
-                    $this->hasError = true;
-                    $this->logger->err(sprintf(
-                        'The mapping "%s" has no destination.', // @translate
-                        trim($line, "= \t\n\r\0\x0B")
-                    ));
-                    continue;
-                }
-                // Manage default values: dcterms:license = "Public domain"
-                // and default mapping: dcterms:license = dcterms:license ^^literal ~ "Public domain"
-                // and full source mapping: license = dcterms:license ^^literal ~ "Public domain"
-                $toDest = $isRaw ? $from . ' ~ ' . $originalTo : $to;
-                $ton = $this->normalizeDestination($toDest);
-                if (!$ton) {
-                    $this->hasError = true;
-                    $this->logger->err(sprintf('The destination "%s" is invalid.', $to)); // @translate
-                    continue;
-                }
-                $result = [
-                    'from' => [
-                        'querier' => $this->defaultQuerier,
-                        'path' => $from,
-                    ],
-                    'to' => array_intersect_key($ton, $toKeys),
-                    'mod' => array_diff_key($ton, $toKeys),
-                ];
-                $result['to']['dest'] = $toDest;
-                $normConfigRef[] = $result;
-            }
-        }
-        unset($normConfigRef);
-
-        return $this;
-    }
-
-    protected function normalizeConfigXml(): self
-    {
-        // The config is always a small file (less than some megabytes), so it
-        // can be managed directly with SimpleXml.
-        $xmlConfig = new SimpleXMLElement($this->tempConfig);
-
-        $xmlMapToArray = function (SimpleXMLElement $element, int $index, bool $isDefaultSection = false): ?array {
-            // Since anything is set inside attributes, use a json conversion.
-            $xmlArray = json_decode(json_encode($element), true);
-
-            if ($isDefaultSection) {
-                $result['from'] = null;
-            } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
-                $result['from'] = ['querier' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
-            } elseif (isset($xmlArray['from']['@attributes']['jmespath']) && strlen((string) $xmlArray['from']['@attributes']['jmespath'])) {
-                $result['from'] = ['querier' => 'jmespath', 'path' => (string) $xmlArray['from']['@attributes']['jmespath']];
-            } elseif (isset($xmlArray['from']['@attributes']['jsonpath']) && strlen((string) $xmlArray['from']['@attributes']['jsonpath'])) {
-                $result['from'] = ['querier' => 'jsonpath', 'path' => (string) $xmlArray['from']['@attributes']['jsonpath']];
-            } elseif (isset($xmlArray['from']['@attributes']['xpath']) && strlen((string) $xmlArray['from']['@attributes']['xpath'])) {
-                $result['from'] = ['querier' => 'xpath', 'path' => (string) $xmlArray['from']['@attributes']['xpath']];
-            } else {
-                $this->hasError = true;
-                $this->logger->err(sprintf('The mapping "%s" has no source.', $index)); // @translate
-                return null;
-            }
-
-            if (!isset($xmlArray['to']['@attributes']['field'])
-                || !strlen((string) $xmlArray['to']['@attributes']['field'])
-            ) {
-                $this->hasError = true;
-                $this->logger->err(sprintf('The mapping "%s" has no destination.', $index)); // @translate
-                return null;
-            }
-
-            // @todo The use of automapFields is simpler, so merge the values and output it?
-
-            $result['to']['field'] = (string) $xmlArray['to']['@attributes']['field'];
-
-            $termId = $this->bulk->getPropertyId($result['to']['field']);
-            if ($termId) {
-                $result['to']['property_id'] = $termId;
-            }
-
-            $result['to']['datatype'] = [];
-            if (isset($xmlArray['to']['@attributes']['datatype']) && $xmlArray['to']['@attributes']['datatype'] !== '') {
-                // Support short data types and custom vocab labels.
-                // @see \BulkImport\Mvc\Controller\Plugin::PATTERN_DATATYPES
-                $matchesDataTypes = [];
-                $patternDataTypes = '#(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*))#';
-                if (preg_match_all($patternDataTypes, (string) $xmlArray['to']['@attributes']['datatype'], $matchesDataTypes, PREG_SET_ORDER, 0)) {
-                    foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
-                        $result['to']['datatype'][] = $this->bulk->getDataTypeName($datatype);
-                    }
-                    $result['to']['datatype'] = array_filter(array_unique($result['to']['datatype']));
-                }
-            }
-            $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])
-                ? (string) $xmlArray['to']['@attributes']['language']
-                : null;
-            $result['to']['is_public'] = isset($xmlArray['to']['@attributes']['visibility'])
-                ? ((string) $xmlArray['to']['@attributes']['visibility']) !== 'private'
-                : null;
-
-            $result['mod']['raw'] = isset($xmlArray['mod']['@attributes']['raw']) && strlen((string) $xmlArray['mod']['@attributes']['raw'])
-                ? (string) $xmlArray['mod']['@attributes']['raw']
-                : null;
-            $hasNoRaw = is_null($result['mod']['raw']);
-            $result['mod']['val'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['val']) && strlen((string) $xmlArray['mod']['@attributes']['val'])
-                ? (string) $xmlArray['mod']['@attributes']['val']
-                : null;
-            $hasNoVal = is_null($result['mod']['val']);
-            $hasNoRawVal = $hasNoRaw && $hasNoVal;
-            $result['mod']['prepend'] = $hasNoRawVal && isset($xmlArray['mod']['@attributes']['prepend'])
-                ? (string) $xmlArray['mod']['@attributes']['prepend']
-                : null;
-            $result['mod']['append'] = $hasNoRawVal && isset($xmlArray['mod']['@attributes']['append'])
-                ? (string) $xmlArray['mod']['@attributes']['append']
-                : null;
-            $result['mod']['pattern'] = null;
-            if ($hasNoRawVal && isset($xmlArray['mod']['@attributes']['pattern'])) {
-                $r = $this->preparePattern((string) $xmlArray['mod']['@attributes']['pattern']);
-                if (isset($r['raw']) && strlen($r['raw'])) {
-                    $result['mod']['raw'] = $r['raw'];
-                    $result['mod']['val'] = null;
-                    $hasNoRaw = false;
-                    $hasNoVal = true;
-                    $hasNoRawVal = false;
-                }
-                // Not possible anyway.
-                elseif (isset($r['val']) && strlen($r['val'])) {
-                    $result['mod']['raw'] = null;
-                    $result['mod']['val'] = $r['val'];
-                    $hasNoRaw = true;
-                    $hasNoVal = false;
-                    $hasNoRawVal = false;
-                } else {
-                    if (isset($r['prepend']) && strlen($r['prepend'])) {
-                        $result['mod']['prepend'] = $r['prepend'];
-                    }
-                    if (isset($r['append']) && strlen($r['append'])) {
-                        $result['mod']['append'] = $r['append'];
-                    }
-                    $result['mod']['pattern'] = $r['pattern'] ?? null;
-                    $result['mod']['replace'] = $r['replace'] ?? [];
-                    $result['mod']['twig'] = $r['twig'] ?? [];
-                    $result['mod']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
-                }
-            }
-
-            // @todo Remove the short destination (used in processor and when converting to avoid duplicates).
-            $fullPattern = $hasNoRawVal
-                ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
-                : (isset($result['mod']['raw']) ? (string) $result['mod']['raw'] : (string) $result['mod']['val']);
-            $result['to']['dest'] = $result['to']['field']
-                // Here, the short datatypes and custom vocab labels are already cleaned.
-                . (count($result['to']['datatype']) ? ' ^^' . implode(' ^^', $result['to']['datatype']) : '')
-                . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
-                . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
-                . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')
-            ;
-
-            return $result;
-        };
-
-        $this->normConfig = [
-            'info' => [],
-            'params' => [],
-            'default' => [],
-            'mapping' => [],
-        ];
-
-        // TODO Xml config for info and params.
-        foreach ($xmlConfig->info as $element) {
-            $this->normConfig['info'][] = [];
-        }
-
-        foreach ($xmlConfig->params as $element) {
-            $this->normConfig['params'][] = [];
-        }
-
-        // This value allows to keep the original dest single.
-        // @todo Remove [to][dest] and "k".
-        $k = 0;
-        // TODO Use an attribute or a sub-element ?
-        $i = 0;
-        foreach ($xmlConfig->map as $element) {
-            if ($element->from['xpath']) {
-                continue;
-            }
-            $fromTo = $xmlMapToArray($element, ++$i, true);
-            if (is_array($fromTo)) {
-                if (isset($fromTo['to']['dest'])) {
-                    $fromTo['to']['dest'] = $fromTo['to']['dest'] . str_repeat(' ', $k++);
-                }
-                $this->normConfig['default'][] = $fromTo;
-            }
-        }
-
-        $i = 0;
-        foreach ($xmlConfig->map as $element) {
-            if (!$element->from['xpath']) {
-                continue;
-            }
-            $fromTo = $xmlMapToArray($element, ++$i);
-            if (is_array($fromTo)) {
-                if (isset($fromTo['to']['dest'])) {
-                    $fromTo['to']['dest'] = $fromTo['to']['dest'] . str_repeat(' ', $k++);
-                }
-                $this->normConfig['mapping'][] = $fromTo;
-            }
-        }
-
-        // Prepare tables.
-        $this->normalizeTables();
-
-        return $this;
-    }
-
-    protected function normalizeDestination(string $string): ?array
-    {
-        $result = $this->automapFields->__invoke([$string], [
-            'check_field' => false,
-            'output_full_matches' => true,
-            'output_property_id' => true,
-        ]);
-        if (empty($result)) {
-            return null;
-        }
-
-        // With output_full_matches, there is one more level, so reset twice.
-        $result = reset($result);
-        return $result
-            ? reset($result)
-            : null;
-    }
-
-    /**
-     * @todo Factorize with AutomapFields::appendPattern()
-     * @see \BulkImport\Mvc\Controller\Plugin\AutomapFields::appendPattern()
-     */
-    protected function preparePattern(string $pattern): array
-    {
-        $result = [
-            'pattern' => $pattern,
-        ];
-        if (empty($pattern)) {
-            return $result;
-        }
-
-        // Next code is the same in the two methods.
-
-        // There is no escape for simple/double quotes.
-        $isQuoted = (mb_substr($pattern, 0, 1) === '"' && mb_substr($pattern, -1) === '"')
-            || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
-        if ($isQuoted) {
-            $result['raw'] = trim(mb_substr($pattern, 1, -1));
-            $result['pattern'] = null;
-            return $result;
-        }
-
-        // Manage exceptions.
-        // TODO Remove twig / replacement exception (value, label, and list).
-        $exceptions = ['{{ value }}', '{{ label }}', '{{ list }}'];
-
-        if (in_array($pattern, $exceptions)) {
-            $result['replace'][] = $pattern;
-            return $result;
-        }
-
-        // Separate simple replacement strings (`{{/xpath/from/source}}` and the
-        // twig filters (`{{ value|trim }}`).
-        // The difference is the presence of spaces surrounding sub-patterns.
-        // Sub-patterns cannot be nested for now, but combined.
-        $matches = [];
-        if (preg_match_all('~\{\{( value | label | list |\S+?|\S.*?\S)\}\}~', $pattern, $matches) !== false) {
-            $result['replace'] = empty($matches[0]) ? [] : array_values(array_unique($matches[0]));
-        }
-
-        // In order to allow replacements inside twig patterns, the replacements
-        // are replaced (since replacements are done before twig transforms).
-        if (empty($result['replace'])) {
-            $replacements = [];
-            $cleanPattern = $pattern;
-        } else {
-            foreach ($result['replace'] as $i => $replacement) {
-                $replacements[$replacement] = '__To_Be_Replaced__' . $i . '__';
-            }
-            $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
-        }
-
-        // Instead of complex regex to check pattern not nested, use a
-        // replacement before and after.
-        // If not possible, use the basic check, not nested.
-
-        // Try nested pattern.
-
-        // Replace strings "{{ " and " }}" to exclude first, with a single
-        // character not present in the string.
-        $missings = ['§', '¤', '°', '¸',  '░', '▒', '▓', '█', '▄','▀'];
-        $cleanerPattern = $cleanPattern;
-        $skips = [];
-        foreach (['{{ ', ' }}'] as $skip) {
-            foreach ($missings as $key => $character) {
-                if (mb_strpos($cleanerPattern, $character) === false) {
-                    $skips[$skip] = $character;
-                    unset($missings[$key]);
-                    break;
-                }
-            }
-        }
-
-        if (count($skips) === 2) {
-            // Explode everything.
-            $cleanerPattern = str_replace(array_keys($skips), array_values($skips), $cleanerPattern);
-            $regex = '~' . $skips['{{ '] . '([^' . $skips['{{ '] . $skips[' }}'] . ']+)' . $skips[' }}'] . '~';
-            if (preg_match_all($regex, $cleanerPattern, $matches) !== false) {
-                $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
-                foreach ($result['twig'] as &$twig) {
-                    $twig = str_replace(array_values($skips), array_keys($skips), $twig);
-                }
-                unset($twig);
-                // Avoid to use twig when a replacement is enough.
-                $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
-                // Keep original replacements values.
-                if (!empty($replacements)) {
-                    foreach ($result['twig'] as $key => $twigPattern) {
-                        $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
-                        $result['twig'][$key] = $originalPattern;
-                        // When there are replacements, the twig transformation
-                        // should be done on real value or on a transformed filter.
-                        $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
-                    }
-                }
-            }
-            return $result;
-        }
-
-        // Try not-nested pattern.
-
-        // Explode everything except single "{" or "}".
-        // Issue: does not manage "{{ replace('{a': 'b'}) }}".
-        if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $cleanPattern, $matches) !== false) {
-            $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
-            // Avoid to use twig when a replacement is enough.
-            $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
-            // Keep original replacements values.
-            if (!empty($replacements)) {
-                foreach ($result['twig'] as $key => $twigPattern) {
-                    $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
-                    $result['twig'][$key] = $originalPattern;
-                    // When there are replacements, the twig transformation
-                    // should be done on real value or on a transformed filter.
-                    $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    protected function normalizeTables(): self
-    {
-        // The config is always a small file (less than some megabytes), so it
-        // can be managed directly with SimpleXml.
-        $xmlConfig = new SimpleXMLElement($this->tempConfig);
-        foreach ($xmlConfig->table as $table) {
-            $code = (string) $table['code'];
-            if (!$code) {
-                continue;
-            }
-            foreach ($table->list[0]->term as $term) {
-                $termCode = (string) $term['code'];
-                if (strlen($termCode)) {
-                    $this->tables[$code][$termCode] = (string) $term[0];
-                }
-            }
-        }
-        return $this;
-    }
-
-    /**
      * Extract sub value with an object path.
      *
      * When multiple extractions should be done, it's quicker to use flatArray.
@@ -2445,7 +1520,7 @@ class MetaMapper extends AbstractPlugin
 
         // Check if metadata are in a sub-array.
         // The list of fields simplifies left parts and manage multiple values.
-        $fieldsKey = $this->getSectionSetting('params', 'fields');
+        $fieldsKey = $this->metaMapperConfig->getSectionSetting('params', 'fields');
         $fields = [];
         if ($fieldsKey) {
             $fieldsKeyDot = $fieldsKey . '.';
@@ -2466,8 +1541,8 @@ class MetaMapper extends AbstractPlugin
 
         // Data can be a key-value pair, or an array where the key is a value,
         // and there may be multiple values.
-        $fieldKey = $this->getSectionSetting('params', 'fields.key');
-        $fieldValue = $this->getSectionSetting('params', 'fields.value');
+        $fieldKey = $this->metaMapperConfig->getSectionSetting('params', 'fields.key');
+        $fieldValue = $this->metaMapperConfig->getSectionSetting('params', 'fields.value');
 
         // Prepare the fields one time when there are fields and field key/value.
 

@@ -124,28 +124,28 @@ class XmlReader extends AbstractFileMultipleReader
     {
         // Before checking each xml file, check if the xsl file is ok, if any.
         // It may be empty if the input is a flat xml file with resources.
-        $xslConfigs = array_filter([
+        $configNames = array_filter([
             $this->getParam('xsl_sheet_pre'),
             $this->getParam('xsl_sheet'),
             $this->getParam('mapping_config'),
         ]);
-        foreach ($xslConfigs as $xslConfig) {
+        foreach ($configNames as $configName) {
             // Check if the basepath is inside Omeka path for security.
-            if (mb_substr($xslConfig, 0, 5) === 'user:' || mb_substr($xslConfig, 0, 7) === 'module:') {
-                $filepath = (string) $this->xslpath($xslConfig);
+            if (mb_substr($configName, 0, 5) === 'user:' || mb_substr($configName, 0, 7) === 'module:') {
+                $filepath = (string) $this->xslpath($configName);
                 if (!$filepath) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
-                        ['filename' => $xslConfig]
+                        ['filename' => $configName]
                     );
                     return false;
                 }
-                $moduleXslPath = dirname(__DIR__, 2) . '/data/mapping/xsl/';
+                $moduleConfigPath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($configName, mb_strpos($configName, ':') + 1, mb_strpos($configName, '/') - mb_strpos($configName, ':'));
                 $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-                if (strpos($filepath, $moduleXslPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
+                if (strpos($filepath, $moduleConfigPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
-                        ['filename' => $xslConfig]
+                        ['filename' => $configName]
                     );
                     return false;
 
@@ -157,8 +157,8 @@ class XmlReader extends AbstractFileMultipleReader
                         return false;
                     }
                 }
-            } elseif (mb_substr($xslConfig, 0, 8) === 'mapping:') {
-                $mappingId = (int) mb_substr($xslConfig, 8);
+            } elseif (mb_substr($configName, 0, 8) === 'mapping:') {
+                $mappingId = (int) mb_substr($configName, 8);
                 /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
                 $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
                 if (!$mapping) {
@@ -171,7 +171,7 @@ class XmlReader extends AbstractFileMultipleReader
             } else {
                 $this->lastErrorMessage = new PsrMessage(
                     'Xsl config "{name}" is invalid.', // @translate
-                    ['name' => $xslConfig]
+                    ['name' => $configName]
                 );
                 return false;
             }
@@ -220,9 +220,32 @@ class XmlReader extends AbstractFileMultipleReader
 
     protected function initializeReader(): self
     {
-        $this->initArgs();
-
         $this->iterator = new AppendIterator();
+
+        // TODO The name of the meta config is always "resources" or "assets".
+        $mappingConfig = $this->getParam('mapping_config')
+            ?: ($this->getConfigParam('mapping_config') ?: null);
+        $this->metaMapperConfig->__invoke(
+            'resources',
+            $mappingConfig,
+            // See resource processor / prepareMetaConfig().
+            [
+                'to_keys' => [
+                    'field' => null,
+                    'property_id' => null,
+                    'datatype' => null,
+                    'language' => null,
+                    'is_public' => null,
+                ],
+            ]
+        );
+
+        $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
+
+        // TODO Check error. See resource processor / prepareMetaConfig().
+        if ($this->metaMapperConfig->hasConfigError()) {
+            return $this;
+        }
 
         // The list of files is prepared during check in isValid().
         foreach ($this->listFiles as $fileUrl) {
@@ -236,31 +259,6 @@ class XmlReader extends AbstractFileMultipleReader
             // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
             $xmlIterator->rewind();
             $this->iterator->append($xmlIterator);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @todo Merge with JsonReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
-     * @todo Build a generic pagination mechanism like in json (query, path, token), but rare in xml (probably only for oai-pmh anyway).
-     * @deprecated Use initializeReader only.
-     */
-    protected function initArgs(): self
-    {
-        // TODO Simplify the flow.
-        $this->params['metaMapper'] = $this->metaMapper;
-
-        // Prepare mapper one time.
-        if ($this->metaMapper->isInit()) {
-            return $this;
-        }
-
-        $mappingConfig = $this->getParam('mapping_config', '') ?: $this->getConfigParam('mapping_config', '');
-
-        $this->metaMapper->init($mappingConfig, $this->params);
-        if ($this->metaMapper->hasError()) {
-            return $this;
         }
 
         return $this;

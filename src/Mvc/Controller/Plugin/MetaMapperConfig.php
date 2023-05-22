@@ -76,6 +76,7 @@ class MetaMapperConfig extends AbstractPlugin
      */
     protected $configs = [
         'ec58905619984f5c3dbb308c5556df58' => [
+            'options' => [],
             'info' => [
                 // Label is the only required data.
                 'label' => 'Empty config', // @translate
@@ -88,14 +89,17 @@ class MetaMapperConfig extends AbstractPlugin
             'mapping' => [],
             // List of tables (associative arrays) indexed by their name.
             'tables' => [],
+            // May be a boolean or a message.
             'has_error' => false,
         ],
     ];
 
     /**
+     * Name of the current config.
+     *
      * @var string
      */
-    protected $name;
+    protected $configName;
 
     /**
      * Current options.
@@ -114,8 +118,6 @@ class MetaMapperConfig extends AbstractPlugin
     }
 
     /**
-     * @todo Finalize separation with MetaMapper for all readers and processors.
-     *
      * Prepare a config to simplify any import into Omeka and transform a source.
      *
      * It can be used as headers of a spreadsheet, or in an import config, or to
@@ -168,7 +170,8 @@ class MetaMapperConfig extends AbstractPlugin
      * headers of a spreadsheet), an ini-like or xml file, or stored in database
      * as ini-like or xml. It can be based on another config.
      *
-     * For example, the ini map for the map above is:
+     * For example, the ini map for the map above is (except prepend/append,
+     * that should be included in pattern):
      *
      * ```
      * /record/datafield[@tag='200'][@ind1='1']/subfield[@code='a'] = dcterms:title @fra ^^literal §public ~ pattern for {{ value|trim }} with {{/source/record/data}}
@@ -181,12 +184,19 @@ class MetaMapperConfig extends AbstractPlugin
      *     <map>
      *         <from xpath="/record/datafield[@tag='200']/subfield[@code='a']"/>
      *         <to field="dcterms:title" language="fra" datatype="literal" visibility="public"/>
-     *         <mod append="Title is: " pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
+     *         <mod prepend="Title is: " pattern="pattern for {{ value|trim }} with {{/source/record/data}}"/>
      *     </map>
      * </mapping>
      * ```
      *
      * The default querier is to take the value provided by the reader.
+     *
+     * "mod/raw" is the raw value set in all cases, even without source value.
+     * "mod/val" is the raw value set only when "from" is a value, that may be
+     * extracted with a path.
+     * "mod/prepend" and "mod/append" are used only when the pattern returns a
+     * value with at least one replacement. So a pattern without replacements
+     * (simple or twig) should be a "val".
      *
      * Note that a ini config has a static querier (the same for all maps), but
      * a xml config has a dynamic querier (set as attribute of element "from").
@@ -237,25 +247,97 @@ class MetaMapperConfig extends AbstractPlugin
 
     public function getSimpleConfig(?string $name = null): ?array
     {
-        return $this->configs[$name ?? $this->name] ?? null;
+        return $this->configs[$name ?? $this->configName] ?? null;
     }
 
-    public function isValidConfig(?string $name = null): ?array
+    /**
+     * @return bool|PsrMessage
+     */
+    public function hasConfigError(?string $name = null)
     {
-        $config = $this->getConfig($name);
+        $config = $this->getMergedConfig($name);
         return is_null($config)
-            ? false
+            ? true
             : $config['has_error'];
+    }
+
+    /**
+     * Get settings from a section.
+     */
+    public function getSection(string $section): array
+    {
+        $metaConfig = $this->getMergedConfig() ?? [];
+        return $metaConfig[$section] ?? [];
+    }
+
+    /**
+     * Get a setting from a section.
+     *
+     * Only the settings for the namable sections can be get, of course.
+     *
+     * For sections "mapping", the name is the "from" path and all the setting
+     * is output.
+     *
+     * @todo Remove the exception for mapping.
+     */
+    public function getSectionSetting(string $section, string $name, $default = null)
+    {
+        $metaConfig = $this->getMergedConfig() ?? [];
+
+        if (!isset($metaConfig[$section])) {
+            return $default;
+        }
+
+        // Manage an exception.
+        if (($metaConfig['options']['section_types'][$section] ?? null) === 'mapping') {
+            foreach ($metaConfig[$section] as $fromTo) {
+                if ($name === ($fromTo['from']['path'] ?? null)) {
+                    return $fromTo;
+                }
+            }
+            return $default;
+        }
+
+        return $metaConfig[$section][$name] ?? $default;
+    }
+
+    /**
+     * Get a sub setting from a section.
+     */
+    public function getSectionSettingSub(string $section, string $name, string $subName, $default = null)
+    {
+        $metaConfig = $this->getMergedConfig() ?? [];
+        return $metaConfig[$section][$name][$subName] ?? $default;
+    }
+
+    public function getNameCurrent(): ?string
+    {
+        return $this->configName;
     }
 
     protected function setName(string $name): self
     {
-        $this->name = $name;
+        $this->configName = $name;
         return $this;
     }
 
+    /**
+     * Prepare a config.
+     *
+     * Only this method should be used to prepare configs. In particular, this
+     * is the only one that store options.
+     */
     protected function prepareConfig($config, array $options): self
     {
+        // This is not really useful, since this is not used anywhere, but it is
+        // required to manage the exception of getSectionSetting().
+        $options['section_types'] ??= [
+            'info' => 'raw',
+            'params' => 'raw_or_pattern',
+            'default' => 'mapping',
+            'mapping' => 'mapping',
+        ];
+
         // Check for a normalized config.
         $normalizedConfig = null;
         if (empty($config)) {
@@ -277,14 +359,15 @@ class MetaMapperConfig extends AbstractPlugin
                 if (!$this->isValidMapping($normalizedConfig[$section], $options)) {
                     $this->logger->warn(
                         'Config "{config_name}": invalid map in section "{section}".',
-                        ['config_name' => $this->name, 'section' => $section]
+                        ['config_name' => $this->configName, 'section' => $section]
                     );
                     $normalizedConfig['has_error'] = true;
                 }
             }
         }
 
-        $this->configs[$this->name] = $normalizedConfig ?: $this->configs['ec58905619984f5c3dbb308c5556df58'];
+        $this->configs[$this->configName] = $normalizedConfig ?: $this->configs['ec58905619984f5c3dbb308c5556df58'];
+        $this->configs[$this->configName]['options'] = $options;
         return $this;
     }
 
@@ -294,8 +377,9 @@ class MetaMapperConfig extends AbstractPlugin
     protected function prepareConfigList(array $config, array $options): array
     {
         $normalizedConfig = [
+            'options' => $options,
             'info' => [
-                'label' => $options['label'] ?? $this->name,
+                'label' => $options['label'] ?? $this->configName,
                 'querier' => null,
                 'mapper' => $options['mapper'] ?? null,
                 'example' => $options['example'] ?? null,
@@ -332,7 +416,7 @@ class MetaMapperConfig extends AbstractPlugin
         ) {
             $this->logger->warn(
                 'Config "{config_name}": invalid provided config.',
-                ['config_name' => $this->name]
+                ['config_name' => $this->configName]
             );
             $normalizedConfig['has_error'] = true;
             return $normalizedConfig;
@@ -340,7 +424,7 @@ class MetaMapperConfig extends AbstractPlugin
 
         $normalizedConfig['info']['label'] = !empty($normalizedConfig['info']['label']) && is_string($normalizedConfig['info']['label'])
             ? $normalizedConfig['info']['label']
-            : $this->name;
+            : $this->configName;
         $normalizedConfig['info']['querier'] = !empty($normalizedConfig['info']['querier']) && is_string($normalizedConfig['info']['querier'])
             ? $normalizedConfig['info']['querier']
             : null;
@@ -455,8 +539,9 @@ class MetaMapperConfig extends AbstractPlugin
         $config = trim($config);
         if (!strlen($config)) {
             return [
+                'options' => $options,
                 'info' => [
-                    'label' => $options['label'] ?? $this->name,
+                    'label' => $options['label'] ?? $this->configName,
                     'querier' => null,
                     'mapper' => null,
                     'example' => null,
@@ -483,12 +568,8 @@ class MetaMapperConfig extends AbstractPlugin
 
         $normalizedConfig = [];
 
-        $sectionsConfigTypes = $options['section_types'] ?? [
-            'info' => 'raw',
-            'params' => 'raw_or_pattern',
-            'default' => 'mapping',
-            'mapping' => 'mapping',
-        ];
+        // This is not really useful, since this is not used anywhere.
+        $sectionsConfigTypes = $options['section_types'];
         unset($sectionsConfigTypes['has_error']);
 
         // Lines are trimmed. Empty lines are removed.
@@ -559,8 +640,9 @@ class MetaMapperConfig extends AbstractPlugin
     protected function prepareConfigFullXml(string $config, array $options): array
     {
         $normalizedConfig = [
+            'options' => $options,
             'info' => [
-                'label' => $options['label'] ?? $this->name,
+                'label' => $options['label'] ?? $this->configName,
                 'querier' => null,
                 'mapper' => null,
                 'example' => null,
@@ -664,7 +746,7 @@ class MetaMapperConfig extends AbstractPlugin
             if (!empty($normalizedMap['has_error'])) {
                 $this->logger->warn(
                     'Config "{config_name}": contains an invalid map.', // @translate
-                    ['config_name' => $this->name]
+                    ['config_name' => $this->configName]
                 );
             }
             // An input map can create multiple maps, for example a name mapped
