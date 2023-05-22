@@ -114,7 +114,7 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaPhp($uri, $stylesheet, $output = '', array $parameters = [])
     {
         if (empty($output)) {
-            $output = @tempnam($this->tempDir, 'omk_xsl_');
+            $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
         }
 
         try {
@@ -188,7 +188,7 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaExternal($uri, $stylesheet, $output = '', $parameters = [])
     {
         if (empty($output)) {
-            $output = @tempnam($this->tempDir, 'omk_xsl_');
+            $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
         }
 
         $command = sprintf($this->command, escapeshellarg($uri), escapeshellarg($stylesheet), escapeshellarg($output));

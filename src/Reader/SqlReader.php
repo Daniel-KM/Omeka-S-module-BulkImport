@@ -255,7 +255,11 @@ SQL;
             return null;
         }
 
-        $filepath = @tempnam(sys_get_temp_dir(), 'omk_bki_');
+        // TODO Use omeka temp directory (but check if mysql has access to it).
+        // $tempPath = $this->getServiceLocator()->get('Config')['temp_dir'] ?: sys_get_temp_dir();
+        $tempPath = sys_get_temp_dir();
+
+        $filepath = @tempnam($tempPath, 'omk_bki_');
         unlink($filepath);
         if (file_exists($filepath . '.csv')) {
             $filepath .= substr(uniqid(), 0, 8);

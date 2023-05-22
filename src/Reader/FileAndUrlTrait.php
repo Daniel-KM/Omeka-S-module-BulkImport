@@ -59,9 +59,7 @@ trait FileAndUrlTrait
      */
     protected function fetchUrlToTempFile(string $url): ?string
     {
-        $services = $this->getServiceLocator();
-        $config = $services->get('Config');
-        $tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
+        $tempPath = $this->getServiceLocator()->get('Config')['temp_dir'] ?: sys_get_temp_dir();
 
         $tempname = @tempnam($tempPath, 'omk_bki_');
 
