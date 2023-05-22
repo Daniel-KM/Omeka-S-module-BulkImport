@@ -91,7 +91,9 @@ class XmlReader extends AbstractFileMultipleReader
             // Check if the basepath is inside Omeka path for security.
             if (mb_substr($xmlConfig, 0, 5) === 'user:' || mb_substr($xmlConfig, 0, 7) === 'module:') {
                 $filepath = (string) $this->xslpath($xmlConfig);
-                $result[$xmlConfig] = trim((string) file_get_contents($filepath));
+                if (file_exists($filepath) && is_file($filepath) && is_readable($filepath)) {
+                    $result[$xmlConfig] = trim((string) file_get_contents($filepath));
+                }
             } elseif (mb_substr($xmlConfig, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($xmlConfig, 8);
                 /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
@@ -125,6 +127,7 @@ class XmlReader extends AbstractFileMultipleReader
         $xslConfigs = array_filter([
             $this->getParam('xsl_sheet_pre'),
             $this->getParam('xsl_sheet'),
+            $this->getParam('mapping_config'),
         ]);
         foreach ($xslConfigs as $xslConfig) {
             // Check if the basepath is inside Omeka path for security.
