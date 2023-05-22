@@ -1457,7 +1457,13 @@ class MetaMapper extends AbstractPlugin
                     // table() (named).
                     else {
                         $name = $first === '"' || $first === "'" ? mb_substr($args, 1, -1) : $args;
-                        $v = $this->tables[$name][$w] ?? $w;
+                        if ($name === 'iso-639-native') {
+                            $v = \Iso639p3::name($w) ?: $w;
+                        } elseif ($name === 'iso-639-english') {
+                            $v = \Iso639p3::englishName($w) ?: $w;
+                        } else {
+                            $v = $this->tables[$name][$w] ?? $w;
+                        }
                     }
                     break;
 

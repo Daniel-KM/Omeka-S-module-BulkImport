@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "035aa6b6a9351196501fb085fe9d4b7a",
+    "content-hash": "305aeb42d2d1303e1cd3a4dac481d484",
     "packages": [
         {
             "name": "codemirror/codemirror",
@@ -159,6 +159,43 @@
                 }
             ],
             "time": "2022-08-20T06:45:11+00:00"
+        },
+        {
+            "name": "daniel-km/simple-iso-639-3",
+            "version": "0.1.3",
+            "source": {
+                "type": "git",
+                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-639-3.git",
+                "reference": "44c62e87d1a4382d20b4b9604c804a19ea74c39f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=44c62e87d1a4382d20b4b9604c804a19ea74c39f",
+                "reference": "44c62e87d1a4382d20b4b9604c804a19ea74c39f",
+                "shasum": ""
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "CECILL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Daniel Berthereau",
+                    "email": "daniel.packagist@berthereau.net"
+                }
+            ],
+            "description": "Convert two and three letters language codes and names from official standard sources.",
+            "keywords": [
+                "iso 639",
+                "language code"
+            ],
+            "support": {
+                "email": "daniel.support@berthereau.net",
+                "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3/-/issues",
+                "source": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3"
+            },
+            "time": "2023-05-15T00:00:00+00:00"
         },
         {
             "name": "flowjs/flow-php-server",
