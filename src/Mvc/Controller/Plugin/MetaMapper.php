@@ -1757,6 +1757,8 @@ class MetaMapper extends AbstractPlugin
     /**
      * Check if the result of a transformation with string and twig replacements
      * has at least one replacement, so at least one value.
+     * Nevertheless, if the pattern does not contain any static string, the
+     * check is skipped.
      *
      * It avoids to return something when there is no transformation or no
      * value. For example for pattern "pattern for {{ value|trim }} with {{/source/record/data}}",
@@ -1775,12 +1777,21 @@ class MetaMapper extends AbstractPlugin
         ) {
             return false;
         }
+
         $allReplacements = array_merge(
             // TODO Remove exceptions {{ value }}, {{ label }}, {{ list }}.
             ['{{ value }}', '{{ label }}', '{{ list }}'],
             $map['mod']['replace'] ?? [],
             $map['mod']['twig'] ?? []
         );
+
+        // First, check if the pattern contains static string.
+        $check = trim(str_replace($allReplacements, '', $map['mod']['pattern']));
+        if (!strlen($check)) {
+            return true;
+        }
+
+        // Second, check if all replacements in value is different from result.
         return str_replace($allReplacements, '', $value) !== $result;
     }
 
