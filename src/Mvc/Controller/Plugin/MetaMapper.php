@@ -1461,6 +1461,12 @@ class MetaMapper extends AbstractPlugin
                             $v = \Iso639p3::name($w) ?: $w;
                         } elseif ($name === 'iso-639-english') {
                             $v = \Iso639p3::englishName($w) ?: $w;
+                        } elseif ($name === 'iso-3166-native') {
+                            $v = \Iso3166p1::name($w) ?: $w;
+                        } elseif ($name === 'iso-3166-english') {
+                            $v = \Iso3166p1::englishName($w) ?: $w;
+                        } elseif ($name === 'iso-3166-french') {
+                            $v = \Iso3166p1::frenchName($w) ?: $w;
                         } else {
                             $v = $this->tables[$name][$w] ?? $w;
                         }
