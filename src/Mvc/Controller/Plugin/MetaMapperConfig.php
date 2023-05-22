@@ -1151,6 +1151,57 @@ class MetaMapperConfig extends AbstractPlugin
             $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
         }
 
+        // Instead of complex regex to check pattern not nested, use a
+        // replacement before and after.
+        // If not possible, use the basic check, not nested.
+
+        // Try nested pattern.
+
+        // Replace strings "{{ " and " }}" to exclude first, with a single
+        // character not present in the string.
+        $missings = ['§', '¤', '°', '¸',  '░', '▓', '▒', '█', '▄','▀'];
+        $cleanerPattern = $cleanPattern;
+        $skips = [];
+        foreach (['{{ ', ' }}'] as $skip) {
+            foreach ($missings as $key => $character) {
+                if (mb_strpos($cleanerPattern, $character) === false) {
+                    $skips[$skip] = $character;
+                    unset($missings[$key]);
+                    break;
+                }
+            }
+        }
+
+        if (count($skips) === 2) {
+            // Explode everything.
+            $cleanerPattern = str_replace(array_keys($skips), array_values($skips), $cleanerPattern);
+            $regex = '~' . $skips['{{ '] . '([^' . $skips['{{ '] . $skips[' }}'] . ']+)' . $skips[' }}'] . '~';
+            if (preg_match_all($regex, $cleanerPattern, $matches) !== false) {
+                $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
+                foreach ($result['twig'] as &$twig) {
+                    $twig = str_replace(array_values($skips), array_keys($skips), $twig);
+                }
+                unset($twig);
+                // Avoid to use twig when a replacement is enough.
+                $result['twig'] = array_values(array_diff($result['twig'], $exceptions));
+                // Keep original replacements values.
+                if (!empty($replacements)) {
+                    foreach ($result['twig'] as $key => $twigPattern) {
+                        $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                        $result['twig'][$key] = $originalPattern;
+                        // When there are replacements, the twig transformation
+                        // should be done on real value or on a transformed filter.
+                        $result['twig_has_replace'][$key] = $twigPattern !== $originalPattern;
+                    }
+                }
+            }
+            return $result;
+        }
+
+        // Try not-nested pattern.
+
+        // Explode everything except single "{" or "}".
+        // Issue: does not manage "{{ replace('{a': 'b'}) }}".
         if (preg_match_all('~\{\{ ([^{}]+) \}\}~', $cleanPattern, $matches) !== false) {
             $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
             // Avoid to use twig when a replacement is enough.
