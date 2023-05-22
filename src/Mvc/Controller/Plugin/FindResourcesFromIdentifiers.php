@@ -690,12 +690,9 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
     /**
      * Trim all whitespaces.
-     *
-     * @param string $string
-     * @return string
      */
     protected function trimUnicode($string): string
     {
-        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
+        return (string) preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
     }
 }
