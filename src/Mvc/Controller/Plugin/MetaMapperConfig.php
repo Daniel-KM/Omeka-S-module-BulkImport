@@ -985,7 +985,7 @@ class MetaMapperConfig extends AbstractPlugin
                 foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
                     $result['to']['datatype'][] = $this->bulk->getDataTypeName($datatype);
                 }
-                $result['to']['datatype'] = array_filter(array_unique($result['to']['datatype']));
+                $result['to']['datatype'] = array_values(array_filter(array_unique($result['to']['datatype'])));
             }
         }
         $result['to']['language'] = isset($xmlArray['to']['@attributes']['language'])

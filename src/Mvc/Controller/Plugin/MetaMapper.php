@@ -793,6 +793,8 @@ class MetaMapper extends AbstractPlugin
             return $resource;
         }
 
+        // TODO Important: see c14n(), that allows to filter document directly with a list of xpath.
+
         // There is no fields with xml: xpath is smart enough.
 
         // Use dom because it allows any xpath.
@@ -817,6 +819,10 @@ class MetaMapper extends AbstractPlugin
                 continue;
             }
 
+            // Manage an exception: when first datatype is "xml" and there is no
+            // pattern, output as xml in order to get full xml when possible.
+            $outputAsXml = !empty($to['datatype']) && reset($to['datatype']) === 'xml';
+
             $from = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
@@ -824,7 +830,7 @@ class MetaMapper extends AbstractPlugin
             // Val is returned only when there is a value from.
             $result = [];
             if ($isDefaultSection) {
-                $converted = $this->convertTargetToStringXml($from, $mod, null, null, true);
+                $converted = $this->convertTargetToStringXml($from, $mod, null, null, true, $outputAsXml);
                 if ($converted === null || $converted === '') {
                     continue;
                 }
@@ -837,7 +843,7 @@ class MetaMapper extends AbstractPlugin
                 }
                 $values = $this->xpathQuery($doc, $from);
                 foreach ($values as $value) {
-                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value, true);
+                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value, true, $outputAsXml);
                     if ($converted === null || $converted === '') {
                         continue;
                     }
@@ -1090,6 +1096,8 @@ class MetaMapper extends AbstractPlugin
      * @param \DOMNode|string $fromValue
      * @param bool $atLeastOneReplacement When set, don't return a value when a
      * pattern has no replacement,
+     * @param bool $keepXmlContent When set, get the xml content, not the xml
+     * node value.
      * @return string The converted value. Without pattern, return the key
      * "value" from the variables.
      */
@@ -1098,7 +1106,8 @@ class MetaMapper extends AbstractPlugin
         $mod,
         $data = null,
         $fromValue = null,
-        bool $atLeastOneReplacement = false
+        bool $atLeastOneReplacement = false,
+        bool $keepXmlContent = false
     ): ?string {
         if (is_null($mod) || is_string($mod)) {
             return $mod;
@@ -1107,6 +1116,8 @@ class MetaMapper extends AbstractPlugin
         if (is_array($from)) {
             $from = $from['path'] ?? null;
         }
+
+        // TODO c14n() allows to filter nodes with xpath.
 
         $mod = $mod['mod'] ?? $mod;
 
@@ -1130,8 +1141,26 @@ class MetaMapper extends AbstractPlugin
         $fromValue = $first;
         $this->addVariable('value', $first);
 
+        $keepXmlData = function ($content): string {
+            if ($content instanceof \DOMNode) {
+                return (string) $content->C14N();
+            } elseif ($content instanceof \SimpleXMLElement) {
+                return (string) $content->saveXML();
+            }
+            return (string) $content;
+        };
+
         if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
+            if ($keepXmlContent) {
+                return $keepXmlData($fromValue);
+            }
             return $first instanceof \DOMNode ? (string) $first->nodeValue : (string) $first;
+        }
+
+        if ($mod['pattern'] === '{{ xml }}') {
+            if ($keepXmlContent) {
+                return $keepXmlData($fromValue);
+            }
         }
 
         // TODO Remove or reorganize "raw"/"val" in convertTargetToStringXml().
