@@ -12,7 +12,7 @@
 
     Exemple de fichier xml source : https://bu.unistra.fr/opac/sru?version=1.1&operation=searchRetrieve&query=(dc.source=BUSBN)and(dc.identifier=BUS4683173)&recordSchema=unimarcxml
 
-    @copyright Daniel Berthereau, 2021-2022
+    @copyright Daniel Berthereau, 2021-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
