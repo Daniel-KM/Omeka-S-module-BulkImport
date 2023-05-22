@@ -105,7 +105,7 @@ class MappingController extends AbstractActionController
             if ($isInternalMapping) {
                 $label = $this->getInternalBulkMappings()[$entity];
                 if ($action === 'copy') {
-                    $label = sprintf($this->translate('Copy of %s'), str_ireplace( // @translate
+                    $label = sprintf($this->translate('%s (copy)'), str_ireplace( // @translate
                         ['.jsondot', '.jsonpath', '.jmespath', '.ini', '.xslt1', '.xslt2', '.xslt3', '.xslt', '.xsl', '.xml'], '', $label
                     ));
                 }
@@ -116,7 +116,7 @@ class MappingController extends AbstractActionController
             } else {
                 $data = $entity->getJsonLd();
                 if ($action === 'copy') {
-                    $data['o:label'] = sprintf($this->translate('Copy of %s'), $data['o:label']); // @translate
+                    $data['o:label'] = sprintf($this->translate('%s (copy)'), $data['o:label']); // @translate
                 }
                 $form->setData($data);
             }

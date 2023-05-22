@@ -190,7 +190,9 @@ class MetaMapper extends AbstractPlugin
      *          'to' => [
      *              'field' => 'dcterms:title',
      *              'property_id' => 1,
-     *              'datatype' => 'literal',
+     *              'datatype' => [
+     *                  'literal',
+     *              ],
      *              'language' => 'fra',
      *              'is_public' => true,
      *          ],
@@ -1074,7 +1076,7 @@ class MetaMapper extends AbstractPlugin
      * $data = [
      *     'itemLink' => '/id/150',
      * ];
-     * $output = 'https://example.com/api/id/1850'
+     * $output = 'https://example.com/api/id/150'
      * ```
      *
      * @todo Clarify arguments of function convertTargetToStringXml().
@@ -1534,15 +1536,15 @@ class MetaMapper extends AbstractPlugin
                         . ($arga['d'] ? ', ' . $arga['d'] : '')
                         . (
                             $arga['f']
-                            ? ' (' . $arga['f']
-                                . ($arga['c'] ? ' ; ' . $arga['c'] : '')
-                                . ($arga['k'] ? ' ; ' . $arga['k'] : '')
-                                . ')'
-                            : (
-                                $arga['c']
-                                ? (' (' . $arga['c'] . ($arga['k'] ? ' ; ' . $arga['k'] : '') . ')')
-                                : ($arga['k'] ? ' (' . $arga['k'] . ')' : '')
-                            )
+                                ? ' (' . $arga['f']
+                                    . ($arga['c'] ? ' ; ' . $arga['c'] : '')
+                                    . ($arga['k'] ? ' ; ' . $arga['k'] : '')
+                                    . ')'
+                                : (
+                                    $arga['c']
+                                        ? (' (' . $arga['c'] . ($arga['k'] ? ' ; ' . $arga['k'] : '') . ')')
+                                        : ($arga['k'] ? ' (' . $arga['k'] . ')' : '')
+                                )
                         )
                         . ($arga['o'] ? ' {' . $arga['o'] . '}' : '')
                         . ($arga['p'] ? ', ' . $arga['p'] : '')

@@ -575,6 +575,7 @@ class MetaMapperConfig extends AbstractPlugin
         // The config is always a small file (less than some megabytes), so it
         // can be managed directly with SimpleXml.
         try {
+            // TODO Check warn message.
             $xmlConfig = new SimpleXMLElement($config);
             if (!$xmlConfig) {
                 throw new \Exception;
@@ -1109,9 +1110,11 @@ class MetaMapperConfig extends AbstractPlugin
             return $result;
         }
 
+        // Next code is the same in the two methods.
+
         // There is no escape for simple/double quotes.
         $isQuoted = (mb_substr($pattern, 0, 1) === '"' && mb_substr($pattern, -1) === '"')
-        || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
+            || (mb_substr($pattern, 0, 1) === "'" && mb_substr($pattern, -1) === "'");
         if ($isQuoted) {
             $result['raw'] = trim(mb_substr($pattern, 1, -1));
             $result['pattern'] = null;

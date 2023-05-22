@@ -39,7 +39,7 @@ class AutomapFields extends AbstractPlugin
         // Check a data type (^^resource:item or ^^customvocab:"Liste des établissements")
         // or multiple data types (^^customvocab:xxx ^^resource:item ^^literal).
         // To get each datatype separately is complex or slow, so explode them
-        // later with the same pattern in a seccond time.
+        // later with the same pattern in a second time.
         // Another way is to set the list of all data types here.
         . '(?:\s*\^\^(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*)))'
         // Check a language + country (@fra or @fr-Fr or @en-GB-oed, etc.).
@@ -446,7 +446,9 @@ class AutomapFields extends AbstractPlugin
             return $result;
         }
 
-        $pattern = &$result['pattern'];
+        $pattern = $result['pattern'];
+
+        // Next code is the same in the two methods.
 
         // There is no escape for simple/double quotes.
         $isQuoted = (mb_substr($pattern, 0, 1) === '"' && mb_substr($pattern, -1) === '"')

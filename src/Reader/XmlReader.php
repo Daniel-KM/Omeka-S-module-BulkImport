@@ -252,6 +252,7 @@ class XmlReader extends AbstractFileMultipleReader
             }
             $xmlpath = $tmpPath;
         }
+        // Get the output of xml here if needed.
         return $xmlpath;
     }
 
