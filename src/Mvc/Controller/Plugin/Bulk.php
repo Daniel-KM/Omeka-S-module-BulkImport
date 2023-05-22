@@ -34,6 +34,8 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
+use Omeka\I18n\Translator;
+use Omeka\Mvc\Controller\Plugin\Translate;
 
 /**
  * Adapted from the controller plugin of the module Csv Import
@@ -73,6 +75,11 @@ class Bulk extends AbstractPlugin
      * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
      */
     protected $findResourcesFromIdentifiers;
+
+    /**
+     * @var \Omeka\I18n\Translator
+     */
+    protected $translator;
 
     /**
      * Base path of the files.
@@ -140,6 +147,8 @@ class Bulk extends AbstractPlugin
         $this->findResourcesFromIdentifiers = $pluginManager
             // Use class name to use it even when CsvImport is installed.
             ->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
+
+        $this->translator = $services->get('MvcTranslator');
     }
 
     /**
@@ -1299,7 +1308,7 @@ class Bulk extends AbstractPlugin
      *
      * From Omeka Classic application/libraries/globals.php
      */
-    public function xml_escape($value): string
+    public function xmlEscape($value): string
     {
         return htmlspecialchars(
             preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', (string) $value),
@@ -1310,6 +1319,11 @@ class Bulk extends AbstractPlugin
     public function logger(): \Laminas\Log\Logger
     {
         return $this->logger;
+    }
+
+    public function translate($message, $textDomain = 'default', $locale = null): string
+    {
+        return (string) $this->translator->translate((string) $message, (string) $textDomain, (string) $locale);
     }
 
     /**
