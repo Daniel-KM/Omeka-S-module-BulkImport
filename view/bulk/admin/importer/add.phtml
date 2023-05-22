@@ -20,6 +20,8 @@ $form->prepare();
 <div id="content">
     <h2><?= $escape($translate('Create new importer')) ?></h2>
     <?php
+    $submit = $form->get('importer_submit')->get('submit');
+    $submit->setAttribute('form', $form->getAttribute('id'));
     $form->get('importer_submit')->remove('submit');
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);
@@ -28,5 +30,5 @@ $form->prepare();
 </div>
 
 <div id="page-actions">
-    <button type="submit" form="<?= $form->getAttribute('importer-form') ?>" class="button"><?= $translate('Submit') ?></button>
+    <?= $this->formSubmit($submit) ?>
 </div>

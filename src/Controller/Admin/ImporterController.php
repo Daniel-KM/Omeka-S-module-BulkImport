@@ -161,6 +161,7 @@ class ImporterController extends AbstractActionController
         /** @var \BulkImport\Reader\Reader $reader */
         $reader = $importer->reader();
         $form = $this->getForm($reader->getConfigFormClass());
+        $form->setAttribute('id', 'importer-reader-form');
         $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
         $form->setData($readerConfig);
 
@@ -171,6 +172,9 @@ class ImporterController extends AbstractActionController
         $form->get('importer_submit')->add([
             'name' => 'submit',
             'type' => Element\Submit::class,
+            'options' => [
+                'label' => 'Save',
+            ],
             'attributes' => [
                 'value' => 'Save', // @translate
                 'id' => 'submitbutton',
@@ -219,6 +223,7 @@ class ImporterController extends AbstractActionController
         /** @var \BulkImport\Processor\Processor $processor */
         $processor = $importer->processor();
         $form = $this->getForm($processor->getConfigFormClass());
+        $form->setAttribute('id', 'importer-processor-form');
         $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
         $form->setData($processorConfig);
 
@@ -229,6 +234,9 @@ class ImporterController extends AbstractActionController
         $form->get('importer_submit')->add([
             'name' => 'submit',
             'type' => Element\Submit::class,
+            'options' => [
+                'label' => 'Save',
+            ],
             'attributes' => [
                 'value' => 'Save', // @translate
                 'id' => 'submitbutton',

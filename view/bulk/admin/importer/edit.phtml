@@ -2,7 +2,7 @@
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
- * @var \BulkImport\Form\ImporterDeleteForm $form
+ * @var \BulkImport\Form\ImporterForm $form
  */
 
 $plugins = $this->getHelperPluginManager();
@@ -11,6 +11,7 @@ $translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-imports edit');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+
 $form->prepare();
 ?>
 
@@ -19,6 +20,8 @@ $form->prepare();
 <div id="content">
     <h2><?= $escape($translate('Edit importer')) ?></h2>
     <?php
+    $submit = $form->get('importer_submit')->get('submit');
+    $submit->setAttribute('form', $form->getAttribute('id'));
     $form->get('importer_submit')->remove('submit');
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);
@@ -27,5 +30,5 @@ $form->prepare();
 </div>
 
 <div id="page-actions">
-    <button type="submit" form="<?= $form->getAttribute('importer-form') ?>" class="button"><?= $translate('Submit') ?></button>
+    <?= $this->formSubmit($submit) ?>
 </div>

@@ -12,6 +12,7 @@ $translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers edit');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+
 $form->prepare();
 ?>
 
@@ -23,8 +24,15 @@ $form->prepare();
     <h3><?= $escape(sprintf($translate('Processor: %s'), $processor->getLabel())) ?></h3>
     <p><?= $escape($translate('Fill the default values of the processor.')) ?></p>
     <?php
+    $submit = $form->get('importer_submit')->get('submit');
+    $submit->setAttribute('form', $form->getAttribute('id'));
+    $form->get('importer_submit')->remove('submit');
     echo $this->form()->openTag($form);
     echo $this->formCollection($form);
     echo $this->form()->closeTag();
     ?>
+</div>
+
+<div id="page-actions">
+    <?= $this->formButton($submit) ?>
 </div>
