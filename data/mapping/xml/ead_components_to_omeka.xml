@@ -134,31 +134,30 @@
     </map>
 
     <map>
-        <from xpath="/c/did/physdesc[not(@type)]"/>
+        <from xpath="/c/did/physdesc/physfacet[not(@type) or @type = '']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
     </map>
 
-    <!-- TODO Utiliser un mod "pattern" pour récuptérer le type. -->
     <map>
-        <from xpath="/c/did/physdesc/physfacet[@type = 'codicologie']"/>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'décoration'] | /c/did/physdesc/physfacet[@type = 'decoration']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
-        <mod prepend="Codicologie : "/>
-    </map>
-
-    <map>
-        <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
-        <to field="dcterms:format"
-            datatype="xml literal"/>
+        <!--
         <mod prepend="Décoration : "/>
+        -->
+        <!-- // Inutile si xml est utilisé.
+        <mod pattern="{{@type}} : "/>
+        -->
     </map>
 
     <map>
-        <from xpath="/c/did/physdesc/physfacet[@type = 'ecriture']"/>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'écriture'] | /c/did/physdesc/physfacet[@type = 'ecriture']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Écriture : "/>
+        -->
     </map>
 
     <map>
@@ -169,52 +168,84 @@
     </map>
 
     <map>
-        <from xpath="/c/did/physdesc/physfacet[@type = 'décoration']"/>
-        <to field="dcterms:format"
-            datatype="xml literal"/>
-        <mod prepend="Décoration : "/>
-    </map>
-
-    <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'illustration']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Illustration : "/>
+        -->
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'marginalia']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Marginalia : "/>
+        -->
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'reliure']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Reliure : "/>
+        -->
     </map>
 
     <map>
-        <from xpath="/c/did/physdesc/physfacet[@type = 'réglure']"/>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'réglure'] | /c/did/physdesc/physfacet[@type = 'reglure']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Réglure : "/>
+        -->
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'support']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Support : "/>
+        -->
     </map>
 
     <map>
         <from xpath="/c/did/physdesc/physfacet[@type = 'technique']"/>
         <to field="dcterms:format"
             datatype="xml literal"/>
+        <!--
         <mod prepend="Technique : "/>
+        -->
+    </map>
+
+    <map>
+        <from xpath="/c/did/physdesc/physfacet[
+              @type
+              and @type != ''
+              and @type != 'décoration'
+              and @type != 'decoration'
+              and @type != 'écriture'
+              and @type != 'ecriture'
+              and @type != 'estampille'
+              and @type != 'illustration'
+              and @type != 'marginalia'
+              and @type != 'reliure'
+              and @type != 'réglure'
+              and @type != 'reglure'
+              and @type != 'support'
+              and @type != 'technique'
+              ]"/>
+        <to field="dcterms:format"
+            datatype="xml literal"/>
+        <!--
+        <mod prepend="Technique : "/>
+        -->
+        <!--
+        <mod pattern="{{@type}} : "/>
+        -->
     </map>
 
     <map>
