@@ -128,7 +128,7 @@ class ProcessXslt extends AbstractPlugin
         $proc->importStyleSheet($domXsl);
         $proc->setParameter('', $parameters);
         $result = $proc->transformToURI($domXml, $output);
-        @chmod($output, 0640);
+        @chmod($output, 0664);
 
         // There is no specific message for error with this processor.
         if ($result === false) {
