@@ -2,8 +2,8 @@
     "require": {
         "ext-xml": "*",
         "codemirror/codemirror": "^5.65.13",
-        "daniel-km/simple-iso-3166-1": "^0.1",
-        "daniel-km/simple-iso-639-3": "^0.1",
+        "daniel-km/simple-iso-3166-1": "^0.2",
+        "daniel-km/simple-iso-639-3": "^0.2",
         "flowjs/flow-php-server": "^1.0",
         "flowjs/flow.js": "^2.14.1",
         "hakre/xmlreaderiterator": "^0.1.10",

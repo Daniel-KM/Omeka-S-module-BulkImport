@@ -34,6 +34,8 @@ use DOMNode;
 use DOMNodeList;
 use DOMXPath;
 use Flow\JSONPath\JSONPath;
+use Iso639p3\Iso639p3;
+use Iso3166p1\Iso3166p1;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
@@ -1458,15 +1460,21 @@ class MetaMapper extends AbstractPlugin
                     else {
                         $name = $first === '"' || $first === "'" ? mb_substr($args, 1, -1) : $args;
                         if ($name === 'iso-639-native') {
-                            $v = \Iso639p3::name($w) ?: $w;
+                            $v = Iso639p3::name($w) ?: $w;
                         } elseif ($name === 'iso-639-english') {
-                            $v = \Iso639p3::englishName($w) ?: $w;
+                            $v = Iso639p3::englishName($w) ?: $w;
+                        } elseif ($name === 'iso-639-english-inverted') {
+                            $v = Iso639p3::englishInvertedName($w) ?: $w;
+                        } elseif ($name === 'iso-639-french') {
+                            $v = Iso639p3::frenchName($w) ?: $w;
+                        } elseif ($name === 'iso-639-french-inverted') {
+                            $v = Iso639p3::frenchInvertedName($w) ?: $w;
                         } elseif ($name === 'iso-3166-native') {
-                            $v = \Iso3166p1::name($w) ?: $w;
+                            $v = Iso3166p1::name($w) ?: $w;
                         } elseif ($name === 'iso-3166-english') {
-                            $v = \Iso3166p1::englishName($w) ?: $w;
+                            $v = Iso3166p1::englishName($w) ?: $w;
                         } elseif ($name === 'iso-3166-french') {
-                            $v = \Iso3166p1::frenchName($w) ?: $w;
+                            $v = Iso3166p1::frenchName($w) ?: $w;
                         } else {
                             $v = $this->tables[$name][$w] ?? $w;
                         }

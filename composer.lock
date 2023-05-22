@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "305aeb42d2d1303e1cd3a4dac481d484",
+    "content-hash": "fd8110c236a60bb8e3cbf82f54173a9e",
     "packages": [
         {
             "name": "codemirror/codemirror",
@@ -161,20 +161,67 @@
             "time": "2022-08-20T06:45:11+00:00"
         },
         {
-            "name": "daniel-km/simple-iso-639-3",
-            "version": "0.1.3",
+            "name": "daniel-km/simple-iso-3166-1",
+            "version": "0.2.0",
             "source": {
                 "type": "git",
-                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-639-3.git",
-                "reference": "44c62e87d1a4382d20b4b9604c804a19ea74c39f"
+                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-3166-1.git",
+                "reference": "2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=44c62e87d1a4382d20b4b9604c804a19ea74c39f",
-                "reference": "44c62e87d1a4382d20b4b9604c804a19ea74c39f",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-3166-1/repository/archive.zip?sha=2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694",
+                "reference": "2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694",
                 "shasum": ""
             },
             "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Iso3166p1\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "CECILL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Daniel Berthereau",
+                    "email": "daniel.packagist@berthereau.net"
+                }
+            ],
+            "description": "Convert two and three letters countries codes and names with iso 3166-1.",
+            "keywords": [
+                "ISO 3166",
+                "country code"
+            ],
+            "support": {
+                "email": "daniel.support@berthereau.net",
+                "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-3166-1/-/issues",
+                "source": "https://gitlab.com/Daniel-KM/Simple-ISO-3166-1"
+            },
+            "time": "2023-05-22T00:00:00+00:00"
+        },
+        {
+            "name": "daniel-km/simple-iso-639-3",
+            "version": "0.2.0",
+            "source": {
+                "type": "git",
+                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-639-3.git",
+                "reference": "e42e6ad2b760a85591a63cd278e817e21285b361"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=e42e6ad2b760a85591a63cd278e817e21285b361",
+                "reference": "e42e6ad2b760a85591a63cd278e817e21285b361",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Iso639p3\\": "src"
+                }
+            },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "CECILL-2.1"
@@ -195,7 +242,7 @@
                 "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3/-/issues",
                 "source": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3"
             },
-            "time": "2023-05-15T00:00:00+00:00"
+            "time": "2023-05-22T00:00:00+00:00"
         },
         {
             "name": "flowjs/flow-php-server",
