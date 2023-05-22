@@ -5,18 +5,28 @@
     Remarques :
     - Ead Header et Front Matter sont fusionnés en une ressource.
     - Tous les "cXX" sont convertis en "c" simples pour faciliter l’alignement.
+    - "Archival Description" ("archdesc") est converti en "c" de niveau 0 pour faciliter l’alignement, les
+      deux éléments étant très similaire techniquement, sauf quelques rares sous-éléments.
     - Aucun titre n’est ajouté par défaut.
-    - Les attributs "_depth" et "_parentid" sont ajoutés sur chaque unité (archival description et composants) pour faciliter la création des relations.
-    - L'attribut "_uid" est ajouté sur chaque valeur copiée pour indiquer son origine.
+    - Les attributs "_depth" et "_parentid" sont ajoutés sur chaque unité ("archival description" et composants) pour faciliter la création des relations.
+    - L’attribut "_uid" est ajouté sur chaque valeur copiée d’un niveau supérieur pour indiquer son origine.
 
     Attention : seuls les éléments dans "did" sont copiés.
 
-    La conversion en contenus Omeka, notamment la distinction entre item et media, s'effectue via l'alignement "ead_to_omeka.xml".
+    La conversion en contenus Omeka, notamment la distinction entre item et media, s’effectue via l’alignement "ead_to_omeka.xml".
 
-    Pour configuer la copie des métadonnées des composants supérieurs, utiliser les paramètres suivants :
+    Lors de la conversion dans Omeka, il est important de choisir "dcterms:identifier" comme propriété pour reconnaître et créer les relations.
+
+    Attention : dans les alignements, l’utilisation d’un " | " doit se faire sur des éléments exclusifs,
+    sinon l’un des éléments ne sera pas pris en compte si les deux sont présents.
+
+    Pour configurer la copie des métadonnées des composants supérieurs, utiliser les paramètres suivants :
 
     - "frontmatter_separate" :
-        "0" (défaut) ou "1" pour créer une ressources séparée de "eadheader" pour la présentation de l’inventaire.
+        "0" (défaut) ou "1" pour créer une ressource séparée de "eadheader" pour la présentation de l’inventaire.
+
+    - "archdesc_separate" :
+        "0" (défaut) ou "1" pour gérer "archdesc" différement des "c". Attention, aucune feuille de conversion n’existe pour archdesc.
 
     - "parent_copy_select" :
         - "all" (par défaut) : copier tous les éléments supérieurs.
@@ -24,17 +34,17 @@
         - "no" : ne pas copier les éléments supérieurs pour les traiter ultérieurement.
 
     - "parent_copy_mode" :
-        - "missing" (par défaut) : copier les éléments supérieurs manquants. C'est la logique normale de l'ead.
+        - "missing" (par défaut) : copier les éléments supérieurs manquants. C’est la logique normale de l’ead.
             Par exemple, si le composant a une description, les descriptions supérieures ne sont pas reprises.
         - "all" : copier tous les éléments supérieurs, même présent dans le niveau en cours.
 
     - "parent_copy_list"
         Liste des éléments à copier correspondant au 1er niveau ("physdesc") ou au second niveau ("physdesc/dimensions").
-        Les chemins à copier peuvent être enveloppés de l'élément "e" ou séparés d'une espace ou d'un saut de ligne.
+        Les chemins à copier peuvent être enveloppés de l’élément "e" ou séparés d’une espace ou d’un saut de ligne.
 
     - Le chemin pour les fichiers peut être configuré avec le paramètre "basepath". Inclure le "/" final.
         Le chemin est une url. Si vous utilisez un chemin sur le serveur, le module FileSideload est nécessaire.
-        La valeur `__dirpath__` permet de passer l'url ou le chemin du fichier xml.
+        La valeur `__dirpath__` permet de passer l’url ou le chemin du fichier xml.
 
     @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -73,7 +83,7 @@
 
     <!-- Paramètres -->
 
-    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d'insérér le dossier du fichier xml. -->
+    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d’insérér le dossier du fichier xml. -->
     <xsl:param name="basepath">__dirpath__</xsl:param>
 
     <!-- Url ou chemin du fichier xml, automatiquement passée. -->
@@ -84,6 +94,9 @@
 
     <!-- Créer une ressource séparée de "eadheader" pour "frontmatter" (0 / 1). -->
     <xsl:param name="frontmatter_separate">0</xsl:param>
+
+    <!-- Gérer "archdesc" et "c" de manière différente. Attention, "archdesc" n’a pas d’alignement par défaut. (0 / 1). -->
+    <xsl:param name="archdesc_separate">0</xsl:param>
 
     <!-- Copie des éléments parents (all / list / no). -->
     <xsl:param name="parent_copy_select">all</xsl:param>
@@ -155,10 +168,28 @@
     </xsl:template>
 
     <xsl:template match="archdesc">
+        <!-- Remplace "archdesc" par "c" pour faciliter le traitement ultérieur. -->
+        <xsl:variable name="archdesc_tag">
+            <xsl:choose>
+                <xsl:when test="$archdesc_separate = '1'">
+                    <xsl:text>archdesc</xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>c</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <resource>
-            <archdesc _depth="0" _parent_id="{parent::ead/eadheader/eadid/text()}">
+            <xsl:element name="{$archdesc_tag}">
+                <xsl:attribute name="_depth">0</xsl:attribute>
+                <xsl:attribute name="id">
+                    <xsl:call-template name="id"/>
+                </xsl:attribute>
+                <xsl:attribute name="_parent_id">
+                    <xsl:value-of select="parent::ead/eadheader/eadid/text()"/>
+                </xsl:attribute>
                 <xsl:apply-templates select="@*|node()"/>
-            </archdesc>
+            </xsl:element>
         </resource>
     </xsl:template>
 
@@ -303,6 +334,15 @@
             </xsl:when>
             <xsl:when test="did/unitid/@identifier and did/unitid/@identifier != ''">
                 <xsl:value-of select="did/unitid/@identifier"/>
+            </xsl:when>
+            <xsl:when test="did/unitid[@type='cote']/text() and did/unitid[@type='cote']/text() != ''">
+                <xsl:value-of select="did/unitid[@type='cote']/text()"/>
+            </xsl:when>
+            <xsl:when test="did/unitid[@type='locator']/text() and did/unitid[@type='locator']/text() != ''">
+                <xsl:value-of select="did/unitid[@type='locator']/text()"/>
+            </xsl:when>
+            <xsl:when test="did/unitid/text() and did/unitid/text() != ''">
+                <xsl:value-of select="did/unitid/text()"/>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:text></xsl:text>

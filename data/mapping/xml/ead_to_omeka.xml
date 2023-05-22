@@ -7,6 +7,9 @@
 
     Cet alignement convertit chaque composant en contenu Omeka (item) préalablement séparés via "ead_to_resources.xsl".
 
+    Dans Omeka, bien choisir la propriété utilisée pour l'identifiant (normalement "dcterms:identifier")
+    et non l'id interne pour faire les relations entre les composants.
+
     Par ailleurs, Rdf étant une norme conçue pour représenter des relations, il conviendrait
     de créer des autorités ou des ressources ou des fiches spécifiques (auteurs, éditeurs,
     collections, opérations, etc.) et faire des relations.

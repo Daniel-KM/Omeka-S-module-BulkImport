@@ -4,12 +4,12 @@
 
     Cet alignement convertit chaque composant en contenu Omeka (item).
 
-     Archival Description et Component sont très proches, sauf que les composants peuvent être
-     subdivisés en "cXX" "head" et "thead", mais pas "runner". On utilise donc un seul schéma pour
-     les deux. En outre, selon le séparateur xsl, les fichiers ("item" ou pièces au sens EAD), sont
-     traités de la même façon.
+    Archival Description et Component sont très proches, sauf que les composants peuvent être
+    subdivisés en "cXX" "head" et "thead", mais pas "runner". On utilise donc un seul schéma pour
+    les deux. En outre, selon le séparateur xsl, les fichiers ("item" ou pièces au sens EAD), sont
+    traités de la même façon.
 
-     @copyright Daniel Berthereau, 2015-2023
+    @copyright Daniel Berthereau, 2015-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
@@ -26,7 +26,7 @@
     <!-- Les componants de type "<cxx>" doivent avoir été remplacés par des "<c>" via le xsl de séparation. -->
 
     <map>
-        <from xpath="/archdesc"/>
+        <from xpath="/archdesc | c[@_depth='0']"/>
         <to field="resource_name"/>
         <mod val="o:Item"/>
     </map>
@@ -40,45 +40,64 @@
     </map>
     -->
 
-    <!-- Import de chaque image en tant qu'item : donc lien comme les autres. -->
-     <map>
-        <from xpath="/archdesc[@_parent_id and @_parent_id != '']/@_parent_id | /c[@_parent_id and @_parent_id != '']/@_parent_id"/>
+    <!-- Import de chaque image en tant qu’item : donc lien comme les autres. -->
+    <map>
+        <from xpath="/c[@_parent_id and @_parent_id != '']/@_parent_id"/>
         <to field="dcterms:isPartOf"
             datatype="resource:item"/>
-     </map>
-
-     <map>
-        <from xpath="/archdesc/did/unittitle | /c/did/unittitle"/>
-        <to field="dcterms:title"
-            datatype="literal"/>
-     </map>
+    </map>
 
     <map>
-        <from xpath="/archdesc/runner"/>
+        <from xpath="/c/did/unittitle"/>
+        <to field="dcterms:title"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/archdesc/runner | /c[@_depth='0']/runner"/>
         <to field="bibo:shortTitle"
             datatype="literal"/>
-     </map>
+    </map>
 
-   <map>
-        <from xpath="/archdesc/did/unitid/@identifier | /c/did/unitid/@identifier | /c/@id"/>
+    <!-- Pour la bnf, la cote est l'identifiant, mais pour l'abes, c'est une cote. -->
+    <map>
+        <from xpath="/c/did/unitid[not(@identifier)][not(@type)][not(@id)]"/>
         <to field="dcterms:identifier"
             datatype="literal"/>
-     </map>
+    </map>
 
-   <map>
-        <from xpath="/archdesc/did/unitid[@type = 'cote'] | /c/did/unitid[@type = 'cote']"/>
+    <map>
+        <from xpath="/c/@id"/>
+        <to field="dcterms:identifier"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/unitid/@identifier"/>
+        <to field="dcterms:identifier"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/unitid[@type = 'cote']"/>
         <to field="bibo:locator"
             datatype="literal"/>
     </map>
 
-   <map>
-        <from xpath="/archdesc/did/unitdate | /c/did/unitdate"/>
+    <map>
+        <from xpath="/c/did/unitid[@type = 'ancienne cote']"/>
+        <to field="bibo:locator"
+            datatype="literal"/>
+    </map>
+
+    <map>
+        <from xpath="/c/did/unitdate"/>
         <to field="dcterms:temporal"
             datatype="numeric:interval, numeric:timestamp, literal"/>
     </map>
 
-   <map>
-        <from xpath="/archdesc/did/physloc | /c/did/physloc"/>
+    <map>
+        <from xpath="/c/did/physloc"/>
         <to field="dcterms:provenance"
             datatype="literal"/>
         <mod prepend="Emplacement physique : "/>
@@ -91,25 +110,25 @@
      </map>
 
     <map>
-        <from xpath="/archdesc/did/physdesc/extent | /c/did/physdesc/extent"/>
+        <from xpath="/c/did/physdesc/extent"/>
         <to field="bibo:pages"
             datatype="literal"/>
     </map>
 
     <map>
-        <from xpath="/archdesc/did/physdesc/dimensions | /c/did/physdesc/dimensions"/>
+        <from xpath="/c/did/physdesc/dimensions"/>
         <to field="dcterms:extent"
             datatype="literal"/>
     </map>
 
     <map>
-        <from xpath="/archdesc/did/physdesc/physfacet[@type = 'technique'] | /c/did/physdesc/physfacet[@type = 'technique']"/>
+        <from xpath="/c/did/physdesc/physfacet[@type = 'technique']"/>
         <to field="dcterms:format"
             datatype="literal"/>
     </map>
 
     <map>
-        <from xpath="/archdesc/did/repository"/>
+        <from xpath="/archdesc/did/repository | /c[@_depth='0']/did/repository"/>
         <to field="dcterms:alternative"
             datatype="literal"/>
         <mod prepend="Entrepôt : "/>
