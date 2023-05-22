@@ -4,14 +4,14 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a3c22ff271500c3892250e04085aa387",
+    "content-hash": "035aa6b6a9351196501fb085fe9d4b7a",
     "packages": [
         {
             "name": "codemirror/codemirror",
-            "version": "5.65.1",
+            "version": "5.65.13",
             "dist": {
-                "type": "tar",
-                "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.31/CodeMirror-5.65.1.tar.gz"
+                "type": "zip",
+                "url": "https://codemirror.net/5/codemirror.zip"
             },
             "type": "omeka-addon-asset"
         },
@@ -950,5 +950,5 @@
     "platform-overrides": {
         "php": "7.4"
     },
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.0.0"
 }
