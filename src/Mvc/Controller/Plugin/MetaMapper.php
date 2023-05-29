@@ -1146,8 +1146,19 @@ class MetaMapper extends AbstractPlugin
                     }
                     // table() (named).
                     else {
-                        $name = $first === '"' || $first === "'" ? mb_substr($args, 1, -1) : $args;
-                        if ($name === 'iso-639-native') {
+                        $arga = $extractList($args);
+                        $name = $arga[0] ?? '';
+                        // Check first for tables managed by module Table, if available.
+                        $table = $this->table($name);
+                        if ($table) {
+                            $type = $arga[1] ?? '';
+                            $strict = !empty($arga[2]);
+                            if ($type === 'code') {
+                                $v = $table->codeFromLabel($w, $strict) ?? $w;
+                            } else {
+                                $v = $table->labelFromCode($w, $strict) ?? $w;
+                            }
+                        } elseif ($name === 'iso-639-native') {
                             $v = Iso639p3::name($w) ?: $w;
                         } elseif ($name === 'iso-639-english') {
                             $v = Iso639p3::englishName($w) ?: $w;
@@ -1440,6 +1451,29 @@ class MetaMapper extends AbstractPlugin
             }
         }
         return str_replace(array_keys($twigReplace), array_values($twigReplace), $pattern);
+    }
+
+    /**
+     * Get the table from a name. Require module Table.
+     *
+     * @param int|string $idOrSlug
+     * @return \Table\Api\Representation\TableRepresentation|null
+     */
+    protected function table($idOrSlug)
+    {
+        /** @var \Table\Api\Representation\TableRepresentation[] $tables */
+        static $tables = [];
+
+        if ($tables === null || !class_exists('Table\Api\Representation\TableRepresentation')) {
+            $tables = null;
+            return null;
+        }
+
+        if (!array_key_exists($idOrSlug, $tables)) {
+            $tables[$idOrSlug] = $this->bulk->api()->searchOne('tables', is_numeric($idOrSlug) ? ['id' => $idOrSlug] : ['slug' => $idOrSlug])->getContent();
+        }
+
+        return $tables[$idOrSlug];
     }
 
     /**
