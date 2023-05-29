@@ -204,16 +204,16 @@
         },
         {
             "name": "daniel-km/simple-iso-639-3",
-            "version": "0.2.0",
+            "version": "0.2.1",
             "source": {
                 "type": "git",
                 "url": "git@gitlab.com:Daniel-KM/Simple-ISO-639-3.git",
-                "reference": "e42e6ad2b760a85591a63cd278e817e21285b361"
+                "reference": "f8a3be76254e7d1aa90c37bb9a3b3176097e9402"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=e42e6ad2b760a85591a63cd278e817e21285b361",
-                "reference": "e42e6ad2b760a85591a63cd278e817e21285b361",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=f8a3be76254e7d1aa90c37bb9a3b3176097e9402",
+                "reference": "f8a3be76254e7d1aa90c37bb9a3b3176097e9402",
                 "shasum": ""
             },
             "type": "library",
@@ -242,7 +242,7 @@
                 "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3/-/issues",
                 "source": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3"
             },
-            "time": "2023-05-22T00:00:00+00:00"
+            "time": "2023-05-29T00:00:00+00:00"
         },
         {
             "name": "flowjs/flow-php-server",
