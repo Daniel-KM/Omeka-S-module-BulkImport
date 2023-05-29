@@ -113,7 +113,7 @@ class Import extends AbstractEntity
 
     public function setComment($comment): self
     {
-        $this->comment = $comment;
+        $this->comment = (string) $comment ?: null;
         return $this;
     }
 
