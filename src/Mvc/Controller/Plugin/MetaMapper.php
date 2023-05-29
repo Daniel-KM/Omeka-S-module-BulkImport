@@ -681,12 +681,38 @@ class MetaMapper extends AbstractPlugin
             }
         }
 
+        // Fix issues with quotes: when there is a quote inside a quoted value,
+        // or a double quote inside a double quoted value, it causes an issue to
+        // twig functions with arguments.
+        // So escape them before and after twig process.
+        // TODO Fix more accurately the presence of quote string to replace for twig. Only rare cases have issues anyway.
+        $hasTwig = !empty($mod['twig']);
+        if ($hasTwig) {
+            $replaceQuotes = [
+                '"' => '__DQUOTE__',
+                "'" => '__SQUOTE__',
+            ];
+            $baseReplace = $replace;
+            foreach ($replace as &$replaceValue) {
+                $replaceValue = str_replace(array_keys($replaceQuotes), array_values($replaceQuotes), $replaceValue);
+            }
+            unset($replaceValue);
+            $hasQuote = $baseReplace !== $replace;
+        }
+
         $value = $replace
             ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
             : $mod['pattern'];
 
-        if (!empty($mod['twig'])) {
+        if ($hasTwig) {
             $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
+        }
+
+        if ($hasTwig && $hasQuote) {
+            foreach ($replace as &$replaceValue) {
+                $replaceValue = str_replace(array_values($replaceQuotes), array_keys($replaceQuotes), $replaceValue);
+            }
+            unset($replaceValue);
         }
 
         if ($atLeastOneReplacement
@@ -856,12 +882,38 @@ class MetaMapper extends AbstractPlugin
             }
         }
 
+        // Fix issues with quotes: when there is a quote inside a quoted value,
+        // or a double quote inside a double quoted value, it causes an issue to
+        // twig functions with arguments.
+        // So escape them before and after twig process.
+        // TODO Fix more accurately the presence of quote string to replace for twig. Only rare cases have issues anyway.
+        $hasTwig = !empty($mod['twig']);
+        if ($hasTwig) {
+            $replaceQuotes = [
+                '"' => '__DQUOTE__',
+                "'" => '__SQUOTE__',
+            ];
+            $baseReplace = $replace;
+            foreach ($replace as &$replaceValue) {
+                $replaceValue = str_replace(array_keys($replaceQuotes), array_values($replaceQuotes), $replaceValue);
+            }
+            unset($replaceValue);
+            $hasQuote = $baseReplace !== $replace;
+        }
+
         $value = $replace
             ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
             : $mod['pattern'];
 
-        if (!empty($mod['twig'])) {
+        if ($hasTwig) {
             $value = $this->twig($value, $this->variables, $mod['twig'], $mod['twig_has_replace'] ?? [], $replace);
+        }
+
+        if ($hasTwig && $hasQuote) {
+            foreach ($replace as &$replaceValue) {
+                $replaceValue = str_replace(array_values($replaceQuotes), array_keys($replaceQuotes), $replaceValue);
+            }
+            unset($replaceValue);
         }
 
         if ($atLeastOneReplacement
@@ -926,6 +978,8 @@ class MetaMapper extends AbstractPlugin
 
         $extractList = function (string $args, array $keys = []) use ($patternVars, $twigVars): array {
             $matches = [];
+            // Args can be a string between double quotes, or a string between
+            // single quotes, or a positive/negative float number.
             preg_match_all('~\s*(?<args>' . $patternVars . '"[^"]*?"|\'[^\']*?\'|[+-]?(?:\d*\.)?\d+)\s*,?\s*~', $args, $matches);
             $args = array_map(function ($arg) use ($twigVars) {
                 // If this is a var, take it, else this is a string or a number,
