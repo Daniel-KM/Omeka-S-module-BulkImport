@@ -914,18 +914,21 @@ class Bulk extends AbstractPlugin
             'resource:itemset' => \Omeka\Entity\ItemSet::class,
             'resource:media' => \Omeka\Entity\Media::class,
             'resource:annotation' => \Annotate\Entity\Annotation::class,
+            'value_annotations' => \Omeka\Entity\ValueAnnotation::class,
             // Avoid a check and make the plugin more flexible.
             \Omeka\Api\Representation\AssetRepresentation::class => \Omeka\Entity\Asset::class,
             \Omeka\Api\Representation\ItemRepresentation::class => \Omeka\Entity\Item::class,
             \Omeka\Api\Representation\ItemSetRepresentation::class => \Omeka\Entity\ItemSet::class,
             \Omeka\Api\Representation\MediaRepresentation::class => \Omeka\Entity\Media::class,
             \Omeka\Api\Representation\ResourceReference::class => '',
+            \Omeka\Api\Representation\ValueAnnotationRepresentation::class => \Omeka\Entity\ValueAnnotation::class,
             \Annotate\Api\Representation\AnnotationRepresentation::class => \Annotate\Entity\Annotation::class,
             \Omeka\Entity\Asset::class => \Omeka\Entity\Asset::class,
             \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
             \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
             \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
             \Omeka\Entity\Resource::class => '',
+            \Omeka\Entity\ValueAnnotation::class => \Omeka\Entity\ValueAnnotation::class,
             \Annotate\Entity\Annotation::class => \Annotate\Entity\Annotation::class,
             'o:asset' => \Omeka\Entity\Asset::class,
             'o:item' => \Omeka\Entity\Item::class,
@@ -935,6 +938,8 @@ class Bulk extends AbstractPlugin
             'o:Item' => \Omeka\Entity\Item::class,
             'o:ItemSet' => \Omeka\Entity\ItemSet::class,
             'o:Media' => \Omeka\Entity\Media::class,
+            'o:Resource' => '',
+            'o:ValueAnnotation'=> \Omeka\Entity\ValueAnnotation::class,
             'o:Annotation' => \Annotate\Entity\Annotation::class,
             // Other resource types or badly written types.
             'asset' => \Omeka\Entity\Asset::class,
@@ -944,6 +949,7 @@ class Bulk extends AbstractPlugin
             'itemset' => \Omeka\Entity\ItemSet::class,
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
+            'value-annotation'=> \Omeka\Entity\ValueAnnotation::class,
             'annotation' => \Annotate\Entity\Annotation::class,
         ];
         return $entityClasses[$name] ?? null;
@@ -957,6 +963,8 @@ class Bulk extends AbstractPlugin
             \Omeka\Entity\Item::class => 'item',
             \Omeka\Entity\ItemSet::class => 'item_set',
             \Omeka\Entity\Media::class => 'media',
+            \Omeka\Entity\ValueAnnotation::class => 'value_annotation',
+            \Annotate\Entity\Annotation::class => 'annotation',
         ];
         return $tableResources[$entityClass] ?? null;
     }
