@@ -35,7 +35,6 @@ use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
-
 use Log\Stdlib\PsrMessage;
 use SimpleXMLElement;
 
@@ -252,10 +251,10 @@ class MetaMapperConfig
     /**
      * @return bool|PsrMessage
      */
-    public function hasConfigError(?string $name = null)
+    public function hasError(?string $name = null)
     {
         $config = $this->getMapping($name);
-        return is_null($config)
+        return $config === null
             ? true
             : $config['has_error'];
     }
@@ -309,7 +308,7 @@ class MetaMapperConfig
         return $metaConfig[$section][$name][$subName] ?? $default;
     }
 
-    public function getNameCurrent(): ?string
+    public function getCurrentMappingName(): ?string
     {
         return $this->configName;
     }

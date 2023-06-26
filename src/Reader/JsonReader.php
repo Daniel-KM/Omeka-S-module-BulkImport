@@ -216,7 +216,7 @@ class JsonReader extends AbstractPaginatedReader
         $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
 
         // TODO Check error. See resource processor / prepareMetaConfig().
-        if ($this->metaMapperConfig->hasConfigError()) {
+        if ($this->metaMapperConfig->hasError()) {
             return $this;
         }
 

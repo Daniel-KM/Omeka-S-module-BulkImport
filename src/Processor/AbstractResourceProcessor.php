@@ -517,7 +517,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->metadataData['meta_mapper_config']
         );
 
-        $error = $this->metaMapperConfig->hasConfigError();
+        $error = $this->metaMapperConfig->hasError();
         if ($error) {
             ++$this->totalErrors;
             if ($error === true) {

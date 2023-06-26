@@ -321,7 +321,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
                 $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
 
-                if ($this->metaMapperConfig->hasConfigError()) {
+                if ($this->metaMapperConfig->hasError()) {
                     return $this;
                 }
 
