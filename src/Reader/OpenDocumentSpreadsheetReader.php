@@ -465,7 +465,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $index = $sheet->getIndex();
             $this->availableFieldsMultiSheets[$index] = $this->cleanData($row->toArray());
         }
-        $this->availableFields = array_values(array_unique(array_merge(...$this->availableFieldsMultiSheets)));
+        $this->availableFields = array_values(array_unique(array_merge(...array_values($this->availableFieldsMultiSheets))));
         $this->initializeReader();
         return $this;
     }
@@ -517,7 +517,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             // The data should be cleaned, since it's not an entry.
             $this->availableFieldsMultiSheets[$sheet->getIndex()] = $this->cleanData($fields);
         }
-        $this->availableFields = array_values(array_unique(array_merge(...$this->availableFieldsMultiSheets)));
+        $this->availableFields = array_values(array_unique(array_merge(...array_values($this->availableFieldsMultiSheets))));
         $this->initializeReader();
         return $this;
     }
