@@ -171,7 +171,7 @@ class MetaMapper
     public function getCurrentConfig(): ?array
     {
         return $this->metaMapperConfig
-            ? $this->metaMapperConfig->__invoke()->getMergedConfig($this->metaMapperConfigName)
+            ? $this->metaMapperConfig->__invoke()->getMapping($this->metaMapperConfigName)
             : null;
     }
 
@@ -220,7 +220,7 @@ class MetaMapper
         }
         if (empty($map) && !empty($this->metaMapperConfig)) {
             $name = $options['config_name'] ?? $this->metaMapperConfigName ?? null;
-            $map = $this->metaMapperConfig->getMergedConfig($name) ?: [];
+            $map = $this->metaMapperConfig->getMapping($name) ?? [];
         }
 
         // The map should be well configured: an empty string must be null.

@@ -224,7 +224,7 @@ class MetaMapperConfig
         $this->setName($name);
 
         if (is_null($config)) {
-            return $this->getMergedConfig();
+            return $this->getMapping();
         }
 
         // The config is not overridable.
@@ -232,24 +232,21 @@ class MetaMapperConfig
             $this->prepareConfig($config, $options);
         }
 
-        return $this->getMergedConfig($name);
+        return $this->getMapping($name);
     }
 
-    public function getMergedConfig(?string $name = null): ?array
+    /**
+     * @todo Recusively merge configs.
+     */
+    public function getMapping(?string $name = null, bool $base = false): ?array
     {
-        $config = $this->getSimpleConfig($name);
-        if (is_null($config)) {
-            return null;
+        $config = $this->configs[$name ?? $this->configName] ?? null;
+        if ($config === null || $base) {
+            return $config;
         }
 
-        // TODO Recusively merge configs.
-
+        // TODO Recursively merge configs.
         return $config;
-    }
-
-    public function getSimpleConfig(?string $name = null): ?array
-    {
-        return $this->configs[$name ?? $this->configName] ?? null;
     }
 
     /**
@@ -257,7 +254,7 @@ class MetaMapperConfig
      */
     public function hasConfigError(?string $name = null)
     {
-        $config = $this->getMergedConfig($name);
+        $config = $this->getMapping($name);
         return is_null($config)
             ? true
             : $config['has_error'];
@@ -268,7 +265,7 @@ class MetaMapperConfig
      */
     public function getSection(string $section): array
     {
-        $metaConfig = $this->getMergedConfig() ?? [];
+        $metaConfig = $this->getMapping() ?? [];
         return $metaConfig[$section] ?? [];
     }
 
@@ -284,7 +281,7 @@ class MetaMapperConfig
      */
     public function getSectionSetting(string $section, string $name, $default = null)
     {
-        $metaConfig = $this->getMergedConfig() ?? [];
+        $metaConfig = $this->getMapping() ?? [];
 
         if (!isset($metaConfig[$section])) {
             return $default;
@@ -308,7 +305,7 @@ class MetaMapperConfig
      */
     public function getSectionSettingSub(string $section, string $name, string $subName, $default = null)
     {
-        $metaConfig = $this->getMergedConfig() ?? [];
+        $metaConfig = $this->getMapping() ?? [];
         return $metaConfig[$section][$name][$subName] ?? $default;
     }
 

@@ -980,8 +980,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
-        $mergedConfig = $this->metaMapperConfig->getMergedConfig($mainResourceName);
-        return is_null($mergedConfig)
+        $mapping = $this->metaMapperConfig->getMapping($mainResourceName);
+        return $mapping === null
             ? $this->processEntryFromReader($entry)
             : $this->processEntryFromProcessor($entry);
     }
@@ -1043,7 +1043,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource['messageStore']->clearMessages();
 
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
-        $metaConfig = $this->metaMapperConfig->getMergedConfig($mainResourceName);
+        $metaConfig = $this->metaMapperConfig->getMapping($mainResourceName);
 
         foreach (['default', 'mapping'] as $section) foreach ($metaConfig[$section] as $map) {
             if (empty($map)

@@ -51,8 +51,8 @@ class XmlEntry extends BaseEntry
 
         /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $metaMapper->getConfig();
-        if (!$metaMapperConfig->getMergedConfig()) {
-            $this->extractWithoutMetaConfig($simpleData, $namespaces);
+        if (!$metaMapperConfig->getMapping()) {
+            $this->extractWithoutMapping($simpleData, $namespaces);
             return;
         }
 
@@ -88,7 +88,7 @@ class XmlEntry extends BaseEntry
     /**
      * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
      */
-    protected function extractWithoutMetaConfig($simpleData, $namespaces)
+    protected function extractWithoutMapping($simpleData, $namespaces)
     {
         $array = $this->attributes($simpleData);
 
