@@ -31,9 +31,9 @@ trait ThesaurusTrait
             // New thesaurus.
             'label' => 'Thesaurus',
             // TODO Fix singular/plural for internal thesaurus data.
-            // The source, main name and the source are the same, but in some
-            // cases, one is plural and the other one is singular.
-            'mapping_name' => 'concepts',
+            // The mapping source, main name and the source are the same, but in
+            // some cases, one is plural and the other one is singular.
+            'mapping_source' => 'concepts',
             'main_name' => 'concept',
             // Data from the source.
             'source' => 'concept',
@@ -63,7 +63,7 @@ trait ThesaurusTrait
     protected function prepareThesaurus(): void
     {
         $config = $this->thesaurusConfigs[$this->configThesaurus];
-        $mappingName = $config['mapping_name'];
+        $mappingName = $config['mapping_source'];
         $mainName = $config['main_name'];
 
         $name = $config['label'] ?: sprintf('Thesaurus %s (%s)', $this->resourceLabel, $this->currentDateTimeFormatted); // @translate;
@@ -202,7 +202,7 @@ trait ThesaurusTrait
         $config = $this->thesaurusConfigs[$this->configThesaurus];
 
         $label = $config['label'];
-        $mappingName = $config['mapping_name'];
+        $mappingName = $config['mapping_source'];
         $mainName = $config['main_name'];
 
         if (!isset($this->map[$mappingName])) {
@@ -342,7 +342,7 @@ trait ThesaurusTrait
     protected function fillConceptProcess(array $source): void
     {
         $config = $this->thesaurusConfigs[$this->configThesaurus];
-        $mappingName = $config['mapping_name'];
+        $mappingName = $config['mapping_source'];
         $mainName = $config['main_name'];
 
         $keyId = $config['key_id'];

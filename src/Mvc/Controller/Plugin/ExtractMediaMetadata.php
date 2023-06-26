@@ -8,7 +8,6 @@ if (!class_exists(\JamesHeinrich\GetID3\GetId3::class)) {
 }
 
 use BulkImport\Stdlib\MetaMapper;
-use BulkImport\Stdlib\MetaMapperConfig;
 use JamesHeinrich\GetID3\GetId3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -29,11 +28,6 @@ class ExtractMediaMetadata extends AbstractPlugin
      * @var \BulkImport\Stdlib\MetaMapper
      */
     protected $metaMapper;
-
-    /**
-     * @var \BulkImport\Stdlib\MetaMapperConfig
-     */
-    protected $metaMapperConfig;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\ExtractDataFromPdf
@@ -72,14 +66,12 @@ class ExtractMediaMetadata extends AbstractPlugin
     public function __construct(
         Logger $logger,
         MetaMapper $metaMapper,
-        MetaMapperConfig $metaMapperConfig,
         ExtractDataFromPdf $extractDataFromPdf,
         string $basePath,
         bool $logExtractedMetadata
     ) {
         $this->logger = $logger;
         $this->metaMapper = $metaMapper;
-        $this->metaMapperConfig = $metaMapperConfig;
         $this->extractDataFromPdf = $extractDataFromPdf;
         $this->basePath = $basePath;
         $this->logExtractedMetadata = $logExtractedMetadata;
@@ -110,22 +102,23 @@ class ExtractMediaMetadata extends AbstractPlugin
         // Prepare meta config.
         // Adapted from AbstractResourceProcessor.
         // TODO Merge with AbstractResourceProcessor.
-        $configName = 'module:json/file.' . str_replace('/', '_', $mediaType). '.jsdot.ini';
-        $metaConfig = $this->metaMapperConfig->__invoke($mediaType, $configName);
-        if ($metaConfig === null) {
+        // Here, the mapping reference is used as mapping name.
+        $mappingReference = 'module:json/file.' . str_replace('/', '_', $mediaType). '.jsdot.ini';
+        $mapping = $this->metaMapper->getMetaMapperConfig()->__invoke($mediaType, $mappingReference);
+        if ($mapping === null) {
             return null;
         }
 
-        if (!empty($metaConfig['has_error'])) {
-            if ($metaConfig['has_error'] === true) {
+        if (!empty($mapping['has_error'])) {
+            if ($mapping['has_error'] === true) {
                 $this->logger->err(new PsrMessage(
                     'Error in the mapping config "{name}".', // @translate
-                    ['name' => $configName]
+                    ['name' => $mappingReference]
                 ));
             } else {
                 $this->logger->err(new PsrMessage(
                     'Error in the mapping config: {message}', // @translate
-                    ['message' => $metaConfig['has_error']]
+                    ['message' => $mapping['has_error']]
                 ));
             }
             return null;
@@ -151,7 +144,7 @@ class ExtractMediaMetadata extends AbstractPlugin
             ));
         }
 
-        $resource = $this->metaMapper->__invoke($this->metaMapperConfig, $configName)->convert($data);
+        $resource = $this->metaMapper->__invoke($mappingReference)->convert($data);
         return $resource;
     }
 }

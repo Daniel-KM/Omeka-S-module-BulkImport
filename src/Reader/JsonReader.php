@@ -130,10 +130,10 @@ class JsonReader extends AbstractPaginatedReader
         // Sometime, resource data should be sub-fetched: the current data may
         // be incomplete or used only for a quick listing (see content-dm, or
         // even Omeka for item medias or linked resources).
-        $resourceUrl = $this->metaMapperConfig->getSectionSetting('params', 'resource_url');
+        $resourceUrl = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'resource_url');
         if ($resourceUrl) {
             $resourceUrl = $this->metaMapper
-                ->setVariables($this->metaMapperConfig->getSection('params'))
+                ->setVariables($this->metaMapper->getMetaMapperConfig()->getSection('params'))
                 ->convertToString('params', 'resource_url', $current);
             $this->metaMapper->setVariable('url_resource', $resourceUrl);
             if (!$this->listFiles) {
@@ -198,7 +198,7 @@ class JsonReader extends AbstractPaginatedReader
         // TODO The name of the meta config is always "resources" or "assets".
         $mappingConfig = $this->getParam('mapping_config')
             ?: ($this->getConfigParam('mapping_config') ?: null);
-        $this->metaMapperConfig->__invoke(
+        $this->metaMapper->getMetaMapperConfig(
             'resources',
             $mappingConfig,
             // See resource processor / prepareMetaConfig().
@@ -213,21 +213,21 @@ class JsonReader extends AbstractPaginatedReader
             ]
         );
 
-        $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
+        $this->metaMapper->__invoke('resources');
 
         // TODO Check error. See resource processor / prepareMetaConfig().
-        if ($this->metaMapperConfig->hasError()) {
+        if ($this->metaMapper->getMetaMapperConfig()->hasError()) {
             return $this;
         }
 
         // FIXME "import params" and "params" are different (import params are dynamic).
 
         // Prepare specific data for the reader.
-        $this->endpoint = $this->metaMapperConfig->getSectionSetting('params', 'endpoint') ?: $this->getParam('url');
+        $this->endpoint = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'endpoint') ?: $this->getParam('url');
 
         // To manage complex pagination mechanism, the url can be transformed.
-        $this->path = $this->metaMapperConfig->getSectionSetting('params', 'path') ?: null;
-        $this->subpath = $this->metaMapperConfig->getSectionSetting('params', 'subpath') ?: null;
+        $this->path = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'path') ?: null;
+        $this->subpath = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'subpath') ?: null;
 
         // @todo Use a paginated iterator. See XmlReader.
         // Manage a simple list of url/filepath to json.
@@ -303,7 +303,7 @@ class JsonReader extends AbstractPaginatedReader
             return;
         }
 
-        $resourcesRoot = $this->metaMapperConfig->getSectionSetting('params', 'resources_root');
+        $resourcesRoot = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'resources_root');
         if ($resourcesRoot) {
             $json = $this->metaMapper->extractSubValue($json, $resourcesRoot, []);
             if (!is_array($json)) {
@@ -311,7 +311,7 @@ class JsonReader extends AbstractPaginatedReader
             }
         }
 
-        $resourceSingle = $this->metaMapperConfig->getSectionSetting('params', 'resource_single');
+        $resourceSingle = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'resource_single');
         if ($resourceSingle) {
             $json = [$json];
         }
@@ -361,8 +361,8 @@ class JsonReader extends AbstractPaginatedReader
     protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
     {
         // TODO Manage pagination query that is not "page".
-        if ($page && $this->metaMapperConfig->getSectionSetting('params', 'pagination')) {
-            $vars = $this->metaMapperConfig->getSection('params');
+        if ($page && $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'pagination')) {
+            $vars = $this->metaMapper->getMetaMapperConfig()->getSection('params');
             $vars['url'] = $this->getParam('url');
             if (!is_null($path)) {
                 $vars['path'] = $path;
@@ -371,7 +371,7 @@ class JsonReader extends AbstractPaginatedReader
                 $vars['subpath'] = $subpath;
             }
             $vars['page'] = $page;
-            $url = $this->metaMapper->setVariables($vars)->convertToString('params', 'pagination');
+            $url = $this->metaMapper->setVariables($vars)->convertToString('params', 'pagination', null);
         } else {
             if ($page) {
                 $params['page'] = $page;

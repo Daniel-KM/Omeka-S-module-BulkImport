@@ -76,7 +76,7 @@ class SpreadsheetEntry extends BaseEntry
         }
         // TODO Pass the entry to set the context for complex transformation.
         foreach ($values as &$value) {
-            $value = $this->metaMapper->convertString($value, $map, $this->options);
+            $value = $this->metaMapper->convertString($value, $map);
         }
         return $values;
     }

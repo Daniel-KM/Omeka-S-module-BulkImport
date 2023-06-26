@@ -943,7 +943,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 ],
                 // New thesaurus.
                 'label' => 'Thesaurus ' . $sourceId,
-                'mapping_name' => 'concepts_' . $sourceId,
+                'mapping_source' => 'concepts_' . $sourceId,
                 'main_name' => 'concepts_' . $sourceId,
                 // Data from the source.
                 'source' => 'subject',

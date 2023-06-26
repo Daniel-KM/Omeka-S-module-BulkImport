@@ -44,11 +44,6 @@ class BaseEntry implements Entry
      */
     protected $metaMapper;
 
-    /**
-     * @var \BulkImport\Stdlib\MetaMapperConfig|null
-     */
-    protected $metaMapperConfig;
-
     public function __construct($data, int $index, array $fields, array $options = [])
     {
         $this->data = $data;
@@ -66,10 +61,6 @@ class BaseEntry implements Entry
 
         if (!empty($this->options['metaMapper'])) {
             $this->metaMapper = $this->options['metaMapper'];
-        }
-
-        if (!empty($this->options['metaMapperConfig'])) {
-            $this->metaMapperConfig = $this->options['metaMapperConfig'];
         }
 
         if (is_null($this->data)) {

@@ -302,7 +302,7 @@ class ResourceProcessor extends AbstractResourceProcessor
      *
      * @see \BulkImport\Processor\AssetProcessor::prepareMapping()
      * Note: The metaconfig is already prepared in prepareMetaConfig().
-     * @deprecated Use MetaMapperConfig.
+     * @deprecated Use MetaMapperConfig directly.
      */
     protected function prepareMapping(): self
     {
@@ -313,21 +313,21 @@ class ResourceProcessor extends AbstractResourceProcessor
             if ($mappingConfig) {
                 $isPrepared = true;
                 $mapping = [];
-                $this->metaMapperConfig->__invoke(
+                $this->metaMapper->getMetaMapperConfig(
                     'resources',
                     $mappingConfig,
                     $this->metadataData['meta_mapper_config']
                 );
 
-                $this->metaMapper->__invoke($this->metaMapperConfig, 'resources');
+                $this->metaMapper->__invoke('resources');
 
-                if ($this->metaMapperConfig->hasError()) {
+                if ($this->metaMapper->getMetaMapperConfig()->hasError()) {
                     return $this;
                 }
 
                 $mappingSource = array_merge(
-                    $this->metaMapperConfig->getSection('default'),
-                    $this->metaMapperConfig->getSection('maps')
+                    $this->metaMapper->getMetaMapperConfig()->getSection('default'),
+                    $this->metaMapper->getMetaMapperConfig()->getSection('maps')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.

@@ -30,7 +30,7 @@ class JsonEntry extends BaseEntry
         // The real resource type is set via config or via processor.
         $resource = $metaMapper->convert($this->data);
 
-        $importMedia = $metaMapper->getSectionSetting('params', 'import_media');
+        $importMedia = $metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'import_media');
         if (in_array($importMedia, ['1', true, 'true'])) {
             $resource = $this->appendMedias($resource);
         }
@@ -48,7 +48,7 @@ class JsonEntry extends BaseEntry
     {
         /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
         $metaMapper = $this->options['metaMapper'];
-        $mediaUrlMode = $metaMapper->getSectionSetting('params', 'media_url_mode');
+        $mediaUrlMode = $metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'media_url_mode');
         if (!$mediaUrlMode) {
             return $resource;
         }

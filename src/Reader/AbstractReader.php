@@ -31,11 +31,6 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $metaMapper;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapperConfig|null
-     */
-    protected $metaMapperConfig;
-
-    /**
      * This is the base path of the files, not the base path of the url.
      *
      * @var string
@@ -132,7 +127,6 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $this->metaMapper = $services->get('Bulk\MetaMapper');
-        $this->metaMapperConfig = $services->get('Bulk\MetaMapperConfig');
     }
 
     public function getLabel(): string
@@ -274,10 +268,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
             $this->currentData,
             $this->key(),
             $this->availableFields,
-            $this->getParams() + [
-                'metaMapper' => $this->metaMapper,
-                'metaMapperConfig' => $this->metaMapperConfig,
-            ]
+            $this->getParams() + ['metaMapper' => $this->metaMapper]
         );
     }
 

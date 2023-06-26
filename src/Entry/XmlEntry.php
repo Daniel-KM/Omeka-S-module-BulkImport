@@ -49,15 +49,10 @@ class XmlEntry extends BaseEntry
         // Fix issue with cdata (no: it will escape html tags).
         $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
 
-        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
-        $metaMapperConfig = $metaMapper->getConfig();
-        if (!$metaMapperConfig->getMapping()) {
+        if (!$metaMapper->getMapping()) {
             $this->extractWithoutMapping($simpleData, $namespaces);
             return;
         }
-
-        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
-        $metaMapper = $this->options['metaMapper'];
 
         // TODO Manage multiple resources inside one file.
         // Remove wrapper to keep mapping simple with xpath adapted to source.

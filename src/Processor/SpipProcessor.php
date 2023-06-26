@@ -313,17 +313,17 @@ class SpipProcessor extends AbstractFullProcessor
     protected $thesaurusConfigs = [
         'concepts' => [
             'label' => 'Thesaurus',
-            'mapping_name' => 'concepts',
+            'mapping_source' => 'concepts',
             'main_name' => 'concept',
         ],
         'groupes_mots' => [
             'label' => 'Mots-clés',
-            'mapping_name' => 'groupes_mots',
+            'mapping_source' => 'groupes_mots',
             'main_name' => 'groupe_mot',
         ],
         'mots' => [
             'label' => 'Mots-clés',
-            'mapping_name' => 'mots',
+            'mapping_source' => 'mots',
             'main_name' => 'mot',
         ],
     ];

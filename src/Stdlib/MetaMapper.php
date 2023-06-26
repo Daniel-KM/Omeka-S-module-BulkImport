@@ -93,7 +93,7 @@ class MetaMapper
     protected $mappingName;
 
     /**
-     * @todo Improve management of variables with metaMapperConfig.
+     * @todo Improve management of variables with metaMapperConfig. Or separate clearly options and variables.
      *
      * @var array
      */
@@ -119,10 +119,11 @@ class MetaMapper
     /**
      * Get this meta mapper.
      */
-    public function __invoke(?string $configName = null): self
+    public function __invoke(?string $mappingName = null): self
     {
-        if ($configName) {
-            $this->setConfigName($configName);
+        if ($mappingName) {
+            $this->mappingName = $mappingName;
+            $this->metaMapperConfig->__invoke($mappingName);
         }
         return $this;
     }
@@ -133,29 +134,19 @@ class MetaMapper
     }
 
     /**
-     * Set meta mapper config name if any.
+     * Get meta mapper config name.
      */
-    public function setConfigName(?string $configName): self
-    {
-        $this->mappingName = $configName;
-        $this->metaMapperConfig->__invoke($configName);
-        return $this;
-    }
-
-    /**
-     * Get meta mapper config name if any.
-     */
-    public function getConfigName(): ?string
+    public function getMappingName(): ?string
     {
         return $this->mappingName;
     }
 
     /**
-     * Get current meta mapper config name if any.
+     * Get current meta mapper mapping if any.
      */
-    public function getCurrentConfig(): ?array
+    public function getMapping(): ?array
     {
-        return $this->metaMapperConfig->__invoke()->getMapping($this->mappingName);
+        return $this->metaMapperConfig->__invoke($this->mappingName);
     }
 
     public function setVariables(array $variables): self
@@ -181,7 +172,7 @@ class MetaMapper
     }
 
     /**
-     * Convert a string with a map.
+     * Directly convert a string with a map without a meta mapping.
      *
      * The string is generally extracted from a source via a mapping.
      * Warning: Here, the conversion cannot use another data from the source.
@@ -191,25 +182,22 @@ class MetaMapper
      * @see \BulkImport\Entry/SpreadsheetEntry
      *
      * @todo Make Spreadsheet uses MetaMapperConfig.
-     * @todo Manage more options.
      */
-    public function convertString(?string $value, array $map = [], array $options = []): string
+    public function convertString(?string $value, array $map = []): string
     {
         if (is_null($value)) {
             return '';
         }
+
         if (empty($map['mod'])) {
             return $value;
-        }
-        if (empty($map) && !empty($this->metaMapperConfig)) {
-            $name = $options['config_name'] ?? $this->mappingName ?? null;
-            $map = $this->metaMapperConfig->getMapping($name) ?? [];
         }
 
         // The map should be well configured: an empty string must be null.
         if (isset($map['mod']['raw'])) {
             return $map['mod']['raw'];
         }
+
         if (isset($map['mod']['val'])) {
             return $map['mod']['val'];
         }
@@ -221,30 +209,18 @@ class MetaMapper
     }
 
     /**
-     * Convert data (array or xml) into new data (array) applying a meta config.
+     * Convert array or xml into new data (array) applying current mapping.
      *
-     * Currently only used with ExtractMediaMetadata.
-     * @see \BulkImport\Mvc\Controller\Plugin\ExtractMediaMetadata
-     *
-     * @todo Manage more options.
+     * @param array|SimpleXMLElement $data
      */
-    public function convert($data, ?string $configName = null, array $options = []): array
+    public function convert($data): array
     {
-        if (empty($this->metaMapperConfig)) {
+        $mapping = $this->metaMapperConfig->__invoke($this->mappingName);
+        if (!$mapping) {
             return [];
         }
 
         $result = [];
-
-        if (empty($configName)) {
-            $configName = $options['config_name'] ?? $this->mappingName ?? null;
-        }
-        $this->setConfigName($configName);
-
-        $metaConfig = $this->metaMapperConfig->__invoke($configName);
-        if (!$metaConfig) {
-            return [];
-        }
 
         if (is_array($data)) {
             $result = $this->convertMappingSectionJson('default', $result, $data, true);
@@ -268,10 +244,6 @@ class MetaMapper
      */
     protected function convertMappingSectionJson(string $section, array $resource, ?array $data, bool $isDefaultSection = false): array
     {
-        if (empty($this->metaMapperConfig)) {
-            return [];
-        }
-
         // Only sections "default" and "mapping" are a mapping.
         $isMapping = $this->metaMapperConfig->getSectionSettingSub('options', 'section_types', $section) === 'mapping';
         if (!$isMapping) {
@@ -407,12 +379,8 @@ class MetaMapper
      * @param bool $isDefaultSection When true, the target value "to" is added
      * to the resource without using data.
      */
-    protected function convertMappingSectionXml(string $section, array $resource, \SimpleXMLElement $xml, bool $isDefaultSection = false): array
+    protected function convertMappingSectionXml(string $section, array $resource, SimpleXMLElement $xml, bool $isDefaultSection = false): array
     {
-        if (empty($this->metaMapperConfig)) {
-            return [];
-        }
-
         // Only sections "default" and "mapping" are a mapping.
         $isMapping = $this->metaMapperConfig->getSectionSettingSub('options', 'section_types', $section) === 'mapping';
         if (!$isMapping) {
@@ -492,18 +460,20 @@ class MetaMapper
     }
 
     /**
-     * Convert a single field into a string.
+     * Convert a single field into a string with the configured mapping.
      *
      * @todo Check if "raw" and "val" should be used.
+     *
+     * @param array|SimpleXMLElement|null $data
      */
-    public function convertToString(string $section, string $name, $data = null): ?string
+    public function convertToString(string $section, string $name, $data): ?string
     {
         // Note: for section type "mapping", the output is the whole setting
         // including "from", "to" and "mod".
-        $fromToMod = $this->getSectionSetting($section, $name);
+        $fromToMod = $this->metaMapperConfig->getSectionSetting($section, $name);
         if (!$fromToMod) {
             return null;
-        } elseif ($data instanceof \SimpleXMLElement) {
+        } elseif ($data instanceof SimpleXMLElement) {
             return $this->convertTargetToStringXml($name, $fromToMod, $data, null, true);
         }
 
@@ -656,7 +626,7 @@ class MetaMapper
         // replacement is done in all cases.
         foreach ($this->variables as $name => $value) {
             // Normally never a xml.
-            if ($value instanceof \DOMNode) {
+            if ($value instanceof DOMNode) {
                 $replace["{{ $name }}"] = (string) $value->nodeValue;
             } elseif (is_scalar($value)) {
                 $replace["{{ $name }}"] = $value;
@@ -782,9 +752,9 @@ class MetaMapper
             $first = null;
         } elseif (is_scalar($fromValue)) {
             $first = (string) $fromValue;
-        } elseif ($fromValue instanceof \DOMNode) {
+        } elseif ($fromValue instanceof DOMNode) {
             $first = $fromValue;
-        } elseif ($fromValue instanceof \SimpleXMLElement) {
+        } elseif ($fromValue instanceof SimpleXMLElement) {
             // Not used any more. SimpleXml doesn't support context or subquery.
             $first = (string) $fromValue[0];
         } else {
@@ -795,9 +765,9 @@ class MetaMapper
         $this->setVariable('value', $first);
 
         $keepXmlData = function ($content): string {
-            if ($content instanceof \DOMNode) {
+            if ($content instanceof DOMNode) {
                 return (string) $content->C14N();
-            } elseif ($content instanceof \SimpleXMLElement) {
+            } elseif ($content instanceof SimpleXMLElement) {
                 return (string) $content->saveXML();
             }
             return (string) $content;
@@ -807,7 +777,7 @@ class MetaMapper
             if ($keepXmlContent) {
                 return $keepXmlData($fromValue);
             }
-            return $first instanceof \DOMNode ? (string) $first->nodeValue : (string) $first;
+            return $first instanceof DOMNode ? (string) $first->nodeValue : (string) $first;
         }
 
         if ($mod['pattern'] === '{{ xml }}') {
@@ -838,10 +808,10 @@ class MetaMapper
                         continue;
                     }
                     $query = mb_substr($wrappedQuery, 2, -2);
-                    $answer = $this->xpathQuery($data, $query, $first instanceof \DOMNode ? $first : null);
+                    $answer = $this->xpathQuery($data, $query, $first instanceof DOMNode ? $first : null);
                     if (count($answer)) {
                         $firstAnswer = reset($answer);
-                        $replace[$wrappedQuery] = $firstAnswer instanceof \DOMNode
+                        $replace[$wrappedQuery] = $firstAnswer instanceof DOMNode
                             ? (string) $firstAnswer->nodeValue
                             : (string) $firstAnswer;
                     } else {
@@ -857,7 +827,7 @@ class MetaMapper
         // Note that there are exceptions in variables (value, list, label), so
         // replacement is done in all cases.
         foreach ($this->variables as $name => $value) {
-            if ($value instanceof \DOMNode) {
+            if ($value instanceof DOMNode) {
                 $replace["{{ $name }}"] = (string) $value->nodeValue;
             } elseif (is_scalar($value)) {
                 $replace["{{ $name }}"] = $value;
@@ -908,7 +878,7 @@ class MetaMapper
         }
 
         if ($atLeastOneReplacement
-            && !$this->checkAtLeastOneReplacement((string) ($fromValue instanceof \DOMNode ? $fromValue->nodeValue : $fromValue), $value, ['mod' => $mod])
+            && !$this->checkAtLeastOneReplacement((string) ($fromValue instanceof DOMNode ? $fromValue->nodeValue : $fromValue), $value, ['mod' => $mod])
         ) {
             return null;
         }
@@ -1132,7 +1102,7 @@ class MetaMapper
      */
     protected function xpathQuery($xml, string $query, ?DOMNode $contextNode = null): array
     {
-        if ($xml instanceof \SimpleXMLElement) {
+        if ($xml instanceof SimpleXMLElement) {
             /** @var \DOMElement $xml */
             $xml = dom_import_simplexml($xml);
             $doc = new DOMDocument();
