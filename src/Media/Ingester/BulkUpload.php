@@ -133,7 +133,7 @@ class BulkUpload implements IngesterInterface
         $browseDirectory = $translate('Select directory'); // @translate
         $wait = $view->translate('Wait before submission…'); // @translate
         $buttonPause = $data['data-translate-pause'];
-        $sortText = $translate('Sort'); // @translate
+        $sortText = $translate('Sort…'); // @translate
         // $sortDefault = $translate('Default'); // @translate
         $sortAscii = $translate('Simple'); // @translate
         $sortAlpha = $translate('Alphabetic'); // @translate
@@ -181,8 +181,8 @@ class BulkUpload implements IngesterInterface
 </div>
 <div class="field bulk-upload-actions">
     <div class="bulk-upload-actions-sort">
-        <select class="select-sort chosen-select" aria-label="$sortText" data-placeholder="{$sortText}…">
-            <option value="" selected="selected"></option>
+        <select class="select-sort chosen-select" aria-label="$sortText" data-placeholder="{$sortText}">
+            <option value="" selected="selected">{$sortText}</option>
             <option value="ascii">$sortAscii</option>
             <option value="alpha">$sortAlpha</option>
             <option value="ascii-path">$sortAsciiPath</option>

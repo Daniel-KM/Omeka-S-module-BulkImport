@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Service\Plugin;
+namespace BulkImport\Service;
 
 use Interop\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;

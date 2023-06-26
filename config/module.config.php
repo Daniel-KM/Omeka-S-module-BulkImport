@@ -5,8 +5,8 @@ namespace BulkImport;
 return [
     'service_manager' => [
         'factories' => [
-            Processor\Manager::class => Service\Plugin\PluginManagerFactory::class,
-            Reader\Manager::class => Service\Plugin\PluginManagerFactory::class,
+            Processor\Manager::class => Service\PluginManagerFactory::class,
+            Reader\Manager::class => Service\PluginManagerFactory::class,
         ],
     ],
     'entity_manager' => [

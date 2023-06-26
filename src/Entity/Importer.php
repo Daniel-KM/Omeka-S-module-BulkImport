@@ -200,7 +200,7 @@ class Importer extends AbstractEntity
     }
 
     /**
-     * @return Import[]
+     * @return Import[]|ArrayCollection
      */
     public function getImports(): ArrayCollection
     {

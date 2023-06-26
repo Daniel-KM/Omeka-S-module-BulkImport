@@ -75,11 +75,11 @@ class MetaMapperConfig extends AbstractPlugin
      * @var array
      */
     protected $configs = [
-        'ec58905619984f5c3dbb308c5556df58' => [
+        '_empty' => [
             'options' => [],
             'info' => [
                 // Label is the only required data.
-                'label' => 'Empty config', // @translate
+                'label' => 'Default empty config', // @translate
                 'querier' => null,
                 'mapper' => null,
                 'example' => null,
@@ -366,7 +366,7 @@ class MetaMapperConfig extends AbstractPlugin
             }
         }
 
-        $this->configs[$this->configName] = $normalizedConfig ?: $this->configs['ec58905619984f5c3dbb308c5556df58'];
+        $this->configs[$this->configName] = $normalizedConfig ?: $this->configs['_empty'];
         $this->configs[$this->configName]['options'] = $options;
         return $this;
     }
