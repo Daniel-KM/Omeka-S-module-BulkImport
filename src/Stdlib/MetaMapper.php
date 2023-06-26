@@ -90,7 +90,7 @@ class MetaMapper
     /**
      * @var string
      */
-    protected $metaMapperConfigName;
+    protected $mappingName;
 
     /**
      * @todo Improve management of variables with metaMapperConfig.
@@ -137,7 +137,7 @@ class MetaMapper
      */
     public function setConfigName(?string $configName): self
     {
-        $this->metaMapperConfigName = $configName;
+        $this->mappingName = $configName;
         $this->metaMapperConfig->__invoke($configName);
         return $this;
     }
@@ -147,7 +147,7 @@ class MetaMapper
      */
     public function getConfigName(): ?string
     {
-        return $this->metaMapperConfigName;
+        return $this->mappingName;
     }
 
     /**
@@ -155,7 +155,7 @@ class MetaMapper
      */
     public function getCurrentConfig(): ?array
     {
-        return $this->metaMapperConfig->__invoke()->getMapping($this->metaMapperConfigName);
+        return $this->metaMapperConfig->__invoke()->getMapping($this->mappingName);
     }
 
     public function setVariables(array $variables): self
@@ -202,7 +202,7 @@ class MetaMapper
             return $value;
         }
         if (empty($map) && !empty($this->metaMapperConfig)) {
-            $name = $options['config_name'] ?? $this->metaMapperConfigName ?? null;
+            $name = $options['config_name'] ?? $this->mappingName ?? null;
             $map = $this->metaMapperConfig->getMapping($name) ?? [];
         }
 
@@ -237,7 +237,7 @@ class MetaMapper
         $result = [];
 
         if (empty($configName)) {
-            $configName = $options['config_name'] ?? $this->metaMapperConfigName ?? null;
+            $configName = $options['config_name'] ?? $this->mappingName ?? null;
         }
         $this->setConfigName($configName);
 
