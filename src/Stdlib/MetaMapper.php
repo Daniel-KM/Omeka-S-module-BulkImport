@@ -248,10 +248,10 @@ class MetaMapper
 
         if (is_array($data)) {
             $result = $this->convertMappingSectionJson('default', $result, $data, true);
-            $result = $this->convertMappingSectionJson('mapping', $result, $data);
+            $result = $this->convertMappingSectionJson('maps', $result, $data);
         } elseif ($data instanceof SimpleXMLElement) {
             $result = $this->convertMappingSectionXml('default', $result, $data, true);
-            $result = $this->convertMappingSectionXml('mapping', $result, $data);
+            $result = $this->convertMappingSectionXml('maps', $result, $data);
         }
 
         return $result;

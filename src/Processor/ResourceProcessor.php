@@ -327,7 +327,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
                 $mappingSource = array_merge(
                     $this->metaMapperConfig->getSection('default'),
-                    $this->metaMapperConfig->getSection('mapping')
+                    $this->metaMapperConfig->getSection('maps')
                 );
                 foreach ($mappingSource as $fromTo) {
                     // The from is useless here, the entry takes care of it.

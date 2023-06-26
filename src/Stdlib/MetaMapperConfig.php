@@ -86,8 +86,9 @@ class MetaMapperConfig
                 'example' => null,
             ],
             'params' => [],
+            // TODO Merge default and maps by a setting in the maps.
             'default' => [],
-            'mapping' => [],
+            'maps' => [],
             // List of tables (associative arrays) indexed by their name.
             'tables' => [],
             // May be a boolean or a message.
@@ -127,9 +128,10 @@ class MetaMapperConfig
      *
      * A config contains four sections:
      * - info: label, base mapper if any, querier to use, example of source;
-     * - params: what to import (metadata or files) and constants and tables;
+     * - params: what to import (metadata or files) and constants;
      * - default: default maps when creating resources, for example the owner;
-     * - mapping: the maps to use for the import.
+     * - maps: the maps to use for the import.
+     * Some other sections are available (passed options, tables, has_error).
      *
      * Each map is based on a source and a destination, eventually modified.
      * So the internal representation of the maps is:
@@ -204,6 +206,8 @@ class MetaMapperConfig
      *
      * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}.
      *
+     * @todo Merge default and maps by a setting in the maps.
+     *
      * @param string $name The name of the config to get or to set. It is not
      *   overridable once built.
      * @param mixed $config
@@ -273,8 +277,8 @@ class MetaMapperConfig
      *
      * Only the settings for the namable sections can be get, of course.
      *
-     * For sections "mapping", the name is the "from" path and all the setting
-     * is output.
+     * For sections with type "mapping", the name is the "from" path and all the
+     * setting is output.
      *
      * @todo Remove the exception for mapping.
      */
@@ -333,7 +337,7 @@ class MetaMapperConfig
             'info' => 'raw',
             'params' => 'raw_or_pattern',
             'default' => 'mapping',
-            'mapping' => 'mapping',
+            'maps' => 'mapping',
         ];
 
         // Check for a normalized config.
@@ -353,7 +357,7 @@ class MetaMapperConfig
 
         // Validate config as a whole for default and maping.
         if ($normalizedConfig) {
-            foreach (['default', 'mapping'] as $section) {
+            foreach (['default', 'maps'] as $section) {
                 if (!$this->isValidMapping($normalizedConfig[$section], $options)) {
                     $this->logger->warn(
                         'Config "{config_name}": invalid map in section "{section}".',
@@ -384,13 +388,13 @@ class MetaMapperConfig
             ],
             'params' => $options['params'] ?? [],
             'default' => $options['default'] ?? [],
-            'mapping' => $config,
-            // TODO Options or config to store tables in config list (for spreadsheet)?
+            'maps' => $config,
+            // TODO Options or config to store tables in config list (for spreadsheet)? Or module Table.
             'tables' => $options['tables'] ?? [],
             'has_error' => false,
         ];
 
-        foreach (['default', 'mapping'] as $section) {
+        foreach (['default', 'maps'] as $section) {
             $options['section'] = $section;
             $normalizedConfig[$section] = $this->normalizeMapping($normalizedConfig[$section], $options);
         }
@@ -405,12 +409,12 @@ class MetaMapperConfig
      */
     protected function prepareConfigNormalized(array $config, array $options): array
     {
-        $normalizedConfig = array_intersect_key($config, array_flip(['info', 'params', 'default', 'mapping']));
+        $normalizedConfig = array_intersect_key($config, ['info' => [], 'params' => [], 'default' => [], 'maps' => []]);
         $normalizedConfig['has_error'] = false;
         if (!isset($config['info']) || !is_array($config['info'])
             || (array_key_exists('params', $config) && !is_array($config['params']))
             || (array_key_exists('default', $config) && !is_array($config['default']))
-            || (array_key_exists('mapping', $config) && !is_array($config['mapping']))
+            || (array_key_exists('maps', $config) && !is_array($config['maps']))
         ) {
             $this->logger->warn(
                 'Config "{config_name}": invalid provided config.',
@@ -433,7 +437,7 @@ class MetaMapperConfig
             ? $normalizedConfig['info']['example']
             : null;
 
-        foreach (['default', 'mapping'] as $section) {
+        foreach (['default', 'maps'] as $section) {
             $options['section'] = $section;
             $normalizedConfig[$section] = $this->normalizeMapping($normalizedConfig[$section], $options);
         }
@@ -546,7 +550,7 @@ class MetaMapperConfig
                 ],
                 'params' => [],
                 'default' => [],
-                'mapping' => $config,
+                'maps' => $config,
                 'tables' => [],
                 'has_error' => false,
             ];
@@ -647,7 +651,7 @@ class MetaMapperConfig
             ],
             'params' => [],
             'default' => [],
-            'mapping' => [],
+            'maps' => [],
             'tables' => [],
             'has_error' => false,
         ];
@@ -677,7 +681,7 @@ class MetaMapperConfig
         // This value allows to keep the original dest single.
         // @todo Remove [to][dest] and "k".
         $k = 0;
-        foreach (['default', 'mapping'] as $section) {
+        foreach (['default', 'maps'] as $section) {
             $isDefault = $section === 'default';
             // TODO Use an attribute or a sub-element ?
             $i = 0;

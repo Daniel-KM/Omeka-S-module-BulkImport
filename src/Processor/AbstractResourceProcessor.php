@@ -1045,7 +1045,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
         $metaConfig = $this->metaMapperConfig->getMapping($mainResourceName);
 
-        foreach (['default', 'mapping'] as $section) foreach ($metaConfig[$section] as $map) {
+        foreach (['default', 'maps'] as $section) foreach ($metaConfig[$section] as $map) {
             if (empty($map)
                 // Empty from, to and mod mean a map to skip.
                 || !array_filter($map)
