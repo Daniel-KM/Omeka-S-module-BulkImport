@@ -80,7 +80,7 @@ class MetaMapperConfig
             'options' => [],
             'info' => [
                 // Label is the only required data.
-                'label' => 'Default empty config', // @translate
+                'label' => 'Default empty mapping', // @translate
                 'querier' => null,
                 'mapper' => null,
                 'example' => null,
@@ -97,7 +97,7 @@ class MetaMapperConfig
     ];
 
     /**
-     * Name of the current config.
+     * Name of the current mapping.
      *
      * @var string
      */
@@ -120,13 +120,13 @@ class MetaMapperConfig
     }
 
     /**
-     * Prepare a config to simplify any import into Omeka and transform a source.
+     * Prepare a mapping to simplify any import into Omeka and transform source.
      *
-     * It can be used as headers of a spreadsheet, or in an import config, or to
-     * extract metadata from files json, or xml files, or for any file.
+     * It can be used as headers of a spreadsheet, or in an import mapping, or
+     * to extract metadata from files json, or xml files, or for any file.
      * It contains a list of mappings between source data and destination data.
      *
-     * A config contains four sections:
+     * A mapping contains four sections:
      * - info: label, base mapper if any, querier to use, example of source;
      * - params: what to import (metadata or files) and constants;
      * - default: default maps when creating resources, for example the owner;
@@ -169,9 +169,9 @@ class MetaMapperConfig
      * ]
      * ```
      *
-     * Such a config can be created from an array, a list of fields (for example
-     * headers of a spreadsheet), an ini-like or xml file, or stored in database
-     * as ini-like or xml. It can be based on another config.
+     * Such a mapping can be created from an array, a list of fields (for
+     * example headers of a spreadsheet), an ini-like or xml file, or stored in
+     * database as ini-like or xml. It can be based on another mapping.
      *
      * For example, the ini map for the map above is (except prepend/append,
      * that should be included in pattern):
@@ -201,8 +201,8 @@ class MetaMapperConfig
      * value with at least one replacement. So a pattern without replacements
      * (simple or twig) should be a "val".
      *
-     * Note that a ini config has a static querier (the same for all maps), but
-     * a xml config has a dynamic querier (set as attribute of element "from").
+     * Note that a ini mapping has a static querier (the same for all maps), but
+     * a xml mapping has a dynamic querier (set as attribute of element "from").
      *
      * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}.
      *
@@ -212,9 +212,9 @@ class MetaMapperConfig
      * If needed, another name should be used.
      *
      * @param string $mappingName The name of the mapping to get or to set.
-     * @param mixed $mapping Full mapping array or a string (file or name).
+     * @param array|string|null $mapping Full mapping or reference file or name.
      * @param array $options
-     * @return self|array The normalized config.
+     * @return self|array The normalized mapping.
      */
     public function __invoke(?string $mappingName = null, $mapping = null, array $options = [])
     {
@@ -314,7 +314,7 @@ class MetaMapperConfig
         return $metaMapping[$section][$name][$subName] ?? $default;
     }
 
-    public function getCurrentMappingName(): ?string
+    public function getMappingName(): ?string
     {
         return $this->mappingName;
     }
@@ -331,7 +331,7 @@ class MetaMapperConfig
      * Only this method should be used to prepare mappings. In particular, this
      * is the only one that store options.
      */
-    protected function prepareMapping($mapping, array $options): self
+    protected function prepareMapping($mappingOrReference, array $options): self
     {
         // This is not really useful, since this is not used anywhere, but it is
         // required to manage the exception of getSectionSetting().
@@ -342,27 +342,27 @@ class MetaMapperConfig
             'maps' => 'mapping',
         ];
 
-        // Check for a normalized config.
+        // Check for a normalized mapping.
         $normalizedMapping = null;
-        if (empty($mapping)) {
+        if (empty($mappingOrReference)) {
             // Nothing to do.
-        } elseif (is_array($mapping) && isset($mapping['info'])) {
-            $normalizedMapping = $this->prepareMappingNormalized($mapping, $options);
-        } elseif (is_array($mapping)) {
-            $normalizedMapping = $this->prepareMappingList($mapping, $options);
+        } elseif (is_array($mappingOrReference) && isset($mappingOrReference['info'])) {
+            $normalizedMapping = $this->prepareMappingNormalized($mappingOrReference, $options);
+        } elseif (is_array($mappingOrReference)) {
+            $normalizedMapping = $this->prepareMappingList($mappingOrReference, $options);
         } else {
-            $content = $this->prepareMappingContent($mapping);
+            $content = $this->prepareMappingContent($mappingOrReference);
             if ($content) {
                 $normalizedMapping = $this->prepareMappingFull($content, $options);
             }
         }
 
-        // Validate config as a whole for default and maping.
+        // Validate mapping as a whole for default and maping.
         if ($normalizedMapping) {
             foreach (['default', 'maps'] as $section) {
-                if (!$this->isValidMapping($normalizedMapping[$section], $options)) {
+                if (!$this->areValidMaps($normalizedMapping[$section])) {
                     $this->logger->warn(
-                        'Config "{mapping_name}": invalid map in section "{section}".',
+                        'Mapping "{mapping_name}": invalid map in section "{section}".',
                         ['mapping_name' => $this->mappingName, 'section' => $section]
                     );
                     $normalizedMapping['has_error'] = true;
@@ -391,14 +391,14 @@ class MetaMapperConfig
             'params' => $options['params'] ?? [],
             'default' => $options['default'] ?? [],
             'maps' => $maps,
-            // TODO Options or config to store tables in config list (for spreadsheet)? Or module Table.
+            // TODO Options or mapping to store tables in mapping list (for spreadsheet)? Or module Table.
             'tables' => $options['tables'] ?? [],
             'has_error' => false,
         ];
 
         foreach (['default', 'maps'] as $section) {
             $options['section'] = $section;
-            $normalizedMapping[$section] = $this->normalizeMapping($normalizedMapping[$section], $options);
+            $normalizedMapping[$section] = $this->normalizeMaps($normalizedMapping[$section], $options);
         }
 
         // TODO Merge with upper mappings.
@@ -407,7 +407,7 @@ class MetaMapperConfig
     }
 
     /**
-     * Check and store a ready-normalized config.
+     * Check and store a ready-normalized mapping.
      */
     protected function prepareMappingNormalized(array $mapping, array $options): array
     {
@@ -419,7 +419,7 @@ class MetaMapperConfig
             || (array_key_exists('maps', $mapping) && !is_array($mapping['maps']))
         ) {
             $this->logger->warn(
-                'Config "{mapping_name}": invalid provided config.',
+                'Mapping "{mapping_name}": invalid provided mapping.',
                 ['mapping_name' => $this->mappingName]
             );
             $normalizedMapping['has_error'] = true;
@@ -441,7 +441,7 @@ class MetaMapperConfig
 
         foreach (['default', 'maps'] as $section) {
             $options['section'] = $section;
-            $normalizedMapping[$section] = $this->normalizeMapping($normalizedMapping[$section], $options);
+            $normalizedMapping[$section] = $this->normalizeMaps($normalizedMapping[$section], $options);
         }
 
         return $normalizedMapping;
@@ -450,9 +450,9 @@ class MetaMapperConfig
     /**
      * Get the content of a file or a mapping from the reference.
      */
-    protected function prepareMappingContent(?string $mappingConfig, ?string $defaultPrefix = null, int $loop = 0): ?string
+    protected function prepareMappingContent(?string $reference, ?string $defaultPrefix = null, int $loop = 0): ?string
     {
-        if (empty($mappingConfig)) {
+        if (empty($reference)) {
             return null;
         }
 
@@ -463,8 +463,8 @@ class MetaMapperConfig
         ];
 
         $content = null;
-        if (mb_substr($mappingConfig, 0, 8) === 'mapping:') {
-            $mappingId = (int) mb_substr($mappingConfig, 8);
+        if (mb_substr($reference, 0, 8) === 'mapping:') {
+            $mappingId = (int) mb_substr($reference, 8);
             /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
             $bulkMapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
             if (!$bulkMapping) {
@@ -472,22 +472,22 @@ class MetaMapperConfig
             }
             $content = $bulkMapping->mapping();
         } else {
-            $filename = basename($mappingConfig);
+            $filename = basename($reference);
             if (empty($filename)) {
                 return null;
             }
 
-            if (strpos($mappingConfig, ':')) {
-                $prefix = strtok($mappingConfig, ':');
+            if (strpos($reference, ':')) {
+                $prefix = strtok($reference, ':');
             } else {
                 $prefix = $defaultPrefix;
-                $mappingConfig = $prefix . ':xml/' . $mappingConfig;
+                $reference = $prefix . ':xml/' . $reference;
             }
             if (!isset($prefixes[$prefix])) {
                 return null;
             }
 
-            $file = mb_substr($mappingConfig, strlen($prefix) + 1);
+            $file = mb_substr($reference, strlen($prefix) + 1);
             $filepath = $prefixes[$prefix] . $file;
             if (file_exists($filepath) && is_file($filepath) && is_readable($filepath) && filesize($filepath)) {
                 $content = trim((string) file_get_contents($filepath));
@@ -498,7 +498,7 @@ class MetaMapperConfig
             return null;
         }
 
-        // Xml config may include sub mappings, so merge them one time early.
+        // Xml mapping may include sub mappings, so merge them one time early.
         if (!mb_substr($content, 0, 1) === '<'
             || !mb_strpos($content, '<include')
         ) {
@@ -512,7 +512,7 @@ class MetaMapperConfig
 
         $doc = simplexml_load_string($content);
         $includes = $doc->xpath('//include[@mapping][@mapping != ""]');
-        $defaultPrefix = strtok($mappingConfig, ':') ?: $defaultPrefix;
+        $defaultPrefix = strtok($reference, ':') ?: $defaultPrefix;
         foreach ($includes as $include) {
             $subContent = $this->prepareMappingContent((string) $include['mapping'], $defaultPrefix, ++$loop);
             // TODO Use standard simple xml way to replace a node,
@@ -539,7 +539,7 @@ class MetaMapperConfig
      */
     protected function prepareMappingFull(string $mappingString, array $options): array
     {
-        // The config should be trimmed to check the first character.
+        // The mapping should be trimmed to check the first character.
         $mappingString = trim($mappingString);
         if (!strlen($mappingString)) {
             return [
@@ -573,8 +573,8 @@ class MetaMapperConfig
         $normalizedMapping = [];
 
         // This is not really useful, since this is not used anywhere.
-        $sectionsConfigTypes = $options['section_types'];
-        unset($sectionsConfigTypes['has_error']);
+        $sectionsTypes = $options['section_types'];
+        unset($sectionsTypes['has_error']);
 
         // Lines are trimmed. Empty lines are removed.
         $lines = $this->bulk->stringToList($mappingString);
@@ -603,7 +603,7 @@ class MetaMapperConfig
                     $section = null;
                     $normalizedMapping['has_error'] = new PsrMessage('A section should have a name.'); // @translate
                     continue;
-                } elseif (!isset($sectionsConfigTypes[$section])) {
+                } elseif (!isset($sectionsTypes[$section])) {
                     $section = null;
                     $normalizedMapping['has_error'] = new PsrMessage(
                         'The section "{name}" is not managed.', // @translate
@@ -613,7 +613,7 @@ class MetaMapperConfig
                 } else {
                     $normalizedMapping[$section] = [];
                 }
-                $sectionType = $sectionsConfigTypes[$section];
+                $sectionType = $sectionsTypes[$section];
                 $options['section'] = $section;
                 $options['section_type'] = $sectionType;
                 continue;
@@ -636,7 +636,7 @@ class MetaMapperConfig
             }
         }
 
-        // TODO Add tables for config ini.
+        // TODO Add tables for mapping ini.
 
         return $normalizedMapping;
     }
@@ -658,12 +658,12 @@ class MetaMapperConfig
             'has_error' => false,
         ];
 
-        // The config is always a small file (less than some megabytes), so it
+        // The mapping is always a small file (less than some megabytes), so it
         // can be managed directly with SimpleXml.
         try {
             // TODO Check warn message.
-            $xmlConfig = new SimpleXMLElement($mappingString);
-            if (!$xmlConfig) {
+            $xmlMapping = new SimpleXMLElement($mappingString);
+            if (!$xmlMapping) {
                 throw new \Exception;
             }
         } catch (\Exception $e) {
@@ -671,12 +671,12 @@ class MetaMapperConfig
             return $normalizedMapping;
         }
 
-        // TODO Xml config for info and params.
-        foreach ($xmlConfig->info as $element) {
+        // TODO Xml mapping for info and params.
+        foreach ($xmlMapping->info as $element) {
             $normalizedMapping['info'][] = [];
         }
 
-        foreach ($xmlConfig->params as $element) {
+        foreach ($xmlMapping->params as $element) {
             $normalizedMapping['params'][] = [];
         }
 
@@ -689,7 +689,7 @@ class MetaMapperConfig
             $i = 0;
             $options['section'] = $section;
             // TODO Include xml includes here.
-            foreach ($xmlConfig->map as $element) {
+            foreach ($xmlMapping->map as $element) {
                 $hasXpath = (bool) $element->from['xpath'];
                 if (($isDefault && $hasXpath)
                     || (!$isDefault && !$hasXpath)
@@ -706,7 +706,7 @@ class MetaMapperConfig
         }
 
         // Prepare tables.
-        foreach ($xmlConfig->table as $table) {
+        foreach ($xmlMapping->table as $table) {
             $code = (string) $table['code'];
             if (!$code) {
                 continue;
@@ -723,11 +723,11 @@ class MetaMapperConfig
     }
 
     /**
-     * Normalize a mapping (the default one or the main mapping).
+     * Normalize a list of maps.
      *
      * @return array The mapping is returned. Each map can contain an error.
      */
-    public function normalizeMapping($mapping, array $options = []): array
+    public function normalizeMaps($mapping, array $options = []): array
     {
         if (empty($mapping) || !is_array($mapping)) {
             return [];
@@ -749,7 +749,7 @@ class MetaMapperConfig
             $normalizedMap = $this->normalizeMap($map, $options);
             if (!empty($normalizedMap['has_error'])) {
                 $this->logger->warn(
-                    'Config "{mapping_name}": contains an invalid map.', // @translate
+                    'Mapping "{mapping_name}": contains an invalid map.', // @translate
                     ['mapping_name' => $this->mappingName]
                 );
             }
@@ -767,7 +767,7 @@ class MetaMapperConfig
         return $normalizedMapping;
     }
 
-    public function isValidMapping($mapping, array $options = []): bool
+    public function areValidMaps($mapping): bool
     {
         if (!is_array($mapping)) {
             return false;
@@ -780,7 +780,7 @@ class MetaMapperConfig
         return true;
     }
 
-    public function isValidMap($map, array $options = []): bool
+    public function isValidMap($map): bool
     {
         // TODO Add more check to check a valid map.
         return is_array($map)
@@ -788,6 +788,8 @@ class MetaMapperConfig
     }
 
     /**
+     * Normalize a single map.
+     *
      * Warning: a map can be normalized to multiple maps, for example a name
      * mapped to foaf:name and foaf:familyName.
      */

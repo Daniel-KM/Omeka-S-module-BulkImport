@@ -8,7 +8,7 @@ use Omeka\Api\Manager as ApiManager;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 
 /**
- * TODO @deprecated Use MetaMapper.
+ * TODO @deprecated Use MetaMapper or MetaMapperConfig.
  */
 class AutomapFields extends AbstractPlugin
 {
