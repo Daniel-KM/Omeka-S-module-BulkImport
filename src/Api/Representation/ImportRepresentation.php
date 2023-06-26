@@ -11,15 +11,15 @@ class ImportRepresentation extends AbstractEntityRepresentation
     {
         return [
             'o:id' => $this->id(),
-            'o-module-bulk:importer' => $this->importer()->getReference(),
-            'o-module-bulk:comment' => $this->comment(),
+            'o-bulk:importer' => $this->importer()->getReference(),
+            'o-bulk:comment' => $this->comment(),
             'o:job' => $this->job(),
             'o:undo_job' => $this->undoJob(),
             'o:status' => $this->status(),
             'o:started' => $this->started(),
             'o:ended' => $this->ended(),
-            'o-module-bulk:reader_params' => $this->readerParams(),
-            'o-module-bulk:processor_params' => $this->processorParams(),
+            'o-bulk:reader_params' => $this->readerParams(),
+            'o-bulk:processor_params' => $this->processorParams(),
         ];
     }
 
@@ -30,7 +30,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
 
     public function getJsonLdType()
     {
-        return 'o-module-bulk:Import';
+        return 'o-bulk:Import';
     }
 
     public function importer(): ?ImporterRepresentation

@@ -20,7 +20,7 @@ class ImportedRepresentation extends AbstractEntityRepresentation
 
     public function getJsonLdType()
     {
-        return 'o-module-bulk:Imported';
+        return 'o-bulk:Imported';
     }
 
     public function job(): JobRepresentation

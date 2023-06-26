@@ -37,26 +37,26 @@ class ImporterForm extends Form
             ])
 
             ->add([
-                'name' => 'o-module-bulk:reader_class',
+                'name' => 'o-bulk:reader_class',
                 'type' => Element\Select::class,
                 'options' => [
                     'label' => 'Reader', // @translate
                     'value_options' => $this->getReaderOptions(),
                 ],
                 'attributes' => [
-                    'id' => 'o-module-bulk-reader-class',
+                    'id' => 'o-bulk-reader-class',
                 ],
             ])
 
             ->add([
-                'name' => 'o-module-bulk:processor_class',
+                'name' => 'o-bulk:processor_class',
                 'type' => Element\Select::class,
                 'options' => [
                     'label' => 'Processor', // @translate
                     'value_options' => $this->getProcessorOptions(),
                 ],
                 'attributes' => [
-                    'id' => 'o-module-bulk-processor-class',
+                    'id' => 'o-bulk-processor-class',
                 ],
             ])
 

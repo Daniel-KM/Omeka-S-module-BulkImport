@@ -37,13 +37,13 @@ XML;
             ])
 
             ->add([
-                'name' => 'o-module-bulk:mapping',
+                'name' => 'o-bulk:mapping',
                 'type' => Element\Textarea::class,
                 'options' => [
                     'label' => 'Mapping', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'o-module-bulk-mapping',
+                    'id' => 'o-bulk-mapping',
                     'rows' => 30,
                     'class' => 'codemirror-code',
                     'placeholder' => $defaultMapping,

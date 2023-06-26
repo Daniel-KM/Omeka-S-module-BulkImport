@@ -416,13 +416,13 @@ class ImporterController extends AbstractActionController
 
                     case 'confirm':
                         $importData = [];
-                        $importData['o-module-bulk:comment'] = trim((string) $session['comment']) ?: null;
-                        $importData['o-module-bulk:importer'] = $importer->getResource();
+                        $importData['o-bulk:comment'] = trim((string) $session['comment']) ?: null;
+                        $importData['o-bulk:importer'] = $importer->getResource();
                         if ($reader instanceof Parametrizable) {
-                            $importData['o-module-bulk:reader_params'] = $reader->getParams();
+                            $importData['o-bulk:reader_params'] = $reader->getParams();
                         }
                         if ($processor instanceof Parametrizable) {
-                            $importData['o-module-bulk:processor_params'] = $processor->getParams();
+                            $importData['o-bulk:processor_params'] = $processor->getParams();
                         }
 
                         $response = $this->api()->create('bulk_imports', $importData);

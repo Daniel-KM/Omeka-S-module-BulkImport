@@ -42,17 +42,17 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             'o:id' => $this->id(),
             'o:label' => $this->label(),
             'o:config' => $this->config(),
-            'o-module-bulk:reader_class' => $this->readerClass(),
-            'o-module-bulk:reader_config' => $this->readerConfig(),
-            'o-module-bulk:processor_class' => $this->processorClass(),
-            'o-module-bulk:processor_config' => $this->processorConfig(),
+            'o-bulk:reader_class' => $this->readerClass(),
+            'o-bulk:reader_config' => $this->readerConfig(),
+            'o-bulk:processor_class' => $this->processorClass(),
+            'o-bulk:processor_config' => $this->processorConfig(),
             'o:owner' => $owner ? $owner->getReference() : null,
         ];
     }
 
     public function getJsonLdType()
     {
-        return 'o-module-bulk:Importer';
+        return 'o-bulk:Importer';
     }
 
     public function getResource(): \BulkImport\Entity\Importer

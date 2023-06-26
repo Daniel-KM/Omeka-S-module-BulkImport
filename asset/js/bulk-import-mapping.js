@@ -7,7 +7,7 @@
          * Adapted from https://codemirror.net/demo/xmlcomplete.html
          */
 
-        const textarea = 'o-module-bulk-mapping';
+        const textarea = 'o-bulk-mapping';
 
         var tags = {
             '!top': ['mapping'],

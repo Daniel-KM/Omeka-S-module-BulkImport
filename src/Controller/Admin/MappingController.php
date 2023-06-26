@@ -111,7 +111,7 @@ class MappingController extends AbstractActionController
                 }
                 $form->setData([
                     'o:label' => $label,
-                    'o-module-bulk:mapping' => $this->getMapping($entity),
+                    'o-bulk:mapping' => $this->getMapping($entity),
                 ]);
             } else {
                 $data = $entity->getJsonLd();
