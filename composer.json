@@ -1,19 +1,19 @@
 {
     "require": {
         "ext-xml": "*",
-        "codemirror/codemirror": "^5.65.13",
+        "codemirror/codemirror": "^5.65",
         "daniel-km/simple-iso-3166-1": "^0.2",
         "daniel-km/simple-iso-639-3": "^0.2",
         "flowjs/flow-php-server": "^1.0",
-        "flowjs/flow.js": "^2.14.1",
-        "hakre/xmlreaderiterator": "^0.1.10",
+        "flowjs/flow.js": "^2.14",
+        "hakre/xmlreaderiterator": "^0.1",
         "james-heinrich/getid3": "^2.0-dev",
         "mikehaertl/php-pdftk": "^0.9",
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
-        "phpoffice/phpword": "^0.18.2",
-        "softcreatr/jsonpath": "0.7.5"
+        "phpoffice/phpword": "^0.18",
+        "softcreatr/jsonpath": "^0.7"
     },
     "replace": {
         "laminas/laminas-escaper": "*",

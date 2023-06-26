@@ -57,6 +57,11 @@ class MetaMapper extends AbstractPlugin
     protected $logger;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
+     */
+    protected $automapFields;
+
+    /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
     protected $bulk;
