@@ -53,11 +53,6 @@ class MetaMapper
     use TwigTrait;
 
     /**
-     * @var \Laminas\Log\Logger
-     */
-    protected $logger;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
      */
     protected $automapFields;
@@ -66,6 +61,16 @@ class MetaMapper
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
     protected $bulk;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
+
+    /**
+     * @var \BulkImport\Stdlib\MetaMapperConfig
+     */
+    protected $metaMapperConfig;
 
     /**
      * @var \JmesPath\Env
@@ -83,11 +88,6 @@ class MetaMapper
     protected $jsonPathQuerier;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapperConfig
-     */
-    protected $metaMapperConfig;
-
-    /**
      * @var string
      */
     protected $metaMapperConfigName;
@@ -100,13 +100,15 @@ class MetaMapper
     protected $variables = [];
 
     public function __construct(
+        MetaMapperConfig $metaMapperConfig,
         Logger $logger,
-        AutomapFields $automapFields,
-        Bulk $bulk
+        Bulk $bulk,
+        AutomapFields $automapFields
     ) {
+        $this->metaMapperConfig = $metaMapperConfig;
         $this->logger = $logger;
-        $this->automapFields = $automapFields;
         $this->bulk = $bulk;
+        $this->automapFields = $automapFields;
         $this->jmesPathEnv = new JmesPathEnv;
         $this->jmesPathParser = new JmesPathParser;
         // Omeka S v4 requires php 7.4, but fix to JSONPath requires php 8.0.
@@ -117,30 +119,15 @@ class MetaMapper
     /**
      * Get this meta mapper.
      */
-    public function __invoke(?MetaMapperConfig $metaMapperConfig = null, ?string $configName = null): self
+    public function __invoke(?string $configName = null): self
     {
-        if ($metaMapperConfig) {
-            $this->setConfig($metaMapperConfig);
-        }
         if ($configName) {
             $this->setConfigName($configName);
         }
         return $this;
     }
 
-    /**
-     * Set or reset meta mapper config.
-     */
-    public function setConfig(?MetaMapperConfig $metaMapperConfig): self
-    {
-        $this->metaMapperConfig = $metaMapperConfig;
-        return $this;
-    }
-
-    /**
-     * Get meta mapper config if any.
-     */
-    public function getConfig(): ?MetaMapperConfig
+    public function getMetaMapperConfig(): MetaMapperConfig
     {
         return $this->metaMapperConfig;
     }
@@ -151,9 +138,7 @@ class MetaMapper
     public function setConfigName(?string $configName): self
     {
         $this->metaMapperConfigName = $configName;
-        if ($this->metaMapperConfig) {
-            $this->metaMapperConfig->__invoke($configName);
-        }
+        $this->metaMapperConfig->__invoke($configName);
         return $this;
     }
 
@@ -170,9 +155,7 @@ class MetaMapper
      */
     public function getCurrentConfig(): ?array
     {
-        return $this->metaMapperConfig
-            ? $this->metaMapperConfig->__invoke()->getMapping($this->metaMapperConfigName)
-            : null;
+        return $this->metaMapperConfig->__invoke()->getMapping($this->metaMapperConfigName);
     }
 
     public function setVariables(array $variables): self

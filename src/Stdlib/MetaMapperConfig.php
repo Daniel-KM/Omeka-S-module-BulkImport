@@ -46,14 +46,14 @@ class MetaMapperConfig
     protected $logger;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
-     */
-    protected $automapFields;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
     protected $bulk;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
+     */
+    protected $automapFields;
 
     /**
      * @var \JmesPath\Env
@@ -107,12 +107,12 @@ class MetaMapperConfig
      */
     public function __construct(
         Logger $logger,
-        AutomapFields $automapFields,
-        Bulk $bulk
+        Bulk $bulk,
+        AutomapFields $automapFields
     ) {
         $this->logger = $logger;
-        $this->automapFields = $automapFields;
         $this->bulk = $bulk;
+        $this->automapFields = $automapFields;
         $this->jmesPathEnv = new JmesPathEnv;
         $this->jmesPathParser = new JmesPathParser;
         $this->jsonPathQuerier = new JSONPath;
