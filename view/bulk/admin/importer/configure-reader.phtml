@@ -19,7 +19,7 @@ $form->prepare();
 
 <?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
 
-<div id="content">
+<div id="bulk-import">
     <h2><?= $escape($translate('Configure reader')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <h3><?= $escape(sprintf($translate('Reader: %s'), $reader->getLabel())) ?></h3>

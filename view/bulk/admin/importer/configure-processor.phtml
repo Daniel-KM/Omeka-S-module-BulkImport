@@ -18,7 +18,7 @@ $form->prepare();
 
 <?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk Import')) ?>
 
-<div id="content">
+<div id="bulk-import">
     <h2><?= $escape($translate('Configure processor')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <h3><?= $escape(sprintf($translate('Processor: %s'), $processor->getLabel())) ?></h3>

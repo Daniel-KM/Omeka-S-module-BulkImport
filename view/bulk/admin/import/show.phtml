@@ -19,7 +19,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <?= $this->navigation('Laminas\Navigation\BulkImport')->menu() ?>
 </nav>
 
-<div id="content">
+<div id="bulk-import">
     <h3><?= $translate('Status') ?></h3>
     <ul>
         <li><?= sprintf($translate('Importer: %s'), $import->importer()->label()) ?></li>

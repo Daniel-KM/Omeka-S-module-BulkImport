@@ -26,7 +26,7 @@ if ($storeAsTask) {
 
 <?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
 
-<div id="content">
+<div id="bulk-import">
     <h2><?= $escape($storeAsTask ? $translate('Store import') : $translate('Start import')) ?></h2>
     <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
 
