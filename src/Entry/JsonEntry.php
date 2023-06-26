@@ -13,7 +13,7 @@ class JsonEntry extends BaseEntry
             return;
         }
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
         $metaMapper = $this->options['metaMapper'];
 
         // Avoid an issue when the config is incorrect or incomplete or when the
@@ -46,7 +46,7 @@ class JsonEntry extends BaseEntry
 
     protected function appendMedias(array $resource): array
     {
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
         $metaMapper = $this->options['metaMapper'];
         $mediaUrlMode = $metaMapper->getSectionSetting('params', 'media_url_mode');
         if (!$mediaUrlMode) {

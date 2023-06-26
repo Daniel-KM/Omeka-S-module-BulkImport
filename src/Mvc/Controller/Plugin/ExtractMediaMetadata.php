@@ -7,6 +7,8 @@ if (!class_exists(\JamesHeinrich\GetID3\GetId3::class)) {
     require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/GetID3.php';
 }
 
+use BulkImport\Stdlib\MetaMapper;
+use BulkImport\Stdlib\MetaMapperConfig;
 use JamesHeinrich\GetID3\GetId3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -24,12 +26,12 @@ class ExtractMediaMetadata extends AbstractPlugin
     protected $logger;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
+     * @var \BulkImport\Stdlib\MetaMapper
      */
     protected $metaMapper;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     * @var \BulkImport\Stdlib\MetaMapperConfig
      */
     protected $metaMapperConfig;
 

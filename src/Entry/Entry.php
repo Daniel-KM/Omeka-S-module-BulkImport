@@ -30,7 +30,7 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
      * Get values according to a map.
      *
      * The map is an array that sets "from", "to" and "mod".
-     * @see \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     * @see \BulkImport\Stdlib\MetaMapperConfig
      *
      * @experimental May be removed in a future version.
      */

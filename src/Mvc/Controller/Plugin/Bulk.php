@@ -34,15 +34,14 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
-use Omeka\I18n\Translator;
-use Omeka\Mvc\Controller\Plugin\Translate;
 
 /**
- * Adapted from the controller plugin of the module Csv Import
+ * Manage all common fnctions to manage resources.
  *
  * @todo Separate generic methods and specific ones in two.
- * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\MapperHelper
- * @see \CSVImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
+ *
+ * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\Bulk
+ * @see \BulkImportResourceTemplate\Mvc\Controller\Plugin\Bulk
  */
 class Bulk extends AbstractPlugin
 {
@@ -135,6 +134,7 @@ class Bulk extends AbstractPlugin
     {
         $this->services = $services;
         $this->logger = $services->get('Omeka\Logger');
+        $this->translator = $services->get('MvcTranslator');
         $this->connection = $services->get('Omeka\Connection');
         $this->dataTypeManager = $services->get('Omeka\DataTypeManager');
 
@@ -147,8 +147,6 @@ class Bulk extends AbstractPlugin
         $this->findResourcesFromIdentifiers = $pluginManager
             // Use class name to use it even when CsvImport is installed.
             ->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
-
-        $this->translator = $services->get('MvcTranslator');
     }
 
     /**

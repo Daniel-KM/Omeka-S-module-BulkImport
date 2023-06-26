@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Service\ControllerPlugin;
+namespace BulkImport\Service\Stdlib;
 
-use BulkImport\Mvc\Controller\Plugin\MetaMapper;
+use BulkImport\Stdlib\MetaMapper;
 use Interop\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 

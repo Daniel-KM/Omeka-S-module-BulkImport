@@ -27,17 +27,19 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 
-namespace BulkImport\Mvc\Controller\Plugin;
+namespace BulkImport\Stdlib;
 
+use BulkImport\Mvc\Controller\Plugin\AutomapFields;
+use BulkImport\Mvc\Controller\Plugin\Bulk;
 use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
-use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+
 use Log\Stdlib\PsrMessage;
 use SimpleXMLElement;
 
-class MetaMapperConfig extends AbstractPlugin
+class MetaMapperConfig
 {
     /**
      * @var \Laminas\Log\Logger

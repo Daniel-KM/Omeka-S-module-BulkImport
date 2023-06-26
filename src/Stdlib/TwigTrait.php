@@ -27,7 +27,7 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 
-namespace BulkImport\Mvc\Controller\Plugin;
+namespace BulkImport\Stdlib;
 
 use Iso639p3\Iso639p3;
 use Iso3166p1\Iso3166p1;
@@ -57,7 +57,6 @@ trait TwigTrait
      *
      * @todo Separate preparation and process. Previous version in AdvancedResourceTemplate was simpler (but string only).
      * @todo Check for issues with separators or parenthesis included in values.
-     * @todo Update \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::twig().
      * @todo Remove the need to use value|trim: by default, use current value.
      * @fixme The args extractor does not manage escaped quote and double quote in arguments (for now fixed pre/post via a string replacement).
      *
@@ -242,6 +241,7 @@ trait TwigTrait
                 }
                 break;
 
+            // case 'substr':
             case 'slice':
                 $arga = $this->extractList($args);
                 $start = (int) ($arga[0] ?? 0);

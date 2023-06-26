@@ -39,7 +39,7 @@ class XmlEntry extends BaseEntry
             return;
         }
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
         $metaMapper = $this->options['metaMapper'];
 
         /** @var \XMLReaderNode $data */
@@ -49,14 +49,14 @@ class XmlEntry extends BaseEntry
         // Fix issue with cdata (no: it will escape html tags).
         $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig $metaMapperConfig */
+        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $metaMapper->getConfig();
         if (!$metaMapperConfig->getMergedConfig()) {
             $this->extractWithoutMetaConfig($simpleData, $namespaces);
             return;
         }
 
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapper $metaMapper */
+        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
         $metaMapper = $this->options['metaMapper'];
 
         // TODO Manage multiple resources inside one file.

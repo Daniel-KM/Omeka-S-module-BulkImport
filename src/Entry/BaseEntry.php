@@ -40,12 +40,12 @@ class BaseEntry implements Entry
     protected $valid;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper|null
+     * @var \BulkImport\Stdlib\MetaMapper|null
      */
     protected $metaMapper;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig|null
+     * @var \BulkImport\Stdlib\MetaMapperConfig|null
      */
     protected $metaMapperConfig;
 

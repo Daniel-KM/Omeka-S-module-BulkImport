@@ -7,6 +7,9 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Api\Manager as ApiManager;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 
+/**
+ * TODO @deprecated Use MetaMapper.
+ */
 class AutomapFields extends AbstractPlugin
 {
     /**
@@ -438,7 +441,7 @@ class AutomapFields extends AbstractPlugin
 
     /**
      * @todo Factorize with MetaMapper::preparePattern()
-     * @see \BulkImport\Mvc\Controller\Plugin\MetaMapper::preparePattern()
+     * @see \BulkImport\Stdlib\MetaMapper::preparePattern()
      */
     protected function appendPattern(array $result): array
     {

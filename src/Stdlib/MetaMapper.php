@@ -27,8 +27,10 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 
-namespace BulkImport\Mvc\Controller\Plugin;
+namespace BulkImport\Stdlib;
 
+use BulkImport\Mvc\Controller\Plugin\AutomapFields;
+use BulkImport\Mvc\Controller\Plugin\Bulk;
 use DOMDocument;
 use DOMNode;
 use DOMNodeList;
@@ -37,17 +39,16 @@ use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
-use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use SimpleXMLElement;
 
 /**
+ * @todo Clarify settings and arguments.
  * @todo Separate preparation of the config (read and merge config) and processing transform.
  * @todo Separate xml and json process into two plugins and make this one an abstract one. But a complex config may mix various paths? In real world?
- * @todo Merge with \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper.
  * @todo Simplify process of init and allow multiple init with static cache.
  * @todo Add unit tests.
  */
-class MetaMapper extends AbstractPlugin
+class MetaMapper
 {
     use TwigTrait;
 
@@ -82,7 +83,7 @@ class MetaMapper extends AbstractPlugin
     protected $jsonPathQuerier;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     * @var \BulkImport\Stdlib\MetaMapperConfig
      */
     protected $metaMapperConfig;
 
@@ -1018,10 +1019,11 @@ class MetaMapper extends AbstractPlugin
      * ]
      * ```
      *
-     * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\ArtMapper::flatArray()
      * @see \ValueSuggestAny\Suggester\JsonLd\JsonLdSuggester::flatArray()
      * @todo Factorize flatArray() between modules.
      * @todo Cache flat array (at least the last ones, checked via a hash).
+     *
+     * @todo Move to common Bulk?
      */
     public function flatArray(?array $array): array
     {

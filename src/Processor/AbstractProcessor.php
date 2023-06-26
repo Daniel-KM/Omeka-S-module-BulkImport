@@ -68,12 +68,12 @@ abstract class AbstractProcessor implements Processor
     protected $bulk;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper
+     * @var \BulkImport\Stdlib\MetaMapper
      */
     protected $metaMapper;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig
+     * @var \BulkImport\Stdlib\MetaMapperConfig
      */
     protected $metaMapperConfig;
 
@@ -115,21 +115,22 @@ abstract class AbstractProcessor implements Processor
     {
         $this->setServiceLocator($services);
         $this->acl = $services->get('Omeka\Acl');
-        $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
+        $this->translator = $services->get('MvcTranslator');
         $this->apiManager = $services->get('Omeka\ApiManager');
+        $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
+
+        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->metaMapperConfig = $services->get('Bulk\MetaMapperConfig');
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
-        $this->metaMapper = $plugins->get('metaMapper');
-        $this->metaMapperConfig = $plugins->get('metaMapperConfig');
-        $this->translator = $services->get('MvcTranslator');
 
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $this->tempPath = $config['temp_dir'] ?: sys_get_temp_dir();
 
         // This doctrine resource should be reloaded each time the entity
-        // manager is cleared, else a error may occur on big import.
+        // manager is cleared, else an error may occur on big import.
         $this->user = $services->get('Omeka\AuthenticationService')->getIdentity();
         $this->userId = $this->user->getId();
     }

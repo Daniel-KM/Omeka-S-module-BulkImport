@@ -26,12 +26,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $entryClass = BaseEntry::class;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapper|null
+     * @var \BulkImport\Stdlib\MetaMapper|null
      */
     protected $metaMapper;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfig|null
+     * @var \BulkImport\Stdlib\MetaMapperConfig|null
      */
     protected $metaMapperConfig;
 
@@ -130,10 +130,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     {
         $this->setServiceLocator($services);
         $config = $services->get('Config');
-        $plugins = $services->get('ControllerPluginManager');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $this->metaMapper = $plugins->get('metaMapper');
-        $this->metaMapperConfig = $plugins->get('metaMapperConfig');
+        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->metaMapperConfig = $services->get('Bulk\MetaMapperConfig');
     }
 
     public function getLabel(): string

@@ -5,6 +5,8 @@ namespace BulkImport;
 return [
     'service_manager' => [
         'factories' => [
+            'Bulk\MetaMapper' => Service\Stdlib\MetaMapperFactory::class,
+            'Bulk\MetaMapperConfig' => Service\Stdlib\MetaMapperConfigFactory::class,
             Processor\Manager::class => Service\PluginManagerFactory::class,
             Reader\Manager::class => Service\PluginManagerFactory::class,
         ],
@@ -134,8 +136,6 @@ return [
             'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
-            'metaMapper' => Service\ControllerPlugin\MetaMapperFactory::class,
-            'metaMapperConfig' => Service\ControllerPlugin\MetaMapperConfigFactory::class,
             'updateResourceProperties' => Service\ControllerPlugin\UpdateResourcePropertiesFactory::class,
         ],
         'aliases' => [
