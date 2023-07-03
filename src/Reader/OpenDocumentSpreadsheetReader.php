@@ -83,11 +83,19 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 
     public function isValid(): bool
     {
-        if (!extension_loaded('zip') || !extension_loaded('xml')) {
+        if (!extension_loaded('zip')) {
             $this->lastErrorMessage = new PsrMessage(
-                'To process import of "{label}", the php extensions "zip" and "xml" are required.', // @translate
-                ['label' => $this->getLabel()]
+                'To process import of "{label}", the php extension "{extension}" is required.', // @translate
+                ['label' => $this->getLabel(), 'extension' => 'zip']
             );
+        }
+        if (!extension_loaded('xml')) {
+            $this->lastErrorMessage = new PsrMessage(
+                'To process import of "{label}", the php extension "{extension}" is required.', // @translate
+                ['label' => $this->getLabel(), 'extension' => 'xml']
+            );
+        }
+        if (!extension_loaded('zip') || !extension_loaded('xml')) {
             return false;
         }
         return parent::isValid();
