@@ -23,7 +23,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 {
     use ConfigurableTrait, ParametrizableTrait;
     use CheckTrait;
-    use DiffTrait;
+    use DiffResourcesTrait;
+    use DiffValuesTrait;
     use FileTrait;
 
     const ACTION_SUB_UPDATE = 'sub_update';
@@ -354,9 +355,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->processingError = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
         $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
 
-        $this->prepareFullRun();
-
-        $this->checkDiff();
+        $this
+            ->prepareFullRun()
+            ->checkDiffResources()
+            ->checkDiffValues();
 
         $dryRun = $this->processingError === 'dry_run';
         if ($dryRun) {

@@ -11,9 +11,9 @@ use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
 use OpenSpout\Writer\Common\Creator\WriterFactory;
 
 /**
- * Manage diff of source before and after process.
+ * Manage diff of resources before and after process.
  */
-trait DiffTrait
+trait DiffResourcesTrait
 {
     /**
      * @var string
@@ -33,7 +33,7 @@ trait DiffTrait
     /**
      * Create an output to list diff between existing data and new data.
      */
-    protected function checkDiff(): self
+    protected function checkDiffResources(): self
     {
         $actionsUpdate = [
             self::ACTION_APPEND,
@@ -153,7 +153,7 @@ trait DiffTrait
      */
     protected function storeDiffOdsByRow(array $result, array $config): self
     {
-        $columns = $this->diffSpreadsheetHeader($result);
+        $headers = $this->diffSpreadsheetHeader($result);
 
         // This is for OpenSpout v3, that allows php 7.2+.
         // A value cannot be an empty string.
@@ -174,7 +174,7 @@ trait DiffTrait
 
         // Add headers
         $row = WriterEntityFactory::createRowFromArray(
-            $columns,
+            $headers,
             (new Style())->setShouldShrinkToFit(true)->setFontBold()
         );
         $writer->addRow($row);

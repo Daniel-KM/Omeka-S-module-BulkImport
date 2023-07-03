@@ -219,6 +219,7 @@ class Bulk extends AbstractPlugin
             return $this->properties;
         }
 
+        /** @var \Doctrine\DBAL\Query\QueryBuilder $qb */
         $qb = $this->connection->createQueryBuilder();
         $qb
             ->select(
