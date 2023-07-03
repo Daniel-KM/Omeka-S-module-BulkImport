@@ -36,7 +36,10 @@ class Import extends AbstractJob
 
     public function perform(): void
     {
-        ini_set('auto_detect_line_endings', '1');
+        // TODO Manage "\r" manually for "auto_detect_line_endings": check if all processes purge windows and mac issues for end of lines "\r".
+        if (PHP_VERSION_ID < 80100) {
+            ini_set('auto_detect_line_endings', '1');
+        }
 
         $this->getLogger();
         $this->getImport();

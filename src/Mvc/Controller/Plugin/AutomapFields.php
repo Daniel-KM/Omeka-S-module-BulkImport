@@ -255,7 +255,7 @@ class AutomapFields extends AbstractPlugin
         $labelNames = array_keys($propertyLists['names']);
         $labelLabels = \SplFixedArray::fromArray(array_keys($propertyLists['labels']));
         $labelLabels->setSize(count($labelNames));
-        $lists['labels'] = array_combine($labelNames, $labelLabels->toArray());
+        $lists['labels'] = array_combine($labelNames, array_map('strval', $labelLabels->toArray()));
         $lists['lower_labels'] = array_filter(array_map('mb_strtolower', $lists['labels']));
 
         // Check names alone, like "Title" for "dcterms:title".

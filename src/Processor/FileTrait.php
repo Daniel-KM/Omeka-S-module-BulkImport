@@ -51,6 +51,11 @@ trait FileTrait
     protected $allowEmptyFiles = false;
 
     /**
+     * @var bool
+     */
+    protected $isFileSideloadActive = false;
+
+    /**
      * @var string
      */
     protected $sideloadPath = null;

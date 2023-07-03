@@ -115,16 +115,17 @@ class BaseEntry implements Entry
         return [];
     }
 
-    public function getIterator()
+    public function getIterator(): \Traversable
     {
         return new ArrayIterator($this->data);
     }
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return array_key_exists($offset, $this->data);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         if (array_key_exists($offset, $this->data)) {

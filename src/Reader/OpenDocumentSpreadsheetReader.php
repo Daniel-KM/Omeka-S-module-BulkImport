@@ -35,7 +35,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     /**
      * @var bool
      */
-    protected $isMultiSheet = false;
+    protected $processAllSheets = false;
 
     /**
      * @var \OpenSpout\Reader\IteratorInterface
@@ -301,9 +301,9 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->sheetIterator = $this->spreadsheetReader->getSheetIterator();
         $this->sheetIterator->rewind();
         $sheet = null;
-        $multisheet = $this->getParam('multisheet', 'active');
-        $this->processAllSheets = $multisheet === 'all';
-        if ($multisheet === 'active') {
+        $processMultisheet = $this->getParam('multisheet', 'active');
+        $this->processAllSheets = $processMultisheet === 'all';
+        if ($processMultisheet === 'active') {
             /** @var \OpenSpout\Reader\ODS\Sheet $currentSheet */
             foreach ($this->sheetIterator as $currentSheet) {
                 if ($currentSheet->isActive() && $currentSheet->isVisible()) {
@@ -311,7 +311,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
                     break;
                 }
             }
-        } elseif ($multisheet === 'first') {
+        } elseif ($processMultisheet === 'first') {
             /** @var \OpenSpout\Reader\ODS\Sheet $currentSheet */
             foreach ($this->sheetIterator as $currentSheet) {
                 if ($currentSheet->isVisible()) {
