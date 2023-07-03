@@ -230,7 +230,7 @@ class InstallResources
     public function checkCustomVocab(string $filepath): ?bool
     {
         $data = json_decode(file_get_contents($filepath), true);
-        if (!$data || empty($data['label'])) {
+        if (!$data || empty($data['o:label'])) {
             return false;
         }
 
