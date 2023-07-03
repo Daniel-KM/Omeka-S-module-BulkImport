@@ -111,9 +111,7 @@ class MetaMapper
         $this->automapFields = $automapFields;
         $this->jmesPathEnv = new JmesPathEnv;
         $this->jmesPathParser = new JmesPathParser;
-        // Omeka S v4 requires php 7.4, but fix to JSONPath requires php 8.0.
-        // TODO Upgrade when Omeka S will require php 8.0.
-        $this->jsonPathQuerier = @new JSONPath;
+        $this->jsonPathQuerier = new JSONPath;
     }
 
     /**
