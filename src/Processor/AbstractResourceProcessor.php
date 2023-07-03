@@ -1474,6 +1474,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 continue;
             }
 
+            // Method is "checkFile", "checkUrl" or "checkDirectory".
             $ingestSource = $resourceFile[$ingestSourceKey];
             $method = $ingestData[$ingestSourceKey]['method'];
             $messageMsg = $ingestData[$ingestSourceKey]['message_msg'];
@@ -1484,10 +1485,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } else {
                 $result = $this->$method($ingestSource, $resource['messageStore']);
                 if (!$result) {
-                    $this->missingFiles[$ingestSourceKey][$ingestSource] = true;
+                    $missingFiles[$ingestSourceKey][$ingestSource] = true;
                 }
             }
-            if (isset($this->missingFiles[$ingestSourceKey][$ingestSource])) {
+            if (isset($missingFiles[$ingestSourceKey][$ingestSource])) {
                 unset($resource['o:media'][$key]);
             }
         }
