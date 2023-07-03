@@ -119,7 +119,9 @@ trait DiffTrait
 
     protected function initializeDiff(): self
     {
-        $this->filepathDiff = null;
+        $this->filepathDiffJson = null;
+        $this->filepathDiffOdsRow = null;
+        $this->filepathDiffOdsColumn = null;
 
         $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
         $bulk = $plugins->get('bulk');
@@ -262,7 +264,7 @@ trait DiffTrait
                 $config['update_mode']
             ));
 
-        // Add headers
+        // Add headers.
         $row = WriterEntityFactory::createRow(
             $fullColumns,
             (new Style())->setShouldShrinkToFit(true)->setFontBold()

@@ -146,7 +146,9 @@ class MetaMapper
      */
     public function getMapping(): ?array
     {
-        return $this->metaMapperConfig->__invoke($this->mappingName);
+        // Don't return via invoke: it may be the plugin itself when there is no
+        // mapping name.
+        return $this->metaMapperConfig->__invoke()->getMapping($this->mappingName);
     }
 
     public function setVariables(array $variables): self

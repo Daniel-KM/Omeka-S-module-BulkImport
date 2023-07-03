@@ -216,7 +216,7 @@ trait ResourceUpdateTrait
      */
     protected function fillEmptyData(array $data)
     {
-        if (!$this->hasMapping) {
+        if (!$this->hasProcessorMapping) {
             return $data;
         }
 

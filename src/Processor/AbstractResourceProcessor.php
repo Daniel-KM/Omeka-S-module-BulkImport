@@ -510,9 +510,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
-        $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
         $this->metaMapper->getMetaMapperConfig(
-            $mainResourceName,
+            'resources',
             $mappingConfig,
             $this->metadataData['meta_mapper_config']
         );
@@ -979,8 +978,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return null;
         }
 
-        $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
-        $mapping = $this->metaMapper->__invoke($mainResourceName)->getMapping();
+        $mapping = $this->metaMapper->__invoke('resources')->getMapping();
         return $mapping === null
             ? $this->processEntryFromReader($entry)
             : $this->processEntryFromProcessor($entry);
@@ -1042,8 +1040,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource['source_index'] = $this->indexResource;
         $resource['messageStore']->clearMessages();
 
-        $mainResourceName = $this->mainResourceNames[$this->getResourceName()] ?: 'resources';
-        $metaConfig = $this->metaMapper->__invoke($mainResourceName)->getMapping();
+        $metaConfig = $this->metaMapper->__invoke('resources')->getMapping();
 
         foreach (['default', 'maps'] as $section) foreach ($metaConfig[$section] as $map) {
             if (empty($map)

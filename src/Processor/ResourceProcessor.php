@@ -118,7 +118,7 @@ class ResourceProcessor extends AbstractResourceProcessor
      * @deprecated
      * @var bool
      */
-    protected $hasMapping;
+    protected $hasProcessorMapping;
 
     /**
      * @deprecated
@@ -355,7 +355,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         if (!count($mapping)) {
-            $this->hasMapping = false;
+            $this->hasProcessorMapping = false;
             $this->mapping = [];
             return $this;
         }
@@ -464,7 +464,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Filter the mapping to avoid to loop entries without target.
         $this->mapping = array_filter($mapping);
         // Some readers don't need a mapping (xml reader do the process itself).
-        $this->hasMapping = (bool) $this->mapping;
+        $this->hasProcessorMapping = (bool) $this->mapping;
 
         return $this;
     }
@@ -480,9 +480,9 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         // TODO Use MetaMapper.
-        return !$this->hasMapping
-            ? $this->processEntryFromReader($entry)
-            : $this->processEntryFromProcessor($entry);
+        return $this->hasProcessorMapping
+            ? $this->processEntryFromProcessor($entry)
+            : $this->processEntryFromReader($entry);
     }
 
     /**
