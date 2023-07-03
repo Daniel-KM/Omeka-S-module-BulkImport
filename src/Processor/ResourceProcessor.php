@@ -1196,12 +1196,22 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resourceNames = array_change_key_case($resourceNames, CASE_LOWER);
         }
 
+        // Normally already set?
+        if (empty($resource['resource_name']) && $target['target'] === 'o:item' && !empty($values)) {
+            $resource['resource_name'] = 'media';
+        }
+
         // When the resource name is known, don't fill other resources. But if
         // is not known yet, fill the item first. It fixes the issues with the
         // target that are the same for media of item and media (that is a
         // special case where two or more resources are created from one
         // entry).
-        $resourceName = empty($resource['resource_name']) ? true : $resource['resource_name'];
+        // Of course, use the option set in mixed resource importer if any and
+        // not already set.
+        $defaultResourceName = $this->getParam('resource_name', false);
+        $resourceName = empty($resource['resource_name'])
+            ? ($defaultResourceName ?: true)
+            : $resource['resource_name'];
 
         // TODO Replace by a if/else, but take care of return when no output.
         switch ($target['target']) {
@@ -1242,7 +1252,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                             $resource['o:item_set'][] = [
                                 'o:id' => $itemSetId,
                                 'checked_id' => true,
-                                // TODO Set the source identifier anywhere.
+                                'source_identifier' => $value,
                             ];
                         } elseif (array_key_exists($value . '§resources', $this->identifiers['map'])) {
                             $resource['o:item_set'][] = [
@@ -1447,11 +1457,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $identifierName = $target['target_data'] ?? $this->bulk->getIdentifierNames();
                     $itemIds = $this->bulk->findResourcesFromIdentifiers($values, $identifierName, 'items', $resource['messageStore']);
                     if ($itemIds) {
-                        $resource['o:item'] = [
-                            'o:id' => end($itemIds),
-                            'checked_id' => true,
-                            // TODO Set the source identifier anywhere.
-                        ];
+                        if (count($values) === 1) {
+                            $resource['o:item'] = [
+                                'o:id' => end($itemIds),
+                                'checked_id' => true,
+                                'source_identifier' => $identifier,
+                            ];
+                        } else {
+                            // TODO Set the source identifier anywhere (rare anyway).
+                            $resource['o:item'] = [
+                                'o:id' => end($itemIds),
+                                'checked_id' => true,
+                            ];
+                        }
                     } elseif (array_key_exists($identifier . '§resources', $this->identifiers['map'])) {
                         $resource['o:item'] = [
                             // To be filled during real import.

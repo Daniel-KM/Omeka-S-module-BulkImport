@@ -274,6 +274,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // @todo To set the resource name as object type to reader, is it needed?
+        // Warning: it may change for mixed resources.
         $this->reader->setObjectType($this->getResourceName());
 
         $this
@@ -1780,7 +1781,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process creation of resources.
      */
-    protected function createResources($resourceName, array $dataResources): self
+    protected function createResources($defaultResourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
@@ -1799,6 +1800,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $resources = [];
         foreach ($dataResources as $dataResource) {
+            // Manage mixed resources.
+            $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
             $dataResource = $this->completeResourceIdentifierIds($dataResource);
             try {
                 $response = $this->bulk->api(null, true)
@@ -1870,14 +1873,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process update of resources.
      */
-    protected function updateResources($resourceName, array $dataResources): self
+    protected function updateResources($defaultResourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
         }
 
         // The "resources" cannot be updated directly.
-        $checkResourceName = $resourceName === 'resources';
+        $checkResourceName = $defaultResourceName === 'resources';
 
         // In the api manager, batchUpdate() allows to update a set of resources
         // with the same data. Here, data are specific to each entry, so each
@@ -1904,6 +1907,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     return $this;
                 }
             }
+
+            $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
 
             switch ($this->action) {
                 case self::ACTION_APPEND:
@@ -1988,27 +1993,38 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of resources.
      */
-    protected function deleteResources($resourceName, array $dataResources): self
+    protected function deleteResources($defaultResourceName, array $dataResources): self
     {
         if (!count($dataResources)) {
             return $this;
         }
 
         // Get ids (already checked normally).
+        // Manage mixed resources too.
         $ids = [];
         foreach ($dataResources as $dataResource) {
             if (isset($dataResource['o:id'])) {
-                $ids[] = $dataResource['o:id'];
+                $ids[$dataResource['o:id']] = $dataResource['resource_name'] ?? $defaultResourceName;
             }
         }
+        $hasMultipleResourceNames = count(array_unique($ids)) > 1;
 
         try {
             if (count($ids) === 1) {
+                $resourceName = reset($ids);
                 $this->bulk->api(null, true)
-                    ->delete($resourceName, reset($ids))->getContent();
-            } else {
-                $this->bulk->api(null, true)
-                    ->batchDelete($resourceName, $ids, [], ['continueOnError' => true])->getContent();
+                    ->delete($resourceName, key($ids))->getContent();
+            } elseif ($ids) {
+                if ($hasMultipleResourceNames) {
+                    foreach ($ids as $id => $resourceName) {
+                        $this->bulk->api(null, true)
+                            ->batch($resourceName, $id)->getContent();
+                    }
+                } else {
+                    $resourceName = reset($ids);
+                    $this->bulk->api(null, true)
+                        ->batchDelete($resourceName, array_keys($ids), [], ['continueOnError' => true])->getContent();
+                }
             }
         } catch (ValidationException $e) {
             $r = $this->baseEntity();
@@ -2032,7 +2048,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this;
         }
 
-        foreach ($ids as $id) {
+        foreach ($ids as $id => $resourceName) {
             $this->logger->notice(
                 'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
                 ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $id]
