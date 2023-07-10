@@ -973,7 +973,7 @@ class SpipProcessor extends AbstractFullProcessor
                 $sourceFile = $endpoint . 'IMG/' . $source['fichier'];
             }
             if ($sourceFile) {
-                $result = $this->fetchUrl('original', $source['fichier'], $source['fichier'], $storageId, $extension, $sourceFile);
+                $result = $this->fetchFile('original', $source['fichier'], $source['fichier'], $storageId, $extension, $sourceFile);
                 if ($result['status'] !== 'success') {
                     $this->logger->err($result['message']);
                 }

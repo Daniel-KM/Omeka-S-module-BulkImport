@@ -378,7 +378,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
 
         $isUrl = $this->bulk->isUrl($pathOrUrl);
         if ($isUrl) {
-            $result = $this->fetchUrl(
+            $result = $this->fetchFile(
                 'asset',
                 $filename,
                 $filename,

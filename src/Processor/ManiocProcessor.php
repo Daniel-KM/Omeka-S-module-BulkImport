@@ -458,7 +458,7 @@ class ManiocProcessor extends AbstractFullProcessor
 
         // @see \Omeka\File\TempFile::getStorageId()
         $storageId = $this->entity->getId() . '/' . $filenameBase;
-        $result = $this->fetchUrl('original', $greenstoneFilename, $greenstoneFilename, $storageId, $extension, $url);
+        $result = $this->fetchFile('original', $greenstoneFilename, $greenstoneFilename, $storageId, $extension, $url);
         if ($result['status'] !== 'success') {
             $this->logger->err($result['message']);
             if (!empty($this->filenamesToSha256[$greenstoneFilename])) {

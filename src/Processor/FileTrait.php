@@ -555,16 +555,6 @@ trait FileTrait
     /**
      * Fetch, check and save a file for an asset or a media.
      *
-     * @deprecated Use self::fetchFile()
-     */
-    protected function fetchUrl($type, $sourceName, $filename, $storageId, $extension, $url)
-    {
-        return $this->fetchFile($type, $sourceName, $filename, $storageId, $extension, $url);
-    }
-
-    /**
-     * Fetch, check and save a file for an asset or a media.
-     *
      * @todo Create derivative files (thumbnails) with the tempfile factory.
      * @fixme Source name is not used, only filename.
      *
