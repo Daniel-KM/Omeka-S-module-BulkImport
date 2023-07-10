@@ -12,7 +12,7 @@
         "mtdowling/jmespath.php": "^2.6",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
-        "phpoffice/phpword": "^0.18",
+        "phpoffice/phpword": "^1.1",
         "softcreatr/jsonpath": "^0.7"
     },
     "replace": {
