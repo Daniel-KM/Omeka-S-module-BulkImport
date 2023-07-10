@@ -721,3 +721,10 @@ if (version_compare($oldVersion, '3.4.39', '<')) {
         throw new ModuleCannotInstallException((string) $message);
     }
 }
+
+if (version_compare($oldVersion, '3.4.45', '<')) {
+    $message = new Message(
+        'It is now possible to process a bulk import and to upload files at the same time. It allows to bypass complex server config, where it is not possible to drop files on the server or to access an external server. Furthermore, the files can be zipped and they will be automatically unzipped.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
