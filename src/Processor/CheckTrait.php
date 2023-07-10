@@ -107,7 +107,7 @@ trait CheckTrait
         } else {
             $data = null;
         }
-        $this->userSettings->set($this->keyStore . '_' . $index, $data);
+        $this->userSettings->set($this->keyStore . '_' . str_pad((string) $index, 6, '0', STR_PAD_LEFT), $data);
         return $this;
     }
 
@@ -119,11 +119,13 @@ trait CheckTrait
         if (is_null($index)) {
             $index = $this->indexResource;
         }
-        return $this->userSettings->get($this->keyStore . '_' . $index) ?: null;
+        return $this->userSettings->get($this->keyStore . '_' . str_pad((string) $index, 6, '0', STR_PAD_LEFT)) ?: null;
     }
 
     /**
      * Purge all stored resources, even from previous imports.
+     *
+     * @fixme Check if a job is running before purging (but batch upload is limited to admins).
      */
     protected function purgeCheckStore(): self
     {
