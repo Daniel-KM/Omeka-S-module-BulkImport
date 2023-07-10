@@ -76,7 +76,7 @@
         "post-update-cmd": "@build",
         "build": [
             "# Fix deprecation for JsonPath on php 7.4 (minimum required by Omeka).",
-            "@php -r '$r = \"#[\\ReturnTypeWillChange]\n    \"; $s = [\"public function offsetGet(\\$offset)\", \"public function key()\", \"public function current()\"]; $f = __DIR__ . \"/vendor/softcreatr/jsonpath/src/JSONPath.php\"; file_put_contents($f, str_replace($s, [$r . $s[0], $r . $s[1], $r . $s[2]], file_get_contents($f)));'"
+            "@php -r '$r = \"#[\\ReturnTypeWillChange]\\n    \"; $s = [\"public function offsetGet(\\$offset)\", \"public function key()\", \"public function current()\"]; $f = __DIR__ . \"/vendor/softcreatr/jsonpath/src/JSONPath.php\"; file_put_contents($f, str_replace($s, [$r . $s[0], $r . $s[1], $r . $s[2]], file_get_contents($f)));'"
         ]
     }
 }
