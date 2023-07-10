@@ -280,13 +280,14 @@ trait TwigTrait
                     // Check first for tables managed by module Table, if available.
                     $table = $this->table($name);
                     if ($table) {
+                        // Type "code" is used to get the code (first column).
+                        // By default get label from code, so the second column.
+                        // Strict means to not check without diacritics.
                         $type = $arga[1] ?? '';
                         $strict = !empty($arga[2]);
-                        if ($type === 'code') {
-                            $v = $table->codeFromLabel($w, $strict) ?? $w;
-                        } else {
-                            $v = $table->labelFromCode($w, $strict) ?? $w;
-                        }
+                        $v = $type === 'code'
+                            ? $table->codeFromLabel($w, $strict) ?? $w
+                            : $table->labelFromCode($w, $strict) ?? $w;
                     } elseif ($name === 'iso-639-native') {
                         $v = Iso639p3::name($w) ?: $w;
                     } elseif ($name === 'iso-639-english') {
