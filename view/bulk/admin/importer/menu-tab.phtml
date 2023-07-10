@@ -1,0 +1,43 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
+ * @var string $current
+ */
+
+use BulkImport\Interfaces\Configurable as ConfigurableImport;
+
+$plugins = $this->getHelperPluginManager();
+$translate = $plugins->get('translate');
+
+$reader = $importer->reader();
+$processor = $importer->processor();
+
+$nav = [
+    'importer' => $translate('Importer'),
+];
+if ($current !== 'importer') {
+    $replace = [
+        '<li class="active">' => '<li>',
+        'href="#importer"' => 'href="' . $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'edit', 'id' => $importer->id()]) . '"',
+    ];
+}
+if ($reader && ($reader instanceof ConfigurableImport)) {
+    $nav['reader'] = $translate('Reader');
+    if ($current === 'reader') {
+        $replace['<li><a href="#reader"'] = '<li class="active"><a href="#reader"';
+    } else {
+        $replace['href="#reader"'] = 'href="' . $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()]) . '"';
+    }
+}
+if ($processor && ($processor instanceof ConfigurableImport)) {
+    $nav['processor'] = $translate('Processor');
+    if ($current === 'processor') {
+        $replace['<li><a href="#processor"'] = '<li class="active"><a href="#processor"';
+    } else {
+        $replace['href="#processor"'] = 'href="' . $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()]) . '"';
+    }
+}
+?>
+
+<?= str_replace(array_keys($replace), array_values($replace), $this->sectionNav($nav)) ?>

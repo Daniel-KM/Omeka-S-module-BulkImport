@@ -16,11 +16,11 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk Import')) ?>
+<?= $this->pageTitle($importer->label(), 1, $translate('Bulk import')) ?>
+
+<?= $this->partial('bulk/admin/importer/menu-tab', ['importer' => $importer, 'current' => 'processor']) ?>
 
 <div id="bulk-import">
-    <h2><?= $escape($translate('Configure processor')) ?></h2>
-    <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <h3><?= $escape(sprintf($translate('Processor: %s'), $processor->getLabel())) ?></h3>
     <p><?= $escape($translate('Fill the default values of the processor.')) ?></p>
     <?php

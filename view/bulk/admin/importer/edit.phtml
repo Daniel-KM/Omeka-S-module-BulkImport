@@ -15,10 +15,12 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($importer->label(), 1, $translate('Bulk import')) ?>
+
+<?= $this->partial('bulk/admin/importer/menu-tab', ['importer' => $importer, 'current' => 'importer']) ?>
 
 <div id="bulk-import">
-    <h2><?= $escape($translate('Edit importer')) ?></h2>
+    <p><?= $escape($translate('Set the default config of the importer, its reader and its processor, if any.')) ?></p>
     <?php
     $submit = $form->get('importer_submit')->get('submit');
     $submit->setAttribute('form', $form->getAttribute('id'));

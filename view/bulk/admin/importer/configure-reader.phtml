@@ -17,11 +17,11 @@ $this->headLink()->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport
 $form->prepare();
 ?>
 
-<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($importer->label(), 1, $translate('Bulk import')) ?>
+
+<?= $this->partial('bulk/admin/importer/menu-tab', ['importer' => $importer, 'current' => 'reader']) ?>
 
 <div id="bulk-import">
-    <h2><?= $escape($translate('Configure reader')) ?></h2>
-    <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
     <h3><?= $escape(sprintf($translate('Reader: %s'), $reader->getLabel())) ?></h3>
     <p><?= $escape($translate('Fill the default values of the reader.')) ?></p>
     <?php

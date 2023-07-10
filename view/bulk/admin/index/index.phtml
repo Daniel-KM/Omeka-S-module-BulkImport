@@ -29,7 +29,10 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($importers as $importer): ?>
+    <?php foreach ($importers as $importer):
+        $userIsAllowedUpdate = $importer->userIsAllowed('update');
+        $userIsAllowedDelete = $importer->userIsAllowed('delete');
+        ?>
         <tr>
             <td>
                 <?= $hyperlink($importer->label(), $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'start', 'id' => $importer->id()])) ?>
@@ -38,6 +41,24 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                         'class' => 'fas fa-cloud-upload-alt',
                         'title' => $translate('Import'),
                     ]); ?></li>
+                    <?php if ($userIsAllowedUpdate): ?>
+                    <li><?= $importer->link('', 'edit', [
+                        'class' => 'o-icon-edit',
+                        'title' => $translate('Edit'),
+                    ]) ?></li>
+                    <?php endif; ?>
+                    <?php if ($userIsAllowedDelete): ?>
+                    <li><?= $importer->link('', 'delete', [
+                        'class' => 'o-icon-delete',
+                        'title' => $translate('Delete'),
+                    ]); /*
+                    echo $this->hyperlink('', '#', [
+                        'data-sidebar-selector' => '#sidebar',
+                        'data-sidebar-content-url' => $importer->url('delete-confirm'),
+                        'class' => 'o-icon-delete sidebar-content',
+                        'title' => $translate('Delete'),
+                    ]); */ ?></li>
+                    <?php endif; ?>
                 </ul>
             </td>
             <td>
