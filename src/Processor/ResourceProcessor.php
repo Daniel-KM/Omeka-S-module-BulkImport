@@ -1293,6 +1293,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                     if ($this->bulk->isUrl($value)) {
                         $media['o:ingester'] = 'url';
                         $media['ingest_url'] = $value;
+                    } elseif ($f = $this->getFileUploaded($value)) {
+                        /** @see \BulkImport\Media\Ingester\Bulk */
+                        // Not fluid.
+                        $tempFile = $this->tempFileFactory->build();
+                        $tempFile->setTempPath($f['filename']);
+                        $tempFile->setSourceName($value);
+                        $media['o:ingester'] = 'bulk';
+                        $media['ingest_ingester'] = 'upload';
+                        $media['ingest_tempfile'] = $tempFile;
+                        // Don't delete file before validation (that uses
+                        // hydration and removes file);
+                        // $media['ingest_delete_file'] = true;
+                        $media['ingest_filename'] = $value;
                     } else {
                         $media['o:ingester'] = 'sideload';
                         $media['ingest_filename'] = $value;
@@ -1505,6 +1518,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
                     $resource['ingest_url'] = $value;
+                } elseif ($f = $this->getFileUploaded($value)) {
+                    /** @see \BulkImport\Media\Ingester\Bulk */
+                    // Not fluid.
+                    $tempFile = $this->tempFileFactory->build();
+                    $tempFile->setTempPath($f['filename']);
+                    $tempFile->setSourceName($value);
+                    $resource['o:ingester'] = 'bulk';
+                    $resource['ingest_ingester'] = 'upload';
+                    $resource['ingest_tempfile'] = $tempFile;
+                    // Don't delete file before validation (that uses
+                    // hydration and removes file);
+                    // $resource['ingest_delete_file'] = true;
+                    $resource['ingest_filename'] = $value;
                 } else {
                     $resource['o:ingester'] = 'sideload';
                     $resource['ingest_filename'] = $value;
@@ -1743,6 +1769,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         $isUrl = $this->bulk->isUrl($pathOrUrl);
         if ($isUrl) {
+            // TODO Check why the asset for thumbnail of the resource is not prepared when it is a url. See AssetProcessor().
             $result = $this->fetchFile(
                 'asset',
                 $filename,
@@ -1757,6 +1784,8 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
             $fullPath = $result['data']['fullpath'];
         } else {
+            // TODO Factorize with FileTrait, AssetProcessor and ResourceProcessor.
+            // TODO Use fetchFile() to manage any file.
             $isAbsolutePathInsideDir = strpos($pathOrUrl, $this->sideloadPath) === 0;
             $fileinfo = $isAbsolutePathInsideDir
                 ? new \SplFileInfo($pathOrUrl)

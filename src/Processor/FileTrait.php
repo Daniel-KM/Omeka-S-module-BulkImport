@@ -80,6 +80,11 @@ trait FileTrait
      */
     protected $checkAssetMediaType = false;
 
+    /**
+     * @var array
+     */
+    protected $filesUploaded = [];
+
     protected function initFileTrait(): void
     {
         $services = $this->getServiceLocator();
@@ -103,6 +108,77 @@ trait FileTrait
     }
 
     /**
+     * @todo Factorize with \BulkImport\Reader\FileAndUrlTrait::getUploadedFile()
+     */
+    protected function prepareFilesUploaded(?array $files): ?array
+    {
+        if (!$files) {
+            return $files;
+        }
+
+        if ($this->filesUploaded) {
+            return $this->filesUploaded;
+        }
+
+        // Unzip in Omeka temp directory.
+        $config = $this->getServiceLocator()->get('Config');
+        $tempDir = $config['temp_dir'] ?: sys_get_temp_dir();
+        if (!$tempDir) {
+            throw new \Omeka\Service\Exception\RuntimeException(
+                'The "temp_dir" is not configured' // @translate
+            );
+        }
+
+        // Create a unique temp dir to avoid to override existing files and to
+        // simplify distinction between imports.
+        // Here, the job is unknown.
+        $tempDirPath = tempnam($tempDir, sprintf('omk_bki_%s_', (new \DateTime('now'))->format('Ymd-H:i:s')));
+        if (!$tempDirPath) {
+            $message = new PsrMessage(
+                'Unable to create directory in temp dir.' // @translate
+            );
+            $this->logger->err($message);
+            return null;
+        }
+        @unlink($tempDirPath);
+        @mkdir($tempDirPath);
+        @chmod($tempDirPath, 0775);
+
+        foreach ($files as $key => $file) {
+            if ($file['error'] ?? true) {
+                continue;
+            }
+            if (empty($file['tmp_name'])) {
+                continue;
+            }
+            if (!file_exists($file['tmp_name'])) {
+                continue;
+            }
+            $filepath = @tempnam($tempDirPath, 'omk_bki_');
+            if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+                throw new \Omeka\Service\Exception\RuntimeException(
+                    (string) new PsrMessage(
+                        'Unable to move uploaded file "{file}" to "{filepath}".', // @translate
+                        ['file' => $file['name'], 'filepath' => $filepath]
+                    )
+                );
+            }
+            @chmod($filepath, 0664);
+            //unset($files[$key]['tmp_name']);
+            $files[$key]['filename'] = $filepath;
+        }
+
+        $this->filesUploaded = $files;
+        return $files;
+    }
+
+    protected function setFilesUploaded(array $files): self
+    {
+        $this->filesUploaded = $files;
+        return $this;
+    }
+
+    /**
      * Check if a file or url exists and is readable.
      */
     protected function checkFileOrUrl($fileOrUrl, ?ErrorStore $messageStore = null): bool
@@ -123,20 +199,25 @@ trait FileTrait
             $this->initFileTrait();
         }
 
-        if (!$this->isFileSideloadActive) {
+        $filepath = (string) $filepath;
+
+        // Check if this is a directly uploaded file. They are already checked.
+        $uploadedFile = $this->getFileUploaded($filepath);
+        if ($uploadedFile) {
+            $filepath = $uploadedFile['filename'];
+            $realPath = $filepath;
+        } elseif (!$this->isFileSideloadActive) {
             if ($messageStore) {
                 $messageStore->addError('file', new PsrMessage(
                     'Cannot sideload file: module FileSideload inactive or not installed.' // @translate
                 ));
             }
             return false;
-        }
-
-        $filepath = (string) $filepath;
-
-        $realPath = $this->verifyFile($filepath, $messageStore);
-        if (is_null($realPath)) {
-            return false;
+        } else {
+            $realPath = $this->verifyFile($filepath, $messageStore);
+            if (is_null($realPath)) {
+                return false;
+            }
         }
 
         if (!filesize($realPath) && !$this->allowEmptyFiles) {
@@ -552,6 +633,19 @@ trait FileTrait
         return $isValid;
     }
 
+    protected function getFileUploaded($filepath): ?array
+    {
+        if (!$this->filesUploaded) {
+            return null;
+        }
+        foreach ($this->filesUploaded as $file) {
+            if ($file['name'] === $filepath) {
+                return $file;
+            }
+        }
+        return null;
+    }
+
     /**
      * Fetch, check and save a file for an asset or a media.
      *
@@ -563,7 +657,7 @@ trait FileTrait
      * @param string $filename
      * @param string $storageId
      * @param string $extension
-     * @param string $fileOrUrl Full url or filepath.
+     * @param string $fileOrUrl Full url or filepath (relative or absolute).
      * @return array
      *
      * @todo Use \Omeka\File\Downloader
@@ -754,7 +848,7 @@ trait FileTrait
         $sha256 = $tempFile->getSha256();
 
         if ($isUrl) {
-            unlink($tempname);
+            @unlink($tempname);
         }
 
         return [

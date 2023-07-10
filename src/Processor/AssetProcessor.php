@@ -378,6 +378,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
 
         $isUrl = $this->bulk->isUrl($pathOrUrl);
         if ($isUrl) {
+            // TODO Check why the asset for thumbnail of the resource is not prepared when it is a url. See ResourceProcessor.
             $result = $this->fetchFile(
                 'asset',
                 $filename,
@@ -392,6 +393,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             }
             $fullPath = $result['data']['fullpath'];
         } else {
+            // TODO Factorize with FileTrait, AssetProcessor and ResourceProcessor.
+            // TODO Use fetchFile() to manage any file.
             $isAbsolutePathInsideDir = strpos($pathOrUrl, $this->sideloadPath) === 0;
             $fileinfo = $isAbsolutePathInsideDir
                 ? new \SplFileInfo($pathOrUrl)

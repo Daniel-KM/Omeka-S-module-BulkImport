@@ -5,6 +5,7 @@ namespace BulkImport\Form\Processor;
 use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
+use Laminas\Form\Fieldset;
 use Omeka\Form\Element as OmekaElement;
 
 trait CommonProcessTrait
@@ -134,6 +135,40 @@ trait CommonProcessTrait
         return $this;
     }
 
+    protected function addFiles(): \Laminas\Form\Form
+    {
+        // Set binary content encoding
+        $this
+            ->setAttribute('enctype', 'multipart/form-data');
+
+        $this
+            ->add([
+                'name' => 'files',
+                'type' => Fieldset::class,
+                'options' => [
+                    'label' => 'Files to import', // @translate
+                ],
+            ]);
+
+        $this
+            ->get('files')
+            ->add([
+                'name' => 'files',
+                'type' => Element\File::class,
+                'options' => [
+                    'label' => 'Files to import', // @translate
+                    'info' => 'When access to server is complex or when it cannot access internet or other servers, it is possible to upload them here.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'files',
+                    'required' => false,
+                    'multiple' => true,
+                ],
+            ]);
+
+        return $this;
+    }
+
     protected function addCommonProcessInputFilter(): \Laminas\Form\Form
     {
         $this->getInputFilter()
@@ -159,6 +194,17 @@ trait CommonProcessTrait
         $this->getInputFilter()
             ->add([
                 'name' => 'o:owner',
+                'required' => false,
+            ]);
+        return $this;
+    }
+
+    protected function addFilesFilter(): \Laminas\Form\Form
+    {
+        $this->getInputFilter()
+            ->get('files')
+            ->add([
+                'name' => 'files',
                 'required' => false,
             ]);
         return $this;

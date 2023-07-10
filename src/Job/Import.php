@@ -63,6 +63,14 @@ class Import extends AbstractJob
 
         $processor->process();
 
+        // Try to clean remaining uploaded files.
+        if ($processor instanceof Parametrizable) {
+            $files = $processor->getParams()['files'] ?? [];
+            foreach ($files as $file) {
+                @unlink($file['filename']);
+            }
+        }
+
         $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
 
         $notify = $this->job->getArgs()['notify_end'] ?? false;

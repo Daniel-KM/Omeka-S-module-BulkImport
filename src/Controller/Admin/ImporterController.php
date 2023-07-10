@@ -536,9 +536,14 @@ class ImporterController extends AbstractActionController
             $importArgs['processor'] = $currentForm === 'reader' ? [] : $session['processor'];
             // For security purpose.
             unset($importArgs['reader']['filename']);
+            foreach ($importArgs['processor']['files'] ?? [] as $key => $file) {
+                unset($importArgs['processor']['files'][$key]['filename']);
+                unset($importArgs['processor']['files'][$key]['tmp_name']);
+            }
             $view
                 ->setVariable('importArgs', $importArgs);
         }
+
         return $view;
     }
 

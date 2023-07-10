@@ -9,12 +9,14 @@ class ResourceProcessorParamsForm extends ResourceProcessorConfigForm
         $this
             ->baseFieldset()
             ->addFieldsets()
-            ->addMapping();
+            ->addMapping()
+            ->addFiles();
 
         $this
             ->baseInputFilter()
             ->addInputFilter()
-            ->addMappingFilter();
+            ->addMappingFilter()
+            ->addFilesFilter();
     }
 
     protected function prependMappingOptions(): array

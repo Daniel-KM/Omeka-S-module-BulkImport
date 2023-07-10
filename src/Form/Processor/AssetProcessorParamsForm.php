@@ -12,6 +12,7 @@ class AssetProcessorParamsForm extends AssetProcessorConfigForm
         $this
             ->baseFieldset()
             ->addMapping();
+            // TODO Files.
 
         $this
             ->baseInputFilter()

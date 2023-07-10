@@ -22,7 +22,7 @@ class Bulk implements IngesterInterface
     }
 
     /**
-     * Ingest from a bulk process.
+     * Ingest from a bulk process, in particular for uploaded files.
      *
      * {@inheritDoc}
      */

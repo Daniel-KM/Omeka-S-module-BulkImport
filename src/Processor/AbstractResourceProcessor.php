@@ -232,6 +232,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
         $params['mapping'] = $values['mapping'] ?? [];
+        $files = $this->prepareFilesUploaded($values['files']['files'] ?? []);
+        if ($files) {
+            $params['files'] = $files;
+        } else {
+            unset($params['files']);
+        }
         $this->setParams($params->getArrayCopy());
         return $this;
     }
@@ -259,6 +265,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (empty($this->actionUnidentified)) {
             return;
         }
+
+        $files = $this->params['files'] ?? [];
+        $this->setFilesUploaded($files);
 
         $this->logger->notice(
             'The process will run action "{action}" with option "{mode}" for unindentified resources.', // @translate
@@ -1393,7 +1402,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return true;
         }
 
-        if ($resource['resource_name'] === 'items') {
+        $isItem = $resource['resource_name'] === 'items';
+        if ($isItem) {
             $resourceFiles = $resource['o:media'] ?? [];
             if (!$resourceFiles) {
                 return true;
@@ -1402,7 +1412,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $resourceFiles = [$resource];
         }
 
-        $isItem = $resource['resource_name'] === 'items';
         if ($this->skipMissingFiles && $isItem) {
             return $this->checkItemFilesWarn($resource, $resourceFiles);
         }
@@ -1805,6 +1814,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Manage mixed resources.
             $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
             $dataResource = $this->completeResourceIdentifierIds($dataResource);
+            // Remove uploaded files.
+            foreach ($dataResource['o:media'] ?? [] as &$media) {
+                if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+                    $media['ingest_delete_file'] = true;
+                }
+            }
             try {
                 $response = $this->bulk->api(null, true)
                     ->create($resourceName, $dataResource);
@@ -1933,6 +1948,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     : $this->updateData($resourceName, $dataResource);
                 if (!$dataResource) {
                     return $this;
+                }
+            }
+
+            // Remove uploaded files.
+            foreach ($dataResource['o:media'] ?? [] as &$media) {
+                if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+                    $media['ingest_delete_file'] = true;
                 }
             }
 
