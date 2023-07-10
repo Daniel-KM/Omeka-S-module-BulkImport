@@ -60,6 +60,10 @@ class FileDerivative extends AbstractJob
             $criterias['hasThumbnails'] = false;
         }
 
+        // It is useless to set a loop/chunk process? Useless anyway: if the
+        // module can load many medias with an item, it can process them all in
+        // one loop.
+
         $medias = $mediaRepository->findBy($criterias);
         if (!count($medias)) {
             return;
@@ -112,7 +116,51 @@ class FileDerivative extends AbstractJob
             }
         }
 
-        // Remaining medias.
+        // Remaining medias (none because there is a single loop).
         $entityManager->flush();
+
+        // Run the process that are skipped (image size, image tiler).
+        // No need to use the dispatcher, use the current job.
+
+        $hasMediaDimension = class_exists(\IiifServer\Job\MediaDimensions::class);
+        $hasBulkSizer = class_exists(\ImageServer\Job\BulkSizer::class);
+        if (!$hasMediaDimension && !$hasBulkSizer) {
+            return;
+        }
+
+        $imageServerTileManual = $services->get('Omeka\Settings')->get('imageserver_tile_manual', false);
+        // Don't un bulksizer if MediaDimension is done.
+        if ($hasMediaDimension && $imageServerTileManual) {
+            $subJobClasses = [
+                \IiifServer\Job\MediaDimensions::class,
+            ];
+        } elseif ($hasMediaDimension) {
+            $subJobClasses = [
+                \IiifServer\Job\MediaDimensions::class,
+                \ImageServer\Job\BulkTiler::class,
+            ];
+        } elseif ($imageServerTileManual) {
+            $subJobClasses = [
+                \ImageServer\Job\BulkSizer::class,
+            ];
+        } else {
+            $subJobClasses = [
+                \ImageServer\Job\BulkSizerAndTiler::class,
+            ];
+        }
+
+        // All the jobs have the same arguments (query).
+        $args = [
+            'tasks' => ['size', 'tile'],
+            'query' => ['id' => $itemId],
+            'filter' => 'unsized',
+            'remove_destination' => 'skip',
+            'update_renderer' => false,
+        ];
+        $this->job->setArgs($args);
+        foreach ($subJobClasses as $subJobClass) {
+            $subJob = new $subJobClass($this->job, $services);
+            $subJob->perform();
+        }
     }
 }
