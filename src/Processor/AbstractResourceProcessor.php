@@ -268,6 +268,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $files = $this->params['files'] ?? [];
         $this->setFilesUploaded($files);
+        $this->prepareFilesZip();
+        if ($this->totalErrors) {
+            return;
+        }
 
         $this->logger->notice(
             'The process will run action "{action}" with option "{mode}" for unindentified resources.', // @translate

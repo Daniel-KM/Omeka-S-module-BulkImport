@@ -68,6 +68,9 @@ class Import extends AbstractJob
             $files = $processor->getParams()['files'] ?? [];
             foreach ($files as $file) {
                 @unlink($file['filename']);
+                if (!empty($file['dirpath'])) {
+                    $this->rmDir($file['dirpath']);
+                }
             }
         }
 
@@ -289,5 +292,30 @@ class Import extends AbstractJob
         }
 
         return $this;
+    }
+
+    /**
+     * Remove a dir from filesystem.
+     *
+     * @param string $dirpath Absolute path.
+     */
+    private function rmDir(string $dirPath): bool
+    {
+        if (!file_exists($dirPath)) {
+            return true;
+        }
+        if (strpos($dirPath, '/..') !== false || substr($dirPath, 0, 1) !== '/') {
+            return false;
+        }
+        $files = array_diff(scandir($dirPath), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dirPath . '/' . $file;
+            if (is_dir($path)) {
+                $this->rmDir($path);
+            } else {
+                unlink($path);
+            }
+        }
+        return rmdir($dirPath);
     }
 }

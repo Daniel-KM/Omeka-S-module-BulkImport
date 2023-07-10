@@ -1293,11 +1293,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                     if ($this->bulk->isUrl($value)) {
                         $media['o:ingester'] = 'url';
                         $media['ingest_url'] = $value;
-                    } elseif ($f = $this->getFileUploaded($value)) {
+                    } elseif ($filepath = $this->getFileUploaded($value)) {
                         /** @see \BulkImport\Media\Ingester\Bulk */
                         // Not fluid.
                         $tempFile = $this->tempFileFactory->build();
-                        $tempFile->setTempPath($f['filename']);
+                        $tempFile->setTempPath($filepath);
                         $tempFile->setSourceName($value);
                         $media['o:ingester'] = 'bulk';
                         $media['ingest_ingester'] = 'upload';
@@ -1518,11 +1518,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
                     $resource['ingest_url'] = $value;
-                } elseif ($f = $this->getFileUploaded($value)) {
+                } elseif ($filepath = $this->getFileUploaded($value)) {
                     /** @see \BulkImport\Media\Ingester\Bulk */
                     // Not fluid.
                     $tempFile = $this->tempFileFactory->build();
-                    $tempFile->setTempPath($f['filename']);
+                    $tempFile->setTempPath($filepath);
                     $tempFile->setSourceName($value);
                     $resource['o:ingester'] = 'bulk';
                     $resource['ingest_ingester'] = 'upload';
