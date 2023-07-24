@@ -51,9 +51,6 @@ return [
         ],
     ],
     'view_helpers' => [
-        'invokables' => [
-            'formNote' => Form\View\Helper\FormNote::class,
-        ],
         'factories' => [
             // Copy from AdvancedResourceTemplate. Copy in BulkExport, BulkEdit and BulkImport. Used in Contribute.
             'customVocabBaseType' => Service\ViewHelper\CustomVocabBaseTypeFactory::class,
@@ -68,7 +65,6 @@ return [
     'form_elements' => [
         'invokables' => [
             Form\Element\ArrayText::class => Form\Element\ArrayText::class,
-            Form\Element\Note::class => Form\Element\Note::class,
             Form\Element\OptionalMultiCheckbox::class => Form\Element\OptionalMultiCheckbox::class,
             Form\Element\OptionalRadio::class => Form\Element\OptionalRadio::class,
             Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
