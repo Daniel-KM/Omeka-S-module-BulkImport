@@ -144,6 +144,14 @@ trait FileTrait
             return [];
         }
 
+        // Fix when no files are submitted in processor.
+        if ($files === [['name' => '', 'type' => '', 'tmp_name' => '', 'error' => 4, 'size' => 0]]
+            || $files === [['name' => '', 'full_path' => '', 'type' => '', 'tmp_name' =>'', 'error' => 4, 'size' => 0]]
+        ) {
+            $this->filesUploaded = [];
+            return [];
+        }
+
         if (is_array($this->filesUploaded)) {
             return $this->filesUploaded;
         }
@@ -202,7 +210,7 @@ trait FileTrait
     protected function prepareFilesZip(): self
     {
         if (empty($this->filesUploaded)) {
-            return [];
+            return $this;
         }
 
         if (!$this->isInitFileTrait) {

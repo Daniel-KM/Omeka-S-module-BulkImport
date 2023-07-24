@@ -290,6 +290,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
+        /** @var \BulkImport\Reader\Reader $reader */
         $reader = $importer->reader();
         if (!$reader) {
             $message = new PsrMessage('Reader "{reader}" does not exist', ['reader' => $importer->readerClass()]); // @translate
@@ -297,6 +298,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
+        /** @var \BulkImport\Processor\Processor $processor*/
         $processor = $importer->processor();
         if (!$processor) {
             $message = new PsrMessage('Processor "{processor}" does not exist', ['processor' => $importer->processorClass()]); // @translate

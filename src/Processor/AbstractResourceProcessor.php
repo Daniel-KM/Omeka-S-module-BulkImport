@@ -236,7 +236,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($files) {
             $params['files'] = $files;
         } else {
-            unset($params['files']);
+            $params->offsetUnset('files');
         }
         $this->setParams($params->getArrayCopy());
         return $this;
