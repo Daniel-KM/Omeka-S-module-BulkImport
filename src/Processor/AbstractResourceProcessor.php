@@ -225,13 +225,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    public function handleParamsForm(Form $form): self
+    public function handleParamsForm(Form $form, ?string $mappingSerialized = null): self
     {
         $values = $form->getData();
         $params = new ArrayObject;
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
-        $params['mapping'] = $values['mapping'] ?? [];
+        if (empty($values['mapping'])) {
+            $params['mapping'] = [];
+        } else {
+            $params['mapping'] = isset($mappingSerialized) ? unserialize($mappingSerialized) : $values['mapping'];
+        }
         $files = $this->prepareFilesUploaded($values['files']['files'] ?? []);
         if ($files) {
             $params['files'] = $files;

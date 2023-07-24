@@ -339,17 +339,15 @@ class ImporterController extends AbstractActionController
 
             // Make certain to merge the files info!
             $request = $this->getRequest();
-            $data = array_merge_recursive(
-                $request->getPost()->toArray(),
-                $request->getFiles()->toArray()
-            );
+            $postData = $request->getPost()->toArray();
+            $postFiles = $request->getFiles()->toArray();
+            $data = array_merge_recursive($postData, $postFiles);
 
             // Pass data to form.
             $form->setData($data);
             if ($form->isValid()) {
                 // Execute file filters.
                 $data = $form->getData();
-
                 $session->{$currentForm} = $data;
                 switch ($currentForm) {
                     default:
@@ -404,7 +402,14 @@ class ImporterController extends AbstractActionController
                         break;
 
                     case 'processor':
-                        $processor->handleParamsForm($form);
+                        // There is a complex issue for mapping names with diacritics,
+                        // spaces or quotes, for example customvocab:"Autorités".
+                        // So serialize mapping with original post for now.
+                        // TODO Fix laminas for form element name with diacritics.
+                        if (!empty($postData['mapping'])) {
+                            $data['mapping_serialized'] = serialize($postData['mapping']);
+                        }
+                        $processor->handleParamsForm($form, $data['mapping_serialized'] ?? null);
                         $session->comment = trim((string) $data['comment']);
                         $session->storeAsTask = !empty($data['store_as_task']);
                         $session->processor = $processor->getParams();
@@ -426,7 +431,6 @@ class ImporterController extends AbstractActionController
                         if ($processor instanceof Parametrizable) {
                             $importData['o-bulk:processor_params'] = $processor->getParams();
                         }
-
                         $response = $this->api()->create('bulk_imports', $importData);
                         if (!$response) {
                             $this->messenger()->addError('Save of import failed'); // @translate
@@ -542,6 +546,7 @@ class ImporterController extends AbstractActionController
                 unset($importArgs['processor']['files'][$key]['filename']);
                 unset($importArgs['processor']['files'][$key]['tmp_name']);
             }
+            unset($importArgs['processor']['mapping_serialized']);
             $view
                 ->setVariable('importArgs', $importArgs);
         }
