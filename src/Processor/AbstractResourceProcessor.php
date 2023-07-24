@@ -239,7 +239,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $files = $this->prepareFilesUploaded($values['files']['files'] ?? []);
         if ($files) {
             $params['files'] = $files;
-        } else {
+        } elseif ($params->offsetExists('files')) {
             $params->offsetUnset('files');
         }
         $this->setParams($params->getArrayCopy());

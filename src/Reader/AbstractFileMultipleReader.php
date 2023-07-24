@@ -21,6 +21,13 @@ abstract class AbstractFileMultipleReader extends AbstractReader
      */
     protected $currentFilepath;
 
+    /**
+     * @todo Use list inside iterator.
+     *
+     * @var array
+     */
+    protected $listFiles = [];
+
     public function handleParamsForm(Form $form): self
     {
         $this->lastErrorMessage = null;
