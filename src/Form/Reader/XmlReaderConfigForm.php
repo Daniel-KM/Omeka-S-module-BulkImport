@@ -21,6 +21,8 @@ class XmlReaderConfigForm extends Form
         $xslConfig['user']['label'] = 'User xsl files'; // @translate
         $xslConfig['module']['label'] = 'Module xsl files'; // @translate
 
+        $convertMapping =  $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]);
+
         $this
             ->add([
                 'name' => 'url',
@@ -79,7 +81,7 @@ class XmlReaderConfigForm extends Form
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'Mapping to convert source', // @translate
-                    'value_options' => $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]),
+                    'value_options' => $convertMapping,
                     'empty_option' => '',
                 ],
                 'attributes' => [

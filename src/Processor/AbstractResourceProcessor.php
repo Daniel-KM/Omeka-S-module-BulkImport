@@ -52,13 +52,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Allowed fields to create or update resources.
      *
+     * See resource or asset processor for default.
+     *
      * @see \Omeka\Api\Representation\AssetRepresentation
      * @var array
      */
     protected $metadataData = [
         // @todo Currently not used.
         'fields' => [],
-        'meta_mapper_config' => [],
         'skip' => [],
         // List of keys that can have only one value.
         'boolean' => [],
@@ -518,23 +519,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function prepareMetaConfig(): self
     {
         $mappingConfig = null;
+
         if (method_exists($this->reader, 'getConfigParam')) {
+            // Check if config is reader-driven (xml, json).
             $mappingConfig = $this->reader->getParam('mapping_config')
+                // Check for processor-driven (specific processors).
                 ?: $this->getConfigParam('mapping_config', '');
                 // ?: ($this->getConfigParam('mapping_config', '') ?: null);
         }
-        if (is_null($mappingConfig)) {
+
+        // Or get the manual mapping from processor (spreadsheet).
+        if ($mappingConfig === null) {
             $mappingConfig = $this->getParam('mapping', []);
         }
+
         if (!$mappingConfig) {
             return $this;
         }
 
-        $this->metaMapper->getMetaMapperConfig(
-            'resources',
-            $mappingConfig,
-            $this->metadataData['meta_mapper_config']
-        );
+        // Prepare the mapping mapper config.
+        // TODO Use this resource name ("resources" or "assets" for now).
+        $this->metaMapper->__invoke('resources', $mappingConfig);
 
         $error = $this->metaMapper->getMetaMapperConfig()->hasError();
         if ($error) {
@@ -998,8 +1003,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return null;
         }
 
-        $mapping = $this->metaMapper->__invoke('resources')->getMapping();
-        return $mapping === null
+        $metaMapping = $this->metaMapper->__invoke('resources')->getMetaMapping();
+        return $metaMapping === null
             ? $this->processEntryFromReader($entry)
             : $this->processEntryFromProcessor($entry);
     }
@@ -1010,7 +1015,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * Reader-driven extraction of data.
      *
      * So fill owner id, resource template id, resource class id, property ids.
-     * Check boolean values too for is public and is open.
+     * Check boolean values too for is_public and is_open.
      */
     protected function processEntryFromReader(Entry $entry): ArrayObject
     {
@@ -1024,7 +1029,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Added for security.
         $keys['skip'] = [
             'checked_id' => null,
-            // The human source index is one-based, so it means undetermined.
+            // The human source index is one-based, so "0" means undetermined.
             'source_index' => 0,
             'messageStore' => null,
         ] + ($keys['skip'] ?? []);
@@ -1060,9 +1065,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource['source_index'] = $this->indexResource;
         $resource['messageStore']->clearMessages();
 
-        $metaConfig = $this->metaMapper->__invoke('resources')->getMapping();
+        $metaMapping = $this->metaMapper->__invoke('resources')->getMapping();
 
-        foreach (['default', 'maps'] as $section) foreach ($metaConfig[$section] as $map) {
+        foreach (['default', 'maps'] as $section) foreach ($metaMapping[$section] as $map) {
             if (empty($map)
                 // Empty from, to and mod mean a map to skip.
                 || !array_filter($map)

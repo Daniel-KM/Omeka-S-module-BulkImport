@@ -104,7 +104,7 @@ class ExtractMediaMetadata extends AbstractPlugin
         // TODO Merge with AbstractResourceProcessor.
         // Here, the mapping reference is used as mapping name.
         $mappingReference = 'module:json/file.' . str_replace('/', '_', $mediaType). '.jsdot.ini';
-        $mapping = $this->metaMapper->getMetaMapperConfig()->__invoke($mediaType, $mappingReference);
+        $mapping = $this->metaMapper->__invoke($mediaType, $mappingReference)->getMetaMapperConfig()->getMapping();
         if ($mapping === null) {
             return null;
         }

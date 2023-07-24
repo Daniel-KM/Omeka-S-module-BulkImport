@@ -81,7 +81,11 @@ class MetaMapperConfig
             'info' => [
                 // Label is the only required data.
                 'label' => 'Default empty mapping', // @translate
+                'from' => null,
+                'to' => null,
+                // xpath, jsonpath, jsdot, jmespath.
                 'querier' => null,
+                // Used by ini for json. In xml, include can be used.
                 'mapper' => null,
                 'example' => null,
             ],
@@ -206,35 +210,53 @@ class MetaMapperConfig
      *
      * For more information and formats: see {@link https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport}.
      *
+     * The mapping should contain some infos about the mapping itself in section
+     * "info", some params if needed, and tables or reference to tables.
+     *
      * @todo Merge default and maps by a setting in the maps.
      *
      * The mapping is not overridable once built, even if options are different.
      * If needed, another name should be used.
      *
+     * @todo Remove options and use mapping only, that may contain info, params and tables.
+     *
      * @param string $mappingName The name of the mapping to get or to set.
-     * @param array|string|null $mapping Full mapping or reference file or name.
+     * @param array|string|null $mappingOrMappingReference Full mapping or
+     *   reference file or name.
      * @param array $options
+     * // To be removed: part of the main mapping.
+     * - section_types (array): way to manage the sections of the mapping.
+     * - tables (array): tables to use for some maps with conversion.
+     * // To be removed: Only used by spreadsheet.
+     * - infos
+     * - label
+     * - params
+     * - default
+     * // To be removed: For automap a single string.
+     * - check_field (bool)
+     * - output_full_matches (bool)
+     * - output_property_id (bool)
      * @return self|array The normalized mapping.
      */
-    public function __invoke(?string $mappingName = null, $mapping = null, array $options = [])
+    public function __invoke(?string $mappingName = null, $mappingOrReference = null, array $options = [])
     {
-        if (is_null($mappingName) && is_null($mapping)) {
+        if ($mappingName === null && $mappingOrReference === null) {
             return $this;
         }
 
-        if (is_null($mappingName) && !is_null($mapping)) {
-            $mappingName = md5(serialize($mapping));
+        if ($mappingName === null && $mappingOrReference !== null) {
+            $mappingName = md5(serialize($mappingOrReference));
         }
 
         $this->setCurrentMappingName($mappingName);
 
-        if (is_null($mapping)) {
+        if ($mappingOrReference === null) {
             return $this->getMapping();
         }
 
         // The mappings are not overridable.
-        if (!isset($this->mappings[$mappingName]) && $mapping !== null) {
-            $this->prepareMapping($mapping, $options);
+        if (!isset($this->mappings[$mappingName]) && $mappingOrReference!== null) {
+            $this->prepareMapping($mappingOrReference, $options);
         }
 
         return $this->getMapping($mappingName);
@@ -330,11 +352,15 @@ class MetaMapperConfig
      *
      * Only this method should be used to prepare mappings. In particular, this
      * is the only one that store options.
+     *
+     * @param array|string|null $mappingOrMappingReference Full mapping or
+     *   reference file or name.
      */
     protected function prepareMapping($mappingOrReference, array $options): self
     {
         // This is not really useful, since this is not used anywhere, but it is
         // required to manage the exception of getSectionSetting().
+        // TODO Clarify and hard code sections types.
         $options['section_types'] ??= [
             'info' => 'raw',
             'params' => 'raw_or_pattern',
@@ -382,11 +408,13 @@ class MetaMapperConfig
     {
         $normalizedMapping = [
             'options' => $options,
-            'info' => [
+            'info' => $options['infos'] ?? [
                 'label' => $options['label'] ?? $this->mappingName,
+                'from' => null,
+                'to' => null,
                 'querier' => null,
-                'mapper' => $options['mapper'] ?? null,
-                'example' => $options['example'] ?? null,
+                'mapper' => null,
+                'example' => null,
             ],
             'params' => $options['params'] ?? [],
             'default' => $options['default'] ?? [],
@@ -429,6 +457,12 @@ class MetaMapperConfig
         $normalizedMapping['info']['label'] = !empty($normalizedMapping['info']['label']) && is_string($normalizedMapping['info']['label'])
             ? $normalizedMapping['info']['label']
             : $this->mappingName;
+        $normalizedMapping['info']['from'] = !empty($normalizedMapping['info']['from']) && is_string($normalizedMapping['info']['from'])
+            ? $normalizedMapping['info']['from']
+            : null;
+        $normalizedMapping['info']['to'] = !empty($normalizedMapping['info']['to']) && is_string($normalizedMapping['info']['to'])
+            ? $normalizedMapping['info']['to']
+            : null;
         $normalizedMapping['info']['querier'] = !empty($normalizedMapping['info']['querier']) && is_string($normalizedMapping['info']['querier'])
             ? $normalizedMapping['info']['querier']
             : null;
@@ -458,8 +492,8 @@ class MetaMapperConfig
 
         $prefixes = [
             'user' => $this->bulk->getBasePath() . '/mapping/',
-            'module' => dirname(__DIR__, 4) . '/data/mapping/',
-            'base' => dirname(__DIR__, 4) . '/data/mapping/base/',
+            'module' => dirname(__DIR__, 2) . '/data/mapping/',
+            'base' => dirname(__DIR__, 2) . '/data/mapping/base/',
         ];
 
         $content = null;
@@ -545,7 +579,9 @@ class MetaMapperConfig
             return [
                 'options' => $options,
                 'info' => [
-                    'label' => $options['label'] ?? $this->mappingName,
+                    'label' => $this->mappingName,
+                    'from' => null,
+                    'to' => null,
                     'querier' => null,
                     'mapper' => null,
                     'example' => null,
@@ -647,6 +683,8 @@ class MetaMapperConfig
             'options' => $options,
             'info' => [
                 'label' => $options['label'] ?? $this->mappingName,
+                'from' => null,
+                'to' => null,
                 'querier' => null,
                 'mapper' => null,
                 'example' => null,
@@ -671,13 +709,16 @@ class MetaMapperConfig
             return $normalizedMapping;
         }
 
-        // TODO Xml mapping for info and params.
-        foreach ($xmlMapping->info as $element) {
-            $normalizedMapping['info'][] = [];
+        if (isset($xmlMapping->info)) {
+            foreach ($xmlMapping->info->children()  as $element) {
+                $normalizedMapping['info'][$element->getName()] = $element->__toString();
+            }
         }
 
-        foreach ($xmlMapping->params as $element) {
-            $normalizedMapping['params'][] = [];
+        if (isset($xmlMapping->params)) {
+            foreach ($xmlMapping->params->children()  as $element) {
+                $normalizedMapping['params'][$element->getName()] = $element->__toString();
+            }
         }
 
         // This value allows to keep the original dest single.
@@ -965,15 +1006,25 @@ class MetaMapperConfig
 
         // For resource properties by default.
         // Most of other metadata have no data anyway.
-        $toKeys = $options['to_keys'] ?? [
-            'field' => null,
-            'property_id' => null,
-            'datatype' => null,
-            'language' => null,
-            'is_public' => null,
-        ];
+        $resourceName = $normalizedMap['infos']['to'] ?? 'resources';
+        switch ($resourceName) {
+            case 'assets':
+                $toKeys = [
+                    'field' => null,
+                ];
+                break;
+            case 'resources':
+            default:
+                $toKeys = [
+                    'field' => null,
+                    'property_id' => null,
+                    'datatype' => null,
+                    'language' => null,
+                    'is_public' => null,
+                ];
+        }
 
-        $modKeys = $options['mod_keys'] ?? [
+        $modKeys = [
             'raw' => null,
             'val' => null,
             'prepend' => null,
@@ -1145,7 +1196,7 @@ class MetaMapperConfig
     }
 
     /**
-     * Here, the array should be already tested and no a nested array.
+     * Here, the array should be already tested and not a nested array.
      */
     protected function normalizeMapFromArray(array $map, array $options): array
     {

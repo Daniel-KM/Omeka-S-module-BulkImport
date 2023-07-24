@@ -66,6 +66,13 @@ Le code "#" est utilisé pour " ".
 -->
 
 <mapping>
+
+    <info>
+        <label>Unimarc to Omeka</label>
+        <from>unimarc</from>
+        <to>resources</to>
+    </info>
+
     <!-- Valeurs par défaut (sans <from>). -->
 
     <map>

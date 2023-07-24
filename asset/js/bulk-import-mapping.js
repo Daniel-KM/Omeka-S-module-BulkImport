@@ -16,12 +16,17 @@
             mapping: {
                 attrs: {
                 },
-                children: ['include', 'map', 'table'],
+                children: ['include', 'info', 'map', 'table'],
             },
             include: {
                 attrs: {
                     mapping: null,
                 }
+            },
+            info: {
+                attrs: {
+                },
+                children: ['from', 'to', 'label'],
             },
             map: {
                 attrs: {

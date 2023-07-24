@@ -40,11 +40,6 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             // To attach resources.
             'o:resource',
         ],
-        'meta_mapper_config' => [
-            'to_keys' => [
-                'field' => null,
-            ],
-        ],
         'skip' => [],
         'boolean' => [],
         'single_data' => [

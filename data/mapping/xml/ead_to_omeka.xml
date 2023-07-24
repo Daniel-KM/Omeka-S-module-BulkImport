@@ -29,6 +29,12 @@
 
 <mapping>
 
+    <info>
+        <label>Ead to Omeka</label>
+        <from>ead</from>
+        <to>resources</to>
+    </info>
+
     <!-- Header et Front Matter. -->
 
     <include mapping="ead_presentation_to_omeka.xml"/>

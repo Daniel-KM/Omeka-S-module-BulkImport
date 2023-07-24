@@ -16,6 +16,8 @@ class JsonReaderConfigForm extends Form
 
     public function init(): void
     {
+        $convertMapping = $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]);
+
         $this
             ->add([
                 'name' => 'url',
@@ -44,7 +46,7 @@ class JsonReaderConfigForm extends Form
                 'type' => BulkImportElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'Mapping to convert source', // @translate
-                    'value_options' => $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]),
+                    'value_options' => $convertMapping,
                     'empty_option' => '',
                 ],
                 'attributes' => [

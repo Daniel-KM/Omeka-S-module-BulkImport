@@ -115,13 +115,23 @@ class MetaMapper
     }
 
     /**
-     * Get this meta mapper.
+     * Get this meta mapper and set the meta mapper config.
+     *
+     * @param string $mappingName The name of the mapping to get or to set.
+     * @param array|string|null $mappingOrMappingReference Full mapping or
+     *   reference file or name.
+     * @return self
+     *
+     * @uses \BulkImport\Stdlib\MetaMapperConfig
      */
-    public function __invoke(?string $mappingName = null): self
+    public function __invoke(?string $mappingName = null, $mappingOrReference = null): self
     {
         if ($mappingName) {
-            $this->mappingName = $mappingName;
-            $this->metaMapperConfig->__invoke($mappingName);
+            if ($mappingOrReference === null) {
+                $this->setMappingName($mappingName);
+            } else {
+                $this->setMetaMapping($mappingName, $mappingOrReference);
+            }
         }
         return $this;
     }
@@ -129,6 +139,15 @@ class MetaMapper
     public function getMetaMapperConfig(): MetaMapperConfig
     {
         return $this->metaMapperConfig;
+    }
+
+    /**
+     * Set meta mapper config name.
+     */
+    public function setMappingName(string $mappingName): self
+    {
+        $this->mappingName = $mappingName;
+        return $this;
     }
 
     /**
@@ -140,9 +159,23 @@ class MetaMapper
     }
 
     /**
+     * Set the meta mapper config dynamically.
+     *
+     * @param string $mappingName The name of the mapping to get or to set.
+     * @param array|string|null $mappingOrMappingReference Full mapping or
+     *   reference file or name.
+     */
+    public function setMetaMapping(string $mappingName, $mappingOrReference): self
+    {
+        $this->mappingName = $mappingName;
+        $this->metaMapperConfig->__invoke($mappingName, $mappingOrReference);
+        return $this;
+    }
+
+    /**
      * Get current meta mapper mapping if any.
      */
-    public function getMapping(): ?array
+    public function getMetaMapping(): ?array
     {
         // Don't return via invoke: it may be the plugin itself when there is no
         // mapping name.

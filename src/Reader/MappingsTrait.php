@@ -153,7 +153,7 @@ trait MappingsTrait
         return $internalBulkMappings;
     }
 
-    protected function getMapping(string $mappingName): ?string
+    protected function getMappingFromFile(string $mappingName): ?string
     {
         $services = $this->getServiceLocator();
         $config = $services->get('Config');
@@ -172,6 +172,12 @@ trait MappingsTrait
         if (!$path || !is_file($path) || !is_readable($path)) {
             return null;
         }
-        return file_get_contents($path);
+
+        $content = file_get_contents($path);
+        if ($content === false) {
+            return null;
+        }
+
+        return $content;
     }
 }

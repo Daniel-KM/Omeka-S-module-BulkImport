@@ -222,25 +222,11 @@ class XmlReader extends AbstractFileMultipleReader
     {
         $this->iterator = new AppendIterator();
 
-        // TODO The name of the meta config is always "resources" or "assets".
+        // Prepare the mapping mapper config.
         $mappingConfig = $this->getParam('mapping_config')
             ?: ($this->getConfigParam('mapping_config') ?: null);
-        $this->metaMapper->getMetaMapperConfig(
-            'resources',
-            $mappingConfig,
-            // See resource processor / prepareMetaConfig().
-            [
-                'to_keys' => [
-                    'field' => null,
-                    'property_id' => null,
-                    'datatype' => null,
-                    'language' => null,
-                    'is_public' => null,
-                ],
-            ]
-        );
-
-        $this->metaMapper->__invoke('resources');
+        // TODO Use this resource name ("resources" or "assets" for now). See object type or options?
+        $this->metaMapper->__invoke('resources', $mappingConfig);
 
         // TODO Check error. See resource processor / prepareMetaConfig().
         if ($this->metaMapper->getMetaMapperConfig()->hasError()) {

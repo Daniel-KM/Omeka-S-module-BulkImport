@@ -48,6 +48,8 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $availableFields = [];
 
     /**
+     * This is the resource name ("resources", "assets").
+     *
      * @var string
      */
     protected $objectType;
@@ -300,6 +302,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     }
 
     /**
+     * To prepare an iterator may be a complex process, because source may be
+     * very different and may have various system of pagination.
+     *
      * @throws \Omeka\Service\Exception\RuntimeException
      */
     protected function prepareIterator(): self
@@ -340,6 +345,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     {
         return $this;
     }
+
     /**
      * Prepare other internal data.
      */

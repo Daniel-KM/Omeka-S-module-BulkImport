@@ -67,7 +67,7 @@ class MappingController extends AbstractActionController
             'bulkMapping' => null,
             'resource' => null,
             'label' => $this->getInternalBulkMappings()[$entity],
-            'content' => $this->getMapping($entity),
+            'content' => $this->getMappingFromFile($entity),
         ]);
     }
 

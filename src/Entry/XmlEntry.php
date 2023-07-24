@@ -49,7 +49,7 @@ class XmlEntry extends BaseEntry
         // Fix issue with cdata (no: it will escape html tags).
         $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
 
-        if (!$metaMapper->getMapping()) {
+        if (!$metaMapper->getMetaMapping()) {
             $this->extractWithoutMapping($simpleData, $namespaces);
             return;
         }

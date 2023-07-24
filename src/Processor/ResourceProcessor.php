@@ -38,15 +38,6 @@ class ResourceProcessor extends AbstractResourceProcessor
             'o:owner',
             // TODO Incomplete, but not used currently
         ],
-        'meta_mapper_config' => [
-            'to_keys' => [
-                'field' => null,
-                'property_id' => null,
-                'datatype' => null,
-                'language' => null,
-                'is_public' => null,
-            ],
-        ],
         'skip' => [],
         // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
         'boolean' => [
@@ -320,19 +311,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 ?: ($this->reader->getConfigParam('mapping_config') ?: null);
             if ($mappingConfig) {
                 $isPrepared = true;
-                $mapping = [];
-                $this->metaMapper->getMetaMapperConfig(
-                    'resources',
-                    $mappingConfig,
-                    $this->metadataData['meta_mapper_config']
-                );
-
-                $this->metaMapper->__invoke('resources');
-
+                $this->metaMapper->__invoke('resources', $mappingConfig);
                 if ($this->metaMapper->getMetaMapperConfig()->hasError()) {
                     return $this;
                 }
 
+                $mapping = [];
                 $mappingSource = array_merge(
                     $this->metaMapper->getMetaMapperConfig()->getSection('default'),
                     $this->metaMapper->getMetaMapperConfig()->getSection('maps')
