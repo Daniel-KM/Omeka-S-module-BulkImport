@@ -8,7 +8,8 @@ use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
 /**
- * @todo Factorize with Omeka S processor.
+ * @deprecated Use new mapping features.
+ * @todo Factorize with Manioc, Spip, Eprints, and Omeka S processor.
  */
 class SpipProcessorParamsForm extends SpipProcessorConfigForm
 {

@@ -2,6 +2,9 @@
 
 namespace BulkImport\Form\Reader;
 
+/**
+ * @deprecated Use new mapping features.
+ */
 class OmekaSReaderParamsForm extends OmekaSReaderConfigForm
 {
 }

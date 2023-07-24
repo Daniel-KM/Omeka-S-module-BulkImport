@@ -5,6 +5,9 @@ namespace BulkImport\Form\View\Helper;
 use Laminas\Form\ElementInterface;
 use Laminas\Form\View\Helper\AbstractHelper;
 
+/**
+ * @deprecated Use fieldsets and fix Omeka.
+ */
 class FormNote extends AbstractHelper
 {
     /**

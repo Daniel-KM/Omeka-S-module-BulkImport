@@ -4,6 +4,9 @@ namespace BulkImport\Form\Reader;
 
 use Laminas\Form\Element;
 
+/**
+ * @deprecated Use new mapping features.
+ */
 class OmekaSReaderConfigForm extends AbstractReaderConfigForm
 {
     public function init(): void

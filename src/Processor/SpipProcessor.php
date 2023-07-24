@@ -15,6 +15,8 @@ use Omeka\Stdlib\Message;
  *
  * @link https://code.spip.net/autodoc
  * @link https://www.spip.net/aide/fr-aide.html
+ *
+ * @deprecated Use standard processors.
  */
 class SpipProcessor extends AbstractFullProcessor
 {

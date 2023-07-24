@@ -2,6 +2,9 @@
 
 namespace BulkImport\Form\Processor;
 
+/**
+ * @deprecated Use new mapping features.
+ */
 class ManiocProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {
 }

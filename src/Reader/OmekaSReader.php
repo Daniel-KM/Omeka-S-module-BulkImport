@@ -14,6 +14,8 @@ use Log\Stdlib\PsrMessage;
  * @todo Make OmekaS reader a derivative of JsonReader.
  *
  * @todo Make current() an Entry, not an array?
+ *
+ * @deprecated Use standard readers.
  */
 class OmekaSReader extends AbstractPaginatedReader
 {

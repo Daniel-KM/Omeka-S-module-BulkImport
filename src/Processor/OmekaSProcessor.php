@@ -5,6 +5,9 @@ namespace BulkImport\Processor;
 use BulkImport\Form\Processor\OmekaSProcessorConfigForm;
 use BulkImport\Form\Processor\OmekaSProcessorParamsForm;
 
+/**
+ * @deprecated Use standard processors.
+ */
 class OmekaSProcessor extends AbstractFullProcessor
 {
     protected $resourceLabel = 'Omeka S'; // @translate

@@ -6,6 +6,8 @@ use BulkImport\Form\Processor\ManiocProcessorConfigForm;
 use BulkImport\Form\Processor\ManiocProcessorParamsForm;
 
 /**
+ * @deprecated Use standard processors.
+ *
  * FIXME Some sql queries apply on all the database: limit them to the item mapping.
  * TODO Remove hard coded data (templates).
  *
