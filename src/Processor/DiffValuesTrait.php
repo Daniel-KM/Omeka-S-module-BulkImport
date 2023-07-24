@@ -139,7 +139,7 @@ trait DiffValuesTrait
         if ($mainType === 'resource') {
             $qb
                 ->select('vr.id AS w')
-                ->join('val.valueResource', 'vr');
+                ->join('v.valueResource', 'vr');
         }
         $result = $this->isOldOmeka
             ? array_column($qb->getQuery()->getScalarResult(), 'w')
