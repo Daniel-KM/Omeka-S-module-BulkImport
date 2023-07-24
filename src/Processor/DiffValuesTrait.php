@@ -136,7 +136,9 @@ trait DiffValuesTrait
             ->andWhere($expr->isNotNull("val.$column"))
             ->orderBy("val.$column", 'ASC')
         ;
-        $result = $qb->getQuery()->getSingleColumnResult();
+        $result = $this->isOldOmeka
+            ? array_column($qb->getQuery()->getScalarResult(), $column)
+            : $qb->getQuery()->getSingleColumnResult();
 
         /** @var \Doctrine\DBAL\Connection $connection */
         /* // Just to see difference between orm and dbal query when "isNotNull() is not set.

@@ -102,6 +102,11 @@ abstract class AbstractProcessor implements Processor
     protected $tempPath;
 
     /**
+     * @var bool
+     */
+    protected $isOldOmeka;
+
+    /**
      * Processor constructor.
      *
      * @param ServiceLocatorInterface $services
@@ -127,6 +132,8 @@ abstract class AbstractProcessor implements Processor
         // manager is cleared, else an error may occur on big import.
         $this->user = $services->get('Omeka\AuthenticationService')->getIdentity();
         $this->userId = $this->user->getId();
+
+        $this->isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
     }
 
     public function setReader(Reader $reader): self
