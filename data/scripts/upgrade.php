@@ -728,3 +728,35 @@ if (version_compare($oldVersion, '3.4.45', '<')) {
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.4.46', '<')) {
+    // Update vocabulary via sql.
+    $sql = <<<SQL
+UPDATE `vocabulary`
+SET
+    `comment` = 'Curation of resources for Omeka.'
+WHERE `prefix` = 'curation'
+;
+UPDATE `property`
+JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `property`.`local_name` = 'start',
+    `property`.`label` = 'Start',
+    `property`.`comment` = 'A start related to the resource, for example the start of an embargo.'
+WHERE
+    `vocabulary`.`prefix` = 'curation'
+    AND `property`.`local_name` = 'dateStart'
+;
+UPDATE `property`
+JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
+SET
+    `property`.`local_name` = 'end',
+    `property`.`label` = 'End',
+    `property`.`comment` = 'A end related to the resource, for example the end of an embargo.'
+WHERE
+    `vocabulary`.`prefix` = 'curation'
+    AND `property`.`local_name` = 'dateEnd'
+;
+SQL;
+    $connection->executeStatement($sql);
+}
