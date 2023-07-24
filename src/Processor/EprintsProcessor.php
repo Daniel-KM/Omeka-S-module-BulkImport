@@ -49,7 +49,7 @@ class EprintsProcessor extends AbstractFullProcessor
     ];
 
     protected $modules = [
-        'AccessResource',
+        'Access',
         'NumericDataTypes',
         'UserName',
         'UserProfile',
@@ -2528,7 +2528,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // May be "staffonly", "validuser", "public".
         // Restricted access for "validuser" is managed through module
-        // AccessResource and "curation:reserved".
+        // Access and "curation:access".
         $isPublic = $source['security'] === 'public';
 
         // TODO Use table file to get created date of the document, but same as item anyway.
@@ -2632,21 +2632,21 @@ class EprintsProcessor extends AbstractFullProcessor
         if ($source['security'] === 'validuser') {
             $values[] = [
                 'term' => 'curation:access',
-                'value' => 'reserved',
+                'value' => 'restricted',
             ];
             $values[] = [
                 'term' => 'curation:reserved',
-                'value' => 'reserved',
+                'value' => 'restricted',
             ];
         } elseif ($source['security'] === 'staffonly') {
             $values[] = [
                 'term' => 'curation:access',
-                'value' => 'private',
+                'value' => 'forbidden',
             ];
         } else {
             $values[] = [
                 'term' => 'curation:access',
-                'value' => 'public',
+                'value' => 'free',
             ];
         }
 
@@ -2688,7 +2688,7 @@ class EprintsProcessor extends AbstractFullProcessor
         );
         if ($value) {
             $values[] = [
-                'term' => 'curation:dateEnd',
+                'term' => 'curation:end',
                 'value' => $value,
                 'type' => 'numeric:timestamp',
             ];
