@@ -3,7 +3,7 @@
         "o:namespace_uri": "https://omeka.org/s/vocabs/curation/",
         "o:prefix": "curation",
         "o:label": "Curation",
-        "o:comment": "Curation of resources."
+        "o:comment": "Curation of resources for Omeka."
     },
     "strategy": "file",
     "options": {
@@ -14,7 +14,9 @@
         "namespace_uri": "https://curation.omeka.org/",
         "properties": {
             "newResource": "new",
-            "reservedAccess": "reserved"
+            "reservedAccess": "reserved",
+            "startDate": "start",
+            "endDate": "end"
         }
     }
 }
