@@ -111,7 +111,7 @@ trait DiffValuesTrait
         $mainType ??= 'literal';
         $mainTypeColumns = [
             'literal' => 'value',
-            'resource' => 'value_resource_id',
+            'resource' => 'valueResource',
             'uri' => 'uri',
         ];
         $column = $mainTypeColumns[$mainType] ?? 'value';
@@ -126,18 +126,23 @@ trait DiffValuesTrait
         $qb
             // ->select("DISTINCT BINARY val.$column")
             // ->select("CAST(val.$column AS BINARY)")
-            ->select("val.$column")
-            ->from(\Omeka\Entity\Value::class, 'val')
-            ->where($expr->eq('val.property', ':property'))
+            ->select("v.$column AS w")
+            ->from(\Omeka\Entity\Value::class, 'v')
+            ->where($expr->eq('v.property', ':property'))
             ->setParameter('property', $propertyId, \Doctrine\DBAL\ParameterType::INTEGER)
             // A strange issue occurs on some properties that doesn't output
             // when the check for is not null is not set. Dbal query does not
             // need this check (of course it will output useless null without).
-            ->andWhere($expr->isNotNull("val.$column"))
-            ->orderBy("val.$column", 'ASC')
+            ->andWhere($expr->isNotNull("v.$column"))
+            ->orderBy("v.$column", 'ASC')
         ;
+        if ($mainType === 'resource') {
+            $qb
+                ->select('vr.id AS w')
+                ->join('val.valueResource', 'vr');
+        }
         $result = $this->isOldOmeka
-            ? array_column($qb->getQuery()->getScalarResult(), $column)
+            ? array_column($qb->getQuery()->getScalarResult(), 'w')
             : $qb->getQuery()->getSingleColumnResult();
 
         /** @var \Doctrine\DBAL\Connection $connection */
