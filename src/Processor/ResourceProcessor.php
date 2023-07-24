@@ -151,7 +151,15 @@ class ResourceProcessor extends AbstractResourceProcessor
         ];
 
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
+        $result['skip_missing_files'] = (bool) $result['skip_missing_files'];
+        $result['entries_to_skip'] = (int) $result['entries_to_skip'];
+        $result['entries_max'] = (int) $result['entries_max'];
+        $result['value_datatype_literal'] = (bool) $result['value_datatype_literal'];
         $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
+        $result['o:resource_template'] = empty($result['o:resource_template']) ? null : (int) $result['o:resource_template'];
+        $result['o:resource_class'] = empty($result['o:resource_class']) ? null : (string) $result['o:resource_class'];
+        $result['o:owner'] = empty($result['o:owner']) ? null : (is_numeric($result['o:owner']) ? (int) $result['o:owner'] : (string) $result['o:owner']);
+        $result['o:is_public'] = (bool) $result['o:is_public'];
         $args->exchangeArray($result);
         return $this;
     }

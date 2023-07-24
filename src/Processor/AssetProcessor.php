@@ -84,6 +84,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             'o:owner' => null,
         ];
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
+        $result['entries_to_skip'] = (int) $result['entries_to_skip'];
+        $result['entries_max'] = (int) $result['entries_max'];
         // There is no identifier for assets, only unique data (ids and storage
         // ids), so no missing or duplicates, so allow them.
         $result['allow_duplicate_identifiers'] = true;
