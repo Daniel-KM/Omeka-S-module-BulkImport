@@ -124,6 +124,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             'skip_missing_files' => false,
             'entries_to_skip' => 0,
             'entries_max' => 0,
+            'info_diffs' => false,
 
             'action' => null,
             'action_unidentified' => null,
@@ -145,6 +146,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         $result['skip_missing_files'] = (bool) $result['skip_missing_files'];
         $result['entries_to_skip'] = (int) $result['entries_to_skip'];
         $result['entries_max'] = (int) $result['entries_max'];
+        $result['info_diffs'] = (bool) $result['info_diffs'];
         $result['value_datatype_literal'] = (bool) $result['value_datatype_literal'];
         $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
         $result['o:resource_template'] = empty($result['o:resource_template']) ? null : (int) $result['o:resource_template'];

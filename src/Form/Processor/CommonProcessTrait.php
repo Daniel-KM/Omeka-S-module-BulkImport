@@ -87,6 +87,18 @@ trait CommonProcessTrait
             ])
 
             ->add([
+                'name' => 'info_diffs',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Output differences', // @translate
+                    'info' => 'Get informations about differences between existing resources and new values.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'info_diffs',
+                ],
+            ])
+
+            ->add([
                 'name' => 'store_as_task',
                 'type' => Element\Checkbox::class,
                 'options' => [

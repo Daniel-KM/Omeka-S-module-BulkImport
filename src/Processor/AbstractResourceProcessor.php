@@ -385,9 +385,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
 
         $this
-            ->prepareFullRun()
-            ->checkDiffResources()
-            ->checkDiffValues();
+            ->prepareFullRun();
+
+        if ($this->getParam('info_diffs')) {
+            $this
+                ->checkDiffResources()
+                ->checkDiffValues();
+        }
 
         $dryRun = $this->processingError === 'dry_run';
         if ($dryRun) {
