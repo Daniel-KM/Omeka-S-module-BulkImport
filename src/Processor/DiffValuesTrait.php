@@ -103,6 +103,12 @@ trait DiffValuesTrait
 
         $this->messageResultFileDiffValues();
 
+        if (!array_filter($result)) {
+            $this->logger->notice(
+                'There is no new value.' // @translate
+            );
+        }
+
         return $this;
     }
 
