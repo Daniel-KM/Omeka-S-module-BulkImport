@@ -329,6 +329,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
+        // Check for FileSideload: remove files after import is not possible
+        // because of the multi-step process and the early check of files.
+        // TODO Allow to use FileSideload option "file_sideload_delete_file".
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        if ($settings->get('file_sideload_delete_file') === 'yes') {
+            // This is not an error: the input data may not use sideload files.
+            $this->logger->warn(
+                'The option to delete files (module File Sideload) is not fully supported currently. Check config of the module or use urls.' // @translate
+            );
+        }
+
         // Prepare the file where the checks will be saved.
         $this
             ->initializeCheckStore()
