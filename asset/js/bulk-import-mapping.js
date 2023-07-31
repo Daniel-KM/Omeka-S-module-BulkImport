@@ -124,7 +124,7 @@
                 'Ctrl-Space': 'autocomplete'
             },
             hintOptions: {schemaInfo: tags},
-            readOnly: window.location.href.includes('/show'),
+            readOnly: !window.location.href.includes('/edit'),
         });
 
     });
