@@ -191,6 +191,9 @@
                 updateProgressMessage(wrapper);
                 updateVisibility(wrapper);
                 updateSubmitPartial(wrapper);
+                if (response.message) {
+                    addError(wrapper, file, responseJson, true);
+                }
             })
             flow.on('fileError', (file, responseJson) => {
                 addError(wrapper, file, responseJson);
@@ -362,7 +365,7 @@ console.log(x, y);
                 + '.png';
         }
 
-        function addError(wrapper, file, responseJson) {
+        function addError(wrapper, file, responseJson, isWarn) {
             responseJson = fixJson(responseJson);
             var message = wrapper.getElementsByClassName('media-bulk-upload')[0].getAttribute('data-translate-unknown-error')
             if (isJson(responseJson)) {
@@ -371,9 +374,16 @@ console.log(x, y);
             const div = document.createElement('div');
             div.classList.add('media-info');
             div.classList.add('messages');
+            if (isWarn) {
+                div.classList.add('warning');
+            }
             const pError = document.createElement('p');
             pError.textContent = message;
-            pError.classList.add('error');
+            if (isWarn) {
+                pError.classList.add('warning');
+            } else {
+                pError.classList.add('error');
+            }
             pError.classList.add('upload-error');
             div.appendChild(pError);
             const listItem = document.getElementById(file.uniqueIdentifier);

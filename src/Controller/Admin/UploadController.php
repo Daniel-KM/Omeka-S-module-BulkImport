@@ -214,11 +214,15 @@ class UploadController extends AbstractActionController
             }
             $newDestination = rtrim($localPath, '//') . '/' . $filename;
             $fileExists = file_exists($newDestination);
-            if ($fileExists && !is_writeable($newDestination)) {
-                return $this->jsonError(
-                    $this->translate('A file with the same name exists and is not writeable.'), // @translate
-                    Response::STATUS_CODE_500
-                );
+            if ($fileExists) {
+                if (!is_writeable($newDestination)) {
+                    return $this->jsonError(
+                        $this->translate('A file with the same name exists and is not writeable.'), // @translate
+                        Response::STATUS_CODE_500
+                    );
+                }
+                $isFileDifferent = filesize($destination) !== filesize($newDestination)
+                    || sha1_file($destination) !== sha1_file($newDestination);
             }
             $result = rename($destination, $newDestination);
             if (!$result) {
@@ -233,7 +237,7 @@ class UploadController extends AbstractActionController
         $this->cleanTempDirectory();
 
         // Return the data about the file for next step.
-        return new JsonModel([
+        $output = [
             'status' => self::STATUS_SUCCESS,
             'data' => [
                 'file' => [
@@ -244,7 +248,11 @@ class UploadController extends AbstractActionController
                     'size' => $filesize,
                 ],
             ],
-        ]);
+        ];
+        if ($isBulkImport && !empty($fileExists) && !empty($isFileDifferent)) {
+            $output['message'] = $this->translate('An existing file was overridden.'); // @translate
+        }
+        return new JsonModel($output);
     }
 
     public function filesAction()

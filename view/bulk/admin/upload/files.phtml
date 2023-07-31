@@ -26,6 +26,14 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk bulk-uploads');
     <?= $translate('Upload files without size or number limitation and without direct access to server.') ?>
 </p>
 
+<p>
+    <?= $translate('All uploaded files will be stored at the root of the configured directory.') ?>
+</p>
+
+<p>
+    <?= $translate('Warning: existing files with the same name than uploaded files will be overridden.') ?>
+</p>
+
 <div id="bulk-import" class="media-field-wrapper">
     <div class="field media-bulk-upload" data-main-index="__index__" <?= $htmlAttributes($data) ?>>
         <div class="field-meta">
