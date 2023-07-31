@@ -3925,7 +3925,7 @@ HTML;
         $resources = '';
         foreach ($resourceIds as $id) {
             $resources .= sprintf(
-                '<a href="%sadmin/item/%s" target="_blank">#%s</a>' . " \n",
+                '<a href="%sadmin/item/%s" target="_blank" rel="noopener">#%s</a>' . " \n",
                 $baseUrl, $id, $id
             );
         }
@@ -3942,7 +3942,7 @@ HTML;
                 $html .= "                <tr>\n";
             }
             $code = (string) basename(rtrim($uri, '/'));
-            $html .= sprintf('                    <td><a href="%s" target="_blank">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
+            $html .= sprintf('                    <td><a href="%s" target="_blank" rel="noopener">%s</a></td>', htmlspecialchars($uri, ENT_NOQUOTES | ENT_HTML5), htmlspecialchars($code, ENT_NOQUOTES | ENT_HTML5)) . "\n";
 
             $row = array_filter(array_map('strval', $row), 'strlen');
             // The order should be always the same.
