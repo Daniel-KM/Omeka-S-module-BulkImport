@@ -66,6 +66,9 @@
         display: flex;
         flex-direction: column;
     }
+    .bulk-upload-actions-sort .field-meta {
+        vertical-align: bottom;
+    }
     .media-files-input-preview > ol {
         width: 100%;
     }

@@ -217,30 +217,96 @@
         }
 
         function listSort(wrapper, sortType) {
+            var sortFunctionExtension = function (x, y) {
+console.log(x, y);                    
+                if (x === null && y === null) {
+                    return 0;
+                }
+                if (x === null) {
+                    return -1;
+                }
+                if (y === null) {
+                    return 1;
+                }
+                const xExtension = x.name.split('.').pop();
+                const yExtension = y.name.split('.').pop();
+                return xExtension === yExtension
+                    ? 0
+                    :  xExtension > yExtension ? 1 : -1;
+            };
+            var sortFunctionAscii = function (x, y) {
+console.log(x, y);                    
+                return x === null || y === null || x.name === y.name
+                    ? 0
+                    : (x.name > y.name ? 1 : -1);
+            };
+            var sortFunctionAlpha = function (x, y) {
+console.log(x, y);                    
+                return x === null || y === null || x.name === y.name
+                    ? 0
+                    : (x.name > y.name ? 1 : -1);
+            };
+            var sortFunctionAsciiPath = function (x, y) {
+console.log(x, y);                    
+                return  x === null || y === null || x.path === y.path
+                    ? 0
+                    : (x.path > y.path ? 1 : -1);
+            };
+            var sortFunctionAlphaPath = function (x, y) {
+console.log(x, y);                    
+                return x === null || y === null
+                    ? 0
+                    : x.path.localeCompare(y.path);
+            };
+
             var sortFunction;
             if (sortType === 'ascii') {
-                sortFunction = function (x, y) {
-                    return x === null || y === null || x.name === y.name
-                        ? 0
-                        : (x.name > y.name ? 1 : -1);
-                }
+                sortFunction = sortFunctionAscii;
             } else if (sortType === 'alpha') {
-                sortFunction = function (x, y) {
-                    return x === null || y === null
-                        ? 0
-                        : x.name.localeCompare(y.name);
-                }
+                sortFunction = sortFunctionAlpha;
             } else if (sortType === 'ascii-path') {
-                sortFunction = function (x, y) {
-                    return  x === null || y === null || x.path === y.path
-                        ? 0
-                        : (x.path > y.path ? 1 : -1);
-                }
+                sortFunction = sortFunctionAsciiPath;
             } else if (sortType === 'alpha-path') {
+                sortFunction = sortFunctionAlphaPath;
+            } else if (sortType === 'extension-ascii') {
                 sortFunction = function (x, y) {
-                    return x === null || y === null
-                        ? 0
-                        : x.path.localeCompare(y.path);
+                    var result = sortFunctionExtension(x, y);
+                    return result ? result : sortFunctionAscii(x, y);
+                }
+            } else if (sortType === 'extension-alpha') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionExtension(x, y);
+                    return result ? result : sortFunctionAlpha(x, y);
+                }
+            } else if (sortType === 'extension-ascii-path') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionExtension(x, y);
+                    return result ? result : sortFunctionAsciiPath(x, y);
+                }
+            } else if (sortType === 'extension-alpha-path') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionExtension(x, y);
+                    return result ? result : sortFunctionAlphaPath(x, y);
+                }
+            } else if (sortType === 'ascii-extension') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionAscii(x, y);
+                    return result ? result : sortFunctionExtension(x, y);
+                }
+            } else if (sortType === 'alpha-extension') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionAlpha(x, y);
+                    return result ? result : sortFunctionExtension(x, y);
+                }
+            } else if (sortType === 'ascii-path-extension') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionAsciiPath(x, y);
+                    return result ? result : sortFunctionExtension(x, y);
+                }
+            } else if (sortType === 'alpha-path-extension') {
+                sortFunction = function (x, y) {
+                    var result = sortFunctionAlphaPath(x, y);
+                    return result ? result : sortFunctionExtension(x, y);
                 }
             } else {
                 return;

@@ -133,7 +133,11 @@ class BulkUpload implements IngesterInterface
         $browseDirectory = $translate('Select directory'); // @translate
         $wait = $view->translate('Wait before submission…'); // @translate
         $buttonPause = $data['data-translate-pause'];
-        $sortText = $translate('Sort…'); // @translate
+        $sortText = $translate('Sort'); // @translate
+        $sortTextEllipsis = $translate('Sort…'); // @translate
+        $sortByName = $translate('By file name'); // @translate
+        $sortByExtensionFirst = $translate('By extension first'); // @translate
+        $sortByExtensionLast = $translate('By extension last'); // @translate
         // $sortDefault = $translate('Default'); // @translate
         $sortAscii = $translate('Simple'); // @translate
         $sortAlpha = $translate('Alphabetic'); // @translate
@@ -141,6 +145,8 @@ class BulkUpload implements IngesterInterface
         $sortAlphaPath = $translate('Alphabetic (with folder)'); // @translate
         $hideUploaded = $translate('Hide uploaded files'); // @translate
         $submitPartial = $translate('Allow to submit before full upload'); // @translate
+
+        // TODO Sort by media-type.
 
         return <<<HTML
 <div class="field media-bulk-upload" data-main-index="__index__" $dataAttributes>
@@ -181,12 +187,27 @@ class BulkUpload implements IngesterInterface
 </div>
 <div class="field bulk-upload-actions">
     <div class="bulk-upload-actions-sort">
-        <select class="select-sort chosen-select" aria-label="$sortText" data-placeholder="{$sortText}">
-            <option value="" selected="selected">{$sortText}</option>
-            <option value="ascii">$sortAscii</option>
-            <option value="alpha">$sortAlpha</option>
-            <option value="ascii-path">$sortAsciiPath</option>
-            <option value="alpha-path">$sortAlphaPath</option>
+        <label class="field-meta">$sortText</label>
+        <select class="select-sort chosen-select" aria-label="$sortText" placeholder="$sortTextEllipsis" data-placeholder="$sortTextEllipsis">
+            <option value="" selected="selected"></option>
+            <optgroup label="$sortByName">
+                <option value="ascii">$sortAscii</option>
+                <option value="alpha">$sortAlpha</option>
+                <option value="ascii-path">$sortAsciiPath</option>
+                <option value="alpha-path">$sortAlphaPath</option>
+            </optgroup>
+            <optgroup label="$sortByExtensionFirst">
+                <option value="extension-ascii">$sortAscii</option>
+                <option value="extension-alpha">$sortAlpha</option>
+                <option value="extension-ascii-path">$sortAsciiPath</option>
+                <option value="extension-alpha-path">$sortAlphaPath</option>
+            </optgroup>
+            <optgroup label="$sortByExtensionLast">
+                <option value="ascii-extension">$sortAscii</option>
+                <option value="alpha-extension">$sortAlpha</option>
+                <option value="ascii-path-extension">$sortAsciiPath</option>
+                <option value="alpha-path-extension">$sortAlphaPath</option>
+            </optgroup>
         </select>
     </div>
 </div>
