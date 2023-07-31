@@ -81,7 +81,7 @@ class UploadController extends AbstractActionController
         $form->setData(['csrf' => $headers['X-Csrf'] ?? null]);
         if (!$form->isValid()) {
             return $this->jsonError(
-                $this->translate('Invalid or missing CSRF token.'), // @translate
+                $this->translate('Expired, invalid or missing CSRF token.'), // @translate
                 Response::STATUS_CODE_403
             );
         }
