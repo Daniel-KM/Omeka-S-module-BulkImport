@@ -12,7 +12,9 @@ et il est construit pour être extensible. Il permet de gérer des importeurs et
 de traiter l’importation de ressources en lot.
 
 De plus, il ajoute un moyen de télécharger manuellement des fichiers en masse
-sans limite de [taille ou nombre de fichiers].
+sans limite de [taille ou nombre de fichiers] dans le formulaire de ressource
+et dans le formulaire séparé pour le téléchargement des fichiers, utilisé pour
+les imports ultérieurs.
 
 Pour l’importation en masse, le module gère les lecteurs d’une source (xml, sql,
 tableur, url…) et utilise des processeurs pour les importer en tant que
@@ -48,7 +50,8 @@ fichiers distants : seuls ceux enregistrés localement sur le serveur peuvent
 utiliser une version égale ou supérieure à 2.3.0.
 
 **Important** : Si vous utilisez le module [Numeric Data Types], vous devez
-appliquer ce [correctif] ou utiliser cette [version].
+appliquer ce [correctif] ou utiliser cette [version]. Ce correctif n’est plus
+nécessaire depuis la version 4.1.
 
 Voir la documentation générale de l’utilisateur final pour [installer un module].
 
@@ -68,8 +71,7 @@ composer install --no-dev
 
 Remarque : la bibliothèque "CodeMirror" n’a pas de fichier "codemirror.js" par
 défaut : il est créé automatiquement lors de l’installation des paquets avec npm.
-Pour l’utiliser via composer, le fichier manquant est ajouté dans le paquet
-utilisé par composer.
+Pour l’utiliser via composer, le fichier zip de codemirror.net (v5) est utilisé.
 
 Ensuite, installez-le comme n’importe quel autre module Omeka.
 
@@ -517,6 +519,7 @@ TODO
 - [ ] Déplace l’option "convertir en html" dans un autre module.
 - [ ] Normaliser la config pour extraire les métadonnées avec metamapper.
 - [ ] Ajouter un alignement automatique pour les images etc. avec xmp.
+- [ ] Gérer les paramètres d'import et les paramètres.
 
 
 Avertissement
@@ -596,7 +599,7 @@ Copyright
 * Copyright Daniel Berthereau, 2017-2022 (voir [Daniel-KM] sur GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code de Spip)
 * Copyright 2011-2022, Steffen Fagerström Christensen & alii (bibliothèques [Flow.js] et [flow-php-server])
-* Copyright 2011-2022, Marijn Haverbeke & alii (Bibliothèque [CodeMirror])
+* Copyright 2011-2023, Marijn Haverbeke & alii (Bibliothèque [CodeMirror])
 
 Ce module s’est initialement inspiré du plugin [Omeka Classic] [Import plugin],
 conçu par [BibLibre] et a été développé pour divers projets, notamment la future

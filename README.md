@@ -11,7 +11,8 @@ Voir le [Lisez-moi] en français.
 and is built to be extensible. It allows to manage importers and to process bulk
 import of resources.
 
-Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files].
+Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files]
+in resource form and via a separate bulk upload form for future imports.
 
 For bulk import, the module manages readers of a source (xml, sql, spreadsheet,
 url…) and uses processors to import them as Omeka resources and other data
