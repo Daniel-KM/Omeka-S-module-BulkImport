@@ -7,9 +7,11 @@
     .bulk-imports .subhead::before,
     .bulk-importers .subhead::before,
     .bulk-mappings .subhead::before,
+    .bulk-uploads .subhead::before,
     .bulk-imports .no-resources:before,
     .bulk-importers .no-resources:before,
-    .bulk-mappings .no-resources:before {
+    .bulk-mappings .no-resources:before,
+    .bulk-uploads .no-resources:before {
         content:"";
     }
 

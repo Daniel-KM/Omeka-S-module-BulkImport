@@ -12,7 +12,12 @@
         const maxTotalSizeThumbnails = 500000000;
         const maxCountThumbnails = 200;
 
-        let bulkUpload = $($('#media-template-bulk_upload').data('template')).find('.media-bulk-upload');
+        // Manage the resource form and the bulk upload form.
+        const isBulkImport = $('#bulk-import').length === 1;
+
+        const bulkUpload =isBulkImport
+            ? $('#bulk-import').find('.media-bulk-upload')
+            : $($('#media-template-bulk_upload').data('template')).find('.media-bulk-upload');
         const allowedMediaTypes = bulkUpload.data('allowed-media-types') ? bulkUpload.data('allowed-media-types').split(',') : [];
         const allowedExtensions = bulkUpload.data('allowed-extensions') ? bulkUpload.data('allowed-extensions').split(',') : [];
         const allowEmptyFiles = !!bulkUpload.data('allowEmptyFiles');
@@ -22,7 +27,9 @@
         // @see https://github.com/flowjs/flow.js
         const initFlow = function () {
             // Get the last media in media list, that is the new one.
-            const mediaField = $('#media-list').find('.media-bulk-upload').last()[0];
+            const mediaField = isBulkImport
+                ? $('#bulk-import').find('.media-bulk-upload').last()[0]
+                : $('#media-list').find('.media-bulk-upload').last()[0];
             const wrapper = mediaField.closest('.media-field-wrapper');
             const mainIndex = mediaField.getAttribute('data-main-index');
             const inputFilesData = mediaField.parentNode.getElementsByClassName('filesdata')[0];
@@ -42,7 +49,9 @@
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
             const selectSort = bulkUploadActions.getElementsByClassName('select-sort')[0];
-            const csrf = $('body.items form.resource-form input[type=hidden][name=csrf]').val();
+            const csrf = bulkUpload.data('csrf')
+                ? bulkUpload.data('csrf')
+                : $('body.items form.resource-form input[type=hidden][name=csrf]').val();
 
             const flow = new Flow({
                 target: uploadUrl,
@@ -50,6 +59,7 @@
                 permanentErrors: [403, 404, 412, 415, 500, 501],
                 headers: {
                     'X-Csrf': csrf,
+                    'X-Is-Bulk-Import': isBulkImport ? '1' : '0',
                 },
                 // Like default one, but prepend the main index to allow uploading same files multiple times in bulk-uploads.
                 generateUniqueIdentifier: (file) => {
@@ -78,7 +88,8 @@
                 submitPartialLabel.style.removeProperty('display');
                 buttonPause.style.removeProperty('display');
                 updateSubmitPartial(wrapper);
-                uploadActionsPre.classList.remove('empty');
+                isBulkImport
+                    || uploadActionsPre.classList.remove('empty');
                 fullProgress.classList.remove('empty');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
                 fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
@@ -397,7 +408,8 @@ console.log(x, y);
             const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             if (checkAllFilesUploaded(wrapper)) {
                 fullProgressWait.style.display = 'none';
-                bulkUploadActions.style.display = 'block';
+                isBulkImport
+                    || (bulkUploadActions.style.display = 'block');
                 submitPartialLabel.style.display = 'none';
                 buttonPause.style.display = 'none';
                 updateSubmitPartial(wrapper);
@@ -439,6 +451,7 @@ console.log(x, y);
             const hasError = checkHasError(wrapper);
             if (buttonSubmitPartial.checked === true
                 || (allFilesUploaded && !hasError)
+                || isBulkImport
             ) {
                 ready.removeAttribute('required');
             } else {
@@ -472,7 +485,11 @@ console.log(x, y);
             return true;
         }
 
-        $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', initFlow);
+        if (isBulkImport) {
+            initFlow();
+        } else {
+            $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', initFlow);
+        }
 
     });
 

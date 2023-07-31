@@ -1,0 +1,78 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var array $data
+ */
+
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$translate = $plugins->get('translate');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
+$htmlAttributes = $plugins->get('htmlAttributes');
+
+$this->headLink()
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headScript()
+    ->appendFile($assetUrl('vendor/flow.js/flow.min.js', 'BulkImport'), 'text/javascript', ['defer' => 'defer'])
+    ->appendFile($assetUrl('js/bulk-import.js', 'BulkImport'), 'text/javascript', ['defer' => 'defer']);
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk bulk-uploads');
+?>
+
+<?= $this->pageTitle($translate('Upload files'), 1, $translate('Bulk import')) ?>
+
+<p>
+    <?= $translate('Upload files without size or number limitation and without direct access to server.') ?>
+</p>
+
+<div id="bulk-import" class="media-field-wrapper">
+    <div class="field media-bulk-upload" data-main-index="__index__" <?= $htmlAttributes($data) ?>>
+        <div class="field-meta">
+            <label for="media-file-input-__index__"><?= $escape($translate('Upload files')) ?></label>
+        </div>
+        <div class="inputs bulk-drop">
+            <span><?= $escape($translate('Drag and drop')) ?></span>
+            <div>
+                <button type="button" class="button-browse button-browse-files"><?= $escape($translate('Browse files')) ?></button>
+                <button type="button" class="button-browse button-browse-directory" webkitdirectory="webkitdirectory"><?= $escape($translate('Select directory')) ?></button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" name="o:media[__index__][file_index]" value="__index__"/>
+    <input type="file" value="" class="submit-ready" style="display: none; visibility: hidden"/>
+    <input type="hidden" name="filesData[file][__index__]" value="[]" class="filesdata"/>
+    <div class="field bulk-upload-actions-pre empty">
+        <div class="bulk-upload-actions-more">
+            <label class="hide-upload-label">
+                <input type="checkbox" class="hide-uploaded" name="hide-uploaded"/>
+                <span><?= $escape($translate('Hide uploaded files')) ?></span>
+            </label>
+            <label class="submit-partial-label">
+                <input type="checkbox" class="submit-partial" name="submit-partial"/>
+                <span><?= $escape($translate('Allow to submit before full upload')) ?></span>
+            </label>
+        </div>
+        <div class="bulk-upload-actions-button">
+            <button type="button" class="button-pause"><?= $escape($data['data-translate-pause']) ?></button>
+        </div>
+        <div class="media-files-input-full-progress">
+            <div class="progress-count">
+                <span class="progress-current"></span> / <span class="progress-total"></span>
+            </div>
+            <span class="progress-wait"><?= $escape($translate('Wait before submission…')) ?></span>
+        </div>
+    </div>
+    <div class="field bulk-upload-actions">
+        <div class="bulk-upload-actions-sort">
+            <select class="select-sort chosen-select" aria-label="<?= $escapeAttr($translate('Sort…')) ?>" data-placeholder="<?= $escapeAttr($translate('Sort…')) ?>">
+                <option value="" selected="selected"><?= $escape($translate('Sort…')) ?></option>
+                <option value="ascii"><?= $escape($translate('Simple')) ?></option>
+                <option value="alpha"><?= $escape($translate('Alphabetic')) ?></option>
+                <option value="ascii-path"><?= $escape($translate('Simple (with folder)')) ?></option>
+                <option value="alpha-path"><?= $escape($translate('Alphabetic (with folder)')) ?></option>
+            </select>
+        </div>
+    </div>
+    <div class="field media-files-input-preview"><ol></ol></div>
+</div>

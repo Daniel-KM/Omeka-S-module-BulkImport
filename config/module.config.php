@@ -45,6 +45,7 @@ return [
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
             Controller\Admin\MappingController::class => 'bulk/admin/mapping',
+            Controller\Admin\UploadController::class => 'bulk/admin/upload',
         ],
         'strategies' => [
             'ViewJsonStrategy',
@@ -184,9 +185,12 @@ return [
                                 ],
                             ],
                             'upload' => [
-                                'type' => \Laminas\Router\Http\Literal::class,
+                                'type' => \Laminas\Router\Http\Segment::class,
                                 'options' => [
-                                    'route' => '/upload',
+                                    'route' => '/upload[/:action]',
+                                    'constraints' => [
+                                        'action' => 'index|files',
+                                    ],
                                     'defaults' => [
                                         'controller' => 'Upload',
                                         'action' => 'index',
@@ -238,6 +242,14 @@ return [
                                 'visible' => false,
                             ],
                         ],
+                    ],
+                    [
+                        // Not "Upload" because translation is not good here.
+                        'label' => 'Upload files', // @translate
+                        'route' => 'admin/bulk/upload',
+                        'controller' => 'Upload',
+                        'action' => 'files',
+                        'resource' => 'BulkImport\Controller\Admin\Upload',
                     ],
                     [
                         'label' => 'Configuration', // @translate
