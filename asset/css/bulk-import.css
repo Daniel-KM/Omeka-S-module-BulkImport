@@ -50,6 +50,15 @@
     .media-bulk-upload .bulk-drop:hover {
         outline: 2px dashed grey;
     }
+    #bulk-import .media-bulk-upload .bulk-drop {
+        outline: 2px dashed lightgrey;
+    }
+    #bulk-import .media-bulk-upload .bulk-drop:hover {
+        outline: 2px dashed grey;
+    }
+    #bulk-import .media-bulk-upload .bulk-drop span {
+        padding-left: 10px;
+    }
     #media-list .bulk-upload-actions {
         width: 100%;
     }

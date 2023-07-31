@@ -85,11 +85,10 @@
             flow.on('fileAdded', (file, event) => {
                 // Disable resource form submission until full upload.
                 // Just use "required", that is managed by the browser.
-                submitPartialLabel.style.removeProperty('display');
+                submitPartialLabel && submitPartialLabel.style.removeProperty('display');
                 buttonPause.style.removeProperty('display');
                 updateSubmitPartial(wrapper);
-                isBulkImport
-                    || uploadActionsPre.classList.remove('empty');
+                uploadActionsPre.classList.remove('empty');
                 fullProgress.classList.remove('empty');
                 fullProgressCurrent.textContent = $(listUploaded).find('li[data-is-valid=1][data-is-uploaded=1]').length
                 fullProgressTotal.textContent = $(listUploaded).find('li[data-is-valid=1]').length + 1;
@@ -181,7 +180,7 @@
                     ++index;
                 }
                 let filesData = JSON.parse(inputFilesData.getAttribute('value'));
-                filesData[index] = response.data.file;
+                filesData[index] = response.data ? response.data.file : null;
                 inputFilesData.setAttribute('value', JSON.stringify(filesData));
                 file.ctrl.update(100);
                 file.ctrl.ctx.fillStyle = 'green';
@@ -216,9 +215,11 @@
                 }
             });
 
-            buttonHideUploaded.addEventListener('change', () => { updateVisibility(wrapper) });
+            buttonHideUploaded
+                && buttonHideUploaded.addEventListener('change', () => { updateVisibility(wrapper) });
 
-            buttonSubmitPartial.addEventListener('change', () => { updateSubmitPartial(wrapper) });
+            buttonSubmitPartial
+                && buttonSubmitPartial.addEventListener('change', () => { updateSubmitPartial(wrapper) });
         }
 
         function validateFile(file) {
@@ -418,17 +419,20 @@ console.log(x, y);
             const buttonPause = wrapper.getElementsByClassName('button-pause')[0];
             if (checkAllFilesUploaded(wrapper)) {
                 fullProgressWait.style.display = 'none';
-                isBulkImport
-                    || (bulkUploadActions.style.display = 'block');
-                submitPartialLabel.style.display = 'none';
+                bulkUploadActions.style.display = 'block';
                 buttonPause.style.display = 'none';
-                updateSubmitPartial(wrapper);
+                if (!isBulkImport) {
+                    submitPartialLabel.style.display = 'none';
+                    updateSubmitPartial(wrapper);
+                }
             } else {
                 fullProgressWait.style.display = 'block';
                 bulkUploadActions.style.display = 'none';
-                submitPartialLabel.style.removeProperty('display');
                 buttonPause.style.removeProperty('display');
-                updateSubmitPartial(wrapper);
+                if (!isBulkImport) {
+                    submitPartialLabel.style.removeProperty('display');
+                    updateSubmitPartial(wrapper);
+                }
             }
         }
 
@@ -455,13 +459,15 @@ console.log(x, y);
         }
 
         function updateSubmitPartial(wrapper) {
+            if (isBulkImport) {
+                return;
+            }
             const buttonSubmitPartial = wrapper.getElementsByClassName('submit-partial')[0];
             const ready = wrapper.getElementsByClassName('submit-ready')[0];
             const allFilesUploaded = checkAllFilesUploaded(wrapper);
             const hasError = checkHasError(wrapper);
             if (buttonSubmitPartial.checked === true
                 || (allFilesUploaded && !hasError)
-                || isBulkImport
             ) {
                 ready.removeAttribute('required');
             } else {
