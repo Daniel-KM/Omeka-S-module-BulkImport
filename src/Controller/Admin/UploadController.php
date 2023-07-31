@@ -161,7 +161,11 @@ class UploadController extends AbstractActionController
             );
         }
 
-        if (substr($filename, 0, 1) === '.' || strpos($filename, '/') !== false) {
+        if (substr($filename, 0, 1) === '.'
+            || strpos($filename, '/') !== false
+            || strpos($filename, '$') !== false
+            || strpos($filename, '`') !== false
+        ) {
             return $this->jsonError(
                 $this->translate('Filename contains forbidden characters.'), // @translate
                 Response::STATUS_CODE_412
