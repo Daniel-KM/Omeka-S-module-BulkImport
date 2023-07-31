@@ -3,7 +3,7 @@
         "o:namespace_uri": "https://omeka.org/s/vocabs/curation/",
         "o:prefix": "curation",
         "o:label": "Curation",
-        "o:comment": "Curation of resources for Omeka."
+        "o:comment": "Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible."
     },
     "strategy": "file",
     "options": {

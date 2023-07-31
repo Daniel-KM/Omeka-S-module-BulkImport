@@ -734,7 +734,7 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
     $sql = <<<SQL
 UPDATE `vocabulary`
 SET
-    `comment` = 'Curation of resources for Omeka.'
+    `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
 WHERE `prefix` = 'curation'
 ;
 UPDATE `property`
@@ -759,4 +759,24 @@ WHERE
 ;
 SQL;
     $connection->executeStatement($sql);
+}
+
+if (version_compare($oldVersion, '3.4.47', '<')) {
+    // Update vocabulary via sql.
+    $sql = <<<SQL
+UPDATE `vocabulary`
+SET
+    `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
+WHERE `prefix` = 'curation'
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    $basePath = $services->get('ViewHelperManager')->get('BasePath');
+    $message = new Message(
+        'It is now possible %1$sto bulk upload files%2$s in a directory of the server for future bulk uploads.', // @translate
+        '<a href="' . rtrim($basePath(), '/') . '/admin/bulk/upload/files">', '</a>'
+    );
+    $message->setEscapeHtml(false);
+    $messenger->addSuccess($message);
 }
