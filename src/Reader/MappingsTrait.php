@@ -153,6 +153,9 @@ trait MappingsTrait
         return $internalBulkMappings;
     }
 
+    /**
+     * @todo Remove or factorize with MetaMapperConfig::prepareMappingContent().
+     */
     protected function getMappingFromFile(string $mappingName): ?string
     {
         $services = $this->getServiceLocator();

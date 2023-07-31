@@ -662,6 +662,7 @@ class Module extends AbstractModule
             );
             return null;
         }
+
         return $dirPath;
     }
 

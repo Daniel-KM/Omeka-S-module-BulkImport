@@ -56,13 +56,10 @@ class UploadController extends AbstractActionController
 
         $user = $this->identity();
         if (!$user) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_403);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('User not authenticated.'), // @translate
-                'code' => Response::STATUS_CODE_403,
-            ]);
+            return $this->jsonError(
+                $this->translate('User not authenticated.'), // @translate
+                Response::STATUS_CODE_403
+            );
         }
 
         /** @var \Laminas\Http\Request $request */
@@ -72,26 +69,20 @@ class UploadController extends AbstractActionController
         /** @var \Laminas\View\Helper\ServerUrl $serverUrl */
         $serverUrl = $this->viewHelpers()->get('ServerUrl');
         if ($serverUrl->getHost() !== ($headers['Host'] ?? null)) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_403);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('The request must originate from the server.'), // @translate
-                'code' => Response::STATUS_CODE_403,
-            ]);
+            return $this->jsonError(
+                $this->translate('The request must originate from the server.'), // @translate
+                Response::STATUS_CODE_403
+            );
         }
 
         // Check csrf for security.
         $form = $this->getForm(\Omeka\Form\ResourceForm::class);
         $form->setData(['csrf' => $headers['X-Csrf'] ?? null]);
         if (!$form->isValid()) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_403);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('Invalid or missing CSRF token'), // @translate
-                'code' => Response::STATUS_CODE_403,
-            ]);
+            return $this->jsonError(
+                $this->translate('Invalid or missing CSRF token.'), // @translate
+                Response::STATUS_CODE_403
+            );
         }
 
         // Processing the chunk.
@@ -155,45 +146,33 @@ class UploadController extends AbstractActionController
         $allowEmptyFiles = (bool) $this->settings()->get('bulkimport_allow_empty_files', false);
         $filesize = filesize($destination);
         if (!$filesize && !$allowEmptyFiles) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_412);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('The file is empty.'), // @translate
-                'code' => Response::STATUS_CODE_412,
-            ]);
+            return $this->jsonError(
+                $this->translate('The file is empty.'), // @translate
+                Response::STATUS_CODE_412
+            );
         }
 
         $filename = (string) $flowRequest->getFileName();
         if (strlen($filename) < 3 || strlen($filename) > 200) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_412);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('Filename too much short or long.'), // @translate
-                'code' => Response::STATUS_CODE_412,
-            ]);
+            return $this->jsonError(
+                $this->translate('Filename too much short or long.'), // @translate
+                Response::STATUS_CODE_412
+            );
         }
 
         if (substr($filename, 0, 1) === '.' || strpos($filename, '/') !== false) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_412);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('Filename contains forbidden characters.'), // @translate
-                'code' => Response::STATUS_CODE_412,
-            ]);
+            return $this->jsonError(
+                $this->translate('Filename contains forbidden characters.'), // @translate
+                Response::STATUS_CODE_412
+            );
         }
 
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         if (!strlen($extension)) {
-            $response = $this->getResponse();
-            $response->setStatusCode(Response::STATUS_CODE_412);
-            return new JsonModel([
-                'status' => self::STATUS_ERROR,
-                'message' => $this->translate('Filename has no extension.'), // @translate
-                'code' => Response::STATUS_CODE_412,
-            ]);
+            return $this->jsonError(
+                $this->translate('Filename has no extension.'), // @translate
+                Response::STATUS_CODE_412
+            );
         }
 
         $filepath = $destination;
@@ -205,17 +184,14 @@ class UploadController extends AbstractActionController
         if ($validateFile) {
             $errorStore = new ErrorStore();
             if (!$this->validator->validate($tempFile, $errorStore)) {
-                $response = $this->getResponse();
-                $response->setStatusCode(Response::STATUS_CODE_415);
                 @unlink($filepath);
                 $errors = $errorStore->getErrors();
                 $errors = reset($errors);
                 $error = is_array($errors) ? reset($errors) : $errors;
-                return new JsonModel([
-                    'status' => self::STATUS_ERROR,
-                    'message' => $this->translate($error),
-                    'code' => Response::STATUS_CODE_415,
-                ]);
+                return $this->jsonError(
+                    $this->translate($error),
+                    Response::STATUS_CODE_415
+                );
             }
         }
 
@@ -234,6 +210,17 @@ class UploadController extends AbstractActionController
                     'size' => $filesize,
                 ],
             ],
+        ]);
+    }
+
+    protected function jsonError(string $message, int $statusCode = 400)
+    {
+        $response = $this->getResponse();
+        $response->setStatusCode($statusCode);
+        return new JsonModel([
+            'status' => self::STATUS_ERROR,
+            'message' => $message,
+            'code' => $statusCode,
         ]);
     }
 

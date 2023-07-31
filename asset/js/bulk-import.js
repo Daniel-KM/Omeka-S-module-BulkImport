@@ -1,6 +1,7 @@
 'use strict';
 
 (function ($) {
+
     $(document).ready(function() {
 
         const basePath = window.location.pathname.replace(/\/admin\/.*/, '/');
@@ -19,7 +20,7 @@
         // Adapted from https://developer.mozilla.org/fr/docs/Web/HTML/Element/Input/file (licence cc0/public domain).
         // Adapted from https://developer.mozilla.org/fr/docs/Web/API/File/Using_files_from_web_applications
         // @see https://github.com/flowjs/flow.js
-        $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', function (e) {
+        const initFlow = function () {
             // Get the last media in media list, that is the new one.
             const mediaField = $('#media-list').find('.media-bulk-upload').last()[0];
             const wrapper = mediaField.closest('.media-field-wrapper');
@@ -41,13 +42,14 @@
             const divDrop = mediaField.getElementsByClassName('bulk-drop')[0];
             const bulkUploadActions = mediaField.parentNode.getElementsByClassName('bulk-upload-actions')[0];
             const selectSort = bulkUploadActions.getElementsByClassName('select-sort')[0];
+            const csrf = $('body.items form.resource-form input[type=hidden][name=csrf]').val();
 
             const flow = new Flow({
                 target: uploadUrl,
                 chunkSize: 1000000,
                 permanentErrors: [403, 404, 412, 415, 500, 501],
                 headers: {
-                    'X-Csrf': $('body.items form.resource-form input[type=hidden][name=csrf]').val(),
+                    'X-Csrf': csrf,
                 },
                 // Like default one, but prepend the main index to allow uploading same files multiple times in bulk-uploads.
                 generateUniqueIdentifier: (file) => {
@@ -203,7 +205,7 @@
             buttonHideUploaded.addEventListener('change', () => { updateVisibility(wrapper) });
 
             buttonSubmitPartial.addEventListener('change', () => { updateSubmitPartial(wrapper) });
-        });
+        }
 
         function validateFile(file) {
             const extension = file.name.slice((file.name.lastIndexOf('.') - 1 >>> 0) + 2);
@@ -403,5 +405,9 @@
             }
             return true;
         }
+
+        $('#media-selector').on('click', 'button[type=button][data-media-type=bulk_upload]', initFlow);
+
     });
+
 })(jQuery);

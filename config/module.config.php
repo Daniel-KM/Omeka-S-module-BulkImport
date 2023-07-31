@@ -139,6 +139,66 @@ return [
             'findResourceFromIdentifier' => Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class,
         ],
     ],
+    'router' => [
+        'routes' => [
+            'admin' => [
+                'child_routes' => [
+                    'bulk' => [
+                        'type' => \Laminas\Router\Http\Literal::class,
+                        'options' => [
+                            'route' => '/bulk',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'BulkImport\Controller\Admin',
+                                '__ADMIN__' => true,
+                                'controller' => 'BulkImport',
+                                'action' => 'index',
+                            ],
+                        ],
+                        'may_terminate' => true,
+                        'child_routes' => [
+                            'default' => [
+                                'type' => \Laminas\Router\Http\Segment::class,
+                                'options' => [
+                                    'route' => '/:controller[/:action]',
+                                    'constraints' => [
+                                        'controller' => 'bulk-import|importer|import|mapping',
+                                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
+                                    ],
+                                    'defaults' => [
+                                        'action' => 'browse',
+                                    ],
+                                ],
+                            ],
+                            'id' => [
+                                'type' => \Laminas\Router\Http\Segment::class,
+                                'options' => [
+                                    'route' => '/:controller/:id[/:action]',
+                                    'constraints' => [
+                                        'controller' => 'bulk-import|importer|import|mapping',
+                                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
+                                        'id' => '\d+',
+                                    ],
+                                    'defaults' => [
+                                        'action' => 'show',
+                                    ],
+                                ],
+                            ],
+                            'upload' => [
+                                'type' => \Laminas\Router\Http\Literal::class,
+                                'options' => [
+                                    'route' => '/upload',
+                                    'defaults' => [
+                                        'controller' => 'Upload',
+                                        'action' => 'index',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
     'navigation' => [
         'AdminModule' => [
             'bulk' => [
@@ -253,66 +313,6 @@ return [
                 'controller' => 'import',
                 'action' => 'logs',
                 'useRouteMatch' => true,
-            ],
-        ],
-    ],
-    'router' => [
-        'routes' => [
-            'admin' => [
-                'child_routes' => [
-                    'bulk' => [
-                        'type' => \Laminas\Router\Http\Literal::class,
-                        'options' => [
-                            'route' => '/bulk',
-                            'defaults' => [
-                                '__NAMESPACE__' => 'BulkImport\Controller\Admin',
-                                '__ADMIN__' => true,
-                                'controller' => 'BulkImport',
-                                'action' => 'index',
-                            ],
-                        ],
-                        'may_terminate' => true,
-                        'child_routes' => [
-                            'default' => [
-                                'type' => \Laminas\Router\Http\Segment::class,
-                                'options' => [
-                                    'route' => '/:controller[/:action]',
-                                    'constraints' => [
-                                        'controller' => '[a-zA-Z][a-zA-Z0-9_-]*',
-                                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
-                                    ],
-                                    'defaults' => [
-                                        'action' => 'browse',
-                                    ],
-                                ],
-                            ],
-                            'id' => [
-                                'type' => \Laminas\Router\Http\Segment::class,
-                                'options' => [
-                                    'route' => '/:controller/:id[/:action]',
-                                    'constraints' => [
-                                        'controller' => '[a-zA-Z][a-zA-Z0-9_-]*',
-                                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
-                                        'id' => '\d+',
-                                    ],
-                                    'defaults' => [
-                                        'action' => 'show',
-                                    ],
-                                ],
-                            ],
-                            'upload' => [
-                                'type' => \Laminas\Router\Http\Literal::class,
-                                'options' => [
-                                    'route' => '/upload',
-                                    'defaults' => [
-                                        'controller' => 'Upload',
-                                        'action' => 'index',
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
             ],
         ],
     ],
