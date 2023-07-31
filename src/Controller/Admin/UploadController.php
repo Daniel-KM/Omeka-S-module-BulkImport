@@ -343,7 +343,7 @@ class UploadController extends AbstractActionController
             return;
         }
         $fileSystemIterator = new \FilesystemIterator($this->tempDir);
-        $threshold = strtotime('-30 day');
+        $threshold = strtotime('-40 day');
         /** @var \SplFileInfo $file */
         foreach ($fileSystemIterator as $file) {
             $filename = $file->getFilename();
