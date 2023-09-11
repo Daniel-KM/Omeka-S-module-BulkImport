@@ -15,6 +15,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
 
         $this

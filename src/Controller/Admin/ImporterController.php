@@ -76,7 +76,7 @@ class ImporterController extends AbstractActionController
             $form->setData($post);
             if ($form->isValid()) {
                 $data = $form->getData();
-                unset($data['csrf'], $data['importer_submit']);
+                unset($data['csrf'], $data['form_submit'], $data['current_form']);
                 if ($importer) {
                     $oConfig = $currentData['o:config'];
                     $oConfig['importer'] = $data['o:config']['importer'] ?? [];;
@@ -165,15 +165,15 @@ class ImporterController extends AbstractActionController
         /** @var \BulkImport\Reader\Reader $reader */
         $reader = $importer->reader();
         $form = $this->getForm($reader->getConfigFormClass());
-        $form->setAttribute('id', 'importer-reader-form');
+        $form->setAttribute('id', 'form-importer-reader');
         $readerConfig = $reader instanceof Configurable ? $reader->getConfig() : [];
         $form->setData($readerConfig);
 
         $form->add([
-            'name' => 'importer_submit',
+            'name' => 'form_submit',
             'type' => Fieldset::class,
         ]);
-        $form->get('importer_submit')->add([
+        $form->get('form_submit')->add([
             'name' => 'submit',
             'type' => Element\Submit::class,
             'options' => [
@@ -226,15 +226,15 @@ class ImporterController extends AbstractActionController
         /** @var \BulkImport\Processor\Processor $processor */
         $processor = $importer->processor();
         $form = $this->getForm($processor->getConfigFormClass());
-        $form->setAttribute('id', 'importer-processor-form');
+        $form->setAttribute('id', 'form-importer-processor');
         $processorConfig = $processor instanceof Configurable ? $processor->getConfig() : [];
         $form->setData($processorConfig);
 
         $form->add([
-            'name' => 'importer_submit',
+            'name' => 'form_submit',
             'type' => Fieldset::class,
         ]);
-        $form->get('importer_submit')->add([
+        $form->get('form_submit')->add([
             'name' => 'submit',
             'type' => Element\Submit::class,
             'options' => [
@@ -349,7 +349,7 @@ class ImporterController extends AbstractActionController
             if ($form->isValid()) {
                 // Execute file filters.
                 $data = $form->getData();
-                unset($data['csrf']);
+                unset($data['csrf'], $data['form_submit'], $data['current_form']);
                 $session->{$currentForm} = $data;
                 switch ($currentForm) {
                     default:
@@ -602,10 +602,10 @@ class ImporterController extends AbstractActionController
                         ],
                     ])
                     ->add([
-                        'name' => 'reader_submit',
+                        'name' => 'form_submit',
                         'type' => Fieldset::class,
                     ])
-                    ->get('reader_submit')
+                    ->get('form_submit')
                     ->add([
                         'name' => 'submit',
                         'type' => Element\Submit::class,
@@ -657,10 +657,10 @@ class ImporterController extends AbstractActionController
                         ],
                     ])
                     ->add([
-                        'name' => 'mapping_submit',
+                        'name' => 'form_submit',
                         'type' => Fieldset::class,
                     ])
-                    ->get('mapping_submit')
+                    ->get('form_submit')
                     ->add([
                         'name' => 'submit',
                         'type' => Element\Submit::class,
@@ -698,10 +698,10 @@ class ImporterController extends AbstractActionController
                         ],
                     ])
                     ->add([
-                        'name' => 'processor_submit',
+                        'name' => 'form_submit',
                         'type' => Fieldset::class,
                     ])
-                    ->get('processor_submit')
+                    ->get('form_submit')
                     ->add([
                         'name' => 'submit',
                         'type' => Element\Submit::class,
@@ -725,6 +725,7 @@ class ImporterController extends AbstractActionController
                         'value' => 'confirm',
                     ],
                 ]);
+                // Submit is in the fieldset.
             return $startForm;
         };
 

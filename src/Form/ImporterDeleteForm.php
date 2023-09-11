@@ -16,12 +16,13 @@ class ImporterDeleteForm extends Form
         parent::init();
 
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->add([
-                'name' => 'importer_submit',
+                'name' => 'form_submit',
                 'type' => Fieldset::class,
             ]);
 
-        $this->get('importer_submit')
+        $this->get('form_submit')
             ->add([
                 'name' => 'submit',
                 'type' => Element\Submit::class,

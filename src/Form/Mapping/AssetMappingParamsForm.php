@@ -13,6 +13,7 @@ class AssetMappingParamsForm extends Form
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->addMapping();
 
         $this

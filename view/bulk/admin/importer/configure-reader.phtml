@@ -15,6 +15,10 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-importers edit');
 $this->headLink()->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
 
 $form->prepare();
+
+$submit = $form->get('form_submit')->get('submit');
+$submit->setAttribute('form', $form->getAttribute('id'));
+$form->get('form_submit')->remove('submit');
 ?>
 
 <?= $this->pageTitle($importer->label(), 1, $translate('Bulk import')) ?>
@@ -24,16 +28,11 @@ $form->prepare();
 <div id="bulk-import">
     <h3><?= $escape(sprintf($translate('Reader: %s'), $reader->getLabel())) ?></h3>
     <p><?= $escape($translate('Fill the default values of the reader.')) ?></p>
-    <?php
-    $submit = $form->get('importer_submit')->get('submit');
-    $submit->setAttribute('form', $form->getAttribute('id'));
-    $form->get('importer_submit')->remove('submit');
-    echo $this->form()->openTag($form);
-    echo $this->formCollection($form);
-    echo $this->form()->closeTag();
-    ?>
+    <?= $this->form()->openTag($form) ?>
+    <?= $this->formCollection($form) ?>
+    <?= $this->form()->closeTag() ?>
 </div>
 
 <div id="page-actions">
-    <?= $this->formButton($submit) ?>
+    <?= $this->formSubmit($submit) ?>
 </div>

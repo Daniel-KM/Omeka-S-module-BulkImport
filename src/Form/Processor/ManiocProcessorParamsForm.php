@@ -3,7 +3,6 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element\OptionalUrl;
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
@@ -16,6 +15,7 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
 
         $this

@@ -16,6 +16,7 @@ class SpipProcessorParamsForm extends SpipProcessorConfigForm
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
 
         $this

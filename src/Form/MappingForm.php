@@ -23,7 +23,7 @@ class MappingForm extends Form
 XML;
 
         $this
-            ->setAttribute('id', 'bulk-importer-mapping')
+            ->setAttribute('id', 'form-bulk-importer-mapping')
             ->add([
                 'name' => 'o:label',
                 'type' => Element\Text::class,

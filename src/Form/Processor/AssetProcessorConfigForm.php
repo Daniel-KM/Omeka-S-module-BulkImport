@@ -13,6 +13,7 @@ class AssetProcessorConfigForm extends Form
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
 
         $this

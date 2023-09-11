@@ -3,7 +3,6 @@
 namespace BulkImport\Form\Processor;
 
 use BulkImport\Form\Element as BulkElement;
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
@@ -16,6 +15,7 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
 
         $this

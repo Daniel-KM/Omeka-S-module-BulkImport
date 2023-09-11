@@ -31,6 +31,7 @@ class XmlReaderConfigForm extends Form
         ]);
 
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->add([
                 'name' => 'url',
                 'type' => BulkImportElement\OptionalUrl::class,

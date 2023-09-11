@@ -8,4 +8,11 @@ use Laminas\Form\Form;
 class AbstractReaderConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
+
+    public function init(): void
+    {
+        $this
+            ->setAttribute('id', 'form-bulk-importer')
+        ;
+    }
 }

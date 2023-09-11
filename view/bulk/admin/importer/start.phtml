@@ -20,10 +20,14 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 $form->prepare();
 
-$storeAsTask = !empty($storeAsTask) && $form->has('start_submit');
+$storeAsTask = !empty($storeAsTask);
 if ($storeAsTask) {
-    $form->get('start_submit')->get('submit')->setValue('Store import'); // @translate
+    $form->get('form_submit')->get('submit')->setValue('Store import'); // @translate
 }
+
+$submit = $form->get('form_submit')->get('submit');
+$submit->setAttribute('form', $form->getAttribute('id'));
+$form->get('form_submit')->remove('submit');
 
 $stepLabels = [
     'reader' => $translate('Reader'),
@@ -74,14 +78,16 @@ $stepLabels = [
     </div>
     <?php endif; ?>
 
-    <?php
-    echo $this->form()->openTag($form);
-    echo $this->formCollection($form);
-    echo $this->form()->closeTag();
-    ?>
+    <?= $this->form()->openTag($form) ?>
+    <?= $this->formCollection($form) ?>
+    <?= $this->form()->closeTag() ?>
 
     <?php if ($messagePost): ?>
     <div><?= $messagePost ?></div>
     <?php endif; ?>
 
+</div>
+
+<div id="page-actions">
+    <?= $this->formSubmit($submit) ?>
 </div>

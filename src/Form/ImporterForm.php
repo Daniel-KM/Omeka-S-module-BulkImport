@@ -19,7 +19,7 @@ class ImporterForm extends Form
         parent::init();
 
         $this
-            ->setAttribute('id', 'bulk-importer-form')
+            ->setAttribute('id', 'form-bulk-importer')
             ->add([
                 'name' => 'o:label',
                 'type' => Element\Text::class,
@@ -114,11 +114,11 @@ class ImporterForm extends Form
 
         $this
             ->add([
-                'name' => 'importer_submit',
+                'name' => 'form_submit',
                 'type' => Fieldset::class,
             ]);
 
-        $this->get('importer_submit')
+        $this->get('form_submit')
             ->add([
                 'name' => 'submit',
                 'type' => Element\Submit::class,

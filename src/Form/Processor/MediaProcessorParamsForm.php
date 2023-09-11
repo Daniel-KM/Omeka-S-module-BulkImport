@@ -7,6 +7,7 @@ class MediaProcessorParamsForm extends MediaProcessorConfigForm
     public function init(): void
     {
         $this
+            ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset()
             ->addFieldsets()
             ->addFiles();
