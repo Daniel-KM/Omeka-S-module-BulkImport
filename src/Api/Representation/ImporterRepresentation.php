@@ -39,6 +39,11 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return 'importer';
     }
 
+    public function getJsonLdType()
+    {
+        return 'o-bulk:Importer';
+    }
+
     public function getJsonLd()
     {
         $owner = $this->owner();
@@ -52,11 +57,6 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             'o-bulk:processor' => $this->processorClass(),
             'o:config' => $this->config(),
         ];
-    }
-
-    public function getJsonLdType()
-    {
-        return 'o-bulk:Importer';
     }
 
     public function getResource(): \BulkImport\Entity\Importer

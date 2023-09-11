@@ -7,21 +7,6 @@ use Omeka\Api\Representation\JobRepresentation;
 
 class ImportRepresentation extends AbstractEntityRepresentation
 {
-    public function getJsonLd()
-    {
-        return [
-            'o:id' => $this->id(),
-            'o-bulk:importer' => $this->importer()->getReference(),
-            'o-bulk:comment' => $this->comment(),
-            'o:job' => $this->job(),
-            'o:undo_job' => $this->undoJob(),
-            'o:status' => $this->status(),
-            'o:started' => $this->started(),
-            'o:ended' => $this->ended(),
-            'o:params' => $this->params(),
-        ];
-    }
-
     public function getControllerName()
     {
         return 'import';
@@ -32,12 +17,34 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return 'o-bulk:Import';
     }
 
+    public function getJsonLd()
+    {
+        $importer = $this->importer();
+        $job = $this->job();
+        $undoJob = $this->undoJob();
+        return [
+            'o:id' => $this->id(),
+            'o-bulk:importer' => $importer ? $importer->getReference() : null,
+            'o-bulk:comment' => $this->comment(),
+            'o:job' => $job ? $job->getReference() : null,
+            'o:undo_job' => $undoJob ? $undoJob->getReference() : null,
+            'o:status' => $this->status(),
+            'o:started' => $this->started(),
+            'o:ended' => $this->ended(),
+            'o:params' => $this->params(),
+        ];
+    }
+
     public function importer(): ?ImporterRepresentation
     {
-        $importer = $this->resource->getImporter();
-        return $importer
-            ? $this->getAdapter('bulk_importers')->getRepresentation($importer)
-            : null;
+        static $importer;
+        if (is_null($importer)) {
+            $importer = $this->resource->getImporter();
+            if ($importer) {
+                $importer = $this->getAdapter('bulk_importers')->getRepresentation($importer);
+            }
+        }
+        return $importer;
     }
 
     public function comment(): ?string
