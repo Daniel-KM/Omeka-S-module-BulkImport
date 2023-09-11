@@ -53,7 +53,7 @@ class UpdateResourceTitles extends AbstractJob
 
         // For quick process, get all the title terms of all templates one time.
         $sql = <<<'SQL'
-SELECT id, IFNULL(title_property_id, 1) AS "title_property_id" FROM resource_template ORDER BY id;';
+SELECT id, IFNULL(title_property_id, 1) AS "title_property_id" FROM resource_template ORDER BY id ASC;';
 SQL;
         $templateTitleTerms = $this->connection->executeQuery($sql)->fetchAllKeyValue();
 

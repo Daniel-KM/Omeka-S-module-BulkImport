@@ -22,9 +22,9 @@ class CustomVocabBaseTypeFactory implements FactoryInterface
             /*
              $sql = <<<'SQL'
              SELECT
-                 GROUP_CONCAT(DISTINCT CASE WHEN `terms` != "" THEN `id` ELSE NULL END ORDER BY `id` SEPARATOR " ") AS 'literal',
-                 GROUP_CONCAT(DISTINCT CASE WHEN `item_set_id` IS NOT NULL THEN `id` ELSE NULL END ORDER BY `id` SEPARATOR " ") AS 'resource',
-                 GROUP_CONCAT(DISTINCT CASE WHEN `uris` != "" THEN `id` ELSE NULL END ORDER BY `id` SEPARATOR " ") AS 'uri'
+                 GROUP_CONCAT(DISTINCT CASE WHEN `terms` != "" THEN `id` ELSE NULL END ORDER BY `id` ASC SEPARATOR " ") AS 'literal',
+                 GROUP_CONCAT(DISTINCT CASE WHEN `item_set_id` IS NOT NULL THEN `id` ELSE NULL END ORDER BY `id` ASC SEPARATOR " ") AS 'resource',
+                 GROUP_CONCAT(DISTINCT CASE WHEN `uris` != "" THEN `id` ELSE NULL END ORDER BY `id` ASC SEPARATOR " ") AS 'uri'
              FROM `custom_vocab`;
              SQL;
              $customVocabsByType = $site->get('Omeka\Connection')->executeQuery($sql)->fetchAssociative() ?: ['literal' => '', 'resource' => '', 'uri' => ''];
@@ -38,7 +38,7 @@ SELECT
         ELSE "literal"
     END AS "type"
 FROM `custom_vocab`
-ORDER BY `id`;
+ORDER BY `id` ASC;
 SQL;
             $customVocabBaseTypes = $services->get('Omeka\Connection')->executeQuery($sql)->fetchAllKeyValue() ?: [];
         } else {

@@ -317,7 +317,7 @@ WHERE
     AND (`value_item_set`.`type` = "literal" OR `value_item_set`.`type` = "" OR `value_item_set`.`type` IS NULL)
     AND `value`.`value` = `value_item_set`.`value`
 $sqlExcludeWhere
-ORDER BY `value`.`resource_id`
+ORDER BY `value`.`resource_id` ASC
 ON DUPLICATE KEY UPDATE
     `item_id` = `item_item_set`.`item_id`,
     `item_set_id` = `item_item_set`.`item_set_id`
@@ -463,7 +463,7 @@ WHERE
     AND `value_linked`.`value` <> ""
     AND `value_linked`.`value` IS NOT NULL
     $sqlExcludeWhere
-ORDER BY `value`.`resource_id`
+ORDER BY `value`.`resource_id` ASC
 ;
 SQL;
 
@@ -492,7 +492,7 @@ WHERE
     AND `value_linked`.`value` <> ""
     AND `value_linked`.`value` IS NOT NULL
     $sqlExcludeWhere
-ORDER BY `value`.`resource_id`
+ORDER BY `value`.`resource_id` ASC
 ;
 SQL;
         }
@@ -831,7 +831,7 @@ WHERE
     AND `value`.`property_id` IN ($propertyIds)
     AND `value_linked`.`property_id` = $sourceId
     $sqlExcludeWhere
-ORDER BY `value_linked`.`value_resource_id`
+ORDER BY `value_linked`.`value_resource_id` ASC
 ;
 SQL;
 
@@ -2176,7 +2176,7 @@ SQL;
         $sql = <<<SQL
 SELECT DISTINCT
     `value`.`$column` AS `v`,
-    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` SEPARATOR ' ') AS r
+    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` ASC SEPARATOR ' ') AS r
 FROM `value`
 JOIN `_temporary_value`
     ON `_temporary_value`.`id` = `value`.`id`
@@ -2188,7 +2188,7 @@ WHERE
     AND `value`.`$column` <> ""
     AND `value`.`$column` IS NOT NULL
 GROUP BY `v`
-ORDER BY `v`
+ORDER BY `v` ASC
 ;
 SQL;
         $bind = [

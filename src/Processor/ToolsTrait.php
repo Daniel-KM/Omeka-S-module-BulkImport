@@ -233,7 +233,7 @@ SQL;
         }
 
         $entityIds = $this->connection
-            ->query("SELECT `id` FROM `$table` ORDER BY `id`;")
+            ->query("SELECT `id` FROM `$table` ORDER BY `id` ASC;")
             ->fetchFirstColumn();
         $entityIds = array_map('intval', $entityIds);
 
