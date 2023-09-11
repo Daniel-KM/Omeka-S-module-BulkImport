@@ -731,6 +731,35 @@ if (version_compare($oldVersion, '3.4.45', '<')) {
 
 if (version_compare($oldVersion, '3.4.46', '<')) {
     // Update vocabulary via sql.
+    foreach ([
+        'curation:dateStart' => 'curation:start',
+        'curation:dateEnd' => 'curation:end',
+    ] as $propertyOld => $propertyNew) {
+        $propertyOld = $api->searchOne('properties', ['term' => $propertyOld])->getContent();
+        $propertyNew = $api->searchOne('properties', ['term' => $propertyNew])->getContent();
+        if ($propertyOld && $propertyNew) {
+            // Remove the new property, it will be created below.
+            $connection->executeStatement('UPDATE `value` SET `property_id` = :property_id_1 WHERE `property_id` = :property_id_2;', [
+                'property_id_1' => $propertyOld->id(),
+                'property_id_2' => $propertyNew->id(),
+            ]);
+            $connection->executeStatement('UPDATE `resource_template_property` SET `property_id` = :property_id_1 WHERE `property_id` = :property_id_2;', [
+                'property_id_1' => $propertyOld->id(),
+                'property_id_2' => $propertyNew->id(),
+            ]);
+            try {
+                $connection->executeStatement('UPDATE `resource_template_property_data` SET `resource_template_property_id` = :property_id_1 WHERE `property_id` = :property_id_2;', [
+                    'property_id_1' => $propertyOld->id(),
+                    'property_id_2' => $propertyNew->id(),
+                ]);
+            } catch (\Exception $e) {
+            }
+            $connection->executeStatement('DELETE FROM `property` WHERE id = :property_id;', [
+                'property_id' => $propertyNew->id(),
+            ]);
+        }
+    }
+
     $sql = <<<SQL
 UPDATE `vocabulary`
 SET
@@ -778,5 +807,172 @@ SQL;
         '<a href="' . rtrim($basePath(), '/') . '/admin/bulk/upload/files">', '</a>'
     );
     $message->setEscapeHtml(false);
+    $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.4.48', '<')) {
+    // Update bulk importer.
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `reader_config` = '[]'
+WHERE `reader_config` IS NULL OR `reader_config` = "" OR `reader_config` = "{}"
+;
+UPDATE `bulk_importer`
+SET
+    `processor_config` = '[]'
+WHERE `processor_config` IS NULL OR `processor_config` = "" OR `processor_config` = "{}"
+;
+UPDATE `bulk_importer`
+SET
+    `config` = '[]'
+WHERE `config` IS NULL OR `config` = "" OR `config` = "{}"
+;
+UPDATE `bulk_importer`
+SET
+    `config` = CONCAT(
+        '{',
+            '"importer":', `config`,
+            ',"reader":', `reader_config`,
+            ',"mapper":[]',
+            ',"processor":', `processor_config`,
+        "}"
+    )
+;
+
+UPDATE `bulk_importer`
+SET
+    `label` = "-"
+WHERE `label` IS NULL
+;
+UPDATE `bulk_importer`
+SET
+    `reader_class` = ""
+WHERE `reader_class` IS NULL
+;
+UPDATE `bulk_importer`
+SET
+    `processor_class` = ""
+WHERE `processor_class` IS NULL
+;
+
+ALTER TABLE `bulk_importer`
+DROP `reader_config`,
+DROP `processor_config`,
+ADD `mapper`  VARCHAR(190) DEFAULT NULL AFTER `reader`,
+CHANGE `label` `label` VARCHAR(190) NOT NULL,
+CHANGE `reader_class` `reader` VARCHAR(190) NOT NULL,
+CHANGE `processor_class` `processor` VARCHAR(190) NOT NULL,
+CHANGE `config` `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor`
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    // Update bulk import.
+    $sql = <<<'SQL'
+ALTER TABLE `bulk_import`
+ADD `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor_params`
+;
+
+UPDATE `bulk_import`
+SET
+    `reader_params` = '[]'
+WHERE `reader_params` IS NULL OR `reader_params` = "" OR `reader_params` = "{}"
+;
+UPDATE `bulk_import`
+SET
+    `processor_params` = '[]'
+WHERE `processor_params` IS NULL OR `processor_params` = "" OR `processor_params` = "{}"
+;
+UPDATE `bulk_import`
+SET
+    `params` = '[]'
+WHERE `params` IS NULL OR `params` = "" OR `params` = "{}"
+;
+UPDATE `bulk_import`
+SET
+    `params` = CONCAT(
+        '{',
+            '"reader":', `reader_params`,
+            ',"mapping":[]',
+            ',"processor":', `processor_params`,
+        "}"
+    )
+;
+
+UPDATE `bulk_import`
+SET `params` = REPLACE(`params`, ',"mapper":[', ',"mapping":[');
+
+ALTER TABLE `bulk_import`
+DROP `reader_params`,
+DROP `processor_params`
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    // Set mapping "manual" for all spreadsheet reader.
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `mapper` = "manual"
+WHERE `reader` LIKE "%CsvReader"
+    OR `reader` LIKE "%TsvReader"
+    OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
+    OR `reader` LIKE "%SpreadsheetReader"
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    // Move mapping config to mapper.
+    $qb = $connection->createQueryBuilder();
+    $qb
+        ->select('bulk_importer.id', 'bulk_importer.config')
+        ->from('bulk_importer', 'bulk_importer')
+        ->where('bulk_importer.config LIKE "%mapping_config%"')
+        ->orderBy('bulk_importer.id', 'asc');
+    $importerConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
+    foreach ($importerConfigs as $id => $importerConfig) {
+        $importerConfig = json_decode($importerConfig, true);
+        $mappingConfig = $importerConfig['reader']['mapping_config'] ?? null;
+        unset($importerConfig['reader']['mapping_config']);
+        $connection->executeStatement(
+            'UPDATE `bulk_importer` SET `mapper` = :mapper, `config` = :config WHERE `id` = :id',
+            [
+                'mapper' => $mappingConfig ?: null,
+                'config' => json_encode($importerConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'id' => $id,
+            ],
+            [
+                'mapper' => $mappingConfig ? \Doctrine\DBAL\ParameterType::STRING : \Doctrine\DBAL\ParameterType::NULL,
+                'config' => \Doctrine\DBAL\ParameterType::STRING,
+                'id' => \Doctrine\DBAL\ParameterType::INTEGER,
+            ],
+        );
+    }
+
+    // Move processor mapping into mapping.
+    $qb = $connection->createQueryBuilder();
+    $qb
+        ->select('bulk_import.id', 'bulk_import.params')
+        ->from('bulk_import', 'bulk_import')
+        ->orderBy('bulk_import.id', 'asc');
+    $importParameters = $connection->executeQuery($qb)->fetchAllKeyValue();
+    foreach ($importParameters as $id => $importParams) {
+        $importParams = json_decode($importParams, true);
+        $mappingMapper = $importParams['mapping'] ?? [];
+        $importParams['mapping'] = $mappingMapper ?: ($importParams['processor']['mapping'] ?? []);
+        unset($importParams['processor']['mapping']);
+        // The mapping config is now set in importer and cannot be changed in
+        // import for now. Kept for future improvements.
+        // unset($importParams['reader']['mapping_config']);
+        $connection->executeStatement('UPDATE `bulk_import` SET `params` = :params WHERE `id` = :id', [
+            'params' => json_encode($importParams, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'id' => $id,
+        ]);
+    }
+
+    $message = new Message(
+        'Import process has been clarified with three steps: reader, mapping and import.' // @translate
+    );
     $messenger->addSuccess($message);
 }
