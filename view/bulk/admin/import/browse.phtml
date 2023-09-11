@@ -19,7 +19,9 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
     <?php if (count($imports)): ?>
         <?= $this->pagination() ?>
+        <?php $this->trigger('view.browse.before'); ?>
         <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
+        <?php $this->trigger('view.browse.after'); ?>
     <?php else: ?>
         <div class="no-resources">
             <p><?= $escape($translate('No imports yet.')) ?></p>

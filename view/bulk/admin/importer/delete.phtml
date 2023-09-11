@@ -7,10 +7,12 @@
 
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers delete');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headLink()->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+
 $form->prepare();
 ?>
 
@@ -19,9 +21,7 @@ $form->prepare();
 <div id="bulk-import">
     <h2><?= $escape(sprintf($translate('Delete importer (%s)'), $importer->label())) ?></h2>
     <p><?= $escape($translate('Are you sure you want to delete this importer?')) ?></p>
-    <?php
-    echo $this->form()->openTag($form);
-    echo $this->formCollection($form);
-    echo $this->form()->closeTag();
-    ?>
+    <?= $this->form()->openTag($form) ?>
+    <?= $this->formCollection($form) ?>
+    <?= $this->form()->closeTag() ?>
 </div>

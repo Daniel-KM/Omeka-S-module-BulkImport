@@ -17,10 +17,16 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <?= $this->pageTitle($translate('Bulk import'), 1, $translate('Bulk import')) ?>
 
+<div id="page-actions">
+<?php if (!empty($imports)): ?>
+    <?= $hyperlink('See all imports', $url('admin/bulk/default', ['controller' => 'import', 'action' => 'browse'], true), ['class' => 'button']) ?>
+<?php endif; ?>
+</div>
+
 <h2><?= $escape($translate('Available importers')) ?></h2>
 
 <?php if (count($importers)): ?>
-<table class="tablesaw batch-edit" data-tablesaw-mode="stack">
+<table id="table-bulk-importer" class="tablesaw batch-edit" data-tablesaw-mode="stack">
     <thead>
         <tr>
             <th><?= $escape($translate('Name')) ?></th>
@@ -83,6 +89,5 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <?php if (!empty($imports)): ?>
     <h2><?= $escape($translate('Last imports')) ?></h2>
-    <?= $hyperlink('See all imports', $this->url('admin/bulk/default', ['controller' => 'import', 'action' => 'browse'])) ?>
     <?= $this->partial('bulk/admin/import/import-table', ['imports' => $imports]) ?>
 <?php endif; ?>

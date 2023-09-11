@@ -20,7 +20,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 <div id="page-actions">
     <?php if ($this->userIsAllowed(\BulkImport\Api\Adapter\ImporterAdapter::class, 'create')): ?>
-    <?= $this->hyperlink($translate('Add new importer'), $this->url('admin/bulk/default', ['controller' => 'importer', 'action' => 'add'], true), ['class' => 'button']) ?>
+    <?= $hyperlink($translate('Add new importer'), $url('admin/bulk/default', ['controller' => 'importer', 'action' => 'add'], true), ['class' => 'button']) ?>
     <?php endif; ?>
 </div>
 
@@ -37,9 +37,10 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($importers as $importer): ?>
-        <?php $userIsAllowedUpdate = $importer->userIsAllowed('update'); ?>
-        <?php $userIsAllowedDelete = $importer->userIsAllowed('delete'); ?>
+    <?php foreach ($importers as $importer):
+        $userIsAllowedUpdate = $importer->userIsAllowed('update');
+        $userIsAllowedDelete = $importer->userIsAllowed('delete');
+        ?>
         <tr>
             <td>
                 <?= $importer->link($importer->label(), 'edit') ?>
@@ -56,7 +57,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                         'title' => $translate('Delete'),
                     ]) ?>
                     <?php /*
-                    echo $this->hyperlink('', '#', [
+                    echo $hyperlink('', '#', [
                         'data-sidebar-selector' => '#sidebar',
                         'data-sidebar-content-url' => $importer->url('delete-confirm'),
                         'class' => 'o-icon-delete sidebar-content',
@@ -84,7 +85,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
             </td>
             <td class="configure">
                 <?php $processor = $importer->processor(); ?>
-                <?= $processor ? $processor->getLabel() : null; ?>
+                <?= $processor ? $escape($processor->getLabel()) : null; ?>
                 <?php if ($processor instanceof ConfigurableImport): ?>
                     <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()]), ['class' => 'o-icon-edit']) ?>
                 <?php endif; ?>

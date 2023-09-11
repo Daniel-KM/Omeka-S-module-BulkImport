@@ -12,10 +12,11 @@
 
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers bulk-imports edit');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+$this->headLink()->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
 
 $form->prepare();
 

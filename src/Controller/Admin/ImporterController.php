@@ -77,14 +77,14 @@ class ImporterController extends AbstractActionController
             if ($form->isValid()) {
                 $data = $form->getData();
                 unset($data['csrf'], $data['form_submit'], $data['current_form']);
-                if ($importer) {
+                if (!$importer) {
+                    $data['o:owner'] = $this->identity();
+                    $response = $this->api($form)->create('bulk_importers', $data);
+                } else {
                     $oConfig = $currentData['o:config'];
                     $oConfig['importer'] = $data['o:config']['importer'] ?? [];;
                     $data['o:config'] = $oConfig;
                     $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
-                } else {
-                    $data['o:owner'] = $this->identity();
-                    $response = $this->api($form)->create('bulk_importers', $data);
                 }
 
                 if (!$response) {
@@ -335,12 +335,14 @@ class ImporterController extends AbstractActionController
         if ($this->getRequest()->isPost()) {
             // Current form.
             $currentForm = $this->getRequest()->getPost('current_form');
+
             // Avoid an issue if the user reloads the page.
             if (!isset($formsCallbacks[$currentForm])) {
                 $message = new PsrMessage('The page was reloaded, but params are lost. Restart the import.'); // @translate
                 $this->messenger()->addError($message);
                 return $this->redirect()->toRoute('admin/bulk');
             }
+
             $form = call_user_func($formsCallbacks[$currentForm]);
 
             // Make certain to merge the files info!

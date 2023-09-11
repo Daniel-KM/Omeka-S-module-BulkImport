@@ -40,7 +40,6 @@ class ImportController extends AbstractActionController
 
         return new ViewModel([
             'imports' => $imports,
-            'resources' => $imports,
         ]);
     }
 
@@ -51,7 +50,6 @@ class ImportController extends AbstractActionController
 
         return new ViewModel([
             'import' => $import,
-            'resource' => $import,
         ]);
     }
 
@@ -114,7 +112,6 @@ class ImportController extends AbstractActionController
 
         return new ViewModel([
             'import' => $import,
-            'resource' => $import,
             'logs' => $logs,
             'severity' => $severity,
         ]);
