@@ -128,7 +128,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $id = empty($this->identifiers['mapx'][$resource['source_index']])
                         // Read does not allow to return scalar.
                         ? $this->api->read('assets', ['storage_id' => $value])->getContent()
-                        : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
+                        : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us);
                 } catch (\Exception $e) {
                     $id = null;
                 }
@@ -190,9 +190,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         }
                     }
                     // Check cache map first.
-                    if (!empty($this->identifiers['map'][$value . '§resources'])) {
+                    if (!empty($this->identifiers['map'][$value . $this->us . 'resources'])) {
                         $resource['o:resource'][$key] = [
-                            'o:id' => (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§'),
+                            'o:id' => (int) strtok((string) $this->identifiers['map'][$value . $this->us . 'resources'], $this->us),
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];

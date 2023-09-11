@@ -131,8 +131,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * The keys are filled during first loop and values when found or available.
      *
-     * Identifiers are the id and the main resource name: "§resources" or
-     * "§assets" is appended to the numeric id.
+     * Identifiers are the id and the main resource name ("resources", "assets",
+     * etc.) is appended to the numeric id, separated with a unit separator
+     * (ascii 31).
      *
      * @todo Remove "mapx" and "revert" ("revert" is only used to get "mapx"). "mapx" is a short to map[source index]. But a source can have no identifier and only an index.
      *
@@ -167,6 +168,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * @var int
      */
     protected $indexResource = 0;
+
+    /**
+     * Unit separator as utf-8.
+     *
+     * @var string
+     */
+    protected $us;
 
     public function getConfigFormClass(): string
     {
@@ -226,6 +234,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     protected function init(): bool
     {
+        // Prepare the unit separator one time.
+        $this->us = function_exists('mb_chr') ? mb_chr(31, 'UTF-8') : chr(31);
+
         // Used for uploaded files.
         $services = $this->getServiceLocator();
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
@@ -514,7 +525,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Validate the main id/identifier early.
         $resourceName = $resource['resource_name'] ?? null;
         if (!empty($this->identifiers['mapx'][$resource['source_index']])) {
-            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
+            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us);
         } else {
             // TODO Use a generic method.
             $resource['o:id'] = in_array($resourceName, [null, 'items', 'media', 'item_sets', 'value_annotations', 'annotations'])
@@ -1124,9 +1135,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 // TODO Merge with storeSourceIdentifiersIds().
                 if ($ids) {
                     foreach ($ids as $identifier => $id) {
-                        $idEntity = $id . '§' . $mainResourceName;
+                        $idEntity = $id . $this->us . $mainResourceName;
                         $this->identifiers['mapx'][$resource['source_index']] = $idEntity;
-                        $this->identifiers['map'][$identifier . '§' . $mainResourceName] = $idEntity;
+                        $this->identifiers['map'][$identifier . $this->us . $mainResourceName] = $idEntity;
                     }
                     if (isset($resource['messageStore'])) {
                         $resource['messageStore']->addInfo('identifier', new PsrMessage(
@@ -1152,7 +1163,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                 }
             } elseif (!empty($this->identifiers['mapx'][$resource['source_index']])) {
-                $ids = array_fill_keys($identifiers, (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§'));
+                $ids = array_fill_keys($identifiers, (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us));
             }
             if (!$ids) {
                 continue;
@@ -1646,12 +1657,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $mainResourceName = $this->mainResourceNames[$resourceName];
 
         // Source indexes to resource id (filled when found or created).
-        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . '§' . $mainResourceName;
+        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . $this->us . $mainResourceName;
 
         // Source identifiers to resource id (filled when found or created).
         // No check for duplicate here: last map is the right one.
         foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifierWithResourceName) {
-            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . '§' . $mainResourceName;
+            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . $this->us . $mainResourceName;
         }
 
         return $this;
@@ -1667,7 +1678,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             && !empty($resource['source_index'])
             && !empty($this->identifiers['mapx'][$resource['source_index']])
         ) {
-            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
+            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us);
         }
 
         // TODO Move these checks into the right processor.
@@ -1677,10 +1688,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($resource['o:item_set'] ?? [] as $key => $itemSet) {
                 if (empty($itemSet['o:id'])
                     && !empty($itemSet['source_identifier'])
-                    && !empty($this->identifiers['map'][$itemSet['source_identifier'] . '§resources'])
+                    && !empty($this->identifiers['map'][$itemSet['source_identifier'] . $this->us . 'resources'])
                     // TODO Add a check for item set identifier.
                 ) {
-                    $resource['o:item_set'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$itemSet['source_identifier'] . '§resources'], '§');
+                    $resource['o:item_set'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$itemSet['source_identifier'] . $this->us . 'resources'], $this->us);
                 }
             }
             // TODO Fill media identifiers for update here?
@@ -1689,10 +1700,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($resource['resource_name'] === 'media'
             && empty($resource['o:item']['o:id'])
             && !empty($resource['o:item']['source_identifier'])
-            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'])
+            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->us . 'resources'])
             // TODO Add a check for item identifier.
         ) {
-            $resource['o:item']['o:id'] = (int) strtok((string) $this->identifiers['map'][$resource['o:item']['source_identifier'] . '§resources'], '§');
+            $resource['o:item']['o:id'] = (int) strtok((string) $this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->us . 'resources'], $this->us);
         }
 
         // TODO Useless for now with assets: don't create resource on unknown resources. Maybe separate options create/skip for main resources and related resources.
@@ -1700,10 +1711,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             foreach ($resource['o:resource'] ?? [] as $key => $thumbnailForResource) {
                 if (empty($thumbnailForResource['o:id'])
                     && !empty($thumbnailForResource['source_identifier'])
-                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'])
+                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->us . 'resources'])
                     // TODO Add a check for resource identifier.
                 ) {
-                    $resource['o:resource'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$thumbnailForResource['source_identifier'] . '§resources'], '§');
+                    $resource['o:resource'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->us . 'resources'], $this->us);
                 }
             }
         }
@@ -1719,9 +1730,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     && array_key_exists('value_resource_id', $value)
                     && empty($value['value_resource_id'])
                     && !empty($value['source_identifier'])
-                    && !empty($this->identifiers['map'][$value['source_identifier'] . '§resources'])
+                    && !empty($this->identifiers['map'][$value['source_identifier'] . $this->us . 'resources'])
                 ) {
-                    $resource[$term][$key]['value_resource_id'] = (int) strtok((string) $this->identifiers['map'][$value['source_identifier'] . '§resources'], '§');
+                    $resource[$term][$key]['value_resource_id'] = (int) strtok((string) $this->identifiers['map'][$value['source_identifier'] . $this->us . 'resources'], $this->us);
                 }
             }
         }

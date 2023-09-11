@@ -212,8 +212,9 @@ trait ImportTrait
      *
      * The keys are filled during first loop and values when found or available.
      *
-     * Identifiers are the id and the main resource name: "§resources" or
-     * "§assets" is appended to the numeric id.
+     * Identifiers are the id and the main resource name ("resources", "assets",
+     * etc.) is appended to the numeric id, separated with a unit separator
+     * (ascii 31).
      *
      * @todo Remove "mapx" and "revert" ("revert" is only used to get "mapx"). "mapx" is a short to map[source index]. But a source can have no identifier and only an index.
      *
@@ -291,8 +292,18 @@ trait ImportTrait
      */
     protected $totalErrors = 0;
 
+    /**
+     * Unit separator as utf-8.
+     *
+     * @var string
+     */
+    protected $us;
+
     protected function process(): self
     {
+        // Prepare the unit separator one time.
+        $this->us = function_exists('mb_chr') ? mb_chr(31, 'UTF-8') : chr(31);
+
         // Prepare the file where the checks will be saved.
         $result = $this
             ->bulkCheckLog
@@ -652,7 +663,7 @@ trait ImportTrait
         $emptyIdentifiers = [];
         foreach ($this->identifiers['map'] as $identifier => $id) {
             if (empty($id)) {
-                $emptyIdentifiers[] = strtok((string) $identifier, '§');
+                $emptyIdentifiers[] = strtok((string) $identifier, chr(31));
             }
         }
 
@@ -664,16 +675,16 @@ trait ImportTrait
         }
 
         foreach ($ids as $identifier => $id) {
-            $this->identifiers['map'][$identifier . '§' . $mainResourceName] = $id
-                ? $id . '§' . $mainResourceName
+            $this->identifiers['map'][$identifier . $this->us . $mainResourceName] = $id
+                ? $id . $this->us . $mainResourceName
                 : null;
         }
 
         // Fill mapx when possible.
         foreach ($ids as $identifier => $id) {
-            if (!empty($this->identifiers['revert'][$identifier . '§' . $mainResourceName])) {
-                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . '§' . $mainResourceName])]
-                    = $id . '§' . $mainResourceName;
+            if (!empty($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])) {
+                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])]
+                    = $id . $this->us . $mainResourceName;
             }
         }
 
@@ -1022,29 +1033,29 @@ trait ImportTrait
         $storeMain = function ($idOrIdentifier, $mainResourceName) use ($resource): void {
             if ($idOrIdentifier) {
                 // No check for duplicates here: it depends on action.
-                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . '§' . $mainResourceName;
-                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName][$this->indexResource] = $this->indexResource;
+                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . $this->us . $mainResourceName;
+                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName][$this->indexResource] = $this->indexResource;
             }
             // Source indexes to resource id.
             $this->identifiers['mapx'][$this->indexResource] = empty($resource['o:id'])
                 ? null
-                : $resource['o:id'] . '§' . $mainResourceName;
+                : $resource['o:id'] . $this->us . $mainResourceName;
             if ($idOrIdentifier) {
                 // Source identifiers to resource id.
                 // No check for duplicate here: last map is the right one.
-                $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = empty($resource['o:id'])
+                $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = empty($resource['o:id'])
                     ? null
-                    : $resource['o:id'] . '§' . $mainResourceName;
+                    : $resource['o:id'] . $this->us . $mainResourceName;
             }
         };
 
         $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
             // As soon as an array exists, a check can be done on identifier,
             // even if the id is defined later. The same for map.
-            if (!isset($this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName])) {
-                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName] = [];
+            if (!isset($this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName])) {
+                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName] = [];
             }
-            $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = $vrId;
+            $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = $vrId;
         };
 
         $mainResourceName = $this->mainResourceNames[$this->resourceName];
@@ -1139,12 +1150,12 @@ trait ImportTrait
         $mainResourceName = $this->mainResourceNames[$resourceName];
 
         // Source indexes to resource id (filled when found or created).
-        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . '§' . $mainResourceName;
+        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . $this->us . $mainResourceName;
 
         // Source identifiers to resource id (filled when found or created).
         // No check for duplicate here: last map is the right one.
         foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifierWithResourceName) {
-            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . '§' . $mainResourceName;
+            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . $this->us . $mainResourceName;
         }
 
         return $this;
