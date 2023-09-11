@@ -123,6 +123,8 @@ class MetaMapper
      * @return self
      *
      * @uses \BulkImport\Stdlib\MetaMapperConfig
+     *
+     * @todo Separate metaMapperConfig and metaMapper: prepare the mapping separately and just use one setter to set the result mapping array.
      */
     public function __invoke(?string $mappingName = null, $mappingOrReference = null): self
     {
@@ -1033,7 +1035,7 @@ class MetaMapper
     private function _flatArray(array &$array, array &$flatArray, ?string $keys = null): void
     {
         foreach ($array as $key => $value) {
-            $nKey = str_replace(['.', '\\'], ['\.', '\\\\'], $key);
+            $nKey = str_replace(['.', '\\'], ['\.', '\\\\'], (string) $key);
             if (is_array($value)) {
                 $this->_flatArray($value, $flatArray, $keys . '.' . $nKey);
             } else {
@@ -1042,6 +1044,10 @@ class MetaMapper
         }
     }
 
+    /**
+     * Fields are params used to simplify extraction.
+     * They can be set in params or in data.
+     */
     protected function extractFields(?array $data): array
     {
         if (empty($data)) {
