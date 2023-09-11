@@ -196,6 +196,9 @@ trait ImportTrait
     /**
      * @see AbstractResourceProcessor.
      *
+     * The identifiers should be the id for properties for quick check and for
+     * use in UpdateResource().
+     *
      * @var array
      */
     protected $identifierNames = [
@@ -784,7 +787,8 @@ trait ImportTrait
 
             ++$this->totalProcessed;
 
-            $representation = $this->processor->processResource($resource, $this->indexResource);
+            $resource['source_index'] = $this->indexResource;
+            $representation = $this->processor->processResource($resource);
 
             if ($representation) {
                 $this->recordCreatedResources([$representation]);
@@ -825,6 +829,7 @@ trait ImportTrait
 
         $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
 
+        /** @var \BulkImport\Mvc\Controller\Plugin\BulkDiffResources $bulkDiffResources*/
         $bulkDiffResources = $plugins->get('bulkDiffResources');
         $result = $bulkDiffResources($this->action, $importId);
         if ($result['status'] === 'error') {
@@ -834,16 +839,9 @@ trait ImportTrait
             return $this;
         }
 
-        // TODO To be fixed: processor mapping.
-
-        // Only spreadsheet is managed for now.
-        // Spreadsheet is processor-driven, so no meta mapper mapping.
-        if (!$this->hasProcessorMapping) {
-            return $this;
-        }
-
+        /** @var \BulkImport\Mvc\Controller\Plugin\BulkDiffValues $bulkDiffValues*/
         $bulkDiffValues = $plugins->get('bulkDiffValues');
-        $result = $bulkDiffValues($this->action, $importId, $this->mapping);
+        $result = $bulkDiffValues($this->action, $importId, $this->metaMapper->getMetaMapping());
         if ($result['status'] === 'error') {
             // Log is already logged.
             ++$this->totalErrors;

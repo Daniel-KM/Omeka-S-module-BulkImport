@@ -131,7 +131,7 @@ class UpdateResource extends AbstractPlugin
      * @param array $data Should have an existing and checked "o:id".
      * @return array
      */
-    protected function __invoke(array $data, array $options): ?array
+    public function __invoke(array $data, array $options): ?array
     {
         $this->action = $options['action'];
         $this->actionItemSet = $options['actionItemSet'];

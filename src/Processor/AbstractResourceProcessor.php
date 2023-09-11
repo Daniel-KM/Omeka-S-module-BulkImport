@@ -21,6 +21,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 {
     use ConfigurableTrait, ParametrizableTrait;
 
+    /**
+     * Specific action used for sub update, for example the resources for a new
+     * thumbnail.
+     *
+     * @var string
+     */
     const ACTION_SUB_UPDATE = 'sub_update';
 
     /**
@@ -542,6 +548,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $this->indexResource = $resource['source_index'];
         $resourceObject = new ArrayObject($resource);
+        $resourceObject['messageStore'] = $resource['messageStore'] ?? new MessageStore();
         $this->checkEntity($resourceObject);
         return $resourceObject->getArrayCopy();
     }
@@ -1118,62 +1125,40 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     public function processResource(array $resource): ?AbstractEntityRepresentation
     {
-        $this->indexResource = $resource['source_index'];
-        $dataResources = [$resource];
-        $representations = $this->processEntities($dataResources);
-        return $representations
-            ? reset($representations)
-            : null;
-    }
+        // TODO Complete output with representation.
 
-    /**
-     * Process entities.
-     *
-     * @todo Keep order of resources when process is done by batch.
-     * Useless when batch size of process is one.
-     * @todo Create an option for full order by id for items, then media, but it should be done on all resources, not the batch one.
-     * See previous version (before 3.4.39).
-     *
-     * @todo Replace by processResource() directly.
-     */
-    protected function processEntities(array $dataResources): array
-    {
+        $this->indexResource = $resource['source_index'];
+        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+
         switch ($this->action) {
+            case self::ACTION_SKIP:
+                $this->skipEntity($resource);
+                return null;
             case self::ACTION_CREATE:
-                return $this->createEntities($dataResources);
+                return $this->createEntity($resource);
             case self::ACTION_APPEND:
             case self::ACTION_REVISE:
             case self::ACTION_UPDATE:
             case self::ACTION_REPLACE:
-                return $this->updateEntities($dataResources);
-            case self::ACTION_SKIP:
-                return $this->skipEntities($dataResources);
+                return $this->updateEntity($resource);
             case self::ACTION_DELETE:
-                return $this->deleteEntities($dataResources);
+                $this->deleteEntity($resource);
+                return null;
             default:
-                return [];
+                return null;
         }
     }
 
     /**
-     * Process creation of entities.
+     * Do not process an entity.
      */
-    protected function createEntities(array $dataResources): array
+    protected function skipEntity(array $resource): ?array
     {
-        $resourceName = $this->getResourceName();
-        $representations = $this->createResources($resourceName, $dataResources);
-        return $representations;
+        return null;
     }
 
-    /**
-     * Process creation of resources.
-     */
-    protected function createResources($defaultResourceName, array $dataResources): array
+    protected function createEntity(array $resource): ?AbstractEntityRepresentation
     {
-        if (!count($dataResources)) {
-            return [];
-        }
-
         // Linked ids from identifiers may be missing in data. So two solutions
         // to add missing ids: create resources one by one and add ids here, or
         // batch create and use an event to fill add ids.
@@ -1185,101 +1170,81 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // So act as a loop.
         // Anyway, in most of the cases, the loop contains only one resource.
 
-        $resources = [];
+        // And in fact, there is no more loop, but a single resource.
 
-        foreach ($dataResources as $dataResource) {
-            // Manage mixed resources.
-            $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
-            $dataResource = $this->bulkIdentifiers->completeResourceIdentifierIds($dataResource);
-            // Remove uploaded files.
-            foreach ($dataResource['o:media'] ?? [] as &$media) {
-                if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
-                    $media['ingest_delete_file'] = true;
-                }
-            }
-            try {
-                $response = $this->bulk->api(null, true)
-                    ->create($resourceName, $dataResource);
-            } catch (ValidationException $e) {
-                $r = $this->baseEntity();
-                $r['messageStore']->addError('resource', new PsrMessage(
-                    'Error during validation of the data before creation.' // @translate
-                ));
-                $messages = $this->listValidationMessages($e);
-                $r['messageStore']->addError('resource', $messages);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
-                ++$this->totalErrors;
-                return $resources;
-            } catch (\Exception $e) {
-                $r = $this->baseEntity();
-                $r['messageStore']->addError('resource', new PsrMessage(
-                    'Core error during creation: {exception}', // @translate
-                    ['exception' => $e]
-                ));
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
-                ++$this->totalErrors;
-                return $resources;
-            }
+        $defaultResourceName = $this->getResourceName();
 
-            $representation = $response->getContent();
-            $resources[$representation->id()] = $representation;
-            $this->bulkIdentifiers->storeSourceIdentifiersIds($dataResource, $representation);
-            if ($representation->resourceName() === 'media') {
-                $this->logger->notice(
-                    'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
-                    ['index' => $this->indexResource, 'media_id' => $representation->id(), 'item_id' => $representation->item()->id()]
-                );
-            } else {
-                $this->logger->notice(
-                    'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $representation->id()]
-                );
+        // Manage mixed resources.
+        $resourceName = $resource['resource_name'] ?? $defaultResourceName;
+        $resource = $this->bulkIdentifiers->completeResourceIdentifierIds($resource);
+
+        // Remove uploaded files for items.
+        foreach ($resource['o:media'] ?? [] as &$media) {
+            if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+                $media['ingest_delete_file'] = true;
             }
         }
+        unset($media);
 
-        return $resources;
+        try {
+            $response = $this->bulk->api(null, true)
+                ->create($resourceName, $resource);
+        } catch (ValidationException $e) {
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'Error during validation of the data before creation.' // @translate
+            ));
+            $messages = $this->listValidationMessages($e);
+            $resource['messageStore']->addError('resource', $messages);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
+            ++$this->totalErrors;
+            return null;
+        } catch (\Exception $e) {
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'Core error during creation: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
+            ++$this->totalErrors;
+            return null;
+        }
+
+        $representation = $response->getContent();
+        $this->bulkIdentifiers->storeSourceIdentifiersIds($resource, $representation);
+        if ($representation->resourceName() === 'media') {
+            $this->logger->notice(
+                'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
+                ['index' => $this->indexResource, 'media_id' => $representation->id(), 'item_id' => $representation->item()->id()]
+            );
+        } else {
+            $this->logger->notice(
+                'Index #{index}: Created {resource_name} #{resource_id}', // @translate
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $representation->id()]
+            );
+        }
+
+        return $representation;
     }
 
     /**
-     * Process update of entities.
-     *
-     * @return array Created resources.
+     * Process update of entity.
      */
-    protected function updateEntities(array $dataResources): array
+    protected function updateEntity(array $resource): ?AbstractEntityRepresentation
     {
-        $resourceName = $this->getResourceName();
+        $defaultResourceName = $this->getResourceName();
+        $resourceName = $resource['resource_name'] ?? $defaultResourceName;
 
-        $resources = [];
-
-        $dataToCreateOrSkip = [];
-        foreach ($dataResources as $key => $value) {
-            if (empty($value['o:id'])) {
-                $dataToCreateOrSkip[] = $value;
-                unset($dataResources[$key]);
+        // Create resource if needed.
+        if (empty($resource['o:id'])) {
+            if ($this->actionUnidentified === self::ACTION_CREATE) {
+                return $this->createEntity($resource);
             }
+            // Normally already checked.
+            $this->logger->warn(
+                'Index #{index}: The {resource_name} has no id and cannot be updated.', // @translate
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName)]
+            );
+            return null;
         }
-
-        // Create resources first.
-        if ($this->actionUnidentified === self::ACTION_CREATE && count($dataToCreateOrSkip)) {
-            $resources = $this->createResources($resourceName, $dataToCreateOrSkip);
-        }
-
-        $this->updateResources($resourceName, $dataResources);
-
-        return $resources;
-    }
-
-    /**
-     * Process update of resources.
-     */
-    protected function updateResources($defaultResourceName, array $dataResources): self
-    {
-        if (!count($dataResources)) {
-            return $this;
-        }
-
-        // The "resources" cannot be updated directly.
-        $checkResourceName = $defaultResourceName === 'resources';
 
         // In the api manager, batchUpdate() allows to update a set of resources
         // with the same data. Here, data are specific to each entry, so each
@@ -1288,209 +1253,155 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Clone is required to keep option to throw issue. The api plugin may
         // be used by other methods.
         $api = clone $this->bulk->api(null, true);
-        foreach ($dataResources as $dataResource) {
-            $options = [];
-            $fileData = [];
 
-            if ($checkResourceName) {
-                $resourceName = $dataResource['resource_name'];
-                // Normally already checked.
-                if (!$resourceName) {
-                    $r = $this->baseEntity();
-                    $r['messageStore']->addError('resource', new PsrMessage(
-                        'The resource id #"{id}" has no resource name.', // @translate
-                        ['id' => $dataResource['o:id']]
-                    ));
-                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
-                    ++$this->totalErrors;
-                    return $this;
-                }
-            }
+        $options = [];
+        $fileData = [];
 
-            $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
-
-            switch ($this->action) {
-                case self::ACTION_APPEND:
-                case self::ACTION_REPLACE:
-                    $options['isPartial'] = false;
-                    break;
-                case self::ACTION_REVISE:
-                case self::ACTION_UPDATE:
-                case self::ACTION_SUB_UPDATE:
-                    $options['isPartial'] = true;
-                    $options['collectionAction'] = 'replace';
-                    break;
-                default:
-                    return $this;
-            }
-
-            if ($this->action !== self::ACTION_SUB_UPDATE) {
-                $updatedResource = $resourceName === 'assets'
-                    ? $this->updateDataAsset($resourceName, $dataResource)
-                    : $this->updateResource->__invoke($resource, [
-                        'action' => $this->action,
-                        // In ResourceProcessor.
-                        'actionItemSet' => $this->actionItemSet,
-                        'actionMedia' => $this->actionMedia,
-                        'actionIdentifier' => $this->actionIdentifier,
-                        'identifierNames' => $this->identifierNames,
-                        'metaMapping' => $this->metaMapper->getMetaMapping(),
-                    ]);
-                if (!$updatedResource
-                    || (isset($updatedResource['messageStore']) && $updatedResource['messageStore']->hasErrors())
-                ) {
-                    ++$this->totalErrors;
-                    return null;
-                }
-                $resource = $updatedResource;
-            }
-
-            // Remove uploaded files.
-            foreach ($dataResource['o:media'] ?? [] as &$media) {
-                if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
-                    $media['ingest_delete_file'] = true;
-                }
-            }
-
-            try {
-                $response = $api->update($resourceName, $dataResource['o:id'], $dataResource, $fileData, $options);
-            } catch (ValidationException $e) {
-                $r = $this->baseEntity();
-                $r['messageStore']->addError('resource', new PsrMessage(
-                    'Error during validation of the data before update.' // @translate
-                ));
-                $messages = $this->listValidationMessages($e);
-                $r['messageStore']->addError('resource', $messages);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
-                ++$this->totalErrors;
-                return $this;
-            } catch (\Exception $e) {
-                $r = $this->baseEntity();
-                $r['messageStore']->addError('resource', new PsrMessage(
-                    'Core error during update: {exception}', // @translate
-                    ['exception' => $e]
-                ));
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
-                ++$this->totalErrors;
-                return $this;
-            }
-            if (!$response) {
-                $r = $this->baseEntity();
-                $r['messageStore']->addError('resource', new PsrMessage(
-                    'Unknown error occured during update.' // @translate
-                ));
-                ++$this->totalErrors;
-                return $this;
-            }
-
-            if ($resourceName === 'assets') {
-                if (!$this->updateThumbnailForResources($dataResource)) {
-                    return $this;
-                }
-            }
-
-            $this->logger->notice(
-                'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $dataResource['o:id']]
-            );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Process deletion of entities.
-     */
-    protected function deleteEntities(array $dataResources): array
-    {
-        $resourceName = $this->getResourceName();
-        $this->deleteResources($resourceName, $dataResources);
-        return [];
-    }
-
-    /**
-     * Process deletion of resources.
-     */
-    protected function deleteResources($defaultResourceName, array $dataResources): self
-    {
-        if (!count($dataResources)) {
+        // The "resources" cannot be updated directly.
+        // Normally already checked.
+        if (!$resourceName || $resourceName === 'resources') {
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'The resource id #"{id}" has no resource name.', // @translate
+                ['id' => $resource['o:id']]
+            ));
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
+            ++$this->totalErrors;
             return $this;
         }
 
-        // Get ids (already checked normally).
-        // Manage mixed resources too.
-        $ids = [];
-        foreach ($dataResources as $dataResource) {
-            if (isset($dataResource['o:id'])) {
-                $ids[$dataResource['o:id']] = $dataResource['resource_name'] ?? $defaultResourceName;
+        switch ($this->action) {
+            case self::ACTION_APPEND:
+            case self::ACTION_REPLACE:
+                $options['isPartial'] = false;
+                break;
+            case self::ACTION_REVISE:
+            case self::ACTION_UPDATE:
+            case self::ACTION_SUB_UPDATE:
+                $options['isPartial'] = true;
+                $options['collectionAction'] = 'replace';
+                break;
+            default:
+                return null;
+        }
+
+        if ($this->action !== self::ACTION_SUB_UPDATE) {
+            $updatedResource = $resourceName === 'assets'
+                ? $this->updateDataAsset($resource)
+                : $this->updateResource->__invoke($resource, [
+                    'action' => $this->action,
+                    // In ResourceProcessor.
+                    'actionItemSet' => $this->actionItemSet,
+                    'actionMedia' => $this->actionMedia,
+                    'actionIdentifier' => $this->actionIdentifier,
+                    'identifierNames' => $this->identifierNames,
+                    'metaMapping' => $this->metaMapper->getMetaMapping(),
+                ]);
+            if (!$updatedResource
+                || (isset($updatedResource['messageStore']) && $updatedResource['messageStore']->hasErrors())
+            ) {
+                ++$this->totalErrors;
+                return null;
+            }
+            $resource = $updatedResource;
+        }
+
+        // Remove uploaded files.
+        foreach ($resource['o:media'] ?? [] as &$media) {
+            if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+                $media['ingest_delete_file'] = true;
             }
         }
-        $hasMultipleResourceNames = count(array_unique($ids)) > 1;
+        unset($media);
 
         try {
-            if (count($ids) === 1) {
-                $resourceName = reset($ids);
-                $this->bulk->api(null, true)
-                    ->delete($resourceName, key($ids))->getContent();
-            } elseif ($ids) {
-                if ($hasMultipleResourceNames) {
-                    foreach ($ids as $id => $resourceName) {
-                        $this->bulk->api(null, true)
-                            ->batch($resourceName, $id)->getContent();
-                    }
-                } else {
-                    $resourceName = reset($ids);
-                    $this->bulk->api(null, true)
-                        ->batchDelete($resourceName, array_keys($ids), [], ['continueOnError' => true])->getContent();
-                }
-            }
+            $response = $api->update($resourceName, $resource['o:id'], $resource, $fileData, $options);
         } catch (ValidationException $e) {
-            $r = $this->baseEntity();
-            $r['messageStore']->addError('resource', new PsrMessage(
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'Error during validation of the data before update.' // @translate
+            ));
+            $messages = $this->listValidationMessages($e);
+            $resource['messageStore']->addError('resource', $messages);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
+            ++$this->totalErrors;
+            return null;
+        } catch (\Exception $e) {
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'Core error during update: {exception}', // @translate
+                ['exception' => $e]
+            ));
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
+            ++$this->totalErrors;
+            return null;
+        }
+
+        if (!$response) {
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'Unknown error occured during update.' // @translate
+            ));
+            ++$this->totalErrors;
+            return null;
+        }
+
+        $representation = $response->getContent();
+
+        if ($resourceName === 'assets') {
+            $this->updateThumbnailForResources($resource);
+            return $representation;
+        }
+
+        $this->logger->notice(
+            'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
+            ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource['o:id']]
+        );
+
+        return $representation;
+    }
+
+    /**
+     * Process deletion of an entity.
+     */
+    protected function deleteEntity(array $resource): ?AbstractEntityRepresentation
+    {
+        $resourceName = $resource['resource_name'] ?? 'resources';
+        $id = $resource['o:id'];
+
+        if (!$id) {
+            // Normally already checked.
+            $this->logger->warn(
+                'Index #{index}: The {resource_name} has no id and cannot be deleted.', // @translate
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName)]
+            );
+            return null;
+        }
+
+        try {
+            $this->bulk->api(null, true)
+                ->delete($resourceName, $id)->getContent();
+        } catch (ValidationException $e) {
+            $resource['messageStore']->addError('resource', new PsrMessage(
                 'Error during validation of the data before deletion.' // @translate
             ));
             $messages = $this->listValidationMessages($e);
-            $r['messageStore']->addError('resource', $messages);
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
+            $resource['messageStore']->addError('resource', $messages);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
             ++$this->totalErrors;
-            return $this;
+            return null;
         } catch (\Exception $e) {
-            $r = $this->baseEntity();
-            // There is no error, only ids already deleted, so continue.
-            $r['messageStore']->addWarning('resource', new PsrMessage(
+            // There is no error, only id already deleted, so continue.
+            $resource['messageStore']->addWarning('resource', new PsrMessage(
                 'Core error during deletion: {exception}', // @translate
                 ['exception' => $e]
             ));
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
             ++$this->totalErrors;
-            return $this;
+            return null;
         }
 
-        foreach ($ids as $id => $resourceName) {
-            $this->logger->notice(
-                'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $id]
-            );
-        }
-        return $this;
-    }
-
-    /**
-     * Process skipping of entities.
-     */
-    protected function skipEntities(array $dataResources): array
-    {
-        $resourceName = $this->getResourceName();
-        $this->skipResources($resourceName, $dataResources);
-        return [];
-    }
-
-    /**
-     * Process skipping of resources.
-     */
-    protected function skipResources($resourceName, array $dataResources): self
-    {
-        return $this;
+        $this->logger->notice(
+            'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
+            ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $id]
+        );
+        return null;
     }
 
     protected function extractIdentifierOrTitle(ArrayObject $resource): ?string

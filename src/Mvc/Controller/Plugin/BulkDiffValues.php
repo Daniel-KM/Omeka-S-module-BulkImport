@@ -92,15 +92,12 @@ class BulkDiffValues extends AbstractPlugin
      * Create an output to list diff between existing data and new data.
      *
      * @return array Result status and info.
-     *
-     * @todo Check for repeated columns (multiple columns with dcterms:subject).
-     * @todo Only spreadsheet is managed for now for bulk diff values.
      */
     public function __invoke(
         string $updateMode,
         string $nameFile,
         Reader $reader,
-        array $mapping
+        array $metaMapping
     ): array {
         $actionsUpdate = [
             \BulkImport\Processor\AbstractProcessor::ACTION_CREATE,
@@ -131,20 +128,32 @@ class BulkDiffValues extends AbstractPlugin
          * @var \BulkImport\Entry\Entry $entry
          */
 
-        // Columns are the mapping.
-        $result = array_fill_keys(array_keys($this->mapping), []);
+        $result = [];
 
-        // Get values in all rows. Only properties are processed.
-        foreach ($reader as /* $innerIndex => */ $entry) foreach ($entry->getArrayCopy() as $field => $values) {
-            $term = $mapping[$field][0]['target'] ?? null;
-            if (!$term || !$this->bulk->propertyId($term)) {
-                continue;
-            }
-            $type = $mapping[$field][0]['value']['type'] ?? null;
-            $mainType = $this->bulk->dataTypeMain($type);
-            $result[$field] = array_unique(array_merge($result[$field], array_values($values)));
+        // Prepare the meta mapping for easier process.
+        $fromToFields = [];
+        $fromToTypes = [];
+        foreach ($metaMapping as $map) {
+            $result[$map['to']['field']] = [];
+            $fromToFields[$map['from']['path']] = $map['to']['field'];
+            $fromToTypes[$map['from']['path']] = empty($map['to']['datatype']) ? null : reset($map['to']['datatype']);
         }
 
+        // Get values in all rows.
+        foreach ($reader as /* $innerIndex => */ $entry) foreach ($entry->getArrayCopy() as $from => $values) {
+            if (!$from || !isset($fromToFields[$from])) {
+                continue 2;
+            }
+            // Only properties are processed for now.
+            if (!$this->bulk->propertyId($fromToFields[$from])) {
+                continue 2;
+            }
+            $type = $fromToTypes[$from];
+            $mainType = $this->bulk->dataTypeMain($type);
+            $result[$from] = array_unique(array_merge($result[$from], array_values($values)));
+        }
+
+        // Nothing to do.
         if (!array_filter($result)) {
             return [
                 'status' => 'success',
@@ -153,14 +162,14 @@ class BulkDiffValues extends AbstractPlugin
 
         // Get all existing values (references) and diff new values with them.
         // Don't search for columns without values.
-        foreach (array_keys(array_filter($result)) as $field) {
-            $term = $mapping[$field][0]['target'];
-            $type = $mapping[$field][0]['value']['type'] ?? null;
+        foreach (array_keys(array_filter($result)) as $from) {
+            $term = $fromToFields[$from];
+            $type = $fromToTypes[$from];
             $mainType = $this->bulk->dataTypeMain($type);
             $existingValues = $this->existingValues($term, $mainType);
             if ($existingValues) {
-                // $result[$field] = array_udiff($result[$field], $existingValues, 'strcasecmp');
-                $result[$field] = array_diff($result[$field], $existingValues);
+                // $result[$from] = array_udiff($result[$from], $existingValues, 'strcasecmp');
+                $result[$from] = array_diff($result[$from], $existingValues);
             }
         }
 
