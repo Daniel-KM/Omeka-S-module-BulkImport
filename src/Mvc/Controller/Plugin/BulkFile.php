@@ -75,9 +75,16 @@ class BulkFile extends AbstractPlugin
     protected $store;
 
     /**
-     * @var array
+     * Required for strict types.
+     *
+     * @var bool|int
      */
-    protected $allowedMediaTypes = [];
+    protected $asAssociative = true;
+
+    /**
+     * @var bool
+     */
+    protected $allowEmptyFiles = false;
 
     /**
      * @var array
@@ -85,9 +92,19 @@ class BulkFile extends AbstractPlugin
     protected $allowedExtensions = [];
 
     /**
-     * @var bool
+     * @var array
      */
-    protected $allowEmptyFiles = false;
+    protected $allowedExtensionsAssets = [];
+
+    /**
+     * @var array
+     */
+    protected $allowedMediaTypes = [];
+
+    /**
+     * @var array
+     */
+    protected $allowedMediaTypesAssets = [];
 
     /**
      * @var string
@@ -103,6 +120,13 @@ class BulkFile extends AbstractPlugin
      * @var bool
      */
     protected $fakeFiles = false;
+
+    /**
+     * Asset media-types and extensions are checked differently.
+     *
+     * @var bool
+     */
+    protected $isAsset = false;
 
     /**
      * @var bool
@@ -129,18 +153,6 @@ class BulkFile extends AbstractPlugin
      */
     protected $tempDir;
 
-    /**
-     * Required for strict types.
-     *
-     * @var bool|int
-     */
-    protected $asAssociative = true;
-
-    /**
-     * @var bool
-     */
-    protected $checkAssetMediaType = false;
-
     public function __construct(
         Bulk $bulk,
         BulkFileUploaded $bulkFileUploaded,
@@ -153,6 +165,8 @@ class BulkFile extends AbstractPlugin
         bool $disableFileValidation,
         array $allowedMediaTypes,
         array $allowedExtensions,
+        array $allowedMediaTypesAssets,
+        array $allowedExtensionsAssets,
         bool $allowEmptyFiles,
         string $sideloadPath,
         bool $sideloadDeleteFile
@@ -168,6 +182,8 @@ class BulkFile extends AbstractPlugin
         $this->disableFileValidation = $disableFileValidation;
         $this->allowedMediaTypes = $allowedMediaTypes;
         $this->allowedExtensions = $allowedExtensions;
+        $this->allowedMediaTypesAssets = $allowedMediaTypesAssets;
+        $this->allowedExtensionsAssets = $allowedExtensionsAssets;
         $this->allowEmptyFiles = $allowEmptyFiles;
         $this->sideloadPath = $sideloadPath;
         $this->sideloadDeleteFile = $sideloadDeleteFile;
@@ -190,9 +206,11 @@ class BulkFile extends AbstractPlugin
      */
     public function checkFileOrUrl($fileOrUrl, ?ErrorStore $messageStore = null): bool
     {
-        return $this->bulk->isUrl($fileOrUrl)
+        $result = $this->bulk->isUrl($fileOrUrl)
             ? $this->checkUrl($fileOrUrl)
             : $this->checkFile($fileOrUrl);
+        $this->isAsset = false;
+        return $result;
     }
 
     /**
@@ -214,10 +232,12 @@ class BulkFile extends AbstractPlugin
                     'Cannot sideload file: module FileSideload inactive or not installed.' // @translate
                 ));
             }
+            $this->isAsset = false;
             return false;
         } else {
             $realPath = $this->verifyFile($filepath, $messageStore);
             if (is_null($realPath)) {
+                $this->isAsset = false;
                 return false;
             }
         }
@@ -229,6 +249,7 @@ class BulkFile extends AbstractPlugin
                     ['filepath' => $filepath]
                 ));
             }
+            $this->isAsset = false;
             return false;
         }
 
@@ -244,6 +265,8 @@ class BulkFile extends AbstractPlugin
 
     /**
      * Check if a directory exists, is readable and has files.
+     *
+     * It cannot be used to check a list of assets (extensions and media-types).
      */
     public function checkDirectory($dirpath, ?ErrorStore $messageStore = null): bool
     {
@@ -290,6 +313,7 @@ class BulkFile extends AbstractPlugin
                     'Cannot fetch url: empty url.' // @translate
                 ));
             }
+            $this->isAsset = false;
             return false;
         }
 
@@ -304,6 +328,7 @@ class BulkFile extends AbstractPlugin
                     ['url' => $url]
                 ));
             }
+            $this->isAsset = false;
             return false;
         }
 
@@ -322,6 +347,7 @@ class BulkFile extends AbstractPlugin
                         ['url' => $url]
                     ));
                 }
+                $this->isAsset = false;
                 return false;
             }
             curl_setopt_array($curl, [
@@ -341,6 +367,7 @@ class BulkFile extends AbstractPlugin
                     ));
                 }
                 curl_close($curl);
+                $this->isAsset = false;
                 return false;
             }
             $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -357,6 +384,7 @@ class BulkFile extends AbstractPlugin
                         ['url' => $url]
                     ));
                 }
+                $this->isAsset = false;
                 return false;
             }
             $httpCode = (int) substr($headers[0], 9, 3);
@@ -374,6 +402,7 @@ class BulkFile extends AbstractPlugin
                     ['url' => $url, 'http_code' => $httpCode]
                 ));
             }
+            $this->isAsset = false;
             return false;
         }
 
@@ -384,6 +413,7 @@ class BulkFile extends AbstractPlugin
                     ['url' => $url]
                 ));
             }
+            $this->isAsset = false;
             return false;
         }
 
@@ -506,18 +536,15 @@ class BulkFile extends AbstractPlugin
         return true;
     }
 
-    /**
-     * @deprecated Clean process for check asset media type.
-     */
-    public function setCheckAssetMediaType(bool $checkAssetMediaType): self
-    {
-        $this->checkAssetMediaType = $checkAssetMediaType;
-        return $this;
-    }
-
     public function setFakeFiles(bool $fakeFiles): self
     {
         $this->fakeFiles = $fakeFiles;
+        return $this;
+    }
+
+    public function setIsAsset(bool $isAsset): self
+    {
+        $this->isAsset = $isAsset;
         return $this;
     }
 
@@ -726,8 +753,8 @@ class BulkFile extends AbstractPlugin
         }
         $isValid = true;
         if ($mediaType) {
-            if ((!$this->checkAssetMediaType && !in_array($mediaType, $this->allowedMediaTypes))
-                || ($this->checkAssetMediaType && !in_array($mediaType, \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES))
+            if (($this->isAsset && !in_array($mediaType, $this->allowedMediaTypesAssets))
+                || (!$this->isAsset && !in_array($mediaType, $this->allowedMediaTypes))
             ) {
                 $isValid = false;
                 if ($messageStore) {
@@ -740,7 +767,9 @@ class BulkFile extends AbstractPlugin
         }
         if ($extension) {
             $extension = strtolower($extension);
-            if (!in_array($extension, $this->allowedExtensions)) {
+            if (($this->isAsset && !in_array($extension, $this->allowedExtensionsAssets))
+                || (!$this->isAsset && !in_array($extension, $this->allowedExtensions))
+            ) {
                 $isValid = false;
                 if ($messageStore) {
                     $messageStore->addError('file', new PsrMessage(
@@ -752,7 +781,7 @@ class BulkFile extends AbstractPlugin
         }
 
         // Always reset this option for now.
-        $this->checkAssetMediaType = false;
+        $this->isAsset = false;
 
         return $isValid;
     }
@@ -862,7 +891,7 @@ class BulkFile extends AbstractPlugin
         $isUrl = $this->bulk->isUrl($fileOrUrl);
 
         if ($isUrl) {
-            $tempname = @tempnam($this->tempPath, 'omk_bki_');
+            $tempname = @tempnam($this->tempDir, 'omk_bki_');
             // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
             // Curl is faster than copy or file_get_contents/file_put_contents.
             if (function_exists('curl_init')) {
@@ -938,7 +967,7 @@ class BulkFile extends AbstractPlugin
         // Check the media type for security.
         if (!$this->disableFileValidation) {
             if ($type === 'asset') {
-                if (!in_array($mediaType, \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES)) {
+                if (!in_array($mediaType, $this->allowedMediaTypesAssets)) {
                     if ($isUrl) {
                         unlink($tempname);
                     }

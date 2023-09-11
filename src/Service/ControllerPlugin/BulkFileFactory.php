@@ -21,6 +21,15 @@ class BulkFileFactory implements FactoryInterface
 
         $config = $services->get('Config');
 
+        // Since version 4.0.2, asset extensions and media-types are
+        // configurable.
+        $allowedExtensionsAssets = empty($config['api_assets']['allowed_extensions'])
+            ? []
+            : $config['api_assets']['allowed_extensions'];
+        $allowedMediaTypesAssets = defined('Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES')
+            ? \Omeka\Api\Adapter\AssetAdapter::ALLOWED_MEDIA_TYPES
+            : (empty($config['api_assets']['allowed_media_types']) ? [] : $config['api_assets']['allowed_media_types']);
+
         return new BulkFile(
             $plugins->get('bulk'),
             $plugins->get('bulkFileUploaded'),
@@ -33,6 +42,8 @@ class BulkFileFactory implements FactoryInterface
             (bool) $settings->get('disable_file_validation'),
             $settings->get('media_type_whitelist') ?: [],
             $settings->get('extension_whitelist') ?: [],
+            $allowedMediaTypesAssets,
+            $allowedExtensionsAssets,
             (bool) $settings->get('allow_empty_files'),
             (string) $settings->get('file_sideload_directory'),
             $settings->get('file_sideload_delete_file') === 'yes'
