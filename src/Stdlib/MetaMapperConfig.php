@@ -392,8 +392,8 @@ class MetaMapperConfig
         if ($normalizedMapping) {
             foreach (['default', 'maps'] as $section) {
                 if (!$this->areValidMaps($normalizedMapping[$section])) {
-                    $this->logger->warn(
-                        'Mapping "{mapping_name}": invalid map in section "{section}".',
+                    $this->logger->err(
+                        'Mapping "{mapping_name}": invalid map in section "{section}".', // @translate
                         ['mapping_name' => $this->mappingName, 'section' => $section]
                     );
                     $normalizedMapping['has_error'] = true;
@@ -403,6 +403,22 @@ class MetaMapperConfig
 
         $this->mappings[$this->mappingName] = $normalizedMapping ?: $this->mappings['_empty'];
         $this->mappings[$this->mappingName]['options'] = $options;
+
+        if ($mappingOrReference && !$normalizedMapping) {
+            if ($normalizedMapping === null) {
+                $this->mappings[$this->mappingName]['has_error'] = true;
+                $this->logger->err(
+                    'Mapping "{mapping_name}" not found.', // @translate
+                    ['mapping_name' => $mappingOrReference]
+                );
+            } else {
+                $this->logger->err(
+                    'Mapping "{mapping_name}" is empty.', // @translate
+                    ['mapping_name' => $mappingOrReference]
+                );
+            }
+        }
+
         return $this;
     }
 
@@ -452,7 +468,7 @@ class MetaMapperConfig
             || (array_key_exists('maps', $mapping) && !is_array($mapping['maps']))
         ) {
             $this->logger->warn(
-                'Mapping "{mapping_name}": invalid provided mapping.',
+                'Mapping "{mapping_name}": invalid provided mapping.', // @translate
                 ['mapping_name' => $this->mappingName]
             );
             $normalizedMapping['has_error'] = true;

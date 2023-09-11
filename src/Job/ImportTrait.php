@@ -813,6 +813,14 @@ trait ImportTrait
 
             if ($representation) {
                 $this->recordCreatedResources([$representation]);
+                if ($representation instanceof \Omeka\Api\Representation\AbstractResourceEntityRepresentation
+                    && !$representation->values()
+                ) {
+                    $this->logger->warn(
+                        'Index #{index}: The {resource_name} #{resource_id} has no values.', // @translate
+                        ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($representation->resourceName()), 'resource_id' => $representation->id()]
+                    );
+                }
             }
 
             // Avoid memory issue.

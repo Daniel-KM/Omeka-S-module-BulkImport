@@ -133,7 +133,13 @@ class Import extends AbstractJob
 
         // TODO Finalize separation of metaMapper and metaMapperConfig.
         // Init the mapping first before storing it as default.
-        $this->import->mapping();
+        $mapping = $this->import->mapping();
+        if ($mapping['has_error']) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            $this->logger->log(Logger::NOTICE, 'Import ended: error in the mapping.'); // @translate
+            return;
+        }
+
         $mapper = $this->import->mapper();
         $this->metaMapper->setMappingName($mapper);
 

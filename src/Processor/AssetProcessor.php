@@ -206,8 +206,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         // identifiers are stored in the list "map" during first loop.
                         $valueForMsg = mb_strlen($value) > 50 ? mb_substr($value, 0, 50) . '…' : $value;
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" is not a resource.', // @translate
-                            ['value' => $valueForMsg]
+                            'The value "{value}" is not a resource (field "{field}").', // @translate
+                            ['value' => $valueForMsg, 'field' => $field]
                         ));
                     }
                 }

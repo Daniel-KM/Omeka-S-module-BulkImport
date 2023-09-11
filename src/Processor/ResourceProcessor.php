@@ -632,7 +632,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                             // Only for first loop. Normally not possible after:
                             // all identifiers are stored in the list "map"
                             // during first loop.
-                            $valueForMsg = mb_strlen($value) > 50 ? mb_substr($value, 0, 50) . '…' : $value;
+                            $valueForMsg = mb_strlen($value) > 120 ? mb_substr($value, 0, 120) . '…' : $value;
                             $resource['messageStore']->addError('values', new PsrMessage(
                                 'The value "{value}" is not an item set.', // @translate
                                 ['value' => $valueForMsg]
@@ -860,7 +860,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         // Only for first loop. Normally not possible after: all
                         // identifiers are stored in the list "map" during first loop.
                         $identifier = (string) $identifier;
-                        $valueForMsg = mb_strlen($identifier) > 50 ? mb_substr($identifier, 0, 50) . '…' : $identifier;
+                        $valueForMsg = mb_strlen($identifier) > 120 ? mb_substr($identifier, 0, 120) . '…' : $identifier;
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not an item.', // @translate
                             ['value' => $valueForMsg]
@@ -1068,28 +1068,28 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if ($this->useDatatypeLiteral) {
                     $this->fillPropertyForValue($resource, $indexValue, $term, 'literal', $value);
                     $val = (string) $val;
-                    $valueForMsg = mb_strlen($val) > 50 ? mb_substr($val, 0, 50) . '…' : $val;
+                    $valueForMsg = mb_strlen($val) > 120 ? mb_substr($val, 0, 120) . '…' : $val;
                     if ($this->bulk->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
-                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
-                            ['value' => $valueForMsg, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
                         ));
                     } else {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
-                            'The value "{value}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                            ['value' => $valueForMsg, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
                         ));
                     }
                 } else {
                     if ($this->bulk->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
-                            ['value' => $valueForMsg, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
                         ));
                     } else {
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" is not compatible with datatypes "{datatypes}". Try to add "literal" to datatypes or default to it.', // @translate
-                            ['value' => $valueForMsg, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
                         ));
                     }
                 }
@@ -1136,18 +1136,18 @@ class ResourceProcessor extends AbstractResourceProcessor
             $vridOrVal = (string) ($mainDataType === 'resource' ? $vrId ?? $val : $val);
             $result = $this->bulk->isCustomVocabMember($dataType, $vridOrVal);
             if (!$result) {
-                $valueForMsg = mb_strlen($vridOrVal) > 50 ? mb_substr($vridOrVal, 0, 50) . '…' : $vridOrVal;
+                $valueForMsg = mb_strlen($vridOrVal) > 120 ? mb_substr($vridOrVal, 0, 120) . '…' : $vridOrVal;
                 if (!$this->useDatatypeLiteral) {
                     $resource['messageStore']->addError('values', new PsrMessage(
-                        'The value "{value}" is not member of custom vocab "{customvocab}".', // @translate
-                        ['value' => $valueForMsg, 'customvocab' => $dataType]
+                        'The value "{value}" for property "{term}" is not member of custom vocab "{customvocab}".', // @translate
+                        ['value' => $valueForMsg, 'term' => $term, 'customvocab' => $dataType]
                     ));
                     return $this;
                 }
                 $dataType = 'literal';
                 $resource['messageStore']->addNotice('values', new PsrMessage(
-                    'The value "{value}" is not member of custom vocab "{customvocab}". A literal value is used instead.', // @translate
-                    ['value' => $valueForMsg, 'customvocab' => $dataType]
+                    'The value "{value}" for property "{term}" is not member of custom vocab "{customvocab}". A literal value is used instead.', // @translate
+                    ['value' => $valueForMsg, 'term' => $term, 'customvocab' => $dataType]
                 ));
             }
         }
