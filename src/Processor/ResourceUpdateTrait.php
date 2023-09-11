@@ -104,7 +104,7 @@ trait ResourceUpdateTrait
                     ? $this->removeEmptyData($data)
                     : $this->fillEmptyData($data);
                 if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
-                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->bulk->getIdentifierNames());
+                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->identifierNames);
                 }
                 if ($resourceName === 'items') {
                     if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {

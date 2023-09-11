@@ -316,7 +316,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->prepareSpecific()
             ->prepareMetaConfig();
 
-        $this->bulk->setAllowDuplicateIdentifiers($this->getParam('allow_duplicate_identifiers', false));
+        $this->allowDuplicateIdentifiers = (bool) $this->getParam('allow_duplicate_identifiers', false);
 
         $this->totalToProcess = method_exists($this->reader, 'count')
             ? $this->reader->count()
@@ -504,7 +504,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $identifierNames = $this->getParam('identifier_name', ['o:id']);
         if (empty($identifierNames)) {
-            $this->bulk->setIdentifierNames([]);
+            $this->identifierNames = [];
             $this->logger->warn(
                 'No identifier name was selected.' // @translate
             );
@@ -531,7 +531,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'Invalid identifier names: check your params.' // @translate
             );
         }
-        $this->bulk->setIdentifierNames($result);
+        $this->identifierNames = $result;
         return $this;
     }
 
@@ -594,8 +594,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected function prepareListOfIdentifiers(): self
     {
-        $identifierNames = $this->bulk->getIdentifierNames();
-        if (empty($identifierNames)) {
+        if (!$this->identifierNames) {
             return $this;
         }
 
@@ -734,12 +733,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        $identifierNames = $this->bulk->getIdentifierNames();
-
         if ($mainResourceName === 'assets') {
-            $ids = $this->findAssetsFromIdentifiers($emptyIdentifiers, $identifierNames);
+            $ids = $this->findAssetsFromIdentifiers($emptyIdentifiers, $this->identifierNames);
         } elseif ($mainResourceName === 'resources') {
-            $ids = $this->bulk->findResourcesFromIdentifiers($emptyIdentifiers, $identifierNames);
+            $ids = $this->findResourcesFromIdentifiers($emptyIdentifiers, $this->identifierNames);
         }
 
         foreach ($ids as $identifier => $id) {
@@ -883,7 +880,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->logger->notice(
             'Fields used to map identifiers: {names}. Check them if the mapping is not right or when existing or linked resources are not found.', // @translate
-            ['names' => implode(', ', array_keys($this->bulk->getIdentifierNames()))]
+            ['names' => implode(', ', array_keys($this->identifierNames))]
         );
 
         $this->logger->notice(
@@ -1235,7 +1232,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         if ($resource['o:id']) {
             if (!$this->actionRequiresId()) {
-                if ($this->bulk->getAllowDuplicateIdentifiers()) {
+                if ($this->allowDuplicateIdentifiers) {
                     // Action is create or skip.
                     // TODO This feature is not clear: disallow the action create when o:id is set in the source (allow only a found identifier).
                     if ($this->action === self::ACTION_CREATE) {
@@ -1260,7 +1257,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // No resource id, so it is an error, so add message if choice is skip.
         elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
             $identifier = $this->extractIdentifierOrTitle($resource);
-            if ($this->bulk->getAllowDuplicateIdentifiers()) {
+            if ($this->allowDuplicateIdentifiers) {
                 $resource['messageStore']->addError('identifier', new PsrMessage(
                     'The action "{action}" requires an identifier ({identifier}).', // @translate
                     ['action' => $this->action, 'identifier' => $identifier]
@@ -1619,7 +1616,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } else {
                 $resourceId = $resourceName === 'assets'
                     ? $this->bulk->api()->searchOne('assets', ['id' => $resource['o:id']])->getContent()->id()
-                    : $this->bulk->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
+                    : $this->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
                 if (!$resourceId) {
                     if (isset($resource['messageStore'])) {
                         $resource['messageStore']->addError('resource_id', new PsrMessage(
@@ -1673,16 +1670,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        $identifierNames = $this->bulk->getIdentifierNames();
-        $key = array_search('o:id', $identifierNames);
+        $idNames = $this->identifierNames;
+        $key = array_search('o:id', $idNames);
         if ($key !== false) {
-            unset($identifierNames[$key]);
+            unset($idNames[$key]);
         }
-        if (empty($identifierNames) && !$this->actionRequiresId()) {
+        if (empty($idNames) && !$this->actionRequiresId()) {
             return false;
         }
-        if (empty($identifierNames)) {
-            if ($this->bulk->getAllowDuplicateIdentifiers()) {
+        if (empty($idNames)) {
+            if ($this->allowDuplicateIdentifiers) {
                 if (isset($resource['messageStore'])) {
                     $resource['messageStore']->addWarning('identifier', new PsrMessage(
                         'The resource has no identifier.' // @translate
@@ -1716,7 +1713,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return false;
         }
 
-        foreach (array_keys($identifierNames) as $identifierName) {
+        foreach (array_keys($idNames) as $identifierName) {
             // Get the list of identifiers from the resource metadata.
             $identifiers = [];
             if (!empty($resource[$identifierName])) {
@@ -1749,7 +1746,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 if ($mainResourceName === 'assets') {
                     $ids = $this->findAssetsFromIdentifiers($identifiers, $identifierName);
                 } elseif ($mainResourceName === 'resources') {
-                    $ids = $this->bulk->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+                    $ids = $this->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
                 }
                 $ids = array_filter($ids);
                 // Store the id one time.
@@ -1802,7 +1799,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ['index' => $this->indexResource]
                     );
                 }
-                if (!$this->bulk->getAllowDuplicateIdentifiers()) {
+                if (!$this->allowDuplicateIdentifiers) {
                     if (isset($resource['messageStore'])) {
                         $resource['messageStore']->addError('identifier', new PsrMessage(
                             'Duplicate identifiers are not allowed. You may check options for resource identifiers.' // @translate
@@ -2291,8 +2288,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $mainResourceName = $this->mainResourceNames[$this->getResourceName()];
 
         // Main identifiers.
-        $identifierNames = $this->bulk->getIdentifierNames();
-        foreach ($identifierNames as $identifierName) {
+        foreach ($this->identifierNames as $identifierName) {
             if ($identifierName === 'o:id') {
                 $storeMain($resource['o:id'] ?? null, $mainResourceName);
             } elseif ($identifierName === 'o:storage_id') {
@@ -2524,5 +2520,124 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $this->bulk->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
+    }
+
+    /**
+     * Find a list of resource ids from a list of identifiers (or one id).
+     *
+     * When there are true duplicates and case insensitive duplicates, the first
+     * case sensitive is returned, else the first case insensitive resource.
+     *
+     * @todo Manage Media source html.
+     *
+     * @uses\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
+     *
+     * @param array|string $identifiers Identifiers should be unique. If a
+     * string is sent, the result will be the resource.
+     * @param string|int|array $identifierName Property as integer or term,
+     * "o:id", a media ingester (url or file), or an associative array with
+     * multiple conditions (for media source). May be a list of identifier
+     * metadata names, in which case the identifiers are searched in a list of
+     * properties and/or in internal ids.
+     * @param string $resourceName The resource type, name or class, if any.
+     * @param \BulkImport\Stdlib\MessageStore $messageStore
+     * @return array|int|null|Object Associative array with the identifiers as key
+     * and the ids or null as value. Order is kept, but duplicate identifiers
+     * are removed. If $identifiers is a string, return directly the resource
+     * id, or null. Returns standard object when there is at least one duplicated
+     * identifiers in resource and the option "$uniqueOnly" is set.
+     *
+     * Note: The option uniqueOnly is not taken in account. The object or the
+     * boolean are not returned, but logged.
+     * Furthermore, the identifiers without id are not returned.
+     */
+    public function findResourcesFromIdentifiers(
+        $identifiers,
+        $identifierName = null,
+        $resourceName = null,
+        // TODO Remove message store.
+        ?\BulkImport\Stdlib\MessageStore $messageStore = null
+    ) {
+        // TODO Manage non-resources here? Or a different helper for assets?
+
+        $identifierName = $identifierName ?: $this->identifierNames;
+        $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
+
+        $isSingle = !is_array($identifiers);
+
+        // Log duplicate identifiers.
+        if (is_object($result)) {
+            $result = (array) $result;
+            if ($isSingle) {
+                $result['result'] = [$identifiers => $result['result']];
+                $result['count'] = [$identifiers => $result['count']];
+            }
+
+            // Remove empty identifiers.
+            $result['result'] = array_filter($result['result']);
+
+            // TODO Remove the logs from here.
+            foreach (array_keys($result['result']) as $identifier) {
+                if ($result['count'][$identifier] > 1) {
+                    if ($messageStore) {
+                        $messageStore->addWarning('identifier', new PsrMessage(
+                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
+                        ));
+                    } else {
+                        $this->logger->warn(
+                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
+                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
+                        );
+                    }
+                    // if (!$this->allowDuplicateIdentifiers) {
+                    //     unset($result['result'][$identifier]);
+                    // }
+                }
+            }
+
+            if (!$this->allowDuplicateIdentifiers) {
+                if ($messageStore) {
+                    $messageStore->addError('identifier', new PsrMessage(
+                        'Duplicate identifiers are not allowed.' // @translate
+                    ));
+                } else {
+                    $this->logger->err(
+                        'Duplicate identifiers are not allowed.' // @translate
+                    );
+                }
+                return $isSingle ? null : [];
+            }
+
+            $result = $isSingle ? reset($result['result']) : $result['result'];
+        } else {
+            // Remove empty identifiers.
+            if (!$isSingle) {
+                $result = array_filter($result);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Find a resource id from a an identifier.
+     *
+     * @uses self::findResourcesFromIdentifiers()
+     * @param string $identifier
+     * @param string|int|array $identifierName Property as integer or term,
+     * media ingester or "o:id", or an array with multiple conditions.
+     * @param string $resourceName The resource type, name or class, if any.
+     * @param \BulkImport\Stdlib\MessageStore $messageStore
+     * @return int|null|false
+     */
+    protected function findResourceFromIdentifier(
+        $identifier,
+        $identifierName = null,
+        $resourceName = null,
+        // TODO Remove message store.
+       ?\BulkImport\Stdlib\MessageStore $messageStore = null
+    ) {
+        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName, $messageStore);
     }
 }

@@ -34,7 +34,6 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\Mvc\I18n\Translator;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Log\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\DataType\Manager as DataTypeManager;
 use Omeka\Mvc\Controller\Plugin\Api;
@@ -70,11 +69,6 @@ class Bulk extends AbstractPlugin
     protected $dataTypeManager;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
-     */
-    protected $findResourcesFromIdentifiers;
-
-    /**
      * @var Logger
      */
     protected $logger;
@@ -90,19 +84,6 @@ class Bulk extends AbstractPlugin
      * @var string
      */
     protected $basePath;
-
-    /**
-     * @var bool
-     */
-    protected $allowDuplicateIdentifiers = false;
-
-    /**
-     * @var array
-     */
-    protected $identifierNames = [
-        'o:id',
-        // 'dcterms:identifier',
-    ];
 
     /**
      * @var array
@@ -139,7 +120,6 @@ class Bulk extends AbstractPlugin
         Api $api,
         Connection $connection,
         DataTypeManager $dataTypeManager,
-        FindResourcesFromIdentifiers $findResourcesFromIdentifiers,
         Logger $logger,
         Translator $translator,
         string $basePath
@@ -148,7 +128,6 @@ class Bulk extends AbstractPlugin
         $this->api = $connection;
         $this->connection = $connection;
         $this->dataTypeManager = $dataTypeManager;
-        $this->findResourcesFromIdentifiers = $findResourcesFromIdentifiers;
         $this->logger = $logger;
         $this->translator = $translator;
         $this->basePath = $basePath;
@@ -1061,125 +1040,6 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Find a list of resource ids from a list of identifiers (or one id).
-     *
-     * When there are true duplicates and case insensitive duplicates, the first
-     * case sensitive is returned, else the first case insensitive resource.
-     *
-     * @todo Manage Media source html.
-     *
-     * @uses\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
-     *
-     * @param array|string $identifiers Identifiers should be unique. If a
-     * string is sent, the result will be the resource.
-     * @param string|int|array $identifierName Property as integer or term,
-     * "o:id", a media ingester (url or file), or an associative array with
-     * multiple conditions (for media source). May be a list of identifier
-     * metadata names, in which case the identifiers are searched in a list of
-     * properties and/or in internal ids.
-     * @param string $resourceName The resource type, name or class, if any.
-     * @param \BulkImport\Stdlib\MessageStore $messageStore
-     * @return array|int|null|Object Associative array with the identifiers as key
-     * and the ids or null as value. Order is kept, but duplicate identifiers
-     * are removed. If $identifiers is a string, return directly the resource
-     * id, or null. Returns standard object when there is at least one duplicated
-     * identifiers in resource and the option "$uniqueOnly" is set.
-     *
-     * Note: The option uniqueOnly is not taken in account. The object or the
-     * boolean are not returned, but logged.
-     * Furthermore, the identifiers without id are not returned.
-     */
-    public function findResourcesFromIdentifiers(
-        $identifiers,
-        $identifierName = null,
-        $resourceName = null,
-        // TODO Remove message store.
-        ?\BulkImport\Stdlib\MessageStore $messageStore = null
-    ) {
-        // TODO Manage non-resources here? Or a different helper for assets?
-
-        $identifierName = $identifierName ?: $this->getIdentifierNames();
-        $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
-
-        $isSingle = !is_array($identifiers);
-
-        // Log duplicate identifiers.
-        if (is_object($result)) {
-            $result = (array) $result;
-            if ($isSingle) {
-                $result['result'] = [$identifiers => $result['result']];
-                $result['count'] = [$identifiers => $result['count']];
-            }
-
-            // Remove empty identifiers.
-            $result['result'] = array_filter($result['result']);
-
-            // TODO Remove the logs from here.
-            foreach (array_keys($result['result']) as $identifier) {
-                if ($result['count'][$identifier] > 1) {
-                    if ($messageStore) {
-                        $messageStore->addWarning('identifier', new PsrMessage(
-                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
-                        ));
-                    } else {
-                        $this->logger->warn(
-                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
-                        );
-                    }
-                    // if (!$this->getAllowDuplicateIdentifiers() {
-                    //     unset($result['result'][$identifier]);
-                    // }
-                }
-            }
-
-            if (!$this->getAllowDuplicateIdentifiers()) {
-                if ($messageStore) {
-                    $messageStore->addError('identifier', new PsrMessage(
-                        'Duplicate identifiers are not allowed.' // @translate
-                    ));
-                } else {
-                    $this->logger->err(
-                        'Duplicate identifiers are not allowed.' // @translate
-                    );
-                }
-                return $isSingle ? null : [];
-            }
-
-            $result = $isSingle ? reset($result['result']) : $result['result'];
-        } else {
-            // Remove empty identifiers.
-            if (!$isSingle) {
-                $result = array_filter($result);
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Find a resource id from a an identifier.
-     *
-     * @uses self::findResourcesFromIdentifiers()
-     * @param string $identifier
-     * @param string|int|array $identifierName Property as integer or term,
-     * media ingester or "o:id", or an array with multiple conditions.
-     * @param string $resourceName The resource type, name or class, if any.
-     * @param \BulkImport\Stdlib\MessageStore $messageStore
-     * @return int|null|false
-     */
-    public function findResourceFromIdentifier(
-        $identifier,
-        $identifierName = null,
-        $resourceName = null,
-        // TODO Remove message store.
-        ?\BulkImport\Stdlib\MessageStore $messageStore = null
-    ) {
-        return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName, $messageStore);
-    }
-
-    /**
      * Fully recursive serialization of a resource without issue.
      *
      * jsonSerialize() does not serialize all sub-data and an error can occur
@@ -1346,40 +1206,6 @@ class Bulk extends AbstractPlugin
             $this->logger->err($e);
         }
         return $result;
-    }
-
-    /**
-     * Set the default param to allow duplicate identifiers.
-     */
-    public function setAllowDuplicateIdentifiers($allowDuplicateIdentifiers): self
-    {
-        $this->allowDuplicateIdentifiers = (bool) $allowDuplicateIdentifiers;
-        return $this;
-    }
-
-    /**
-     * Get the default param to allow duplicate identifiers.
-     */
-    public function getAllowDuplicateIdentifiers(): bool
-    {
-        return $this->allowDuplicateIdentifiers;
-    }
-
-    /**
-     * Set the default identifier names.
-     */
-    public function setIdentifierNames(array $identifierNames): self
-    {
-        $this->identifierNames = $identifierNames;
-        return $this;
-    }
-
-    /**
-     * Get the default identifier names.
-     */
-    public function getIdentifierNames(): array
-    {
-        return $this->identifierNames;
     }
 
     /**

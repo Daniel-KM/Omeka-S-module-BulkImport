@@ -250,10 +250,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 break;
 
             case 'o:resource':
-                $identifierNames = $this->bulk->getIdentifierNames();
                 // Check values one by one to manage source identifiers.
                 foreach ($values as $value) {
-                    $humbnailForResourceId = $this->bulk->findResourcesFromIdentifiers($value, $identifierNames, 'resources', $resource['messageStore']);
+                    $humbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore']);
                     if ($humbnailForResourceId) {
                         $resource['o:resource'][] = [
                             'o:id' => $humbnailForResourceId,

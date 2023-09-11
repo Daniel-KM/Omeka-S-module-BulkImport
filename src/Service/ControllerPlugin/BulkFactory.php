@@ -17,8 +17,6 @@ class BulkFactory implements FactoryInterface
             $plugins->get('api'),
             $services->get('Omeka\Connection'),
             $services->get('Omeka\DataTypeManager'),
-            // Use class name to use it even when CsvImport is installed.
-            $plugins->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class),
             $services->get('Omeka\Logger'),
             $services->get('MvcTranslator'),
             $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files'
