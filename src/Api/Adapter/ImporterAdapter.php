@@ -18,6 +18,7 @@ class ImporterAdapter extends AbstractEntityAdapter
         'label' => 'label',
         'owner_id' => 'owner',
         'reader' => 'reader',
+        'mapper' => 'mapper',
         'processor' => 'processor',
     ];
 
@@ -28,6 +29,7 @@ class ImporterAdapter extends AbstractEntityAdapter
         'config' => 'config',
         'reader' => 'reader',
         'reader_config' => 'readerConfig',
+        'mapper' => 'mapper',
         'processor' => 'processor',
         'processor_config' => 'processorConfig',
     ];

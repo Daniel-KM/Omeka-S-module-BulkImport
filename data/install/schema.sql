@@ -5,6 +5,7 @@ CREATE TABLE `bulk_importer` (
     `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
     `reader` VARCHAR(190) DEFAULT NULL,
     `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+    `mapper` VARCHAR(190) DEFAULT NULL,
     `processor` VARCHAR(190) DEFAULT NULL,
     `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_2DAF62D7E3C61F9 (`owner_id`),

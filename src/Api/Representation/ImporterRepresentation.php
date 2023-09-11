@@ -29,6 +29,11 @@ class ImporterRepresentation extends AbstractEntityRepresentation
      */
     protected $processor;
 
+    /**
+     * @var array|null|false
+     */
+    protected $metaMapperMapping = false;
+
     public function getControllerName()
     {
         return 'importer';
@@ -44,6 +49,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             'o:config' => $this->config(),
             'o-bulk:reader_class' => $this->readerClass(),
             'o-bulk:reader_config' => $this->readerConfig(),
+            'o-bulk:mapper' => $this->mapper(),
             'o-bulk:processor_class' => $this->processorClass(),
             'o-bulk:processor_config' => $this->processorConfig(),
             'o:owner' => $owner ? $owner->getReference() : null,
@@ -78,6 +84,11 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     public function readerConfig(): array
     {
         return $this->resource->getReaderConfig() ?: [];
+    }
+
+    public function mapper(): ?string
+    {
+        return $this->resource->getMapper();
     }
 
     public function processorClass(): string
@@ -123,6 +134,18 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->reader;
     }
 
+    public function mapping(): ?array
+    {
+        if ($this->metaMapperMapping !== false) {
+            return $this->metaMapperMapping;
+        }
+
+        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
+        $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
+        $this->metaMapperMapping = $metaMapperConfig('importer_' . $this->id(), $this->mapper());
+        return $this->metaMapperMapping;
+    }
+
     public function processor(): ?\BulkImport\Processor\Processor
     {
         if ($this->processor) {
@@ -145,6 +168,20 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->processor;
     }
 
+    public function adminUrl($action = null, $canonical = false)
+    {
+        $url = $this->getViewHelper('Url');
+        return $url(
+            'admin/bulk/id',
+            [
+                'controller' => $this->getControllerName(),
+                'action' => $action,
+                'id' => $this->id(),
+            ],
+            ['force_canonical' => $canonical]
+        );
+    }
+
     protected function getReaderManager(): ?ReaderManager
     {
         if (!$this->readerManager) {
@@ -159,19 +196,5 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             $this->processorManager = $this->getServiceLocator()->get(ProcessorManager::class);
         }
         return $this->processorManager;
-    }
-
-    public function adminUrl($action = null, $canonical = false)
-    {
-        $url = $this->getViewHelper('Url');
-        return $url(
-            'admin/bulk/id',
-            [
-                'controller' => $this->getControllerName(),
-                'action' => $action,
-                'id' => $this->id(),
-            ],
-            ['force_canonical' => $canonical]
-        );
     }
 }

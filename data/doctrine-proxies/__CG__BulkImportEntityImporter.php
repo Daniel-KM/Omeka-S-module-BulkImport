@@ -67,10 +67,10 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'processor', 'processorConfig', 'owner', 'imports'];
+            return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'mapper', 'processor', 'processorConfig', 'owner', 'imports'];
         }
 
-        return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'processor', 'processorConfig', 'owner', 'imports'];
+        return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'mapper', 'processor', 'processorConfig', 'owner', 'imports'];
     }
 
     /**
@@ -278,6 +278,28 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReaderConfig', []);
 
         return parent::getReaderConfig();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setMapper(?string $mapping): \BulkImport\Entity\Importer
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setMapper', [$mapper]);
+
+        return parent::setMapper($mapper);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getMapper(): ?string
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getMapper', []);
+
+        return parent::getMapper();
     }
 
     /**

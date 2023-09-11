@@ -74,6 +74,17 @@ class Importer extends AbstractEntity
      *     length=190
      * )
      */
+    protected $mapper;
+
+    /**
+     * @var string
+     *
+     * @Column(
+     *     type="string",
+     *     nullable=true,
+     *     length=190
+     * )
+     */
     protected $processor;
 
     /**
@@ -164,6 +175,17 @@ class Importer extends AbstractEntity
     public function getReaderConfig(): ?array
     {
         return $this->readerConfig;
+    }
+
+    public function setMapper(?string $mapper): self
+    {
+        $this->mapper = $mapper;
+        return $this;
+    }
+
+    public function getMapper(): ?string
+    {
+        return $this->mapper;
     }
 
     public function setProcessor(?string $processor): self
