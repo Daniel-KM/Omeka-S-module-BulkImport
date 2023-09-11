@@ -1,0 +1,182 @@
+<?xml version="1.0" ?>
+<searchRetrieveResponse xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/zing/srw/ http://www.loc.gov/standards/sru/sru1-1archive/xml-files/srw-types.xsd" xmlns="http://www.loc.gov/zing/srw/">
+    <version>1.1</version>
+    <numberOfRecords>1</numberOfRecords>
+    <resultSetIdleTime>1</resultSetIdleTime>
+    <records xmlns:ns1="http://www.loc.gov/zing/srw/">
+        <record>
+            <recordSchema>info:srw/schema/8/unimarcxml-v0.1</recordSchema>
+            <recordPacking>xml</recordPacking>
+            <recordData>
+                <record xmlns="">
+                    <leader>01531nem0 22003733i 450 </leader>
+                    <controlfield tag="001">BUS4440279</controlfield>
+                    <datafield ind1="7" ind2="0" tag="017">
+                        <subfield code="2">V</subfield>
+                        <subfield code="a">1/1999575</subfield>
+                    </datafield>
+                    <datafield ind1="4" ind2="0" tag="035">
+                        <subfield code="a">(OCOLC)819295412</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="035">
+                        <subfield code="a">163997357</subfield>
+                        <subfield code="9">sudoc</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="100">
+                        <subfield code="a">20120913f1658    k  y0frac50      ba</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="101">
+                        <subfield code="a">lat</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="102">
+                        <subfield code="a">UN</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="105">
+                        <subfield code="a">||||    |||||</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="120">
+                        <subfield code="a">  yi   uuuu  </subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="121">
+                        <subfield code="a">|||aa y|a</subfield>
+                        <subfield code="b"></subfield>
+                    </datafield>
+                    <datafield ind1="1" ind2=" " tag="123">
+                        <subfield code="a">a</subfield>
+                        <subfield code="b">9700000</subfield>
+                        <subfield code="d">e0040000</subfield>
+                        <subfield code="e">e0480000</subfield>
+                        <subfield code="f">n0710000</subfield>
+                        <subfield code="g">n0530000</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="181">
+                        <subfield code="a">b</subfield>
+                        <subfield code="b">cb2e  </subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="182">
+                        <subfield code="a">n</subfield>
+                    </datafield>
+                    <datafield ind1="1" ind2=" " tag="200">
+                        <subfield code="a">Svecia, Dania et Norvegia</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="210">
+                        <subfield code="a">[S.l.]</subfield>
+                        <subfield code="c">[s.n.]</subfield>
+                        <subfield code="d">[1658?]</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="215">
+                        <subfield code="a">1 carte</subfield>
+                        <subfield code="d">21 x 26 cm</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="300">
+                        <subfield code="a">D'apr&#xE8;s une carte de 1626 par Andreas Bureus</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="607">
+                        <subfield code="a">Scandinavie</subfield>
+                        <subfield code="x">Cartes anciennes</subfield>
+                        <subfield code="3">BUSC894585</subfield>
+                        <subfield code="2">rameau</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="607">
+                        <subfield code="a">Scandinavie</subfield>
+                        <subfield code="x">17e si&#xE8;cle</subfield>
+                        <subfield code="x">Cartes</subfield>
+                        <subfield code="3">BUSC897703</subfield>
+                        <subfield code="2">rameau</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2="1" tag="702">
+                        <subfield code="a">Bure</subfield>
+                        <subfield code="b">Anders</subfield>
+                        <subfield code="f">1571-1646</subfield>
+                        <subfield code="3">BUSV1614807</subfield>
+                        <subfield code="4">180</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2="1" tag="790">
+                        <subfield code="a">Bureus, Andreas (1571-1646)</subfield>
+                        <subfield code="z">Bure, Anders (1571-1646)</subfield>
+                        <subfield code="3">BUSV1614808</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2="1" tag="790">
+                        <subfield code="a">Buraeus, Anders (1571-1646)</subfield>
+                        <subfield code="z">Bure, Anders (1571-1646)</subfield>
+                        <subfield code="3">BUSV1614809</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2="1" tag="790">
+                        <subfield code="a">Bureus de Boo, Andreas (1571-1646)</subfield>
+                        <subfield code="z">Bure, Anders (1571-1646)</subfield>
+                        <subfield code="3">BUSV1614810</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2="1" tag="790">
+                        <subfield code="a">Buraeus Suecus, Andreas (1571-1646)</subfield>
+                        <subfield code="z">Bure, Anders (1571-1646)</subfield>
+                        <subfield code="3">BUSV1614811</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="801">
+                        <subfield code="a">FR</subfield>
+                        <subfield code="b">SOL</subfield>
+                        <subfield code="c">20230913</subfield>
+                        <subfield code="g">RICA</subfield>
+                    </datafield>
+                    <datafield ind1="4" ind2=" " tag="856">
+                        <subfield code="u">http://www.sudoc.fr/163997357</subfield>
+                        <subfield code="z">Identifiant p&#xE9;renne de la notice dans le SUDOC</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="899">
+                        <subfield code="a">BNU BIBLIOTHEQUE NATIONALE ET UNIVERSITAIRE</subfield>
+                        <subfield code="1">674821001</subfield>
+                        <subfield code="2">BUSBN</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="962">
+                        <subfield code="a">K</subfield>
+                    </datafield>
+                    <datafield ind1=" " ind2=" " tag="995">
+                        <subfield code="a">BNU BIBLIOTHEQUE NATIONALE ET UNIVERSITAIRE</subfield>
+                        <subfield code="b">674821001</subfield>
+                        <subfield code="f">36701019807230</subfield>
+                        <subfield code="h">2245882</subfield>
+                        <subfield code="k">R5CARTO-CPAT CARTE.912.48,14</subfield>
+                        <subfield code="o">c</subfield>
+                        <subfield code="q">a</subfield>
+                        <subfield code="r">CAR</subfield>
+                    </datafield>
+                </record>
+            </recordData>
+            <recordPosition>1</recordPosition>
+        </record>
+    </records>
+    <echoedSearchRetrieveRequest xmlns:ns2="http://www.loc.gov/zing/srw/">
+        <version>1.1</version>
+        <query>(dc.source=BUSBN)and(dc.identifier=BUS4440279)</query>
+        <xQuery>
+            <ns3:triple xmlns:ns3="http://www.loc.gov/zing/cql/xcql/">
+                <ns3:boolean>
+                    <ns3:value>and</ns3:value>
+                </ns3:boolean>
+                <ns3:leftOperand>
+                    <ns3:searchClause>
+                        <ns3:index>dc.source</ns3:index>
+                        <ns3:relation>
+                            <ns3:value>=</ns3:value>
+                        </ns3:relation>
+                        <ns3:term>BUSBN</ns3:term>
+                    </ns3:searchClause>
+                </ns3:leftOperand>
+                <ns3:rightOperand>
+                    <ns3:searchClause>
+                        <ns3:index>dc.identifier</ns3:index>
+                        <ns3:relation>
+                            <ns3:value>=</ns3:value>
+                        </ns3:relation>
+                        <ns3:term>BUS4440279</ns3:term>
+                    </ns3:searchClause>
+                </ns3:rightOperand>
+            </ns3:triple>
+        </xQuery>
+        <recordSchema>unimarcxml</recordSchema>
+    </echoedSearchRetrieveRequest>
+    <extraResponseData xmlns:ns4="http://www.loc.gov/zing/srw/">
+        <ns5:extraData xmlns="http://oclc.org/srw/extraData" xmlns:ns5="http://oclc.org/srw/extraData">
+            <ns5:databaseTitle>luceneSOL</ns5:databaseTitle>
+        </ns5:extraData>
+    </extraResponseData>
+</searchRetrieveResponse>
