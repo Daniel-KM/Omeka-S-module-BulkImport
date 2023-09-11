@@ -72,8 +72,8 @@ class Import extends AbstractJob
         $this->logger = $services->get('Omeka\Logger');
         $this->api = $services->get('Omeka\ApiManager');
 
-        $id = $this->getArg('bulk_import_id');
-        if (!$id) {
+        $bulkImportId = $this->getArg('bulk_import_id');
+        if (!$bulkImportId) {
             $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
             $this->logger->err(
                 'Import record id does not set.', // @translate
@@ -261,7 +261,7 @@ class Import extends AbstractJob
          */
         $services = $this->getServiceLocator();
         $mailer = $services->get('Omeka\Mailer');
-        $urlHelper = $services->get('ViewHelperManager')->get('Url');
+        $urlPlugin = $services->get('ControllerPluginManager')->get('url');
         $to = $owner->getEmail();
         $jobId = (int) $this->job->getId();
         $subject = new PsrMessage(
@@ -273,13 +273,13 @@ class Import extends AbstractJob
             [
                 'link_open_job' => sprintf(
                     '<a href="%s">',
-                    htmlspecialchars($urlHelper->fromRoute('admin/id', ['controller' => 'job', 'id' => $jobId], ['force_canonical' => true]))
+                    htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $jobId], ['force_canonical' => true]))
                 ),
                 'jobId' => $jobId,
                 'link_close' => '</a>',
                 'link_open_log' => sprintf(
                     '<a href="%s">',
-                    htmlspecialchars($urlHelper->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->import->id()], ['force_canonical' => true]))
+                    htmlspecialchars($urlPlugin->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->import->id()], ['force_canonical' => true]))
                 ),
             ]
         );
