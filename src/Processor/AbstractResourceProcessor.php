@@ -3,7 +3,6 @@
 namespace BulkImport\Processor;
 
 use ArrayObject;
-use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Stdlib\MessageStore;
@@ -26,6 +25,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     const ACTION_SUB_UPDATE = 'sub_update';
 
     /**
+     * The resource name to process with this processor.
+     *
      * @var string
      */
     protected $resourceName;
@@ -59,43 +60,34 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         'skip' => [],
         // List of keys that can have only one value.
         'boolean' => [],
-        // List of keys that can have only a single metadata.
+        // List of keys that can have only a single metadata as string.
         'single_data' => [
             'resource_name' => null,
             // Generic.
             'o:id' => null,
         ],
-        // Keys that can have only one value that is an entity with an id.
+        // Keys that can have only one value that is an entity with an id "o:id".
         'single_entity' => [
             // Generic.
             'o:owner' => null,
         ],
-        // TODO Attach to resources early. May be not managed.
+        // Keys that are sub-metadata, so that will be processed recursively.
+        // Currently, only one level of recursivity is managed, for example
+        // media metadata for items.
         'multiple_entities' => [],
+        // Miscellaneous may have been pre-processed above.
+        'misc' => [],
     ];
+
+    /**
+     * @var \Omeka\File\TempFileFactory
+     */
+    protected $tempFileFactory;
 
     /**
      * @var ArrayObject
      */
     protected $base;
-
-    /**
-     * May be :
-     * - dry_run
-     * - stop_on_error
-     * - continue_on_error
-     *
-     * The behavior for missing files is set with "processingSkipMissingFile".
-     *
-     * @var string
-     */
-    protected $processingError;
-
-    /**
-     *
-     * @var bool
-     */
-    protected $skipMissingFiles;
 
     /**
      * @var string
@@ -113,16 +105,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $allowDuplicateIdentifiers = false;
 
     /**
-     * @var \Omeka\File\TempFileFactory
+     * @var bool
      */
-    protected $tempFileFactory;
+    protected $skipMissingFiles = false;
 
     /**
+     * @var bool
+     */
+    protected $fakeFiles = false;
+
+    /**
+     * @var bool
+     */
+    protected $useDatatypeLiteral = false;
+
+    /**
+     * @see \BulkImport\Job\ImportTrait
+     *
      * @var array
      */
     protected $identifierNames = [
-        'o:id',
-        // 'dcterms:identifier',
+        'o:id' => 'o:id',
+        // 'dcterms:identifier' => 10,
     ];
 
     /**
@@ -164,61 +168,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     ];
 
     /**
-     * Index of the current entry.
-     *
-     * The entry may be 0-based or 1-based, or inconsistent (IteratorIterator).
-     * So this index is a stable one-based index.
-     *
-     * @todo It is a duplicate of indexResource for now.
-     *
-     * @var int
-     */
-    protected $currentEntryIndex = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalToProcess = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalIndexResources = 0;
-
-    /**
      * @var int
      */
     protected $indexResource = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalSkipped = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalProcessed = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalEmpty = 0;
-
-    /**
-     * @var int
-     */
-    protected $totalErrors = 0;
-
-    public function getResourceName(): ?string
-    {
-        return $this->resourceName;
-    }
-
-    public function getLabel(): string
-    {
-        return $this->resourceLabel;
-    }
 
     public function getConfigFormClass(): string
     {
@@ -267,20 +219,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    public function process(): void
+    public function isValid(): bool
+    {
+        $result = $this->init();
+        if (!$result) {
+            $this->lastErrorMessage = true;
+        }
+        return parent::isValid();
+    }
+
+    protected function init(): bool
     {
         // Used for uploaded files.
         $services = $this->getServiceLocator();
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
 
         $this->prepareAction();
-        if (empty($this->action)) {
-            return;
+        if ($this->totalErrors) {
+            return false;
         }
 
         $this->prepareActionUnidentified();
-        if (empty($this->actionUnidentified)) {
-            return;
+        if ($this->totalErrors) {
+            return false;
         }
 
         $errorStore = new MessageStore();
@@ -290,7 +251,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->setFilesUploaded($files)
             ->prepareFilesZip();
         if ($errorStore->hasErrors()) {
-            return;
+            ++$this->totalErrors;
+            return false;
         }
 
         $this->logger->notice(
@@ -304,45 +266,22 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'The resource name is not set.' // @translate
             );
             ++$this->totalErrors;
-            return;
+            return false;
         }
-
-        // @todo To set the resource name as object type to reader, is it needed?
-        // Warning: it may change for mixed resources.
-        $this->reader->setObjectType($this->getResourceName());
 
         $this
-            ->prepareIdentifierNames()
-            ->prepareSpecific()
-            ->prepareMetaConfig();
+            ->prepareSpecific();
+        if ($this->totalErrors) {
+            return false;
+        }
 
         $this->allowDuplicateIdentifiers = (bool) $this->getParam('allow_duplicate_identifiers', false);
+        $this->fakeFiles = (bool) $this->getParam('fake_files', false);
+        $this->identifierNames = $this->getParam('identifier_name', $this->identifierNames);
+        $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
 
-        $this->totalToProcess = method_exists($this->reader, 'count')
-            ? $this->reader->count()
-            : null;
-
-        $this->base = $this->baseEntity();
-
-        $toSkip = (int) $this->getParam('entries_to_skip', 0);
-        if ($toSkip) {
-            $this->logger->notice(
-                $toSkip <= 1
-                    ? 'The first {count} entry is skipped by user.' // @translate
-                    : 'The first {count} entries are skipped by user.', // @translate
-                ['count' => $toSkip]
-            );
-        }
-
-        $maxEntries = (int) $this->getParam('entries_max', 0);
-        if ($maxEntries) {
-            $this->logger->notice(
-                $maxEntries <= 1
-                    ? 'Only {count} entry will be processed.' // @translate
-                    : 'Only {count} entries will be processed.', // @translate
-                ['count' => $maxEntries]
-            );
-        }
+        // Parameter specific to resources.
+        $this->useDatatypeLiteral = (bool) $this->getParam('value_datatype_literal');
 
         // Check for FileSideload: remove files after import is not possible
         // because of the multi-step process and the early check of files.
@@ -354,115 +293,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
-        // Prepare the file where the checks will be saved.
-        $result = $this
-            ->bulkCheckLog
-            ->setBaseName($this->getLabel())
-            ->setNameFile((string) $this->job->getArg('bulk_import_id'))
-            ->initializeCheckStore()
-            ->initializeCheckLog();
-        if ($result['status'] === 'error') {
-            ++$this->totalErrors;
-        }
+        // The base entity depends on the resource type, so it should be init.
+        $this->base = $this->baseEntity();
 
-        if ($this->totalErrors) {
-            $this->processFinalize();
-            return;
-        }
-
-        // Store the file in params to get it in user interface and next.
-        /** @var \Omeka\Entity\Job $jobJob */
-        $jobJob = $this->job->getJob();
-        if ($jobJob->getId()) {
-            $jobJobArgs = $jobJob->getArgs();
-            $jobJobArgs['filename_log'] = basename($this->bulkCheckLog->getFilepathLog());
-            $jobJob->setArgs($jobJobArgs);
-            $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
-            $entityManager->persist($jobJob);
-            $entityManager->flush();
-        }
-
-        // Step 1/3: list and prepare identifiers.
-
-        $this
-            ->prepareListOfIdentifiers()
-            ->prepareListOfIds();
-
-        // Step 2/3: process all rows to get errors.
-
-        // Reset counts.
-        $this->currentEntryIndex = 0;
-        $this->totalIndexResources = 0;
-        $this->indexResource = 0;
-        $this->totalSkipped = 0;
-        $this->totalProcessed = 0;
-        $this->totalEmpty = 0;
-        $this->totalErrors = 0;
-
-        $this->processingError = $this->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
-        $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
-
-        $this
-            ->prepareFullRun();
-
-        if ($this->getParam('info_diffs')) {
-            $this->processInfoDIffs();
-        }
-
-        $dryRun = $this->processingError === 'dry_run';
-        if ($dryRun) {
-            $this->logger->notice(
-                'Processing is ended: dry run.' // @translate
-            );
-            $this->processFinalize();
-            return;
-        }
-
-        if ($this->totalErrors) {
-            $this->logger->notice(
-                $this->totalErrors <= 1
-                    ? '{total} error has been found during checks.' // @translate
-                    : '{total} errors have been found during checks.', // @translate
-                ['total' => $this->totalErrors]
-            );
-            if ($this->processingError === 'stop_on_error') {
-                $this->logger->notice(
-                    'Processing is stopped because of error. No source was imported.' // @translate
-                );
-                $this->processFinalize();
-                return;
-            }
-        }
-
-        // A stop may occur during dry run. Message is already logged.
-        if ($this->job->shouldStop()) {
-            $this->processFinalize();
-            return;
-        }
-
-        // Step 3/3: process real import.
-
-        // Reset counts.
-        $this->currentEntryIndex = 0;
-        $this->totalIndexResources = 0;
-        $this->indexResource = 0;
-        $this->totalSkipped = 0;
-        $this->totalProcessed = 0;
-        $this->totalEmpty = 0;
-        $this->totalErrors = 0;
-
-        $this->processFullRun();
-
-        $this->processFinalize();
-    }
-
-    protected function processFinalize(): self
-    {
-        $this
-            ->bulkCheckLog
-            ->purgeCheckStore()
-            ->finalizeCheckLog();
-        return $this;
+        return true;
     }
 
     protected function prepareAction(): self
@@ -477,6 +311,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             self::ACTION_DELETE,
             self::ACTION_SKIP,
         ])) {
+            ++$this->totalErrors;
             $this->logger->err(
                 'Action "{action}" is not managed.', // @translate
                 ['action' => $this->action]
@@ -492,6 +327,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             self::ACTION_CREATE,
             self::ACTION_SKIP,
         ])) {
+            ++$this->totalErrors;
             $this->logger->err(
                 'Action "{action}" for unidentified resource is not managed.', // @translate
                 ['action' => $this->actionUnidentified]
@@ -500,653 +336,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function prepareIdentifierNames(): self
-    {
-        $identifierNames = $this->getParam('identifier_name', ['o:id']);
-        if (empty($identifierNames)) {
-            $this->identifierNames = [];
-            $this->logger->warn(
-                'No identifier name was selected.' // @translate
-            );
-            return $this;
-        }
-
-        if (!is_array($identifierNames)) {
-            $identifierNames = [$identifierNames];
-        }
-
-        // For quicker search, prepare the ids of the properties.
-        $result = [];
-        foreach ($identifierNames as $identifierName) {
-            $id = $this->bulk->propertyId($identifierName);
-            if ($id) {
-                $result[$this->bulk->propertyTerm($id)] = $id;
-            } else {
-                $result[$identifierName] = $identifierName;
-            }
-        }
-        $result = array_filter($result);
-        if (empty($result)) {
-            $this->logger->err(
-                'Invalid identifier names: check your params.' // @translate
-            );
-        }
-        $this->identifierNames = $result;
-        return $this;
-    }
-
     protected function prepareSpecific(): self
     {
         return $this;
-    }
-
-    /**
-     * Prepare full mapping one time to simplify and speed process.
-     *
-     * The mapping is between the reader and the processor: it contains the maps
-     * between the source and the destination. It can be provided via the source
-     * (spreadsheet headers and processor form) or a mapping config.
-     * So some processors can be reader-driven or processor-driven.
-     */
-    protected function prepareMetaConfig(): self
-    {
-        $mappingConfig = null;
-
-        if (method_exists($this->reader, 'getConfigParam')) {
-            // Check if config is reader-driven (xml, json).
-            $mappingConfig = $this->reader->getParam('mapping_config')
-                // Check for processor-driven (specific processors).
-                ?: $this->getConfigParam('mapping_config', '');
-                // ?: ($this->getConfigParam('mapping_config', '') ?: null);
-        }
-
-        // Or get the manual mapping from processor (spreadsheet).
-        if ($mappingConfig === null) {
-            $mappingConfig = $this->getParam('mapping', []);
-        }
-
-        if (!$mappingConfig) {
-            return $this;
-        }
-
-        // Prepare the mapping mapper config.
-        // TODO Use this resource name ("resources" or "assets" for now).
-        $this->metaMapper->__invoke('resources', $mappingConfig);
-
-        $error = $this->metaMapper->getMetaMapperConfig()->hasError();
-        if ($error) {
-            ++$this->totalErrors;
-            if ($error === true) {
-                $this->logger->err(new PsrMessage('Error in the mapping config.')); // @translate
-            } else {
-                $this->logger->err(new PsrMessage(
-                    'Error in the mapping config: {message}', // @translate
-                    ['message' => $error]
-                ));
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get the list of identifiers without any check.
-     */
-    protected function prepareListOfIdentifiers(): self
-    {
-        if (!$this->identifierNames) {
-            return $this;
-        }
-
-        $this->logger->notice(
-            'Start listing all identifiers from source data.' // @translate
-        );
-
-        $toSkip = (int) $this->getParam('entries_to_skip', 0);
-        $maxEntries = (int) $this->getParam('entries_max', 0);
-        $maxRemaining = $maxEntries;
-
-        // Manage the case where the reader is zero-based or one-based.
-        // Note: AppendIterator can return the same index multiple times (inner
-        // iterator), so use an incrementor and use the combinaison of the main
-        // iterator and the inner iterator for logs.
-        // TODO Add log for the main iterator and the inner iterator.
-        $this->currentEntryIndex = 0;
-
-        // The main index is human one-based.
-
-        foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$this->currentEntryIndex;
-            if ($this->job->shouldStop()) {
-                $this->logger->warn(
-                    'Index #{index}: The job "Import" was stopped during initial listing of identifiers.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                break;
-            }
-
-            if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
-                if ($this->totalToProcess) {
-                    $this->logger->notice(
-                        '{total_processed}/{total_resources} resources processed during initial listing of identifiers, {total_skipped} skipped, {total_empty} empty, {total_errors} errors.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_resources' => $this->totalToProcess,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                } else {
-                    $this->logger->notice(
-                        '{total_processed} resources processed during initial listing of identifiers, {total_skipped} skipped, {total_empty} empty, {total_errors} errors.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                }
-            }
-
-            // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $this->currentEntryIndex;
-
-            if ($toSkip) {
-                --$toSkip;
-                ++$this->totalSkipped;
-                continue;
-            }
-
-            if ($maxEntries) {
-                --$maxRemaining;
-                if ($maxRemaining < 0) {
-                    $this->logger->warn(
-                        'Index #{index}: The job "Import" was stopped during initial listing of identifiers: max {count} entries processed.', // @translate
-                        ['index' => $this->indexResource, 'count' => $maxEntries]
-                    );
-                    break;
-                }
-            }
-
-            ++$this->totalIndexResources;
-            $resource = $this->processEntry($entry);
-
-            $this->extractSourceIdentifiers($resource, $entry);
-        }
-
-        // Clean identifiers for duplicates.
-        $this->identifiers['source'] = array_map('array_unique', $this->identifiers['source']);
-
-        // Simplify identifiers revert.
-        $this->identifiers['revert'] = array_map('array_unique', $this->identifiers['revert']);
-        foreach ($this->identifiers['revert'] as &$values) {
-            $values = array_combine($values, $values);
-        }
-        unset($values);
-
-        // Empty identifiers should be null to use isset().
-        $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['mapx']);
-        $this->identifiers['map'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['map']);
-
-        $this->logger->notice(
-            'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_identifiers' => count($this->identifiers['map']),
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
-
-        return $this;
-    }
-
-    /**
-     * Get the list of ids from identifiers one time.
-     */
-    protected function prepareListOfIds(): self
-    {
-        if (empty($this->identifiers['map'])) {
-            return $this;
-        }
-
-        $this->logger->notice(
-            'Start preparing ids from {count} source identifiers.', // @translate
-            ['count' => count($this->identifiers['map'])]
-        );
-
-        $mainResourceName = $this->mainResourceNames[$this->getResourceName()];
-
-        // Process only identifiers without ids (normally all of them).
-        $emptyIdentifiers = [];
-        foreach ($this->identifiers['map'] as $identifier => $id) {
-            if (empty($id)) {
-                $emptyIdentifiers[] = strtok((string) $identifier, '§');
-            }
-        }
-
-        if ($mainResourceName === 'assets') {
-            $ids = $this->findAssetsFromIdentifiers($emptyIdentifiers, $this->identifierNames);
-        } elseif ($mainResourceName === 'resources') {
-            $ids = $this->findResourcesFromIdentifiers($emptyIdentifiers, $this->identifierNames);
-        }
-
-        foreach ($ids as $identifier => $id) {
-            $this->identifiers['map'][$identifier . '§' . $mainResourceName] = $id
-                ? $id . '§' . $mainResourceName
-                : null;
-        }
-
-        // Fill mapx when possible.
-        foreach ($ids as $identifier => $id) {
-            if (!empty($this->identifiers['revert'][$identifier . '§' . $mainResourceName])) {
-                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . '§' . $mainResourceName])]
-                    = $id . '§' . $mainResourceName;
-            }
-        }
-
-        $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['mapx']);
-        $this->identifiers['map'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['map']);
-
-        $this->logger->notice(
-            'End of initial listing of {total} ids from {count} source identifiers.', // @translate
-            ['total' => count(array_filter($this->identifiers['map'])), 'count' => count($this->identifiers['map'])]
-        );
-
-        return $this;
-    }
-
-    /**
-     * Check all source data (dry run).
-     *
-     * Check:
-     * - identifiers,
-     * - linked resources,
-     * - template values,
-     * - files presence.
-     *
-     * Prepare the list of identifiers one time too (existing and new ones).
-     *
-     * Store resources without errors for next step.
-     */
-    protected function prepareFullRun(): self
-    {
-        $this->logger->notice(
-            'Start checking of source data.' // @translate
-        );
-
-        $toSkip = (int) $this->getParam('entries_to_skip', 0);
-        $maxEntries = (int) $this->getParam('entries_max', 0);
-        $maxRemaining = $maxEntries;
-
-        // TODO Do a first loop to get all identifiers and linked resources to speed up process.
-
-        // Manage the case where the reader is zero-based or one-based.
-        // Note: AppendIterator can return the same index multiple times (inner
-        // iterator), so use an incrementor and use the combinaison of the main
-        // iterator and the inner iterator for logs.
-        // TODO Add log for the main iterator and the inner iterator.
-        $this->currentEntryIndex = 0;
-
-        foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$this->currentEntryIndex;
-            if ($this->job->shouldStop()) {
-                $this->logger->warn(
-                    'Index #{index}: The job "Import" was stopped during initial checks.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                break;
-            }
-
-            if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
-                if ($this->totalToProcess) {
-                    $this->logger->notice(
-                        '{total_processed}/{total_resources} resources checked, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_resources' => $this->totalToProcess,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                } else {
-                    $this->logger->notice(
-                        '{total_processed} resources checked, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                }
-            }
-
-            // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $this->currentEntryIndex;
-
-            if ($toSkip) {
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, null, null);
-                --$toSkip;
-                ++$this->totalSkipped;
-                continue;
-            }
-
-            if ($maxEntries) {
-                --$maxRemaining;
-                if ($maxRemaining < 0) {
-                    $this->logger->warn(
-                        'Index #{index}: The job "Import" was stopped during initial checks: max {count} entries checked.', // @translate
-                        ['index' => $this->indexResource, 'count' => $maxEntries]
-                    );
-                    break;
-                }
-            }
-
-            // TODO Reuse and complete the resource extracted during listing of identifiers: only the id may be missing. Or store during previous loop.
-            ++$this->totalIndexResources;
-            $resource = $this->processEntry($entry);
-
-            if (!$resource) {
-                $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, null, $entry);
-                continue;
-            }
-
-            if (!$this->checkEntity($resource)) {
-                ++$this->totalErrors;
-                $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource, $entry);
-                continue;
-            }
-
-            ++$this->totalProcessed;
-            $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource, $entry);
-        }
-
-        $this->logger->notice(
-            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when existing or linked resources are not found.', // @translate
-            ['names' => implode(', ', array_keys($this->identifierNames))]
-        );
-
-        $this->logger->notice(
-            'End of global check: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
-
-        return $this;
-    }
-
-    protected function processFullRun(): self
-    {
-        $this->logger->notice(
-            'Start actual import of source data.' // @translate
-        );
-
-        $toSkip = (int) $this->getParam('entries_to_skip', 0);
-        $maxEntries = (int) $this->getParam('entries_max', 0);
-        $maxRemaining = $maxEntries;
-
-        /** @var \Doctrine\ORM\EntityManager $entityManager */
-        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
-
-        $dataToProcess = [];
-
-        // Manage the case where the reader is zero-based or one-based.
-        // Note: AppendIterator can return the same index multiple times (inner
-        // iterator), so use an incrementor and use the combinaison of the main
-        // iterator and the inner iterator for logs.
-        // TODO Add log for the main iterator and the inner iterator.
-        $this->currentEntryIndex = 0;
-
-        foreach ($this->reader as /* $innerIndex => */ $entry) {
-            ++$this->currentEntryIndex;
-            if ($this->job->shouldStop()) {
-                $this->logger->warn(
-                    'Index #{index}: The job "Import" was stopped.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                break;
-            }
-
-            if ($this->totalProcessed && $this->totalProcessed % 100 === 0) {
-                if ($this->totalToProcess) {
-                    $this->logger->notice(
-                        '{total_processed}/{total_resources} resources processed, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_resources' => $this->totalToProcess,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                } else {
-                    $this->logger->notice(
-                        '{total_processed} resources processed, {total_skipped} skipped, {total_empty} empty, {total_errors} errors inside data.', // @translate
-                        [
-                            'total_processed' => $this->totalProcessed,
-                            'total_skipped' => $this->totalSkipped,
-                            'total_empty' => $this->totalEmpty,
-                            'total_errors' => $this->totalErrors,
-                        ]
-                    );
-                }
-            }
-
-            if ($toSkip) {
-                --$toSkip;
-                ++$this->totalSkipped;
-                continue;
-            }
-
-            ++$this->totalIndexResources;
-
-            // Note: a resource from the reader may contain multiple resources.
-            $this->indexResource = $this->currentEntryIndex;
-
-            if ($maxEntries) {
-                --$maxRemaining;
-                if ($maxRemaining < 0) {
-                    break;
-                }
-            }
-
-            // TODO Clarify computation of total errors.
-            $resource = $this->bulkCheckLog->loadCheckedResource($this->indexResource);
-            if (!$resource || !empty($resource['has_error'])) {
-                ++$this->totalErrors;
-                continue;
-            }
-
-            $this->logger->info(
-                'Index #{index}: Process started', // @translate
-                ['index' => $this->indexResource]
-            );
-
-            ++$this->totalProcessed;
-
-            // The batch is one by one now.
-            $dataToProcess[] = $resource;
-
-            $this->processEntities($dataToProcess);
-            // Avoid memory issue.
-            unset($dataToProcess);
-            $entityManager->flush();
-            $entityManager->clear();
-            // Reset for next.
-            $dataToProcess = [];
-        }
-
-        if ($maxEntries && $maxRemaining < 0) {
-            $this->logger->warn(
-                'Index #{index}: The job "Import" was stopped: max {count} entries processed.', // @translate
-                ['index' => $this->indexResource, 'count' => $maxEntries]
-            );
-        }
-
-        $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
-
-        return $this;
-    }
-
-    protected function processInfoDIffs(): self
-    {
-        $importId = (int) $this->job->getArg('bulk_import_id');
-
-        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
-
-        $bulkDiffResources = $plugins->get('bulkDiffResources');
-        $result = $bulkDiffResources($this->action, $importId);
-        if ($result['status'] === 'error') {
-            // Log is already logged.
-            ++$this->totalErrors;
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            return $this;
-        }
-
-        // Only spreadsheet is managed for now.
-        // Spreadsheet is processor-driven, so no meta mapper mapping.
-        if (!$this->hasProcessorMapping) {
-            return $this;
-        }
-
-        $bulkDiffValues = $plugins->get('bulkDiffValues');
-        $result = $bulkDiffValues($this->action, $importId, $this->mapping);
-        if ($result['status'] === 'error') {
-            // Log is already logged.
-            ++$this->totalErrors;
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            return $this;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Process one entry to create one resource (and eventually attached ones).
-     */
-    protected function processEntry(Entry $entry): ?ArrayObject
-    {
-        // Generally, empty entries in spreadsheet are empty rows. But it may be
-        // a bad conversion for other formats.
-        if ($entry->isEmpty()) {
-            ++$this->totalEmpty;
-            return null;
-        }
-
-        $metaMapping = $this->metaMapper->__invoke('resources')->getMetaMapping();
-        return $metaMapping === null
-            ? $this->processEntryFromReader($entry)
-            : $this->processEntryFromProcessor($entry);
-    }
-
-    /**
-     * Convert a prepared entry into a resource, setting ids for each key.
-     *
-     * Reader-driven extraction of data.
-     *
-     * So fill owner id, resource template id, resource class id, property ids.
-     * Check boolean values too for is_public and is_open.
-     */
-    protected function processEntryFromReader(Entry $entry): ArrayObject
-    {
-        /** @var \ArrayObject $resource */
-        $resource = clone $this->base;
-
-        $resource['source_index'] = $this->indexResource;
-
-        $keys = $this->metadataData;
-
-        // Added for security.
-        $keys['skip'] = [
-            'checked_id' => null,
-            // The human source index is one-based, so "0" means undetermined.
-            'source_index' => 0,
-            'messageStore' => null,
-        ] + ($keys['skip'] ?? []);
-
-        // TODO Manage filling multiple entities.
-        foreach ($entry as $key => $values) {
-            if (array_key_exists($key, $keys['skip'])) {
-                // Nothing to do.
-            } elseif (array_key_exists($key, $keys['boolean'])) {
-                $this->fillBoolean($resource, $key, $values);
-            } elseif (array_key_exists($key, $keys['single_data'])) {
-                $resource[$key] = $values;
-            } elseif (array_key_exists($key, $keys['single_entity'])) {
-                $this->fillSingleEntity($resource, $key, $values);
-            } elseif ($resource->offsetExists($key) && is_array($resource[$key])) {
-                $resource[$key] = array_merge($resource[$key], $values);
-            } else {
-                // Keep multiple entity keys (below) and extra data for modules.
-                $resource[$key] = $values;
-            }
-        }
-
-        return $resource;
-    }
-
-    /**
-     * Processor-driven extraction of data.
-     */
-    protected function processEntryFromProcessor(Entry $entry): ArrayObject
-    {
-        /** @var \ArrayObject $resource */
-        $resource = clone $this->base;
-        $resource['source_index'] = $this->indexResource;
-        $resource['messageStore']->clearMessages();
-
-        $metaMapping = $this->metaMapper->__invoke('resources')->getMapping();
-
-        foreach (['default', 'maps'] as $section) foreach ($metaMapping[$section] as $map) {
-            if (empty($map)
-                // Empty from, to and mod mean a map to skip.
-                || !array_filter($map)
-            ) {
-                continue;
-            }
-            if (!empty($map['has_error'])) {
-                continue;
-            }
-            // Processor driven process.
-            $values = $entry->valuesFromMap($map);
-            if (!count($values)) {
-                continue;
-            }
-            $this->fillResource($resource, $map, $values);
-        }
-
-        return $resource;
     }
 
     protected function baseEntity(): ArrayObject
@@ -1154,11 +346,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
         $resource['o:id'] = null;
-        // The human source index is one-based, so it means undetermined.
+        // The human source index is one-based, so "0" means undetermined.
         $resource['source_index'] = 0;
         $resource['checked_id'] = false;
-        // This key is updated only for storage.
-        $resource['has_error'] = null;
+        $resource['has_error'] = false;
         $resource['messageStore'] = new MessageStore();
         $this->baseSpecific($resource);
         return $resource;
@@ -1169,33 +360,101 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function fillBoolean(ArrayObject $resource, $key, $value): self
+    /**
+     * Convert a prepared entry into a resource, setting ids for each key.
+     *
+     * So fill keys according to the metadata format.
+     *
+     * {@inheritDoc}
+     * @see \BulkImport\Processor\AbstractResourceProcessor::fillResource()
+     */
+    public function fillResource(array $data, ?int $index = null): ?array
     {
-        $resource[$key] = in_array(strtolower((string) $value), ['0', 'false', 'no', 'off', 'private', 'closed'], true)
+        // ArrayObject is used internally to simplify calling functions.
+        /** @var \ArrayObject $resource */
+        $resource = clone $this->base;
+
+        $this->indexResource = $index;
+        $resource['source_index'] = $this->indexResource;
+
+        $keys = $this->metadataData;
+
+        // Added for security.
+        $keys['skip'] = [
+            'checked_id' => false,
+            // The human source index is one-based, so "0" means undetermined.
+            'source_index' => 0,
+            'messageStore' => null,
+        ] + ($keys['skip'] ?? []);
+
+        // TODO Manage filling multiple entities here?
+        // From meta mapper and meta mapper mapping, values are always an array
+        // when undefined in metadata data.
+        foreach ($data as $key => $values) {
+            if (array_key_exists($key, $keys['skip'])) {
+                // Nothing to do.
+            } elseif (array_key_exists($key, $keys['boolean'])) {
+                $this->fillBoolean($resource, $key, $values);
+            } elseif (array_key_exists($key, $keys['single_data'])) {
+                $this->fillSingleData($resource, $key, $values);
+            } elseif (array_key_exists($key, $keys['single_entity'])) {
+                $this->fillSingleEntity($resource, $key, $values);
+            } elseif ($resource->offsetExists($key) && is_array($resource[$key])) {
+                $resource[$key] = array_merge($resource[$key], $values);
+            } else {
+                // Keep multiple entity keys and extra data for properties,
+                // modules, etc.
+                $resource[$key] = $values;
+            }
+        }
+
+        // Specific values may have been processed.
+        // Other values are copied as array of values in the resource.
+        // So generally data are useless here.
+        $this->fillResourceData($resource, $data);
+
+        return $resource->getArrayCopy();
+    }
+
+    protected function fillBoolean(ArrayObject $resource, string $field, array $values): self
+    {
+        $value = end($values);
+        // Private is use for visibility (is public = 1) and closed for openess
+        // (is open = 1).
+        // TODO Use a constant array and see BaseEntry.
+        $resource[$field] = in_array(strtolower((string) $value), ['', '0', 'false', 'no', 'off', 'private', 'closed'], true)
             ? false
             : (bool) $value;
         return $this;
     }
 
-    protected function fillSingleEntity(ArrayObject $resource, $key, $value): self
+    protected function fillSingleData(ArrayObject $resource, string $field, array $values): self
     {
-        if (empty($value)) {
-            $resource[$key] = null;
+        if (empty($values)) {
+            $resource[$field] = null;
+            return $this;
+        }
+        $resource[$field] = end($values);
+        return $this;
+    }
+
+    protected function fillSingleEntity(ArrayObject $resource, string $field, array $values): self
+    {
+        if (empty($values)) {
+            $resource[$field] = null;
             return $this;
         }
 
+        $value = end($values);
+
         // Get the entity id.
-        switch ($key) {
+        switch ($field) {
+            // TODO Factorize with ResourceProcessor and AssetProcessor.
             case 'o:owner':
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $email = empty($value['o:email']) ? null : $value['o:email'];
-                    $value = $id ?? $email
-                        // Check standard value too, that may be created by a
-                        // xml flat mapping.
-                        // TODO Remove this fix: it should be checked earlier.
-                        ?? $value['@value'] ?? $value['value_resource_id']
-                        ?? reset($value);
+                    $value = $id ?? $email ?? reset($value);
                 }
                 $id = $this->getUserId($value);
                 if ($id) {
@@ -1217,12 +476,29 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * @todo Make method fillResource a generic one (most metadata are similar).
+     * Fill other data that are not managed in a common way.
+     *
+     * Specific values set in metadataData have been processed.
+     * Other values are already copied as an array of values.
      */
-    abstract protected function fillResource(ArrayObject $resource, array $map, array $values): self;
+    protected function fillResourceData(ArrayObject $resource, array $data): self
+    {
+        return $this;
+    }
+
+    public function checkResource(array $resource): array
+    {
+        $this->indexResource = $resource['source_index'];
+        $resourceObject = new ArrayObject($resource);
+        $this->checkEntity($resourceObject);
+        return $resourceObject->getArrayCopy();
+    }
+
 
     /**
      * Check if a resource is well-formed.
+     *
+     * @todo Replace by checkResource() directly, but manage ResourceProcessor.
      */
     protected function checkEntity(ArrayObject $resource): bool
     {
@@ -1380,7 +656,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Complete from api modules (api.execute/create/update.pre).
         /** @see \Omeka\Api\Manager::initialize() */
         try {
-            $this->apiManager->initialize($adapter, $request);
+            $this->api->initialize($adapter, $request);
         } catch (\Exception $e) {
             $resource['messageStore']->addError('modules', new PsrMessage(
                 'Initialization exception: {exception}', // @translate
@@ -1490,11 +766,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return $this->checkItemFilesWarn($resource, $resourceFiles);
         }
 
+        $isAsset = $resource['resource_name'] === 'assets';
+
         foreach ($resourceFiles as $resourceFile) {
             // A file cannot be updated.
             if (!empty($resourceFile['o:id'])) {
                 continue;
             }
+            $this->bulkFile->setIsAsset($isAsset);
             if (!empty($resourceFile['ingest_url'])) {
                 $this->bulkFile->checkUrl($resourceFile['ingest_url'], $resource['messageStore']);
             } elseif (!empty($resourceFile['ingest_filename'])) {
@@ -1585,10 +864,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * Check the id of a resource.
+     * Check if a resource has a id and mark "checked_id" as true in all cases.
      *
      * The action should be checked separately, else the result may have no
      * meaning.
+     *
+     * @todo Clarify the key "checked_id" when there is no id.
      */
     protected function checkId(ArrayObject $resource): bool
     {
@@ -1615,7 +896,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
             } else {
                 $resourceId = $resourceName === 'assets'
-                    ? $this->bulk->api()->searchOne('assets', ['id' => $resource['o:id']])->getContent()->id()
+                    ? $this->findAssetsFromIdentifiers($resource['o:id'], 'o:id')
                     : $this->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
                 if (!$resourceId) {
                     if (isset($resource['messageStore'])) {
@@ -1678,6 +959,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (empty($idNames) && !$this->actionRequiresId()) {
             return false;
         }
+
         if (empty($idNames)) {
             if ($this->allowDuplicateIdentifiers) {
                 if (isset($resource['messageStore'])) {
@@ -1731,7 +1013,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     }
                 } else {
                     // TODO Check identifier that is not a property.
-                    $identifiers[] = $value;
+                    $identifiers[] = $resource[$identifierName];
                 }
             }
 
@@ -1744,9 +1026,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if (empty($this->identifiers['mapx'][$resource['source_index']])) {
                 $mainResourceName = $this->mainResourceNames[$resourceName];
                 if ($mainResourceName === 'assets') {
-                    $ids = $this->findAssetsFromIdentifiers($identifiers, $identifierName);
+                    $ids = $this->findAssetsFromIdentifiers($identifiers, [$identifierName]);
                 } elseif ($mainResourceName === 'resources') {
-                    $ids = $this->findResourcesFromIdentifiers($identifiers, $identifierName, $resourceName, $resource['messageStore'] ?? null);
+                    $ids = $this->findResourcesFromIdentifiers($identifiers, [$identifierName], $resourceName, $resource['messageStore'] ?? null);
                 }
                 $ids = array_filter($ids);
                 // Store the id one time.
@@ -1823,6 +1105,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return false;
     }
 
+    public function processResource(array $resource): ?AbstractEntityRepresentation
+    {
+        $this->indexResource = $resource['source_index'];
+        $dataResources = [$resource];
+        $representations = $this->processEntities($dataResources);
+        return $representations
+            ? reset($representations)
+            : null;
+    }
+
     /**
      * Process entities.
      *
@@ -1830,46 +1122,45 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * Useless when batch size of process is one.
      * @todo Create an option for full order by id for items, then media, but it should be done on all resources, not the batch one.
      * See previous version (before 3.4.39).
+     *
+     * @todo Replace by processResource() directly.
      */
-    protected function processEntities(array $dataResources): self
+    protected function processEntities(array $dataResources): array
     {
         switch ($this->action) {
             case self::ACTION_CREATE:
-                $this->createEntities($dataResources);
-                break;
+                return $this->createEntities($dataResources);
             case self::ACTION_APPEND:
             case self::ACTION_REVISE:
             case self::ACTION_UPDATE:
             case self::ACTION_REPLACE:
-                $this->updateEntities($dataResources);
-                break;
+                return $this->updateEntities($dataResources);
             case self::ACTION_SKIP:
-                $this->skipEntities($dataResources);
-                break;
+                return $this->skipEntities($dataResources);
             case self::ACTION_DELETE:
-                $this->deleteEntities($dataResources);
-                break;
+                return $this->deleteEntities($dataResources);
+            default:
+                return [];
         }
-        return $this;
     }
 
     /**
      * Process creation of entities.
      */
-    protected function createEntities(array $dataResources): self
+    protected function createEntities(array $dataResources): array
     {
         $resourceName = $this->getResourceName();
-        $this->createResources($resourceName, $dataResources);
-        return $this;
+        $representations = $this->createResources($resourceName, $dataResources);
+        return $representations;
     }
 
     /**
      * Process creation of resources.
      */
-    protected function createResources($defaultResourceName, array $dataResources): self
+    protected function createResources($defaultResourceName, array $dataResources): array
     {
         if (!count($dataResources)) {
-            return $this;
+            return [];
         }
 
         // Linked ids from identifiers may be missing in data. So two solutions
@@ -1884,6 +1175,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Anyway, in most of the cases, the loop contains only one resource.
 
         $resources = [];
+
         foreach ($dataResources as $dataResource) {
             // Manage mixed resources.
             $resourceName = $dataResource['resource_name'] ?? $defaultResourceName;
@@ -1904,47 +1196,49 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ));
                 $messages = $this->listValidationMessages($e);
                 $r['messageStore']->addError('resource', $messages);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                 ++$this->totalErrors;
-                return $this;
+                return $resources;
             } catch (\Exception $e) {
                 $r = $this->baseEntity();
                 $r['messageStore']->addError('resource', new PsrMessage(
                     'Core error during creation: {exception}', // @translate
                     ['exception' => $e]
                 ));
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                 ++$this->totalErrors;
-                return $this;
+                return $resources;
             }
 
-            $resource = $response->getContent();
-            $resources[$resource->id()] = $resource;
-            $this->storeSourceIdentifiersIds($dataResource, $resource);
-            if (!$resource instanceof AssetRepresentation && $resource->resourceName() === 'media') {
+            $representation = $response->getContent();
+            $resources[$representation->id()] = $representation;
+            $this->storeSourceIdentifiersIds($dataResource, $representation);
+            if ($representation->resourceName() === 'media') {
                 $this->logger->notice(
                     'Index #{index}: Created media #{media_id} (item #{item_id})', // @translate
-                    ['index' => $this->indexResource, 'media_id' => $resource->id(), 'item_id' => $resource->item()->id()]
+                    ['index' => $this->indexResource, 'media_id' => $representation->id(), 'item_id' => $representation->item()->id()]
                 );
             } else {
                 $this->logger->notice(
                     'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource->id()]
+                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $representation->id()]
                 );
             }
         }
 
-        $this->recordCreatedResources($resources);
-
-        return $this;
+        return $resources;
     }
 
     /**
      * Process update of entities.
+     *
+     * @return array Created resources.
      */
-    protected function updateEntities(array $dataResources): self
+    protected function updateEntities(array $dataResources): array
     {
         $resourceName = $this->getResourceName();
+
+        $resources = [];
 
         $dataToCreateOrSkip = [];
         foreach ($dataResources as $key => $value) {
@@ -1953,12 +1247,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 unset($dataResources[$key]);
             }
         }
+
         if ($this->actionUnidentified === self::ACTION_CREATE) {
-            $this->createResources($resourceName, $dataToCreateOrSkip);
+            $resources = $this->createResources($resourceName, $dataToCreateOrSkip);
         }
 
         $this->updateResources($resourceName, $dataResources);
-        return $this;
+
+        return $resources;
     }
 
     /**
@@ -1993,7 +1289,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         'The resource id #"{id}" has no resource name.', // @translate
                         ['id' => $dataResource['o:id']]
                     ));
-                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                     ++$this->totalErrors;
                     return $this;
                 }
@@ -2041,7 +1337,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ));
                 $messages = $this->listValidationMessages($e);
                 $r['messageStore']->addError('resource', $messages);
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                 ++$this->totalErrors;
                 return $this;
             } catch (\Exception $e) {
@@ -2050,7 +1346,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     'Core error during update: {exception}', // @translate
                     ['exception' => $e]
                 ));
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                 ++$this->totalErrors;
                 return $this;
             }
@@ -2081,11 +1377,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process deletion of entities.
      */
-    protected function deleteEntities(array $dataResources): self
+    protected function deleteEntities(array $dataResources): array
     {
         $resourceName = $this->getResourceName();
         $this->deleteResources($resourceName, $dataResources);
-        return $this;
+        return [];
     }
 
     /**
@@ -2131,7 +1427,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ));
             $messages = $this->listValidationMessages($e);
             $r['messageStore']->addError('resource', $messages);
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
             ++$this->totalErrors;
             return $this;
         } catch (\Exception $e) {
@@ -2141,7 +1437,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'Core error during deletion: {exception}', // @translate
                 ['exception' => $e]
             ));
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
             ++$this->totalErrors;
             return $this;
         }
@@ -2158,11 +1454,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     /**
      * Process skipping of entities.
      */
-    protected function skipEntities(array $dataResources): self
+    protected function skipEntities(array $dataResources): array
     {
         $resourceName = $this->getResourceName();
         $this->skipResources($resourceName, $dataResources);
-        return $this;
+        return [];
     }
 
     /**
@@ -2242,126 +1538,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return in_array($action, $actionsUpdate);
     }
 
-    /**
-     * Extract main and linked resource identifiers from a resource.
-     *
-     * @todo Check for duplicates.
-     * @todo Take care of actions (update/create).
-     * @todo Take care of specific identifiers (uri, filename, etc.).
-     * @todo Make a process and an output with all identifiers only.
-     * @todo Store the resolved id existing in database one time here (after deduplication), and remove the search of identifiers in second loop.
-     */
-    protected function extractSourceIdentifiers(?ArrayObject $resource, ?Entry $entry = null): self
-    {
-        if (!$resource) {
-            return $this;
-        }
-
-        $storeMain = function ($idOrIdentifier, $mainResourceName) use ($resource): void {
-            if ($idOrIdentifier) {
-                // No check for duplicates here: it depends on action.
-                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . '§' . $mainResourceName;
-                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName][$this->indexResource] = $this->indexResource;
-            }
-            // Source indexes to resource id.
-            $this->identifiers['mapx'][$this->indexResource] = empty($resource['o:id'])
-                ? null
-                : $resource['o:id'] . '§' . $mainResourceName;
-            if ($idOrIdentifier) {
-                // Source identifiers to resource id.
-                // No check for duplicate here: last map is the right one.
-                $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = empty($resource['o:id'])
-                    ? null
-                    : $resource['o:id'] . '§' . $mainResourceName;
-            }
-        };
-
-        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
-            // As soon as an array exists, a check can be done on identifier,
-            // even if the id is defined later. The same for map.
-            if (!isset($this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName])) {
-                $this->identifiers['revert'][$idOrIdentifier . '§' . $mainResourceName] = [];
-            }
-            $this->identifiers['map'][$idOrIdentifier . '§' . $mainResourceName] = $vrId;
-        };
-
-        $mainResourceName = $this->mainResourceNames[$this->getResourceName()];
-
-        // Main identifiers.
-        foreach ($this->identifierNames as $identifierName) {
-            if ($identifierName === 'o:id') {
-                $storeMain($resource['o:id'] ?? null, $mainResourceName);
-            } elseif ($identifierName === 'o:storage_id') {
-                $storeMain($resource['o:storage_id'] ?? null, $mainResourceName);
-            } elseif ($identifierName === 'o:name') {
-                $storeMain($resource['o:name'] ?? null, $mainResourceName);
-            } else {
-                $term = $this->bulk->propertyTerm($identifierName);
-                foreach ($resource[$term] ?? [] as $value) {
-                    if (!empty($value['@value'])) {
-                        $storeMain($value['@value'], 'resources');
-                    }
-                }
-            }
-        }
-
-        // TODO Move these checks in resource and asset processors.
-
-        // Specific identifiers for items (item sets and media).
-        if ($resource['resource_name'] === 'items') {
-            foreach ($resource['o:item_set'] ?? [] as $itemSet) {
-                if (!empty($itemSet['source_identifier'])) {
-                    $storeLinkedIdentifier($itemSet['source_identifier'], $itemSet['o:id'] ?? null, 'resources');
-                }
-            }
-            foreach ($resource['o:media'] ?? [] as $media) {
-                if (!empty($media['source_identifier'])) {
-                    $storeLinkedIdentifier($media['source_identifier'], $media['o:id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        // Specific identifiers for media (item).
-        elseif ($resource['resource_name'] === 'media') {
-            if (!empty($resource['o:item']['source_identifier'])) {
-                $storeLinkedIdentifier($resource['o:item']['source_identifier'], $resource['o:item']['o:id'] ?? null, 'resources');
-            }
-        }
-
-        // Specific identifiers for resources attached to assets.
-        elseif ($resource['resource_name'] === 'assets') {
-            foreach ($resource['o:resource'] ?? [] as $thumbnailForResource) {
-                if (!empty($thumbnailForResource['source_identifier'])) {
-                    $storeLinkedIdentifier($thumbnailForResource['source_identifier'], $thumbnailForResource['o:id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        // TODO It's now possible to store an identifier for the asset from the resource.
-
-        // Store identifiers for linked resources.
-        $properties = $this->bulk->propertyIds();
-        foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
-            if (!is_array($values)) {
-                continue;
-            }
-            foreach ($values as $value) {
-                if (is_array($value)
-                    && isset($value['property_id'])
-                    && !empty($value['source_identifier'])
-                ) {
-                    $storeLinkedIdentifier($value['source_identifier'], $value['value_resource_id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        return $this;
-    }
 
     /**
      * Store new id when source contains identifiers not yet imported.
      *
      * Identifiers are already stored during first loop. So just set final id.
+     *
+     * @todo Factorize ImportTrait with AbstractResourceProcessor.
      */
     protected function storeSourceIdentifiersIds(array $dataResource, AbstractEntityRepresentation $resource): self
     {
@@ -2490,39 +1673,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     }
 
     /**
-     * @param \Omeka\Api\Representation\AbstractRepresentation[] $resources
-     */
-    protected function recordCreatedResources(array $resources): void
-    {
-        // TODO Store the bulk import id instead of the job id in order to manage regular task?
-        $jobId = $this->job->getJob()->getId();
-        if (!$jobId) {
-            return;
-        }
-
-        $classes = [];
-
-        $importeds = [];
-        foreach ($resources as $resource) {
-            // The simplest way to get the adapter from any representation, when
-            // the api name is unavailable.
-            $class = get_class($resource);
-            if (empty($classes[$class])) {
-                $classes[$class] = $this->adapterManager
-                    ->get(substr_replace(str_replace('\\Representation\\', '\\Adapter\\', get_class($resource)), 'Adapter', -14))
-                    ->getResourceName();
-            }
-            $importeds[] = [
-                'o:job' => ['o:id' => $jobId],
-                'entity_id' => $resource->id(),
-                'entity_name' => $classes[$class],
-            ];
-        }
-
-        $this->bulk->api()->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
-    }
-
-    /**
      * Find a list of resource ids from a list of identifiers (or one id).
      *
      * When there are true duplicates and case insensitive duplicates, the first
@@ -2550,6 +1700,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * Note: The option uniqueOnly is not taken in account. The object or the
      * boolean are not returned, but logged.
      * Furthermore, the identifiers without id are not returned.
+     *
+     * @todo Factorize findResourcesFromIdentifiers() in AbstractResourceImport with ImportTrait.
      */
     public function findResourcesFromIdentifiers(
         $identifiers,
@@ -2646,7 +1798,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @var string|int $emailOrIdOrName
      */
-    public function getUserId($emailOrIdOrName): ?int
+    protected function getUserId($emailOrIdOrName): ?int
     {
         if (empty($emailOrIdOrName) || !is_scalar($emailOrIdOrName)) {
             return null;
@@ -2661,8 +1813,60 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
         $data['limit'] = 1;
 
-        $users = $this->apiManager
-            ->search('users', $data, ['responseContent' => 'resource'])->getContent();
+        $users = $this->api->search('users', $data, ['responseContent' => 'resource'])->getContent();
         return $users ? (reset($users))->getId() : null;
+    }
+
+    protected function findAssetsFromIdentifiers(array $identifiers, $identifierNames): array
+    {
+        // Extract all ids and identifiers: there are only two unique columns in
+        // assets (id and storage id) and the table is generally small and the
+        // api doesn't allow to search them.
+        // The name is allowed too, even if not unique.
+
+        if (!$identifiers || !$identifierNames) {
+            return [];
+        }
+
+        if (!is_array($identifierNames)) {
+            $identifierNames = [$identifierNames];
+        }
+
+        // TODO Allow to store statically ids and add new identifiers and ids in the map, or check in the map first.
+
+        $idIds = [];
+        if (in_array('o:id', $identifierNames)) {
+            $idIds = $this->api->search('assets', [], ['returnScalar' => 'id'])->getContent();
+        }
+        $idNames = [];
+        if (in_array('o:name', $identifierNames)) {
+            $idNames = $this->api->search('assets', [], ['returnScalar' => 'name'])->getContent();
+        }
+        $idStorages = [];
+        if (in_array('o:storage_id', $identifierNames)) {
+            $idStorages = $this->api->search('assets', [], ['returnScalar' => 'storageId'])->getContent();
+        }
+
+        if (!$idIds && !$idNames && !$idStorages) {
+            return [];
+        }
+
+        $result = [];
+        $identifierKeys = array_fill_keys($identifiers, null);
+
+        // Start by name to override it because it is not unique.
+        if (in_array('o:name', $identifierNames)) {
+            $result += array_intersect_key(array_flip($idNames), $identifierKeys);
+        }
+
+        if (in_array('o:storage_id', $identifierNames)) {
+            $result += array_intersect_key(array_flip($idStorages), $identifierKeys);
+        }
+
+        if (in_array('o:id', $identifierNames)) {
+            $result += array_intersect_key($idIds, $identifierKeys);
+        }
+
+        return array_filter($result);
     }
 }

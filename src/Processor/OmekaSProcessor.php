@@ -98,7 +98,7 @@ class OmekaSProcessor extends AbstractFullProcessor
         ],
     ];
 
-    protected function fillResource(array $source): void
+    protected function fillResourceObject(array $source): void
     {
         if (!empty($source['o:resource_class']['o:id'])) {
             $originalId = $source['o:resource_class']['o:id'];
@@ -193,7 +193,7 @@ class OmekaSProcessor extends AbstractFullProcessor
             }
         }
 
-        parent::fillResource($source);
+        parent::fillResourceObject($source);
     }
 
     protected function fillItem(array $source): void

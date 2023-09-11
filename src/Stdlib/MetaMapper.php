@@ -256,7 +256,6 @@ class MetaMapper
         }
 
         $result = [];
-
         if (is_array($data)) {
             $result = $this->convertMappingSectionJson('default', $result, $data, true);
             $result = $this->convertMappingSectionJson('maps', $result, $data);
@@ -309,14 +308,14 @@ class MetaMapper
             $raw = $mod['raw'] ?? '';
             $val = $mod['val'] ?? '';
             if (strlen($raw)) {
-                $resource[$to['dest']] = empty($resource[$to['dest']])
-                    ? [$raw]
-                    : array_merge($resource[$to['dest']], [$raw]);
+                $this->convertFinalize($resource, $to, [$raw]);
                 continue;
             }
 
             // @todo When default, "from" is useless: remove it from normalized config.
-            $querier = $fromTo['from']['querier'] ?? 'jsdot';
+            $querier = $fromTo['from']['querier']
+                ?? $this->metaMapperConfig->getSectionSetting('info', 'querier')
+                ?? 'jsdot';
             $fromPath = $fromTo['from']['path'] ?? null;
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
@@ -358,9 +357,12 @@ class MetaMapper
                             : $prepend . $converted . $append;
                     }
                 } else {
+                    if ($querier === 'index') {
+                        $values = $data[$fromPath] ?? [];
+                    }
                     // Check for associative value. "from" is a full path to data:
                     // [key.to.data => "value"]
-                    if (array_key_exists($fromPath, $flatData)) {
+                    elseif (array_key_exists($fromPath, $flatData)) {
                         $values = $flatData[$fromPath];
                     }
                     // Check for a repetitive value, starting with "fields[].".
@@ -378,7 +380,7 @@ class MetaMapper
                             continue;
                         }
                         // Allows to use multiple mappings in one pattern, managing fields.
-                        $source = $flatData;
+                        $source = $querier === 'index' ? [$fromPath => $value] : $flatData;
                         $source[$fromPath] = $value;
                         $converted = $this->convertTargetToStringJson($fromTo['from'], $mod, $source, $querier, true);
                         if ($converted === null || $converted === '') {
@@ -391,15 +393,7 @@ class MetaMapper
                 }
             }
 
-            if ($result === []) {
-                continue;
-            }
-
-            $result = array_unique($result);
-
-            $resource[$to['dest']] = empty($resource[$to['dest']])
-                ? $result
-                : array_merge($resource[$to['dest']], $result);
+            $this->convertFinalize($resource, $to, $result);
         }
 
         return $resource;
@@ -442,9 +436,7 @@ class MetaMapper
             $raw = $mod['raw'] ?? '';
             $val = $mod['val'] ?? '';
             if (strlen($raw)) {
-                $resource[$to['dest']] = empty($resource[$to['dest']])
-                    ? [$raw]
-                    : array_merge($resource[$to['dest']], [$raw]);
+                $this->convertFinalize($resource, $to, [$raw]);
                 continue;
             }
 
@@ -482,16 +474,55 @@ class MetaMapper
                 }
             }
 
-            if ($result === []) {
-                continue;
-            }
-
-            $resource[$to['dest']] = empty($resource[$to['dest']])
-                ? $result
-                : array_merge($resource[$to['dest']], $result);
+            $this->convertFinalize($resource, $to, $result);
         }
 
         return $resource;
+    }
+
+    /**
+     * Finalize conversion according to the map and append result to resource.
+     *
+     * Data are deduplicated for main keys to avoid issues with complex mappings.
+     * When the output is an array, the key "__value" is used.
+     *
+     * @todo Manage sub types (entity, boolean, etc. here) according to field via the metadataData.
+     */
+    protected function convertFinalize(array &$resource, array $to, ?array $result): self
+    {
+        // Keep empty array here: it may be used for advanced update.
+        if ($result === null) {
+            return $this;
+        }
+
+        // Early deduplicate. Here, result is always an array of string.
+        $result = array_values(array_unique($result));
+
+        $dest = $to['field'];
+        unset($to['field'], $to['dest']);
+
+        $values = [];
+
+        $isScalarField = $to === [];
+        if($isScalarField) {
+            $values = $result;
+        } else {
+            foreach ($result as $data) {
+                $to['__value'] = $data;
+                $values[] = $to;
+            }
+        }
+
+        if (empty($resource[$dest])) {
+            $resource[$dest] = $values;
+        } elseif (empty($values)) {
+            $resource[$dest] = $values;
+        } else {
+            $values = array_merge(array_values($resource[$dest]), $values);
+            $resource[$dest] = array_values(array_intersect_key($values, array_unique(array_map('serialize', $values))));
+        }
+
+        return $this;
     }
 
     /**
@@ -514,13 +545,15 @@ class MetaMapper
 
         $querier = is_array($fromToMod) && isset($fromToMod['from']['querier'])
             ? $fromToMod['from']['querier']
-            : 'value';
+            : $this->metaMapperConfig->getSectionSetting('info', 'querier', 'value');
         switch ($querier) {
+            // Value is used for direct conversion.
             default:
                 $querier = 'value';
                 // no break
             case 'value':
                 return $this->convertTargetToStringJson($name, $fromToMod, $data, $querier, true);
+            case 'index':
             case 'jsdot':
             case 'jmespath':
             case 'jsonpath':
@@ -562,7 +595,7 @@ class MetaMapper
      * static value itself.
      * @param array $data The resource from which extract the data, if needed,
      * and any other value.
-     * @param string $querier "jsdot" (default), "jmespath" or "jsonpath".
+     * @param string $querier "jsdot" (default), "jmespath", "jsonpath", "index" or "value".
      * @param bool $atLeastOneReplacement When set, don't return a value when a
      * pattern has no replacement,
      * @return string The converted value. Without pattern, return the key
@@ -586,7 +619,9 @@ class MetaMapper
         $mod = $mod['mod'] ?? $mod;
 
         // Querier is jsdot by default.
-        if ($querier === 'jmespath') {
+        if ($querier === 'index') {
+            $fromValue = $data[$from];
+        } elseif ($querier === 'jmespath') {
             // TODO Check if data for jmespath are cacheable or automatically cached.
             $fromValue = $data && !is_null($from) ? $this->jmesPathEnv->search($from, $data) : null;
         } elseif ($querier === 'jsonpath') {
@@ -646,6 +681,8 @@ class MetaMapper
                         $replace[$wrappedQuery] = $this->jsonPathQuerier->find($query)->getData();
                     } elseif ($querier === 'jsdot') {
                         $replace[$wrappedQuery] = $flatData[$query] ?? '';
+                    } elseif ($querier === 'index') {
+                        $replace[$wrappedQuery] = $data[$query] ?? '';
                     } else {
                         // TODO A value requires an entry as data.
                         $replace[$wrappedQuery] = '';

@@ -6,7 +6,10 @@ use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
- * A reader returns metadata and files data.
+ * A reader returns metadata and files data by resource name for the mapper.
+ *
+ * It can have a config (implements Configurable) and parameters (implements
+ * Parametrizable).
  */
 interface Reader extends \Iterator, \Countable
 {
@@ -30,14 +33,17 @@ interface Reader extends \Iterator, \Countable
     /**
      * Get the last error message, in particular to know why reader is invalid.
      *
+     * @deprecated
      * @todo Use ErrorStore.
      */
     public function getLastErrorMessage(): ?string;
 
     /**
-     * @param string $objectType An Omeka api key like "items", "vocabularies"…
+     * Set the current resource name to read.
+     *
+     * @param string $resourceName An Omeka api key like items, vocabularies…
      */
-    public function setObjectType($objectType): self;
+    public function setResourceName(string $resourceName): self;
 
     /**
      * Allow to limit results.
@@ -57,7 +63,7 @@ interface Reader extends \Iterator, \Countable
      * It allows to do the mapping in the user interface.
      *
      * Note that these available fields should not be the first output when
-     * `rewind()` is called.
+     * `rewind()` is called, in particular for spreadsheet.
      */
     public function getAvailableFields(): array;
 

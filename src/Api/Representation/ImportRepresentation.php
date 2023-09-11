@@ -37,14 +37,10 @@ class ImportRepresentation extends AbstractEntityRepresentation
 
     public function importer(): ?ImporterRepresentation
     {
-        static $importer;
-        if (is_null($importer)) {
-            $importer = $this->resource->getImporter();
-            if ($importer) {
-                $importer = $this->getAdapter('bulk_importers')->getRepresentation($importer);
-            }
-        }
-        return $importer;
+        $importer = $this->resource->getImporter();
+        return $importer
+            ? $this->getAdapter('bulk_importers')->getRepresentation($importer)
+            : null;
     }
 
     public function comment(): ?string
@@ -105,7 +101,11 @@ class ImportRepresentation extends AbstractEntityRepresentation
         // Create the manual or automatic mapping from the params.
         /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-        return $metaMapperConfig($this->mapper(), $this->mappingParams());
+        return $metaMapperConfig(
+            $this->mapper(),
+            $this->mappingParams(),
+            ['to' => $this->importer()->processor()->getResourceName()]
+        );
     }
 
     public function mappingParams(): array

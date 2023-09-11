@@ -2,11 +2,11 @@
 
 namespace BulkImport\Processor;
 
-use BulkImport\Reader\Reader;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Omeka\Job\AbstractJob as Job;
+use Log\Stdlib\PsrMessage;
+use Omeka\Api\Representation\AbstractEntityRepresentation;
 
 abstract class AbstractProcessor implements Processor
 {
@@ -29,19 +29,16 @@ abstract class AbstractProcessor implements Processor
     /**#@-*/
 
     /**
-     * @var Reader
+     * The resource name to process with this processor.
+     *
+     * @var string
      */
-    protected $reader;
+    protected $resourceName;
 
     /**
-     * @var Logger
+     * @var string
      */
-    protected $logger;
-
-    /**
-     * @var Job
-     */
-    protected $job;
+    protected $resourceLabel;
 
     /**
      * @var \Omeka\Permissions\Acl
@@ -60,7 +57,7 @@ abstract class AbstractProcessor implements Processor
      *
      * @var \Omeka\Api\Manager
      */
-    protected $apiManager;
+    protected $api;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
@@ -86,6 +83,11 @@ abstract class AbstractProcessor implements Processor
      * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
      */
     protected $findResourcesFromIdentifiers;
+
+    /**
+     * @var Logger
+     */
+    protected $logger;
 
     /**
      * @var \BulkImport\Stdlib\MetaMapper
@@ -132,6 +134,16 @@ abstract class AbstractProcessor implements Processor
     protected $isOldOmeka;
 
     /**
+     * @var int
+     */
+    protected $totalErrors;
+
+        /**
+     * @var string|null
+     */
+    protected $lastErrorMessage;
+
+    /**
      * Processor constructor.
      *
      * @param ServiceLocatorInterface $services
@@ -142,7 +154,7 @@ abstract class AbstractProcessor implements Processor
         $this->acl = $services->get('Omeka\Acl');
         $this->settings = $services->get('Omeka\Settings');
         $this->translator = $services->get('MvcTranslator');
-        $this->apiManager = $services->get('Omeka\ApiManager');
+        $this->api = $services->get('Omeka\ApiManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
 
         $this->metaMapper = $services->get('Bulk\MetaMapper');
@@ -167,15 +179,14 @@ abstract class AbstractProcessor implements Processor
         $this->isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
     }
 
-    public function setReader(Reader $reader): self
+    public function getResourceName(): string
     {
-        $this->reader = $reader;
-        return $this;
+        return $this->resourceName;
     }
 
-    public function getReader(): Reader
+    public function getLabel(): string
     {
-        return $this->reader;
+        return $this->resourceLabel;
     }
 
     public function setLogger(Logger $logger): self
@@ -184,9 +195,32 @@ abstract class AbstractProcessor implements Processor
         return $this;
     }
 
-    public function setJob(Job $job): self
+    public function isValid(): bool
     {
-        $this->job = $job;
-        return $this;
+        if (!$this->lastErrorMessage) {
+            return true;
+        } elseif ($this->lastErrorMessage instanceof PsrMessage) {
+            $this->logger->err($this->lastErrorMessage->getMessage(), $this->lastErrorMessage->getContext());
+        } elseif (!is_bool($this->lastErrorMessage)) {
+            $this->logger->err($this->lastErrorMessage);
+        }
+        return false;
+    }
+
+    // TODO Remove these useless methods from here, used to simplify restructuration.
+
+    public function fillResource(array $data, ?int $index = null): ?array
+    {
+        return null;
+    }
+
+    public function checkResource(array $resource): array
+    {
+        return $resource;
+    }
+
+    public function processResource(array $resource): ?AbstractEntityRepresentation
+    {
+        return null;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
-use ArrayObject;
 use BulkImport\Entry\Entry;
 use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
@@ -196,15 +195,12 @@ SQL;
      *
      * The storage is one-based.
      */
-    public function storeCheckedResource(int $index, ?ArrayObject $resource): self
+    public function storeCheckedResource(int $index, ?array $data): self
     {
-        if ($resource) {
-            $data = $resource->getArrayCopy();
-            $data['has_error'] = $data['has_error'] ?? $data['messageStore']->hasErrors();
-            // There shall not be any object except message store inside array.
+        if (is_array($data)) {
+            $data['has_error'] = $data['has_error'] ?? (isset($data['messageStore']) ? $data['messageStore']->hasErrors() : null);
+            // There shall not be any object except message store insi$e array.
             unset($data['messageStore']);
-        } else {
-            $data = null;
         }
         $this->userSettings->set($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT), $data);
         return $this;
@@ -245,7 +241,7 @@ SQL;
      *
      * The storage is one-based.
      */
-    public function logCheckedResource(int $index, ?ArrayObject $resource, ?Entry $entry = null): self
+    public function logCheckedResource(int $index, ?array $resource, ?Entry $entry = null): self
     {
         static $severities;
 

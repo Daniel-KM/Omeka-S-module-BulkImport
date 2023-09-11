@@ -747,7 +747,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 $this->tableData[$table] = $this->reader
                     ->setFilters([])
                     ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
-                    ->setObjectType($table)
+                    ->setResourceName($table)
                     ->fetchAll();
             } catch (\Exception $e) {
                 $this->tableData[$table] = [];
@@ -759,7 +759,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 $this->tableDataBy[$table] = $this->reader
                     ->setFilters([])
                     ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
-                    ->setObjectType($table)
+                    ->setResourceName($table)
                     ->fetchAll(null, 'eprintid');
             } catch (\Exception $e) {
                 $this->tableDataBy[$table] = [];
@@ -772,7 +772,7 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->tableData['directors'] = $this->reader
                 ->setFilters([])
                 ->setOrders([['by' => 'eprintid']])
-                ->setObjectType('eprint')
+                ->setResourceName('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific']);
         } catch (\Exception $e) {
             $this->tableData['directors'] = [];
@@ -782,7 +782,7 @@ class EprintsProcessor extends AbstractFullProcessor
             $this->tableDataBy['directors'] = $this->reader
                 ->setFilters([])
                 ->setOrders([['by' => 'eprintid']])
-                ->setObjectType('eprint')
+                ->setResourceName('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific'], 'eprintid');
         } catch (\Exception $e) {
             $this->tableDataBy['directors'] = [];
@@ -873,7 +873,7 @@ class EprintsProcessor extends AbstractFullProcessor
         $roots = $this->reader
             ->setFilters(['parents = "ROOT"'])
             ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'parents']])
-            ->setObjectType('subject_parents')
+            ->setResourceName('subject_parents')
             ->fetchAllKeyValues('subjectid');
 
         $ids = $this
@@ -2936,27 +2936,27 @@ class EprintsProcessor extends AbstractFullProcessor
         $depositables = $this->reader
             ->setFilters([])
             ->setOrders([['by' => 'subjectid']])
-            ->setObjectType('subject')
+            ->setResourceName('subject')
             ->fetchAllKeyValues('subjectid', 'depositable');
         $nameByIds = $this->reader
             ->setFilters([])
             ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'name_name']])
-            ->setObjectType('subject_name_name')
+            ->setResourceName('subject_name_name')
             ->fetchAll(null, 'subjectid');
         $langByIds = $this->reader
             ->setFilters([])
             ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'name_lang']])
-            ->setObjectType('subject_name_lang')
+            ->setResourceName('subject_name_lang')
             ->fetchAll(null, 'subjectid');
         $parents = $this->reader
             ->setFilters([])
             ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'parents']])
-            ->setObjectType('subject_parents')
+            ->setResourceName('subject_parents')
             ->fetchAll();
         $ancestorByIds = $this->reader
             ->setFilters([])
             ->setOrders([['by' => 'subjectid'], ['by' => 'pos'], ['by' => 'ancestors']])
-            ->setObjectType('subject_ancestors')
+            ->setResourceName('subject_ancestors')
             ->fetchAll(null, 'subjectid');
         // Reset the reader.
         $this->prepareReader('concepts');

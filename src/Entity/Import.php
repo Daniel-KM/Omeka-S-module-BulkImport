@@ -15,6 +15,7 @@ class Import extends AbstractEntity
 {
     /**
      * @var int
+     *
      * @Id
      * @Column(
      *     type="integer"

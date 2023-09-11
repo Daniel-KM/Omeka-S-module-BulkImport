@@ -83,16 +83,20 @@ abstract class AbstractFileMultipleReader extends AbstractReader
             $file = $this->getParam('file') ?: [];
             // Early check for a single uploaded file.
             $this->currentFilepath = $filepath;
-            return $this->bulkFile->isValidFilepath($filepath, $file)
-                && $this->isValidMore();
+            if (!$this->bulkFile->isValidFilepath($filepath, $file, null, $this->lastErrorMessage)) {
+                return parent::isValid();
+            }
+            if (!$this->isValidMore()) {
+                return parent::isValid();
+            }
         } else {
             $this->listFiles = $this->getParam('list_files') ?: [];
         }
 
         foreach ($this->listFiles as $fileUrl) {
             if ($this->bulk->isUrl($fileUrl)) {
-                if (!$this->bulkFile->isValidUrl($fileUrl)) {
-                    return false;
+                if (!$this->bulkFile->isValidUrl($fileUrl, $this->lastErrorMessage)) {
+                    return parent::isValid();
                 }
                 $filename = $this->bulkFile->fetchUrlToTempFile($fileUrl);
                 if (!$filename) {
@@ -100,25 +104,25 @@ abstract class AbstractFileMultipleReader extends AbstractReader
                         'Url "{url}" is invalid, empty or unavailable.', // @translate
                         ['url' => $url]
                     );
-                    return false;
+                    return parent::isValid();
                 }
                 $this->params['filename'] = $filename;
-                if (!$this->bulkFile->isValidFilepath($filename)) {
-                    return false;
+                if (!$this->bulkFile->isValidFilepath($filename, [], null, $this->lastErrorMessage)) {
+                    return parent::isValid();
                 }
             } else {
                 $this->params['filename'] = $fileUrl;
-                if (!$this->bulkFile->isValidFilepath($fileUrl)) {
-                    return false;
+                if (!$this->bulkFile->isValidFilepath($fileUrl, [], null, $this->lastErrorMessage)) {
+                    return parent::isValid();
                 }
             }
             $this->currentFilepath = $this->params['filename'];
             if (!$this->isValidMore()) {
-                return false;
+                return parent::isValid();
             }
         }
 
-        return true;
+        return parent::isValid();
     }
 
     protected function isValidMore(): bool

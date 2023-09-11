@@ -142,20 +142,17 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
     public function mapping(): ?array
     {
-        if ($this->metaMapperMapping !== false) {
-            return $this->metaMapperMapping;
-        }
-
         $mapper = $this->mapper();
         if (in_array((string) $mapper, ['', 'automatic', 'manual'])) {
-            $this->metaMapperMapping = null;
-        } else {
-            /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
-            $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-            $this->metaMapperMapping = $metaMapperConfig($mapper, $mapper);
+            return null;
         }
-
-        return $this->metaMapperMapping;
+        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
+        $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
+        return $metaMapperConfig(
+            $mapper,
+            $mapper,
+            ['to' => $this->processor()->getResourceName()]
+        );
     }
 
     public function bulkMapping(): ?MappingRepresentation

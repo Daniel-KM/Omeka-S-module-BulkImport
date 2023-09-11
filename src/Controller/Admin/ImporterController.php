@@ -276,6 +276,7 @@ class ImporterController extends AbstractActionController
      * Process a bulk import by step: reader, mapper, processor and confirm.
      *
      * @todo Simplify code of this three steps process.
+     * @todo Move to ImportController.
      *
      * @return \Laminas\Http\Response|\Laminas\View\Model\ViewModel
      */
@@ -306,8 +307,6 @@ class ImporterController extends AbstractActionController
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk');
         }
-
-        $processor->setReader($reader);
 
         /** @var \Laminas\Session\SessionManager $sessionManager */
         $sessionManager = Container::getDefaultManager();
@@ -621,7 +620,6 @@ class ImporterController extends AbstractActionController
         }
 
         $processor = $importer->processor();
-        $processor->setReader($reader);
 
         $mapper = $importer->mapper();
         if ($mapper === 'manual') {

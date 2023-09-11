@@ -12,6 +12,7 @@ use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Form;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Log\Stdlib\PsrMessage;
 
 /**
  * @todo The reader itself may be an iterator or an array. Here too?
@@ -64,8 +65,14 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $availableFields = [];
 
     /**
-     * This is the resource name ("resources", "assets").
+     * @var string
+     */
+    protected $resourceName;
+
+    /**
+     * This is the resource name ("resources", "assets") or the table name.
      *
+     * @deprecated
      * @var string
      */
     protected $objectType;
@@ -163,7 +170,14 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 
     public function isValid(): bool
     {
-        return true;
+        if (!$this->lastErrorMessage) {
+            return true;
+        } elseif ($this->lastErrorMessage instanceof PsrMessage) {
+            $this->logger->err($this->lastErrorMessage->getMessage(), $this->lastErrorMessage->getContext());
+        } elseif (!is_bool($this->lastErrorMessage)) {
+            $this->logger->err($this->lastErrorMessage);
+        }
+        return false;
     }
 
     public function getLastErrorMessage(): ?string
@@ -206,9 +220,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         return $this;
     }
 
-    public function setObjectType($objectType): self
+    public function setResourceName(string $resourceName): self
     {
-        $this->objectType = $objectType;
+        $this->resourceName = $resourceName;
+        // TODO Remove object type.
+        $this->objectType = $resourceName;
         return $this;
     }
 

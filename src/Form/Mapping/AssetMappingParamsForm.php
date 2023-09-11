@@ -2,14 +2,15 @@
 
 namespace BulkImport\Form\Mapping;
 
+use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Form\Form;
 
-// TODO
-
 class AssetMappingParamsForm extends Form
 {
+    use ServiceLocatorAwareTrait;
+
     public function init(): void
     {
         $this
@@ -152,7 +153,7 @@ class AssetMappingParamsForm extends Form
         $result = array_fill_keys($availableFields, null);
         foreach ($availableFields as $index => $availableField) {
             $lower = mb_strtolower($availableField);
-            if (in_array($lower, $maps)) {
+            if (isset($maps[$lower])) {
                 $result[$index] = $maps[$lower];
             } else {
                 $alphaLower = preg_replace('~[^a-z0-9]~', '', $lower);

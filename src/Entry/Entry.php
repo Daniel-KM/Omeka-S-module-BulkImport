@@ -2,17 +2,26 @@
 
 namespace BulkImport\Entry;
 
+use ArrayAccess;
+use Countable;
+use IteratorAggregate;
+use JsonSerializable;
+use SimpleXMLElement;
+
 /**
  * Represent a resource in s specific format.
  *
  * The iterator allows to iterate on each metadata. For example an entry may be
  * a row of a spreadsheet, so each metadata is a column, that is multivalued.
  * It may be a node of an xml source, where each metadata is a child node.
+ * This feature may is no more available for some formats for now (xml).
  *
  * @todo Extend Entry from ArrayObject (or ArrayIterator)?
+ * @todo Remove iterator since it is managed by metaMapper.
+ *
  * \IteratorAggregate implies \Traversable.
  */
-interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializable
+interface Entry extends IteratorAggregate, ArrayAccess, Countable, JsonSerializable
 {
     /**
      * Indicates that the entry has no content, so probably to be skipped.
@@ -22,19 +31,24 @@ interface Entry extends \IteratorAggregate, \ArrayAccess, \Countable, \JsonSeria
     /**
      * Get the full entry as an array, instead of value by value.
      *
+     * Some format cannot be converted into an array for now (xml).
+     *
      * Generally the same output than jsonSerialize().
+     *
+     * @todo Convert xml to nested array to allow mapping?
      */
     public function getArrayCopy(): array;
 
     /**
-     * Get values according to a map.
+     * Get the full entry as xml.
      *
-     * The map is an array that sets "from", "to" and "mod".
-     * @see \BulkImport\Stdlib\MetaMapperConfig
+     * It may have been processed internally (xml).
      *
-     * @experimental May be removed in a future version.
+     * Some formats cannot be converted into an xml for now (array).
+     *
+     * @todo Convert nested array to xml to simplify mapping.
      */
-    public function valuesFromMap(array $map): array;
+    public function getXmlCopy(): ?SimpleXMLElement;
 
     /**
      * @return int The 1-based source index of the resource.

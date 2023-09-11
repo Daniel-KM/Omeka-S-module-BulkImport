@@ -484,8 +484,9 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     protected $resourceName;
 
     /**
-     * The current object type (source name).
+     * The current resource name.
      *
+     * @deprecated Use resourceName.
      * @var string|null
      */
     protected $objectType;
@@ -1471,7 +1472,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 $this->mapping[$resourceName]['sort_by'] ?? $this->mapping[$resourceName]['key_id'],
                 $this->mapping[$resourceName]['sort_dir'] ?? 'ASC'
             )
-            ->setObjectType($this->mapping[$resourceName]['source']);
+            ->setResourceName($this->mapping[$resourceName]['source']);
     }
 
     /**

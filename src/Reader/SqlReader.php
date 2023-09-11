@@ -125,17 +125,15 @@ class SqlReader extends AbstractPaginatedReader
             $results = $stmt->execute();
         } catch (\Laminas\Db\Adapter\Exception\ExceptionInterface $e) {
             $this->lastErrorMessage = $e->getMessage();
-            $this->logger->err($this->lastErrorMessage);
-            return false;
+            return parent::isValid();
         }
 
         if (empty($results->current())) {
             $this->lastErrorMesage = 'The database seems empty: there is no data in a core table.'; // @translate
-            $this->logger->err($this->lastErrorMessage);
-            return false;
+            return parent::isValid();
         }
 
-        return true;
+        return parent::isValid();
     }
 
     /**

@@ -48,6 +48,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             'url' => null,
             // Generic.
             'o:id' => null,
+            // TODO Use all data names and storage ids from data to find existing assets before update. Keep source data as a key of resource to simplify process.
             // Asset.
             'o:name' => null,
             'o:media_type' => null,
@@ -60,8 +61,15 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         ],
         'multiple_entities' => [
             // Attached resources for thumbnails.
-            // TODO Fill resource for assets early.
             // 'o:resource' => null,
+        ],
+        'misc' => [
+            'o:id' => null,
+            'o:storage_id' => null,
+            'o:media_type' => null,
+            'file' => null,
+            'url' => null,
+            'o:resource' => null,
         ],
     ];
 
@@ -98,6 +106,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             self::ACTION_DELETE,
             self::ACTION_SKIP,
         ])) {
+            ++$this->totalErrors;
             $this->logger->err(
                 'Action "{action}" is not managed.', // @translate
                 ['action' => $this->action]
@@ -129,18 +138,18 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function fillResource(ArrayObject $resource, array $map, array $values): self
+    protected function fillResourceData(ArrayObject $resource, array $data): self
     {
-        $field = $map['to']['field'] ?? null;
-
-        switch ($field) {
+        // TODO Factorize with ResourceProcessor and AssetProcessor.
+        foreach (array_intersect_key($resource->getArrayCopy(), $this->metadataData['misc']) as $field => $values) switch ($field) {
             default:
-                break;
+                continue 2;
 
             case 'o:id':
-                $value = (int) end($values);
+                $value = (int) $values;
                 if (!$value) {
-                    break;
+                    $resource['o:id'] = null;
+                    continue 2;
                 }
                 $id = empty($this->identifiers['mapx'][$resource['source_index']])
                     ? $this->bulk->api()->searchOne('assets', ['id' => $value])->getContent()
@@ -154,42 +163,13 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         ['index' => $resource['source_index']]
                     ));
                 }
-                break;
-
-            case 'o:owner':
-                $value = end($values);
-                if (!$value) {
-                    break;
-                }
-                if (is_array($value)) {
-                    $id = empty($value['o:id']) ? null : $value['o:id'];
-                    $email = empty($value['o:email']) ? null : $value['o:email'];
-                    $value = $id ?? $email ?? reset($value);
-                }
-                $id = $this->getUserId($value);
-                if ($id) {
-                    $resource['o:owner'] = empty($email)
-                        ? ['o:id' => $id]
-                        : ['o:id' => $id, 'o:email' => $email];
-                } else {
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The user "{source}" does not exist.', // @translate
-                        ['source' => $value]
-                    ));
-                }
-                break;
-
-            case 'o:name':
-                $value = end($values);
-                if ($value) {
-                    $resource[$field] = $value;
-                }
-                break;
+                continue 2;
 
             case 'o:storage_id':
-                $value = (int) end($values);
+                $value = $values;
                 if (!$value) {
-                    break;
+                    $resource['o:storage_id'] = null;
+                    continue 2;
                 }
                 try {
                     $id = empty($this->identifiers['mapx'][$resource['source_index']])
@@ -207,11 +187,13 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         ['index' => $resource['source_index']]
                     ));
                 }
-                break;
+                continue 2;
 
             case 'o:media_type':
-                $value = end($values);
-                if ($value) {
+                $value = $values;
+                if (!$value) {
+                    $resource[$field] = null;
+                } else {
                     if (preg_match('~(?:application|image|audio|video|model|text)/[\w.+-]+~', $value)) {
                         $resource[$field] = $value;
                     } else {
@@ -221,25 +203,15 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                         ));
                     }
                 }
-                break;
-
-            case 'o:alt_text':
-                $value = end($values);
-                $resource[$field] = $value;
-                break;
+                continue 2;
 
             case 'url':
-                $value = end($values);
-                if ($value) {
-                    $resource['o:ingester'] = 'url';
-                    $resource['ingest_url'] = $value;
-                }
-                break;
-
             case 'file':
-                $value = end($values);
+                $value = $values;
                 if (!$value) {
-                    break;
+                    $resource['o:ingester'] = null;
+                    $resource['ingest_url'] = null;
+                    $resource['ingest_filename'] = null;
                 } elseif ($this->bulk->isUrl($value)) {
                     $resource['o:ingester'] = 'url';
                     $resource['ingest_url'] = $value;
@@ -247,20 +219,24 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $resource['o:ingester'] = 'sideload';
                     $resource['ingest_filename'] = $value;
                 }
-                break;
+                continue 2;
 
             case 'o:resource':
                 // Check values one by one to manage source identifiers.
-                foreach ($values as $value) {
-                    $humbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore']);
-                    if ($humbnailForResourceId) {
-                        $resource['o:resource'][] = [
-                            'o:id' => $humbnailForResourceId,
+                foreach ($values as $key => $value) {
+                    if (!$value) {
+                        unset($resource[$field][$key]);
+                        continue;
+                    }
+                    $thumbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore']);
+                    if ($thumbnailForResourceId) {
+                        $resource['o:resource'][$key] = [
+                            'o:id' => $thumbnailForResourceId,
                             'checked_id' => true,
                             // TODO Set the source identifier anywhere.
                         ];
                     } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
-                        $resource['o:resource'][] = [
+                        $resource['o:resource'][$key] = [
                             'o:id' => (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§'),
                             'checked_id' => true,
                             'source_identifier' => $value,
@@ -268,13 +244,14 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     } else {
                         // Only for first loop. Normally not possible after: all
                         // identifiers are stored in the list "map" during first loop.
+                        $valueForMsg = mb_strlen($value) > 50 ? mb_substr($value, 0, 50) . '…' : $value;
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not a resource.', // @translate
-                            ['value' => mb_substr((string) $value, 0, 50)]
+                            ['value' => $valueForMsg]
                         ));
                     }
                 }
-                break;
+                continue 2;
         }
 
         return $this;
@@ -297,7 +274,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             } else {
                 $resource['o:name'] = trim((string) $resource['o:name']);
             }
-        } elseif (array_key_exists('o:name', $resource)) {
+        } elseif (array_key_exists('o:name', $resource->getArrayCopy())) {
             $resource['o:name'] = trim((string) $resource['o:name']);
         }
 
@@ -308,23 +285,26 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      * Process creation of resources.
      *
      * Assets require an uploaded file, so bypass api and parent method.
+     *
+     * @return array Created resources.
      */
-    protected function createResources($resourceName, array $dataResources): self
+    protected function createResources($resourceName, array $dataResources): array
     {
         if (!count($dataResources)) {
-            return $this;
+            return [];
         }
 
         $baseResource = $this->baseEntity();
         $messageStore = $baseResource['messageStore'];
 
         $resources = [];
+
         foreach ($dataResources as $dataResource) {
             $resource = $this->createAsset($dataResource, $messageStore);
             if (!$resource) {
-                $this->bulkCheckLog->logCheckedResource($this->indexResource, $baseResource);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $baseResource->getArrayCopy());
                 ++$this->totalErrors;
-                return $this;
+                return $resources;
             }
 
             $resources[$resource->id()] = $resource;
@@ -336,13 +316,11 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
 
             $dataResource['o:id'] = $resource->id();
             if (!$this->updateThumbnailForResources($dataResource)) {
-                return $this;
+                return $resources;
             }
         }
 
-        $this->recordCreatedResources($resources);
-
-        return $this;
+        return $resources;
     }
 
     /**
@@ -361,7 +339,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             ?? $dataResource['ingest_url'] ?? $dataResource['ingest_filename']
             ?? null;
 
-        $this->bulkFile->setCheckAssetMediaType(true);
+        $this->bulkFile->setIsAsset(true);
         $result = $this->bulkFile->checkFileOrUrl($pathOrUrl, $messageStore);
         if (!$result) {
             return null;
@@ -420,6 +398,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
     }
 
     /**
+     * Only name and alt text are update for now (see api AssetAdapter).
+     * Thumbnails of resources are updatable too.
+     *
      * @see \BulkImport\Processor\ResourceUpdateTrait
      */
     protected function updateDataAsset($resourceName, array $dataResource): array
@@ -438,7 +419,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 'Index #{index}: The resource {resource} #{id} is not available and cannot be updated.', // @translate
                 ['index' => $this->indexResource, 'resource' => 'asset', 'id', $dataResource['o:id']]
             ));
-            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
             ++$this->totalErrors;
             return null;
         }
@@ -473,7 +454,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     ));
                     $messages = $this->listValidationMessages(new ValidationException($e->getMessage()));
                     $r['messageStore']->addError('resource', $messages);
-                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
+                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r->getArrayCopy());
                     ++$this->totalErrors;
                     return null;
                 }
@@ -488,47 +469,5 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $this->updateResources('resources', $thumbnailResources);
         $this->action = $assetAction;
         return $this;
-    }
-
-    protected function findAssetsFromIdentifiers(array $identifiers, $identifierNames): array
-    {
-        // There are only two unique columns in assets and the table is
-        // generally small and the api doesn't allow to search them, so extract
-        // them all. The name is allowed too, even if not unique.
-
-        if (!$identifiers || !$identifierNames) {
-            return [];
-        }
-
-        $idNames = [];
-        if (in_array('o:name', $identifierNames)) {
-            $idNames = $this->bulk->api()->search('assets', [], ['returnScalar' => 'name'])->getContent();
-        }
-        $idStorages = [];
-        if (in_array('o:storage_id', $identifierNames)) {
-            $idStorages = $this->bulk->api()->search('assets', [], ['returnScalar' => 'storageId'])->getContent();
-        }
-        if (empty($idNames) && empty($idStorages)) {
-            return [];
-        }
-
-        $result = array_fill_keys($identifiers, null);
-
-        // Start by name to override it because it is not unique.
-        if (in_array('o:name', $identifierNames)) {
-            $result = array_replace($result, array_flip($idNames));
-        }
-
-        if (in_array('o:storage_id', $identifierNames)) {
-            $result = array_replace($result, array_flip($idStorages));
-        }
-
-        if (in_array('o:id', $identifierNames)) {
-            $ids = array_keys($idStorages ?: $idNames);
-            $ids = array_combine($ids, $ids);
-            $result = array_replace($result, $ids);
-        }
-
-        return $result;
     }
 }

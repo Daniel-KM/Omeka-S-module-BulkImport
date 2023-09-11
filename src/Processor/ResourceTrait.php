@@ -347,7 +347,7 @@ SQL;
         }
     }
 
-    protected function fillResource(array $source): void
+    protected function fillResourceObject(array $source): void
     {
         // Omeka entities are not fluid.
         $this->entity->setOwner($this->userOrDefaultOwner($source['o:owner']));
@@ -885,7 +885,7 @@ SQL;
 
     protected function fillItem(array $source): void
     {
-        $this->fillResource($source);
+        $this->fillResourceObject($source);
 
         $itemSets = $this->entity->getItemSets();
         $itemSetIds = [];
@@ -905,7 +905,7 @@ SQL;
 
     protected function fillMedia(array $source): void
     {
-        $this->fillResource($source);
+        $this->fillResourceObject($source);
 
         $item = $this->entityManager->find(\Omeka\Entity\Item::class, $source['o:item']['o:id']);
         $this->entity->setItem($item);
@@ -979,7 +979,7 @@ SQL;
 
     protected function fillItemSet(array $source): void
     {
-        $this->fillResource($source);
+        $this->fillResourceObject($source);
 
         $this->entity->setIsOpen(!empty($source['o:is_open']));
     }

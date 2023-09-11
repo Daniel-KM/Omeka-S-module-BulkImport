@@ -3,6 +3,7 @@
 namespace BulkImport\Entry;
 
 use SimpleXMLElement;
+use XMLReaderNode;
 
 class XmlEntry extends BaseEntry
 {
@@ -23,74 +24,54 @@ class XmlEntry extends BaseEntry
 
     protected function init(): void
     {
-        // To check xml:
-        // echo $this->data->getSimpleXMLElement()->asXML();
-        // $this->logger->debug($this->data->getSimpleXMLElement()->asXML());
-
-        // Convert the data according to the mapping here.
-        if (!empty($this->options['is_formatted'])
-            || empty($this->options['metaMapper'])
-        ) {
-            return;
-        }
-
-        if (is_null($this->data)) {
+        if ($this->data instanceof XMLReaderNode) {
+            $simpleData = $this->data->getSimpleXMLElement();
+            // Fix issue with cdata (no: it will escape html tags).
+            $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
+        } elseif (!$this->data instanceof SimpleXMLElement) {
             $this->data = [];
             return;
         }
 
-        /** @var \BulkImport\Stdlib\MetaMapper $metaMapper */
-        $metaMapper = $this->options['metaMapper'];
+        // To check xml:
+        // echo $simpleData->asXML();
+        // $this->logger->debug($simpleData->asXML());
 
-        /** @var \XMLReaderNode $data */
-        $simpleData = $this->data->getSimpleXMLElement();
-        $namespaces = [null] + $simpleData->getNamespaces(true);
-
-        // Fix issue with cdata (no: it will escape html tags).
-        $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
-
-        if (!$metaMapper->getMetaMapping()) {
-            $this->extractWithoutMapping($simpleData, $namespaces);
-            return;
-        }
-
-        // TODO Manage multiple resources inside one file.
         // Remove wrapper to keep mapping simple with xpath adapted to source.
+        // There should be only one resource, else use a xsl to separate them.
         $unwrappedData = null;
         foreach ($simpleData->xpath('/resource/child::*[1]') as $node) {
             // Avoid warning on missing namespaces. But here, it doesn't matter.
             // TODO Log warning on missing namespaces instead of output.
-            $unwrappedData = @new SimpleXMLElement($node->asXML());
+            $unwrappedData = @new SimpleXMLElement($node->asXML()) ?: null;
             break;
         }
-        if (!$unwrappedData) {
-            $this->data = [];
-            return;
-        }
+        $this->xml = $unwrappedData;
+        $this->data = [];
+    }
 
-        // The real resource type is set via config or via processor.
-        $resource = $metaMapper->convert($unwrappedData);
-
-        // Filter duplicated and null values.
-        foreach ($resource as &$datas) {
-            $datas = array_values(array_unique(array_filter(array_map('strval', $datas), 'strlen')));
-        }
-        unset($datas);
-
-        $this->data = $resource;
+    public function isEmpty(): bool
+    {
+        return $this->xml === null;
     }
 
     /**
      * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
      */
-    protected function extractWithoutMapping($simpleData, $namespaces)
+    public function extractWithoutMapping(): array
     {
-        $array = $this->attributes($simpleData);
+        if ($this->xml === null) {
+            return [];
+        }
+
+        $namespaces = [null] + $this->xml->getNamespaces(true);
+
+        $array = $this->attributes($this->xml);
 
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
-                ? $simpleData->children($namespace)
-                : $simpleData->children();
+                ? $this->xml->children($namespace)
+                : $this->xml->children();
             foreach ($nsElements as $element) {
                 $term = ($prefix ? $prefix . ':' : '') . $element->getName();
                 $singleValue = false;
@@ -131,6 +112,7 @@ class XmlEntry extends BaseEntry
         }
 
         $this->data = $array;
+        return $this->data;
     }
 
     protected function initItemSet(SimpleXMLElement $element): ?array
@@ -198,7 +180,7 @@ class XmlEntry extends BaseEntry
                                 $resource['ingest_filename'],
                                 $resource['ingest_directory'],
                                 $resource['html']
-                            );
+                                );
                             $resource = array_replace($resource, $value);
                             $value = null;
                         }
@@ -309,7 +291,7 @@ class XmlEntry extends BaseEntry
                     'ingest_url' => $value,
                     'o:source' => $value,
                 ];
-                return true;
+                break;
 
             /*
             case 'tile':
@@ -361,7 +343,7 @@ class XmlEntry extends BaseEntry
                 throw new \Exception('Unable to import a linked resource via xml currently.'); // @translate
                 break;
 
-                // Module Custom Vocab.
+            // Module Custom Vocab.
 
             case substr($type, 0, 12) === 'customvocab:':
                 // TODO Manage items and uri by type for customvocab.
@@ -371,7 +353,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module Value Suggest (may be valuesuggest or valuesuggestall).
+            // Module Value Suggest (may be valuesuggest or valuesuggestall).
 
             case substr($type, 0, 12) === 'valuesuggest':
                 $value = [
@@ -381,7 +363,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module Data type Rdf.
+            // Module Data type Rdf.
 
             case 'html':
             case 'rdf:HTML':
@@ -411,7 +393,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module DataTypeGeometry.
+            // Module DataTypeGeometry.
 
             case 'geography':
             case 'geometry':
@@ -439,7 +421,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module Numeric data types.
+            // Module Numeric data types.
 
             case 'numeric:integer':
             case 'xsd:integer':
@@ -476,7 +458,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module RdfDataType (deprecated).
+            // Module RdfDataType (deprecated).
 
             case 'xsd:date':
             case 'xsd:dateTime':
@@ -503,7 +485,7 @@ class XmlEntry extends BaseEntry
                 }
                 break;
 
-                // TODO Need conversion to numeric timestamp. See this module.
+            // TODO Need conversion to numeric timestamp. See this module.
             case 'xsd:decimal':
             case 'xsd:gDay':
             case 'xsd:gMonth':
@@ -516,7 +498,7 @@ class XmlEntry extends BaseEntry
                 ];
                 break;
 
-                // Module IdRef (deprecated).
+            // Module IdRef (deprecated).
             case 'idref':
                 $value = [
                     'type' => 'valuesuggest:idref:person',
@@ -533,12 +515,6 @@ class XmlEntry extends BaseEntry
         }
 
         return $value;
-    }
-
-    public function isEmpty(): bool
-    {
-        // Unlike Entry, data are filtered during array conversion.
-        return !count($this->data);
     }
 
     /**
@@ -563,7 +539,7 @@ class XmlEntry extends BaseEntry
             $value .= $child->ownerDocument->saveXML($child, $this->xmlOptions) . PHP_EOL;
         }
         $value = trim($value);
-        */
+         */
 
         $value = trim((string) $element->asXml());
         $pos = mb_strpos($value, '>');
@@ -626,7 +602,7 @@ class XmlEntry extends BaseEntry
      * @param string $string
      * @return bool
      */
-    protected function isUrl($string)
+    protected function isUrl($string): bool
     {
         return strpos($string, 'https:') === 0
             || strpos($string, 'http:') === 0

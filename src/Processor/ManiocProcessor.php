@@ -2720,7 +2720,7 @@ SQL;
     {
         // @see https://dev.mysql.com/doc/refman/8.0/en/load-data.html
         // Default input is tab-separated values without enclosure.
-        $this->reader->setObjectType($table);
+        $this->reader->setResourceName($table);
         $filepath = $this->reader->saveCsv();
         if (!$filepath) {
             $this->hasError = true;

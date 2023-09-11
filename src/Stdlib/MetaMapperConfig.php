@@ -82,8 +82,10 @@ class MetaMapperConfig
                 // Label is the only required data.
                 'label' => 'Default empty mapping', // @translate
                 'from' => null,
+                // The resource name, like "resources" or "assets".
                 'to' => null,
-                // xpath, jsonpath, jsdot, jmespath.
+                // xpath, jsonpath, jsdot, jmespath or index.
+                // Index is used for simple array, like a spreadsheet header.
                 'querier' => null,
                 // Used by ini for json. In xml, include can be used.
                 'mapper' => null,
@@ -383,7 +385,7 @@ class MetaMapperConfig
             }
         }
 
-        // Validate mapping as a whole for default and maping.
+        // Validate mapping as a whole for default and maps.
         if ($normalizedMapping) {
             foreach (['default', 'maps'] as $section) {
                 if (!$this->areValidMaps($normalizedMapping[$section])) {
@@ -411,8 +413,8 @@ class MetaMapperConfig
             'info' => $options['infos'] ?? [
                 'label' => $options['label'] ?? $this->mappingName,
                 'from' => null,
-                'to' => null,
-                'querier' => null,
+                'to' => $options['to'] ?? null,
+                'querier' => 'index',
                 'mapper' => null,
                 'example' => null,
             ],
@@ -426,7 +428,12 @@ class MetaMapperConfig
 
         foreach (['default', 'maps'] as $section) {
             $options['section'] = $section;
-            $normalizedMapping[$section] = $this->normalizeMaps($normalizedMapping[$section], $options);
+            $fromTo = $this->normalizeMaps($normalizedMapping[$section], $options);
+            foreach ($fromTo as &$fromToElement) {
+                $fromToElement['from']['path'] = $fromToElement['from']['index'];
+            }
+            unset($fromToElement);
+            $normalizedMapping[$section] = $fromTo;
         }
 
         // TODO Merge with upper mappings.
@@ -1006,7 +1013,8 @@ class MetaMapperConfig
 
         // For resource properties by default.
         // Most of other metadata have no data anyway.
-        $resourceName = $normalizedMap['infos']['to'] ?? 'resources';
+        // TODO Manage sub types (entity, boolean, etc. here) according to field via the metadataData.
+        $resourceName = $normalizedMap['infos']['to'] ?? $options['to'] ?? 'resources';
         switch ($resourceName) {
             case 'assets':
                 $toKeys = [
@@ -1017,10 +1025,15 @@ class MetaMapperConfig
             default:
                 $toKeys = [
                     'field' => null,
+                    // For all values.
+                    'type' => null,
                     'property_id' => null,
-                    'datatype' => null,
-                    'language' => null,
                     'is_public' => null,
+                    // Allow to manage default values.
+                    'language' => null,
+                    // Other keys are added in processing.
+                    // Specific keys used for process.
+                    'datatype' => [],
                 ];
         }
 
@@ -1082,6 +1095,8 @@ class MetaMapperConfig
 
         if ($isDefaultMapping) {
             $result['from'] = null;
+        } elseif (isset($xmlArray['from']['@attributes']['index']) && strlen((string) $xmlArray['from']['@attributes']['index'])) {
+            $result['from'] = ['querier' => 'index', 'path' => (string) $xmlArray['from']['@attributes']['index']];
         } elseif (isset($xmlArray['from']['@attributes']['jsdot']) && strlen((string) $xmlArray['from']['@attributes']['jsdot'])) {
             $result['from'] = ['querier' => 'jsdot', 'path' => (string) $xmlArray['from']['@attributes']['jsdot']];
         } elseif (isset($xmlArray['from']['@attributes']['jmespath']) && strlen((string) $xmlArray['from']['@attributes']['jmespath'])) {
@@ -1224,6 +1239,8 @@ class MetaMapperConfig
             'output_property_id' => true,
         ];
 
+        // Automap fields is designed mainly for resources.
+        // TODO Modify process or modify automapFields for other types than resources.
         $result = $this->automapFields->__invoke([$string], $defaultOptions + $options);
         if (empty($result)) {
             return null;

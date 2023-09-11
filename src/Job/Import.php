@@ -2,7 +2,6 @@
 
 namespace BulkImport\Job;
 
-use BulkImport\Api\Representation\ImportRepresentation;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Processor\Manager as ProcessorManager;
@@ -13,53 +12,11 @@ use Laminas\Log\Logger;
 use Laminas\Router\Http\RouteMatch;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
-use Omeka\Entity\Job;
 use Omeka\Job\AbstractJob;
 
-/**
- * @todo Make the importer manages whole process with reader, mapping and processor? So the processor will be api / create / update.
- */
 class Import extends AbstractJob
 {
-    /**
-     * @var \Laminas\Log\Logger
-     */
-    protected $logger;
-
-    /**
-     * @var \Omeka\Api\Manager
-     */
-    protected $api;
-
-    /**
-     * @var \BulkImport\Stdlib\MetaMapper
-     */
-    protected $metaMapper;
-
-    /**
-     * @var \BulkImport\Api\Representation\ImportRepresentation
-     */
-    protected $import;
-
-    /**
-     * @var \BulkImport\Api\Representation\ImporterRepresentation
-     */
-    protected $importer;
-
-    /**
-     * @var \BulkImport\Reader\Reader
-     */
-    protected $reader;
-
-    /**
-     * @var array
-     */
-    protected $mapping;
-
-    /**
-     * @var \BulkImport\Processor\Processor
-     */
-    protected $processor;
+    use ImportTrait;
 
     public function perform(): void
     {
@@ -69,8 +26,18 @@ class Import extends AbstractJob
         }
 
         $services = $this->getServiceLocator();
-        $this->logger = $services->get('Omeka\Logger');
+        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
+        $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
         $this->api = $services->get('Omeka\ApiManager');
+        $this->bulk = $plugins->get('bulk');
+        $this->bulkCheckLog = $plugins->get('bulkCheckLog');
+        $this->entityManager = $services->get('Omeka\EntityManager');
+        // Use class name to use it even when CsvImport is installed.
+        $this->findResourcesFromIdentifiers = $plugins->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
+        $this->logger = $services->get('Omeka\Logger');
+        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->settings = $services->get('Omeka\Settings');
+        $this->translator = $services->get('MvcTranslator');
 
         $bulkImportId = $this->getArg('bulk_import_id');
         if (!$bulkImportId) {
@@ -123,21 +90,39 @@ class Import extends AbstractJob
             return;
         }
 
+        $this->prepareDefaultSite();
+
         $this->reader
             ->setLogger($this->logger);
-
         $this->processor
-            ->setReader($this->reader)
-            ->setLogger($this->logger)
-            // This is not the job entity, but the job itself, so it has no id.
-            // FIXME Clarify name of job for job id/import id.
-            ->setJob($this);
+            ->setLogger($this->logger);
 
-        $this->prepareDefaultSite();
+        // Prepare identifier names one time before validation.
+        $this
+            ->prepareIdentifierNames();
+        if ($this->totalErrors) {
+            return;
+        }
+
+        if (!$this->reader->isValid()) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            return;
+        }
+
+        if (!$this->processor->isValid()) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            return;
+        }
+
+        // TODO Finalize separation of metaMapper and metaMapperConfig.
+        // Init the mapping first before storing it as default.
+        $this->import->mapping();
+        $mapper = $this->import->mapper();
+        $this->metaMapper->setMappingName($mapper);
 
         $this->logger->log(Logger::NOTICE, 'Import started'); // @translate
 
-        $this->processor->process();
+        $this->process();
 
         // Try to clean remaining uploaded files.
         if ($this->processor instanceof Parametrizable) {
@@ -152,23 +137,10 @@ class Import extends AbstractJob
 
         $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
 
-        $notify = $this->job->getArgs()['notify_end'] ?? false;
+        $notify = (bool) $this->getArg('notify_end');
         if ($notify) {
             $this->notifyJobEnd();
         }
-    }
-
-    public function getImportId(): ?int
-    {
-        return $this->import->id();
-    }
-
-    /**
-     * @todo Remove this direct access to job to set status or to check if there is an id for task.
-     */
-    public function getJob(): Job
-    {
-        return $this->job;
     }
 
     protected function getReader(): ?Reader
@@ -216,6 +188,8 @@ class Import extends AbstractJob
     /**
      * The public site should be set, because it may be needed to get all values
      * of a resource during json encoding in ResourceUpdateTrait, line 60.
+     *
+     * @todo Use job arguments.
      */
     protected function prepareDefaultSite(): self
     {

@@ -75,10 +75,10 @@ class OmekaSReader extends AbstractPaginatedReader
      */
     protected $baseUrl = '';
 
-    public function setObjectType($objectType): self
+    public function setResourceName(string $resourceName): self
     {
-        $this->path = $objectType;
-        return parent::setObjectType($objectType);
+        $this->path = $resourceName;
+        return parent::setResourceName($resourceName);
     }
 
     public function setQueryCredentials(array $credentials): self
@@ -112,7 +112,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $message = null;
         if (!$this->bulkFile->isValidEndpoint('-context', '', [], $this->mediaType, $this->charset, $message)) {
             $this->lastErrorMessage = $message;
-            return false;
+            return parent::isValid();
         }
 
         $urlHelper = $this->getServiceLocator()->get('ViewHelperManager')->get('url');
@@ -120,14 +120,10 @@ class OmekaSReader extends AbstractPaginatedReader
             $this->lastErrorMessage = new PsrMessage(
                 'It is useless to import Omeka S itself. Check your endpoint.' // @translate
             );
-            $this->logger->warn(
-                $this->lastErrorMessage->getMessage(),
-                $this->lastErrorMessage->getContext()
-            );
-            return false;
+            return parent::isValid();
         }
 
-        return true;
+        return parent::isValid();
     }
 
     protected function initArgs(): self

@@ -4,6 +4,7 @@ namespace BulkImport\Reader;
 
 use Laminas\Form\Form;
 use Log\Stdlib\PsrMessage;
+use SplFileObject;
 
 /**
  * @todo Replace all abstract reader by a single IteratorIterator and prepare data separately.
@@ -49,7 +50,6 @@ abstract class AbstractFileReader extends AbstractReader
 
     public function isValid(): bool
     {
-        $message = null;
         $this->lastErrorMessage = null;
 
         $url = $this->getParam('url');
@@ -57,9 +57,8 @@ abstract class AbstractFileReader extends AbstractReader
         $isUrl = !empty($url);
 
         if ($isUrl) {
-            if (!$this->bulkFile->isValidUrl($url, $message)) {
-                $this->lastErrorMessage = $message;
-                return false;
+            if (!$this->bulkFile->isValidUrl($url, $this->lastErrorMessage)) {
+                return parent::isValid();
             }
 
             $filename = $this->bulkFile->fetchUrlToTempFile($url);
@@ -68,43 +67,53 @@ abstract class AbstractFileReader extends AbstractReader
                     'Url "{url}" is invalid, empty or unavailable.', // @translate
                     ['url' => $url]
                 );
-                return false;
+                return parent::isValid();
             }
 
             $this->params['filename'] = $filename;
-            if (!$this->bulkFile->isValidFilepath($filename, [], $message)) {
-                $this->lastErrorMessage = $message;
-                return false;
+            if (!$this->bulkFile->isValidFilepath($filename, [], null, $this->lastErrorMessage)) {
+                return parent::isValid();
             }
-            return true;
+            return parent::isValid();
         }
 
         if (array_search('filename', $this->paramsKeys) === false) {
-            return true;
+            return parent::isValid();
         }
 
         // The file may not be uploaded (or return false directly).
         $file = $this->getParam('file') ?: [];
         $filepath = $this->getParam('filename');
 
+        if (!$file && !$filepath) {
+            return parent::isValid();
+        } elseif (!$filepath) {
+            // The error occurs when the form is reloaded.
+            $this->lastErrorMessage = new PsrMessage(
+                'There is a file "{filename}", but no filepath. Check if you reloaded the form.', // @translate
+                ['filename' => $file['name']]
+            );
+            return parent::isValid();
+        }
+
         // Fix issues with tsv/csv.
         if (method_exists($this, 'checkFileArray')) {
             $file = $this->checkFileArray($file);
         }
 
-        if (!$this->isUtf8($filepath)) {
+        // Check utf-8 (useless for ods).
+        if (method_exists($this, 'isUtf8') && !$this->isUtf8($filepath)) {
             $this->lastErrorMessage = new PsrMessage(
                 'File "{filename}" is not fully utf-8.', // @translate
                 ['filename' => $file['name']]
             );
-            return false;
+            return parent::isValid();
         }
 
-        if (!$this->bulkFile->isValidFilepath($filepath, $file, $this->mediaType ?? null, $message)) {
-            $this->lastErrorMessage = $message;
-            return false;
+        if (!$this->bulkFile->isValidFilepath($filepath, $file, $this->mediaType ?? null, $this->lastErrorMessage)) {
+            return parent::isValid();
         }
 
-        return true;
+        return parent::isValid();
     }
 }

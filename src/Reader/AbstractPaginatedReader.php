@@ -90,9 +90,11 @@ abstract class AbstractPaginatedReader extends AbstractReader
      */
     protected $currentResponse;
 
-    public function setObjectType($objectType): self
+    public function setResourceName(string $resourceName): self
     {
-        $this->objectType = $objectType;
+        $this->resourceName = $resourceName;
+        // TODO Remove object type.
+        $this->objectType = $resourceName;
         $this->initArgs();
         $this->resetIterator();
         $this->preparePageIterator();
@@ -102,7 +104,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
     public function isValid(): bool
     {
         $this->initArgs();
-        return true;
+        return parent::isValid();
     }
 
     /**
@@ -210,7 +212,7 @@ abstract class AbstractPaginatedReader extends AbstractReader
     }
 
     /**
-     * This method is called from the method setObjectType() and isValid().
+     * This method is called from the method setResourceName() and isValid().
      *
      * @todo Use method initializeReader().
      */

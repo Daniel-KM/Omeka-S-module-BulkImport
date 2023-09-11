@@ -4,6 +4,7 @@ namespace BulkImport\Reader;
 
 use BulkImport\Form\Reader\CsvReaderConfigForm;
 use BulkImport\Form\Reader\CsvReaderParamsForm;
+use Log\Stdlib\PsrMessage;
 use OpenSpout\Common\Type;
 use SplFileObject;
 
@@ -111,6 +112,15 @@ class CsvReader extends AbstractSpreadsheetFileReader
     protected function initializeReader(): self
     {
         $filepath = $this->getParam('filename');
+
+        if (!$filepath) {
+            // The error occurs when the form is reloaded.
+            $this->lastErrorMessage = new PsrMessage(
+                'The filepath is missing. Restart import if you reload the form twice.' // @translate
+            );
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
+        }
+
         $this->iterator = new SplFileObject($filepath);
 
         $this->delimiter = $this->getParam('delimiter', self::DEFAULT_DELIMITER);
@@ -139,7 +149,7 @@ class CsvReader extends AbstractSpreadsheetFileReader
         $fields = $this->iterator->current();
         if (!is_array($fields)) {
             $this->lastErrorMessage = 'File has no available fields.'; // @translate
-            throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
+            throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
         }
         // The data should be cleaned, since it's not an entry.
         $this->availableFields = array_map([$this->bulk, 'trimUnicode'], $fields);

@@ -84,6 +84,7 @@ class XmlReader extends AbstractFileMultipleReader
         $xmlConfigs = array_filter([
             $this->getParam('xsl_sheet_pre'),
             $this->getParam('xsl_sheet'),
+            // TODO Remove mapping_config from here and anywhere.
             $this->getParam('mapping_config'),
         ]);
         $result = [];
@@ -127,6 +128,7 @@ class XmlReader extends AbstractFileMultipleReader
         $configNames = array_filter([
             $this->getParam('xsl_sheet_pre'),
             $this->getParam('xsl_sheet'),
+            // TODO Remove mapping_config from here and anywhere.
             $this->getParam('mapping_config'),
         ]);
         foreach ($configNames as $configName) {
@@ -138,7 +140,7 @@ class XmlReader extends AbstractFileMultipleReader
                         'Xslt filepath "{filename}" is invalid: it should be a real path.', // @translate
                         ['filename' => $configName]
                     );
-                    return false;
+                    return parent::isValid();
                 }
                 $moduleConfigPath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($configName, mb_strpos($configName, ':') + 1, mb_strpos($configName, '/') - mb_strpos($configName, ':'));
                 $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -147,14 +149,14 @@ class XmlReader extends AbstractFileMultipleReader
                         'Xslt filepath "{filename}" is invalid: it should be a relative path from Omeka root or directory "files/xsl".', // @translate
                         ['filename' => $configName]
                     );
-                    return false;
+                    return parent::isValid();
 
-                    if (!$this->bulkFile->isValidFilepath($filepath, ['file' => basename($filepath)])) {
-                        return false;
+                    if (!$this->bulkFile->isValidFilepath($filepath, ['file' => basename($filepath)], null, $this->lastErrorMessage)) {
+                        return parent::isValid();
                     }
 
-                    if (!$this->checkWellFormedXml($filepath)) {
-                        return false;
+                    if (!$this->checkWellFormedXml($filepath, [], null, $this->lastErrorMessage)) {
+                        return parent::isValid();
                     }
                 }
             } elseif (mb_substr($configName, 0, 8) === 'mapping:') {
@@ -166,14 +168,14 @@ class XmlReader extends AbstractFileMultipleReader
                         'Xsl config #{mapping_id} is unavailable.', // @translate
                         ['mapping_id' => $mappingId]
                     );
-                    return false;
+                    return parent::isValid();
                 }
             } else {
                 $this->lastErrorMessage = new PsrMessage(
                     'Xsl config "{name}" is invalid.', // @translate
                     ['name' => $configName]
                 );
-                return false;
+                return parent::isValid();
             }
         }
 
@@ -221,17 +223,6 @@ class XmlReader extends AbstractFileMultipleReader
     protected function initializeReader(): self
     {
         $this->iterator = new AppendIterator();
-
-        // Prepare the mapping mapper config.
-        $mappingConfig = $this->getParam('mapping_config')
-            ?: ($this->getConfigParam('mapping_config') ?: null);
-        // TODO Use this resource name ("resources" or "assets" for now). See object type or options?
-        $this->metaMapper->__invoke('resources', $mappingConfig);
-
-        // TODO Check error. See resource processor / prepareMetaConfig().
-        if ($this->metaMapper->getMetaMapperConfig()->hasError()) {
-            return $this;
-        }
 
         // The list of files is prepared during check in isValid().
         foreach ($this->listFiles as $fileUrl) {

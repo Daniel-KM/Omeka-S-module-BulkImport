@@ -96,7 +96,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             );
         }
         if (!extension_loaded('zip') || !extension_loaded('xml')) {
-            return false;
+            return parent::isValid();
         }
         return parent::isValid();
     }
@@ -288,6 +288,16 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->spreadsheetReader->setShouldPreserveEmptyRows(true);
 
         $filepath = $this->getParam('filename');
+
+        // Avoid issue when the second step is reloaded.
+        if (!$filepath) {
+            throw new \Omeka\Service\Exception\RuntimeException(
+                (string) new PsrMessage(
+                    'The file cannot be open: restart the import if you uploaded a file manually.' // @translate
+                )
+            );
+        }
+
         try {
             $this->spreadsheetReader->open($filepath);
         } catch (\OpenSpout\Common\Exception\IOException $e) {

@@ -109,23 +109,23 @@ class JsonReader extends AbstractPaginatedReader
         // TODO Do a early check of each file or url.
         // Validity will be checked for each file or url.
         if ($this->listFiles) {
-            return true;
+            return parent::isValid();
         }
 
         $message = null;
         if (empty($this->params['url'])) {
             if (!$this->bulkFile->isValidEndpoint('', '', [], $this->mediaType, $this->charset, $message)) {
                 $this->lastErrorMessage = $message;
-                return false;
+                return parent::isValid();
             }
         } else {
             if (!$this->bulkFile->isValidDirectUrl($this->params['url'], null, null, $message)) {
                 $this->lastErrorMessage = $message;
-                return false;
+                return parent::isValid();
             }
         }
 
-        return true;
+        return parent::isValid();
     }
 
     public function current()
@@ -194,9 +194,10 @@ class JsonReader extends AbstractPaginatedReader
     }
 
     /**
-     * This method is called from the method setObjectType() and isValid().
+     * This method is called from the method setResourceName() and isValid().
      *
-     * @todo Merge with XmlReader::initArgs() (or move this reader to a paginated reader or make paginated reader the top reader).
+     * @todo Move this reader to a paginated reader or make paginated reader the top reader.
+     * @todo The mapping config is used only to pass config (endpoint, path, subpath, resource_url, resource_root, resource_single, paginationa and other params). But these variables may be dynamic for some sources.
      * @deprecated Use initializeReader only.
      */
     protected function initArgs(): self
