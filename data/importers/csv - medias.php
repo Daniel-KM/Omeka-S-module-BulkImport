@@ -2,15 +2,16 @@
 
 return [
     'o:owner' => null,
-    'o:label' => 'Xml - Mods', // @translate
-    'o-bulk:reader' => \BulkImport\Reader\XmlReader::class,
+    'o:label' => 'CSV - Medias', // @translate
+    'o-bulk:reader' => \BulkImport\Reader\CsvReader::class,
     'o-bulk:mapper' => null,
-    'o-bulk:processor' => \BulkImport\Processor\ItemProcessor::class,
+    'o-bulk:processor' => \BulkImport\Processor\MediaProcessor::class,
     'o:config' => [
         'reader' => [
-            'xsl_sheet_pre' => '',
-            'xsl_sheet' => 'module:xsl/mods_to_omeka.xsl',
-            'xsl_params' => [],
+            'delimiter' => ',',
+            'enclosure' => '"',
+            'escape' => '\\',
+            'separator' => '|',
         ],
         'mapper' => [
         ],

@@ -76,10 +76,9 @@ class ImportAdapter extends AbstractEntityAdapter
             $posColon = strpos($key, ':');
             $keyName = $posColon === false ? $key : substr($key, $posColon + 1);
             $method = 'set' . ucfirst($inflector->camelize($keyName));
-            if (!method_exists($entity, $method)) {
-                continue;
+            if (method_exists($entity, $method)) {
+                $entity->$method($value);
             }
-            $entity->$method($value);
         }
     }
 }

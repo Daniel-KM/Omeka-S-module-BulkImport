@@ -1,27 +1,31 @@
 <?php declare(strict_types=1);
 
 return [
-    'owner' => null,
-    'label' => 'OpenDocument spreadsheet (ods) - Item sets', // @translate
-    'config' => [],
-    'readerClass' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
-    'readerConfig' => [
-        'separator' => '|',
-    ],
-    'processorClass' => \BulkImport\Processor\ItemSetProcessor::class,
-    'processorConfig' => [
-        'entries_to_skip' => 0,
-        'entries_max' => null,
-        'o:resource_template' => '',
-        'o:resource_class' => '',
-        'o:owner' => "current",
-        'o:is_public' => null,
-        'action' => 'create',
-        'action_unidentified' => 'skip',
-        'identifier_name' => [
-            'o:id',
+    'o:owner' => null,
+    'o:label' => 'OpenDocument spreadsheet (ods) - Item sets', // @translate
+    'o-bulk:reader' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
+    'o-bulk:mapper' => null,
+    'o-bulk:processor' => \BulkImport\Processor\ItemSetProcessor::class,
+    'o:config' => [
+        'reader' => [
+            'separator' => '|',
         ],
-        'allow_duplicate_identifiers' => false,
-        'resource_name' => '',
+        'mapper' => [
+        ],
+        'processor' => [
+            'entries_to_skip' => 0,
+            'entries_max' => null,
+            'o:resource_template' => '',
+            'o:resource_class' => '',
+            'o:owner' => "current",
+            'o:is_public' => null,
+            'action' => 'create',
+            'action_unidentified' => 'skip',
+            'identifier_name' => [
+                'o:id',
+            ],
+            'allow_duplicate_identifiers' => false,
+            'resource_name' => '',
+        ],
     ],
 ];

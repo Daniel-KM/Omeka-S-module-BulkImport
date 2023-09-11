@@ -101,19 +101,24 @@ class Module extends AbstractModule
 
         $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
-        // The resource "bulk_importers" is not available during upgrade.
+        // The module api is not available during install/upgrade.
         require_once __DIR__ . '/src/Entity/Import.php';
         require_once __DIR__ . '/src/Entity/Importer.php';
 
         $directory = new \RecursiveDirectoryIterator(__DIR__ . '/data/importers', \RecursiveDirectoryIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($directory);
+        $inflector = \Doctrine\Inflector\InflectorFactory::create()->build();
         foreach (array_keys(iterator_to_array($iterator)) as $filepath) {
             $data = include $filepath;
-            $data['owner'] = $user;
+            $data['o:owner'] = $user;
             $entity = new \BulkImport\Entity\Importer();
             foreach ($data as $key => $value) {
-                $method = 'set' . ucfirst($key);
-                $entity->$method($value);
+                $posColon = strpos($key, ':');
+                $keyName = $posColon === false ? $key : substr($key, $posColon + 1);
+                $method = 'set' . ucfirst($inflector->camelize($keyName));
+                if (method_exists($entity, $method)) {
+                    $entity->$method($value);
+                }
             }
             $entityManager->persist($entity);
         }
