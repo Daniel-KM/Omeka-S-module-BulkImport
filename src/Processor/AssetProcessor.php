@@ -323,7 +323,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         foreach ($dataResources as $dataResource) {
             $resource = $this->createAsset($dataResource, $messageStore);
             if (!$resource) {
-                $this->logCheckedResource($baseResource);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $baseResource);
                 ++$this->totalErrors;
                 return $this;
             }
@@ -439,7 +439,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 'Index #{index}: The resource {resource} #{id} is not available and cannot be updated.', // @translate
                 ['index' => $this->indexResource, 'resource' => 'asset', 'id', $dataResource['o:id']]
             ));
-            $this->logCheckedResource($r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
             ++$this->totalErrors;
             return null;
         }
@@ -474,7 +474,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     ));
                     $messages = $this->listValidationMessages(new ValidationException($e->getMessage()));
                     $r['messageStore']->addError('resource', $messages);
-                    $this->logCheckedResource($r);
+                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                     ++$this->totalErrors;
                     return null;
                 }

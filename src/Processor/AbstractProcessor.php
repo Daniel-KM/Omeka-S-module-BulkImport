@@ -68,6 +68,11 @@ abstract class AbstractProcessor implements Processor
     protected $bulk;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkCheckLog
+     */
+    protected $bulkCheckLog;
+
+    /**
      * @var \BulkImport\Mvc\Controller\Plugin\BulkFile
      */
     protected $bulkFile;
@@ -81,6 +86,11 @@ abstract class AbstractProcessor implements Processor
      * @var \BulkImport\Stdlib\MetaMapper
      */
     protected $metaMapper;
+
+    /**
+     * @var \Omeka\Settings\Settings
+     */
+    protected $settings;
 
     /**
      * @var \Laminas\Mvc\I18n\Translator
@@ -125,6 +135,7 @@ abstract class AbstractProcessor implements Processor
     {
         $this->setServiceLocator($services);
         $this->acl = $services->get('Omeka\Acl');
+        $this->settings = $services->get('Omeka\Settings');
         $this->translator = $services->get('MvcTranslator');
         $this->apiManager = $services->get('Omeka\ApiManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
@@ -133,6 +144,7 @@ abstract class AbstractProcessor implements Processor
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
+        $this->bulkCheckLog= $plugins->get('bulkCheckLog');
         $this->bulkFile = $plugins->get('bulkFile');
         $this->bulkFileUploaded = $plugins->get('bulkFileUploaded');
 

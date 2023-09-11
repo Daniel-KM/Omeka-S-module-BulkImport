@@ -22,9 +22,6 @@ use Omeka\Api\Request;
 abstract class AbstractResourceProcessor extends AbstractProcessor implements Configurable, Parametrizable
 {
     use ConfigurableTrait, ParametrizableTrait;
-    use CheckTrait;
-    use DiffResourcesTrait;
-    use DiffValuesTrait;
 
     const ACTION_SUB_UPDATE = 'sub_update';
 
@@ -350,8 +347,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Check for FileSideload: remove files after import is not possible
         // because of the multi-step process and the early check of files.
         // TODO Allow to use FileSideload option "file_sideload_delete_file".
-        $settings = $this->getServiceLocator()->get('Omeka\Settings');
-        if ($settings->get('file_sideload_delete_file') === 'yes') {
+        if ($this->settings->get('file_sideload_delete_file') === 'yes') {
             // This is not an error: the input data may not use sideload files.
             $this->logger->warn(
                 'The option to delete files (module File Sideload) is not fully supported currently. Check config of the module or use urls.' // @translate
@@ -359,14 +355,18 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Prepare the file where the checks will be saved.
-        $this
+        $result = $this
+            ->bulkCheckLog
+            ->setBaseName($this->getLabel())
+            ->setNameFile((string) $this->job->getArg('bulk_import_id'))
             ->initializeCheckStore()
             ->initializeCheckLog();
+        if ($result['status'] === 'error') {
+            ++$this->totalErrors;
+        }
 
         if ($this->totalErrors) {
-            $this
-                ->purgeCheckStore()
-                ->finalizeCheckLog();
+            $this->processFinalize();
             return;
         }
 
@@ -375,7 +375,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $jobJob = $this->job->getJob();
         if ($jobJob->getId()) {
             $jobJobArgs = $jobJob->getArgs();
-            $jobJobArgs['filename_log'] = basename((string) $this->filepathLog);
+            $jobJobArgs['filename_log'] = basename($this->bulkCheckLog->getFilepathLog());
             $jobJob->setArgs($jobJobArgs);
             $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
             $entityManager->persist($jobJob);
@@ -406,9 +406,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ->prepareFullRun();
 
         if ($this->getParam('info_diffs')) {
-            $this
-                ->checkDiffResources()
-                ->checkDiffValues();
+            $this->processInfoDIffs();
         }
 
         $dryRun = $this->processingError === 'dry_run';
@@ -416,9 +414,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->logger->notice(
                 'Processing is ended: dry run.' // @translate
             );
-            $this
-                ->purgeCheckStore()
-                ->finalizeCheckLog();
+            $this->processFinalize();
             return;
         }
 
@@ -433,18 +429,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $this->logger->notice(
                     'Processing is stopped because of error. No source was imported.' // @translate
                 );
-                $this
-                    ->purgeCheckStore()
-                    ->finalizeCheckLog();
+                $this->processFinalize();
                 return;
             }
         }
 
         // A stop may occur during dry run. Message is already logged.
         if ($this->job->shouldStop()) {
-            $this
-                ->purgeCheckStore()
-                ->finalizeCheckLog();
+            $this->processFinalize();
             return;
         }
 
@@ -461,9 +453,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->processFullRun();
 
+        $this->processFinalize();
+    }
+
+    protected function processFinalize(): self
+    {
         $this
+            ->bulkCheckLog
             ->purgeCheckStore()
             ->finalizeCheckLog();
+        return $this;
     }
 
     protected function prepareAction(): self
@@ -843,7 +842,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->indexResource = $this->currentEntryIndex;
 
             if ($toSkip) {
-                $this->logCheckedResource(null, null);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, null, null);
                 --$toSkip;
                 ++$this->totalSkipped;
                 continue;
@@ -865,22 +864,21 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $resource = $this->processEntry($entry);
 
             if (!$resource) {
-                $this->storeCheckedResource($resource);
-                $this->logCheckedResource(null, $entry);
+                $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, null, $entry);
                 continue;
             }
 
             if (!$this->checkEntity($resource)) {
                 ++$this->totalErrors;
-                $this->storeCheckedResource($resource);
-                $this->logCheckedResource($resource, $entry);
+                $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource, $entry);
                 continue;
             }
 
             ++$this->totalProcessed;
-            $this->storeCheckedResource($resource);
-
-            $this->logCheckedResource($resource, $entry);
+            $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource, $entry);
         }
 
         $this->logger->notice(
@@ -978,7 +976,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             // TODO Clarify computation of total errors.
-            $resource = $this->loadCheckedResource();
+            $resource = $this->bulkCheckLog->loadCheckedResource($this->indexResource);
             if (!$resource || !empty($resource['has_error'])) {
                 ++$this->totalErrors;
                 continue;
@@ -1020,6 +1018,39 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'total_errors' => $this->totalErrors,
             ]
         );
+
+        return $this;
+    }
+
+    protected function processInfoDIffs(): self
+    {
+        $importId = (int) $this->job->getArg('bulk_import_id');
+
+        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
+
+        $bulkDiffResources = $plugins->get('bulkDiffResources');
+        $result = $bulkDiffResources($this->action, $importId);
+        if ($result['status'] === 'error') {
+            // Log is already logged.
+            ++$this->totalErrors;
+            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            return $this;
+        }
+
+        // Only spreadsheet is managed for now.
+        // Spreadsheet is processor-driven, so no meta mapper mapping.
+        if (!$this->hasProcessorMapping) {
+            return $this;
+        }
+
+        $bulkDiffValues = $plugins->get('bulkDiffValues');
+        $result = $bulkDiffValues($this->action, $importId, $this->mapping);
+        if ($result['status'] === 'error') {
+            // Log is already logged.
+            ++$this->totalErrors;
+            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            return $this;
+        }
 
         return $this;
     }
@@ -1876,7 +1907,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ));
                 $messages = $this->listValidationMessages($e);
                 $r['messageStore']->addError('resource', $messages);
-                $this->logCheckedResource($r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                 ++$this->totalErrors;
                 return $this;
             } catch (\Exception $e) {
@@ -1885,7 +1916,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     'Core error during creation: {exception}', // @translate
                     ['exception' => $e]
                 ));
-                $this->logCheckedResource($r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                 ++$this->totalErrors;
                 return $this;
             }
@@ -1965,7 +1996,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         'The resource id #"{id}" has no resource name.', // @translate
                         ['id' => $dataResource['o:id']]
                     ));
-                    $this->logCheckedResource($r);
+                    $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                     ++$this->totalErrors;
                     return $this;
                 }
@@ -2013,7 +2044,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 ));
                 $messages = $this->listValidationMessages($e);
                 $r['messageStore']->addError('resource', $messages);
-                $this->logCheckedResource($r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                 ++$this->totalErrors;
                 return $this;
             } catch (\Exception $e) {
@@ -2022,7 +2053,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     'Core error during update: {exception}', // @translate
                     ['exception' => $e]
                 ));
-                $this->logCheckedResource($r);
+                $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
                 ++$this->totalErrors;
                 return $this;
             }
@@ -2103,7 +2134,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             ));
             $messages = $this->listValidationMessages($e);
             $r['messageStore']->addError('resource', $messages);
-            $this->logCheckedResource($r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
             ++$this->totalErrors;
             return $this;
         } catch (\Exception $e) {
@@ -2113,7 +2144,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 'Core error during deletion: {exception}', // @translate
                 ['exception' => $e]
             ));
-            $this->logCheckedResource($r);
+            $this->bulkCheckLog->logCheckedResource($this->indexResource, $r);
             ++$this->totalErrors;
             return $this;
         }

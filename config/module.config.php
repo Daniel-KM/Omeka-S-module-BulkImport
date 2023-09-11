@@ -135,6 +135,9 @@ return [
         'factories' => [
             'automapFields' => Service\ControllerPlugin\AutomapFieldsFactory::class,
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
+            'bulkCheckLog' => Service\ControllerPlugin\BulkCheckLogFactory::class,
+            'bulkDiffResources' => Service\ControllerPlugin\BulkDiffResourcesFactory::class,
+            'bulkDiffValues' => Service\ControllerPlugin\BulkDiffValuesFactory::class,
             'bulkFile' => Service\ControllerPlugin\BulkFileFactory::class,
             'bulkFileUploaded' => Service\ControllerPlugin\BulkFileUploadedFactory::class,
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,

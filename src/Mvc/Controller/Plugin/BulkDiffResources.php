@@ -1,7 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Processor;
+namespace BulkImport\Mvc\Controller\Plugin;
 
+use Laminas\Log\Logger;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Stdlib\Message;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Style\Color;
@@ -11,10 +13,40 @@ use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
 use OpenSpout\Writer\Common\Creator\WriterFactory;
 
 /**
- * Manage diff of resources before and after process.
+ * Manage diff of resources.
  */
-trait DiffResourcesTrait
+class BulkDiffResources extends AbstractPlugin
 {
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     */
+    protected $bulk;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkCheckLog
+     */
+    protected $bulkCheckLog;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\DiffResources
+     */
+    protected $diffResources;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
+
+    /**
+     * @var string
+     */
+    protected $basePath;
+
+    /**
+     * @var string
+     */
+    protected $baseUrl;
+
     /**
      * @var string
      */
@@ -31,34 +63,58 @@ trait DiffResourcesTrait
     protected $filepathDiffOdsColumn;
 
     /**
-     * Create an output to list diff between existing data and new data.
+     * @var string
      */
-    protected function checkDiffResources(): self
-    {
+    protected $nameFile;
+
+    public function __construct(
+        Bulk $bulk,
+        BulkCheckLog $bulkCheckLog,
+        DiffResources $diffResources,
+        Logger $logger,
+        string $basePath,
+        string $baseUrl
+    ) {
+        $this->bulk = $bulk;
+        $this->bulkCheckLog = $bulkCheckLog;
+        $this->diffResources = $diffResources;
+        $this->logger = $logger;
+        $this->basePath = $basePath;
+        $this->baseUrl = $baseUrl;
+    }
+
+    /**
+     * Create an output to list diff between existing data and new data.
+     *
+     * @return array Result status and info.
+     */
+    public function __invoke(
+        string $updateMode,
+        string $nameFile
+    ): array {
         $actionsUpdate = [
-            self::ACTION_APPEND,
-            self::ACTION_REVISE,
-            self::ACTION_UPDATE,
-            self::ACTION_REPLACE,
+            \BulkImport\Processor\AbstractProcessor::ACTION_APPEND,
+            \BulkImport\Processor\AbstractProcessor::ACTION_REVISE,
+            \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE,
+            \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE,
         ];
-        $updateMode = $this->action;
         if (!in_array($updateMode, $actionsUpdate)) {
-            return $this;
+            return [
+                'status' => 'success',
+            ];
         }
+
+        $this->nameFile = $nameFile;
 
         $this->initializeDiff();
         if (!$this->filepathDiffJson
             || !$this->filepathDiffOdsRow
             || !$this->filepathDiffOdsColumn
         ) {
-            // Log is already logged.
-            ++$this->totalErrors;
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            return $this;
+            return [
+                'status' => 'error',
+            ];
         }
-
-        /** @var \BulkImport\Mvc\Controller\Plugin\DiffResources $diffResources */
-        $diffResources = $this->getServiceLocator()->get('ControllerPluginManager')->get('diffResources');
 
         $config = [
             'update_mode' => $updateMode,
@@ -70,19 +126,20 @@ trait DiffResourcesTrait
         ];
 
         // The storage is one-based.
-        for ($i = 1; $i <= $this->totalIndexResources; $i++) {
-            $resource2 = $this->loadCheckedResource($i);
+        $totalResources = $this->bulkCheckLog->getTotalCheckedResources();
+        for ($i = 1; $i <= $totalResources; $i++) {
+            $resource2 = $this->bulkCheckLog->loadCheckedResource($i);
             if ($resource2 === null) {
                 continue;
             }
             if (!empty($resource2['o:id'])) {
                 try {
-                    $resource1 = $this->apiManager->read('resources', ['id' => $resource2['o:id']])->getContent();
+                    $resource1 = $this->api->read('resources', ['id' => $resource2['o:id']])->getContent();
                 } catch (\Exception $e) {
                     $resource1 = null;
                 }
             }
-            $result['response'][] = $diffResources($resource1, $resource2, $updateMode)->asArray();
+            $result['response'][] = $this->diffResources->__invoke($resource1, $resource2, $updateMode)->asArray();
         }
 
         // For json.
@@ -112,9 +169,11 @@ trait DiffResourcesTrait
         $this->storeDiffOdsByRow($flatResult, $config);
         $this->storeDiffOdsByColumn($flatResult, $config);
 
-        $this->messageResultFileDiff();
+        $this->messageResultFile();
 
-        return $this;
+        return [
+            'status' => 'success',
+        ];
     }
 
     protected function initializeDiff(): self
@@ -123,22 +182,17 @@ trait DiffResourcesTrait
         $this->filepathDiffOdsRow = null;
         $this->filepathDiffOdsColumn = null;
 
-        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
-        $bulk = $plugins->get('bulk');
-
-        $importId = (int) $this->job->getArg('bulk_import_id');
-
-        $filepath = $bulk->prepareFile(['name' => $importId . '-diff', 'extension' => 'json']);
+        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff', 'extension' => 'json']);
         if ($filepath) {
             $this->filepathDiffJson = $filepath;
         }
 
-        $filepath = $bulk->prepareFile(['name' => $importId . '-diff-row', 'extension' => 'ods']);
+        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff-row', 'extension' => 'ods']);
         if ($filepath) {
             $this->filepathDiffOdsRow = $filepath;
         }
 
-        $filepath = $bulk->prepareFile(['name' => $importId . '-diff-col', 'extension' => 'ods']);
+        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff-col', 'extension' => 'ods']);
         if ($filepath) {
             $this->filepathDiffOdsColumn = $filepath;
         }
@@ -149,13 +203,13 @@ trait DiffResourcesTrait
     /**
      * Prepare a spreadsheet to output diff by three rows.
      *
-     * @todo Output four row when there is an update mode?
+     * @todo Output four rows when there is an update mode?
      */
     protected function storeDiffOdsByRow(array $result, array $config): self
     {
         $headers = $this->diffSpreadsheetHeader($result);
 
-        // This is for OpenSpout v3, that allows php 7.2+.
+        // This is for OpenSpout v3, for php 7.2+.
         // A value cannot be an empty string.
 
         // Prepare output.
@@ -379,16 +433,14 @@ trait DiffResourcesTrait
     /**
      * Add a  message with the url to the file.
      */
-    protected function messageResultFileDiff(): self
+    protected function messageResultFile(): self
     {
-        $services = $this->getServiceLocator();
-        $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         $this->logger->notice(
             'Data about update is available in this json {url_1} and in this spreadsheet by row {url_2} or by column {url_3}.', // @translate
             [
-                'url_1' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffJson, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_2' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsRow, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_3' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsColumn, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_1' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffJson, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_2' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsRow, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_3' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsColumn, mb_strlen($this->basePath . '/bulk_import/')),
             ]
         );
         return $this;

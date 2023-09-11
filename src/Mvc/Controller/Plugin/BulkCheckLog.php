@@ -1,32 +1,58 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Processor;
+namespace BulkImport\Mvc\Controller\Plugin;
 
 use ArrayObject;
 use BulkImport\Entry\Entry;
+use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Mvc\I18n\Translator;
+use Log\Stdlib\PsrMessage;
+use Omeka\Settings\UserSettings;
 
-/**
- * Manage checks of source.
- *
- * @todo Create a message store with severity.
- * @todo Add data through a specific logger adapter. Note processing message are useless here (starting, ending…). Or use a separate logger.
- *
- * Adapted from BulkCheck.
- * @see \BulkCheck\Job\AbstractCheck
- */
-trait CheckTrait
+class BulkCheckLog extends AbstractPlugin
 {
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     */
+    protected $bulk;
+
+    /**
+     * @var \Doctrine\DBAL\Connection
+     */
+    protected $connection;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
+
+    /**
+     * @var \Laminas\Mvc\I18n\Translator
+     */
+    protected $translator;
+
+    /**
+     * @var \Omeka\Settings\UserSettings
+     */
+    protected $userSettings;
+
+    /**
+     * @var string
+     */
+    protected $basePath;
+
+    /**
+     * @var string
+     */
+    protected $baseUrl;
+
     /**
      * Max number of rows to output in spreadsheet.
      * @var int
      */
     protected $spreadsheetRowLimit = 1000000;
-
-    /**
-     * @var resource
-     */
-    protected $handleLog;
 
     /**
      * Default options for output (tsv).
@@ -51,17 +77,78 @@ trait CheckTrait
     /**
      * @var string
      */
-    protected $filepathLog;
+    protected $baseName;
 
     /**
-     * @var \Omeka\Settings\UserSettings
+     * @var resource
      */
-    protected $userSettings;
+    protected $handleLog;
+
+    /**
+     * @var string
+     */
+    protected $filepathLog;
 
     /**
      * @var string
      */
     protected $keyStore;
+
+    /**
+     * @var string
+     */
+    protected $nameFile;
+
+    public function __construct(
+        Bulk $bulk,
+        Connection $connection,
+        Logger $logger,
+        Translator $translator,
+        UserSettings $userSettings,
+        string $basePath,
+        string $baseUrl
+    ) {
+        $this->bulk = $bulk;
+        $this->connection = $connection;
+        $this->logger = $logger;
+        $this->translator = $translator;
+        $this->userSettings = $userSettings;
+        $this->basePath = $basePath;
+        $this->baseUrl = $baseUrl;
+
+        $this->purgeCheckStore();
+    }
+
+    /**
+     * Manage checks of source.
+     *
+     * @todo Create a message store with severity.
+     * @todo Add data through a specific logger adapter. Note processing message are useless here (starting, ending…). Or use a separate logger.
+     *
+     * Adapted from BulkCheck.
+     * @see \EasyAdmin\Job\AbstractCheck
+     */
+    public function __invoke(): self
+    {
+        return $this;
+    }
+
+    public function setBaseName(string $baseName): self
+    {
+        $this->baseName = $baseName;
+        return $this;
+    }
+
+    public function setNameFile(string $nameFile): self
+    {
+        $this->nameFile = $nameFile;
+        return $this;
+    }
+
+    public function getFilepathLog(): string
+    {
+        return (string) $this->filepathLog;
+    }
 
     /**
      * Prepare storage for checked resources to avoid to redo preparation.
@@ -71,34 +158,44 @@ trait CheckTrait
      *
      * Normally, a resource is not stored when it has errors.
      *
-     * @todo Use a temporary table or a static table.
+     * @todo Use a temporary table or a static table or a cache file or a package like Laminas cache.
      */
-    protected function initializeCheckStore(): self
+    public function initializeCheckStore(): self
     {
         $this->purgeCheckStore();
 
-        $services = $this->getServiceLocator();
-        $identity = $services->get('ControllerPluginManager')->get('identity');
-        $this->userSettings = $services->get('Omeka\Settings\User');
-        $this->userSettings->setTargetId($identity()->getId());
-
-        $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->getLabel());
+        $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->baseName);
         $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
         $date = (new \DateTime())->format('Ymd-His');
-        $random = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 8);
+        $random = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 6);
         $this->keyStore = sprintf('_cache_bulkimport_%s%s_%s', $base, $date, $random);
 
         return $this;
     }
 
     /**
-     * Store a resource to avoid to redo checks and preparation for next step.
+     * Purge all stored resources, even from previous imports.
+     *
+     * @fixme Check if a job is running before purging (but batch upload is limited to admins).
      */
-    protected function storeCheckedResource(?ArrayObject $resource, ?int $index = null): self
+    public function purgeCheckStore(): self
     {
-        if (is_null($index)) {
-            $index = $this->indexResource;
-        }
+        $sql = <<<'SQL'
+DELETE FROM `user_setting`
+WHERE `id` LIKE "#_cache#_bulkimport#_%" ESCAPE "#"
+;
+SQL;
+        $this->connection->executeStatement($sql);
+        return $this;
+    }
+
+    /**
+     * Store a resource to avoid to redo checks and preparation for next step.
+     *
+     * The storage is one-based.
+     */
+    public function storeCheckedResource(int $index, ?ArrayObject $resource): self
+    {
         if ($resource) {
             $data = $resource->getArrayCopy();
             $data['has_error'] = $data['has_error'] ?? $data['messageStore']->hasErrors();
@@ -107,36 +204,33 @@ trait CheckTrait
         } else {
             $data = null;
         }
-        $this->userSettings->set($this->keyStore . '_' . str_pad((string) $index, 6, '0', STR_PAD_LEFT), $data);
+        $this->userSettings->set($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT), $data);
         return $this;
     }
 
     /**
      * Load a stored resource.
+     *
+     * The storage is one-based.
      */
-    protected function loadCheckedResource(?int $index = null): ?array
+    public function loadCheckedResource(int $index): ?array
     {
-        if (is_null($index)) {
-            $index = $this->indexResource;
-        }
-        return $this->userSettings->get($this->keyStore . '_' . str_pad((string) $index, 6, '0', STR_PAD_LEFT)) ?: null;
+        return $this->userSettings->get($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT)) ?: null;
     }
 
     /**
-     * Purge all stored resources, even from previous imports.
-     *
-     * @fixme Check if a job is running before purging (but batch upload is limited to admins).
+     * Get the total of checked resources.
      */
-    protected function purgeCheckStore(): self
+    public function getTotalCheckedResources(): int
     {
-        $connection = $this->getServiceLocator()->get('Omeka\Connection');
-        $sql = <<<'SQL'
-DELETE FROM `user_setting`
-WHERE `id` LIKE "#_cache#_bulkimport#_%" ESCAPE "#"
-;
-SQL;
-        $connection->executeStatement($sql);
-        return $this;
+        $escapeSqlLike = function ($string) {
+            return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $string);
+        };
+        return (int) $this->connection
+            ->executeQuery('SELECT COUNT(`id`) FROM `user_setting` WHERE `id` LIKE :key_store', [
+                'key_store' => $escapeSqlLike($this->keyStore) . '%',
+            ])
+            ->fetchOne();
     }
 
     /**
@@ -146,8 +240,10 @@ SQL;
      *
      * One log or row by message, and one or more specific rows by sub-resource
      * (media for item, etc.).
+     *
+     * The storage is one-based.
      */
-    protected function logCheckedResource(?ArrayObject $resource, ?Entry $entry = null): self
+    public function logCheckedResource(int $index, ?ArrayObject $resource, ?Entry $entry = null): self
     {
         static $severities;
 
@@ -164,17 +260,17 @@ SQL;
             ];
         }
 
-        $row['index'] = $this->indexResource;
+        $row['index'] = $index;
 
         $indexMessage = 0;
 
         if (!$resource && !$entry) {
             $this->logger->info(
                 'Index #{index}: Skipped', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
             $row['index_message'] = ++$indexMessage;
-            $row['severity'] = $this->translator->translate('Info');
+            $row['severity'] = $severities[Logger::INFO];
             $row['type'] = $this->translator->translate('General'); // @translate
             $row['message'] = $this->translator->translate('Skipped'); // @translate
             $this->writeRowLog($row);
@@ -184,10 +280,10 @@ SQL;
         if ($entry && $entry->isEmpty()) {
             $this->logger->notice(
                 'Index #{index}: Empty source', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
             $row['index_message'] = ++$indexMessage;
-            $row['severity'] = $this->translator->translate('Notice');
+            $row['severity'] = $severities[Logger::NOTICE];
             $row['type'] = $this->translator->translate('General');
             $row['message'] = $this->translator->translate('Empty source'); // @translate
             $this->writeRowLog($row);
@@ -197,11 +293,11 @@ SQL;
         if (!$resource) {
             $this->logger->err(
                 'Index #{index}: Source cannot be converted', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
             $row['index_message'] = ++$indexMessage;
             $row['errors'] = 1;
-            $row['severity'] = $this->translator->translate('Error');
+            $row['severity'] = $severities[Logger::ERR];
             $row['type'] = $this->translator->translate('General');
             $row['message'] = $this->translator->translate('Source cannot be converted'); // @translate
             $this->writeRowLog($row);
@@ -211,22 +307,22 @@ SQL;
         if ($resource['messageStore']->hasErrors()) {
             $this->logger->err(
                 'Index #{index}: Error processing data.', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
         } elseif ($resource['messageStore']->hasWarnings()) {
             $this->logger->warn(
                 'Index #{index}: Warning about data processed.', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
         } elseif ($resource['messageStore']->hasNotices()) {
             $this->logger->notice(
                 'Index #{index}: Notices about data processed.', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
         } elseif ($resource['messageStore']->hasMessages()) {
             $this->logger->info(
                 'Index #{index}: Info about data processed.', // @translate
-                ['index' => $this->indexResource]
+                ['index' => $index]
             );
         } else {
             return $this;
@@ -284,34 +380,35 @@ SQL;
      * Prepare an output file.
      *
      * @todo Use a temporary file and copy result at the end of the process.
+     *
+     * @return array Result status.
      */
-    protected function initializeCheckLog(): self
+    public function initializeCheckLog(): array
     {
         if (empty($this->columnsLog)) {
-            return $this;
+            return [
+                'status' => 'success',
+            ];
         }
 
-        $importId = (int) $this->job->getArg('bulk_import_id');
-        $this->filepathLog = $this->bulk->prepareFile(['name' => $importId . '-log', 'extension' => 'tsv']);
+        $this->filepathLog = $this->bulk->prepareFile(['name' => $this->nameFile . '-log', 'extension' => 'tsv']);
         if (!$this->filepathLog) {
-            ++$this->totalErrors;
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            return $this;
-        }
-
-        if ($this->job->getJob()->getStatus() === \Omeka\Entity\Job::STATUS_ERROR) {
-            return $this;
+            return [
+                'status' => 'error',
+            ];
         }
 
         $this->handleLog = fopen($this->filepathLog, 'w+');
         if (!$this->handleLog) {
-            ++$this->totalErrors;
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            $this->logger->err(
+            $message = new PsrMessage(
                 'Unable to open output: {error}.', // @translate
                 ['error' => error_get_last()['message']]
             );
-            return $this;
+            $this->logger->err($message->getMessage(), $message->getContext());
+            return [
+                'status' => 'error',
+                'message' => $message,
+            ];
         }
 
         // Prepend the utf-8 bom.
@@ -324,14 +421,15 @@ SQL;
             $this->options['escape'] = chr(0);
         }
 
-        $translator = $this->getServiceLocator()->get('MvcTranslator');
         $row = [];
         foreach ($this->columnsLog as $column) {
-            $row[] = $translator->translate($column);
+            $row[] = $this->translator->translate($column);
         }
         $this->writeRowLog($row);
 
-        return $this;
+        return [
+            'status' => 'success',
+        ];
     }
 
     /**
@@ -381,41 +479,38 @@ SQL;
     /**
      * Finalize the output file. The output file is removed in case of error.
      *
-     * @return self
+     * @return array Result status.
      */
-    protected function finalizeCheckLog()
+    public function finalizeCheckLog(): array
     {
         if (empty($this->columnsLog)) {
-            return $this;
-        }
-
-        if ($this->job->getJob()->getStatus() === \Omeka\Entity\Job::STATUS_ERROR) {
-            if ($this->handleLog) {
-                fclose($this->handleLog);
-                @unlink($this->filepathLog);
-            }
-            return $this;
+            return [
+                'status' => 'success',
+            ];
         }
 
         if (!$this->handleLog) {
-            $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-            return $this;
+            @unlink($this->filepathLog);
+            return [
+                'status' => 'error',
+            ];
         }
+
         fclose($this->handleLog);
-        $this->messageResultFileLog();
-        return $this;
+        $this->messageResultFile();
+        return [
+            'status' => 'success',
+        ];
     }
 
     /**
      * Add a  message with the url to the file.
      */
-    protected function messageResultFileLog(): self
+    protected function messageResultFile(): self
     {
-        $services = $this->getServiceLocator();
-        $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
         $this->logger->notice(
             'Results are available in this spreadsheet: {url}.', // @translate
-            ['url' => $baseUrl . '/bulk_import/' . mb_substr($this->filepathLog, mb_strlen($this->basePath . '/bulk_import/'))]
+            ['url' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathLog, mb_strlen($this->basePath . '/bulk_import/'))]
         );
         return $this;
     }
