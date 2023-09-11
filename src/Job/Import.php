@@ -31,9 +31,8 @@ class Import extends AbstractJob
         $this->api = $services->get('Omeka\ApiManager');
         $this->bulk = $plugins->get('bulk');
         $this->bulkCheckLog = $plugins->get('bulkCheckLog');
+        $this->bulkIdentifiers = $plugins->get('bulkIdentifiers');
         $this->entityManager = $services->get('Omeka\EntityManager');
-        // Use class name to use it even when CsvImport is installed.
-        $this->findResourcesFromIdentifiers = $plugins->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
         $this->logger = $services->get('Omeka\Logger');
         $this->metaMapper = $services->get('Bulk\MetaMapper');
         $this->settings = $services->get('Omeka\Settings');
@@ -103,6 +102,8 @@ class Import extends AbstractJob
         if ($this->totalErrors) {
             return;
         }
+
+        $this->bulkIdentifiers->setIdentifierNames($this->identifierNames);
 
         if (!$this->reader->isValid()) {
             $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);

@@ -140,6 +140,7 @@ return [
             'bulkDiffValues' => Service\ControllerPlugin\BulkDiffValuesFactory::class,
             'bulkFile' => Service\ControllerPlugin\BulkFileFactory::class,
             'bulkFileUploaded' => Service\ControllerPlugin\BulkFileUploadedFactory::class,
+            'bulkIdentifiers' => Service\ControllerPlugin\BulkIdentifiersFactory::class,
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,

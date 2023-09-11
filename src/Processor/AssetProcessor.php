@@ -125,10 +125,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 }
                 // Use the storage id to get the id, since it is unique.
                 try {
-                    $id = empty($this->identifiers['mapx'][$resource['source_index']])
+                    $id = $this->bulkIdentifiers->getIdFromIndex($resource['source_index'])
                         // Read does not allow to return scalar.
-                        ? $this->api->read('assets', ['storage_id' => $value])->getContent()
-                        : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us);
+                        ?: $this->api->read('assets', ['storage_id' => $value])->getContent();
                 } catch (\Exception $e) {
                     $id = null;
                 }
@@ -189,14 +188,14 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                             continue;
                         }
                     }
-                    // Check cache map first.
-                    if (!empty($this->identifiers['map'][$value . $this->us . 'resources'])) {
+                    $storedId = $this->bulkIdentifiers->getId($value, 'resources');
+                    if ($storedId) {
                         $resource['o:resource'][$key] = [
-                            'o:id' => (int) strtok((string) $this->identifiers['map'][$value . $this->us . 'resources'], $this->us),
+                            'o:id' => $storedId,
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
-                    } elseif ($thumbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore'])) {
+                    } elseif ($thumbnailForResourceId = $this->bulkIdentifiers->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore'])) {
                         $resource['o:resource'][$key] = [
                             'o:id' => $thumbnailForResourceId,
                             'checked_id' => true,
@@ -269,7 +268,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             }
 
             $resources[$resource->id()] = $resource;
-            $this->storeSourceIdentifiersIds($dataResource, $resource);
+            $this->bulkIdentifiers->storeSourceIdentifiersIds($dataResource, $resource);
             $this->logger->notice(
                 'Index #{index}: Created {resource_name} #{resource_id}', // @translate
                 ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource->id()]
@@ -294,7 +293,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      */
     protected function createAsset(array $dataResource, ErrorStore $messageStore): ?AssetRepresentation
     {
-        $dataResource = $this->completeResourceIdentifierIds($dataResource);
+        $dataResource = $this->bulkIdentifiers->completeResourceIdentifierIds($dataResource);
         // TODO Clarify use of ingester and allows any ingester for assets.
         $pathOrUrl = $dataResource['url'] ?? $dataResource['file']
             ?? $dataResource['ingest_url'] ?? $dataResource['ingest_filename']

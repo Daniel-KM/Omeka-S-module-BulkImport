@@ -87,9 +87,9 @@ abstract class AbstractProcessor implements Processor
     protected $bulkFileUploaded;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkIdentifiers
      */
-    protected $findResourcesFromIdentifiers;
+    protected $bulkIdentifiers;
 
     /**
      * @var Logger
@@ -171,8 +171,7 @@ abstract class AbstractProcessor implements Processor
         $this->bulkCheckLog= $plugins->get('bulkCheckLog');
         $this->bulkFile = $plugins->get('bulkFile');
         $this->bulkFileUploaded = $plugins->get('bulkFileUploaded');
-        // Use class name to use it even when CsvImport is installed.
-        $this->findResourcesFromIdentifiers = $plugins->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
+        $this->bulkIdentifiers = $plugins->get('bulkIdentifiers');
 
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');

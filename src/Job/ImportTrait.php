@@ -5,9 +5,6 @@ namespace BulkImport\Job;
 use ArrayObject;
 use BulkImport\Entry\Entry;
 use BulkImport\Interfaces\Parametrizable;
-use Log\Stdlib\PsrMessage;
-use Omeka\Api\Representation\AbstractEntityRepresentation;
-use Omeka\Api\Representation\AssetRepresentation;
 
 /**
  * Manage the process of import with a reader, a mapper and a processor.
@@ -37,14 +34,14 @@ trait ImportTrait
     protected $bulkCheckLog;
 
     /**
-     * @var \Omeka\Api\Manager
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkIdentifiers
      */
-    protected $entityManager;
+    protected $bulkIdentifiers;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
+     * @var \Doctrine\ORM\EntityManager
      */
-    protected $findResourcesFromIdentifiers;
+    protected $entityManager;
 
     /**
      * @var \Laminas\Log\Logger
@@ -207,45 +204,6 @@ trait ImportTrait
     ];
 
     /**
-     * Store the source identifiers for each index, reverted and mapped.
-     * Manage possible duplicate identifiers.
-     *
-     * The keys are filled during first loop and values when found or available.
-     *
-     * Identifiers are the id and the main resource name ("resources", "assets",
-     * etc.) is appended to the numeric id, separated with a unit separator
-     * (ascii 31).
-     *
-     * @todo Remove "mapx" and "revert" ("revert" is only used to get "mapx"). "mapx" is a short to map[source index]. But a source can have no identifier and only an index.
-     *
-     * @var array
-     */
-    protected $identifiers = [
-        // Source index to identifiers + suffix (array).
-        'source' => [],
-        // Identifiers  + suffix to source indexes (array).
-        'revert' => [],
-        // Source indexes to resource id + suffix.
-        'mapx' => [],
-        // Source identifiers + suffix to resource id + suffix.
-        'map' => [],
-    ];
-
-    /**
-     * Manage ids from different tables.
-     *
-     * @var array
-     */
-    protected $mainResourceNames = [
-        'resources' => 'resources',
-        'items' => 'resources',
-        'item_sets' => 'resources',
-        'media' => 'resources',
-        'annotations' => 'resources',
-        'assets' => 'assets',
-    ];
-
-    /**
      * Index of the current entry.
      *
      * The entry may be 0-based or 1-based, or inconsistent (IteratorIterator).
@@ -292,18 +250,8 @@ trait ImportTrait
      */
     protected $totalErrors = 0;
 
-    /**
-     * Unit separator as utf-8.
-     *
-     * @var string
-     */
-    protected $us;
-
     protected function process(): self
     {
-        // Prepare the unit separator one time.
-        $this->us = function_exists('mb_chr') ? mb_chr(31, 'UTF-8') : chr(31);
-
         // Prepare the file where the checks will be saved.
         $result = $this
             ->bulkCheckLog
@@ -386,8 +334,7 @@ trait ImportTrait
         $this->totalErrors = 0;
 
         $this
-            ->prepareListOfIdentifiers()
-            ->prepareListOfIds();
+            ->prepareListOfIdentifiers();
 
         // Step 2/3: process all rows to get errors.
 
@@ -457,8 +404,7 @@ trait ImportTrait
 
     protected function processFinalize(): self
     {
-        $this
-            ->bulkCheckLog
+        $this->bulkCheckLog
             ->purgeCheckStore()
             ->finalizeCheckLog();
         return $this;
@@ -600,104 +546,26 @@ trait ImportTrait
             ++$this->totalIndexResources;
             $resource = $this->processEntry($entry);
 
-            $this->extractSourceIdentifiers($resource, $entry);
+            $this->bulkIdentifiers->extractSourceIdentifiers($resource);
         }
 
-        // Clean identifiers for duplicates.
-        $this->identifiers['source'] = array_map('array_unique', $this->identifiers['source']);
+        $this->bulkIdentifiers->finalizeStorageIdentifiers($this->resourceName);
 
-        // Simplify identifiers revert.
-        $this->identifiers['revert'] = array_map('array_unique', $this->identifiers['revert']);
-        foreach ($this->identifiers['revert'] as &$values) {
-            $values = array_combine($values, $values);
-        }
-        unset($values);
-
-        // Empty identifiers should be null to use isset().
-        // A foreach is quicker than array_map.
-        foreach ($this->identifiers['mapx'] as &$val) {
-            if (!$val) {
-                $val = null;
-            }
-        }
-        unset($val);
-        foreach ($this->identifiers['map'] as &$val) {
-            if (!$val) {
-                $val = null;
-            }
-        }
-        unset($val);
+        $this->logger->notice(
+            'End of initial listing of {total} ids from {count} source identifiers.', // @translate
+            ['total' => $this->bulkIdentifiers->countMappedIdentifiers(), 'count' => $this->bulkIdentifiers->countIdentifiers()]
+        );
 
         $this->logger->notice(
             'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
             [
                 'total_resources' => $this->totalIndexResources,
-                'total_identifiers' => count($this->identifiers['map']),
+                'total_identifiers' => $this->bulkIdentifiers->countIdentifiers(),
                 'total_skipped' => $this->totalSkipped,
                 'total_processed' => $this->totalProcessed,
                 'total_empty' => $this->totalEmpty,
                 'total_errors' => $this->totalErrors,
             ]
-        );
-
-        return $this;
-    }
-
-    /**
-     * Get the list of ids from identifiers one time.
-     */
-    protected function prepareListOfIds(): self
-    {
-        if (empty($this->identifiers['map'])) {
-            return $this;
-        }
-
-        $this->logger->notice(
-            'Start preparing ids from {count} source identifiers.', // @translate
-            ['count' => count($this->identifiers['map'])]
-        );
-
-        $mainResourceName = $this->mainResourceNames[$this->resourceName];
-
-        // Process only identifiers without ids (normally all of them).
-        $emptyIdentifiers = [];
-        foreach ($this->identifiers['map'] as $identifier => $id) {
-            if (empty($id)) {
-                $emptyIdentifiers[] = strtok((string) $identifier, chr(31));
-            }
-        }
-
-        // TODO Manage assets.
-        if ($mainResourceName === 'assets') {
-            $ids = $this->findAssetsFromIdentifiers($emptyIdentifiers, $this->identifierNames);
-        } elseif ($mainResourceName === 'resources') {
-            $ids = $this->findResourcesFromIdentifiers($emptyIdentifiers, $this->identifierNames);
-        }
-
-        foreach ($ids as $identifier => $id) {
-            $this->identifiers['map'][$identifier . $this->us . $mainResourceName] = $id
-                ? $id . $this->us . $mainResourceName
-                : null;
-        }
-
-        // Fill mapx when possible.
-        foreach ($ids as $identifier => $id) {
-            if (!empty($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])) {
-                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])]
-                    = $id . $this->us . $mainResourceName;
-            }
-        }
-
-        $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['mapx']);
-        $this->identifiers['map'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['map']);
-
-        $this->logger->notice(
-            'End of initial listing of {total} ids from {count} source identifiers.', // @translate
-            ['total' => count(array_filter($this->identifiers['map'])), 'count' => count($this->identifiers['map'])]
         );
 
         return $this;
@@ -1016,152 +884,6 @@ trait ImportTrait
     }
 
     /**
-     * Extract main and linked resource identifiers from a resource.
-     *
-     * @todo Check for duplicates.
-     * @todo Take care of actions (update/create).
-     * @todo Take care of specific identifiers (uri, filename, etc.).
-     * @todo Make a process and an output with all identifiers only.
-     * @todo Store the resolved id existing in database one time here (after deduplication), and remove the search of identifiers in second loop.
-     */
-    protected function extractSourceIdentifiers(?array $resource): self
-    {
-        if (!$resource) {
-            return $this;
-        }
-
-        $storeMain = function ($idOrIdentifier, $mainResourceName) use ($resource): void {
-            if ($idOrIdentifier) {
-                // No check for duplicates here: it depends on action.
-                $this->identifiers['source'][$this->indexResource][] = $idOrIdentifier . $this->us . $mainResourceName;
-                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName][$this->indexResource] = $this->indexResource;
-            }
-            // Source indexes to resource id.
-            $this->identifiers['mapx'][$this->indexResource] = empty($resource['o:id'])
-                ? null
-                : $resource['o:id'] . $this->us . $mainResourceName;
-            if ($idOrIdentifier) {
-                // Source identifiers to resource id.
-                // No check for duplicate here: last map is the right one.
-                $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = empty($resource['o:id'])
-                    ? null
-                    : $resource['o:id'] . $this->us . $mainResourceName;
-            }
-        };
-
-        $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
-            // As soon as an array exists, a check can be done on identifier,
-            // even if the id is defined later. The same for map.
-            if (!isset($this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName])) {
-                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName] = [];
-            }
-            $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = $vrId;
-        };
-
-        $mainResourceName = $this->mainResourceNames[$this->resourceName];
-
-        // Main identifiers.
-        foreach ($this->identifierNames as $identifierName) {
-            if ($identifierName === 'o:id') {
-                $storeMain($resource['o:id'] ?? null, $mainResourceName);
-            } elseif ($identifierName === 'o:storage_id') {
-                $storeMain($resource['o:storage_id'] ?? null, $mainResourceName);
-            } elseif ($identifierName === 'o:name') {
-                $storeMain($resource['o:name'] ?? null, $mainResourceName);
-            } else {
-                // TODO Normally already initialized.
-                $term = $this->bulk->propertyTerm($identifierName);
-                foreach ($resource[$term] ?? [] as $value) {
-                    if (!empty($value['@value'])) {
-                        $storeMain($value['@value'], 'resources');
-                    }
-                }
-            }
-        }
-
-        // TODO Move these checks in resource and asset processors.
-
-        // Specific identifiers for items (item sets and media).
-        if ($resource['resource_name'] === 'items') {
-            foreach ($resource['o:item_set'] ?? [] as $itemSet) {
-                if (!empty($itemSet['source_identifier'])) {
-                    $storeLinkedIdentifier($itemSet['source_identifier'], $itemSet['o:id'] ?? null, 'resources');
-                }
-            }
-            foreach ($resource['o:media'] ?? [] as $media) {
-                if (!empty($media['source_identifier'])) {
-                    $storeLinkedIdentifier($media['source_identifier'], $media['o:id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        // Specific identifiers for media (item).
-        elseif ($resource['resource_name'] === 'media') {
-            if (!empty($resource['o:item']['source_identifier'])) {
-                $storeLinkedIdentifier($resource['o:item']['source_identifier'], $resource['o:item']['o:id'] ?? null, 'resources');
-            }
-        }
-
-        // Specific identifiers for resources attached to assets.
-        elseif ($resource['resource_name'] === 'assets') {
-            foreach ($resource['o:resource'] ?? [] as $thumbnailForResource) {
-                if (!empty($thumbnailForResource['source_identifier'])) {
-                    $storeLinkedIdentifier($thumbnailForResource['source_identifier'], $thumbnailForResource['o:id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        // TODO It's now possible to store an identifier for the asset from the resource.
-
-        // Store identifiers for linked resources.
-        $properties = $this->bulk->propertyIds();
-        foreach (array_intersect_key($resource, $properties) as $term => $values) {
-            if (!is_array($values)) {
-                continue;
-            }
-            foreach ($values as $value) {
-                if (is_array($value)
-                    && isset($value['property_id'])
-                    && !empty($value['source_identifier'])
-                ) {
-                    $storeLinkedIdentifier($value['source_identifier'], $value['value_resource_id'] ?? null, 'resources');
-                }
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Store new id when source contains identifiers not yet imported.
-     *
-     * Identifiers are already stored during first loop. So just set final id.
-     *
-     * @todo Factorize ImportTrait with AbstractResourceProcessor.
-     */
-    protected function storeSourceIdentifiersIds(array $dataResource, AbstractEntityRepresentation $resource): self
-    {
-        $resourceId = $resource->id();
-        if (empty($resourceId) || empty($dataResource['source_index'])) {
-            return $this;
-        }
-
-        $resourceName = $resource instanceof AssetRepresentation ? 'assets' : $resource->resourceName();
-        $mainResourceName = $this->mainResourceNames[$resourceName];
-
-        // Source indexes to resource id (filled when found or created).
-        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . $this->us . $mainResourceName;
-
-        // Source identifiers to resource id (filled when found or created).
-        // No check for duplicate here: last map is the right one.
-        foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifierWithResourceName) {
-            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . $this->us . $mainResourceName;
-        }
-
-        return $this;
-    }
-
-    /**
      * @param \Omeka\Api\Representation\AbstractRepresentation[] $resources
      */
     protected function recordCreatedResources(array $resources): void
@@ -1192,158 +914,5 @@ trait ImportTrait
         }
 
         $this->api->batchCreate('bulk_importeds', $importeds, [], ['continueOnError' => true]);
-    }
-
-    /**
-     * Find a list of resource ids from a list of identifiers (or one id).
-     *
-     * When there are true duplicates and case insensitive duplicates, the first
-     * case sensitive is returned, else the first case insensitive resource.
-     *
-     * @todo Manage Media source html.
-     *
-     * @uses\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
-     *
-     * @param array|string $identifiers Identifiers should be unique. If a
-     * string is sent, the result will be the resource.
-     * @param string|int|array $identifierName Property as integer or term,
-     * "o:id", a media ingester (url or file), or an associative array with
-     * multiple conditions (for media source). May be a list of identifier
-     * metadata names, in which case the identifiers are searched in a list of
-     * properties and/or in internal ids.
-     * @param string $resourceName The resource type, name or class, if any.
-     * @param \BulkImport\Stdlib\MessageStore $messageStore
-     * @return array|int|null|Object Associative array with the identifiers as key
-     * and the ids or null as value. Order is kept, but duplicate identifiers
-     * are removed. If $identifiers is a string, return directly the resource
-     * id, or null. Returns standard object when there is at least one duplicated
-     * identifiers in resource and the option "$uniqueOnly" is set.
-     *
-     * Note: The option uniqueOnly is not taken in account. The object or the
-     * boolean are not returned, but logged.
-     * Furthermore, the identifiers without id are not returned.
-     *
-     * @todo Factorize findResourcesFromIdentifiers() in AbstractResourceImport with ImportTrait.
-     */
-    public function findResourcesFromIdentifiers(
-        $identifiers,
-        $identifierName = null,
-        $resourceName = null,
-        // TODO Remove message store.
-        ?\BulkImport\Stdlib\MessageStore $messageStore = null
-    ) {
-        // TODO Manage non-resources here? Or a different helper for assets?
-
-        $identifierName = $identifierName ?: $this->identifierNames;
-        $result = $this->findResourcesFromIdentifiers->__invoke($identifiers, $identifierName, $resourceName, true);
-
-        $isSingle = !is_array($identifiers);
-
-        // Log duplicate identifiers.
-        if (is_object($result)) {
-            $result = (array) $result;
-            if ($isSingle) {
-                $result['result'] = [$identifiers => $result['result']];
-                $result['count'] = [$identifiers => $result['count']];
-            }
-
-            // Remove empty identifiers.
-            $result['result'] = array_filter($result['result']);
-
-            // TODO Remove the logs from here.
-            foreach (array_keys($result['result']) as $identifier) {
-                if ($result['count'][$identifier] > 1) {
-                    if ($messageStore) {
-                        $messageStore->addWarning('identifier', new PsrMessage(
-                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
-                        ));
-                    } else {
-                        $this->logger->warn(
-                            'Identifier "{identifier}" is not unique ({count} values). First is #{id}.', // @translate
-                            ['identifier' => $identifier, 'count' => $result['count'][$identifier], 'id' => $result['result'][$identifier]]
-                        );
-                    }
-                    // if (!$this->allowDuplicateIdentifiers) {
-                    //     unset($result['result'][$identifier]);
-                    // }
-                }
-            }
-
-            if (!$this->allowDuplicateIdentifiers) {
-                if ($messageStore) {
-                    $messageStore->addError('identifier', new PsrMessage(
-                        'Duplicate identifiers are not allowed.' // @translate
-                    ));
-                } else {
-                    $this->logger->err(
-                        'Duplicate identifiers are not allowed.' // @translate
-                    );
-                }
-                return $isSingle ? null : [];
-            }
-
-            $result = $isSingle ? reset($result['result']) : $result['result'];
-        } else {
-            // Remove empty identifiers.
-            if (!$isSingle) {
-                $result = array_filter($result);
-            }
-        }
-
-        return $result;
-    }
-
-    protected function findAssetsFromIdentifiers(array $identifiers, $identifierNames): array
-    {
-        // Extract all ids and identifiers: there are only two unique columns in
-        // assets (id and storage id) and the table is generally small and the
-        // api doesn't allow to search them.
-        // The name is allowed too, even if not unique.
-
-        if (!$identifiers || !$identifierNames) {
-            return [];
-        }
-
-        if (!is_array($identifierNames)) {
-            $identifierNames = [$identifierNames];
-        }
-
-        // TODO Allow to store statically ids and add new identifiers and ids in the map, or check in the map first.
-
-        $idIds = [];
-        if (in_array('o:id', $identifierNames)) {
-            $idIds = $this->api->search('assets', [], ['returnScalar' => 'id'])->getContent();
-        }
-        $idNames = [];
-        if (in_array('o:name', $identifierNames)) {
-            $idNames = $this->api->search('assets', [], ['returnScalar' => 'name'])->getContent();
-        }
-        $idStorages = [];
-        if (in_array('o:storage_id', $identifierNames)) {
-            $idStorages = $this->api->search('assets', [], ['returnScalar' => 'storageId'])->getContent();
-        }
-
-        if (!$idIds && !$idNames && !$idStorages) {
-            return [];
-        }
-
-        $result = [];
-        $identifierKeys = array_fill_keys($identifiers, null);
-
-        // Start by name to override it because it is not unique.
-        if (in_array('o:name', $identifierNames)) {
-            $result += array_intersect_key(array_flip($idNames), $identifierKeys);
-        }
-
-        if (in_array('o:storage_id', $identifierNames)) {
-            $result += array_intersect_key(array_flip($idStorages), $identifierKeys);
-        }
-
-        if (in_array('o:id', $identifierNames)) {
-            $result += array_intersect_key($idIds, $identifierKeys);
-        }
-
-        return array_filter($result);
     }
 }
