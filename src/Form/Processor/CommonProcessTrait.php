@@ -97,18 +97,6 @@ trait CommonProcessTrait
                     'id' => 'info_diffs',
                 ],
             ])
-
-            ->add([
-                'name' => 'store_as_task',
-                'type' => Element\Checkbox::class,
-                'options' => [
-                    'label' => 'Store import as a task', // @translate
-                    'info' => 'Allows to store a job to run it via command line or a cron task (see module EasyAdmin).', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'store_as_task',
-                ],
-            ])
         ;
         return $this;
     }
@@ -190,11 +178,6 @@ trait CommonProcessTrait
             ])
             ->add([
                 'name' => 'entries_max',
-                'required' => false,
-            ])
-
-            ->add([
-                'name' => 'store_as_task',
                 'required' => false,
             ])
         ;

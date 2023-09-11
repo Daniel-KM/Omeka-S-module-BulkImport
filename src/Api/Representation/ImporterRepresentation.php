@@ -85,6 +85,12 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->resource->getConfig();
     }
 
+    public function configOption(string $part, $key)
+    {
+        $conf = $this->resource->getConfig();
+        return $conf[$part][$key] ?? null;
+    }
+
     public function readerClass(): string
     {
         return $this->resource->getReader();
@@ -98,6 +104,12 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     public function processorClass(): string
     {
         return $this->resource->getProcessor();
+    }
+
+    public function importerConfig(): array
+    {
+        $conf = $this->config();
+        return $conf['importer'] ?? [];
     }
 
     public function readerConfig(): array

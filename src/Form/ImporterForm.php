@@ -102,6 +102,17 @@ class ImporterForm extends Form
         $subFieldset = $fieldset->get('importer');
         $subFieldset
             ->add([
+                'name' => 'as_task',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Store importer as a task', // @translate
+                    'info' => 'Allows to store a job to run it via command line or a cron task (see module EasyAdmin).', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'as_task',
+                ],
+            ])
+            ->add([
                 'name' => 'notify_end',
                 'type' => Element\Checkbox::class,
                 'options' => [
@@ -110,7 +121,8 @@ class ImporterForm extends Form
                 'attributes' => [
                     'id' => 'notify_end',
                 ],
-            ]);
+            ])
+        ;
 
         $this
             ->add([

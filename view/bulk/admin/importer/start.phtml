@@ -4,7 +4,6 @@
  * @var \BulkImport\Api\Representation\ImporterRepresentation $importer
  * @var \BulkImport\Form\ImporterForm $form
  * @var array $importArgs
- * @var bool $storeAsTask
  * @var string $messagePre
  * @var string $messagePost
  * @var string $step
@@ -20,11 +19,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 $form->prepare();
 
-$storeAsTask = !empty($storeAsTask);
-if ($storeAsTask) {
-    $form->get('form_submit')->get('submit')->setValue('Store import'); // @translate
-}
-
+/** @var \Laminas\Form\Element\Submit $submit */
 $submit = $form->get('form_submit')->get('submit');
 $submit->setAttribute('form', $form->getAttribute('id'));
 $form->get('form_submit')->remove('submit');
@@ -41,7 +36,7 @@ $stepLabels = [
 <?= $this->pageTitle($translate('Import'), 1, $translate('Bulk import')) ?>
 
 <div id="bulk-import">
-    <h3><?= $escape(sprintf($storeAsTask ? $translate('Store import: %s') : $translate('Start import: %s'), $importer->label())) ?></h3>
+    <h3><?= $escape($importer->label()) ?></h3>
     <h4><?= $escape(sprintf($translate('Step %1$d/%2$d: %3$s'), array_search($step, $steps) + 1, count($steps), $stepLabels[$step])) ?></h4>
     <br/>
 
@@ -89,5 +84,9 @@ $stepLabels = [
 </div>
 
 <div id="page-actions">
+    <?php if ($step === 'confirm' && $importer->configOption('importer', 'as_task')): ?>
+    <?= $this->formSubmit($submit->setLabel($translate('Store import'))) ?>
+    <?php else: ?>
     <?= $this->formSubmit($submit) ?>
+    <?php endif; ?>
 </div>

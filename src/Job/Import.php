@@ -26,7 +26,7 @@ class Import extends AbstractJob
         }
 
         $services = $this->getServiceLocator();
-        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
+        $plugins = $services->get('ControllerPluginManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
         $this->api = $services->get('Omeka\ApiManager');
         $this->bulk = $plugins->get('bulk');
@@ -42,27 +42,43 @@ class Import extends AbstractJob
         if (!$bulkImportId) {
             $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
             $this->logger->err(
-                'Import record id does not set.', // @translate
+                'Import record id is not set.', // @translate
             );
             return;
         }
 
-        $this->import = $this->api->search('bulk_imports', ['id' => $id, 'limit' => 1])->getContent();
+        $this->import = $this->api->search('bulk_imports', ['id' => $bulkImportId, 'limit' => 1])->getContent();
         if (!count($this->import)) {
             $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
             $this->logger->err(
                 'Import record id #{id} does not exist.', // @translate
-                ['id' => $id]
+                ['id' => $bulkImportId]
             );
             return;
         }
+
         $this->import = reset($this->import);
         $this->importer = $this->import->importer();
 
-        // The reference id is the job id for now.
+        $processAsTask = $this->importer->configOption('importer', 'as_task');
+        if ($processAsTask) {
+            // jsonSerialize() keeps sub keys as unserialized objects.
+            $newImport = $this->import->jsonSerialize();
+            $newImport = array_diff_key($newImport, array_flip(['@id', 'o:id', 'o:job', 'o:undo_job']));
+            $newImport['o-bulk:importer'] = $this->entityManager->getReference(\BulkImport\Entity\Importer::class, $this->importer->id());
+            $this->import = $this->api->create('bulk_imports', $newImport)->getContent();
+        }
+
         $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
         $referenceIdProcessor->setReferenceId('bulk/import/' . $this->import->id());
         $this->logger->addProcessor($referenceIdProcessor);
+
+        if ($processAsTask) {
+            $this->logger->notice(
+                'Import as task based on import #{import_id}.', // @translate
+                ['import_id' => $bulkImportId]
+            );
+        }
 
         // Make compatible with EasyAdmin tasks, that may use a fake job.
         if ($this->job->getId()) {
@@ -138,7 +154,7 @@ class Import extends AbstractJob
 
         $this->logger->log(Logger::NOTICE, 'Import completed'); // @translate
 
-        $notify = (bool) $this->getArg('notify_end');
+        $notify = (bool) $this->importer->configOption('importer', 'notify_end');
         if ($notify) {
             $this->notifyJobEnd();
         }

@@ -325,6 +325,12 @@ class ImporterController extends AbstractActionController
         $formsCallbacks = $this->getStartFormsCallbacks($importer);
         $formCallback = reset($formsCallbacks);
 
+        $asTask = $importer->configOption('importer', 'as_task');
+        if ($asTask) {
+            $message = new PsrMessage('This import will be stored to be run as a task.'); // @translate
+            $this->messenger()->addWarning($message);
+        }
+
         $next = null;
         if ($this->getRequest()->isPost()) {
             // Current form.
@@ -416,14 +422,9 @@ class ImporterController extends AbstractActionController
                     case 'processor':
                         $processor->handleParamsForm($form, $session->mapping ?? null);
                         $session->comment = trim((string) $data['comment']);
-                        $session->storeAsTask = !empty($data['store_as_task']);
                         $session->processor = $processor->getParams();
                         $next = 'confirm';
                         $formCallback = $formsCallbacks['confirm'];
-                        if (!empty($session->storeAsTask)) {
-                            $message = new PsrMessage('This import will be stored to be run as a task.'); // @translate
-                            $this->messenger()->addWarning($message);
-                        }
                         break;
 
                     case 'confirm':
@@ -450,10 +451,10 @@ class ImporterController extends AbstractActionController
                         /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
                         $import = $response->getContent();
 
-                        // Don't run job if it is a task.
-                        if (!empty($session->storeAsTask)) {
+                        // Don't run job if it is configured as a task.
+                        if ($asTask) {
                             $message = new PsrMessage(
-                                'The import #{bulk_import} was stored as a task.', // @translate
+                                'The import #{bulk_import} was stored for future use.', // @translate
                                 ['bulk_import' => $import->id()]
                             );
                             $this->messenger()->addSuccess($message);
@@ -472,19 +473,19 @@ class ImporterController extends AbstractActionController
                             // Synchronous dispatcher for quick testing purpose.
                             // $job = $dispatcher->dispatch(JobImport::class, $args, $this->getServiceLocator()->get('Omeka\Job\DispatchStrategy\Synchronous'));
                             $job = $dispatcher->dispatch(JobImport::class, $args);
-                            $urlHelper = $this->url();
+                            $urlPlugin = $this->url();
                             $message = new PsrMessage(
                                 'Import started in background (job {link_open_job}#{jobId}{link_close}, {link_open_log}logs{link_close}). This may take a while.', // @translate
                                 [
                                     'link_open_job' => sprintf(
                                         '<a href="%s">',
-                                        htmlspecialchars($urlHelper->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId()]))
+                                        htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId()]))
                                     ),
                                     'jobId' => $job->getId(),
                                     'link_close' => '</a>',
                                     'link_open_log' => sprintf(
                                         '<a href="%s">',
-                                        htmlspecialchars($urlHelper->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]))
+                                        htmlspecialchars($urlPlugin->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]))
                                     ),
                                 ]
                             );
@@ -542,7 +543,6 @@ class ImporterController extends AbstractActionController
         $view = new ViewModel([
             'importer' => $importer,
             'form' => $form,
-            'storeAsTask' => !empty($session->storeAsTask),
             'messagePre' => $messagePre,
             'messagePost' => $messagePost,
             'step' => $next ?? 'reader',
