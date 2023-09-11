@@ -185,7 +185,9 @@ class Import extends AbstractJob
             $reader->setConfig($this->importer->readerConfig());
         }
         if ($reader instanceof Parametrizable) {
-            $reader->setParams($this->import->readerParams());
+            $params = $this->import->readerParams();
+            $params['mapping_config'] = $this->import->importer()->mapper();
+            $reader->setParams($params);
         }
         return $reader;
     }

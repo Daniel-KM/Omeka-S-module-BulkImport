@@ -4,7 +4,6 @@ namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
-use Laminas\Form\Element;
 use Laminas\Form\Form;
 use Omeka\Form\Element as OmekaElement;
 
@@ -23,12 +22,6 @@ class XmlReaderConfigForm extends Form
         $xslConfig['mapping']['label'] = 'Configured xsl'; // @translate
         $xslConfig['user']['label'] = 'User xsl files'; // @translate
         $xslConfig['module']['label'] = 'Module xsl files'; // @translate
-
-        $convertMapping = $metaMapperConfigList->listMappings([
-            ['mapping' => true],
-            ['xml' => 'xml'],
-            ['json' => 'ini'],
-        ]);
 
         $this
             ->setAttribute('id', 'form-bulk-importer')
@@ -85,22 +78,6 @@ class XmlReaderConfigForm extends Form
                 ],
             ])
             ->add([
-                'name' => 'mapping_config',
-                'type' => BulkImportElement\OptionalSelect::class,
-                'options' => [
-                    'label' => 'Mapping to convert source', // @translate
-                    'value_options' => $convertMapping,
-                    'empty_option' => '',
-                ],
-                'attributes' => [
-                    'id' => 'mapping_config',
-                    'value' => '',
-                    'class' => 'chosen-select',
-                    'required' => false,
-                    'data-placeholder' => 'Select the mapping for conversion…', // @translate
-                ],
-            ])
-            ->add([
                 'name' => 'xsl_params',
                 'type' => OmekaElement\ArrayTextarea::class,
                 'options' => [
@@ -114,14 +91,6 @@ class XmlReaderConfigForm extends Form
                     'placeholder' => 'basepath = xxx/
 toc_xml = 1
 param_3 = yyy',
-                ],
-            ])
-            ->add([
-                'name' => 'mapping_automatic',
-                'type' => Element\Hidden::class,
-                'attributes' => [
-                    'id' => 'mapping_automatic',
-                    'value' => '1',
                 ],
             ])
         ;

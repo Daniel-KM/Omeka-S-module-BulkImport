@@ -529,7 +529,6 @@ class ImporterController extends AbstractActionController
             $reader->setParams([
                 'xsl_sheet_pre' => $form->get('xsl_sheet_pre')->getValue(),
                 'xsl_sheet' => $form->get('xsl_sheet')->getValue(),
-                'mapping_config' => $form->get('mapping_config')->getValue(),
             ]);
             $comments = $reader->getConfigMainComments();
             foreach ($comments as $file => $comment) {
@@ -537,6 +536,9 @@ class ImporterController extends AbstractActionController
                 $messagePost .= '<p>' . nl2br($this->viewHelpers()->get('escapeHtml')($comment)) . '</p>';
             }
         }
+
+        // TODO Add comments for mapper? There is only one for now in config. Add settings for "allowed mapper"?
+        // 'mapper' => $form->get('mapper')->getValue(),
 
         $view = new ViewModel([
             'importer' => $importer,
