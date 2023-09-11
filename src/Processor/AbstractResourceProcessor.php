@@ -334,7 +334,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // The human source index is one-based, so "0" means undetermined.
         $resource['source_index'] = 0;
         $resource['checked_id'] = false;
-        $resource['has_error'] = false;
         $resource['messageStore'] = new MessageStore();
         $this->baseSpecific($resource);
         return $resource;
@@ -378,7 +377,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $metadataTypes = [
             'source_index' => 'skip',
             'checked_id' => 'skip',
-            'has_error' => 'skip',
             'messageStore' => 'skip',
         ] + $this->fieldTypes;
 
@@ -940,36 +938,21 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Check if the resource name is the good one.
         if ($resource['o:id']) {
             $resourceName = $resource['resource_name'] ?: $this->getResourceName();
+            $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
             if (empty($resourceName) || $resourceName === 'resources') {
-                if (isset($resource['messageStore'])) {
-                    $resource['messageStore']->addError('resource_name', new PsrMessage(
-                        'The resource id #{id} cannot be checked: the resource type is undefined.', // @translate
-                        ['id' => $resource['o:id']]
-                    ));
-                } else {
-                    $this->logger->err(
-                        'Index #{index}: The resource id #{id} cannot be checked: the resource type is undefined.', // @translate
-                        ['index' => $this->indexResource, 'id' => $resource['o:id']]
-                    );
-                    $resource['has_error'] = true;
-                }
+                $resource['messageStore']->addError('resource_name', new PsrMessage(
+                    'The resource id #{id} cannot be checked: the resource type is undefined.', // @translate
+                    ['id' => $resource['o:id']]
+                ));
             } else {
                 $resourceId = $resourceName === 'assets'
                     ? $this->bulkIdentifiers->findAssetsFromIdentifiers($resource['o:id'], 'o:id')
                     : $this->bulkIdentifiers->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'] ?? null);
                 if (!$resourceId) {
-                    if (isset($resource['messageStore'])) {
-                        $resource['messageStore']->addError('resource_id', new PsrMessage(
-                            'The id #{id} of this resource doesn’t exist.', // @translate
-                            ['id' => $resource['o:id']]
-                        ));
-                    } else {
-                        $this->logger->err(
-                            'Index #{index}: The id #{id} of this resource doesn’t exist.', // @translate
-                            ['index' => $this->indexResource, 'id' => $resource['o:id']]
-                        );
-                        $resource['has_error'] = true;
-                    }
+                    $resource['messageStore']->addError('resource_id', new PsrMessage(
+                        'The id #{id} of this resource doesn’t exist.', // @translate
+                        ['id' => $resource['o:id']]
+                    ));
                 }
             }
         }
@@ -992,22 +975,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return true;
         }
 
+        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+
         // TODO getResourceName() is only in child AbstractResourceProcessor.
         $resourceName = empty($resource['resource_name'])
             ? $this->getResourceName()
             : $resource['resource_name'];
         if (empty($resourceName) || $resourceName === 'resources') {
-            if (isset($resource['messageStore'])) {
-                $resource['messageStore']->addError('resource_name', new PsrMessage(
-                    'The resource id cannot be filled: the resource type is undefined.' // @translate
-                ));
-            } else {
-                $this->logger->err(
-                    'Index #{index}: The resource id cannot be filled: the resource type is undefined.', // @translate
-                    ['index' => $this->indexResource]
-                );
-                $resource['has_error'] = true;
-            }
+            $resource['messageStore']->addError('resource_name', new PsrMessage(
+                'The resource id cannot be filled: the resource type is undefined.' // @translate
+            ));
         }
 
         $idNames = $this->identifierNames;
@@ -1021,36 +998,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         if (empty($idNames)) {
             if ($this->allowDuplicateIdentifiers) {
-                if (isset($resource['messageStore'])) {
-                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
-                        'The resource has no identifier.' // @translate
-                    ));
-                } else {
-                    $this->logger->notice(
-                        'Index #{index}: The resource has no identifier.', // @translate
-                        ['index' => $this->indexResource]
-                    );
-                }
+                $resource['messageStore']->addWarning('identifier', new PsrMessage(
+                    'The resource has no identifier.' // @translate
+                ));
             } else {
-                if (isset($resource['messageStore'])) {
-                    $resource['messageStore']->addError('identifier', new PsrMessage(
-                        'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
-                    ));
-                } else {
-                    $this->logger->err(
-                        'Index #{index}: The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.', // @translate
-                        ['index' => $this->indexResource]
-                    );
-                    $resource['has_error'] = true;
-                }
+                $resource['messageStore']->addError('identifier', new PsrMessage(
+                    'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
+                ));
             }
             return false;
         }
 
         // Don't try to fill id when resource has an error, but allow warnings.
-        if (!empty($resource['has_error'])
-            || (isset($resource['messageStore']) && $resource['messageStore']->hasErrors())
-        ) {
+        if ($resource['messageStore']->hasErrors()) {
             return false;
         }
 
@@ -1089,28 +1049,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $flipped = array_flip($ids);
             if (count($flipped) > 1) {
                 if ($this->allowDuplicateIdentifiers) {
-                    if (isset($resource['messageStore'])) {
-                        $resource['messageStore']->addWarning('identifier', new PsrMessage(
-                            'Resource doesn’t have a unique identifier. You may check options for resource identifiers.' // @translate
-                        ));
-                    } else {
-                        $this->logger->warn(
-                            'Index #{index}: Resource doesn’t have a unique identifier. You may check options for resource identifiers.', // @translate
-                            ['index' => $this->indexResource]
-                        );
-                    }
+                    $resource['messageStore']->addWarning('identifier', new PsrMessage(
+                        'Resource doesn’t have a unique identifier. You may check options for resource identifiers.' // @translate
+                    ));
                 } else {
-                    if (isset($resource['messageStore'])) {
-                        $resource['messageStore']->addError('identifier', new PsrMessage(
-                            'Duplicate identifiers are not allowed. You may check options for resource identifiers.' // @translate
-                        ));
-                    } else {
-                        $this->logger->err(
-                            'Index #{index}: Duplicate identifiers are not allowed. You may check options for resource identifiers.', // @translate
-                            ['index' => $this->indexResource]
-                        );
-                        $resource['has_error'] = true;
-                    }
+                    $resource['messageStore']->addError('identifier', new PsrMessage(
+                        'Duplicate identifiers are not allowed. You may check options for resource identifiers.' // @translate
+                    ));
                     break;
                 }
             }

@@ -178,6 +178,8 @@ class DiffResources extends AbstractPlugin
 
         if (!empty($this->resource1['has_error'])
             || !empty($this->resource2['has_error'])
+            || (isset($this->resource1['messageStore']) && $this->resource1['messageStore']->hasErrors)
+            || (isset($this->resource2['messageStore']) && $this->resource2['messageStore']->hasErrors)
         ) {
             $this->result['has_error'] = [
                 'meta' => 'has_error',

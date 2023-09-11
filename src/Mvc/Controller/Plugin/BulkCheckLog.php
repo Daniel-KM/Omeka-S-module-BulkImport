@@ -3,6 +3,7 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Entry\Entry;
+use BulkImport\Stdlib\MessageStore;
 use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -198,8 +199,8 @@ SQL;
     public function storeCheckedResource(int $index, ?array $data): self
     {
         if (is_array($data)) {
-            $data['has_error'] = $data['has_error'] ?? (isset($data['messageStore']) ? $data['messageStore']->hasErrors() : null);
-            // There shall not be any object except message store insi$e array.
+            $data['has_error'] = isset($data['messageStore']) ? $data['messageStore']->hasErrors() : false;
+            // There shall not be any object except message store inside array.
             unset($data['messageStore']);
         }
         $this->userSettings->set($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT), $data);
@@ -213,7 +214,15 @@ SQL;
      */
     public function loadCheckedResource(int $index): ?array
     {
-        return $this->userSettings->get($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT)) ?: null;
+        $resource = $this->userSettings->get($this->keyStore . ':' . str_pad((string) $index, 6, '0', STR_PAD_LEFT)) ?: null;
+        if ($resource === null) {
+            return null;
+        }
+        $resource['messageStore'] = new MessageStore();
+        if (!empty($resource['has_error'])) {
+            $resource['messageStore']->addError('has_error', new PsrMessage('Has error.')); // @ŧranslate
+        }
+        return $resource;
     }
 
     /**
@@ -282,8 +291,21 @@ SQL;
             );
             $row['index_message'] = ++$indexMessage;
             $row['severity'] = $severities[Logger::NOTICE];
-            $row['type'] = $this->translator->translate('General');
+            $row['type'] = $this->translator->translate('General'); // @translate
             $row['message'] = $this->translator->translate('Empty source'); // @translate
+            $this->writeRowLog($row);
+            return $this;
+        }
+
+        if ($resource === null) {
+            $this->logger->err(
+                'Index #{index}: Source is empty', // @translate
+                ['index' => $index]
+            );
+            $row['index_message'] = ++$indexMessage;
+            $row['severity'] = $severities[Logger::NOTICE];
+            $row['type'] = $this->translator->translate('General'); // @translate
+            $row['message'] = $this->translator->translate('Source is empty'); // @translate
             $this->writeRowLog($row);
             return $this;
         }
@@ -296,7 +318,7 @@ SQL;
             $row['index_message'] = ++$indexMessage;
             $row['errors'] = 1;
             $row['severity'] = $severities[Logger::ERR];
-            $row['type'] = $this->translator->translate('General');
+            $row['type'] = $this->translator->translate('General'); // @translate
             $row['message'] = $this->translator->translate('Source cannot be converted'); // @translate
             $this->writeRowLog($row);
             return $this;

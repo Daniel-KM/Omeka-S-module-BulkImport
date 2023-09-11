@@ -549,6 +549,11 @@ trait ImportTrait
             ++$this->totalIndexResources;
             $resource = $this->processEntry($entry);
 
+            if ($resource === null) {
+                ++$this->totalEmpty;
+                continue;
+            }
+
             $this->bulkIdentifiers->extractSourceIdentifiers($resource);
         }
 
@@ -663,6 +668,10 @@ trait ImportTrait
             ++$this->totalIndexResources;
             $resource = $this->processEntry($entry);
 
+            if ($resource === null) {
+                ++$this->totalEmpty;
+            }
+
             if (!$resource) {
                 $this->bulkCheckLog->storeCheckedResource($this->indexResource, $resource);
                 $this->bulkCheckLog->logCheckedResource($this->indexResource, null, $entry);
@@ -720,6 +729,7 @@ trait ImportTrait
         $this->currentEntryIndex = 0;
 
         // Output entry too, because array_keys cannot be used in all cases.
+        $entry = null;
         foreach ($this->reader as /* $innerIndex => */ $entry) {
             ++$this->currentEntryIndex;
             if ($this->shouldStop()) {
@@ -775,7 +785,18 @@ trait ImportTrait
 
             // TODO Clarify computation of total errors.
             $resource = $this->bulkCheckLog->loadCheckedResource($this->indexResource);
-            if (!$resource || !empty($resource['has_error'])) {
+
+            // Skip empty source.
+            if ($resource === null) {
+                ++$this->totalEmpty;
+                ++$this->totalProcessed;
+                continue;
+            }
+
+            if (!$resource
+                || !empty($resource['has_error'])
+                || (isset($resource['messageStore']) && $resource['messageStore']->hasErrors())
+            ) {
                 ++$this->totalErrors;
                 continue;
             }

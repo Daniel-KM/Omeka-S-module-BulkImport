@@ -58,18 +58,15 @@ interface Processor
     /**
      * Check if a resource is well-formed and fix it when possible.
      *
-     * @return array Return the resource. The keys "has_error" and "messageStore"
-     * may be added or updated, and eventually other data (resource id).
-     *
-     * @todo Remove has_error and use only messageStore.
+     * @return array Return the resource. The key "messageStore" may be added or
+     * updated, and eventually other data (resource id).
      */
     public function checkResource(array $resource): array;
 
     /**
      * Process an action on a resource according to params.
      *
-     * @return AbstractEntityRepresentation Only new representation is returned
-     * for now.
+     * @todo Some representations are not returned currently.
      */
     public function processResource(array $resource): ?AbstractEntityRepresentation;
 }
