@@ -29,19 +29,23 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Mvc\I18n\Translator;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
+use Omeka\DataType\Manager as DataTypeManager;
+use Omeka\Mvc\Controller\Plugin\Api;
 
 /**
- * Manage all common fnctions to manage resources.
+ * Manage all common fonctions to manage resources.
  *
  * @todo Separate generic methods and specific ones in two.
  *
  * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\Bulk
- * @see \BulkImportResourceTemplate\Mvc\Controller\Plugin\Bulk
+ * @see \BulkImport\Mvc\Controller\Plugin\Bulk
  */
 class Bulk extends AbstractPlugin
 {
@@ -51,9 +55,9 @@ class Bulk extends AbstractPlugin
     protected $services;
 
     /**
-     * @var Logger
+     * @var \Omeka\Mvc\Controller\Plugin\Api
      */
-    protected $logger;
+    protected $api;
 
     /**
      * @var \Doctrine\DBAL\Connection
@@ -66,14 +70,14 @@ class Bulk extends AbstractPlugin
     protected $dataTypeManager;
 
     /**
-     * @var \Omeka\Mvc\Controller\Plugin\Api
-     */
-    protected $api;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
      */
     protected $findResourcesFromIdentifiers;
+
+    /**
+     * @var Logger
+     */
+    protected $logger;
 
     /**
      * @var \Omeka\I18n\Translator
@@ -130,23 +134,24 @@ class Bulk extends AbstractPlugin
      */
     protected $dataTypes;
 
-    public function __construct(ServiceLocatorInterface $services)
-    {
+    public function __construct(
+        ServiceLocatorInterface $services,
+        Api $api,
+        Connection $connection,
+        DataTypeManager $dataTypeManager,
+        FindResourcesFromIdentifiers $findResourcesFromIdentifiers,
+        Logger $logger,
+        Translator $translator,
+        string $basePath
+    ) {
         $this->services = $services;
-        $this->logger = $services->get('Omeka\Logger');
-        $this->translator = $services->get('MvcTranslator');
-        $this->connection = $services->get('Omeka\Connection');
-        $this->dataTypeManager = $services->get('Omeka\DataTypeManager');
-
-        $config = $services->get('Config');
-        $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-
-        // The controller is not yet available here.
-        $pluginManager = $services->get('ControllerPluginManager');
-        $this->api = $pluginManager->get('api');
-        $this->findResourcesFromIdentifiers = $pluginManager
-            // Use class name to use it even when CsvImport is installed.
-            ->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class);
+        $this->api = $connection;
+        $this->connection = $connection;
+        $this->dataTypeManager = $dataTypeManager;
+        $this->findResourcesFromIdentifiers = $findResourcesFromIdentifiers;
+        $this->logger = $logger;
+        $this->translator = $translator;
+        $this->basePath = $basePath;
     }
 
     /**
@@ -1016,6 +1021,7 @@ class Bulk extends AbstractPlugin
         if (empty($string)) {
             return false;
         }
+        $string = (string) $string;
         return strpos($string, 'https:') === 0
             || strpos($string, 'http:') === 0
             || strpos($string, 'ftp:') === 0
