@@ -217,7 +217,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setLabel(?string $label): \BulkImport\Entity\Importer
+    public function setLabel(string $label): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setLabel', [$label]);
@@ -228,7 +228,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getLabel(): ?string
+    public function getLabel(): string
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getLabel', []);
@@ -239,7 +239,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setReader(?string $reader): \BulkImport\Entity\Importer
+    public function setReader(string $reader): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setReader', [$reader]);
@@ -250,7 +250,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function getReader(): ?string
+    public function getReader(): string
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReader', []);
@@ -283,7 +283,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setProcessor(?string $processor): \BulkImport\Entity\Importer
+    public function setProcessor(string $processor): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setProcessor', [$processor]);

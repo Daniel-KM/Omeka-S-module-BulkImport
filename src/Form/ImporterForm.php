@@ -33,6 +33,7 @@ class ImporterForm extends Form
                 ],
                 'attributes' => [
                     'id' => 'o-label',
+                    'required' => true,
                 ],
             ])
 
@@ -45,6 +46,7 @@ class ImporterForm extends Form
                 ],
                 'attributes' => [
                     'id' => 'o-bulk-reader',
+                    'required' => true,
                 ],
             ])
 
@@ -57,6 +59,7 @@ class ImporterForm extends Form
                 ],
                 'attributes' => [
                     'id' => 'o-bulk-processor',
+                    'required' => true,
                 ],
             ])
 

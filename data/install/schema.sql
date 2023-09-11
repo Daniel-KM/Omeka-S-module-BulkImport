@@ -1,10 +1,10 @@
 CREATE TABLE `bulk_importer` (
     `id` INT AUTO_INCREMENT NOT NULL,
     `owner_id` INT DEFAULT NULL,
-     `label` VARCHAR(190) DEFAULT NULL,
-    `reader` VARCHAR(190) DEFAULT NULL,
+     `label` VARCHAR(190) NOT NULL,
+    `reader` VARCHAR(190) NOT NULL,
     `mapper` VARCHAR(190) DEFAULT NULL,
-    `processor` VARCHAR(190) DEFAULT NULL,
+    `processor` VARCHAR(190) NOT NULL,
     `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_2DAF62D7E3C61F9 (`owner_id`),
     PRIMARY KEY(`id`)

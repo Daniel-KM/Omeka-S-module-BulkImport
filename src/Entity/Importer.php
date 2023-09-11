@@ -41,7 +41,7 @@ class Importer extends AbstractEntity
      *
      * @Column(
      *     type="string",
-     *     nullable=true,
+     *     nullable=false,
      *     length=190
      * )
      */
@@ -52,7 +52,7 @@ class Importer extends AbstractEntity
      *
      * @Column(
      *     type="string",
-     *     nullable=true,
+     *     nullable=false,
      *     length=190
      * )
      */
@@ -74,7 +74,7 @@ class Importer extends AbstractEntity
      *
      * @Column(
      *     type="string",
-     *     nullable=true,
+     *     nullable=false,
      *     length=190
      * )
      */
@@ -124,24 +124,24 @@ class Importer extends AbstractEntity
         return $this->owner;
     }
 
-    public function setLabel(?string $label): self
+    public function setLabel(string $label): self
     {
         $this->label = $label;
         return $this;
     }
 
-    public function getLabel(): ?string
+    public function getLabel(): string
     {
         return $this->label;
     }
 
-    public function setReader(?string $reader): self
+    public function setReader(string $reader): self
     {
         $this->reader = $reader;
         return $this;
     }
 
-    public function getReader(): ?string
+    public function getReader(): string
     {
         return $this->reader;
     }
@@ -157,7 +157,7 @@ class Importer extends AbstractEntity
         return $this->mapper;
     }
 
-    public function setProcessor(?string $processor): self
+    public function setProcessor(string $processor): self
     {
         $this->processor = $processor;
         return $this;

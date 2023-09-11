@@ -75,7 +75,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             : null;
     }
 
-    public function label(): ?string
+    public function label(): string
     {
         return $this->resource->getLabel();
     }
