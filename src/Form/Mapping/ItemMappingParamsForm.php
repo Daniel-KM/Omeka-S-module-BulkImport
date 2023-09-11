@@ -24,8 +24,8 @@ class ItemMappingParamsForm extends AbstractResourceMappingParamsForm
                     'iiif' => 'IIIF Image', // @translate
                     // Removed since Image Server 3.6.13.
                     // 'tile' => 'Tile', // @translate
-                    'o:media {dcterms:title}' => 'Title', // @translate
-                    'o:media {o:is_public}' => 'Visibility public/private', // @translate
+                    'o:media/dcterms:title' => 'Title', // @translate
+                    'o:media/o:is_public' => 'Visibility public/private', // @translate
                 ],
             ],
         ]);
