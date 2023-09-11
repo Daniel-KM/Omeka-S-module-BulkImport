@@ -13,6 +13,8 @@ use Omeka\Settings\UserSettings;
 
 class BulkCheckLog extends AbstractPlugin
 {
+    use BulkCheckDiffTrait;
+
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
@@ -391,7 +393,7 @@ SQL;
             ];
         }
 
-        $this->filepathLog = $this->bulk->prepareFile(['name' => $this->nameFile . '-log', 'extension' => 'tsv']);
+        $this->filepathLog = $this->prepareFile(['name' => $this->nameFile . '-log', 'extension' => 'tsv']);
         if (!$this->filepathLog) {
             return [
                 'status' => 'error',

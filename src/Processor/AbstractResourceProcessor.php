@@ -1197,7 +1197,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ?? $value['@value'] ?? $value['value_resource_id']
                         ?? reset($value);
                 }
-                $id = $this->bulk->getUserId($value);
+                $id = $this->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -1763,7 +1763,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                             [
                                 'identifier' => key($ids),
                                 'metadata' => $identifierName,
-                                'resource_name' => $this->bulk->label($resourceName),
+                                'resource_name' => $this->bulk->resourceLabel($resourceName),
                                 'resource_id' => $resource['o:id'],
                             ]
                         ));
@@ -1774,7 +1774,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                                 'index' => $this->indexResource,
                                 'identifier' => key($ids),
                                 'metadata' => $identifierName,
-                                'resource_name' => $this->bulk->label($resourceName),
+                                'resource_name' => $this->bulk->resourceLabel($resourceName),
                                 'resource_id' => $resource['o:id'],
                             ]
                         );
@@ -1929,7 +1929,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } else {
                 $this->logger->notice(
                     'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $resource->id()]
+                    ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource->id()]
                 );
             }
         }
@@ -2071,7 +2071,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
             $this->logger->notice(
                 'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $dataResource['o:id']]
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $dataResource['o:id']]
             );
         }
 
@@ -2149,7 +2149,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         foreach ($ids as $id => $resourceName) {
             $this->logger->notice(
                 'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $id]
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $id]
             );
         }
         return $this;
@@ -2639,5 +2639,30 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
        ?\BulkImport\Stdlib\MessageStore $messageStore = null
     ) {
         return $this->findResourcesFromIdentifiers($identifier, $identifierName, $resourceName, $messageStore);
+    }
+
+    /**
+     * Get a user id by email or id or name.
+     *
+     * @var string|int $emailOrIdOrName
+     */
+    public function getUserId($emailOrIdOrName): ?int
+    {
+        if (empty($emailOrIdOrName) || !is_scalar($emailOrIdOrName)) {
+            return null;
+        }
+
+        if (is_numeric($emailOrIdOrName)) {
+            $data = ['id' => $emailOrIdOrName];
+        } elseif (filter_var($emailOrIdOrName, FILTER_VALIDATE_EMAIL)) {
+            $data = ['email' => $emailOrIdOrName];
+        } else {
+            $data = ['name' => $emailOrIdOrName];
+        }
+        $data['limit'] = 1;
+
+        $users = $this->apiManager
+            ->search('users', $data, ['responseContent' => 'resource'])->getContent();
+        return $users ? (reset($users))->getId() : null;
     }
 }

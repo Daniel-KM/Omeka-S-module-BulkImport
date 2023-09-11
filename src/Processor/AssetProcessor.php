@@ -166,7 +166,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $email = empty($value['o:email']) ? null : $value['o:email'];
                     $value = $id ?? $email ?? reset($value);
                 }
-                $id = $this->bulk->getUserId($value);
+                $id = $this->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -331,7 +331,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             $this->storeSourceIdentifiersIds($dataResource, $resource);
             $this->logger->notice(
                 'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->label($resourceName), 'resource_id' => $resource->id()]
+                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource->id()]
             );
 
             $dataResource['o:id'] = $resource->id();

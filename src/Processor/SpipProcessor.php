@@ -4,6 +4,7 @@ namespace BulkImport\Processor;
 
 use BulkImport\Form\Processor\SpipProcessorConfigForm;
 use BulkImport\Form\Processor\SpipProcessorParamsForm;
+use BulkImport\Mvc\Controller\Plugin\BulkResourceTrait;
 use DateTime;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
@@ -20,6 +21,8 @@ use Omeka\Stdlib\Message;
  */
 class SpipProcessor extends AbstractFullProcessor
 {
+    use BulkResourceTrait;
+
     protected $resourceLabel = 'Spip'; // @translate
     protected $configFormClass = SpipProcessorConfigForm::class;
     protected $paramsFormClass = SpipProcessorParamsForm::class;
@@ -2859,7 +2862,7 @@ class SpipProcessor extends AbstractFullProcessor
                         } catch (NotFoundException $e) {
                             continue;
                         }
-                        $articleJson = $this->bulk->resourceJson($article);
+                        $articleJson = $this->resourceJson($article);
                         $articleJson['curation:category'] = [[
                             'property_id' => $curationCategoryId,
                             'type' => 'resource:item',

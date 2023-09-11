@@ -7,6 +7,8 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 class UpdateResourceProperties extends AbstractPlugin
 {
+    use BulkResourceTrait;
+
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
@@ -48,7 +50,7 @@ class UpdateResourceProperties extends AbstractPlugin
 
         $this->resource = is_null($resource) || is_array($resource)
             ? $resource
-            : $this->bulk->resourceJson($resource);
+            : $this->resourceJson($resource);
 
         $this->values = $values;
 
@@ -126,7 +128,7 @@ class UpdateResourceProperties extends AbstractPlugin
         // Deduplicate properties.
         $newProperties = array_intersect_key($this->result, $properties);
         foreach ($newProperties as $term => &$vals) {
-            $newVals = $this->bulk->normalizePropertyValues($term, $vals);
+            $newVals = $this->normalizePropertyValues($term, $vals);
             // array_unique() does not work on array, so serialize them first.
             $vals = count($newVals) <= 1
                 ? $newVals

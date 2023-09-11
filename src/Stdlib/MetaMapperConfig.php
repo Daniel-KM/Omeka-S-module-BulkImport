@@ -491,7 +491,7 @@ class MetaMapperConfig
         }
 
         $prefixes = [
-            'user' => $this->bulk->getBasePath() . '/mapping/',
+            'user' => $this->bulk->basePath() . '/mapping/',
             'module' => dirname(__DIR__, 2) . '/data/mapping/',
             'base' => dirname(__DIR__, 2) . '/data/mapping/base/',
         ];

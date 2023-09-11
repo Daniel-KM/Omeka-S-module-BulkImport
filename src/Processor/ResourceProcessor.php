@@ -702,7 +702,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $value = $id ?? $url ?? null;
                 }
                 if (is_numeric($value)) {
-                    $id = $this->bulk->getAssetId($value);
+                    $id = $this->getAssetId($value);
                 } elseif (is_string($value)) {
                     // TODO Temporary creation of the asset.
                     $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
@@ -732,7 +732,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ?? $value['@value'] ?? $value['value_resource_id']
                         ?? reset($value);
                 }
-                $id = $this->bulk->getUserId($value);
+                $id = $this->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -877,7 +877,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $value = $id ?? $url ?? null;
                 }
                 if (is_numeric($value)) {
-                    $id = $this->bulk->getAssetId($value);
+                    $id = $this->getAssetId($value);
                 } elseif (is_string($value)) {
                     // TODO Temporary creation of the asset.
                     $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
@@ -906,7 +906,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $email = empty($value['o:email']) ? null : $value['o:email'];
                     $value = $id ?? $email ?? reset($value);
                 }
-                $id = $this->bulk->getUserId($value);
+                $id = $this->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = empty($email)
                         ? ['o:id' => $id]
@@ -924,7 +924,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (!$value) {
                     return true;
                 }
-                $id = $this->bulk->getUserId($value);
+                $id = $this->getUserId($value);
                 if ($id) {
                     $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
                 } else {
@@ -1799,5 +1799,18 @@ class ResourceProcessor extends AbstractResourceProcessor
         $entityManager->flush();
 
         return $asset;
+    }
+
+    /**
+     * Check if an asset exists from id.
+     */
+    protected function getAssetId($id): ?int
+    {
+        $id = (int) $id;
+        if (!$id) {
+            return null;
+        }
+        $result = $this->bulk->api()->searchOne('assets', ['id' => $id])->getContent();
+        return $result ? $id : null;
     }
 }

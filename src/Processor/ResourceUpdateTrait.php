@@ -2,6 +2,8 @@
 
 namespace BulkImport\Processor;
 
+use BulkImport\Mvc\Controller\Plugin\BulkResourceTrait;
+
 /**
  * Helper to manage specific update modes.
  *
@@ -11,6 +13,8 @@ namespace BulkImport\Processor;
  */
 trait ResourceUpdateTrait
 {
+    use BulkResourceTrait;
+
     /**
      * @var array
      */
@@ -47,7 +51,7 @@ trait ResourceUpdateTrait
             try {
                 $this->resourceToUpdateEntity = $this->bulk->api()->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
                 $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
-                $this->resourceToUpdateArray = $this->bulk->resourceJson($this->resourceToUpdate);
+                $this->resourceToUpdateArray = $this->resourceJson($this->resourceToUpdate);
             } catch (\Exception $e) {
                 $this->resourceToUpdateEntity = null;
                 $this->resourceToUpdate = null;
@@ -466,7 +470,7 @@ trait ResourceUpdateTrait
     protected function deduplicatePropertyValues(array $valuesByProperty): array
     {
         foreach ($valuesByProperty as $term => &$vals) {
-            $newVals = $this->bulk->normalizePropertyValues($term, $vals);
+            $newVals = $this->normalizePropertyValues($term, $vals);
             // array_unique() does not work on array, so serialize them first.
             $vals = count($newVals) <= 1
                 ? $newVals
@@ -481,7 +485,7 @@ trait ResourceUpdateTrait
      */
     protected function deduplicateSinglePropertyValues(string $term, array $values): array
     {
-        $newVals = $this->bulk->normalizePropertyValues($term, $values);
+        $newVals = $this->normalizePropertyValues($term, $values);
         return count($newVals) <= 1
             ? $newVals
             : array_map('unserialize', array_unique(array_map('serialize', $newVals)));}

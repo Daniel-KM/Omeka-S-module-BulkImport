@@ -7,6 +7,8 @@ use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 class DiffResources extends AbstractPlugin
 {
+    use BulkResourceTrait;
+
     // TODO Manage other metadata.
     protected $skip = [
         // Internal keys.
@@ -86,11 +88,11 @@ class DiffResources extends AbstractPlugin
 
         $this->resource1 = is_null($resource1) || is_array($resource1)
             ? $resource1
-            : $this->bulk->resourceJson($resource1);
+            : $this->resourceJson($resource1);
 
         $this->resource2 = is_null($resource2) || is_array($resource2)
             ? $resource2
-            : $this->bulk->resourceJson($resource2);
+            : $this->resourceJson($resource2);
 
         // Some of this actions are useless for properties (create), but
         // normally, this helper is not called in that case.
@@ -262,8 +264,8 @@ class DiffResources extends AbstractPlugin
 
         // To diff values requires to have complete, normalized and ordered
         // representation.
-        $dataNorm1 = $data1 ? $this->bulk->normalizePropertyValues($meta, $data1) : [];
-        $dataNorm2 = $data2 ? $this->bulk->normalizePropertyValues($meta, $data2) : [];
+        $dataNorm1 = $data1 ? $this->normalizePropertyValues($meta, $data1) : [];
+        $dataNorm2 = $data2 ? $this->normalizePropertyValues($meta, $data2) : [];
         $data2 = $dataNorm2;
 
         // For properties, the diff depends on the action, so the new data

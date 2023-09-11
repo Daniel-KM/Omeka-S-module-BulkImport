@@ -34,14 +34,11 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\Mvc\I18n\Translator;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\DataType\Manager as DataTypeManager;
 use Omeka\Mvc\Controller\Plugin\Api;
 
 /**
  * Manage all common fonctions to manage resources.
- *
- * @todo Separate generic methods and specific ones in two.
  *
  * @see \AdvancedResourceTemplate\Mvc\Controller\Plugin\Bulk
  * @see \BulkImport\Mvc\Controller\Plugin\Bulk
@@ -125,7 +122,7 @@ class Bulk extends AbstractPlugin
         string $basePath
     ) {
         $this->services = $services;
-        $this->api = $connection;
+        $this->api = $api;
         $this->connection = $connection;
         $this->dataTypeManager = $dataTypeManager;
         $this->logger = $logger;
@@ -139,16 +136,6 @@ class Bulk extends AbstractPlugin
     public function __invoke(): self
     {
         return $this;
-    }
-
-    /**
-     * Base path of the files.
-     *
-     * @var string
-     */
-    public function getBasePath(): string
-    {
-        return $this->basePath;
     }
 
     /**
@@ -546,19 +533,6 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Check if an asset exists from id.
-     */
-    public function getAssetId($id): ?int
-    {
-        $id = (int) $id;
-        if (!$id) {
-            return null;
-        }
-        $result = $this->api->searchOne('assets', ['id' => $id])->getContent();
-        return $result ? $id : null;
-    }
-
-    /**
      * Check if a string is a managed data type.
      */
     public function isDataType(?string $dataType): bool
@@ -860,30 +834,6 @@ class Bulk extends AbstractPlugin
         return in_array($value, $customVocabs[$customVocabDataType]['terms']);
     }
 
-    /**
-     * Get a user id by email or id or name.
-     *
-     * @var string|int $emailOrIdOrName
-     */
-    public function getUserId($emailOrIdOrName): ?int
-    {
-        if (empty($emailOrIdOrName) || !is_scalar($emailOrIdOrName)) {
-            return null;
-        }
-        if (is_numeric($emailOrIdOrName)) {
-            $data = ['id' => $emailOrIdOrName];
-        } elseif (filter_var($emailOrIdOrName, FILTER_VALIDATE_EMAIL)) {
-            $data = ['email' => $emailOrIdOrName];
-        } else {
-            $data = ['name' => $emailOrIdOrName];
-        }
-        $data['limit'] = 1;
-
-        $users = $this->api()
-            ->search('users', $data, ['responseContent' => 'resource'])->getContent();
-        return $users ? (reset($users))->getId() : null;
-    }
-
     public function getEntityClass($name): ?string
     {
         $entityClasses = [
@@ -938,7 +888,7 @@ class Bulk extends AbstractPlugin
         return $entityClasses[$name] ?? null;
     }
 
-    public function tableResource($name): ?string
+    public function resourceTable($name): ?string
     {
         $entityClass = $this->getEntityClass($name);
         $tableResources = [
@@ -953,55 +903,10 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Trim all whitespaces.
-     */
-    public function trimUnicode($string): string
-    {
-        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
-    }
-
-    /**
-     * Get each line of a multi-line string separately.
-     *
-     * Empty lines are removed.
-     */
-    public function stringToList($string): array
-    {
-        return array_filter(array_map('trim', explode("\n", $this->fixEndOfLine($string))), 'strlen');
-    }
-
-    /**
-     * Clean the text area from end of lines.
-     *
-     * This method fixes Windows and Apple copy/paste from a textarea input.
-     */
-    public function fixEndOfLine($string): string
-    {
-        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
-    }
-
-    /**
-     * Check if a string seems to be an url.
-     *
-     * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.
-     */
-    public function isUrl($string): bool
-    {
-        if (empty($string)) {
-            return false;
-        }
-        $string = (string) $string;
-        return strpos($string, 'https:') === 0
-            || strpos($string, 'http:') === 0
-            || strpos($string, 'ftp:') === 0
-            || strpos($string, 'sftp:') === 0;
-    }
-
-    /**
      * Allows to log resources with a singular name from the resource name, that
      * is plural in Omeka.
      */
-    public function label($resourceName): ?string
+    public function resourceLabel($resourceName): ?string
     {
         $labels = [
             'assets' => 'asset', // @translate
@@ -1022,7 +927,7 @@ class Bulk extends AbstractPlugin
      * Allows to log resources with a singular name from the resource name, that
      * is plural in Omeka.
      */
-    public function labelPlural($resourceName): ?string
+    public function resourceLabelPlural($resourceName): ?string
     {
         $labels = [
             'assets' => 'assets', // @translate
@@ -1039,154 +944,54 @@ class Bulk extends AbstractPlugin
         return $labels[$resourceName] ?? $resourceName;
     }
 
-    /**
-     * Fully recursive serialization of a resource without issue.
-     *
-     * jsonSerialize() does not serialize all sub-data and an error can occur
-     * with them with some events.
-     * `json_decode(json_encode($resource), true)`cannot be used, because in
-     * some cases, for linked resources, there may be rights issues, or the
-     * resource may be not reloaded but a partial doctrine entity converted into
-     * a partial representation. So there may be missing linked resources, so a
-     * fatal error can occur when converting a value resource to its reference.
-     * So the serialization is done manually.
-     *
-     * @todo Find where the issues occurs (during a spreadsheet update on the second row).
-     * @todo Check if the issue occurs with value annotations.
-     * @todo Check if this issue is still existing in v4.
-     */
-    public function resourceJson(?AbstractResourceEntityRepresentation $resource): array
+    public function basePath(): string
     {
-        if (!$resource) {
-            return [];
-        }
-
-        $propertyIds = $this->getPropertyIds();
-
-        // This serialization does not serialize sub-objects as array.
-        $resourceArray = $resource->jsonSerialize();
-
-        // There is only issue for properties.
-        $repr = array_diff_key($resourceArray, $propertyIds);
-        $repr = json_decode(json_encode($repr), true);
-
-        $isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
-
-        $propertiesWithoutResource = array_intersect_key($resourceArray, $propertyIds);
-        foreach ($propertiesWithoutResource as $term => $values) {
-            /** @var \Omeka\Api\Representation\ValueRepresentation|array $value */
-            foreach ($values as $value) {
-                // In some cases (module event), the value is already an array.
-                if (is_object($value)) {
-                    $valueType = $value->type();
-                    // The issue occurs for linked resources.
-                    try {
-                        $vr = $value->valueResource();
-                        if ($vr) {
-                            $repr[$term][] = [
-                                'type' => $valueType,
-                                'property_id' => $propertyIds[$term],
-                                // 'property_label' => null,
-                                'is_public' => $value->isPublic(),
-                                '@annotations' => $isOldOmeka ? [] : $value->valueAnnotation(),
-                                // '@id' => $vr->apiUrl(),
-                                'value_resource_id' => (int) $vr->id(),
-                                '@language' => $value->lang() ?: null,
-                                // 'url' => null,
-                                // 'display_title' => $vr->displayTitle(),
-                            ];
-                        } else {
-                            $repr[$term][] = json_decode(json_encode($value), true);
-                        }
-                    } catch (\Exception $e) {
-                        if ($this->getMainDataType($valueType) === 'resource') {
-                            $this->logger->warn(
-                                'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
-                                ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]
-                            );
-                        } else {
-                            try {
-                                $repr[$term][] = $value->jsonSerialize();
-                            } catch (\Exception $e) {
-                                $this->logger->warn(
-                                    'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
-                                    ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]
-                                );
-                            }
-                        }
-                    }
-                } else {
-                    $repr[$term][] = $value;
-                }
-            }
-        }
-
-        return $repr;
+        return $this->basePath;
     }
 
     /**
-     * Normalize a list of property values to allow a strict comparaison.
+     * Check if a string seems to be an url.
      *
-     * @todo Add an aggregated value to simplify comparison.
+     * Doesn't use FILTER_VALIDATE_URL, so allow non-encoded urls.
      */
-    public function normalizePropertyValues(string $term, ?array $values): array
+    public function isUrl($string): bool
     {
-        if (!$values) {
-            return [];
+        if (empty($string)) {
+            return false;
         }
-
-        $propertyId = $this->getPropertyId($term);
-
-        $order = [
-            'type' => null,
-            'property_id' => $propertyId,
-            // 'property_label' => null,
-            'is_public' => true,
-            '@annotations' => [],
-            '@value' => null,
-            '@id' => null,
-            'value_resource_id' => null,
-            '@language' => null,
-        ];
-
-        foreach ($values as $key => $value) {
-            $values[$key] = array_replace($order, array_intersect_key($value, $order));
-            $values[$key] = [
-                'type' => empty($values[$key]['type']) ? 'literal' : (string) $values[$key]['type'],
-                'property_id' => $propertyId,
-                'is_public' => is_null($values[$key]['is_public']) ? true : (bool) $values[$key]['is_public'],
-                '@annotations' => empty($values[$key]['@annotations']) || !is_array($values[$key]['@annotations']) ? [] : $values[$key]['@annotations'],
-                '@value' => is_scalar($values[$key]['@value']) ? (string) $values[$key]['@value'] : $values[$key]['@value'],
-                '@id' => empty($values[$key]['@id']) ? null : (string) $values[$key]['@id'],
-                'value_resource_id' => empty($values[$key]['value_resource_id']) ? null : (int) $values[$key]['value_resource_id'],
-                '@language' => empty($values[$key]['@language']) ? null : (string) $values[$key]['@language'],
-            ];
-        }
-
-        return $values;
+        $string = (string) $string;
+        return strpos($string, 'https:') === 0
+            || strpos($string, 'http:') === 0
+            || strpos($string, 'ftp:') === 0
+            || strpos($string, 'sftp:') === 0;
     }
 
     /**
-     * Escape a value for use in XML.
+     * Clean the text area from end of lines.
      *
-     * From Omeka Classic application/libraries/globals.php
+     * This method fixes Windows and Apple copy/paste from a textarea input.
      */
-    public function xmlEscape($value): string
+    public function fixEndOfLine($string): string
     {
-        return htmlspecialchars(
-            preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', (string) $value),
-            ENT_QUOTES
-        );
+        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
     }
 
-    public function logger(): \Laminas\Log\Logger
+    /**
+     * Get each line of a multi-line string separately.
+     *
+     * Empty lines are removed.
+     */
+    public function stringToList($string): array
     {
-        return $this->logger;
+        return array_filter(array_map('trim', explode("\n", $this->fixEndOfLine($string))), 'strlen');
     }
 
-    public function translate($message, $textDomain = 'default', $locale = null): string
+    /**
+     * Trim all whitespaces.
+     */
+    public function trimUnicode($string): string
     {
-        return (string) $this->translator->translate((string) $message, (string) $textDomain, (string) $locale);
+        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
     }
 
     /**
@@ -1208,73 +1013,26 @@ class Bulk extends AbstractPlugin
         return $result;
     }
 
-    /**
-     * Create the unique file name compatible on various os.
-     *
-     * Note: the destination dir is created during install.
-     *
-     * @return string Path to the return path.
-     */
-    public function prepareFile(array $params): ?string
+    public function logger(): \Laminas\Log\Logger
     {
-        $basename = $params['name'] ?? '';
-        $extension = $params['extension'] ?? '';
-        $appendDate = !empty($params['append_date']);
+        return $this->logger;
+    }
 
-        $destinationDir = $this->basePath . '/bulk_import';
+    public function translate($message, $textDomain = 'default', $locale = null): string
+    {
+        return (string) $this->translator->translate((string) $message, (string) $textDomain, (string) $locale);
+    }
 
-        $base = (string) preg_replace('/[^A-Za-z0-9-]/', '_', $basename);
-        $base = substr(preg_replace('/_+/', '_', $base), 0, 20);
-
-        if ($appendDate) {
-            if (strlen($base)) {
-                $base .= '-';
-            }
-            $date = (new \DateTime())->format('Ymd-His');
-        } elseif (!strlen($base)) {
-            $base = 'bi';
-            $date = '';
-        } else {
-            $date = '';
-        }
-
-        // Avoid issue on very big base.
-        $i = 0;
-        do {
-            $filename = sprintf(
-                '%s%s%s%s',
-                $base,
-                $date,
-                $i ? '-' . $i : '',
-                $extension ? '.' . $extension : ''
-            );
-
-            $filePath = $destinationDir . '/' . $filename;
-            if (!file_exists($filePath)) {
-                try {
-                    $result = @touch($filePath);
-                } catch (\Exception $e) {
-                    $this->logger->err(
-                        // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-                        'Error when saving "{filename}" (temp file: "{tempfile}"): {exception}', // @translate
-                        ['filename' => $filename, 'tempfile' => $filePath, 'exception' => $e]
-                    );
-                    return null;
-                }
-
-                if (!$result) {
-                    // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
-                    $this->logger->err(
-                        'Error when saving "{filename}" (temp file: "{tempfile}"): {error}', // @translate
-                        ['filename' => $filename, 'tempfile' => $filePath, 'error' => error_get_last()['message']]
-                    );
-                    return null;
-                }
-
-                break;
-            }
-        } while (++$i);
-
-        return $filePath;
+    /**
+     * Escape a value for use in XML.
+     *
+     * From Omeka Classic application/libraries/globals.php
+     */
+    public function xmlEscape($value): string
+    {
+        return htmlspecialchars(
+            preg_replace('#[\x00-\x08\x0B\x0C\x0E-\x1F]+#', '', (string) $value),
+            ENT_QUOTES
+        );
     }
 }

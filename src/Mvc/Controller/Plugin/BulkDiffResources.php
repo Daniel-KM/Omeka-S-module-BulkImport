@@ -17,6 +17,8 @@ use OpenSpout\Writer\Common\Creator\WriterFactory;
  */
 class BulkDiffResources extends AbstractPlugin
 {
+    use BulkCheckDiffTrait;
+
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
      */
@@ -182,17 +184,17 @@ class BulkDiffResources extends AbstractPlugin
         $this->filepathDiffOdsRow = null;
         $this->filepathDiffOdsColumn = null;
 
-        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff', 'extension' => 'json']);
+        $filepath = $this->prepareFile(['name' => $this->nameFile . '-diff', 'extension' => 'json']);
         if ($filepath) {
             $this->filepathDiffJson = $filepath;
         }
 
-        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff-row', 'extension' => 'ods']);
+        $filepath = $this->prepareFile(['name' => $this->nameFile . '-diff-row', 'extension' => 'ods']);
         if ($filepath) {
             $this->filepathDiffOdsRow = $filepath;
         }
 
-        $filepath = $this->bulk->prepareFile(['name' => $this->nameFile . '-diff-col', 'extension' => 'ods']);
+        $filepath = $this->prepareFile(['name' => $this->nameFile . '-diff-col', 'extension' => 'ods']);
         if ($filepath) {
             $this->filepathDiffOdsColumn = $filepath;
         }
