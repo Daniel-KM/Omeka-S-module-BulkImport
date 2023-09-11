@@ -479,7 +479,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         if ($resource['o:id']) {
-            $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
+            $resource['checked_id'] = true;
         } else {
             $resource['o:id'] = null;
             $resource['messageStore']->addError('resource', new PsrMessage(
@@ -675,6 +675,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     return false;
                 }
                 $entity->setItem($entityItem);
+                $entity->setIngester($resource['o:ingester'] ?? null);
             } elseif ($resource['resource_name'] === 'assets') {
                 $entity->setName($resource['o:name'] ?? '');
             }

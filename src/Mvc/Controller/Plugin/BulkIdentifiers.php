@@ -167,6 +167,33 @@ class BulkIdentifiers extends AbstractPlugin
     }
 
     /**
+     * Get the first internal resource id matching resource properties values.
+     */
+    public function getIdFromResourceValues(array $resource): array
+    {
+        $properties = $this->bulk->propertyIds();
+        foreach (array_intersect_key($this->identifierNames, $properties, $resource) as $term => $values) {
+            if (!is_array($values)) {
+                continue;
+            }
+            $identifiers = [];
+            foreach ($values as $value) {
+                if (is_array($value) && !empty($value['@value'])) {
+                    $identifiers[] = $value['@value'];
+                }
+            }
+            $foundIds = $this->findResourcesFromIdentifiers($identifiers, $term, $resource['resource_name']);
+            $foundIds = array_filter($foundIds);
+            if ($foundIds) {
+                return [
+                    key($foundIds) => (int) reset($foundIds),
+                ];
+            }
+        }
+        return [];
+    }
+
+    /**
      * Check if an identifier is present in the list, even if not mapped yet.
      *
      * This method allows to manage a multi-step process.

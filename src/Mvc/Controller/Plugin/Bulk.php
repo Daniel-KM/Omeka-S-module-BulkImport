@@ -1030,7 +1030,7 @@ class Bulk extends AbstractPlugin
      */
     public function isUrl($string): bool
     {
-        if (empty($string)) {
+        if (empty($string) || is_array($string)) {
             return false;
         }
         $string = (string) $string;
