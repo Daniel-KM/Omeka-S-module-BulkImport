@@ -728,9 +728,6 @@ class MetaMapperConfig
             }
         }
 
-        // This value allows to keep the original dest single.
-        // @todo Remove [to][dest] and "k".
-        $k = 0;
         foreach (['default', 'maps'] as $section) {
             $isDefault = $section === 'default';
             // TODO Use an attribute or a sub-element ?
@@ -746,9 +743,6 @@ class MetaMapperConfig
                 }
                 $options['index'] = ++$i;
                 $fromTo = $this->normalizeMapFromXml($element, $options);
-                if (isset($fromTo['to']['dest'])) {
-                    $fromTo['to']['dest'] = $fromTo['to']['dest'] . str_repeat(' ', $k++);
-                }
                 $normalizedMapping[$section][] = $fromTo;
             }
         }
@@ -868,6 +862,29 @@ class MetaMapperConfig
             'mod' => [],
             'has_error' => true,
         ];
+    }
+
+    public function shortTo(array $map): string
+    {
+        if (!$map) {
+            return '';
+        }
+
+        $hasRaw = isset($map['mod']['raw']);
+        $hasVal = isset($map['mod']['val']);
+        $hasRawOrVal = $hasRaw || $hasVal;
+
+        $fullPattern = $hasRawOrVal
+            ? ($hasRaw ? (string) $map['mod']['raw'] : (string) $map['mod']['val'])
+            : ($map['mod']['prepend'] ?? '') . ($map['mod']['pattern'] ?? '') . ($map['mod']['append'] ?? '');
+
+        return $map['to']['field']
+            // Here, the short datatypes and custom vocab labels are already cleaned.
+            . (count($map['to']['datatype'] ?? []) ? ' ^^' . implode(' ^^', $map['to']['datatype']) : '')
+            . (isset($map['to']['language']) ? ' @' . $map['to']['language'] : '')
+            . (isset($map['to']['is_public']) ? ' §' . ($map['to']['is_public'] ? 'public' : 'private') : '')
+            . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')
+        ;
     }
 
     protected function normalizeMapFromEmpty($map, array $options): array
@@ -1054,8 +1071,6 @@ class MetaMapperConfig
         $normalizedMap['mod'] = array_filter(array_intersect_key($ton, $modKeys), function ($v) {
             return !is_null($v) && $v !== '' && $v !== [];
         });
-        // TODO Remove "[to][dest]".
-        $normalizedMap['to']['dest'] = $toDest;
         return $normalizedMap;
     }
 
@@ -1194,18 +1209,6 @@ class MetaMapperConfig
                 $result['mod']['twig_has_replace'] = $r['twig_has_replace'] ?? [];
             }
         }
-
-        // @todo Remove the short destination (used in processor and when converting to avoid duplicates).
-        $fullPattern = $hasNoRawVal
-            ? ($result['mod']['prepend'] ?? '') . ($result['mod']['pattern'] ?? '') . ($result['mod']['append'] ?? '')
-            : (isset($result['mod']['raw']) ? (string) $result['mod']['raw'] : (string) $result['mod']['val']);
-        $result['to']['dest'] = $result['to']['field']
-            // Here, the short datatypes and custom vocab labels are already cleaned.
-            . (count($result['to']['datatype']) ? ' ^^' . implode(' ^^', $result['to']['datatype']) : '')
-            . (isset($result['to']['language']) ? ' @' . $result['to']['language'] : '')
-            . (isset($result['to']['is_public']) ? ' §' . ($result['to']['is_public'] ? 'public' : 'private') : '')
-            . (strlen($fullPattern) ? ' ~ ' . $fullPattern : '')
-        ;
 
         return $result;
     }

@@ -499,7 +499,7 @@ class MetaMapper
         $result = array_values(array_unique($result));
 
         $dest = $to['field'];
-        unset($to['field'], $to['dest']);
+        unset($to['field']);
 
         $values = [];
 
