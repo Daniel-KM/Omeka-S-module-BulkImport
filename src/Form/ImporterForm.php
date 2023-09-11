@@ -2,7 +2,6 @@
 
 namespace BulkImport\Form;
 
-use BulkImport\Entity\Importer;
 use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -13,11 +12,6 @@ use Laminas\Form\Form;
 class ImporterForm extends Form
 {
     use ServiceLocatorAwareTrait;
-
-    /**
-     * @var Importer
-     */
-    protected $importer;
 
     public function init(): void
     {
@@ -110,21 +104,26 @@ class ImporterForm extends Form
             ]);
     }
 
-    public function setImporter(Importer $importer): \Laminas\Form\Form
-    {
-        $this->importer = $importer;
-        return $this;
-    }
-
     protected function getReaderOptions(): array
     {
-        return $this->getServiceLocator()->get(ReaderManager::class)
+        return $this->services->get(ReaderManager::class)
             ->getRegisteredLabels();
+    }
+
+    protected function getMapperOptions(): array
+    {
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfigList $metaMapperConfigList */
+        $metaMapperConfigList = $this->services->get('ControllerPluginManager')->get('metaMapperConfigList');
+        return $metaMapperConfigList->listMappings([
+            ['mapping' => true],
+            ['xml' => 'xml'],
+            ['json' => 'ini'],
+        ]);
     }
 
     protected function getProcessorOptions(): array
     {
-        return $this->getServiceLocator()->get(ProcessorManager::class)
+        return $this->services->get(ProcessorManager::class)
             ->getRegisteredLabels();
     }
 }

@@ -3,7 +3,6 @@
 namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
@@ -11,17 +10,25 @@ use Omeka\Form\Element as OmekaElement;
 
 class XmlReaderConfigForm extends Form
 {
-    use MappingsTrait;
     use ServiceLocatorAwareTrait;
 
     public function init(): void
     {
-        $xslConfig = $this->listMappings([['xsl' => 'xsl']]);
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfigList $metaMapperConfigList */
+        $metaMapperConfigList = $this->services->get('ControllerPluginManager')->get('metaMapperConfigList');
+
+        $xslConfig = $metaMapperConfigList->listMappings([
+            ['xsl' => 'xsl'],
+        ]);
         $xslConfig['mapping']['label'] = 'Configured xsl'; // @translate
         $xslConfig['user']['label'] = 'User xsl files'; // @translate
         $xslConfig['module']['label'] = 'Module xsl files'; // @translate
 
-        $convertMapping =  $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]);
+        $convertMapping = $metaMapperConfigList->listMappings([
+            ['mapping' => true],
+            ['xml' => 'xml'],
+            ['json' => 'ini'],
+        ]);
 
         $this
             ->add([

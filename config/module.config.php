@@ -114,13 +114,15 @@ return [
         ],
     ],
     'controllers' => [
+        'invokables' => [
+            'BulkImport\Controller\Admin\Mapping' => Controller\Admin\MappingController::class,
+        ],
         'factories' => [
             // Class is not used as key, since it's set dynamically by sub-route
             // and it should be available in acl (so alias is mapped later).
             'BulkImport\Controller\Admin\BulkImport' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Import' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Importer' => Service\Controller\ControllerFactory::class,
-            'BulkImport\Controller\Admin\Mapping' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Upload' => Service\Controller\UploadControllerFactory::class,
         ],
     ],
@@ -131,6 +133,7 @@ return [
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
+            'metaMapperConfigList' => Service\ControllerPlugin\MetaMapperConfigListFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
             'updateResourceProperties' => Service\ControllerPlugin\UpdateResourcePropertiesFactory::class,

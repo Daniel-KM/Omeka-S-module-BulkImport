@@ -3,7 +3,6 @@
 namespace BulkImport\Form\Reader;
 
 use BulkImport\Form\Element as BulkImportElement;
-use BulkImport\Reader\MappingsTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
@@ -12,11 +11,17 @@ use Omeka\Form\Element as OmekaElement;
 class JsonReaderConfigForm extends Form
 {
     use ServiceLocatorAwareTrait;
-    use MappingsTrait;
 
     public function init(): void
     {
-        $convertMapping = $this->listMappings([['mapping' => true], ['xml' => 'xml'], ['json' => 'ini']]);
+        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfigList $metaMapperConfigList */
+        $metaMapperConfigList = $this->services->get('ControllerPluginManager')->get('metaMapperConfigList');
+
+        $convertMapping = $metaMapperConfigList->listMappings([
+            ['mapping' => true],
+            ['xml' => 'xml'],
+            ['json' => 'ini'],
+        ]);
 
         $this
             ->add([

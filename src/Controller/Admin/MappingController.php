@@ -4,26 +4,12 @@ namespace BulkImport\Controller\Admin;
 
 use BulkImport\Form\MappingDeleteForm;
 use BulkImport\Form\MappingForm;
-use BulkImport\Reader\MappingsTrait;
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Mvc\Controller\AbstractActionController;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\View\Model\ViewModel;
 use Log\Stdlib\PsrMessage;
 
 class MappingController extends AbstractActionController
 {
-    use ServiceLocatorAwareTrait;
-    use MappingsTrait;
-
-    /**
-     * @param ServiceLocatorInterface $serviceLocator
-     */
-    public function __construct(ServiceLocatorInterface $serviceLocator)
-    {
-        $this->setServiceLocator($serviceLocator);
-    }
-
     public function indexAction()
     {
         return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'mapping', 'action' => 'browse']);
@@ -39,7 +25,7 @@ class MappingController extends AbstractActionController
         return new ViewModel([
             'bulkMappings' => $mappings,
             'resources' => $mappings,
-            'internalMappings' => $this->getInternalBulkMappings(),
+            'internalMappings' => $this->metaMapperConfigList()->getInternalBulkMappings(),
         ]);
     }
 
@@ -66,8 +52,8 @@ class MappingController extends AbstractActionController
             'isBulkMapping' => false,
             'bulkMapping' => null,
             'resource' => null,
-            'label' => $this->getInternalBulkMappings()[$entity],
-            'content' => $this->getMappingFromFile($entity),
+            'label' => $this->metaMapperConfigList()->getInternalBulkMappings()[$entity],
+            'content' => $this->metaMapperConfigList()->getMappingFromFile($entity),
         ]);
     }
 
@@ -103,7 +89,7 @@ class MappingController extends AbstractActionController
         $form = $this->getForm(MappingForm::class);
         if ($entity) {
             if ($isInternalMapping) {
-                $label = $this->getInternalBulkMappings()[$entity];
+                $label = $this->metaMapperConfigList()->getInternalBulkMappings()[$entity];
                 if ($action === 'copy') {
                     $label = sprintf($this->translate('%s (copy)'), str_ireplace( // @translate
                         ['.jsondot', '.jsonpath', '.jmespath', '.ini', '.xslt1', '.xslt2', '.xslt3', '.xslt', '.xsl', '.xml'], '', $label
@@ -214,7 +200,7 @@ class MappingController extends AbstractActionController
             /** @var \BulkImport\Api\Representation\MappingRepresentation|string $entity */
             $entity = $this->api()->read('bulk_mappings', ['id' => $id])->getContent();
         } else {
-            $internalMappings = $this->getInternalBulkMappings();
+            $internalMappings = $this->metaMapperConfigList()->getInternalBulkMappings();
             $entity = isset($internalMappings[$id]) ? $id : null;
         }
 

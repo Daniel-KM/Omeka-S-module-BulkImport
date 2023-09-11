@@ -1,19 +1,45 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Reader;
+namespace BulkImport\Mvc\Controller\Plugin;
 
-trait MappingsTrait
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Omeka\Api\Manager as ApiManager;
+
+class MetaMapperConfigList extends AbstractPlugin
 {
+    /**
+     * @var \Omeka\Api\Manager
+     */
+    protected $api;
+
+    /**
+     * @var string
+     */
+    protected $basePath;
+
+    /**
+     * @var string
+     */
     protected $mappingDirectory = '';
 
+    /**
+     * @var string
+     */
     protected $mappingExtension = '';
 
-    protected function listMappings(array $subDirAndExtensions = []): array
+    public function __construct(ApiManager $api, string $basePath)
     {
-        $services = $this->getServiceLocator();
-        $api = $services->get('Omeka\ApiManager');
-        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $this->api = $api;
+        $this->basePath = $basePath;
+    }
 
+    public function invoke(): self
+    {
+        return $this;
+    }
+
+    public function listMappings(array $subDirAndExtensions = []): array
+    {
         $files = [
             'mapping' => [
                 'label' => 'Configured mappings', // @translate
@@ -35,7 +61,7 @@ trait MappingsTrait
 
             if ($subDirectory === 'mapping' && $extension === true) {
                 /** @var \BulkImport\Api\Representation\MappingRepresentation[] $mappings */
-                $mappings = $api->search('bulk_mappings', ['sort_by' => 'label', 'sort_order' => 'asc'])->getContent();
+                $mappings = $this->api->search('bulk_mappings', ['sort_by' => 'label', 'sort_order' => 'asc'])->getContent();
                 foreach ($mappings as $mapping) {
                     $files['mapping']['options']['mapping:' . $mapping->id()] = $mapping->label();
                 }
@@ -44,13 +70,13 @@ trait MappingsTrait
 
             $this->mappingExtension = $extension;
 
-            $this->mappingDirectory = dirname(__DIR__, 2) . '/data/mapping/' . $subDirectory;
+            $this->mappingDirectory = dirname(__DIR__, 4) . '/data/mapping/' . $subDirectory;
             $mappingFiles = $this->getMappingFiles();
             foreach ($mappingFiles as $file) {
                 $files['module']['options']['module:' . $subDirectory . '/' . $file] = $file;
             }
 
-            $this->mappingDirectory = $basePath . '/mapping/' . $subDirectory;
+            $this->mappingDirectory = $this->basePath . '/mapping/' . $subDirectory;
             $mappingFiles = $this->getMappingFiles();
             foreach ($mappingFiles as $file) {
                 $files['user']['options']['user:' . $subDirectory . '/' . $file] = $file;
@@ -134,11 +160,11 @@ trait MappingsTrait
         return $realPath;
     }
 
-    protected function getInternalBulkMappings(): array
+    public function getInternalBulkMappings(): array
     {
         static $internalBulkMappings;
 
-        if (is_null($internalBulkMappings)) {
+        if ($internalBulkMappings === null) {
             $internalBulkMappings = $this->listMappings([
                 ['base' => 'ini'],
                 ['base' => 'xml'],
@@ -156,17 +182,14 @@ trait MappingsTrait
     /**
      * @todo Remove or factorize with MetaMapperConfig::prepareMappingContent().
      */
-    protected function getMappingFromFile(string $mappingName): ?string
+    public function getMappingFromFile(string $mappingName): ?string
     {
-        $services = $this->getServiceLocator();
-        $config = $services->get('Config');
-        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $filepath = &$mappingName;
 
         if (mb_substr($filepath, 0, 5) === 'user:') {
-            $filepath = $basePath . '/mapping/' . mb_substr($filepath, 5);
+            $filepath = $this->basePath . '/mapping/' . mb_substr($filepath, 5);
         } elseif (mb_substr($filepath, 0, 7) === 'module:') {
-            $filepath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($filepath, 7);
+            $filepath = dirname(__DIR__, 4) . '/data/mapping/' . mb_substr($filepath, 7);
         } else {
             return null;
         }
