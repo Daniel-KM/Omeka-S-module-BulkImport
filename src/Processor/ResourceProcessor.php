@@ -24,79 +24,48 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected $paramsFormClass = ResourceProcessorParamsForm::class;
 
     /**
-     * @see \Omeka\Api\Representation\ItemRepresentation
+     * @see \Omeka\Api\Representation\ResourceReference
      *
      * @var array
      */
-    protected $metadataData = [
-        // Assets metadata and file.
-        'fields' => [
-            'file',
-            'url',
-            'o:id',
-            'o:owner',
-            // TODO Incomplete, but not used currently
-        ],
-        'skip' => [],
-        // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
-        'boolean' => [
-            'o:is_public' => true,
-            'o:is_open' => true,
-        ],
-        'single_data' => [
-            // Generic.
-            'o:id' => null,
-            // Resource.
-            'resource_name' => null,
-            /*
-            // But there can be multiple urls, files, etc. for an item.
-            // Media.
-            'o:lang' => null,
-            'o:ingester' => null,
-            'o:source' => null,
-            'ingest_filename' => null,
-            'ingest_directory' => null,
-            'ingest_url' => null,
-            'html' => null,
-            */
-        ],
-        'single_entity' => [
-            // Generic.
-            'o:resource_template' => null,
-            'o:resource_class' => null,
-            'o:thumbnail' => null,
-            'o:owner' => null,
-            // Media.
-            'o:item' => null,
-        ],
-        'multiple_entities' => [
-            'o:item_set' => null,
-            'o:media' => null,
-        ],
-        'misc' => [
-            'o:id' => null,
-            'o:email' => null,
-            'o:created' => null,
-            'o:modified' => null,
-        ],
-    ];
-
-    /**
-     * @see \Omeka\Api\Representation\AssetRepresentation
-     *
-     * @var array
-     */
-    protected $fields = [
-        // Assets metadata and file.
-        'file',
-        'url',
-        'o:id',
-        'o:name',
-        'o:storage_id',
-        'o:owner',
-        'o:alt_text',
-        // To attach resources.
-        'o:resource',
+    protected $fieldTypes = [
+        // Common metadata.
+        'resource_name' => 'string',
+        // "o:id" may be an identifier.
+        'o:id' => 'string',
+        'o:created' => 'datetime',
+        'o:modified' => 'datetime',
+        'o:is_public' => 'boolean',
+        'o:owner' => 'entity',
+        // Alias of "o:owner" here.
+        'o:email' => 'entity',
+        // A common, but special and complex key, so managed in meta config too.
+        'property' => 'arrays',
+        // Generic.
+        'o:resource_template' => 'entity',
+        'o:resource_class' => 'entity',
+        'o:thumbnail' => 'entity',
+        // Item.
+        'o:item_set' => 'entities',
+        'o:media' => 'entities',
+        // Media.
+        'o:item' => 'entity',
+        // Media, but there may be multiple urls, files, etc. for an item.
+        'o:lang' => 'strings',
+        'o:ingester' => 'strings',
+        'o:source' => 'strings',
+        'ingest_filename' => 'strings',
+        'ingest_directory' => 'strings',
+        'ingest_url' => 'strings',
+        'html' => 'strings',
+        // Item set.
+        'o:is_open' => 'boolean',
+        'o:items' => 'entities',
+        // Modules.
+        // Module Mapping.
+        // There can be only one mapping zone.
+        'o-module-mapping:bounds' => 'string',
+        'o-module-mapping:marker' => 'strings',
     ];
 
     /**
@@ -352,16 +321,18 @@ class ResourceProcessor extends AbstractResourceProcessor
     }
 
     /**
-     * Convert a prepared entry into a resource, setting ids for each key.
+     * Convert a prepared entry into a resource.
      *
      * So fill owner id, resource template id, resource class id, property ids.
-     * Check boolean values too for is public and is open.
      */
-    protected function fillResourceData(ArrayObject $resource, array $data): self
+    protected function fillResourceFields(ArrayObject $resource, array $data): self
     {
         $this
-            ->fillGeneric($resource, $data)
-            ->fillSpecific($resource, $data);
+            // Fill the resource name first when possible.
+            ->fillResourceName($resource, $data)
+            ->fillResourceId($resource, $data)
+            ->fillResourceSingleEntities($resource, $data)
+            ->fillResourceSpecific($resource, $data);
 
         $properties = $this->bulk->propertyIds();
         foreach (array_intersect_key($data, $properties) as $term => $values) {
@@ -373,54 +344,62 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // This fonction is used for sub-resources, so don't mix with main one.
         // TODO Factorize with fillResource().
-        $fillPropertiesAndResourceData = function (array $resourceArray) use ($properties, $mainResourceName): array {
+        $fillResourceDataAndProperties = function (array $dataArray) use ($properties, $mainResourceName): array {
             // Fill other metadata (for media and item set).
-            $resource = new ArrayObject($resourceArray);
-            foreach (array_intersect_key($resourceArray, $this->metadataData['boolean']) as $field => $values) {
-                $this->fillBoolean($resource, $field, $resource[$field]);
-            }
-            foreach (array_intersect_key($resourceArray, $this->metadataData['single_data']) as $field => $values) {
-                $this->fillSingleData($resource, $field, $resource[$field]);
-            }
-            foreach (array_intersect_key($resourceArray, $this->metadataData['single_entity']) as $field => $values) {
-                $this->fillSingleEntity($resource, $field, $resource[$field]);
-            }
+            $resource = new ArrayObject($dataArray);
             $this
-                ->fillGeneric($resource, $resourceArray)
-                ->fillSpecific($resource, $resourceArray, $mainResourceName);
-            foreach (array_intersect_key($resourceArray, $properties) as $term => $values) {
+                ->fillResourceData($resource, $dataArray)
+                ->fillResourceName($resource, $dataArray)
+                ->fillResourceId($resource, $dataArray)
+                ->fillResourceSingleEntities($resource, $dataArray)
+                ->fillResourceSpecific($resource, $dataArray, $mainResourceName);
+            foreach (array_intersect_key($dataArray, $properties) as $term => $values) {
                 $this->fillProperty($resource, $term, $values);
             }
-            // TODO Fill the source identifiers of related resources and other single data.
-            return $this;
+            return $resource->getArrayCopy();
         };
 
         // Do the same recursively for sub-resources (multiple entity keys:
         // "o:media" and "o:item_set" for items, assets for resources).
         // Only one level is managed for now, so use the function above instead
         // of the parent one.
-        foreach (array_intersect_key($data, $this->metadataData['multiple_entities']) as $key => $subResources) {
-            foreach ($subResources as $subKey => $subResourceData) {
-                $resource[$key][$subKey] = $fillPropertiesAndResourceData($subResourceData);
+        foreach (array_intersect_key($data, array_flip(array_keys($this->fieldTypes, 'entities'))) as $field => $subResources) {
+            foreach (array_values($subResources) as $key => $dataArray) {
+                $resource[$field][$key] = $fillResourceDataAndProperties($dataArray);
             }
         }
 
         return $this;
     }
 
-    protected function fillSingleEntity(ArrayObject $resource, string $field, array $values): self
+    protected function fillResourceSingleEntities(ArrayObject $resource, array $data): self
     {
-        if (empty($values)) {
-            $resource[$field] = null;
-            return $this;
+        // Entities are not processed in the meta mapper, neither by the
+        // processor above, so it is always an array of strings or arrays
+        // to copy from data into resource.
+
+        parent::fillResourceSingleEntities($resource, $data);
+
+        $fields = array_keys($this->fieldTypes, 'entity');
+        $fields = array_combine($fields, $fields);
+
+        // Remove processed fields.
+        unset($fields['o:owner'], $fields['o:email']);
+
+        // Keep only the last value because this is a single entity.
+        // end() cannot be used with array_map.
+        $lastData = [];
+        foreach ($data as $field => $values) {
+            $lastData[$field] = end($values);
         }
 
-        $value = end($values);
-
-        // Get the entity id.
-        switch ($field) {
-            // TODO Factorize with AbstractResourceProcessor and AssetProcessor.
+        // Get the entity id for all entities that have a value.
+        foreach (array_intersect_key($lastData, $fields) as $field => $value) switch ($field) {
             case 'o:resource_template':
+                if (!$value) {
+                    $resource[$field] = null;
+                    continue 2;
+                }
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $label = empty($value['o:label']) ? null : $value['o:label'];
@@ -438,9 +417,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ['source' => $value]
                     ));
                 }
-                return $this;
+                continue 2;
 
             case 'o:resource_class':
+                if (!$value) {
+                    $resource[$field] = null;
+                    continue 2;
+                }
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $term = empty($value['o:term']) ? null : $value['o:term'];
@@ -458,9 +441,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ['source' => $value]
                     ));
                 }
-                return $this;
+                continue 2;
 
             case 'o:thumbnail':
+                if (!$value) {
+                    $resource[$field] = null;
+                    continue 2;
+                }
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
@@ -486,31 +473,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ['source' => $value]
                     ));
                 }
-                return $this;
-
-            // TODO Factorize with AbstractResourceProcessor and AssetProcessor.
-            case 'o:owner':
-                if (is_array($value)) {
-                    $id = empty($value['o:id']) ? null : $value['o:id'];
-                    $email = empty($value['o:email']) ? null : $value['o:email'];
-                    $value = $id ?? $email ?? reset($value);
-                }
-                $id = $this->getUserId($value);
-                if ($id) {
-                    $resource['o:owner'] = empty($email)
-                        ? ['o:id' => $id]
-                        : ['o:id' => $id, 'o:email' => $email];
-                } else {
-                    $resource['o:owner'] = null;
-                    $resource['messageStore']->addError('resource', new PsrMessage(
-                        'The user "{source}" does not exist.', // @translate
-                        ['source' => $value]
-                    ));
-                }
-                return $this;
+                continue 2;
 
             case 'o:item':
                 // For media.
+                if (!$value) {
+                    $resource[$field] = null;
+                    continue 2;
+                }
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $value = $id ?? reset($value);
@@ -527,77 +497,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ['source' => $value]
                     ));
                 }
-                return $this;
+                continue 2;
 
             default:
-                return $this;
-        }
-    }
-
-    /**
-     * Fill other data that are not managed in a common way.
-     *
-     * Specific values set in metadataData have been processed.
-     * Other values are already copied as an array of values.
-     */
-    protected function fillGeneric(ArrayObject $resource, array $data): self
-    {
-        // TODO Factorize with ResourceProcessor and AssetProcessor.
-        foreach ($resource as $field => $values) switch ($field) {
-            default:
-                continue 2;
-
-            case 'o:id':
-                $value = (int) $values;
-                if (!$value) {
-                    $resource[$field] = null;
-                    continue 2;
-                }
-                $resourceName = $resource['resource_name'] ?? null;
-                $id = empty($this->identifiers['mapx'][$resource['source_index']])
-                    ? $this->findResourceFromIdentifier($value, 'o:id', $resourceName, $resource['messageStore'])
-                    : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
-                if ($id) {
-                    $resource['o:id'] = $id;
-                    $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
-                } else {
-                    $resource['messageStore']->addError('resource', new PsrMessage(
-                        'source index #{index}: Internal id cannot be found. The entry is skipped.', // @translate
-                        ['index' => $resource['source_index']]
-                    ));
-                }
-                continue 2;
-
-            case 'o:email':
-                $value = $values;
-                if (!$value) {
-                    // TODO Clarify use of email to set owner (that may be the current one).
-                    // $resource['o:owner'] = null;
-                    continue 2;
-                }
-                $id = $this->getUserId($value);
-                if ($id) {
-                    $resource['o:owner'] = ['o:id' => $id, 'o:email' => $value];
-                } else {
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The user "{source}" does not exist.', // @translate
-                        ['source' => $value]
-                    ));
-                }
-                continue 2;
-
-            case 'o:created':
-            case 'o:modified':
-                $value = $values;
-                if (!$value) {
-                    $resource[$field] = null;
-                    continue 2;
-                }
-                $resource[$field] = is_array($value)
-                    ? $value
-                    : ['@value' => substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))];
                 continue 2;
         }
+
         return $this;
     }
 
@@ -609,42 +514,8 @@ class ResourceProcessor extends AbstractResourceProcessor
      *
      * @todo Add the possibility to mix resources and assets.
      */
-    protected function fillSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self
+    protected function fillResourceSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self
     {
-        static $resourceNames;
-
-        if (is_null($resourceNames)) {
-            $translate = $this->getServiceLocator()->get('ViewHelperManager')->get('translate');
-            $resourceNames = [
-                'oitem' => 'items',
-                'oitemset' => 'item_sets',
-                'omedia' => 'media',
-                'item' => 'items',
-                'itemset' => 'item_sets',
-                'media' => 'media',
-                'items' => 'items',
-                'itemsets' => 'item_sets',
-                'medias' => 'media',
-                'media' => 'media',
-                'collection' => 'item_sets',
-                'collections' => 'item_sets',
-                'file' => 'media',
-                'files' => 'media',
-                $translate('item') => 'items',
-                $translate('itemset') => 'item_sets',
-                $translate('media') => 'media',
-                $translate('items') => 'items',
-                $translate('itemsets') => 'item_sets',
-                $translate('medias') => 'media',
-                $translate('media') => 'media',
-                $translate('collection') => 'item_sets',
-                $translate('collections') => 'item_sets',
-                $translate('file') => 'media',
-                $translate('files') => 'media',
-            ];
-            $resourceNames = array_change_key_case($resourceNames, CASE_LOWER);
-        }
-
         // TODO It may be an item set too. Ideally, it should be checked with the presence of specific fields.
         if (empty($resource['resource_name']) && $mainResourceName === 'items') {
             $resource['resource_name'] = 'media';
@@ -660,11 +531,13 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // Normalize the resource name.
         if ($resourceName) {
-            $resourceNameClean = preg_replace('~[^a-z]~', '', mb_strtolower($resourceName));
-            if (!isset($resourceNames[$resourceNameClean])) {
+            $resourceName = $this->bulk->resourceName($resourceName)
+                ?? $this->bulk->resourceName(mb_strtolower($resourceName))
+                ?? $this->resourceNamesMore[mb_strtolower($resourceName)]
+                ?? null;
+            if (!$resourceName) {
                 return $this;
             }
-            $resourceName = $resourceNames[$resourceNameClean];
         }
 
         if ($resourceName === 'items') {
@@ -680,12 +553,27 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function fillItem(ArrayObject $resource, array $data): self
     {
+        // Remove keys that are not present in item for resources.
+        unset(
+            $resource['o:email'],
+            $resource['o:item'],
+            $resource['o:lang'],
+            $resource['o:ingester'],
+            $resource['o:source'],
+            $resource['ingest_filename'],
+            $resource['ingest_directory'],
+            $resource['ingest_url'],
+            $resource['html'],
+            $resource['o:items'],
+            $resource['o:is_open']
+        );
+
         foreach ($resource as $field => $values) switch ($field) {
             default:
                 continue 2;
 
             case 'o:item_set':
-                // Normally useless: already checked and filled via "multiple_entities".
+                // Normally useless: already checked and filled via "entities" above.
                 /*
                 // TODO Allow to use specific identifier names like "o:item_set [dcterms:title]".
                 $identifierNames = $this->identifierNames;
@@ -736,8 +624,8 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'directory':
             case 'html':
             case 'iiif':
+                // These values are already filled in the resource.
                 foreach ($values as $value) {
-                    $value = $value['__value'];
                     $mediaData = $this->prepareMediaData($resource, $field, $value);
                     if ($mediaData) {
                         $resource['o:media'][] = $mediaData;
@@ -746,7 +634,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o:media':
-                // Normally useless: already checked and filled via "multiple_entities".
+                // Normally useless: already checked and filled via "entities" above.
                 /*
                 // Unlike item sets, the media cannot be created before and
                 // attached to another item.
@@ -760,18 +648,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o-module-mapping:bounds':
-                // There can be only one mapping zone.
-                $bounds = reset($values);
-                if (!$bounds) {
+                if (!$values) {
+                    $resource[$field] = null;
                     continue 2;
                 }
-                $bounds = $value['__value'];
-                // @see \Mapping\Api\Adapter\MappingAdapter::validateEntity().
+                $bounds = $values;
+                /** @see \Mapping\Api\Adapter\MappingAdapter::validateEntity() */
                 if (null !== $bounds
                     && 4 !== count(array_filter(explode(',', $bounds), 'is_numeric'))
                 ) {
                     $resource['messageStore']->addError('values', new PsrMessage(
-                        'The mapping bounds requires four numeric values separated by a comma.'  // @translate
+                        'The mapping bounds requires four numeric values separated by a comma. Incorrect value: {value}',  // @translate
+                        ['value' => $value]
                     ));
                 } else {
                     // TODO Manage the update of a mapping.
@@ -783,16 +671,17 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o-module-mapping:marker':
-                $resource['o-module-mapping:marker'] = [];
-                foreach ($values as $value) {
-                    $value = $value['__value'];
-                    list($lat, $lng) = array_filter(array_map('trim', explode('/', $value, 2)), 'is_numeric');
+                /** @see \Mapping\Api\Adapter\MappingMarkerAdapter::validateEntity() */
+                foreach ($values as $key => $value) {
+                    [$lat, $lng] = array_filter(array_map('trim', explode('/', $value, 2)), 'is_numeric');
                     if (!strlen($lat) || !strlen($lng)) {
+                        unset($resource['o-module-mapping:marker'][$key]);
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The mapping marker requires a latitude and a longitude separated by a "/".'  // @translate
+                            'The mapping marker requires a latitude and a longitude separated by a "/". Incorrect value: {value}',  // @translate
+                            ['value' => $value]
                         ));
                     } else {
-                        $resource['o-module-mapping:marker'][] = [
+                        $resource['o-module-mapping:marker'][$key] = [
                             'o:id' => null,
                             'o-module-mapping:lat' => $lat,
                             'o-module-mapping:lng' => $lng,
@@ -808,12 +697,41 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function fillItemSet(ArrayObject $resource, array $data): self
     {
-        // Only "o:is_open" is specific to item sets, but already processed.
+        // Remove keys that are not present in item set for resources.
+        unset(
+            $resource['o:email'],
+            $resource['o:item'],
+            $resource['o:media'],
+            $resource['o:item_set'],
+            $resource['o:lang'],
+            $resource['o:ingester'],
+            $resource['o:source'],
+            $resource['ingest_filename'],
+            $resource['ingest_directory'],
+            $resource['ingest_url'],
+            $resource['html'],
+            $resource['o-module-mapping:bounds'],
+            $resource['o-module-mapping:marker']
+        );
+
+        // Only "o:is_open" is specific to item sets, but already processed via
+        // fillResourceData().
+
         return $this;
     }
 
     protected function fillMedia(ArrayObject $resource, array $data): self
     {
+        // Remove keys that are not present in media for resources.
+        unset(
+            $resource['o:email'],
+            $resource['o:media'],
+            $resource['o:item_set'],
+            $resource['o:item_sets'],
+            $resource['o:items'],
+            $resource['o:is_open']
+        );
+
         foreach ($resource as $field => $values) switch ($field) {
             default:
                 continue 2;
@@ -823,7 +741,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'o:storage_id':
             case 'o:source':
             case 'o:sha256':
-                $value = $values;
+                $value = is_array($values) ? end($values) : $values;
                 if (!$value) {
                     $resource[$field] = null;
                     continue 2;
@@ -843,8 +761,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o:item':
-                $identifier = $values;
-                if (!empty($this->identifiers['map'][$identifier . '§resources'])) {
+                $identifier = is_array($values) ? end($values) : $values;
+                if (!$identifier) {
+                    // The item is required, so skip during first loop.
+                } elseif (!empty($this->identifiers['map'][$identifier . '§resources'])) {
                     $resource['o:item'] = [
                         // To be filled during real import.
                         'o:id' => (int) strtok((string) $this->identifiers['map'][$identifier . '§resources'], '§') ?: null,
@@ -878,6 +798,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     } else {
                         // Only for first loop. Normally not possible after: all
                         // identifiers are stored in the list "map" during first loop.
+                        $identifier = (string) $identifier;
                         $valueForMsg = mb_strlen($identifier) > 50 ? mb_substr($identifier, 0, 50) . '…' : $identifier;
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not an item.', // @translate
@@ -893,9 +814,11 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'html':
             case 'iiif':
             case 'tile':
+                $value = is_array($values) ? end($values) : $values;
                 $mediaData = $this->prepareMediaData($resource, $field, $value);
-                foreach ($mediaData as $subfield => $value) {
-                    $resource[$subfield] = $value;
+                // Resource is an ArrayObject, so array_replace cannot be used.
+                foreach ($mediaData as $field => $value) {
+                    $resource[$field] = $value;
                 }
                 continue 2;
         }
@@ -1008,7 +931,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // The datatype should be checked for each value. The value is checked
         // against each datatype and get the first valid one.
-        foreach ($resource[$term] as $key => $value) {
+        foreach ($resource[$term] as $indexValue => $value) {
+            // Refill property id even if is already filled.
             $value['property_id'] = $propertyId;
 
             // The data type may be set early.
@@ -1029,7 +953,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $dataTypeName = $dataType->getName();
                 $mainDataType = $this->bulk->dataTypeMain($dataTypeName);
                 if ($dataTypeName === 'literal') {
-                    $this->fillPropertyForValue($resource, $key, $term, $dataTypeName, $value);
+                    $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value);
                     $hasDatatype = true;
                     break;
                 } elseif ($mainDataType === 'resource') {
@@ -1039,13 +963,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                     // Normally always true after first loop: all identifiers
                     // are stored first.
                     if ($vrId || array_key_exists($value . '§resources', $this->identifiers['map'])) {
-                        $this->fillPropertyForValue($resource, $key, $term, $dataTypeName, $value, $vrId ? (int) $vrId : null);
+                        $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value, $vrId ? (int) $vrId : null);
                         $hasDatatype = true;
                         break;
                     }
                 } elseif (substr($dataTypeName, 0, 11) === 'customvocab') {
                     if ($this->bulk->isCustomVocabMember($dataTypeName, $value)) {
-                        $this->fillPropertyForValue($resource, $key, $term, $dataTypeName, $value);
+                        $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value);
                         $hasDatatype = true;
                         break;
                     }
@@ -1054,18 +978,18 @@ class ResourceProcessor extends AbstractResourceProcessor
                     || $dataTypeName === 'uri-label'
                 ) {
                     if ($this->bulk->isUrl($value)) {
-                        $this->fillPropertyForValue($resource, $key, $term, $dataTypeName, $value);
+                        $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value);
                         $hasDatatype = true;
                         break;
                     }
                 } else {
                     // Some data types may be more complex than "@value", but it
                     // manages most of the common other modules.
-                    $valueArray = [
-                        '@value' => $value['__value'],
-                    ];
-                    if ($dataType->isValid($valueArray)) {
-                        $this->fillPropertyForValue($resource, $key, $term, $dataTypeName, $value);
+                    if (array_key_exists('__value', $value)) {
+                        $value = ['@value' => $value['__value']];
+                    }
+                    if ($dataType->isValid($value)) {
+                        $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value);
                         $hasDatatype = true;
                         break;
                     }
@@ -1074,8 +998,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
             if (!$hasDatatype) {
                 if ($this->useDatatypeLiteral) {
-                    $this->fillPropertyForValue($resource, $key, $term, 'literal', $value);
-                    $val = (string) $value['__value'];
+                    $this->fillPropertyForValue($resource, $indexValue, $term, 'literal', $value);
+                    $val = (string) ($value['__value'] ?? $value['@value'] ?? $value['@id'] ?? $value['value_resource_id'] ?? $value['o:label'] ?? '');
                     $valueForMsg = mb_strlen($val) > 50 ? mb_substr($val, 0, 50) . '…' : $val;
                     if ($this->bulk->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
@@ -1114,7 +1038,8 @@ class ResourceProcessor extends AbstractResourceProcessor
      * the value resource id (vrId).
      *
      * The value is prefilled via the meta mapping.
-     * The extracted value is set as "__value" by the meta mapper.
+     * The value may be a valid value array or an array with a key "__value" for
+     * the extracted value by the meta mapper.
      */
     protected function fillPropertyForValue(
         ArrayObject $resource,
@@ -1124,22 +1049,27 @@ class ResourceProcessor extends AbstractResourceProcessor
         array $value,
         ?int $vrId = null
     ): self {
+        // Common data for all data types.
         $resourceValue = [
             'type' => $dataType,
             'property_id' => $value['property_id'],
-            'is_public' => null,
+            'is_public' => $value['is_public'] ?? null,
         ];
 
         $mainDataType = $this->bulk->dataTypeMain($dataType);
-        $val = $value['__value'];
+
+        // $isPrefilled = !array_key_exists('__value', $value);
+
+        $val = $value['__value'] ?? null;
 
         // Manage special datatypes first.
         $isCustomVocab = substr($dataType, 0, 11) === 'customvocab';
 
         if ($isCustomVocab) {
-            $result = $this->bulk->isCustomVocabMember($dataType, $mainDataType === 'resource' ? $vrId ?? $val : $val);
+            $vridOrVal = (string) ($mainDataType === 'resource' ? $vrId ?? $val : $val);
+            $result = $this->bulk->isCustomVocabMember($dataType, $vridOrVal);
             if (!$result) {
-                $valueForMsg = mb_strlen($val) > 50 ? mb_substr($val, 0, 50) . '…' : $val;
+                $valueForMsg = mb_strlen($vridOrVal) > 50 ? mb_substr($vridOrVal, 0, 50) . '…' : $vridOrVal;
                 if (!$this->useDatatypeLiteral) {
                     $resource['messageStore']->addError('values', new PsrMessage(
                         'The value "{value}" is not member of custom vocab "{customvocab}".', // @translate
@@ -1155,11 +1085,13 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
+        // The value will be checked later.
+
         switch ($dataType) {
             default:
             case 'literal':
-                $resourceValue['@value'] = $value['__value'];
-                $resourceValue['@language'] = $value['language'] ?: null;
+                $resourceValue['@value'] = $value['@value'] ?? $val ?? '';
+                $resourceValue['@language'] = ($value['@language'] ?? $value['language'] ?? null) ?: null;
                 break;
 
             case 'uri-label':
@@ -1167,8 +1099,9 @@ class ResourceProcessor extends AbstractResourceProcessor
             case $mainDataType === 'uri':
                 // case 'uri':
                 // case substr($dataType, 0, 12) === 'valuesuggest':
-                if (strpos($value['__value'], ' ')) {
-                    list($uri, $label) = explode(' ', $value['__value'], 2);
+                $uriOrVal = trim((string) ($value['@id'] ?? $val ?? ''));
+                if (strpos($uriOrVal, ' ')) {
+                    [$uri, $label] = explode(' ', $uriOrVal, 2);
                     $label = trim($label);
                     if (!strlen($label)) {
                         $label = null;
@@ -1176,11 +1109,11 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resourceValue['@id'] = $uri;
                     $resourceValue['o:label'] = $label;
                 } else {
-                    $resourceValue['@id'] = $value['__value'];
-                    // The label may be set early?
-                    // $resourceValue['o:label'] = null;
+                    $resourceValue['@id'] = $resourceValue['@id'] ?? $val;
+                    // The label may be set early too.
+                    $resourceValue['o:label'] = $resourceValue['o:label'] ?? null;
                 }
-                $resourceValue['o:lang'] = $value['o:lang'] ?? ($value['language'] ?: null);
+                $resourceValue['o:lang'] = ($value['o:lang'] ?? $value['@language'] ?? $value['language'] ?? null) ?: null;
                 break;
 
             // case 'resource':
@@ -1190,8 +1123,8 @@ class ResourceProcessor extends AbstractResourceProcessor
             // case 'resource:annotation':
             case $mainDataType === 'resource':
                 $resourceValue['value_resource_id'] = $vrId;
-                $resourceValue['@language'] = null;
-                $resourceValue['source_identifier'] = $value['__value'];
+                $resourceValue['@language'] = ($value['@language'] ?? $value['language'] ?? null) ?: null;
+                $resourceValue['source_identifier'] = $val;
                 $resourceValue['checked_id'] = true;
                 break;
 
@@ -1421,10 +1354,8 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function getAssetId($id): ?int
     {
         $id = (int) $id;
-        if (!$id) {
-            return null;
-        }
-        $result = $this->bulk->api()->searchOne('assets', ['id' => $id])->getContent();
-        return $result ? $id : null;
+        return $id
+            ? $this->api->searchOne('assets', ['id' => $id])->getContent()
+            : null;
     }
 }

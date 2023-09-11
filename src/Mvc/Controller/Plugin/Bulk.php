@@ -1072,6 +1072,8 @@ class Bulk extends AbstractPlugin
      * Proxy to api() to get the errors even without form.
      *
      * Most of the time, form is empty.
+     *
+     * @todo Redesign the method bulk->api(), that is useless most of the times for now.
      */
     public function api(\Laminas\Form\Form $form = null, $throwValidationException = false): \Omeka\Mvc\Controller\Plugin\Api
     {

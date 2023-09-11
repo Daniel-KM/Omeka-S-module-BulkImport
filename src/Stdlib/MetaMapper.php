@@ -184,26 +184,22 @@ class MetaMapper
         return $this->metaMapperConfig->__invoke()->getMapping($this->mappingName);
     }
 
+    /**
+     * Variables are used when the mapping requires dynamic params.
+     *
+     * Some pagination mechanisms are complex and require variables.
+     * Some json endpoints  requires a second level map with a mapped value.
+     */
     public function setVariables(array $variables): self
     {
         $this->variables = $variables;
         return $this;
     }
 
-    public function getVariables(): array
-    {
-        return $this->variables;
-    }
-
     public function setVariable(string $name, $value): self
     {
         $this->variables[$name] = $value;
         return $this;
-    }
-
-    public function getVariable(string $name, $default = null)
-    {
-        return $this->variables[$name] ?? $default;
     }
 
     /**
@@ -483,44 +479,116 @@ class MetaMapper
     /**
      * Finalize conversion according to the map and append result to resource.
      *
-     * Data are deduplicated for main keys to avoid issues with complex mappings.
-     * When the output is an array, the key "__value" is used.
+     * Whatever the field type is, the output is always an array of that type or
+     * null. In particular, a list allows to manage multiple identifiers.
      *
-     * @todo Manage sub types (entity, boolean, etc. here) according to field via the metadataData.
+     * When the output type is an array, the key "__value" is appended, except
+     * if the processor output an array directly, in particular for an xml.
+     *
+     * There is no early deduplicate or simplification in order to manage
+     * complex mapping.
      */
     protected function convertFinalize(array &$resource, array $to, ?array $result): self
     {
-        // Keep empty array here: it may be used for advanced update.
+        static $translate = null;
+
+        // Do not fill field here: it may be used for advanced update.
         if ($result === null) {
             return $this;
         }
 
-        // Early deduplicate. Here, result is always an array of string.
-        $result = array_values(array_unique($result));
+        if ($translate === null) {
+            $translate = [
+                'false' => $this->bulk->translate('false'),
+                'no' => $this->bulk->translate('no'),
+                'off' => $this->bulk->translate('off'),
+                'true' => $this->bulk->translate('true'),
+                'yes' => $this->bulk->translate('yes'),
+                'on' => $this->bulk->translate('on'),
+            ];
+        }
 
-        $dest = $to['field'];
-        unset($to['field']);
+        $result = array_values($result);
 
-        $values = [];
+        $field = $to['field'];
+        $fieldType = $to['field_type'] ?? null;
+        unset($to['field'], $to['field_type']);
 
-        $isScalarField = $to === [];
-        if($isScalarField) {
-            $values = $result;
-        } else {
-            foreach ($result as $data) {
-                $to['__value'] = $data;
-                $values[] = $to;
+        switch ($fieldType) {
+            default:
+                // Nothing to do: keep result as is (string or array).
+                // In particular for entities, that should be checked.
+                break;
+            case 'skip':
+                return $this;
+            case 'boolean':
+            case 'booleans':
+                $false = ['0', 'false', 'no', 'off', $translate['false'], $translate['no'], $translate['off']];
+                $true = ['1', 'true', 'yes', 'on', $translate['true'], $translate['yes'], $translate['on']];
+                $cleanResult = [];
+                foreach ($result as $value) {
+                    $cleanResult[] = in_array(strtolower((string) $value), $true, true)
+                        ?: (in_array(strtolower((string) $value), $false, true)
+                            ? false
+                            : null);
+                }
+                $result = $cleanResult;
+                break;
+            case 'integer':
+            case 'integers':
+                $result = array_map('intval', $result);
+                break;
+            case 'string':
+            case 'strings':
+                $result = array_map('strval', $result);
+                break;
+            case 'datetime':
+            case 'datetimes':
+                // Date time is designed to fill sql date time (created or
+                // modified), so fill as string.
+                $cleanResult = [];
+                foreach ($result as $value) {
+                    $cleanResult[] = $value
+                        ? substr_replace('0000-00-00 00:00:00', $value, 0, strlen($value))
+                        : null;
+                }
+                $result = $cleanResult;
+                break;
+            case 'array':
+            case 'arrays':
+                // Some processes like xml may prepare an array directly.
+                // In that case, the value is not added as "__value".
+                $cleanResult = [];
+                foreach ($result as $value) {
+                    if (is_array($value)) {
+                        $cleanResult[] = $value + $to;
+                    } else {
+                        $data = $to;
+                        $data['__value'] = $value;
+                        $cleanResult[] = $data;
+                    }
+                }
+                $result = $cleanResult;
+                break;
+        }
+
+        if (empty($resource[$field])) {
+            $resource[$field] = $result;
+        } elseif (!empty($result)) {
+            $resource[$field] = array_merge(array_values($resource[$field]), $result);
+        }
+
+        // Deduplicate early, but revert to keep the last value, that overrides
+        // previous ones.
+        /*
+        if (count($resource[$field]) > 1) {
+            if (gettype(reset($resource[$field])) === 'array') {
+                $resource[$field] = array_values(array_intersect_key($resource[$field], array_unique(array_map('serialize', $resource[$field]))));
+            } else {
+                $resource[$field] = array_unique($resource[$field]);
             }
         }
-
-        if (empty($resource[$dest])) {
-            $resource[$dest] = $values;
-        } elseif (empty($values)) {
-            $resource[$dest] = $values;
-        } else {
-            $values = array_merge(array_values($resource[$dest]), $values);
-            $resource[$dest] = array_values(array_intersect_key($values, array_unique(array_map('serialize', $values))));
-        }
+        */
 
         return $this;
     }

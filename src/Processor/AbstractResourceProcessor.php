@@ -47,36 +47,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $paramsFormClass;
 
     /**
-     * Allowed fields to create or update resources.
+     * List of types for keys of the resources, used to simplify mapping.
      *
-     * See resource or asset processor for default.
+     * Keys are the fields of the resources and values are the variable types.
+     * Managed types are: "skip", "boolean", "integer", "string", "datetime",
+     * "entity", "single_data".
      *
-     * @see \Omeka\Api\Representation\AssetRepresentation
+     * In default process, the last value is kept.
+     *
      * @var array
      */
-    protected $metadataData = [
-        // @todo Currently not used.
-        'fields' => [],
-        'skip' => [],
-        // List of keys that can have only one value.
-        'boolean' => [],
-        // List of keys that can have only a single metadata as string.
-        'single_data' => [
-            'resource_name' => null,
-            // Generic.
-            'o:id' => null,
-        ],
-        // Keys that can have only one value that is an entity with an id "o:id".
-        'single_entity' => [
-            // Generic.
-            'o:owner' => null,
-        ],
-        // Keys that are sub-metadata, so that will be processed recursively.
-        // Currently, only one level of recursivity is managed, for example
-        // media metadata for items.
-        'multiple_entities' => [],
-        // Miscellaneous may have been pre-processed above.
-        'misc' => [],
+    protected $fieldTypes = [
+        // Common metadata.
+        'resource_name' => 'string',
+        // "o:id" may be an identifier.
+        'o:id' => 'string',
+        'o:created' => 'datetime',
+        'o:modified' => 'datetime',
+        'o:is_public' => 'boolean',
+        'o:owner' => 'entity',
+        // Alias of 'o:owner'.
+        'o:email' => 'entity',
     ];
 
     /**
@@ -113,6 +104,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * @var bool
      */
     protected $fakeFiles = false;
+
+    /**
+     * @var array
+     */
+    protected $resourceNamesMore;
 
     /**
      * @var bool
@@ -293,6 +289,28 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             );
         }
 
+        $translate = $services->get('ViewHelperManager')->get('translate');
+        $this->resourceNamesMore = [
+            // For compatibility with spreadsheet used in Omeka classic.
+            'collection' => 'item_sets',
+            'collections' => 'item_sets',
+            'file' => 'media',
+            'files' => 'media',
+            $translate('asset') => 'assets',
+            $translate('item') => 'items',
+            $translate('item set') => 'item_sets',
+            $translate('media') => 'media',
+            $translate('assets') => 'assets',
+            $translate('items') => 'items',
+            $translate('item sets') => 'item_sets',
+            $translate('medias') => 'media',
+            $translate('media') => 'media',
+            $translate('collection') => 'item_sets',
+            $translate('collections') => 'item_sets',
+            $translate('file') => 'media',
+            $translate('files') => 'media',
+        ];
+
         // The base entity depends on the resource type, so it should be init.
         $this->base = $this->baseEntity();
 
@@ -345,6 +363,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
+        $resource['resource_name'] = $this->getResourceName();
         $resource['o:id'] = null;
         // The human source index is one-based, so "0" means undetermined.
         $resource['source_index'] = 0;
@@ -360,14 +379,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    /**
-     * Convert a prepared entry into a resource, setting ids for each key.
-     *
-     * So fill keys according to the metadata format.
-     *
-     * {@inheritDoc}
-     * @see \BulkImport\Processor\AbstractResourceProcessor::fillResource()
-     */
     public function fillResource(array $data, ?int $index = null): ?array
     {
         // ArrayObject is used internally to simplify calling functions.
@@ -377,80 +388,166 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->indexResource = $index;
         $resource['source_index'] = $this->indexResource;
 
-        $keys = $this->metadataData;
-
-        // Added for security.
-        $keys['skip'] = [
-            'checked_id' => false,
-            // The human source index is one-based, so "0" means undetermined.
-            'source_index' => 0,
-            'messageStore' => null,
-        ] + ($keys['skip'] ?? []);
-
-        // TODO Manage filling multiple entities here?
-        // From meta mapper and meta mapper mapping, values are always an array
-        // when undefined in metadata data.
-        foreach ($data as $key => $values) {
-            if (array_key_exists($key, $keys['skip'])) {
-                // Nothing to do.
-            } elseif (array_key_exists($key, $keys['boolean'])) {
-                $this->fillBoolean($resource, $key, $values);
-            } elseif (array_key_exists($key, $keys['single_data'])) {
-                $this->fillSingleData($resource, $key, $values);
-            } elseif (array_key_exists($key, $keys['single_entity'])) {
-                $this->fillSingleEntity($resource, $key, $values);
-            } elseif ($resource->offsetExists($key) && is_array($resource[$key])) {
-                $resource[$key] = array_merge($resource[$key], $values);
-            } else {
-                // Keep multiple entity keys and extra data for properties,
-                // modules, etc.
-                $resource[$key] = $values;
-            }
-        }
-
-        // Specific values may have been processed.
-        // Other values are copied as array of values in the resource.
-        // So generally data are useless here.
-        $this->fillResourceData($resource, $data);
+        $this
+            // Fill the resource with data.
+            ->fillResourceData($resource, $data)
+            // Specific values may have been processed.
+            // Other values are copied as array of values in the resource.
+            // So generally data are useless here, except for entities.
+            ->fillResourceFields($resource, $data)
+        ;
 
         return $resource->getArrayCopy();
     }
 
-    protected function fillBoolean(ArrayObject $resource, string $field, array $values): self
+    /**
+     * Fill resource with fields according to base field types.
+     *
+     * In this abstract processor, the first step is to simplify, not to fill or
+     * to check.
+     */
+    protected function fillResourceData(ArrayObject $resource, array $data): self
     {
-        $value = end($values);
-        // Private is use for visibility (is public = 1) and closed for openess
-        // (is open = 1).
-        // TODO Use a constant array and see BaseEntry.
-        $resource[$field] = in_array(strtolower((string) $value), ['', '0', 'false', 'no', 'off', 'private', 'closed'], true)
-            ? false
-            : (bool) $value;
+        // Internal keys of the base entities to skip.
+        $metadataTypes = [
+            'source_index' => 'skip',
+            'checked_id' => 'skip',
+            'has_error' => 'skip',
+            'messageStore' => 'skip',
+        ] + $this->fieldTypes;
+
+        // The values are always a list get from the meta mapper mapping.
+        // TODO Why are the values always a list get from the meta mapper mapping? (manage the case of multiple identifiers).
+        foreach ($data as $field => $values) switch ($metadataTypes[$field] ?? null) {
+            case 'skip':
+                // Nothing to do.
+                break;
+            case 'boolean':
+            case 'integer':
+            case 'string':
+            case 'array':
+                $resource[$field] = end($values);
+                break;
+            case 'datetime':
+                $value = end($values);
+                $resource[$field] = ['@value' => $value];
+                break;
+            case 'datetimes':
+                foreach ($values as $value) {
+                    $resource[$field][] = ['@value' => $value];
+                }
+                break;
+            /* // Don't fill entities here: they require other data to check.
+            case 'entity':
+                $value = end($values);
+                $resource[$field] = $this->fillEntity($resource, $field, $value);
+                break;
+            case 'entities':
+                foreach ($values as $value) {
+                    $this->fillEntity($resource, $field, $value, true);
+                }
+                break;
+            */
+            case 'booleans':
+            case 'integers':
+            case 'strings':
+            case 'arrays':
+            default:
+                $resource[$field] = $values;
+                break;
+        }
+
         return $this;
     }
 
-    protected function fillSingleData(ArrayObject $resource, string $field, array $values): self
+    /**
+     * Fill other data that are not managed in a common way.
+     *
+     * Specific values set in metadataTypes have been processed.
+     * Other values are already copied as an array of values.
+     */
+    protected function fillResourceFields(ArrayObject $resource, array $data): self
     {
-        if (empty($values)) {
-            $resource[$field] = null;
-            return $this;
+        return $this
+            // Fill the resource name first when possible then id, because they
+            // are the base to fill other data.
+            ->fillResourceName($resource, $data)
+            ->fillResourceId($resource, $data)
+            ->fillResourceSingleEntities($resource, $data)
+            ->fillResourceSpecific($resource, $data)
+        ;
+    }
+
+    protected function fillResourceName(ArrayObject $resource, array $data): self
+    {
+        if (isset($resource['resource_name'])
+            // Don't revalidate data from the resource base entity.
+            && $resource['resource_name'] !== $this->resourceName
+        ) {
+            $resource['resource_name'] = $this->bulk->resourceName($resource['resource_name'])
+                ?? $this->bulk->resourceName(mb_strtolower($resource['resource_name']))
+                ?? $this->resourceNamesMore[mb_strtolower($resource['resource_name'])]
+                ?? $resource['resource_name'];
         }
-        $resource[$field] = end($values);
         return $this;
     }
 
-    protected function fillSingleEntity(ArrayObject $resource, string $field, array $values): self
+    protected function fillResourceId(ArrayObject $resource, array $data): self
     {
-        if (empty($values)) {
-            $resource[$field] = null;
+        // Warning: "o:id" may be an identifier here, so it is converted.
+        // Furthermore, the id may be set via another key (dcterms:identifier,
+        // storage id, etc.).
+        if (empty($resource['o:id'])) {
+            $resource['o:id'] = null;
             return $this;
         }
 
-        $value = end($values);
+        if (is_numeric($resource['o:id'])) {
+            $resource['o:id'] = ((int) $resource['o:id']) ?: null;
+        }
 
-        // Get the entity id.
-        switch ($field) {
-            // TODO Factorize with ResourceProcessor and AssetProcessor.
-            case 'o:owner':
+        if (empty($resource['o:id'])) {
+            $resource['o:id'] = null;
+            return $this;
+        }
+
+        // Validate the main id/identifier early.
+        $resourceName = $resource['resource_name'] ?? null;
+        if (!empty($this->identifiers['mapx'][$resource['source_index']])) {
+            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
+        } else {
+            // TODO Use a generic method.
+            $resource['o:id'] = in_array($resourceName, [null, 'items', 'media', 'item_sets', 'value_annotations', 'annotations'])
+                ? $this->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'])
+                : $this->api->searchOne($resourceName, ['id' => $resource['o:id']], ['returnScalar' => 'id'])->getContent();
+        }
+
+        if ($resource['o:id']) {
+            $resource['checked_id'] = !empty($resourceName) && $resourceName !== 'resources';
+        } else {
+            $resource['o:id'] = null;
+            $resource['messageStore']->addError('resource', new PsrMessage(
+                'source index #{index}: Internal id cannot be found. The entry is skipped.', // @translate
+                ['index' => $resource['source_index']]
+            ));
+        }
+
+        return $this;
+    }
+
+    protected function fillResourceSingleEntities(ArrayObject $resource, array $data): self
+    {
+        // Entities are not processed in the meta mapper, neither by the
+        // processor above, so it is always an array of strings or arrays
+        // to copy from data into resource.
+
+        // Owner is prefilled in base entity. This is a single entity.
+        if ((isset($this->fieldTypes['o:owner']) || isset($this->fieldTypes['o:email']))
+            && (array_key_exists('o:owner', $data) || array_key_exists('o:email', $data))
+        ) {
+            $values = array_merge(array_values($data['o:owner'] ?? []), array_values($data['o:email'] ?? []));
+            foreach (array_filter($values) as $value) {
+                // Get the entity id.
                 if (is_array($value)) {
                     $id = empty($value['o:id']) ? null : $value['o:id'];
                     $email = empty($value['o:email']) ? null : $value['o:email'];
@@ -462,26 +559,19 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ? ['o:id' => $id]
                         : ['o:id' => $id, 'o:email' => $email];
                 } else {
-                    $resource['o:owner'] = null;
+                    $resource['o:owner'] = $resource['o:owner'] ?? null;
                     $resource['messageStore']->addError('resource', new PsrMessage(
                         'The user "{source}" does not exist.', // @translate
                         ['source' => $value]
                     ));
                 }
-                return $this;
-
-            default:
-                return $this;
+            }
         }
+
+        return $this;
     }
 
-    /**
-     * Fill other data that are not managed in a common way.
-     *
-     * Specific values set in metadataData have been processed.
-     * Other values are already copied as an array of values.
-     */
-    protected function fillResourceData(ArrayObject $resource, array $data): self
+    protected function fillResourceSpecific(ArrayObject $resource, array $data): self
     {
         return $this;
     }
@@ -493,7 +583,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->checkEntity($resourceObject);
         return $resourceObject->getArrayCopy();
     }
-
 
     /**
      * Check if a resource is well-formed.
@@ -1703,7 +1792,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      *
      * @todo Factorize findResourcesFromIdentifiers() in AbstractResourceImport with ImportTrait.
      */
-    public function findResourcesFromIdentifiers(
+    protected function findResourcesFromIdentifiers(
         $identifiers,
         $identifierName = null,
         $resourceName = null,

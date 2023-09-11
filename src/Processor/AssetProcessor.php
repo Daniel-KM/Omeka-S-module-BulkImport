@@ -27,50 +27,23 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      *
      * @var array
      */
-    protected $metadataData = [
-        // Assets metadata and file.
-        'fields' => [
-            'file',
-            'url',
-            'o:id',
-            'o:name',
-            'o:storage_id',
-            'o:owner',
-            'o:alt_text',
-            // To attach resources.
-            'o:resource',
-        ],
-        'skip' => [],
-        'boolean' => [],
-        'single_data' => [
-            'resource_name' => null,
-            'file' => null,
-            'url' => null,
-            // Generic.
-            'o:id' => null,
-            // TODO Use all data names and storage ids from data to find existing assets before update. Keep source data as a key of resource to simplify process.
-            // Asset.
-            'o:name' => null,
-            'o:media_type' => null,
-            'o:storage_id' => null,
-            'o:alt_text' => null,
-        ],
-        'single_entity' => [
-            // Generic.
-            'o:owner' => null,
-        ],
-        'multiple_entities' => [
-            // Attached resources for thumbnails.
-            // 'o:resource' => null,
-        ],
-        'misc' => [
-            'o:id' => null,
-            'o:storage_id' => null,
-            'o:media_type' => null,
-            'file' => null,
-            'url' => null,
-            'o:resource' => null,
-        ],
+    protected $fieldTypes = [
+        // Common metadata.
+        'resource_name' => 'string',
+        // "o:id" may be an identifier.
+        'o:id' => 'string',
+        'o:owner' => 'entity',
+        // Alias of "o:owner" here.
+        'o:email' => 'entity',
+        // TODO Use all data names and storage ids from data to find existing assets before update. Keep source data as a key of resource to simplify process.
+        'file' => 'string',
+        'url' => 'string',
+        'o:name' => 'string',
+        'o:storage_id' => 'string',
+        'o:media_type' => 'string',
+        'o:alt_text' => 'string',
+        // To attach as thumbnail for resources.
+        'o:resource' => 'entities',
     ];
 
     protected function handleFormGeneric(ArrayObject $args, array $values): self
@@ -138,31 +111,10 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function fillResourceData(ArrayObject $resource, array $data): self
+    protected function fillResourceSpecific(ArrayObject $resource, array $data): self
     {
-        // TODO Factorize with ResourceProcessor and AssetProcessor.
-        foreach (array_intersect_key($resource->getArrayCopy(), $this->metadataData['misc']) as $field => $values) switch ($field) {
+        foreach ($resource->getArrayCopy() as $field => $values) switch ($field) {
             default:
-                continue 2;
-
-            case 'o:id':
-                $value = (int) $values;
-                if (!$value) {
-                    $resource['o:id'] = null;
-                    continue 2;
-                }
-                $id = empty($this->identifiers['mapx'][$resource['source_index']])
-                    ? $this->bulk->api()->searchOne('assets', ['id' => $value])->getContent()
-                    : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
-                if ($id) {
-                    $resource['o:id'] = is_object($id) ? $id->id() : $id;
-                    $resource['checked_id'] = true;
-                } else {
-                    $resource['messageStore']->addError('resource', new PsrMessage(
-                        'Source index #{index}: Internal id cannot be found. The entry is skipped.', // @translate
-                        ['index' => $resource['source_index']]
-                    ));
-                }
                 continue 2;
 
             case 'o:storage_id':
@@ -171,9 +123,11 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $resource['o:storage_id'] = null;
                     continue 2;
                 }
+                // Use the storage id to get the id, since it is unique.
                 try {
                     $id = empty($this->identifiers['mapx'][$resource['source_index']])
-                        ? $this->bulk->api()->read('assets', ['storage_id' => $value])->getContent()
+                        // Read does not allow to return scalar.
+                        ? $this->api->read('assets', ['storage_id' => $value])->getContent()
                         : (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], '§');
                 } catch (\Exception $e) {
                     $id = null;
@@ -182,6 +136,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $resource['o:id'] = is_object($id) ? $id->id() : $id;
                     $resource['checked_id'] = true;
                 } else {
+                    $resource['o:id'] = $resource['o:id'] ?? null;
                     $resource['messageStore']->addError('resource', new PsrMessage(
                         'Source index #{index}: Storage id cannot be found. The entry is skipped.', // @translate
                         ['index' => $resource['source_index']]
@@ -222,22 +177,28 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 continue 2;
 
             case 'o:resource':
+                // This is an entity: data are not yet filled inside resource.
+                $resource['o:resource'] = [];
+                $values = $data['o:resource'] ?? [];
                 // Check values one by one to manage source identifiers.
-                foreach ($values as $key => $value) {
-                    if (!$value) {
-                        unset($resource[$field][$key]);
-                        continue;
+                foreach (array_filter($values) as $key => $value) {
+                    // May be ["o:id" => "identifier"].
+                    if (is_array($value)) {
+                        $value = reset($value);
+                        if (!$value) {
+                            continue;
+                        }
                     }
-                    $thumbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore']);
-                    if ($thumbnailForResourceId) {
-                        $resource['o:resource'][$key] = [
-                            'o:id' => $thumbnailForResourceId,
-                            'checked_id' => true,
-                            // TODO Set the source identifier anywhere.
-                        ];
-                    } elseif (!empty($this->identifiers['map'][$value . '§resources'])) {
+                    // Check cache map first.
+                    if (!empty($this->identifiers['map'][$value . '§resources'])) {
                         $resource['o:resource'][$key] = [
                             'o:id' => (int) strtok((string) $this->identifiers['map'][$value . '§resources'], '§'),
+                            'checked_id' => true,
+                            'source_identifier' => $value,
+                        ];
+                    } elseif ($thumbnailForResourceId = $this->findResourcesFromIdentifiers($value, $this->identifierNames, 'resources', $resource['messageStore'])) {
+                        $resource['o:resource'][$key] = [
+                            'o:id' => $thumbnailForResourceId,
                             'checked_id' => true,
                             'source_identifier' => $value,
                         ];
@@ -411,7 +372,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         // Always reload the resource that is currently managed to manage
         // multiple update of the same resource.
         try {
-            $this->bulk->api()->read('assets', $dataResource['o:id'], [], ['responseContent' => 'resource'])->getContent();
+            $this->api->read('assets', $dataResource['o:id'], [], ['responseContent' => 'resource'])->getContent();
         } catch (\Exception $e) {
             // Normally already checked.
             $r = $this->baseEntity();
@@ -436,15 +397,13 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             return $this;
         }
 
-        $api = clone $this->bulk->api(null, true);
-
         // Attach asset to the resources.
         $thumbnailResources = [];
         foreach ($dataResource['o:resource'] ?? [] as $thumbnailResource) {
             // Normally checked early.
             if (empty($thumbnailResource['resource_name'])) {
                 try {
-                    $thumbnailResource['resource_name'] = $api->read('resources', $thumbnailResource['o:id'], [], ['responseContent' => 'resource'])->getContent()
+                    $thumbnailResource['resource_name'] = $this->api->read('resources', $thumbnailResource['o:id'], [], ['responseContent' => 'resource'])->getContent()
                         ->getResourceName();
                 } catch (\Exception $e) {
                     $r = $this->baseEntity();

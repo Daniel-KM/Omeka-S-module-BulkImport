@@ -7,10 +7,6 @@ use SimpleXMLElement;
 
 class BaseEntry implements Entry
 {
-    protected $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed', 'none'];
-    protected $true = [1, true, '1', 'true', 'yes', 'on', 'public', 'open'];
-    protected $null = [null, 'null'];
-
     /**
      * @var array|\Traversable
      */

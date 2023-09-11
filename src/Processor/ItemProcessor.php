@@ -16,56 +16,50 @@ class ItemProcessor extends ResourceProcessor
 
     protected $paramsFormClass = ItemProcessorParamsForm::class;
 
-    protected $metadataData = [
-        // Assets metadata and file.
-        'fields' => [
-            'file',
-            'url',
-            'o:id',
-            'o:owner',
-            // TODO Incomplete, but not used currently
-        ],
-        'skip' => [],
-        // Cf. baseSpecific(), fillItem(), fillItemSet() and fillMedia().
-        'boolean' => [
-            'o:is_public' => true,
-        ],
-        'single_data' => [
-            // Generic.
-            'o:id' => null,
-            // Resource.
-            'resource_name' => null,
-            /*
-             // But there can be multiple urls, files, etc. for an item.
-             // Media.
-             'o:lang' => null,
-             'o:ingester' => null,
-             'o:source' => null,
-             'ingest_filename' => null,
-             'ingest_directory' => null,
-             'ingest_url' => null,
-             'html' => null,
-             */
-        ],
-        'single_entity' => [
-            // Generic.
-            'o:resource_template' => null,
-            'o:resource_class' => null,
-            'o:thumbnail' => null,
-            'o:owner' => null,
-            // Media.
-            'o:item' => null,
-        ],
-        'multiple_entities' => [
-            'o:item_set' => null,
-            'o:media' => null,
-        ],
-        'misc' => [
-            'o:id' => null,
-            'o:email' => null,
-            'o:created' => null,
-            'o:modified' => null,
-        ],
+    /**
+     * @see \Omeka\Api\Representation\ItemRepresentation
+     *
+     * @var array
+     */
+    protected $fieldTypes = [
+        // Internal keys of the base entities to skip.
+        'checked_id' => 'skip',
+        'source_index' => 'skip',
+        'messageStore' => 'skip',
+        // Common metadata.
+        'resource_name' => 'string',
+        // "o:id" may be an identifier.
+        'o:id' => 'string',
+        'o:created' => 'datetime',
+        'o:modified' => 'datetime',
+        'o:is_public' => 'boolean',
+        'o:owner' => 'entity',
+        // Alias of "o:owner" here.
+        'o:email' => 'entity',
+        'o:resource_template' => 'entity',
+        'o:resource_class' => 'entity',
+        'o:thumbnail' => 'entity',
+        'o:owner' => 'entity',
+        // Alias of 'o:owner'.
+        'o:email' => 'entity',
+        // A common, but special and complex key, so managed in meta config too.
+        'property' => 'arrays',
+        // Item.
+        'o:item_set' => 'entities',
+        // There can be multiple medias, urls, files, etc. for an item.
+        'o:media' => 'entities',
+        'o:lang' => 'strings',
+        'o:ingester' => 'strings',
+        'o:source' => 'strings',
+        'ingest_filename' => 'strings',
+        'ingest_directory' => 'strings',
+        'ingest_url' => 'strings',
+        'html' => 'strings',
+        // Modules.
+        // Module Mapping.
+        // There can be only one mapping zone.
+        'o-module-mapping:bounds' => 'string',
+        'o-module-mapping:marker' => 'strings',
     ];
 
     protected function handleFormSpecific(ArrayObject $args, array $values): self
@@ -81,7 +75,7 @@ class ItemProcessor extends ResourceProcessor
             ->baseItem($resource);
     }
 
-    protected function fillSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self
+    protected function fillResourceSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self
     {
         return $this
             ->fillItem($resource, $data);

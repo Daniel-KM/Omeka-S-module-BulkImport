@@ -41,6 +41,13 @@ abstract class AbstractProcessor implements Processor
     protected $resourceLabel;
 
     /**
+     * The resource field types to process mapping.
+     *
+     * @var array
+     */
+    protected $resourceFieldTypes = [];
+
+    /**
      * @var \Omeka\Permissions\Acl
      */
     protected $acl;
@@ -187,6 +194,11 @@ abstract class AbstractProcessor implements Processor
     public function getLabel(): string
     {
         return $this->resourceLabel;
+    }
+
+    public function getFieldTypes(): array
+    {
+        return $this->fieldTypes;
     }
 
     public function setLogger(Logger $logger): self

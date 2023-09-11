@@ -16,14 +16,24 @@ use Omeka\Api\Representation\AbstractEntityRepresentation;
 interface Processor
 {
     /**
+     * Get the resource name to manage (resources, items, assets, vocabularies…).
+     */
+    public function getResourceName(): string;
+
+    /**
      * Name of the processor.
      */
     public function getLabel(): string;
 
     /**
-     * Get the resource name to manage (resources, items, assets, vocabularies…).
+     * Get the list of the variable type of each field (key) of the resource.
+     *
+     * Keys are the fields of the resources and values are the variable types.
+     * Main managed types are: "boolean", "integer", "string", "datetime",
+     * "array". Types can be plural for multiple values.
+     * "skip" is used for internal use.
      */
-    public function getResourceName(): string;
+    public function getFieldTypes(): array;
 
     /**
      * @todo Remove logger from the interface.
@@ -39,9 +49,9 @@ interface Processor
      * Prepare a resource from data.
      *
      * @return array Data manageable by the api.
-     *
-     * @todo Remove the index from the processor and manage it only in the importer.
      * The index is stored in key "source_index" or the resource.
+     *
+     * @todo Remove the index from the processor and manage it only in the importer?
      */
     public function fillResource(array $data, ?int $index = null): ?array;
 

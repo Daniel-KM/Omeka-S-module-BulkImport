@@ -15,7 +15,7 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 use Log\Stdlib\PsrMessage;
 
 /**
- * @todo The reader itself may be an iterator or an array. Here too?
+ * Reader implements Iterator and Countable.
  */
 abstract class AbstractReader implements Reader, Configurable, Parametrizable
 {
@@ -311,6 +311,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
             $this->currentData,
             $this->key(),
             $this->availableFields,
+            // TODO Remove metamapper.
             $this->getParams() + ['metaMapper' => $this->metaMapper]
         );
     }

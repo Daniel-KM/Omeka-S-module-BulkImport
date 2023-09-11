@@ -104,7 +104,10 @@ class ImportRepresentation extends AbstractEntityRepresentation
         return $metaMapperConfig(
             $this->mapper(),
             $this->mappingParams(),
-            ['to' => $this->importer()->processor()->getResourceName()]
+            [
+                'resource_name' => $this->importer()->processor()->getResourceName(),
+                'field_types' => $this->importer()->processor()->getFieldTypes(),
+            ]
         );
     }
 
