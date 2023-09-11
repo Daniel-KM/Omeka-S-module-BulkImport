@@ -88,7 +88,7 @@ class BulkFileUploaded extends AbstractPlugin
         // Create a unique temp dir to avoid to override existing files and to
         // simplify distinction between imports.
         // Here, the job is unknown.
-        $this->baseTempDirPath = tempnam($this->baseTempDir, sprintf('omk_bki_%s_', (new \DateTime('now'))->format('Ymd-H:i:s')));
+        $this->baseTempDirPath = tempnam($this->baseTempDir, sprintf('omk_bki_%s_', (new \DateTime('now'))->format('Ymd-His')));
         if (!$this->baseTempDirPath) {
             throw new \Omeka\Service\Exception\RuntimeException(
                 'Unable to create directory in temp dir.' // @translate
@@ -111,7 +111,10 @@ class BulkFileUploaded extends AbstractPlugin
                     ['file' => $file['name']]
                 ));
             }
-            $filepath = @tempnam($this->baseTempDirPath, substr($file['name'], 0, 16) . '_');
+            // Keep original extension for simpler checks.
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filepath = @tempnam($this->baseTempDirPath, substr($file['name'], 0, 16) . '_')
+                . (strlen((string) $extension) ? '.' . $extension : '');
             if (!move_uploaded_file($file['tmp_name'], $filepath)) {
                 throw new \Omeka\Service\Exception\RuntimeException((string) new PsrMessage(
                     'Unable to move uploaded file "{file}" to "{filepath}".', // @translate
