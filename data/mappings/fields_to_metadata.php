@@ -153,8 +153,11 @@ return [
     'default zoom' => 'o-module-mapping:default_zoom',
 
     // From module Folksonomy.
-    'tag' => 'o-module-folksonomy:tag',
-    'tags' => 'o-module-folksonomy:tag',
+    // But compatibility with included vocabulary curation first.
+    'tag' => 'curation:tag',
+    'tags' => 'curation:tag',
+    // 'tag' => 'o-module-folksonomy:tag',
+    // 'tags' => 'o-module-folksonomy:tag',
     'tagger' => 'o-module-folksonomy:tagging[o:owner]',
     'tag status' => 'o-module-folksonomy:tagging[o:status]',
     'tag date' => 'o-module-folksonomy:tagging[o:created]',
