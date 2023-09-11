@@ -45,14 +45,12 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
         return [
             'o:id' => $this->id(),
-            'o:label' => $this->label(),
-            'o:config' => $this->config(),
-            'o-bulk:reader_class' => $this->readerClass(),
-            'o-bulk:reader_config' => $this->readerConfig(),
-            'o-bulk:mapper' => $this->mapper(),
-            'o-bulk:processor_class' => $this->processorClass(),
-            'o-bulk:processor_config' => $this->processorConfig(),
             'o:owner' => $owner ? $owner->getReference() : null,
+            'o:label' => $this->label(),
+            'o-bulk:reader' => $this->readerClass(),
+            'o-bulk:mapper' => $this->mapper(),
+            'o-bulk:processor' => $this->processorClass(),
+            'o:config' => $this->config(),
         ];
     }
 
@@ -66,6 +64,17 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->resource;
     }
 
+    /**
+     * Get the owner of this importer.
+     */
+    public function owner(): ?\Omeka\Api\Representation\UserRepresentation
+    {
+        $owner = $this->resource->getOwner();
+        return $owner
+            ? $this->getAdapter('users')->getRepresentation($owner)
+            : null;
+    }
+
     public function label(): ?string
     {
         return $this->resource->getLabel();
@@ -73,17 +82,12 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
     public function config(): array
     {
-        return $this->resource->getConfig() ?: [];
+        return $this->resource->getConfig();
     }
 
     public function readerClass(): string
     {
         return $this->resource->getReader();
-    }
-
-    public function readerConfig(): array
-    {
-        return $this->resource->getReaderConfig() ?: [];
     }
 
     public function mapper(): ?string
@@ -96,20 +100,22 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->resource->getProcessor();
     }
 
-    public function processorConfig(): array
+    public function readerConfig(): array
     {
-        return $this->resource->getProcessorConfig() ?: [];
+        $conf = $this->config();
+        return $conf['reader'] ?? [];
     }
 
-    /**
-     * Get the owner of this importer.
-     */
-    public function owner(): ?\Omeka\Api\Representation\UserRepresentation
+    public function mapperConfig(): array
     {
-        $owner = $this->resource->getOwner();
-        return $owner
-            ? $this->getAdapter('users')->getRepresentation($owner)
-            : null;
+        $conf = $this->config();
+        return $conf['mapper'] ?? [];
+    }
+
+    public function processorConfig(): array
+    {
+        $conf = $this->config();
+        return $conf['processor'] ?? [];
     }
 
     public function reader(): ?\BulkImport\Reader\Reader
@@ -140,9 +146,15 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             return $this->metaMapperMapping;
         }
 
-        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
-        $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-        $this->metaMapperMapping = $metaMapperConfig('importer_' . $this->id(), $this->mapper());
+        $mapper = $this->mapper();
+        if (in_array((string) $mapper, ['', 'automatic', 'manual'])) {
+            $this->metaMapperMapping = null;
+        } else {
+            /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
+            $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
+            $this->metaMapperMapping = $metaMapperConfig($mapper, $mapper);
+        }
+
         return $this->metaMapperMapping;
     }
 

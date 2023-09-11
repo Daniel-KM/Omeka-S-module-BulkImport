@@ -26,12 +26,10 @@ class ImporterAdapter extends AbstractEntityAdapter
         'id' => 'id',
         'label' => 'label',
         'owner' => 'owner',
-        'config' => 'config',
         'reader' => 'reader',
-        'reader_config' => 'readerConfig',
         'mapper' => 'mapper',
         'processor' => 'processor',
-        'processor_config' => 'processorConfig',
+        'config' => 'config',
     ];
 
     public function getResourceName()

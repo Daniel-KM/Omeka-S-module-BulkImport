@@ -24,6 +24,19 @@ class Importer extends AbstractEntity
     protected $id;
 
     /**
+     * @var User
+     *
+     * @ManyToOne(
+     *     targetEntity=\Omeka\Entity\User::class
+     * )
+     * @JoinColumn(
+     *     nullable=true,
+     *     onDelete="SET NULL"
+     * )
+     */
+    protected $owner;
+
+    /**
      * @var string
      *
      * @Column(
@@ -35,16 +48,6 @@ class Importer extends AbstractEntity
     protected $label;
 
     /**
-     * @var array
-     *
-     * @Column(
-     *      type="json",
-     *      nullable=false
-     * )
-     */
-    protected $config;
-
-    /**
      * @var string
      *
      * @Column(
@@ -54,16 +57,6 @@ class Importer extends AbstractEntity
      * )
      */
     protected $reader;
-
-    /**
-     * @var array
-     *
-     * @Column(
-     *     type="json",
-     *     nullable=true
-     * )
-     */
-    protected $readerConfig;
 
     /**
      * @var string
@@ -92,23 +85,10 @@ class Importer extends AbstractEntity
      *
      * @Column(
      *      type="json",
-     *      nullable=true
+     *      nullable=false
      * )
      */
-    protected $processorConfig;
-
-    /**
-     * @var User
-     *
-     * @ManyToOne(
-     *     targetEntity=\Omeka\Entity\User::class
-     * )
-     * @JoinColumn(
-     *     nullable=true,
-     *     onDelete="SET NULL"
-     * )
-     */
-    protected $owner;
+    protected $config;
 
     /**
      * @var Import[]|ArrayCollection
@@ -133,6 +113,17 @@ class Importer extends AbstractEntity
         return $this->id;
     }
 
+    public function setOwner(?User $owner = null): self
+    {
+        $this->owner = $owner;
+        return $this;
+    }
+
+    public function getOwner(): ?User
+    {
+        return $this->owner;
+    }
+
     public function setLabel(?string $label): self
     {
         $this->label = $label;
@@ -144,17 +135,6 @@ class Importer extends AbstractEntity
         return $this->label;
     }
 
-    public function setConfig(array $config): self
-    {
-        $this->config = $config;
-        return $this;
-    }
-
-    public function getConfig(): array
-    {
-        return $this->config;
-    }
-
     public function setReader(?string $reader): self
     {
         $this->reader = $reader;
@@ -164,17 +144,6 @@ class Importer extends AbstractEntity
     public function getReader(): ?string
     {
         return $this->reader;
-    }
-
-    public function setReaderConfig(?array $readerConfig): self
-    {
-        $this->readerConfig = $readerConfig;
-        return $this;
-    }
-
-    public function getReaderConfig(): ?array
-    {
-        return $this->readerConfig;
     }
 
     public function setMapper(?string $mapper): self
@@ -199,26 +168,15 @@ class Importer extends AbstractEntity
         return $this->processor;
     }
 
-    public function setProcessorConfig(?array $processorConfig): self
+    public function setConfig(array $config): self
     {
-        $this->processorConfig = $processorConfig;
+        $this->config = $config;
         return $this;
     }
 
-    public function getProcessorConfig(): ?array
+    public function getConfig(): array
     {
-        return $this->processorConfig;
-    }
-
-    public function setOwner(?User $owner = null): self
-    {
-        $this->owner = $owner;
-        return $this;
-    }
-
-    public function getOwner(): ?User
-    {
-        return $this->owner;
+        return $this->config;
     }
 
     /**

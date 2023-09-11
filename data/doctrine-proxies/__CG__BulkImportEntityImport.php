@@ -67,10 +67,10 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'readerParams', 'processorParams'];
+            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'params'];
         }
 
-        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'readerParams', 'processorParams'];
+        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'params'];
     }
 
     /**
@@ -283,45 +283,23 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     /**
      * {@inheritDoc}
      */
-    public function setReaderParams($readerParams): \BulkImport\Entity\Import
+    public function setParams(array $params): \BulkImport\Entity\Import
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setReaderParams', [$readerParams]);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setParams', [$params]);
 
-        return parent::setReaderParams($readerParams);
+        return parent::setParams($params);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getReaderParams(): ?array
+    public function getParams(): array
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReaderParams', []);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getParams', []);
 
-        return parent::getReaderParams();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setProcessorParams(array $processorParams): \BulkImport\Entity\Import
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setProcessorParams', [$processorParams]);
-
-        return parent::setProcessorParams($processorParams);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getProcessorParams(): ?array
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getProcessorParams', []);
-
-        return parent::getProcessorParams();
+        return parent::getParams();
     }
 
     /**

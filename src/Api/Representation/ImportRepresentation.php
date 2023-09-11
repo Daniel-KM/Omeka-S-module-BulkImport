@@ -18,8 +18,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
             'o:status' => $this->status(),
             'o:started' => $this->started(),
             'o:ended' => $this->ended(),
-            'o-bulk:reader_params' => $this->readerParams(),
-            'o-bulk:processor_params' => $this->processorParams(),
+            'o:params' => $this->params(),
         ];
     }
 
@@ -62,29 +61,71 @@ class ImportRepresentation extends AbstractEntityRepresentation
             : null;
     }
 
-    public function readerParams(): ?array
+    public function params(): array
     {
-        return $this->resource->getReaderParams();
+        return $this->resource->getParams();
+    }
+
+    public function readerParams(): array
+    {
+        $parameters = $this->params();
+        return $parameters['reader'] ?? [];
     }
 
     public function readerParam(string $name, $default = null)
     {
-        $params = $this->resource->getReaderParams() ?: [];
-        return array_key_exists($name, $params)
-            ? $params[$name]
+        $parameters = $this->readerParams();
+        return array_key_exists($name, $parameters)
+            ? $parameters[$name]
             : $default;
     }
 
-    public function processorParams(): ?array
+    public function mapper(): string
     {
-        return $this->resource->getProcessorParams();
+        $mapper = $this->importer()->mapper();
+        return in_array((string) $mapper, ['', 'automatic', 'manual'])
+            ? 'import:' . $this->id()
+            : $mapper;
+    }
+
+    public function mapping(): ?array
+    {
+        $metaMapperMapping = $this->importer()->mapping();
+        if ($metaMapperMapping !== null) {
+            return $metaMapperMapping;
+        }
+
+        // Create the manual or automatic mapping from the params.
+        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
+        $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
+        return $metaMapperConfig($this->mapper(), $this->mappingParams());
+    }
+
+    public function mappingParams(): array
+    {
+        $parameters = $this->params();
+        return $parameters['mapping'] ?? [];
+    }
+
+    public function mappingParam(string $name, $default = null)
+    {
+        $parameters = $this->mappingParams();
+        return array_key_exists($name, $parameters)
+            ? $parameters[$name]
+            : $default;
+    }
+
+    public function processorParams(): array
+    {
+        $parameters = $this->params();
+        return $parameters['processor'] ?? [];
     }
 
     public function processorParam(string $name, $default = null)
     {
-        $params = $this->resource->getProcessorParams() ?: [];
-        return array_key_exists($name, $params)
-            ? $params[$name]
+        $parameters = $this->processorParams();
+        return array_key_exists($name, $parameters)
+            ? $parameters[$name]
             : $default;
     }
 

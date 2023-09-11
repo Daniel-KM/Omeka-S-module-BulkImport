@@ -1,13 +1,11 @@
 CREATE TABLE `bulk_importer` (
     `id` INT AUTO_INCREMENT NOT NULL,
     `owner_id` INT DEFAULT NULL,
-    `label` VARCHAR(190) DEFAULT NULL,
-    `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
+     `label` VARCHAR(190) DEFAULT NULL,
     `reader` VARCHAR(190) DEFAULT NULL,
-    `reader_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
     `mapper` VARCHAR(190) DEFAULT NULL,
     `processor` VARCHAR(190) DEFAULT NULL,
-    `processor_config` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+    `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_2DAF62D7E3C61F9 (`owner_id`),
     PRIMARY KEY(`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB;
@@ -30,8 +28,7 @@ CREATE TABLE `bulk_import` (
     `job_id` INT DEFAULT NULL,
     `undo_job_id` INT DEFAULT NULL,
     `comment` VARCHAR(190) DEFAULT NULL,
-    `reader_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
-    `processor_params` LONGTEXT DEFAULT NULL COMMENT '(DC2Type:json)',
+    `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)',
     INDEX IDX_BD98E8747FCFE58E (`importer_id`),
     UNIQUE INDEX UNIQ_BD98E874BE04EA9 (`job_id`),
     UNIQUE INDEX UNIQ_BD98E8744C276F75 (`undo_job_id`),

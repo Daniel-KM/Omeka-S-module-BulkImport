@@ -80,20 +80,10 @@ class Import extends AbstractEntity
      *
      * @Column(
      *     type="json",
-     *     nullable=true
+     *     nullable=false
      * )
      */
-    protected $readerParams;
-
-    /**
-     * @var array
-     *
-     * @Column(
-     *     type="json",
-     *     nullable=true
-     * )
-     */
-    protected $processorParams;
+    protected $params;
 
     public function getId()
     {
@@ -144,25 +134,14 @@ class Import extends AbstractEntity
         return $this->undoJob;
     }
 
-    public function setReaderParams($readerParams): self
+    public function setParams(array $params): self
     {
-        $this->readerParams = $readerParams;
+        $this->params = $params;
         return $this;
     }
 
-    public function getReaderParams(): ?array
+    public function getParams(): array
     {
-        return $this->readerParams;
-    }
-
-    public function setProcessorParams(array $processorParams): self
-    {
-        $this->processorParams = $processorParams;
-        return $this;
-    }
-
-    public function getProcessorParams(): ?array
-    {
-        return $this->processorParams;
+        return $this->params;
     }
 }

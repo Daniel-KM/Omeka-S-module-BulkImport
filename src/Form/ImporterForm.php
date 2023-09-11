@@ -71,6 +71,15 @@ class ImporterForm extends Form
         $fieldset = $this->get('o:config');
         $fieldset
             ->add([
+                'name' => 'importer',
+                'type' => Fieldset::class,
+                'options' => [
+                    'label' => 'Importer', // @translate
+                ],
+            ]);
+        $subFieldset = $fieldset->get('importer');
+        $subFieldset
+            ->add([
                 'name' => 'notify_end',
                 'type' => Element\Checkbox::class,
                 'options' => [

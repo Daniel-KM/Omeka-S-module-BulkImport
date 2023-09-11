@@ -67,8 +67,9 @@ class ImporterController extends AbstractActionController
 
         $form = $this->getForm(ImporterForm::class);
         if ($importer) {
-            $data = $importer->getJsonLd();
-            $form->setData($data);
+            $currentData = $importer->getJsonLd();
+            $currentData['o:config'] = $currentData['o:config']['importer'] ?? [];
+            $form->setData($currentData);
         }
 
         if ($this->getRequest()->isPost()) {
@@ -77,6 +78,9 @@ class ImporterController extends AbstractActionController
             if ($form->isValid()) {
                 $data = $form->getData();
                 if ($importer) {
+                    $oConfig = $currentData['o:config'];
+                    $oConfig['importer'] = $data['o:config']['importer'] ?? [];;
+                    $data['o:config'] = $oConfig;
                     $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
                 } else {
                     $data['o:owner'] = $this->identity();
@@ -185,11 +189,10 @@ class ImporterController extends AbstractActionController
             $data = $this->params()->fromPost();
             $form->setData($data);
             if ($form->isValid()) {
-                $reader->handleConfigForm($form);
-
-                $data['reader_config'] = $reader->getConfig();
-                $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
-
+                $currentData = $importer->getJsonLd();
+                $currentData['o:config']['reader'] = $reader->handleConfigForm($form)->getConfig();
+                $update = ['o:config' => $currentData['o:config']];
+                $response = $this->api($form)->update('bulk_importers', $this->params('id'), $update, [], ['isPartial' => true]);
                 if ($response) {
                     $this->messenger()->addSuccess('Reader configuration saved'); // @translate
                 } else {
@@ -247,11 +250,10 @@ class ImporterController extends AbstractActionController
             $data = $this->params()->fromPost();
             $form->setData($data);
             if ($form->isValid()) {
-                $processor->handleConfigForm($form);
-
-                $update = ['processor_config' => $processor->getConfig()];
+                $currentData = $importer->getJsonLd();
+                $currentData['o:config']['processor'] = $processor->handleConfigForm($form)->getConfig();
+                $update = ['o:config' => $currentData['o:config']];
                 $response = $this->api($form)->update('bulk_importers', $this->params('id'), $update, [], ['isPartial' => true]);
-
                 if ($response) {
                     $this->messenger()->addSuccess('Processor configuration saved'); // @translate
                 } else {

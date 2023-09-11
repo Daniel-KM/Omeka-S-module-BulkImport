@@ -16,6 +16,9 @@ class ImportAdapter extends AbstractEntityAdapter
     protected $sortFields = [
         'id' => 'id',
         'importer_id' => 'importerId',
+        'job_id' => 'job',
+        'undo_job_id' => 'undoJob',
+        'comment' => 'comment',
     ];
 
     protected $scalarFields = [
@@ -24,8 +27,7 @@ class ImportAdapter extends AbstractEntityAdapter
         'job' => 'job',
         'undo_job' => 'undoJob',
         'comment' => 'comment',
-        'reader_params' => 'readerParams',
-        'processor_params' => 'processorParams',
+        'params' => 'params',
     ];
 
     public function getResourceName()

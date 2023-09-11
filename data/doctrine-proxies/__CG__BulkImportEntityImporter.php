@@ -67,10 +67,10 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'mapper', 'processor', 'processorConfig', 'owner', 'imports'];
+            return ['__isInitialized__', 'id', 'owner', 'label', 'reader', 'mapper', 'processor', 'config', 'imports'];
         }
 
-        return ['__isInitialized__', 'id', 'label', 'config', 'reader', 'readerConfig', 'mapper', 'processor', 'processorConfig', 'owner', 'imports'];
+        return ['__isInitialized__', 'id', 'owner', 'label', 'reader', 'mapper', 'processor', 'config', 'imports'];
     }
 
     /**
@@ -195,6 +195,28 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
+    public function setOwner(\Omeka\Entity\User $owner = NULL): \BulkImport\Entity\Importer
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setOwner', [$owner]);
+
+        return parent::setOwner($owner);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getOwner(): ?\Omeka\Entity\User
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getOwner', []);
+
+        return parent::getOwner();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function setLabel(?string $label): \BulkImport\Entity\Importer
     {
 
@@ -212,28 +234,6 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getLabel', []);
 
         return parent::getLabel();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setConfig(array $config): \BulkImport\Entity\Importer
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setConfig', [$config]);
-
-        return parent::setConfig($config);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getConfig(): array
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getConfig', []);
-
-        return parent::getConfig();
     }
 
     /**
@@ -261,29 +261,7 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setReaderConfig(?array $readerConfig): \BulkImport\Entity\Importer
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setReaderConfig', [$readerConfig]);
-
-        return parent::setReaderConfig($readerConfig);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getReaderConfig(): ?array
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getReaderConfig', []);
-
-        return parent::getReaderConfig();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setMapper(?string $mapping): \BulkImport\Entity\Importer
+    public function setMapper(?string $mapper): \BulkImport\Entity\Importer
     {
 
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'setMapper', [$mapper]);
@@ -327,45 +305,23 @@ class Importer extends \BulkImport\Entity\Importer implements \Doctrine\ORM\Prox
     /**
      * {@inheritDoc}
      */
-    public function setProcessorConfig(?array $processorConfig): \BulkImport\Entity\Importer
+    public function setConfig(array $config): \BulkImport\Entity\Importer
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setProcessorConfig', [$processorConfig]);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setConfig', [$config]);
 
-        return parent::setProcessorConfig($processorConfig);
+        return parent::setConfig($config);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getProcessorConfig(): ?array
+    public function getConfig(): array
     {
 
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getProcessorConfig', []);
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getConfig', []);
 
-        return parent::getProcessorConfig();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setOwner(\Omeka\Entity\User $owner = NULL): \BulkImport\Entity\Importer
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setOwner', [$owner]);
-
-        return parent::setOwner($owner);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getOwner(): ?\Omeka\Entity\User
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getOwner', []);
-
-        return parent::getOwner();
+        return parent::getConfig();
     }
 
     /**
