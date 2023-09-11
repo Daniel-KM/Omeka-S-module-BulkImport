@@ -367,8 +367,17 @@ class ResourceProcessor extends AbstractResourceProcessor
             foreach (array_intersect_key($dataArray, $properties) as $term => $values) {
                 $this->fillProperty($resource, $term, $values);
             }
-            $this
-                ->fillResourceSpecific($resource, $dataArray, $mainResourceName);
+            $resourceName = $resource['resource_name'] ?? 'resources';
+            if ($resourceName === 'items') {
+                $this->fillItem($resource, $dataArray, );
+            } elseif ($resourceName === 'media') {
+                $this->fillMedia($resource, $dataArray, );
+            } elseif ($resourceName === 'item_sets') {
+                $this->fillItemSet($resource, $dataArray, );
+            } else {
+                $this
+                    ->fillResourceSpecific($resource, $dataArray, $mainResourceName);
+            }
             return $resource->getArrayCopy();
         };
 
@@ -408,8 +417,8 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Keep only the last value because this is a single entity.
         // end() cannot be used with array_map.
         $lastData = [];
-        foreach ($data as $field => $values) {
-            $lastData[$field] = end($values);
+        foreach (array_intersect_key($data, $fields) as $field => $values) {
+            $lastData[$field] = is_array($values) ? end($values) : $values;
         }
 
         // Get the entity id for all entities that have a value.
@@ -649,8 +658,6 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o:media':
-                // Normally useless: already checked and filled via "entities" above.
-                /*
                 // Unlike item sets, the media cannot be created before and
                 // attached to another item.
                 // The media may be fully filled early (json or xml).
@@ -659,7 +666,6 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $media['resource_name'] = 'media';
                     $resource['o:media'][$key] = $media;
                 }
-                */
                 continue 2;
 
             case 'o-module-mapping:bounds':
@@ -758,6 +764,13 @@ class ResourceProcessor extends AbstractResourceProcessor
         foreach ($resource as $field => $values) switch ($field) {
             default:
                 continue 2;
+
+            case 'o:ingester':
+            case 'ingest_filename':
+            case 'ingest_directory':
+            case 'ingest_uri':
+                $resource[$field] = (string) (is_array($values) ? end($values) : $values) ?: null;
+                break;
 
             case 'o:filename':
             case 'o:basename':

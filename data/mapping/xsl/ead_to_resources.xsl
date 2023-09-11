@@ -167,18 +167,18 @@
     </xsl:template>
 
     <xsl:template match="eadheader">
-        <resource type="eadheader">
+        <resource wrapper="1" type="eadheader">
             <eadheader id="{$ead_id}">
                 <xsl:apply-templates select="@*|node()"/>
+                <xsl:if test="$frontmatter_separate != '1'">
+                    <xsl:copy>
+                        <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
+                    </xsl:copy>
+                </xsl:if>
             </eadheader>
-            <xsl:if test="$frontmatter_separate != '1'">
-                <xsl:copy>
-                    <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
-                </xsl:copy>
-            </xsl:if>
         </resource>
         <xsl:if test="$frontmatter_separate = '1'">
-            <resource type="frontmatter">
+            <resource wrapper="1" type="frontmatter">
                 <xsl:copy>
                     <xsl:apply-templates select="../frontmatter/@* | ../frontmatter/node()"/>
                 </xsl:copy>
@@ -198,7 +198,7 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-        <resource>
+        <resource wrapper="1">
             <xsl:element name="{$archdesc_tag}">
                 <xsl:attribute name="_depth">0</xsl:attribute>
                 <xsl:attribute name="id">
@@ -214,7 +214,7 @@
 
     <!-- Ajout de la profondeur et de l’id parent à chaque composant. -->
     <xsl:template match="c | c01 | c02 | c03 | c04 | c05 | c06 | c07 | c08 | c09 | c10 | c11 | c12" mode="root">
-        <resource>
+        <resource wrapper="1">
             <!-- Supprime le nom des composants nommés pour faciliter le traitement ultérieur. -->
             <c>
                 <xsl:attribute name="_depth">

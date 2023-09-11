@@ -885,18 +885,25 @@ trait ImportTrait
             return null;
         }
 
+        $metaMapping = $this->metaMapper->getMetaMapping();
+        $noMapping = empty($metaMapping) || empty($metaMapping['maps']);
+
         // TODO Normalize process for entry (remove entry in fact).
         if ($entry instanceof \BulkImport\Entry\JsonEntry) {
             $data = $entry->getArrayCopy();
         } elseif ($entry instanceof \BulkImport\Entry\XmlEntry) {
-            $data = $entry->getXmlCopy();
+            $data = $noMapping
+                ? $entry->extractWithoutMapping()
+                : $entry->getXmlCopy();
         } elseif ($entry instanceof \BulkImport\Entry\SpreadsheetEntry) {
             $data = $entry->getArrayCopy();
         } else {
             $data = $entry->getArrayCopy();
         }
 
-        $resource = $this->metaMapper->convert($data);
+        $resource = $noMapping
+            ? $data
+            : $this->metaMapper->convert($data);
 
         // Fill the result into the entity as array object.
         return $this->processor->fillResource($resource, $this->indexResource);

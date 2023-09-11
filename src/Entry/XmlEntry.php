@@ -25,34 +25,90 @@ class XmlEntry extends BaseEntry
     protected function init(): void
     {
         if ($this->data instanceof XMLReaderNode) {
-            $simpleData = $this->data->getSimpleXMLElement();
+            $simpleXml = $this->data->getSimpleXMLElement();
             // Fix issue with cdata (no: it will escape html tags).
-            $simpleData = new SimpleXMLElement($simpleData->asXML(), $this->xmlOptions);
+            // $simpleXml = new SimpleXMLElement($simpleXml->asXML(), $this->xmlOptions);
+            $simpleXml = new \BulkImport\Entry\SimpleXMLElementNamespaced($simpleXml->asXML(), $this->xmlOptions);
         } elseif (!$this->data instanceof SimpleXMLElement) {
             $this->data = [];
             return;
         }
 
-        // To check xml:
-        // echo $simpleData->asXML();
-        // $this->logger->debug($simpleData->asXML());
+        // To check xml in entry:
+        // echo $simpleXml->asXML();
+        // $this->logger->debug($simpleXml->asXML());
+        /*
+        $dom = new DOMDocument('1.0');
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        $dom->loadXML($simpleXml->asXML());
+        echo $dom->saveXML();
+        $this->logger->debug($dom->saveXML());
+        */
 
         // Remove wrapper to keep mapping simple with xpath adapted to source.
-        // There should be only one resource, else use a xsl to separate them.
-        $unwrappedData = null;
-        foreach ($simpleData->xpath('/resource/child::*[1]') as $node) {
-            // Avoid warning on missing namespaces. But here, it doesn't matter.
-            // TODO Log warning on missing namespaces instead of output.
-            $unwrappedData = @new SimpleXMLElement($node->asXML()) ?: null;
-            break;
+
+        // There should be only one resource by entry, else use a xsl to
+        // separate them earlier.
+
+        // The resource may be a resource itself or may be wrapped, for example
+        // with child `ead` or `unimarc`. When wrapped, the attribute `wrapper="1"`
+        // should be set.
+
+        // For example, here, the real resource is `record` and `resource` is
+        // the wrapper:
+        // `<resources><resource wrapper="1"><record>...</record></resource></resources>`.
+        // So the source xml (transformed by xsl) is: `/resources/resource/record`
+        // In the iterated entry, the xml is: `/resource/record`
+        // And the wrapper `resource` is removed to get only `record` (or any
+        // other first child element, like `unimarc` or `ead`). This mechanism
+        // is similar to oai-pmh wrapping.
+
+        // To simplify process, the wrapper can be the record itself.
+        // It is useful when the source is already like an omeka json-ld
+        // resource, or when the source is transformed by an xsl to be like an
+        // omeka json-ld element, because it avoids a possible double `/resource/resource`
+        // or any other useless element.
+
+        // And when the content matches the json-ld representation, a mapping is
+        // useless.
+
+        // Remove the wrapper if any.
+        $isWrapper = $simpleXml->xpath('/resource/@wrapper');
+        $isWrapper = $isWrapper ? (bool) $isWrapper[0] : false;
+        if ($isWrapper) {
+            $unwrappedData = null;
+            foreach ($simpleXml->xpath('/resource/child::*[1]') as $node) {
+                // Avoid warning on missing namespaces. But here, it doesn't matter.
+                // TODO Log warning on missing namespaces instead of output.
+                $unwrappedData = @new SimpleXMLElement($node->asXML()) ?: null;
+                break;
+            }
+            $this->xml = $unwrappedData;
+        } else {
+            $this->xml = $simpleXml;
         }
-        $this->xml = $unwrappedData;
+
         $this->data = [];
     }
 
     public function isEmpty(): bool
     {
         return $this->xml === null;
+    }
+
+    public function getArrayCopy(): array
+    {
+        if ($this->xml === null || $this->data !== []) {
+            return $this->data;
+        }
+        if (!$this->xml instanceof \BulkImport\Entry\SimpleXMLElementNamespaced) {
+            $this->xml = new \BulkImport\Entry\SimpleXMLElementNamespaced($this->xml->asXML());
+        }
+        $this->data = $this->xml
+            ->setWithPrefix(true)
+            ->toArray(true);
+        return $this->data;
     }
 
     /**

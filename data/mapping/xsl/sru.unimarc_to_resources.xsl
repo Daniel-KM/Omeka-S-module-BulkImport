@@ -51,7 +51,7 @@
     </xsl:template>
 
     <xsl:template match="record">
-        <resource>
+        <resource wrapper="1">
             <xsl:copy>
                 <xsl:apply-templates select="@*|node()"/>
             </xsl:copy>

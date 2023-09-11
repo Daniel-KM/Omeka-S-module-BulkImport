@@ -400,13 +400,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'integer':
             case 'string':
             case 'array':
-                $resource[$field] = end($values);
+                $resource[$field] = is_array($values) ? end($values) : $values;
                 break;
             case 'datetime':
-                $value = end($values);
+                $value = is_array($values) ? end($values) : $values;
                 $resource[$field] = ['@value' => $value];
                 break;
             case 'datetimes':
+                if (!is_array($values)) {
+                    $values = [$values];
+                }
                 foreach ($values as $value) {
                     $resource[$field][] = ['@value' => $value];
                 }
@@ -427,7 +430,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'strings':
             case 'arrays':
             default:
-                $resource[$field] = $values;
+                $resource[$field] = is_array($values) ? $values : [$values];
                 break;
         }
 
