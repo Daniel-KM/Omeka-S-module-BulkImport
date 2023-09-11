@@ -122,7 +122,7 @@ msgstr "nom du fichier"
 
 #: src/Form/Processor/AssetProcessorParamsForm.php:147
 msgid "storage"
-msgstr "enregistrement"
+msgstr "stockage"
 
 #: src/Form/Processor/AssetProcessorParamsForm.php:148
 msgid "alternative text"
@@ -1424,7 +1424,7 @@ msgstr "Base du nom de fichier"
 #: src/Form/Processor/AssetProcessorConfigForm.php:78
 #: src/Form/Processor/AssetProcessorConfigForm.php:88
 msgid "Storage id"
-msgstr "Nom pour l’enregistrement du fichier"
+msgstr "Nom de stockage du fichier"
 
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:93
 #: src/Form/Processor/AbstractResourceProcessorConfigForm.php:314
@@ -3557,7 +3557,7 @@ msgstr ""
 msgid ""
 "Source index #{index}: Storage id cannot be found. The entry is skipped."
 msgstr ""
-"Source index #{index} : l’id de stockage ne peut pas être trouvée. L’entrée "
+"Source index #{index} : le nom de stockage du fichier ne peut pas être trouvé. L’entrée "
 "est ignorée."
 
 #: src/Processor/AssetProcessor.php:219
