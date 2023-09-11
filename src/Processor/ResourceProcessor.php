@@ -549,6 +549,9 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillItem(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in item for resources.
+        // Remove notice when a key is not present.
+        $errorReporting = error_reporting();
+        error_reporting(0);
         unset(
             $resource['o:email'],
             $resource['o:item'],
@@ -562,6 +565,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resource['o:items'],
             $resource['o:is_open']
         );
+        error_reporting($errorReporting);
 
         foreach ($resource as $field => $values) switch ($field) {
             default:
@@ -709,6 +713,9 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillItemSet(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in item set for resources.
+        // Remove notice when a key is not present.
+        $errorReporting = error_reporting();
+        error_reporting(0);
         unset(
             $resource['o:email'],
             $resource['o:item'],
@@ -724,6 +731,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resource['o-module-mapping:bounds'],
             $resource['o-module-mapping:marker']
         );
+        error_reporting($errorReporting);
 
         // Only "o:is_open" is specific to item sets, but already processed via
         // fillResourceData().
@@ -734,6 +742,9 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillMedia(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in media for resources.
+        // Remove notice when a key is not present.
+        $errorReporting = error_reporting();
+        error_reporting(0);
         unset(
             $resource['o:email'],
             $resource['o:media'],
@@ -742,6 +753,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resource['o:items'],
             $resource['o:is_open']
         );
+        error_reporting($errorReporting);
 
         foreach ($resource as $field => $values) switch ($field) {
             default:
