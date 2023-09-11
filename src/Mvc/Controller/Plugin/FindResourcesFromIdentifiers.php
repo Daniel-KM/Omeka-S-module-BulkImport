@@ -50,10 +50,6 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
      */
     protected $api;
 
-    /**
-     * @param Connection $connection
-     * @param Api $api
-     */
     public function __construct(Connection $connection, Api $api)
     {
         $this->connection = $connection;

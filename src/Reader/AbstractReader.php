@@ -27,6 +27,16 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $entryClass = BaseEntry::class;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     */
+    protected $bulk;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkFile
+     */
+    protected $bulkFile;
+
+    /**
      * @var \BulkImport\Stdlib\MetaMapper|null
      */
     protected $metaMapper;
@@ -134,6 +144,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $this->setServiceLocator($services);
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $plugins = $services->get('ControllerPluginManager');
+        $this->bulk = $plugins->get('bulk');
+        $this->bulkFile = $plugins->get('bulkFile');
         $this->metaMapper = $services->get('Bulk\MetaMapper');
     }
 

@@ -143,30 +143,17 @@ class CsvReader extends AbstractSpreadsheetFileReader
             throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
         // The data should be cleaned, since it's not an entry.
-        $this->availableFields = $this->cleanData($fields);
+        $this->availableFields = array_map([$this->bulk, 'trimUnicode'], $fields);
         return $this;
     }
 
-    protected function isValidFilepath($filepath, array $file = []): bool
+    protected function checkFileArray(array $file = []): array
     {
         // On some servers, type for csv is "application/vnd.ms-excel".
         if (!empty($file['type']) && $file['type'] === 'application/vnd.ms-excel') {
             $file['type'] = 'text/csv';
         }
-
-        if (!parent::isValidFilepath($filepath, $file)) {
-            return false;
-        }
-
-        if (!$this->isUtf8($filepath)) {
-            $this->lastErrorMessage = new PsrMessage(
-                'File "{filename}" is not fully utf-8.', // @translate
-                ['filename' => $file['name']]
-            );
-            return false;
-        }
-
-        return true;
+        return $file;
     }
 
     /**

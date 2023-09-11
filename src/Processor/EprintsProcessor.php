@@ -2797,7 +2797,7 @@ class EprintsProcessor extends AbstractFullProcessor
         $this->orderAndAppendValues($values);
 
         $messageStore = new MessageStore();
-        $isFileAvailable = $this->checkFileOrUrl($sourceFile, $messageStore);
+        $isFileAvailable = $this->bulkFile->checkFileOrUrl($sourceFile, $messageStore);
         if (!$isFileAvailable) {
             // No stop in order to update other metadata, in particular item,
             // and usually, file are fetched later.
@@ -2810,7 +2810,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         $result = false;
         if ($isFileAvailable) {
-            $result = $this->fetchFile('original', $source['fichier'], $source['fichier'], $storageId, $extension, $sourceFile);
+            $result = $this->bulkFile->fetchAndStore('original', $source['fichier'], $source['fichier'], $storageId, $extension, $sourceFile);
             if ($result) {
                 $this->entity->setStorageId($storageId);
                 $this->entity->setExtension(mb_strtolower($extension));

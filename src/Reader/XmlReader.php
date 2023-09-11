@@ -149,7 +149,7 @@ class XmlReader extends AbstractFileMultipleReader
                     );
                     return false;
 
-                    if (!$this->isValidFilepath($filepath, ['file' => basename($filepath)])) {
+                    if (!$this->bulkFile->isValidFilepath($filepath, ['file' => basename($filepath)])) {
                         return false;
                     }
 

@@ -20,8 +20,6 @@ use Log\Stdlib\PsrMessage;
  */
 class JsonReader extends AbstractPaginatedReader
 {
-    use HttpClientTrait;
-
     protected $label = 'Json';
     protected $configFormClass = JsonReaderConfigForm::class;
     protected $paramsFormClass = JsonReaderParamsForm::class;
@@ -43,6 +41,11 @@ class JsonReader extends AbstractPaginatedReader
     protected $mediaType = 'application/json';
 
     protected $charset = 'utf-8';
+
+    /**
+     * @var string
+     */
+    protected $endpoint;
 
     /**
      * @var ?string
@@ -109,12 +112,15 @@ class JsonReader extends AbstractPaginatedReader
             return true;
         }
 
+        $message = null;
         if (empty($this->params['url'])) {
-            if (!$this->isValidUrl('', '', [], $this->mediaType, $this->charset)) {
+            if (!$this->bulkFile->isValidEndpoint('', '', [], $this->mediaType, $this->charset, $message)) {
+                $this->lastErrorMessage = $message;
                 return false;
             }
         } else {
-            if (!$this->isValidDirectUrl($this->params['url'])) {
+            if (!$this->bulkFile->isValidDirectUrl($this->params['url'], null, null, $message)) {
+                $this->lastErrorMessage = $message;
                 return false;
             }
         }
@@ -137,7 +143,7 @@ class JsonReader extends AbstractPaginatedReader
                 ->convertToString('params', 'resource_url', $current);
             $this->metaMapper->setVariable('url_resource', $resourceUrl);
             if (!$this->listFiles) {
-                $current = $this->fetchUrlJson($resourceUrl);
+                $current = $this->bulkFile->fetchUrlJson($resourceUrl);
             }
         }
 
@@ -210,6 +216,7 @@ class JsonReader extends AbstractPaginatedReader
 
         // Prepare specific data for the reader.
         $this->endpoint = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'endpoint') ?: $this->getParam('url');
+        $this->bulkFile->setEndpoint($this->endpoint);
 
         // To manage complex pagination mechanism, the url can be transformed.
         $this->path = $this->metaMapper->getMetaMapperConfig()->getSectionSetting('params', 'path') ?: null;
@@ -248,7 +255,7 @@ class JsonReader extends AbstractPaginatedReader
         ) {
             $this->lastErrorMessage = new PsrMessage(
                 'Content-type "{content_type}" or charset "{charset}" is invalid for url "{url}".', // @translate
-                ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->lastRequestUrl]
+                ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->bulkFile->getLastRequestUrl()]
             );
             $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
@@ -262,7 +269,7 @@ class JsonReader extends AbstractPaginatedReader
         if (!$this->currentResponse->isSuccess()) {
             $this->lastErrorMessage = new PsrMessage(
                 'Unable to fetch data for the page {page}, url "{url}".', // @translate
-                ['page' => $this->currentPage, 'url' => $this->lastRequestUrl]
+                ['page' => $this->currentPage, 'url' => $this->bulkFile->getLastRequestUrl()]
             );
             $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
@@ -278,7 +285,7 @@ class JsonReader extends AbstractPaginatedReader
         if ($json && isset($json['errors']['error'])) {
             $this->lastErrorMessage = new PsrMessage(
                 'Unable to fetch data for the page {page} (url "{url}"): {error}.', // @translate
-                ['page' => $this->currentPage, 'url' => $this->lastRequestUrl, 'error' => $json['errors']['error']]
+                ['page' => $this->currentPage, 'url' => $this->bulkFile->getLastRequestUrl(), 'error' => $json['errors']['error']]
             );
             $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
@@ -366,6 +373,6 @@ class JsonReader extends AbstractPaginatedReader
                 . (strlen((string) $path) ? '/' . $path : '')
                 . (strlen((string) $subpath) ? '/' . $subpath : '');
         }
-        return $this->fetchUrl($url, $params);
+        return $this->bulkFile->fetchUrl($url, $params);
     }
 }

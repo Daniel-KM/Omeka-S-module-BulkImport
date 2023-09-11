@@ -25,7 +25,6 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     use CheckTrait;
     use DiffResourcesTrait;
     use DiffValuesTrait;
-    use FileTrait;
 
     const ACTION_SUB_UPDATE = 'sub_update';
 
@@ -110,6 +109,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      * @var string
      */
     protected $actionUnidentified;
+
+    /**
+     * @var bool
+     */
+    protected $allowDuplicateIdentifiers = false;
+
+    /**
+     * @var \Omeka\File\TempFileFactory
+     */
+    protected $tempFileFactory;
+
+    /**
+     * @var array
+     */
+    protected $identifierNames = [
+        'o:id',
+        // 'dcterms:identifier',
+    ];
 
     /**
      * Store the source identifiers for each index, reverted and mapped.
@@ -233,7 +250,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
         $params['mapping'] = isset($mappingSerialized) ? unserialize($mappingSerialized) : ($params['values'] ?? []);
-        $files = $this->prepareFilesUploaded($values['files']['files'] ?? []);
+        $files = $this->bulkFileUploaded->prepareFilesUploaded($values['files']['files'] ?? []);
         if ($files) {
             $params['files'] = $files;
         } elseif ($params->offsetExists('files')) {
@@ -255,7 +272,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
     public function process(): void
     {
-        $this->initFileTrait();
+        // Used for uploaded files.
+        $services = $this->getServiceLocator();
+        $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
 
         $this->prepareAction();
         if (empty($this->action)) {
@@ -267,10 +286,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return;
         }
 
+        $errorStore = new MessageStore();
         $files = $this->params['files'] ?? [];
-        $this->setFilesUploaded($files);
-        $this->prepareFilesZip();
-        if ($this->totalErrors) {
+        $this->bulkFileUploaded
+            ->setErrorStore($errorStore)
+            ->setFilesUploaded($files)
+            ->prepareFilesZip();
+        if ($errorStore->hasErrors()) {
             return;
         }
 
@@ -1446,11 +1468,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 continue;
             }
             if (!empty($resourceFile['ingest_url'])) {
-                $this->checkUrl($resourceFile['ingest_url'], $resource['messageStore']);
+                $this->bulkFile->checkUrl($resourceFile['ingest_url'], $resource['messageStore']);
             } elseif (!empty($resourceFile['ingest_filename'])) {
-                $this->checkFile($resourceFile['ingest_filename'], $resource['messageStore']);
+                $this->bulkFile->checkFile($resourceFile['ingest_filename'], $resource['messageStore']);
             } elseif (!empty($resourceFile['ingest_directory'])) {
-                $this->checkDirectory($resourceFile['ingest_directory'], $resource['messageStore']);
+                $this->bulkFile->checkDirectory($resourceFile['ingest_directory'], $resource['messageStore']);
             } else {
                 // Add a warning: cannot be checked for other media ingester? Or is it checked somewhere else?
             }
@@ -1519,7 +1541,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if (isset($missingFiles[$ingestSourceKey][$ingestSource])) {
                 $resource['messageStore']->addWarning($messageKey, new PsrMessage($messageMsg, [$messageKey => $ingestSource]));
             } else {
-                $result = $this->$method($ingestSource, $resource['messageStore']);
+                $result = $this->bulkFile->$method($ingestSource, $resource['messageStore']);
                 if (!$result) {
                     $missingFiles[$ingestSourceKey][$ingestSource] = true;
                 }

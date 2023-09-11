@@ -68,6 +68,16 @@ abstract class AbstractProcessor implements Processor
     protected $bulk;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkFile
+     */
+    protected $bulkFile;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\BulkFileUploaded
+     */
+    protected $bulkFileUploaded;
+
+    /**
      * @var \BulkImport\Stdlib\MetaMapper
      */
     protected $metaMapper;
@@ -123,6 +133,8 @@ abstract class AbstractProcessor implements Processor
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
+        $this->bulkFile = $plugins->get('bulkFile');
+        $this->bulkFileUploaded = $plugins->get('bulkFileUploaded');
 
         $config = $services->get('Config');
         $this->basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');

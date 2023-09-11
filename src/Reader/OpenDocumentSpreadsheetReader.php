@@ -526,4 +526,9 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         $this->initializeReader();
         return $this;
     }
+
+    protected function cleanData(array $data): array
+    {
+        return array_map([$this->bulk, 'trimUnicode'], $data);
+    }
 }

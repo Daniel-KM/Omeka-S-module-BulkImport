@@ -12,8 +12,6 @@ use Log\Stdlib\PsrMessage;
  */
 abstract class AbstractFileMultipleReader extends AbstractReader
 {
-    use FileAndUrlTrait;
-
     /**
      * Local file to process, from uploaded or server file or fetched from url.
      *
@@ -42,12 +40,12 @@ abstract class AbstractFileMultipleReader extends AbstractReader
         }
 
         if ($isUrl) {
-            $filename = $this->fetchUrlToTempFile($url);
+            $filename = $this->bulkFile->fetchUrlToTempFile($url);
             $params['filename'] = $filename;
             unset($params['file']);
             $params['list_files'] = [];
         } else {
-            $file = $this->getUploadedFile($form);
+            $file = $this->bulkFile->getUploadedFile($form);
             if (is_null($file)) {
                 unset($params['file']);
                 $params['list_files'] = $params['list_files']
@@ -85,18 +83,18 @@ abstract class AbstractFileMultipleReader extends AbstractReader
             $file = $this->getParam('file') ?: [];
             // Early check for a single uploaded file.
             $this->currentFilepath = $filepath;
-            return $this->isValidFilepath($filepath, $file)
+            return $this->bulkFile->isValidFilepath($filepath, $file)
                 && $this->isValidMore();
         } else {
             $this->listFiles = $this->getParam('list_files') ?: [];
         }
 
         foreach ($this->listFiles as $fileUrl) {
-            if ($this->isRemote($fileUrl)) {
-                if (!$this->isValidUrl($fileUrl)) {
+            if ($this->bulk->isUrl($fileUrl)) {
+                if (!$this->bulkFile->isValidUrl($fileUrl)) {
                     return false;
                 }
-                $filename = $this->fetchUrlToTempFile($fileUrl);
+                $filename = $this->bulkFile->fetchUrlToTempFile($fileUrl);
                 if (!$filename) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Url "{url}" is invalid, empty or unavailable.', // @translate
@@ -105,12 +103,12 @@ abstract class AbstractFileMultipleReader extends AbstractReader
                     return false;
                 }
                 $this->params['filename'] = $filename;
-                if (!$this->isValidFilepath($filename)) {
+                if (!$this->bulkFile->isValidFilepath($filename)) {
                     return false;
                 }
             } else {
                 $this->params['filename'] = $fileUrl;
-                if (!$this->isValidFilepath($fileUrl)) {
+                if (!$this->bulkFile->isValidFilepath($fileUrl)) {
                     return false;
                 }
             }

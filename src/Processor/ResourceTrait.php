@@ -920,7 +920,7 @@ SQL;
             $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
             $extension = substr($source['o:filename'], $pos + 1);
 
-            $result = $this->fetchFile('original', $source['o:source'], $source['o:filename'], $storageId, $extension, $source['o:original_url']);
+            $result = $this->bulkFile->fetchAndStore('original', $source['o:source'], $source['o:filename'], $storageId, $extension, $source['o:original_url']);
             if ($result['status'] !== 'success') {
                 $this->logger->err($result['message']);
             }

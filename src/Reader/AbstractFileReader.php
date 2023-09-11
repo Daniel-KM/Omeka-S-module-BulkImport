@@ -11,8 +11,6 @@ use Log\Stdlib\PsrMessage;
  */
 abstract class AbstractFileReader extends AbstractReader
 {
-    use FileAndUrlTrait;
-
     public function handleParamsForm(Form $form): self
     {
         $this->lastErrorMessage = null;
@@ -27,11 +25,11 @@ abstract class AbstractFileReader extends AbstractReader
         }
 
         if ($isUrl) {
-            $filename = $this->fetchUrlToTempFile($url);
+            $filename = $this->bulkFile->fetchUrlToTempFile($url);
             $params ['filename'] = $filename;
             unset($params['file']);
         } else {
-            $file = $this->getUploadedFile($form);
+            $file = $this->bulkFile->getUploadedFile($form);
             if (is_null($file)) {
                 $params['file'] = null;
             } else {
@@ -51,6 +49,7 @@ abstract class AbstractFileReader extends AbstractReader
 
     public function isValid(): bool
     {
+        $message = null;
         $this->lastErrorMessage = null;
 
         $url = $this->getParam('url');
@@ -58,11 +57,12 @@ abstract class AbstractFileReader extends AbstractReader
         $isUrl = !empty($url);
 
         if ($isUrl) {
-            if (!$this->isValidUrl($url)) {
+            if (!$this->bulkFile->isValidUrl($url, $message)) {
+                $this->lastErrorMessage = $message;
                 return false;
             }
 
-            $filename = $this->fetchUrlToTempFile($url);
+            $filename = $this->bulkFile->fetchUrlToTempFile($url);
             if (!$filename) {
                 $this->lastErrorMessage = new PsrMessage(
                     'Url "{url}" is invalid, empty or unavailable.', // @translate
@@ -70,8 +70,13 @@ abstract class AbstractFileReader extends AbstractReader
                 );
                 return false;
             }
+
             $this->params['filename'] = $filename;
-            return $this->isValidFilepath($filename);
+            if (!$this->bulkFile->isValidFilepath($filename, [], $message)) {
+                $this->lastErrorMessage = $message;
+                return false;
+            }
+            return true;
         }
 
         if (array_search('filename', $this->paramsKeys) === false) {
@@ -81,6 +86,25 @@ abstract class AbstractFileReader extends AbstractReader
         // The file may not be uploaded (or return false directly).
         $file = $this->getParam('file') ?: [];
         $filepath = $this->getParam('filename');
-        return $this->isValidFilepath($filepath, $file);
+
+        // Fix issues with tsv/csv.
+        if (method_exists($this, 'checkFileArray')) {
+            $file = $this->checkFileArray($file);
+        }
+
+        if (!$this->isUtf8($filepath)) {
+            $this->lastErrorMessage = new PsrMessage(
+                'File "{filename}" is not fully utf-8.', // @translate
+                ['filename' => $file['name']]
+            );
+            return false;
+        }
+
+        if (!$this->bulkFile->isValidFilepath($filepath, $file, $this->mediaType ?? null, $message)) {
+            $this->lastErrorMessage = $message;
+            return false;
+        }
+
+        return true;
     }
 }

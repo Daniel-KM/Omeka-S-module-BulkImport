@@ -316,8 +316,6 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             return $this;
         }
 
-        $this->checkAssetMediaType = true;
-
         $baseResource = $this->baseEntity();
         $messageStore = $baseResource['messageStore'];
 
@@ -363,7 +361,9 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $pathOrUrl = $dataResource['url'] ?? $dataResource['file']
             ?? $dataResource['ingest_url'] ?? $dataResource['ingest_filename']
             ?? null;
-        $result = $this->checkFileOrUrl($pathOrUrl, $messageStore);
+
+        $this->bulkFile->setCheckAssetMediaType(true);
+        $result = $this->bulkFile->checkFileOrUrl($pathOrUrl, $messageStore);
         if (!$result) {
             return null;
         }
@@ -373,38 +373,25 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         // TODO Set the real extension via tempFile().
         $extension = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
 
-        $isUrl = $this->bulk->isUrl($pathOrUrl);
-        if ($isUrl) {
-            // TODO Check why the asset for thumbnail of the resource is not prepared when it is a url. See ResourceProcessor.
-            $result = $this->fetchFile(
-                'asset',
-                $filename,
-                $filename,
-                $storageId,
-                $extension,
-                $pathOrUrl
-            );
-            if ($result['status'] !== 'success') {
-                $messageStore->addError('file', $result['message']);
-                return null;
-            }
-            $fullPath = $result['data']['fullpath'];
-        } else {
-            // TODO Factorize with FileTrait, AssetProcessor and ResourceProcessor.
-            // TODO Use fetchFile() to manage any file.
-            $isAbsolutePathInsideDir = strpos($pathOrUrl, $this->sideloadPath) === 0;
-            $fileinfo = $isAbsolutePathInsideDir
-                ? new \SplFileInfo($pathOrUrl)
-                : new \SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $pathOrUrl);
-            $realPath = $fileinfo->getRealPath();
-            $this->store->put($realPath, 'asset/' . $storageId . '.' . $extension);
-            $fullPath = $this->basePath . '/asset/' . $storageId . '.' . $extension;
+        // TODO Check why the asset for thumbnail of the resource is not prepared when it is a url. See ResourceProcessor.
+        $result = $this->bulkFile->fetchAndStore(
+            'asset',
+            $filename,
+            $filename,
+            $storageId,
+            $extension,
+            $pathOrUrl
+        );
+
+        if ($result['status'] !== 'success') {
+            $messageStore->addError('file', $result['message']);
+            return null;
         }
 
-        // A check to get the real media-type and extension.
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mediaType = $finfo->file($fullPath);
-        $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
+        $fullPath = $result['data']['fullpath'];
+
+        $mediaType = $this->bulkFile->getMediaType($fullPath);
+
         // TODO Get the extension from the media type or use standard asset uploaded.
 
         // This doctrine resource should be reloaded each time the entity
@@ -412,6 +399,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
         $owner = $entityManager->find(\Omeka\Entity\User::class, $dataResource['o:owner']['o:id'] ?? $this->userId);
 
+        $isUrl = $this->bulk->isUrl($pathOrUrl);
         $name = strlen(trim((string) ($dataResource['o:name'] ?? '')))
             ? trim($dataResource['o:name'])
             : ($isUrl ? $pathOrUrl : $filename);

@@ -22,7 +22,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     use CountEntitiesTrait;
     use CustomVocabTrait;
     use DateTimeTrait;
-    use FileTrait;
     use InternalIntegrityTrait;
     use LanguageTrait;
     use MappingTrait;
@@ -557,8 +556,6 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $this->currentDateTime = new \DateTime();
         $this->currentDateTimeFormatted = $this->currentDateTime->format('Y-m-d H:i:s');
-
-        $this->initFileTrait();
 
         $settings = $services->get('Omeka\Settings');
         $this->srid = $settings->get('datatypegeometry_locate_srid', 4326);

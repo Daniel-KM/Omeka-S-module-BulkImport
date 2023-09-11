@@ -1,22 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Reader;
+namespace BulkImport\Mvc\Controller\Plugin;
 
 use Laminas\Http\Client as HttpClient;
 use Laminas\Http\ClientStatic as HttpClientStatic;
-use Laminas\Http\Request;
-use Laminas\Http\Response;
+use Laminas\Http\Request as HttpRequest;
+use Laminas\Http\Response as HttpResponse;
 use Log\Stdlib\PsrMessage;
 
 /**
- * @todo Factorize with FileTrait.
+ * @todo Factorize with BulkFile.
  */
 trait HttpClientTrait
 {
     /**
      * @var string
      */
-    protected $userAgent = 'Omeka S - module BulkImport version 3.3.34';
+    protected $userAgent = 'Omeka S - module BulkImport version 3.4.48';
 
     /**
      * @var \Laminas\Http\Client
@@ -31,39 +31,12 @@ trait HttpClientTrait
     /**
      * @var \Laminas\Http\Response
      */
-    protected $currentResponse;
+    protected $currentHttpResponse;
 
     /**
-     * This url is set when a http request is done, so the one used by response.
-     *
      * @var string
      */
     protected $lastRequestUrl;
-
-    /**
-     * This method is mainly used outside.
-     *
-     * @param HttpClient $httpClient
-     * @return self
-     */
-    public function setHttpClient(HttpClient $httpClient): self
-    {
-        $this->httpClient = $httpClient;
-        return $this;
-    }
-
-    /**
-     * @return HttpClient
-     */
-    public function getHttpClient(): \Laminas\Http\Client
-    {
-        if (!$this->httpClient) {
-            $this->httpClient = new \Laminas\Http\Client(null, [
-                'timeout' => 30,
-            ]);
-        }
-        return $this->httpClient;
-    }
 
     public function setEndpoint($endpoint): self
     {
@@ -71,72 +44,108 @@ trait HttpClientTrait
         return $this;
     }
 
+    public function setCurrentHttpResponse(?HttpResponse $currentHttpResponse): self
+    {
+        $this->currentHttpResponse = $currentHttpResponse;
+        return $this;
+    }
+
     /**
-     * Check the endpoint.
+     * This url is set when a http request is done, so the one used by response.
      */
-    protected function isValidUrl(
+    public function getLastRequestUrl(): ?string
+    {
+        return $this->lastRequestUrl;
+    }
+
+    /**
+     * @todo Use Omeka http client, that has credentials.
+     */
+    public function getHttpClient(): HttpClient
+    {
+        if (!$this->httpClient) {
+            $this->httpClient = new HttpClient(null, [
+                'timeout' => 30,
+            ]);
+        }
+        return $this->httpClient;
+    }
+
+    /**
+     * Check the endpoint and eventual path and params.
+     */
+    public function isValidEndpoint(
         string $path = '',
         string $subpath = '',
         array $params = [],
         ?string $contentType = null,
-        ?string $charset = null
+        ?string $charset = null,
+        &$message = null
     ): bool {
         if (!$this->endpoint && !strlen($path) && !strlen($subpath)) {
-            $this->lastErrorMessage = new PsrMessage('No file, url or endpoint was defined.'); // @translate
+            $message = new PsrMessage('No file, url or endpoint was defined.'); // @translate
             return false;
         }
         try {
             $response = $this->fetchData($path, $subpath, $params);
         } catch (\Laminas\Http\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
+            $message = $e->getMessage();
             return false;
         } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
+            $message = $e->getMessage();
             return false;
         }
 
-        return $this->isValidHttpResponse($response, $contentType, $charset);
+        return $this->isValidHttpResponse($response, $contentType, $charset, $message);
     }
 
     /**
      * Check any url.
      */
-    protected function isValidDirectUrl(string $url, ?string $contentType = null, ?string $charset = null): bool
-    {
+    public function isValidDirectUrl(
+        string $url,
+        ?string $contentType = null,
+        ?string $charset = null,
+        &$message = null
+    ): bool {
         if (!strlen($url)) {
-            $this->lastErrorMessage = new PsrMessage('No url was defined.'); // @translate
+            $message = new PsrMessage('No url was defined.'); // @translate
             return false;
         }
         try {
             $response = $this->fetchUrl($url);
         } catch (\Laminas\Http\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
+            $message = $e->getMessage();
             return false;
         } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
-            $this->lastErrorMessage = $e->getMessage();
+            $message = $e->getMessage();
             return false;
         }
 
-        return $this->isValidHttpResponse($response, $contentType, $charset);
+        return $this->isValidHttpResponse($response, $contentType, $charset, $message);
     }
 
-    protected function isValidHttpResponse(Response $response, ?string $contentType = null, ?string $charset = null): bool
-    {
+    protected function isValidHttpResponse(
+        HttpResponse $response,
+        ?string $contentType = null,
+        ?string $charset = null,
+        &$message = null
+    ): bool {
         if (!$response->isSuccess()) {
-            $this->lastErrorMessage = $response->renderStatusLine();
+            $message = $response->renderStatusLine();
             return false;
         }
 
         if ($contentType) {
             $responseContentType = $response->getHeaders()->get('Content-Type');
             if ($responseContentType->getMediaType() !== $contentType) {
-                $this->lastErrorMessage = new PsrMessage(
+                $message = new PsrMessage(
                     'Content-type "{content_type}" is invalid for url "{url}". It should be "{content_type_2}".', // @translate
                     ['content_type' => $responseContentType->getMediaType(), 'url' => $this->lastRequestUrl, 'content_type_2' => $contentType]
                 );
                 $this->logger->err(
-                    $this->lastErrorMessage->getMessage(),
-                    $this->lastErrorMessage->getContext()
+                    $message->getMessage(),
+                    $message->getContext()
                 );
                 return false;
             }
@@ -147,25 +156,19 @@ trait HttpClientTrait
             // Some servers don't send charset (see sub-queries for Content-DM).
             $currentCharset = (string) $responseContentType->getCharset();
             if ($currentCharset && strtolower($currentCharset) !== strtolower($charset)) {
-                $this->lastErrorMessage = new PsrMessage(
+                $message = new PsrMessage(
                     'Charset "{charset}" is invalid for url "{url}". It should be "{charset_2}"', // @translate
                     ['charset' => $responseContentType->getCharset(), 'url' => $this->lastRequestUrl, 'charset_2' => $charset]
                 );
                 $this->logger->err(
-                    $this->lastErrorMessage->getMessage(),
-                    $this->lastErrorMessage->getContext()
+                    $message->getMessage(),
+                    $message->getContext()
                 );
                 return false;
             }
         }
 
         return true;
-    }
-
-    protected function initArgs(): self
-    {
-        $this->endpoint = $this->getParam('endpoint');
-        return $this;
     }
 
     /**
@@ -176,7 +179,7 @@ trait HttpClientTrait
      * @param array $parts
      * @return string
      */
-    protected function unparseUrl(array $parts): string
+    public function unparseUrl(array $parts): string
     {
         return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '')
             . ((isset($parts['user']) || isset($parts['host'])) ? '//' : '')
@@ -194,8 +197,12 @@ trait HttpClientTrait
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    protected function fetchData(?string $path = null, ?string $subpath = null, array $params = [], $page = 0): Response
-    {
+    public function fetchData(
+        ?string $path = null,
+        ?string $subpath = null,
+        array $params = [],
+        $page = 0
+    ): HttpResponse {
         if ($page) {
             $params['page'] = $page;
         }
@@ -209,23 +216,26 @@ trait HttpClientTrait
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    protected function fetchUrl(string $url, array $query = [], array $headers = []): Response
+    public function fetchUrl(string $url, array $query = [], array $headers = []): HttpResponse
     {
         $this->lastRequestUrl = $url;
         return $this->getHttpClient()
             ->resetParameters()
             ->setUri($url)
             ->setHeaders($headers)
-            ->setMethod(Request::METHOD_GET)
+            ->setMethod(HttpRequest::METHOD_GET)
             ->setParameterGet($query)
             ->send();
     }
 
     /**
-     * @todo To be moved in json reader.
+     * @todo To be moved in json reader?
      */
-    protected function fetchUrlJson(string $url, array $query = [], ?array $headers = null): array
-    {
+    public function fetchUrlJson(
+        string $url,
+        array $query = [],
+        ?array $headers = null
+    ): array {
         // TODO See OaiPmhHarvester for user agent.
         $defaultHeaders = [
             'User-Agent' => $this->userAgent,

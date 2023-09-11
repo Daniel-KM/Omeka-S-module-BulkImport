@@ -132,7 +132,7 @@ SQL;
             $storageId = bin2hex(\Laminas\Math\Rand::getBytes(20));
             $extension = substr($source['o:filename'], $pos + 1);
 
-            $result = $this->fetchFile('asset', $source['o:name'], $source['o:filename'], $storageId, $extension, $source['o:asset_url']);
+            $result = $this->bulkFile->fetchAndStore('asset', $source['o:name'], $source['o:filename'], $storageId, $extension, $source['o:asset_url']);
             if ($result['status'] !== 'success') {
                 ++$skipped;
                 $this->logger->err($result['message']);

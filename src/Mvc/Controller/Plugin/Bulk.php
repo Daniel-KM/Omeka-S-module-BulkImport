@@ -973,16 +973,6 @@ class Bulk extends AbstractPlugin
         return $tableResources[$entityClass] ?? null;
     }
 
-    public function isFileSideloadActive(): bool
-    {
-        $moduleName = 'FileSideload';
-        /** @var \Omeka\Module\Manager $moduleManager */
-        $moduleManager = $this->services->get('Omeka\ModuleManager');
-        $module = $moduleManager->getModule($moduleName);
-        return $module
-            && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
-    }
-
     /**
      * Trim all whitespaces.
      */
