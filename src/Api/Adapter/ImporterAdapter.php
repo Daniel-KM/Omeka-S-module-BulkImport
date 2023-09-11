@@ -17,8 +17,8 @@ class ImporterAdapter extends AbstractEntityAdapter
         'id' => 'id',
         'label' => 'label',
         'owner_id' => 'owner',
-        'reader_class' => 'readerClass',
-        'processor_class' => 'processorClass',
+        'reader' => 'reader',
+        'processor' => 'processor',
     ];
 
     protected $scalarFields = [
@@ -26,9 +26,9 @@ class ImporterAdapter extends AbstractEntityAdapter
         'label' => 'label',
         'owner' => 'owner',
         'config' => 'config',
-        'reader_class' => 'readerClass',
-        'processor_class' => 'processorClass',
+        'reader' => 'reader',
         'reader_config' => 'readerConfig',
+        'processor' => 'processor',
         'processor_config' => 'processorConfig',
     ];
 

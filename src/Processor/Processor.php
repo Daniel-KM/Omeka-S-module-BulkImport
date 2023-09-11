@@ -6,6 +6,12 @@ use BulkImport\Reader\Reader;
 use Laminas\Log\Logger;
 use Omeka\Job\AbstractJob as Job;
 
+/**
+ * A processor gets metadata from a reader and maps them to resources.
+ *
+ * It can have a config (implements Configurable) and parameters (implements
+ * Parametrizable).
+ */
 interface Processor
 {
     /**
@@ -13,19 +19,10 @@ interface Processor
      */
     public function getLabel(): string;
 
-    /**
-     * @return self
-     */
     public function setReader(Reader $reader): self;
 
-    /**
-     * @return self
-     */
     public function setLogger(Logger $logger): self;
 
-    /**
-     * @return self
-     */
     public function setJob(Job $job): self;
 
     /**

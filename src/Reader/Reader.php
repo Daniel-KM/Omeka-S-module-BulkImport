@@ -7,9 +7,6 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
  * A reader returns metadata and files data.
- *
- * It can have a config (implements Configurable) and parameters (implements
- * Parametrizable).
  */
 interface Reader extends \Iterator, \Countable
 {
@@ -27,8 +24,6 @@ interface Reader extends \Iterator, \Countable
 
     /**
      * Check if the params of the reader are valid, for example the filepath.
-     *
-     * @return bool
      */
     public function isValid(): bool;
 

@@ -53,7 +53,7 @@ class Importer extends AbstractEntity
      *     length=190
      * )
      */
-    protected $readerClass;
+    protected $reader;
 
     /**
      * @var array
@@ -74,7 +74,7 @@ class Importer extends AbstractEntity
      *     length=190
      * )
      */
-    protected $processorClass;
+    protected $processor;
 
     /**
      * @var array
@@ -144,15 +144,15 @@ class Importer extends AbstractEntity
         return $this->config;
     }
 
-    public function setReaderClass(?string $readerClass): self
+    public function setReader(?string $reader): self
     {
-        $this->readerClass = $readerClass;
+        $this->reader = $reader;
         return $this;
     }
 
-    public function getReaderClass(): ?string
+    public function getReader(): ?string
     {
-        return $this->readerClass;
+        return $this->reader;
     }
 
     public function setReaderConfig(?array $readerConfig): self
@@ -166,15 +166,15 @@ class Importer extends AbstractEntity
         return $this->readerConfig;
     }
 
-    public function setProcessorClass(?string $processorClass): self
+    public function setProcessor(?string $processor): self
     {
-        $this->processorClass = $processorClass;
+        $this->processor = $processor;
         return $this;
     }
 
-    public function getProcessorClass(): string
+    public function getProcessor(): string
     {
-        return $this->processorClass;
+        return $this->processor;
     }
 
     public function setProcessorConfig(?array $processorConfig): self

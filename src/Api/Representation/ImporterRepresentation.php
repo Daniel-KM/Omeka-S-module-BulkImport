@@ -72,7 +72,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
     public function readerClass(): string
     {
-        return $this->resource->getReaderClass();
+        return $this->resource->getReader();
     }
 
     public function readerConfig(): array
@@ -82,7 +82,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
     public function processorClass(): string
     {
-        return $this->resource->getProcessorClass();
+        return $this->resource->getProcessor();
     }
 
     public function processorConfig(): array
