@@ -16,20 +16,28 @@ sans limite de [taille ou nombre de fichiers] dans le formulaire de ressource
 et dans le formulaire séparé pour le téléchargement des fichiers, utilisé pour
 les imports ultérieurs.
 
-Pour l’importation en masse, le module gère les lecteurs d’une source (xml, sql,
-tableur, url…) et utilise des processeurs pour les importer en tant que
-ressources Omeka et autres données (utilisateurs, modèles…) via des alignements.
+Un import s’effectue en trois étapes :
+
+- lecture d’une source, qui peut être un fichier, une api, une url, ou une liste
+  d’url ou de fichiers. Le contenu peut être en xml, json, sql ou en tableur.
+- alignement du contenu de la source avec le contenu Omeka. L’alignement peut
+  être manuel, automatique ou préconfiguré. Il peut être enregistré et réutilisé
+  pour d’autres imports.
+- traitement, qui peut être une création ou une mise à jour, selon différents
+  modes, pour diverses ressources (contenus, médias, collections, fichiers, etc.).
 
 Comme plusieurs importeurs peuvent être préparés avec les mêmes lecteurs et
 processeurs, il est possible d’importer plusieurs fois le même type de fichiers
 sans avoir à aligner les données chaque fois.
 
-Les lecteurs par défaut sont le lecteur Omeka S (via l’api json endpoint), xml
-(via transformation avec xslt), sql (pour s’adapter à chaque base de données, un
-exemple pour [e-prints] est fourni), [Spip] (via la base de données), et tableur
-(via ods, tsv ou csv). Le tableur utilise un processeur qui crée des ressources
-sur la base d’un format d’en-tête spécifique, mais sans l’interface manuelle
-comme le module module [CSV Import].
+Les importeurs par défaut sont :
+
+- xml METS et EAD
+- json à partir d’IIIF ou de Content-DM
+- sql
+- tableurs (csv, tsv, ods)
+- Omeka Classic
+- Omeka S
 
 
 Installation
@@ -354,6 +362,8 @@ afin de récupérer toutes les données annexes.
 Il suffit de sélectionner le lecteur sql et le processeur eprints, puis de
 suivre les instructions.
 
+Cet importeur n’est plus disponible actuellement.
+
 
 Omeka S
 -------
@@ -375,6 +385,8 @@ Il suffit de définir les informations d’identification de la base de données
 l’url et de continuer. Vous devez installer d’autres modules : [Advanced Resource Template],
 [Custom Vocab], [Data Type Rdf], [Numeric Data Types], [Spip ], [Thesaurus],
 [User Profile].
+
+Cet importeur n’est plus disponible actuellement.
 
 
 Tableur
@@ -492,7 +504,7 @@ TODO
 - [ ] Mise à jour pour le module Mapping.
 - [ ] Importation des utilisateurs, en particulier pour l’importation Omeka S.
 - [x] Importation d’uri avec label dans le tableur.
-- [ ] Importation d’uri avec libellé pour Value Suggest.
+- [x] Importation d’uri avec libellé pour Value Suggest.
 - [ ] Sauter l’import des vocabulaires et des modèles de ressources pour l’import Omeka S.
 - [ ] Permettre de définir une requête pour l’import Omeka S.
 - [ ] Ajouter des vérificains, en particulier avec les tableurs multi-feuilles.
@@ -501,9 +513,9 @@ TODO
 - [-] Spip : Utiliser la langue de la rubrique supérieure si pas de langue.
 - [ ] Utiliser metaMapper() pour les imports sql (donc convertir les processeurs spéciaux) ou convertir les lignes plus tôt (comme les tableurs).
 - [x] Pour les imports sql, utiliser une requête sql directe lorsque l’alignement est de table à table (comme les statistiques eprints).
-- [ ] Convertir l’importeur spécifique en processeur de ressources standard + modèle.
-- [ ] Dépréciation de tous les convertisseurs directs qui n’utilisent pas metaMapper() (donc mise à jour du processus de feuille de calcul).
-- [ ] Le nombre de lignes sautées ou vides est différent pendant la vérification et le processus réel.
+- [x] Convertir l’importeur spécifique en processeur de ressources standard + modèle.
+- [x] Dépréciation de tous les convertisseurs directs qui n’utilisent pas metaMapper() (donc mise à jour du processus de feuille de calcul).
+- [x] Le nombre de lignes sautées ou vides est différent pendant la vérification et le processus réel.
 - [ ] Vérifier le jeu d’éléments, le modèle et la classe par défaut (ils peuvent ne pas être définis lors de la création, de la mise à jour ou du remplacement via le tableur).
 - [ ] Vérifier une ressource avec `o:item_set[dcterms:title]`.
 - [ ] Ajout d’une action "error" pour les ressources non identifiées.
@@ -520,6 +532,9 @@ TODO
 - [ ] Normaliser la config pour extraire les métadonnées avec metamapper.
 - [ ] Ajouter un alignement automatique pour les images etc. avec xmp.
 - [ ] Gérer les paramètres d'import et les paramètres.
+- [ ] Renommer "params" en "settings" ("settings" est utilisé dans job, etc.) ?
+- [ ] Permettre d’utiliser un identifiant specifique par colonne (voir target_data).
+- [ ] Réimplémenter les colonnes multiples pour les media lors de l’import des items et donc possibilité d’indiquer le titre, etc. pour chaque media en une seule ligne (voir ancien appendRelated()).
 
 
 Avertissement

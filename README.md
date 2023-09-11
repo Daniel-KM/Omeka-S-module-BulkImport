@@ -14,19 +14,27 @@ import of resources.
 Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files]
 in resource form and via a separate bulk upload form for future imports.
 
-For bulk import, the module manages readers of a source (xml, sql, spreadsheet,
-url…) and uses processors to import them as Omeka resources and other data
-(users, templates…) via a mapping.
+The import process is done in three steps:
 
-Because multiple importers can be prepared with the same readers and processors,
-it is possible to import multiple times the same type of files without needing
-to do the mapping each time.
+- read a source, that can be a file, a endpoint, a url, or a list of urls or
+  files. The content can be xml, json, sql, or spreadsheet.
+- map source content into omeka content via a mapping, that can be manual,
+  automatic or pre-configured. The mapping can be stored to be replayed later.
+- process an action, that can be creation or update, in various modes into
+  various resources (items, medias, item sets, assets, etc.).
 
-Default readers are Omeka S reader (via the api json endpoint), xml (via
-transformation with xslt), sql (to adapt to each database, an example for [e-prints]
-is provided), [Spip] reader (via the database), and spreadsheet reader (via ods,
-tsv or csv). The spreadsheet uses a processor that creates resources based on a
-specific header format, but don't have a pretty manual ui like the module [CSV Import].
+Because multiple importers can be prepared with the same readers, mappings and
+processors, it is possible to import multiple times the same type of files
+without needing to do the mapping each time.
+
+Default importers are:
+
+- xml METS and EAD
+- json from IIIF or from Content-DM
+- sql
+- spreadsheets (csv, tsv, ods)
+- Omeka Classic
+- Omeka S
 
 
 Installation
@@ -333,6 +341,8 @@ fetch all metadata.
 
 Simply select the sql reader and the eprints processor, then follow the forms.
 
+This importer is no more available for now.
+
 
 Omeka S
 -------
@@ -351,6 +361,8 @@ Spip
 Simply set the database credentials and  the endpoint and go on. You need to
 install some more modules: [Advanced Resource Template], [Custom Vocab],
 [Data Type Rdf], [Numeric Data Types], [Spip ], [Thesaurus], [User Profile].
+
+This importer is no more available for now.
 
 
 Spreadsheet
@@ -462,7 +474,7 @@ TODO
 - [ ] Update for module Mapping.
 - [ ] Import of users, in particular for Omeka S import.
 - [x] Import of uri with label in spreadsheet.
-- [ ] Import of uri with label in value suggest.
+- [x] Import of uri with label in value suggest.
 - [ ] Skip import of vocabularies and resource templates for Omeka S import.
 - [ ] Allow to set a query for Omeka S import.
 - [ ] Add check, in particular with multi-sheets.
@@ -471,9 +483,9 @@ TODO
 - [-] Spip: Utiliser la langue de la rubrique supérieure si pas de langue.
 - [ ] Use metaMapper() for sql imports (so convert special processors) or convert rows early (like spreadsheets).
 - [x] For sql import, use a direct sql query when mapping is table to table (like eprints statistics).
-- [ ] Convert specific importer into standard resource processor + pattern.
-- [ ] Deprecate all direct converters that don't use metaMapper() (so upgrade spreadsheet process).
-- [ ] Count of skipping or empty rows is different during check and real process.
+- [x] Convert specific importer into standard resource processor + pattern.
+- [x] Deprecate all direct converters that don't use metaMapper() (so upgrade spreadsheet process).
+- [x] Count of skipping or empty rows is different during check and real process.
 - [ ] Check default item set, template and class (they may be not set during creation or update or replace via spreadsheet).
 - [ ] Check a resource with `o:item_set[dcterms:title]`.
 - [ ] Add action "error" for unidentified resources.
@@ -490,6 +502,9 @@ TODO
 - [ ] Normalize config of metadata extraction with metamapper.
 - [ ] Add an automatic mapping for images etc. with xmp.
 - [ ] Manage import params and params.
+- [ ] Rename "params" by "settings" ("settings" is used job, etc.)?
+- [ ] Implement possibility to select identifier names by column (see old target_data).
+- [ ] Reimplement multiple columns for media when importing items, so possibility to set title, etc. for each media in the same line (see old appendRelated()).
 
 
 Warning
