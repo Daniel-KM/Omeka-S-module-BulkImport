@@ -6,25 +6,17 @@ use Laminas\Form\Form;
 
 interface Configurable
 {
-    /**
-     * @param array $config
-     * @return self
-     */
     public function setConfig(array $config): self;
 
-    /**
-     * @return array
-     */
     public function getConfig(): array;
 
     /**
-     * @return string
+     * @param string $name
+     * @return mixed
      */
+    public function getConfigParam($name, $default = null);
+
     public function getConfigFormClass(): string;
 
-    /**
-     * @param Form $form
-     * @return self
-     */
     public function handleConfigForm(Form $form): self;
 }

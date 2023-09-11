@@ -6,24 +6,17 @@ use Laminas\Form\Form;
 
 interface Parametrizable
 {
-    /**
-     * @param array $params
-     * @return self
-     */
     public function setParams(array $params): self;
 
-    /**
-     * @return array
-     */
     public function getParams(): array;
 
     /**
-     * @return string
+     * @param string $name
+     * @return mixed
      */
+    public function getParam(string $name, $default = null);
+
     public function getParamsFormClass(): string;
 
-    /**
-     * @param Form $form
-     */
     public function handleParamsForm(Form $form): self;
 }
