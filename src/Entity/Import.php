@@ -39,17 +39,6 @@ class Import extends AbstractEntity
     protected $importer;
 
     /**
-     * @var string
-     *
-     * @Column(
-     *     type="string",
-     *     nullable=true,
-     *     length=190
-     * )
-     */
-    protected $comment;
-
-    /**
      * @var Job
      *
      * @OneToOne(
@@ -74,6 +63,17 @@ class Import extends AbstractEntity
      * )
      */
     protected $undoJob;
+
+    /**
+     * @var string
+     *
+     * @Column(
+     *     type="string",
+     *     nullable=true,
+     *     length=190
+     * )
+     */
+    protected $comment;
 
     /**
      * @var array
@@ -101,17 +101,6 @@ class Import extends AbstractEntity
         return $this->importer;
     }
 
-    public function setComment($comment): self
-    {
-        $this->comment = (string) $comment ?: null;
-        return $this;
-    }
-
-    public function getComment(): ?string
-    {
-        return $this->comment;
-    }
-
     public function setJob(?Job $job): self
     {
         $this->job = $job;
@@ -132,6 +121,17 @@ class Import extends AbstractEntity
     public function getUndoJob(): ?Job
     {
         return $this->undoJob;
+    }
+
+    public function setComment($comment): self
+    {
+        $this->comment = (string) $comment ?: null;
+        return $this;
+    }
+
+    public function getComment(): ?string
+    {
+        return $this->comment;
     }
 
     public function setParams(array $params): self

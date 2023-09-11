@@ -67,10 +67,10 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     public function __sleep()
     {
         if ($this->__isInitialized__) {
-            return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'params'];
+            return ['__isInitialized__', 'id', 'importer', 'job', 'undoJob', 'comment', 'params'];
         }
 
-        return ['__isInitialized__', 'id', 'importer', 'comment', 'job', 'undoJob', 'params'];
+        return ['__isInitialized__', 'id', 'importer', 'job', 'undoJob', 'comment', 'params'];
     }
 
     /**
@@ -217,28 +217,6 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
     /**
      * {@inheritDoc}
      */
-    public function setComment($comment): \BulkImport\Entity\Import
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setComment', [$comment]);
-
-        return parent::setComment($comment);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getComment(): ?string
-    {
-
-        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getComment', []);
-
-        return parent::getComment();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function setJob(?\Omeka\Entity\Job $job): \BulkImport\Entity\Import
     {
 
@@ -278,6 +256,28 @@ class Import extends \BulkImport\Entity\Import implements \Doctrine\ORM\Proxy\Pr
         $this->__initializer__ && $this->__initializer__->__invoke($this, 'getUndoJob', []);
 
         return parent::getUndoJob();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setComment($comment): \BulkImport\Entity\Import
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'setComment', [$comment]);
+
+        return parent::setComment($comment);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getComment(): ?string
+    {
+
+        $this->__initializer__ && $this->__initializer__->__invoke($this, 'getComment', []);
+
+        return parent::getComment();
     }
 
     /**
