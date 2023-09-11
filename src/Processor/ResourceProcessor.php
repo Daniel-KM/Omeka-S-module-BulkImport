@@ -254,19 +254,19 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): self
+    protected function prepareBaseEntitySpecific(ArrayObject $resource): self
     {
-        $this->baseResourceCommon($resource);
-        // Determined by the entry, but prepare all possible types in the case
-        // there is a mapping.
-        $this->baseItem($resource);
-        $this->baseItemSet($resource);
-        $this->baseMedia($resource);
+        $this
+            ->prepareBaseResourceCommon($resource)
+            // May be determined by the mapping or the entry.
+            ->prepareBaseItem($resource)
+            ->prepareBaseItemSet($resource)
+            ->prepareBaseMedia($resource);
         $resource['resource_name'] = $this->getParam('resource_name');
         return $this;
     }
 
-    protected function baseResourceCommon(ArrayObject $resource): self
+    protected function prepareBaseResourceCommon(ArrayObject $resource): self
     {
         $ownerId = $this->getParam('o:owner', 'current') ?: 'current';
         if ($ownerId === 'current') {
@@ -295,7 +295,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItem(ArrayObject $resource): self
+    protected function prepareBaseItem(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'items';
         $resource['o:item_set'] = $this->getParam('o:item_set', []);
@@ -303,7 +303,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseItemSet(ArrayObject $resource): self
+    protected function prepareBaseItemSet(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'item_sets';
         $isOpen = $this->getParam('o:is_open', null);
@@ -311,7 +311,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         return $this;
     }
 
-    protected function baseMedia(ArrayObject $resource): self
+    protected function prepareBaseMedia(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'media';
         $resource['o:item'] = $this->getParam('o:item') ?: ['o:id' => null];

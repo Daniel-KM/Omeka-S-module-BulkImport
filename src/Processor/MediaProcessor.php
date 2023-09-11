@@ -54,11 +54,11 @@ class MediaProcessor extends ResourceProcessor
             ->handleFormMedia($args, $values);
     }
 
-    protected function baseSpecific(ArrayObject $resource): self
+    protected function prepareBaseEntitySpecific(ArrayObject $resource): self
     {
         return $this
-            ->baseResourceCommon($resource)
-            ->baseMedia($resource);
+            ->prepareBaseResourceCommon($resource)
+            ->prepareBaseMedia($resource);
     }
 
     protected function fillResourceSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self

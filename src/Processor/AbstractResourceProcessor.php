@@ -278,7 +278,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         ];
 
         // The base entity depends on the resource type, so it should be init.
-        $this->base = $this->baseEntity();
+        // Prepare it one time for performance, but can be completed with
+        // getPreparedBase().
+        $this->prepareBaseEntity();
 
         return true;
     }
@@ -325,8 +327,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return $this;
     }
 
-    protected function baseEntity(): ArrayObject
+    protected function prepareBaseEntity(): self
     {
+        // ArrayObject is used internally to simplify calling functions.
         // TODO Use a specific class that extends ArrayObject to manage process metadata (check and errors).
         $resource = new ArrayObject;
         $resource['resource_name'] = $this->getResourceName();
@@ -335,20 +338,27 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource['source_index'] = 0;
         $resource['checked_id'] = false;
         $resource['messageStore'] = new MessageStore();
-        $this->baseSpecific($resource);
-        return $resource;
+        $this->prepareBaseEntitySpecific($resource);
+        $this->base = $resource;
+        return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): self
+    protected function prepareBaseEntitySpecific(ArrayObject $resource): self
     {
         return $this;
     }
 
+    protected function getPreparedBase(): ArrayObject
+    {
+        $result = clone $this->base;
+        // Clone does not clone sub-object, so init it here.
+        $result['messageStore'] = new MessageStore();
+        return $result;
+    }
+
     public function fillResource(array $data, ?int $index = null): ?array
     {
-        // ArrayObject is used internally to simplify calling functions.
-        /** @var \ArrayObject $resource */
-        $resource = clone $this->base;
+        $resource = $this->getPreparedBase();
 
         $this->indexResource = $index;
         $resource['source_index'] = $this->indexResource;
@@ -819,7 +829,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $resourceFiles = [$resource];
         }
 
-        if ($this->skipMissingFiles && $isItem) {
+        if ($isItem && $this->skipMissingFiles) {
             return $this->checkItemFilesWarn($resource, $resourceFiles);
         }
 

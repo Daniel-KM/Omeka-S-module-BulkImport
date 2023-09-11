@@ -68,11 +68,11 @@ class ItemProcessor extends ResourceProcessor
             ->handleFormItem($args, $values);
     }
 
-    protected function baseSpecific(ArrayObject $resource): self
+    protected function prepareBaseEntitySpecific(ArrayObject $resource): self
     {
         return $this
-            ->baseResourceCommon($resource)
-            ->baseItem($resource);
+            ->prepareBaseResourceCommon($resource)
+            ->prepareBaseItem($resource);
     }
 
     protected function fillResourceSpecific(ArrayObject $resource, array $data, ?string $mainResourceName = null): self

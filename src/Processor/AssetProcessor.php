@@ -88,7 +88,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         return $this;
     }
 
-    protected function baseSpecific(ArrayObject $resource): self
+    protected function prepareBaseEntitySpecific(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'assets';
 

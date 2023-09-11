@@ -207,8 +207,8 @@ class BulkFile extends AbstractPlugin
     public function checkFileOrUrl($fileOrUrl, ?ErrorStore $messageStore = null): bool
     {
         $result = $this->bulk->isUrl($fileOrUrl)
-            ? $this->checkUrl($fileOrUrl)
-            : $this->checkFile($fileOrUrl);
+            ? $this->checkUrl($fileOrUrl, $messageStore)
+            : $this->checkFile($fileOrUrl, $messageStore);
         $this->isAsset = false;
         return $result;
     }
@@ -362,7 +362,7 @@ class BulkFile extends AbstractPlugin
             if ($result === false) {
                 if ($messageStore) {
                     $messageStore->addError('url', new PsrMessage(
-                        'Cannot fetch url "{url}": url doesn’t exist.', // @translate
+                        'Cannot fetch url "{url}": server does not respond.', // @translate
                         ['url' => $url]
                     ));
                 }
@@ -380,7 +380,7 @@ class BulkFile extends AbstractPlugin
             if (!$headers) {
                 if ($messageStore) {
                     $messageStore->addError('url', new PsrMessage(
-                        'Cannot fetch url "{url}": url does not exist.', // @translate
+                        'Cannot fetch url "{url}": server returned invalid response.', // @translate
                         ['url' => $url]
                     ));
                 }
