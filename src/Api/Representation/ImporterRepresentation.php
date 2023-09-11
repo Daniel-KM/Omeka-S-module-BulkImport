@@ -117,6 +117,9 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             }
         }
 
+        $logger = $this->getServiceLocator()->get('Omeka\Logger');
+        $this->reader->setLogger($logger);
+
         return $this->reader;
     }
 
@@ -135,6 +138,9 @@ class ImporterRepresentation extends AbstractEntityRepresentation
                 $this->processor->setConfig($config);
             }
         }
+
+        $logger = $this->getServiceLocator()->get('Omeka\Logger');
+        $this->processor->setLogger($logger);
 
         return $this->processor;
     }

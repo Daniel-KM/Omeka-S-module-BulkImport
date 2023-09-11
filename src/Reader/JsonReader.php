@@ -149,7 +149,7 @@ class JsonReader extends AbstractPaginatedReader
                     'File "{fileurl}" is not available.', // @translate
                     ['fileurl' => $current]
                 );
-                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->logger->err(
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
@@ -160,7 +160,7 @@ class JsonReader extends AbstractPaginatedReader
                     'File "{fileurl}" is empty.', // @translate
                     ['fileurl' => $current]
                 );
-                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->logger->err(
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
@@ -250,7 +250,7 @@ class JsonReader extends AbstractPaginatedReader
                 'Content-type "{content_type}" or charset "{charset}" is invalid for url "{url}".', // @translate
                 ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->lastRequestUrl]
             );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
+            $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );
@@ -264,7 +264,7 @@ class JsonReader extends AbstractPaginatedReader
                 'Unable to fetch data for the page {page}, url "{url}".', // @translate
                 ['page' => $this->currentPage, 'url' => $this->lastRequestUrl]
             );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
+            $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );
@@ -280,7 +280,7 @@ class JsonReader extends AbstractPaginatedReader
                 'Unable to fetch data for the page {page} (url "{url}"): {error}.', // @translate
                 ['page' => $this->currentPage, 'url' => $this->lastRequestUrl, 'error' => $json['errors']['error']]
             );
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
+            $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );

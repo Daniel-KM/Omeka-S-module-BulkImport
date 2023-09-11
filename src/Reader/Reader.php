@@ -2,6 +2,7 @@
 
 namespace BulkImport\Reader;
 
+use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
@@ -22,6 +23,8 @@ interface Reader extends \Iterator, \Countable
      */
     public function getLabel(): string;
 
+    public function setLogger(Logger $logger): self;
+
     /**
      * Check if the params of the reader are valid, for example the filepath.
      *
@@ -32,7 +35,7 @@ interface Reader extends \Iterator, \Countable
     /**
      * Get the last error message, in particular to know why reader is invalid.
      *
-     * @return string|null
+     * @todo Use ErrorStore.
      */
     public function getLastErrorMessage(): ?string;
 

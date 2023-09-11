@@ -134,7 +134,7 @@ trait HttpClientTrait
                     'Content-type "{content_type}" is invalid for url "{url}". It should be "{content_type_2}".', // @translate
                     ['content_type' => $responseContentType->getMediaType(), 'url' => $this->lastRequestUrl, 'content_type_2' => $contentType]
                 );
-                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->logger->err(
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );
@@ -151,7 +151,7 @@ trait HttpClientTrait
                     'Charset "{charset}" is invalid for url "{url}". It should be "{charset_2}"', // @translate
                     ['charset' => $responseContentType->getCharset(), 'url' => $this->lastRequestUrl, 'charset_2' => $charset]
                 );
-                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                $this->logger->err(
                     $this->lastErrorMessage->getMessage(),
                     $this->lastErrorMessage->getContext()
                 );

@@ -10,6 +10,7 @@ use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Form;
+use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 
 /**
@@ -29,6 +30,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
      * @var \BulkImport\Stdlib\MetaMapper|null
      */
     protected $metaMapper;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
 
     /**
      * This is the base path of the files, not the base path of the url.
@@ -134,6 +140,12 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     public function getLabel(): string
     {
         return $this->label;
+    }
+
+    public function setLogger(Logger $logger): self
+    {
+        $this->logger = $logger;
+        return $this;
     }
 
     public function isValid(): bool

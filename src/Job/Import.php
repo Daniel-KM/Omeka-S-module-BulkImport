@@ -123,6 +123,9 @@ class Import extends AbstractJob
             return;
         }
 
+        $this->reader
+            ->setLogger($this->logger);
+
         $this->processor
             ->setReader($this->reader)
             ->setLogger($this->logger)

@@ -115,7 +115,7 @@ class OmekaSReader extends AbstractPaginatedReader
             $this->lastErrorMessage = new PsrMessage(
                 'It is useless to import Omeka S itself. Check your endpoint.' // @translate
             );
-            $this->getServiceLocator()->get('Omeka\Logger')->warn(
+            $this->logger->warn(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );
@@ -154,7 +154,7 @@ class OmekaSReader extends AbstractPaginatedReader
                     ['page' => $this->currentPage]
                 );
             }
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
+            $this->logger->err(
                 $this->lastErrorMessage->getMessage(),
                 $this->lastErrorMessage->getContext()
             );
@@ -176,7 +176,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $links = $this->currentResponse->getHeaders()->get('Link');
         if (!$links) {
             $this->lastErrorMessage = 'Header Link not found in response.'; // @translate
-            $this->getServiceLocator()->get('Omeka\Logger')->warn($this->lastErrorMessage);
+            $this->logger->warn($this->lastErrorMessage);
             return;
         }
 
@@ -197,7 +197,7 @@ class OmekaSReader extends AbstractPaginatedReader
         $links = $urls + ['first' => null, 'prev' => null, 'next' => null, 'last' => null];
         if (!$links['first']) {
             $this->lastErrorMessage = 'No links in http header.'; // @translate
-            $this->getServiceLocator()->get('Omeka\Logger')->warn($this->lastErrorMessage);
+            $this->logger->warn($this->lastErrorMessage);
             return;
         }
 
@@ -221,7 +221,7 @@ class OmekaSReader extends AbstractPaginatedReader
 
         if ($this->firstPage > $this->lastPage) {
             $this->lastErrorMessage = 'First page cannot be greater to last page.'; // @translate
-            $this->getServiceLocator()->get('Omeka\Logger')->err($this->lastErrorMessage);
+            $this->logger->err($this->lastErrorMessage);
             return;
         }
 
