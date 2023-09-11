@@ -184,6 +184,8 @@ class ProcessXslt extends AbstractPlugin
      * be used.
      * @param array $parameters Parameters array.
      * @return string|null Path to the output file if ok, null else.
+     *
+     * @todo Use omeka standard lib cli.
      */
     protected function processXsltViaExternal($uri, $stylesheet, $output = '', $parameters = [])
     {

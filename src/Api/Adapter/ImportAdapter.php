@@ -23,7 +23,7 @@ class ImportAdapter extends AbstractEntityAdapter
 
     protected $scalarFields = [
         'id' => 'id',
-        'importer_id' => 'importer',
+        'importer' => 'importer',
         'job' => 'job',
         'undo_job' => 'undoJob',
         'comment' => 'comment',
@@ -50,21 +50,24 @@ class ImportAdapter extends AbstractEntityAdapter
         $expr = $qb->expr();
 
         if (isset($query['importer_id'])) {
-            $qb->andWhere(
-                $expr->eq(
-                    'omeka_root.importer',
-                    $this->createNamedParameter($qb, $query['importer_id'])
-                )
-            );
+            $qb->andWhere($expr->eq(
+                'omeka_root.importer',
+                $this->createNamedParameter($qb, $query['importer_id'])
+            ));
         }
 
         if (isset($query['job_id'])) {
-            $qb->andWhere(
-                $expr->eq(
-                    'omeka_root.job',
-                    $this->createNamedParameter($qb, $query['job_id'])
-                )
-            );
+            $qb->andWhere($expr->eq(
+                'omeka_root.job',
+                $this->createNamedParameter($qb, $query['job_id'])
+            ));
+        }
+
+        if (isset($query['undo_job_id'])) {
+            $qb->andWhere($expr->eq(
+                'omeka_root.undoJob',
+                $this->createNamedParameter($qb, $query['undo_job_id'])
+            ));
         }
     }
 

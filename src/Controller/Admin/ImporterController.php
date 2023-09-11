@@ -470,11 +470,17 @@ class ImporterController extends AbstractActionController
                             'bulk_import_id' => $import->id(),
                         ];
 
+                        // Use synchronous dispatcher for quick testing purpose.
+                        $strategy = null;
+                        // $strategy = 'synchronous';
+                        $strategy = $strategy === 'synchronous'
+                            ? $this->getServiceLocator()->get(\Omeka\Job\DispatchStrategy\Synchronous::class)
+                            : null;
+
+                        /** @var \Omeka\Job\Dispatcher $dispatcher */
                         $dispatcher = $this->jobDispatcher();
                         try {
-                            // Synchronous dispatcher for quick testing purpose.
-                            // $job = $dispatcher->dispatch(JobImport::class, $args, $this->getServiceLocator()->get('Omeka\Job\DispatchStrategy\Synchronous'));
-                            $job = $dispatcher->dispatch(JobImport::class, $args);
+                            $job = $dispatcher->dispatch(JobImport::class, $args, $strategy);
                             $urlPlugin = $this->url();
                             $message = new PsrMessage(
                                 'Import started in background (job {link_open_job}#{jobId}{link_close}, {link_open_log}logs{link_close}). This may take a while.', // @translate
