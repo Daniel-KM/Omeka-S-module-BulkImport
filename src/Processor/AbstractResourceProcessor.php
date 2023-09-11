@@ -232,11 +232,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $params = new ArrayObject;
         $this->handleFormGeneric($params, $values);
         $this->handleFormSpecific($params, $values);
-        if (empty($values['mapping'])) {
-            $params['mapping'] = [];
-        } else {
-            $params['mapping'] = isset($mappingSerialized) ? unserialize($mappingSerialized) : $values['mapping'];
-        }
+        $params['mapping'] = isset($mappingSerialized) ? unserialize($mappingSerialized) : ($params['values'] ?? []);
         $files = $this->prepareFilesUploaded($values['files']['files'] ?? []);
         if ($files) {
             $params['files'] = $files;

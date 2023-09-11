@@ -68,7 +68,6 @@ class ImporterController extends AbstractActionController
         $form = $this->getForm(ImporterForm::class);
         if ($importer) {
             $currentData = $importer->getJsonLd();
-            $currentData['o:config'] = $currentData['o:config']['importer'] ?? [];
             $form->setData($currentData);
         }
 
@@ -77,6 +76,7 @@ class ImporterController extends AbstractActionController
             $form->setData($post);
             if ($form->isValid()) {
                 $data = $form->getData();
+                unset($data['csrf'], $data['importer_submit']);
                 if ($importer) {
                     $oConfig = $currentData['o:config'];
                     $oConfig['importer'] = $data['o:config']['importer'] ?? [];;
@@ -273,8 +273,7 @@ class ImporterController extends AbstractActionController
     }
 
     /**
-     * The process to start a bulk import uses, if any,  the reader form, the
-     * processor form and the confirm form.
+     * Process a bulk import by step: reader, mapper, processor and confirm.
      *
      * @todo Simplify code of this three steps process.
      *
@@ -350,6 +349,7 @@ class ImporterController extends AbstractActionController
             if ($form->isValid()) {
                 // Execute file filters.
                 $data = $form->getData();
+                unset($data['csrf']);
                 $session->{$currentForm} = $data;
                 switch ($currentForm) {
                     default:
@@ -398,20 +398,24 @@ class ImporterController extends AbstractActionController
                         } elseif ($isCountable && method_exists($reader, 'count') && empty($count)) {
                             $next = 'reader';
                         } else {
-                            $next = isset($formsCallbacks['processor']) ? 'processor' : 'confirm';
+                            // Only manual mapping is managed here (spreadsheet).
+                            $next = isset($formsCallbacks['mapping']) ? 'mapping' : 'processor';
                         }
                         $formCallback = $formsCallbacks[$next];
                         break;
 
-                    case 'processor':
+                    case 'mapping':
                         // There is a complex issue for mapping names with diacritics,
                         // spaces or quotes, for example customvocab:"Autorités".
                         // So serialize mapping with original post for now.
                         // TODO Fix laminas for form element name with diacritics.
-                        if (!empty($postData['mapping'])) {
-                            $data['mapping_serialized'] = serialize($postData['mapping']);
-                        }
-                        $processor->handleParamsForm($form, $data['mapping_serialized'] ?? null);
+                        $session->mapping = serialize($postData['mapping'] ?? []);
+                        $next = isset($formsCallbacks['processor']) ? 'processor' : 'confirm';
+                        $formCallback = $formsCallbacks[$next];
+                        break;
+
+                    case 'processor':
+                        $processor->handleParamsForm($form, $session->mapping ?? null);
                         $session->comment = trim((string) $data['comment']);
                         $session->storeAsTask = !empty($data['store_as_task']);
                         $session->processor = $processor->getParams();
@@ -427,12 +431,17 @@ class ImporterController extends AbstractActionController
                         $importData = [];
                         $importData['o-bulk:comment'] = trim((string) $session['comment']) ?: null;
                         $importData['o-bulk:importer'] = $importer->getResource();
-                        if ($reader instanceof Parametrizable) {
-                            $importData['o-bulk:reader_params'] = $reader->getParams();
-                        }
                         if ($processor instanceof Parametrizable) {
-                            $importData['o-bulk:processor_params'] = $processor->getParams();
+                            $processorParams = $processor->getParams();
+                            unset($processorParams['mapping']);
+                        } else {
+                            $processorParams = null;
                         }
+                        $importData['o:params'] = [
+                            'reader' => $reader instanceof Parametrizable ? $reader->getParams() : null,
+                            'mapping' => empty($session->mapping) ? null :  unserialize($session->mapping),
+                            'processor' => $processorParams,
+                        ];
                         $response = $this->api()->create('bulk_imports', $importData);
                         if (!$response) {
                             $this->messenger()->addError('Save of import failed'); // @translate
@@ -461,7 +470,7 @@ class ImporterController extends AbstractActionController
 
                         $dispatcher = $this->jobDispatcher();
                         try {
-                            // Synchronous dispatcher for testing purpose.
+                            // Synchronous dispatcher for quick testing purpose.
                             // $job = $dispatcher->dispatch(JobImport::class, $args, $this->getServiceLocator()->get('Omeka\Job\DispatchStrategy\Synchronous'));
                             $job = $dispatcher->dispatch(JobImport::class, $args);
                             $urlHelper = $this->url();
@@ -535,20 +544,23 @@ class ImporterController extends AbstractActionController
             'storeAsTask' => !empty($session->storeAsTask),
             'messagePre' => $messagePre,
             'messagePost' => $messagePost,
+            'step' => $next ?? 'reader',
+            'steps' => array_keys(array_filter($formsCallbacks)),
         ]);
 
         if ($next === 'confirm') {
             $importArgs = [];
-            $importArgs['comment'] = $session['comment'];
-            $importArgs['reader'] = $session['reader'];
-            $importArgs['processor'] = $currentForm === 'reader' ? [] : $session['processor'];
+            $importArgs['comment'] = $session->comment;
+            $importArgs['reader'] = $session->reader;
+            $importArgs['mapping'] = isset($session->mapping) ? unserialize($session->mapping) : null;
+            $importArgs['processor'] = $currentForm === 'processor' ? $session->processor ?? [] : [];
             // For security purpose.
             unset($importArgs['reader']['filename']);
             foreach ($importArgs['processor']['files'] ?? [] as $key => $file) {
                 unset($importArgs['processor']['files'][$key]['filename']);
                 unset($importArgs['processor']['files'][$key]['tmp_name']);
             }
-            unset($importArgs['processor']['mapping_serialized']);
+            unset($importArgs['processor']['mapping']);
             $view
                 ->setVariable('importArgs', $importArgs);
         }
@@ -608,13 +620,64 @@ class ImporterController extends AbstractActionController
 
         $processor = $importer->processor();
         $processor->setReader($reader);
+
+        $mapper = $importer->mapper();
+        if ($mapper === 'manual') {
+            /* @return \Laminas\Form\Form */
+            $formsCallbacks['mapping'] = function () use ($reader, $processor, $importer, $controller) {
+                $mapForms = [
+                    \BulkImport\Form\Processor\AssetProcessorParamsForm::class => \BulkImport\Form\Mapping\AssetMappingParamsForm::class,
+                    \BulkImport\Form\Processor\ItemProcessorParamsForm::class => \BulkImport\Form\Mapping\ItemMappingParamsForm::class,
+                    \BulkImport\Form\Processor\MediaProcessorParamsForm::class => \BulkImport\Form\Mapping\MediaMappingParamsForm::class,
+                    \BulkImport\Form\Processor\ItemSetProcessorParamsForm::class => \BulkImport\Form\Mapping\ItemSetMappingParamsForm::class,
+                    \BulkImport\Form\Processor\ResourceProcessorParamsForm::class => \BulkImport\Form\Mapping\ResourceMappingParamsForm::class,
+                ];
+                $processorFormClass = $processor->getParamsFormClass();
+                $mappingFormClass = $mapForms[$processorFormClass] ?? \BulkImport\Form\Mapping\ResourceMappingParamsForm::class;
+                $availableFields = $reader->getAvailableFields();
+                try {
+                    $mappingForm = $controller->getForm($mappingFormClass, [
+                        'availableFields' => $availableFields,
+                    ]);
+                } catch (\Omeka\Service\Exception\RuntimeException $e) {
+                    $message = new PsrMessage(
+                        'Importer #{importer} has error: {error}', // @translate
+                        ['importer' => $importer->label(), 'error' => $e->getMessage()]
+                    );
+                    $this->messenger()->addError($message);
+                    return $this->redirect()->toRoute('admin/bulk');
+                }
+
+                $mappingForm
+                    ->add([
+                        'name' => 'current_form',
+                        'type' => Element\Hidden::class,
+                        'attributes' => [
+                            'value' => 'mapping',
+                        ],
+                    ])
+                    ->add([
+                        'name' => 'mapping_submit',
+                        'type' => Fieldset::class,
+                    ])
+                    ->get('mapping_submit')
+                    ->add([
+                        'name' => 'submit',
+                        'type' => Element\Submit::class,
+                        'attributes' => [
+                            'value' => 'Continue', // @translate
+                        ],
+                    ]);
+
+                return $mappingForm;
+            };
+        }
+
         if ($processor instanceof Parametrizable) {
             /* @return \Laminas\Form\Form */
             $formsCallbacks['processor'] = function () use ($processor, $importer, $controller) {
                 try {
-                    $processorForm = $controller->getForm($processor->getParamsFormClass(), [
-                        'processor' => $processor,
-                    ]);
+                    $processorForm = $controller->getForm($processor->getParamsFormClass());
                 } catch (\Omeka\Service\Exception\RuntimeException $e) {
                     $message = new PsrMessage(
                         'Importer #{importer} has error: {error}', // @translate
@@ -635,10 +698,10 @@ class ImporterController extends AbstractActionController
                         ],
                     ])
                     ->add([
-                        'name' => 'reader_submit',
+                        'name' => 'processor_submit',
                         'type' => Fieldset::class,
                     ])
-                    ->get('reader_submit')
+                    ->get('processor_submit')
                     ->add([
                         'name' => 'submit',
                         'type' => Element\Submit::class,

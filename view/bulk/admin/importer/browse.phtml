@@ -7,6 +7,7 @@
 use BulkImport\Interfaces\Configurable as ConfigurableImport;
 
 $plugins = $this->getHelperPluginManager();
+$url = $plugins->get('url');
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
@@ -31,6 +32,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <tr>
             <th><?= $escape($translate('Name')) ?></th>
             <th><?= $escape($translate('Reader')) ?></th>
+            <th><?= $escape($translate('Mapper')) ?></th>
             <th><?= $escape($translate('Processor')) ?></th>
         </tr>
     </thead>
@@ -52,7 +54,8 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                     <li><?= $importer->link('', 'delete', [
                         'class' => 'o-icon-delete',
                         'title' => $translate('Delete'),
-                    ]); /*
+                    ]) ?>
+                    <?php /*
                     echo $this->hyperlink('', '#', [
                         'data-sidebar-selector' => '#sidebar',
                         'data-sidebar-content-url' => $importer->url('delete-confirm'),
@@ -62,18 +65,28 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                     <?php endif; ?>
                 </ul>
             </td>
-            <td>
+            <td class="configure">
                 <?php $reader = $importer->reader(); ?>
                 <?= $reader ? $reader->getLabel() : null; ?>
                 <?php if ($reader instanceof ConfigurableImport): ?>
-                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()])) ?>)
+                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()]), ['class' => 'o-icon-edit']) ?>
                 <?php endif; ?>
             </td>
-            <td>
+            <td class="configure">
+                <?php $mapper = $importer->mapper(); ?>
+                <?php $bulkMapping = $importer->bulkMapping(); ?>
+                <?php if ($bulkMapping): ?>
+                    <?= $bulkMapping->link($bulkMapping->label(), 'show') ?>
+                    <?= $bulkMapping->link('', 'edit', ['class' => 'o-icon-edit']) ?>
+                    <?php elseif ($mapper): ?>
+                    <?= $escape(str_replace(['/', ':'], [' / ', ': '], (string) $mapper)) ?>
+                <?php endif; ?>
+            </td>
+            <td class="configure">
                 <?php $processor = $importer->processor(); ?>
                 <?= $processor ? $processor->getLabel() : null; ?>
                 <?php if ($processor instanceof ConfigurableImport): ?>
-                    (<?= $hyperlink('Configure', $this->url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()])) ?>)
+                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()]), ['class' => 'o-icon-edit']) ?>
                 <?php endif; ?>
             </td>
         </tr>

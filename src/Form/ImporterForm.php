@@ -2,6 +2,7 @@
 
 namespace BulkImport\Form;
 
+use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
@@ -37,10 +38,31 @@ class ImporterForm extends Form
                 'options' => [
                     'label' => 'Reader', // @translate
                     'value_options' => $this->getReaderOptions(),
+                    'empty_option' => '',
                 ],
                 'attributes' => [
                     'id' => 'o-bulk-reader',
                     'required' => true,
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select a reader…', // @translate
+                ],
+            ])
+
+            ->add([
+                'name' => 'o-bulk:mapper',
+                'type' => BulkImportElement\OptionalSelect::class,
+                'options' => [
+                    'label' => 'Mapper', // @translate
+                    'value_options' => [
+                        // 'automatic' => 'Automatic', // @translate
+                        'manual' => 'Manual', // @translate
+                    ] + $this->getMapperOptions(),
+                    'empty_option' => '',
+                ],
+                'attributes' => [
+                    'id' => 'o-bulk-mapper',
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select a mapper…', // @translate
                 ],
             ])
 
@@ -50,10 +72,13 @@ class ImporterForm extends Form
                 'options' => [
                     'label' => 'Processor', // @translate
                     'value_options' => $this->getProcessorOptions(),
+                    'empty_option' => '',
                 ],
                 'attributes' => [
                     'id' => 'o-bulk-processor',
                     'required' => true,
+                    'class' => 'chosen-select',
+                    'data-placeholder' => 'Select a processor…', // @translate
                 ],
             ])
 

@@ -204,7 +204,9 @@ class Import extends AbstractJob
             $processor->setConfig($this->importer->processorConfig());
         }
         if ($processor instanceof Parametrizable) {
-            $processor->setParams($this->import->processorParams());
+            $params = $this->import->processorParams();
+            $params['mapping'] = $this->import->mappingParams();
+            $processor->setParams($params);
         }
         return $processor;
     }

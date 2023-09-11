@@ -158,6 +158,23 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         return $this->metaMapperMapping;
     }
 
+    public function bulkMapping(): ?MappingRepresentation
+    {
+        $mapper = $this->mapper();
+        if (!$mapper || substr($mapper, 0, 8) !== 'mapping:') {
+            return null;
+        }
+        $mappingId = (int) substr($mapper, 8);
+        if (!$mappingId) {
+            return null;
+        }
+        try {
+            return $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', $mappingId)->getContent();
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function processor(): ?\BulkImport\Processor\Processor
     {
         if ($this->processor) {

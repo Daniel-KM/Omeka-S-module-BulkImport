@@ -25,6 +25,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
         <tr>
             <th><?= $escape($translate('Name')) ?></th>
             <th><?= $escape($translate('Reader')) ?></th>
+            <th><?= $escape($translate('Mapper')) ?></th>
             <th><?= $escape($translate('Processor')) ?></th>
         </tr>
     </thead>
@@ -51,19 +52,23 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                     <li><?= $importer->link('', 'delete', [
                         'class' => 'o-icon-delete',
                         'title' => $translate('Delete'),
-                    ]); /*
+                    ]) ?>
+                    <?php /*
                     echo $this->hyperlink('', '#', [
                         'data-sidebar-selector' => '#sidebar',
                         'data-sidebar-content-url' => $importer->url('delete-confirm'),
                         'class' => 'o-icon-delete sidebar-content',
                         'title' => $translate('Delete'),
-                    ]); */ ?></li>
+                    ]) */ ?></li>
                     <?php endif; ?>
                 </ul>
             </td>
             <td>
                 <?php $reader = $importer->reader(); ?>
                 <?= $reader ? $reader->getLabel() : null; ?>
+            </td>
+            <td>
+                <?= $escape($importer->bulkMapping() ? $importer->bulkMapping()->label() : str_replace(['/', ':'], [' / ', ': '], (string) $importer->mapper())) ?>
             </td>
             <td>
                 <?php $processor = $importer->processor(); ?>

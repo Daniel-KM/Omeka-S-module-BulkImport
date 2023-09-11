@@ -7,6 +7,8 @@
  * @var bool $storeAsTask
  * @var string $messagePre
  * @var string $messagePost
+ * @var string $step
+ * @var array $steps
  */
 
 $plugins = $this->getHelperPluginManager();
@@ -22,16 +24,29 @@ $storeAsTask = !empty($storeAsTask) && $form->has('start_submit');
 if ($storeAsTask) {
     $form->get('start_submit')->get('submit')->setValue('Store import'); // @translate
 }
+
+$stepLabels = [
+    'reader' => $translate('Reader'),
+    'mapper' => $translate('Mapper'),
+    'mapping' => $translate('Mapper'),
+    'processor' => $translate('Processor'),
+    'confirm' => $translate('Confirmation'),
+];
 ?>
 
-<?= $this->pageTitle($translate('Importer'), 1, $translate('Bulk import')) ?>
+<?= $this->pageTitle($translate('Import'), 1, $translate('Bulk import')) ?>
 
 <div id="bulk-import">
-    <h2><?= $escape($storeAsTask ? $translate('Store import') : $translate('Start import')) ?></h2>
-    <h3><?= $escape(sprintf($translate('Importer: %s'), $importer->label())) ?></h3>
+    <h3><?= $escape(sprintf($storeAsTask ? $translate('Store import: %s') : $translate('Start import: %s'), $importer->label())) ?></h3>
+    <h4><?= $escape(sprintf($translate('Step %1$d/%2$d: %3$s'), array_search($step, $steps) + 1, count($steps), $stepLabels[$step])) ?></h4>
+    <br/>
 
     <?php if ($messagePre): ?>
-    <div><?= $messagePre ?></div>
+    <div>
+        <p>
+            <?= $messagePre ?>
+        </p>
+    </div>
     <?php endif; ?>
 
     <?php if (isset($importArgs)): ?>
@@ -41,11 +56,21 @@ if ($storeAsTask) {
     <h3><?= $escape($translate('Parameters')) ?></h3>
     <h4><?= $escape($translate('Reader')) ?></h4>
     <div class="value">
-        <pre><?= $escape(json_encode($importArgs['reader'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
+        <pre><?= $escape(json_encode($importArgs['reader'], 448)) ?></pre>
+    </div>
+    <h4><?= $escape($translate('Mapper')) ?></h4>
+    <div class="value">
+    <?php if ($importArgs['mapping']): ?>
+        <pre><?= $escape(json_encode($importArgs['mapping'], 448)) ?></pre>
+    <?php elseif ($bulkMapping = $importer->bulkMapping()): ?>
+        <?= $bulkMapping->link($bulkMapping->label()) ?>
+    <?php else: ?>
+        <?= $importer->mapper() ?: $translate('[none]') ?>
+    <?php endif; ?>
     </div>
     <h4><?= $escape($translate('Processor')) ?></h4>
     <div class="value">
-        <pre><?= $escape(json_encode($importArgs['processor'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
+        <pre><?= $escape(json_encode($importArgs['processor'], 448)) ?></pre>
     </div>
     <?php endif; ?>
 

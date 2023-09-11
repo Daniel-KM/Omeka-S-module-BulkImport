@@ -142,6 +142,14 @@
         color: orange;
     }
 
+    .bulk-importers table.batch-edit .configure .o-icon-edit {
+        opacity: 0.5;
+        padding-left: 6px;
+    }
+    .bulk-importers table.batch-edit .configure .o-icon-edit:hover {
+        opacity: 1;
+    }
+
     /* Edit mappings. */
     .bulk-mappings #content form fieldset > .field:nth-of-type(2) .field-meta {
         display: none;

@@ -7,6 +7,7 @@
  */
 
 $plugins = $this->getHelperPluginManager();
+$i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
@@ -73,11 +74,7 @@ $userIsAllowedCreate = $this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapt
                 </ul>
             </td>
             <td>
-                <?php if ($mapping->modified()): ?>
-                <?= $mapping->modified()->format('Y-m-d H:i:s') ?>
-                <?php else: ?>
-                <?= $mapping->created()->format('Y-m-d H:i:s') ?>
-                <?php endif; ?>
+                <?= $i18n->dateFormat($mapping->modified() ?: $mapping->created(), 'medium', 'short') ?>
             </td>
         </tr>
     <?php endforeach; ?>

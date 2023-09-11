@@ -9,6 +9,10 @@ $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
 
+// For security, remove the temp name.
+$readerParams = $import->readerParams();
+unset($readerParams['filename']);
+
 $this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
 $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
@@ -41,17 +45,20 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
     <h3><?= $escape($translate('Parameters')) ?></h3>
     <h4><?= $escape($translate('Reader')) ?></h4>
     <div class="value">
-        <pre><?php
-            // For security, remove the temp name.
-            $params = $import->readerParams();
-            unset($params['filename']);
-            echo $escape(json_encode($params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        ?></pre>
+        <pre><?= $escape(json_encode($readerParams, 448)) ?></pre>
+    </div>
+    <h4><?= $escape($translate('Mapper')) ?></h4>
+    <div class="value">
+        <?php if ($mapping = $import->mappingParams()): ?>
+            <pre><?= $escape(json_encode($mapping, 448)) ?></pre>
+        <?php elseif ($bulkMapping = $import->importer()->bulkMapping()): ?>
+            <?= $bulkMapping->link($bulkMapping->label()) ?>
+        <?php else: ?>
+            <?= $import->mapper() ?: $translate('[none]') ?>
+        <?php endif; ?>
     </div>
     <h4><?= $escape($translate('Processor')) ?></h4>
     <div class="value">
-        <pre><?php
-            echo $escape(json_encode($import->processorParams(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        ?></pre>
+        <pre><?= $escape(json_encode($import->processorParams(), 448)) ?></pre>
     </div>
 </div>
