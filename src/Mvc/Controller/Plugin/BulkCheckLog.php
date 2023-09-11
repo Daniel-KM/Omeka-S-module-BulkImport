@@ -12,7 +12,7 @@ use Omeka\Settings\UserSettings;
 
 class BulkCheckLog extends AbstractPlugin
 {
-    use BulkCheckDiffTrait;
+    use BulkOutputTrait;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk

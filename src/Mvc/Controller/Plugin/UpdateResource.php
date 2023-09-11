@@ -1,8 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace BulkImport\Processor;
+namespace BulkImport\Mvc\Controller\Plugin;
 
-use BulkImport\Mvc\Controller\Plugin\BulkResourceTrait;
+use BulkImport\Processor\AbstractProcessor;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
+use Laminas\Log\Logger;
+use Omeka\Api\Manager as ApiManager;
+use Omeka\Api\Adapter\Manager as AdapterManager;
 
 /**
  * Helper to manage specific update modes.
@@ -11,14 +15,29 @@ use BulkImport\Mvc\Controller\Plugin\BulkResourceTrait;
  *
  * @see \CSVImport\Job\Import
  */
-trait ResourceUpdateTrait
+class UpdateResource extends AbstractPlugin
 {
     use BulkResourceTrait;
 
     /**
-     * @var array
+     * @var \Omeka\Api\Manager
      */
-    protected $skippedSourceFields;
+    protected $api;
+
+    /**
+     * @var \Omeka\Api\Adapter\Manager
+     */
+    protected $adapterManager;
+
+    /**
+     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     */
+    protected $bulk;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
 
     /**
      * @var \Omeka\Api\Representation\AbstractResourceEntityRepresentation
@@ -36,28 +55,55 @@ trait ResourceUpdateTrait
     protected $resourceToUpdateArray;
 
     /**
-     * @param string $resourceName
-     * @param int $resourceId
+     * @var string
      */
-    protected function prepareResourceToUpdate($resourceName, $resourceId): void
-    {
-        if (!$resourceName || !$resourceId) {
-            $this->resourceToUpdateEntity = null;
-            $this->resourceToUpdate = null;
-            $this->resourceToUpdateArray = [];
-        } else {
-            // Always reload the resource that is currently managed to manage
-            // multiple update of the same resource.
-            try {
-                $this->resourceToUpdateEntity = $this->bulk->api()->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
-                $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
-                $this->resourceToUpdateArray = $this->resourceJson($this->resourceToUpdate);
-            } catch (\Exception $e) {
-                $this->resourceToUpdateEntity = null;
-                $this->resourceToUpdate = null;
-                $this->resourceToUpdateArray = [];
-            }
-        }
+    protected $action;
+
+    /**
+     * @var string
+     */
+    protected $actionItemSet;
+
+    /**
+     * @var string
+     */
+    protected $actionMedia;
+
+    /**
+     * @var string
+     */
+    protected $actionIdentifier;
+
+    /**
+     * @var array
+     */
+    protected $identifierNames;
+
+    /**
+     * @var string
+     */
+    protected $indexResource;
+
+    /**
+     * @var array
+     */
+    protected $metaMapping;
+
+    /**
+     * @var int
+     */
+    protected $totalErrors;
+
+    public function __construct(
+        ApiManager $api,
+        AdapterManager $adapterManager,
+        Bulk $bulk,
+        Logger $logger
+    ) {
+        $this->api = $api;
+        $this->adapterManager = $adapterManager;
+        $this->bulk = $bulk;
+        $this->logger = $logger;
     }
 
     /**
@@ -72,20 +118,33 @@ trait ResourceUpdateTrait
      * The difference between "revise" and "update" is that, with "update", all
      * data that are set in the source (generally a column in a spreadsheet)
      * replace current ones, but, with "revise", only the filled ones replace
-     * current one.
+     * current one, so existing values are not removed when a cell is empty.
      *
      * Note: when the targets are set on multiple columns, all data are removed.
      *
      * @todo What to do with external data?
      *
-     * @param string $resourceName
+     * Warning: Unlike previous version, the target field is used, not the
+     * "from" string (spreadsheet header). So the result may be slightly
+     * different, but simpler to understand when checking results.
+     *
      * @param array $data Should have an existing and checked "o:id".
      * @return array
      */
-    protected function updateData($resourceName, $data): array
+    protected function __invoke(array $data, array $options): ?array
     {
+        $this->action = $options['action'];
+        $this->actionItemSet = $options['actionItemSet'];
+        $this->actionMedia = $options['actionMedia'];
+        $this->actionIdentifier = $options['actionIdentifier'];
+        $this->identifierNames = $options['identifierNames'];
+        $this->metaMapping = $options['metaMapping'];
+
+        $this->indexResource = $data['source_index'] ?? 0;
+        $resourceName = $data['resource_name'] ?? 'resources';
+
         // Use arrays to simplify process.
-        $this->prepareResourceToUpdate($resourceName, $data['o:id']);
+        $this->prepareResourceToUpdate($resourceName, (int) $data['o:id']);
 
         if (!$this->resourceToUpdate) {
             $this->logger->warn(
@@ -97,36 +156,36 @@ trait ResourceUpdateTrait
         $currentData = $this->resourceToUpdateArray;
 
         switch ($this->action) {
-            case \BulkImport\Processor\AbstractProcessor::ACTION_APPEND:
+            case AbstractProcessor::ACTION_APPEND:
                 $merged = $this->mergeMetadata($currentData, $data, true);
                 $data = array_replace($data, $merged);
                 $newData = array_replace($currentData, $data);
                 break;
-            case \BulkImport\Processor\AbstractProcessor::ACTION_REVISE:
-            case \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE:
-                $data = $this->action === \BulkImport\Processor\AbstractProcessor::ACTION_REVISE
+            case AbstractProcessor::ACTION_REVISE:
+            case AbstractProcessor::ACTION_UPDATE:
+                $data = $this->action === AbstractProcessor::ACTION_REVISE
                     ? $this->removeEmptyData($data)
                     : $this->fillEmptyData($data);
-                if ($this->actionIdentifier !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
-                    $data = $this->keepExistingIdentifiers($currentData, $data, $this->identifierNames);
+                if ($this->actionIdentifier !== AbstractProcessor::ACTION_UPDATE) {
+                    $data = $this->keepExistingIdentifiers($currentData, $data);
                 }
                 if ($resourceName === 'items') {
-                    if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                    if ($this->actionMedia !== AbstractProcessor::ACTION_UPDATE) {
                         $data = $this->keepExistingMedia($currentData, $data);
                     }
-                    if ($this->actionItemSet !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                    if ($this->actionItemSet !== AbstractProcessor::ACTION_UPDATE) {
                         $data = $this->keepExistingItemSets($currentData, $data);
                     }
                 }
                 $replaced = $this->replacePropertyValues($currentData, $data);
                 $newData = array_replace($data, $replaced);
                 break;
-            case \BulkImport\Processor\AbstractProcessor::ACTION_REPLACE:
+            case AbstractProcessor::ACTION_REPLACE:
                 if ($resourceName === 'items') {
-                    if ($this->actionMedia !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                    if ($this->actionMedia !== AbstractProcessor::ACTION_UPDATE) {
                         $newData = $this->keepExistingMedia($currentData, $data);
                     }
-                    if ($this->actionItemSet !== \BulkImport\Processor\AbstractProcessor::ACTION_UPDATE) {
+                    if ($this->actionItemSet !== AbstractProcessor::ACTION_UPDATE) {
                         $newData = $this->keepExistingItemSets($currentData, $data);
                     }
                 }
@@ -136,20 +195,35 @@ trait ResourceUpdateTrait
                     'Index #{index}: Unable to update data with action "{action}".', // @translate
                     ['index' => $this->indexResource, 'action' => $this->action]
                 );
-                ++$this->totalErrors;
-                return $currentData;
+                return null;
         }
 
         // To keep the markers during update, they must be developed.
         if (!empty($newData['o-module-mapping:mapping']['o:id']) && empty($newData['o-module-mapping:mapping']['o-module-mapping:bounds'])) {
-            $newData['o-module-mapping:mapping'] = $this->bulk->api()->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
-            $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
+            try {
+                $newData['o-module-mapping:mapping'] = $this->api->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
+                $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
+            } catch (\Exception $e) {
+                $this->logger->err(
+                    'Index #{index}: Unable to find mappings #{mapping_id}.', // @translate
+                    ['index' => $this->indexResource, 'mapping_id' => $newData['o-module-mapping:mapping']['o:id']]
+                );
+                return null;
+            }
         }
         if (!empty($newData['o-module-mapping:marker'][0]['o:id']) && !isset($newData['o-module-mapping:marker'][0]['o-module-mapping:lat'])) {
             $markers = [];
             foreach ($newData['o-module-mapping:marker'] as $value) {
-                $value = $this->bulk->api()->read('mapping_markers', ['id' => $value['o:id']])->getContent();
-                $markers[$value->id()] = json_decode(json_encode($value), true);
+                try {
+                    $value = $this->api->read('mapping_markers', ['id' => $value['o:id']])->getContent();
+                    $markers[$value->id()] = json_decode(json_encode($value), true);
+                } catch (\Exception $e) {
+                    $this->logger->err(
+                        'Index #{index}: Unable to find mapping marker #{mapping_marker_id}.', // @translate
+                        ['index' => $this->indexResource, 'mapping_marker_id' => $value['o:id']]
+                    );
+                    return null;
+                }
             }
             $newData['o-module-mapping:marker'] = $markers;
         }
@@ -158,56 +232,75 @@ trait ResourceUpdateTrait
     }
 
     /**
+     * @param string $resourceName
+     * @param int $resourceId
+     */
+    protected function prepareResourceToUpdate(string $resourceName, int $resourceId): self
+    {
+        if (!$resourceName || !$resourceId) {
+            $this->resourceToUpdateEntity = null;
+            $this->resourceToUpdate = null;
+            $this->resourceToUpdateArray = [];
+        } else {
+            // Always reload the resource that is currently managed to manage
+            // multiple update of the same resource.
+            try {
+                $this->resourceToUpdateEntity = $this->api->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
+                $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
+                $this->resourceToUpdateArray = $this->resourceJson($this->resourceToUpdate);
+            } catch (\Exception $e) {
+                $this->resourceToUpdateEntity = null;
+                $this->resourceToUpdate = null;
+                $this->resourceToUpdateArray = [];
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Remove empty values from passed data in order not to change current ones.
      *
-     * @todo Use the mechanism of preprocessBatchUpdate() of the adapter?
+     * This is an internal method that allow to process the action "revise" with
+     * a simple array_replace().
      *
-     * @param array $data
-     * @return array
+     * @todo Use the mechanism of preprocessBatchUpdate() of the adapter?
      */
-    protected function removeEmptyData(array $data)
+    protected function removeEmptyData(array $data): array
     {
-        foreach ($data as $name => $metadata) {
-            switch ($name) {
-                case 'o:resource_template':
-                case 'o:resource_class':
-                case 'o:thumbnail':
-                case 'o:owner':
-                case 'o:item':
-                    if (empty($metadata) || empty($metadata['o:id'])) {
-                        unset($data[$name]);
-                    }
-                    break;
-                case 'o:media':
-                case 'o:item-set':
-                    if (empty($metadata)) {
-                        unset($data[$name]);
-                    } elseif (array_key_exists('o:id', $metadata) && empty($metadata['o:id'])) {
-                        unset($data[$name]);
-                    }
-                    break;
-                // These values are not updatable and are removed.
-                case 'o:ingester':
-                case 'o:source':
-                case 'ingest_filename':
-                case 'ingest_directory':
-                case 'ingest_url':
-                case 'o:size':
-                    unset($data[$name]);
-                    break;
-                case 'o:is_public':
-                case 'o:is_open':
-                    if (!is_bool($metadata)) {
-                        unset($data[$name]);
-                    }
-                    break;
+        foreach ($data as $field => $metadata) switch ($field) {
+            case 'o:resource_template':
+            case 'o:resource_class':
+            case 'o:thumbnail':
+            case 'o:owner':
+            case 'o:item':
+            case 'o:media':
+            case 'o:item_set':
+                if (!$metadata || empty($metadata['o:id'])) {
+                    unset($data[$field]);
+                }
+                break;
+            case 'o:ingester':
+            case 'o:source':
+            case 'ingest_filename':
+            case 'ingest_directory':
+            case 'ingest_url':
+            case 'o:size':
+                // These values are not updatable and are removed in all cases.
+                unset($data[$field]);
+                break;
+            case 'o:is_public':
+            case 'o:is_open':
+            case 'o:is_active':
+                if (!is_bool($metadata)) {
+                    unset($data[$field]);
+                }
+                break;
+            default:
                 // Properties.
-                default:
-                    if (is_array($metadata) && empty($metadata)) {
-                        unset($data[$name]);
-                    }
-                    break;
-            }
+                if ($metadata === null || $metadata === []) {
+                    unset($data[$field]);
+                }
+                break;
         }
         return $data;
     }
@@ -215,55 +308,52 @@ trait ResourceUpdateTrait
     /**
      * Fill empty values from passed data in order to remove current ones.
      *
-     * @param array $data
-     * @return array
+     * This is an internal method that allow to process the action "update" with
+     * a simple array_replace().
+     *
+     * Unlike previous version, the target field is used, not the "from" string
+     * (spreadsheet header). So the result may be slightly different, but
+     * simpler to understand.
      */
-    protected function fillEmptyData(array $data)
+    protected function fillEmptyData(array $data): array
     {
-        if (!$this->hasProcessorMapping) {
-            return $data;
-        }
-
-        // Note: mapping is not available in the trait.
-        $mapping = array_filter(array_intersect_key(
-            $this->mapping,
-            array_flip($this->skippedSourceFields)
-        ));
-
-        foreach ($mapping as $targets) {
-            foreach ($targets as $target) {
-                $name = $target['target'];
-                switch ($name) {
-                    case 'o:resource_template':
-                    case 'o:resource_class':
-                    case 'o:thumbnail':
-                    case 'o:owner':
-                    case 'o:item':
-                        $data[$name] = null;
-                        break;
-                    case 'o:media':
-                    case 'o:item-set':
-                        $data[$name] = [];
-                        break;
+        foreach ($this->metaMapping as $map) {
+            $field = $map['to']['field'] ?? null;
+            if (!$field
+                // Add an empty field only when there is no value, of course.
+                || array_key_exists($field, $data)
+            ) {
+                continue;
+            }
+            switch ($field) {
+                case 'o:resource_template':
+                case 'o:resource_class':
+                case 'o:thumbnail':
+                case 'o:owner':
+                case 'o:item':
+                case 'o:media':
+                case 'o:item_set':
+                    $data[$field] = null;
+                    break;
+                case 'o:ingester':
+                case 'o:source':
+                case 'ingest_filename':
+                case 'ingest_directory':
+                case 'ingest_url':
+                case 'o:size':
                     // These values are not updatable and are removed.
-                    case 'o:ingester':
-                    case 'o:source':
-                    case 'ingest_filename':
-                    case 'ingest_directory':
-                    case 'ingest_url':
-                    case 'o:size':
-                        unset($data[$name]);
-                        break;
-                    // Nothing to do for boolean.
-                    case 'o:is_public':
-                    case 'o:is_open':
-                        // Noything to do.
-                        break;
+                    unset($data[$field]);
+                    break;
+                case 'o:is_public':
+                case 'o:is_open':
+                case 'o:is_active':
+                    // Nothing to do for boolean: keep original for now.
+                    // TODO Manage action "update" for boolean.
+                    break;
+                default:
                     // Properties.
-                    default:
-                        $data[$name] = [];
-                        break;
-                }
+                    $data[$field] = [];
+                    break;
             }
         }
         return $data;
@@ -271,16 +361,11 @@ trait ResourceUpdateTrait
 
     /**
      * Prepend existing identifiers to new data.
-     *
-     * @param array $currentData
-     * @param array $data
-     * @param array $identifierNames
-     * @return array
      */
-    protected function keepExistingIdentifiers(array $currentData, $data, array $identifierNames)
+    protected function keepExistingIdentifiers(array $currentData, array $data): array
     {
         // Keep only identifiers that are properties.
-        $identifierNames = array_filter($identifierNames, 'is_numeric');
+        $identifierNames = array_filter($this->identifierNames, 'is_numeric');
         foreach (array_keys(array_intersect_key($identifierNames, $currentData)) as $propertyTerm) {
             if (isset($data[$propertyTerm]) && count($data[$propertyTerm])) {
                 $newData = array_merge(
@@ -297,12 +382,8 @@ trait ResourceUpdateTrait
 
     /**
      * Prepend existing media to new data.
-     *
-     * @param array $currentData
-     * @param array $data
-     * @return array
      */
-    protected function keepExistingMedia(array $currentData, $data)
+    protected function keepExistingMedia(array $currentData, array $data): array
     {
         if (empty($currentData['o:media'])) {
             return $data;
@@ -326,12 +407,8 @@ trait ResourceUpdateTrait
 
     /**
      * Prepend existing item set to new data.
-     *
-     * @param array $currentData
-     * @param array $data
-     * @return array
      */
-    protected function keepExistingItemSets(array $currentData, $data)
+    protected function keepExistingItemSets(array $currentData, array $data): array
     {
         if (empty($currentData['o:item_set'])) {
             return $data;

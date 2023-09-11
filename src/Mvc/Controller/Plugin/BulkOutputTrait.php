@@ -2,7 +2,7 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
-trait BulkCheckDiffTrait
+trait BulkOutputTrait
 {
     /**
      * Create the unique file name compatible on various os.

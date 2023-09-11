@@ -79,7 +79,7 @@ trait BulkResourceTrait
         $repr = array_diff_key($resourceArray, $propertyIds);
         $repr = json_decode(json_encode($repr), true);
 
-        $isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
+        $isOldOmeka = version_compare(\Omeka\Module::VERSION, '3.2', '<');
 
         $propertiesWithoutResource = array_intersect_key($resourceArray, $propertyIds);
         foreach ($propertiesWithoutResource as $term => $values) {

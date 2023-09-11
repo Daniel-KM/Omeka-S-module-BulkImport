@@ -13,8 +13,6 @@ use Log\Stdlib\PsrMessage;
  */
 class ResourceProcessor extends AbstractResourceProcessor
 {
-    use ResourceUpdateTrait;
-
     protected $resourceName = 'resources';
 
     protected $resourceLabel = 'Mixed resources'; // @translate

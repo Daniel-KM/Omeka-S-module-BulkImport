@@ -361,7 +361,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      * Only name and alt text are update for now (see api AssetAdapter).
      * Thumbnails of resources are updatable too.
      *
-     * @see \BulkImport\Processor\ResourceUpdateTrait
+     * @see \BulkImport\Mvc\Controller\Plugin\UpdateResource
      */
     protected function updateDataAsset($resourceName, array $dataResource): array
     {

@@ -188,7 +188,7 @@ class Import extends AbstractJob
 
     /**
      * The public site should be set, because it may be needed to get all values
-     * of a resource during json encoding in ResourceUpdateTrait, line 60.
+     * of a resource during json encoding in UpdateResource::prepareResourceToUpdate().
      *
      * @todo Use job arguments.
      */

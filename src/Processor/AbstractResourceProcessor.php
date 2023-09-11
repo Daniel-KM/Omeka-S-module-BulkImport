@@ -75,6 +75,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $tempFileFactory;
 
     /**
+     * @var \BulkImport\Mvc\Controller\Plugin\UpdateResource
+     */
+    protected $updateResource;
+
+    /**
      * @var ArrayObject
      */
     protected $base;
@@ -190,6 +195,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // Used for uploaded files.
         $services = $this->getServiceLocator();
         $this->tempFileFactory = $services->get('Omeka\File\TempFileFactory');
+        $this->updateResource = $services->get('ControllerPluginManager')->get('updateResource');
 
         $this->prepareAction();
         if ($this->totalErrors) {
@@ -1253,7 +1259,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        if ($this->actionUnidentified === self::ACTION_CREATE) {
+        // Create resources first.
+        if ($this->actionUnidentified === self::ACTION_CREATE && count($dataToCreateOrSkip)) {
             $resources = $this->createResources($resourceName, $dataToCreateOrSkip);
         }
 
@@ -1318,12 +1325,24 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
 
             if ($this->action !== self::ACTION_SUB_UPDATE) {
-                $dataResource = $resourceName === 'assets'
+                $updatedResource = $resourceName === 'assets'
                     ? $this->updateDataAsset($resourceName, $dataResource)
-                    : $this->updateData($resourceName, $dataResource);
-                if (!$dataResource) {
-                    return $this;
+                    : $this->updateResource->__invoke($resource, [
+                        'action' => $this->action,
+                        // In ResourceProcessor.
+                        'actionItemSet' => $this->actionItemSet,
+                        'actionMedia' => $this->actionMedia,
+                        'actionIdentifier' => $this->actionIdentifier,
+                        'identifierNames' => $this->identifierNames,
+                        'metaMapping' => $this->metaMapper->getMetaMapping(),
+                    ]);
+                if (!$updatedResource
+                    || (isset($updatedResource['messageStore']) && $updatedResource['messageStore']->hasErrors())
+                ) {
+                    ++$this->totalErrors;
+                    return null;
                 }
+                $resource = $updatedResource;
             }
 
             // Remove uploaded files.

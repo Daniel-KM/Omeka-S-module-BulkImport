@@ -18,7 +18,7 @@ use OpenSpout\Writer\Common\Creator\WriterFactory;
  */
 class BulkDiffValues extends AbstractPlugin
 {
-    use BulkCheckDiffTrait;
+    use BulkOutputTrait;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
