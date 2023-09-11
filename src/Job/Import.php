@@ -13,17 +13,14 @@ use Laminas\Log\Logger;
 use Laminas\Router\Http\RouteMatch;
 use Log\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
-use Omeka\Api\Manager as ApiManager;
 use Omeka\Entity\Job;
 use Omeka\Job\AbstractJob;
 
+/**
+ * @todo Make the importer manages whole process with reader, mapping and processor? So the processor will be api / create / update.
+ */
 class Import extends AbstractJob
 {
-    /**
-     * @var ImportRepresentation
-     */
-    protected $import;
-
     /**
      * @var \Laminas\Log\Logger
      */
@@ -34,6 +31,36 @@ class Import extends AbstractJob
      */
     protected $api;
 
+    /**
+     * @var \BulkImport\Stdlib\MetaMapper
+     */
+    protected $metaMapper;
+
+    /**
+     * @var \BulkImport\Api\Representation\ImportRepresentation
+     */
+    protected $import;
+
+    /**
+     * @var \BulkImport\Api\Representation\ImporterRepresentation
+     */
+    protected $importer;
+
+    /**
+     * @var \BulkImport\Reader\Reader
+     */
+    protected $reader;
+
+    /**
+     * @var array
+     */
+    protected $mapping;
+
+    /**
+     * @var \BulkImport\Processor\Processor
+     */
+    protected $processor;
+
     public function perform(): void
     {
         // TODO Manage "\r" manually for "auto_detect_line_endings": check if all processes purge windows and mac issues for end of lines "\r".
@@ -41,17 +68,63 @@ class Import extends AbstractJob
             ini_set('auto_detect_line_endings', '1');
         }
 
-        $this->getLogger();
-        $this->getImport();
+        $services = $this->getServiceLocator();
+        $this->logger = $services->get('Omeka\Logger');
+        $this->api = $services->get('Omeka\ApiManager');
+
+        $id = $this->getArg('bulk_import_id');
+        if (!$id) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            $this->logger->err(
+                'Import record id does not set.', // @translate
+            );
+            return;
+        }
+
+        $this->import = $this->api->search('bulk_imports', ['id' => $id, 'limit' => 1])->getContent();
+        if (!count($this->import)) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            $this->logger->err(
+                'Import record id #{id} does not exist.', // @translate
+                ['id' => $id]
+            );
+            return;
+        }
+        $this->import = reset($this->import);
+        $this->importer = $this->import->importer();
+
+        // The reference id is the job id for now.
+        $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
+        $referenceIdProcessor->setReferenceId('bulk/import/' . $this->import->id());
+        $this->logger->addProcessor($referenceIdProcessor);
 
         // Make compatible with EasyAdmin tasks, that may use a fake job.
         if ($this->job->getId()) {
-            $this->api()->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
+            $this->api->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
         }
 
-        $reader = $this->getReader();
-        $processor = $this->getProcessor()
-            ->setReader($reader)
+        $this->reader = $this->getReader();
+        if (!$this->reader) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            $this->logger->err(
+                'Reader "{reader}" is not available.', // @translate
+                ['reader' => $this->importer->readerClass()]
+            );
+            return;
+        }
+
+        $this->processor = $this->getProcessor();
+        if (!$this->processor) {
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
+            $this->logger->err(
+                'Processor "{processor}" is not available.', // @translate
+                ['processor' => $this->importer->processorClass()]
+            );
+            return;
+        }
+
+        $this->processor
+            ->setReader($this->reader)
             ->setLogger($this->logger)
             // This is not the job entity, but the job itself, so it has no id.
             // FIXME Clarify name of job for job id/import id.
@@ -61,11 +134,11 @@ class Import extends AbstractJob
 
         $this->logger->log(Logger::NOTICE, 'Import started'); // @translate
 
-        $processor->process();
+        $this->processor->process();
 
         // Try to clean remaining uploaded files.
-        if ($processor instanceof Parametrizable) {
-            $files = $processor->getParams()['files'] ?? [];
+        if ($this->processor instanceof Parametrizable) {
+            $files = $this->processor->getParams()['files'] ?? [];
             foreach ($files as $file) {
                 @unlink($file['filename']);
                 if (!empty($file['dirpath'])) {
@@ -95,106 +168,40 @@ class Import extends AbstractJob
         return $this->job;
     }
 
-    /**
-     * Get the logger for the bulk process (the Omeka one, with reference id).
-     */
-    protected function getLogger(): Logger
-    {
-        if ($this->logger) {
-            return $this->logger;
-        }
-        $this->logger = $this->getServiceLocator()->get('Omeka\Logger');
-        $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
-        $referenceIdProcessor->setReferenceId('bulk/import/' . $this->getImport()->id());
-        $this->logger->addProcessor($referenceIdProcessor);
-        return $this->logger;
-    }
-
-    /**
-     * @return \Omeka\Api\Manager
-     */
-    protected function api(): ApiManager
-    {
-        if (!$this->api) {
-            $this->api = $this->getServiceLocator()->get('Omeka\ApiManager');
-        }
-        return $this->api;
-    }
-
-    protected function getImport(): ?ImportRepresentation
-    {
-        if ($this->import) {
-            return $this->import;
-        }
-
-        $id = $this->getArg('bulk_import_id');
-        if ($id) {
-            $content = $this->api()->search('bulk_imports', ['id' => $id, 'limit' => 1])->getContent();
-            $this->import = is_array($content) && count($content) ? reset($content) : null;
-        }
-
-        if (empty($this->import)) {
-            // TODO Avoid the useless trace in the log for jobs.
-            throw new \Omeka\Job\Exception\InvalidArgumentException('Import record does not exist'); // @translate
-        }
-
-        return $this->import;
-    }
-
-    /**
-     * @throws \Omeka\Job\Exception\InvalidArgumentException
-     */
-    protected function getReader(): Reader
+    protected function getReader(): ?Reader
     {
         $services = $this->getServiceLocator();
-        $import = $this->getImport();
-        $importer = $import->importer();
-        $readerClass = $importer->readerClass();
+        $readerClass = $this->importer->readerClass();
         $readerManager = $services->get(ReaderManager::class);
         if (!$readerManager->has($readerClass)) {
-            throw new \Omeka\Job\Exception\InvalidArgumentException(
-                (string) new PsrMessage(
-                    'Reader "{reader}" is not available.', // @translate
-                    ['reader' => $readerClass]
-                )
-            );
+            return null;
         }
         $reader = $readerManager->get($readerClass);
         $reader->setServiceLocator($services);
         if ($reader instanceof Configurable) {
-            $reader->setConfig($importer->readerConfig());
+            $reader->setConfig($this->importer->readerConfig());
         }
         if ($reader instanceof Parametrizable) {
-            $reader->setParams($import->readerParams());
+            $reader->setParams($this->import->readerParams());
         }
         return $reader;
     }
 
-    /**
-     * @throws \Omeka\Job\Exception\InvalidArgumentException
-     */
-    protected function getProcessor(): Processor
+    protected function getProcessor(): ?Processor
     {
         $services = $this->getServiceLocator();
-        $import = $this->getImport();
-        $importer = $import->importer();
-        $processorClass = $importer->processorClass();
+        $processorClass = $this->importer->processorClass();
         $processorManager = $services->get(ProcessorManager::class);
         if (!$processorManager->has($processorClass)) {
-            throw new \Omeka\Job\Exception\InvalidArgumentException(
-                (string) new PsrMessage(
-                    'Processor "{processor}" is not available.', // @translate
-                    ['processor' => $processorClass]
-                )
-            );
+            return null;
         }
         $processor = $processorManager->get($processorClass);
         $processor->setServiceLocator($services);
         if ($processor instanceof Configurable) {
-            $processor->setConfig($importer->processorConfig());
+            $processor->setConfig($this->importer->processorConfig());
         }
         if ($processor instanceof Parametrizable) {
-            $processor->setParams($import->processorParams());
+            $processor->setParams($this->import->processorParams());
         }
         return $processor;
     }
@@ -210,13 +217,13 @@ class Import extends AbstractJob
         $defaultSiteId = $settings->get('default_site');
         if ($defaultSiteId) {
             try {
-                $defaultSiteSlug = $this->api()->read('sites', ['id' => $defaultSiteId], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent()->getSlug();
+                $defaultSiteSlug = $this->api->read('sites', ['id' => $defaultSiteId], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent()->getSlug();
             } catch (NotFoundException $e) {
             }
         }
 
         if (empty($defaultSiteSlug)) {
-            $defaultSiteSlugs = $this->api()->search('sites', ['limit' => 1], ['initialize' => false, 'returnScalar' => 'slug'])->getContent();
+            $defaultSiteSlugs = $this->api->search('sites', ['limit' => 1], ['initialize' => false, 'returnScalar' => 'slug'])->getContent();
             if (empty($defaultSiteSlugs)) {
                 // This is a very rare case, so avoid an exception here.
                 $defaultSiteSlug = '-';
@@ -237,6 +244,7 @@ class Import extends AbstractJob
             $routeMatch->setMatchedRouteName('site');
             $event->setRouteMatch($routeMatch);
         }
+
         return $this;
     }
 
@@ -271,7 +279,7 @@ class Import extends AbstractJob
                 'link_close' => '</a>',
                 'link_open_log' => sprintf(
                     '<a href="%s">',
-                    htmlspecialchars($urlHelper->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->getImport()->id()], ['force_canonical' => true]))
+                    htmlspecialchars($urlHelper->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->import->id()], ['force_canonical' => true]))
                 ),
             ]
         );
