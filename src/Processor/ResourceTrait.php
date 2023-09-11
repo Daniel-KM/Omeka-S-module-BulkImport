@@ -38,8 +38,8 @@ trait ResourceTrait
         }
 
         $this->sourceKeyId = $keyId;
-        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->bulk->getResourceClassId($this->mapping[$sourceType]['resource_class_id']);
-        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->getResourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
+        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->bulk->resourceClassId($this->mapping[$sourceType]['resource_class_id']);
+        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->resourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
         $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
 
         // Check the size of the import.
@@ -733,7 +733,7 @@ SQL;
         if (strpos($value['type'], 'customvocab:') === 0
             && !is_numeric(mb_substr($value['type'], 12))
         ) {
-            $value['type'] = $this->bulk->getCustomVocabDataTypeName($value['type']) ?? 'literal';
+            $value['type'] = $this->bulk->customVocabDataTypeName($value['type']) ?? 'literal';
         }
 
         if (!empty($value['value_resource']) && !is_object($value['value_resource'])) {
@@ -836,11 +836,11 @@ SQL;
         if (empty($values) || empty($termOrId)) {
             return [];
         }
-        $termId = $this->bulk->getPropertyId($termOrId);
+        $termId = $this->bulk->propertyId($termOrId);
         if (!$termId) {
             return [];
         }
-        $termLabel = $this->bulk->getPropertyLabel($termId);
+        $termLabel = $this->bulk->propertyLabel($termId);
         foreach ($values as &$value) {
             $value['property_id'] = $termId;
             $value['property_label'] = $termLabel;

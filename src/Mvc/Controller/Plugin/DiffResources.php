@@ -232,7 +232,7 @@ class DiffResources extends AbstractPlugin
 
         // Manage metadata in a generic way.
 
-        $isProperty = is_integer($this->bulk->getPropertyId($meta));
+        $isProperty = is_integer($this->bulk->propertyId($meta));
 
         if (!$isProperty) {
             $resultMeta = [

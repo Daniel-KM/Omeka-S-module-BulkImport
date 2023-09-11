@@ -587,11 +587,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         // Set the template id when a label is used.
         foreach ($this->mapping as $sourceType => $configData) {
             if (isset($configData['resource_template_id'])) {
-                $templateId = $this->bulk->getResourceTemplateId($configData['resource_template_id']);
+                $templateId = $this->bulk->resourceTemplateId($configData['resource_template_id']);
                 if ($templateId) {
                     $this->mapping[$sourceType]['resource_template_id'] = $templateId;
                 } else {
-                    $templateId = $this->bulk->getResourceTemplateId($this->translator->translate($configData['resource_template_id']));
+                    $templateId = $this->bulk->resourceTemplateId($this->translator->translate($configData['resource_template_id']));
                     if ($templateId) {
                         $this->mapping[$sourceType]['resource_template_id'] = $templateId;
                     }
@@ -1048,7 +1048,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function prepareInternalVocabularies(): void
     {
-        foreach ($this->bulk->getPropertyIds() as $term => $id) {
+        foreach ($this->bulk->propertyIds() as $term => $id) {
             $this->map['properties'][$term] = [
                 'term' => $term,
                 'source' => $id,
@@ -1057,7 +1057,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
         $this->map['by_id']['properties'] = array_map('intval', array_column($this->map['properties'], 'id', 'source'));
 
-        foreach ($this->bulk->getResourceClassIds() as $term => $id) {
+        foreach ($this->bulk->resourceClassIds() as $term => $id) {
             $this->map['resource_classes'][$term] = [
                 'term' => $term,
                 'source' => $id,
@@ -1075,7 +1075,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function prepareInternalTemplates(): void
     {
-        $this->map['resource_templates'] = $this->bulk->getResourceTemplateIds();
+        $this->map['resource_templates'] = $this->bulk->resourceTemplateIds();
     }
 
     protected function checkVocabularies(): void

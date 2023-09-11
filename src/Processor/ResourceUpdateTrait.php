@@ -443,7 +443,7 @@ trait ResourceUpdateTrait
      */
     protected function extractPropertyValuesFromResource(array $resourceJson): array
     {
-        return array_intersect_key($resourceJson, $this->bulk->getPropertyIds());
+        return array_intersect_key($resourceJson, $this->bulk->propertyIds());
     }
 
     /**

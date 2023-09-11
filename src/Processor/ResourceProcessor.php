@@ -402,7 +402,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $target = trim(substr($target, $pos));
                     $result['target'] = $target;
                     $result['target_data'] = $targetData;
-                    $propertyId = $this->bulk->getPropertyId($targetData);
+                    $propertyId = $this->bulk->propertyId($targetData);
                     if ($propertyId) {
                         $subValue = [];
                         $subValue['property_id'] = $propertyId;
@@ -415,12 +415,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $result['target'] = $target;
                 }
 
-                $propertyId = $this->bulk->getPropertyId($target);
+                $propertyId = $this->bulk->propertyId($target);
                 if ($propertyId) {
                     $datatypes = [];
                     // Normally already checked.
                     foreach ($metadata['datatype'] ?? [] as $datatype) {
-                        $datatypes[] = $this->bulk->getDataTypeName($datatype);
+                        $datatypes[] = $this->bulk->dataTypeName($datatype);
                     }
                     $datatypes = array_filter(array_unique($datatypes));
                     if (empty($datatypes)) {
@@ -491,7 +491,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         $resource = parent::processEntryFromReader($entry);
 
         // Clean the property id in all cases.
-        $properties = $this->bulk->getPropertyIds();
+        $properties = $this->bulk->propertyIds();
         foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
             foreach (array_keys($values) as $key) {
                 $resource[$term][$key]['property_id'] = $properties[$term];
@@ -660,7 +660,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $label = empty($value['o:label']) ? null : $value['o:label'];
                     $value = $id ?? $label ?? reset($value);
                 }
-                $id = $this->bulk->getResourceTemplateId($value);
+                $id = $this->bulk->resourceTemplateId($value);
                 if ($id) {
                     $resource['o:resource_template'] = empty($label)
                         ? ['o:id' => $id]
@@ -680,7 +680,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $term = empty($value['o:term']) ? null : $value['o:term'];
                     $value = $id ?? $term ?? reset($value);
                 }
-                $id = $this->bulk->getResourceClassId($value);
+                $id = $this->bulk->resourceClassId($value);
                 if ($id) {
                     $resource['o:resource_class'] = empty($term)
                         ? ['o:id' => $id]
@@ -829,7 +829,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $label = empty($value['o:label']) ? null : $value['o:label'];
                     $value = $id ?? $label ?? reset($value);
                 }
-                $id = $this->bulk->getResourceTemplateId($value);
+                $id = $this->bulk->resourceTemplateId($value);
                 if ($id) {
                     $resource['o:resource_template'] = empty($label)
                         ? ['o:id' => $id]
@@ -852,7 +852,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $term = empty($value['o:term']) ? null : $value['o:term'];
                     $value = $id ?? $term ?? reset($value);
                 }
-                $id = $this->bulk->getResourceClassId($value);
+                $id = $this->bulk->resourceClassId($value);
                 if ($id) {
                     $resource['o:resource_class'] = empty($term)
                         ? ['o:id' => $id]
@@ -980,13 +980,13 @@ class ResourceProcessor extends AbstractResourceProcessor
             // The data type name is normally already checked, but may be empty.
             foreach ($datatypeNames as $datatypeName) {
                 /** @var \Omeka\DataType\DataTypeInterface $datatype */
-                $datatype = $this->bulk->getDataType($datatypeName);
+                $datatype = $this->bulk->dataType($datatypeName);
                 if (!$datatype) {
                     continue;
                 }
                 $datatypeName = $datatype->getName();
                 $target['value']['type'] = $datatypeName;
-                $mainDataType = $this->bulk->getMainDataType($datatypeName);
+                $mainDataType = $this->bulk->dataTypeMain($datatypeName);
                 if ($datatypeName === 'literal') {
                     $this->fillPropertyForValue($resource, $target, $value);
                     $hasDatatype = true;
@@ -1035,7 +1035,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $targetLiteral = $target;
                     $targetLiteral['value']['type'] = 'literal';
                     $this->fillPropertyForValue($resource, $targetLiteral, $value);
-                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                    if ($this->bulk->dataTypeMain(reset($datatypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
                             'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
                             ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
@@ -1047,7 +1047,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ));
                     }
                 } else {
-                    if ($this->bulk->getMainDataType(reset($datatypeNames)) === 'resource') {
+                    if ($this->bulk->dataTypeMain(reset($datatypeNames)) === 'resource') {
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
                             ['value' => mb_substr((string) $value, 0, 50), 'datatypes' => implode('", "', $datatypeNames)]
@@ -1070,7 +1070,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Prepare the new resource value from the target.
         $resourceValue = $target['value'];
         $datatype = $resourceValue['type'];
-        $mainDataType = $this->bulk->getMainDataType($datatype);
+        $mainDataType = $this->bulk->dataTypeMain($datatype);
         switch ($datatype) {
             default:
             case 'literal':
@@ -1109,7 +1109,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 break;
 
             case substr($datatype, 0, 11) === 'customvocab':
-                $customVocabBaseType = $this->bulk->getCustomVocabBaseType($datatype);
+                $customVocabBaseType = $this->bulk->customVocabBaseType($datatype);
                 $result = $this->bulk->isCustomVocabMember($datatype, $vrId ?? $value);
                 if ($result) {
                     if ($customVocabBaseType === 'uri') {

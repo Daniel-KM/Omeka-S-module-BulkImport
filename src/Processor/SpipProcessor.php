@@ -2550,7 +2550,7 @@ class SpipProcessor extends AbstractFullProcessor
         );
 
         $translationTerm = 'bibo:translationOf';
-        $translationId = $this->bulk->getPropertyId($translationTerm);
+        $translationId = $this->bulk->propertyId($translationTerm);
 
         $countRemoved = 0;
 
@@ -2840,7 +2840,7 @@ class SpipProcessor extends AbstractFullProcessor
 
         if ($removedConcepts) {
             $itemIds = [];
-            $curationCategoryId = $this->bulk->getPropertyId('curation:category');
+            $curationCategoryId = $this->bulk->propertyId('curation:category');
             foreach ($removedConcepts as $conceptId => $articleIds) {
                 $itemIds[$conceptId] = reset($articleIds);
                 try {
@@ -2938,7 +2938,7 @@ class SpipProcessor extends AbstractFullProcessor
             return [];
         }
         if (is_null($propertyId)) {
-            $propertyId = $this->bulk->getPropertyId('curation:category');
+            $propertyId = $this->bulk->propertyId('curation:category');
         }
         $values = $item->subjectValues(null, null, $propertyId);
         if (!count($values)) {

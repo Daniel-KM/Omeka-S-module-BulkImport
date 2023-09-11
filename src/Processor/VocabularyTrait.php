@@ -25,7 +25,7 @@ trait VocabularyTrait
     {
         // Check existing namespace, but avoid some issues with uri, that may
         // have a trailing "#" or "/".
-        $vocabularies = $this->bulk->getVocabularyUris(true);
+        $vocabularies = $this->bulk->vocabularyUris(true);
         $prefix = array_search(rtrim($vocabulary['o:namespace_uri'], '#/'), $vocabularies);
         if ($prefix) {
             /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
@@ -187,11 +187,11 @@ trait VocabularyTrait
 
         switch ($resourceName) {
             case 'properties':
-                $memberIdsByTerm = $this->bulk->getPropertyIds();
+                $memberIdsByTerm = $this->bulk->propertyIds();
                 $class = \Omeka\Entity\Property::class;
                 break;
             case 'resource_classes':
-                $memberIdsByTerm = $this->bulk->getResourceClassIds();
+                $memberIdsByTerm = $this->bulk->resourceClassIds();
                 $class = \Omeka\Entity\ResourceClass::class;
                 break;
             default:

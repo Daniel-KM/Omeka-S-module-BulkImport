@@ -137,11 +137,11 @@ class BulkDiffValues extends AbstractPlugin
         // Get values in all rows. Only properties are processed.
         foreach ($reader as /* $innerIndex => */ $entry) foreach ($entry->getArrayCopy() as $field => $values) {
             $term = $mapping[$field][0]['target'] ?? null;
-            if (!$term || !$this->bulk->getPropertyId($term)) {
+            if (!$term || !$this->bulk->propertyId($term)) {
                 continue;
             }
             $type = $mapping[$field][0]['value']['type'] ?? null;
-            $mainType = $this->bulk->getMainDataType($type);
+            $mainType = $this->bulk->dataTypeMain($type);
             $result[$field] = array_unique(array_merge($result[$field], array_values($values)));
         }
 
@@ -156,7 +156,7 @@ class BulkDiffValues extends AbstractPlugin
         foreach (array_keys(array_filter($result)) as $field) {
             $term = $mapping[$field][0]['target'];
             $type = $mapping[$field][0]['value']['type'] ?? null;
-            $mainType = $this->bulk->getMainDataType($type);
+            $mainType = $this->bulk->dataTypeMain($type);
             $existingValues = $this->existingValues($term, $mainType);
             if ($existingValues) {
                 // $result[$field] = array_udiff($result[$field], $existingValues, 'strcasecmp');
@@ -192,7 +192,7 @@ class BulkDiffValues extends AbstractPlugin
             'uri' => 'uri',
         ];
         $column = $mainTypeColumns[$mainType] ?? 'value';
-        $propertyId = $this->bulk->getPropertyId($term);
+        $propertyId = $this->bulk->propertyId($term);
 
         $qb = $this->entityManager->createQueryBuilder();
         $expr = $qb->expr();

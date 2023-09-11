@@ -518,9 +518,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // For quicker search, prepare the ids of the properties.
         $result = [];
         foreach ($identifierNames as $identifierName) {
-            $id = $this->bulk->getPropertyId($identifierName);
+            $id = $this->bulk->propertyId($identifierName);
             if ($id) {
-                $result[$this->bulk->getPropertyTerm($id)] = $id;
+                $result[$this->bulk->propertyTerm($id)] = $id;
             } else {
                 $result[$identifierName] = $identifierName;
             }
@@ -2182,7 +2182,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return (string) $resource['o:display_title'];
         }
         if (!empty($resource['o:resource_template']['o:id'])) {
-            $templateTitleId = $this->bulk->getResourceTemplateTitleIds()[($resource['o:resource_template']['o:id'])] ?? null;
+            $templateTitleId = $this->bulk->resourceTemplateTitleIds()[($resource['o:resource_template']['o:id'])] ?? null;
             if ($templateTitleId && !empty($resource[$templateTitleId][0]['@value'])) {
                 return (string) $resource[$templateTitleId][0]['@value'];
             }
@@ -2296,7 +2296,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             } elseif ($identifierName === 'o:name') {
                 $storeMain($resource['o:name'] ?? null, $mainResourceName);
             } else {
-                $term = $this->bulk->getPropertyTerm($identifierName);
+                $term = $this->bulk->propertyTerm($identifierName);
                 foreach ($resource[$term] ?? [] as $value) {
                     if (!empty($value['@value'])) {
                         $storeMain($value['@value'], 'resources');
@@ -2340,7 +2340,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO It's now possible to store an identifier for the asset from the resource.
 
         // Store identifiers for linked resources.
-        $properties = $this->bulk->getPropertyIds();
+        $properties = $this->bulk->propertyIds();
         foreach (array_intersect_key($resource->getArrayCopy(), $properties) as $term => $values) {
             if (!is_array($values)) {
                 continue;

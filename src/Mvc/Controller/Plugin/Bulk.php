@@ -143,15 +143,15 @@ class Bulk extends AbstractPlugin
      */
     public function isPropertyTerm($termOrId): bool
     {
-        return $this->getPropertyId($termOrId) !== null;
+        return $this->propertyId($termOrId) !== null;
     }
 
     /**
      * Get a property id by term or id.
      */
-    public function getPropertyId($termOrId): ?int
+    public function propertyId($termOrId): ?int
     {
-        $ids = $this->getPropertyIds();
+        $ids = $this->propertyIds();
         return is_numeric($termOrId)
             ? (array_search($termOrId, $ids) ? $termOrId : null)
             : ($ids[$termOrId] ?? null);
@@ -160,9 +160,9 @@ class Bulk extends AbstractPlugin
     /**
      * Get a property term by term or id.
      */
-    public function getPropertyTerm($termOrId): ?string
+    public function propertyTerm($termOrId): ?string
     {
-        $ids = $this->getPropertyIds();
+        $ids = $this->propertyIds();
         return is_numeric($termOrId)
             ? (array_search($termOrId, $ids) ?: null)
             : (array_key_exists($termOrId, $ids) ? $termOrId : null);
@@ -171,11 +171,11 @@ class Bulk extends AbstractPlugin
     /**
      * Get a property label by term or id.
      */
-    public function getPropertyLabel($termOrId): ?string
+    public function propertyLabel($termOrId): ?string
     {
-        $term = $this->getPropertyTerm($termOrId);
+        $term = $this->propertyTerm($termOrId);
         return $term
-            ? $this->getPropertyLabels()[$term]
+            ? $this->propertyLabels()[$term]
             : null;
     }
 
@@ -184,7 +184,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by term.
      */
-    public function getPropertyIds(): array
+    public function propertyIds(): array
     {
         if (isset($this->properties)) {
             return $this->properties;
@@ -215,9 +215,9 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of terms by id.
      */
-    public function getPropertyTerms(): array
+    public function propertyTerms(): array
     {
-        return array_flip($this->getPropertyIds());
+        return array_flip($this->propertyIds());
     }
 
     /**
@@ -225,7 +225,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of labels by term.
      */
-    public function getPropertyLabels()
+    public function propertyLabels()
     {
         static $propertyLabels;
 
@@ -258,15 +258,15 @@ class Bulk extends AbstractPlugin
      */
     public function isResourceClass($termOrId): bool
     {
-        return $this->getResourceClassId($termOrId) !== null;
+        return $this->resourceClassId($termOrId) !== null;
     }
 
     /**
      * Get a resource class by term or by id.
      */
-    public function getResourceClassId($termOrId): ?int
+    public function resourceClassId($termOrId): ?int
     {
-        $ids = $this->getResourceClassIds();
+        $ids = $this->resourceClassIds();
         return is_numeric($termOrId)
             ? (array_search($termOrId, $ids) ? $termOrId : null)
             : ($ids[$termOrId] ?? null);
@@ -275,9 +275,9 @@ class Bulk extends AbstractPlugin
     /**
      * Get a resource class term by term or id.
      */
-    public function getResourceClassTerm($termOrId): ?string
+    public function resourceClassTerm($termOrId): ?string
     {
-        $ids = $this->getResourceClassIds();
+        $ids = $this->resourceClassIds();
         return is_numeric($termOrId)
             ? (array_search($termOrId, $ids) ?: null)
             : (array_key_exists($termOrId, $ids) ? $termOrId : null);
@@ -288,11 +288,11 @@ class Bulk extends AbstractPlugin
      *
      * @param string|int $termOrId
      */
-    public function getResourceClassLabel($termOrId): ?string
+    public function resourceClassLabel($termOrId): ?string
     {
-        $term = $this->getResourceClassTerm($termOrId);
+        $term = $this->resourceClassTerm($termOrId);
         return $term
-            ? $this->getResourceClassLabels()[$term]
+            ? $this->resourceClassLabels()[$term]
             : null;
     }
 
@@ -301,7 +301,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by term.
      */
-    public function getResourceClassIds(): array
+    public function resourceClassIds(): array
     {
         if (isset($this->resourceClasses)) {
             return $this->resourceClasses;
@@ -331,9 +331,9 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of terms by id.
      */
-    public function getResourceClassTerms(): array
+    public function resourceClassTerms(): array
     {
-        return array_flip($this->getResourceClassIds());
+        return array_flip($this->resourceClassIds());
     }
 
     /**
@@ -341,7 +341,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of resource class labels by term.
      */
-    public function getResourceClassLabels()
+    public function resourceClassLabels()
     {
         static $resourceClassLabels;
 
@@ -374,15 +374,15 @@ class Bulk extends AbstractPlugin
      */
     public function isResourceTemplate($labelOrId): bool
     {
-        return $this->getResourceTemplateId($labelOrId) !== null;
+        return $this->resourceTemplateId($labelOrId) !== null;
     }
 
     /**
      * Get a resource template by label or by id.
      */
-    public function getResourceTemplateId($labelOrId): ?int
+    public function resourceTemplateId($labelOrId): ?int
     {
-        $ids = $this->getResourceTemplateIds();
+        $ids = $this->resourceTemplateIds();
         return is_numeric($labelOrId)
             ? (array_search($labelOrId, $ids) ? $labelOrId : null)
             : ($ids[$labelOrId] ?? null);
@@ -391,9 +391,9 @@ class Bulk extends AbstractPlugin
     /**
      * Get a resource template label by label or id.
      */
-    public function getResourceTemplateLabel($labelOrId): ?string
+    public function resourceTemplateLabel($labelOrId): ?string
     {
-        $ids = $this->getResourceTemplateIds();
+        $ids = $this->resourceTemplateIds();
         return is_numeric($labelOrId)
             ? (array_search($labelOrId, $ids) ?: null)
             : (array_key_exists($labelOrId, $ids) ? $labelOrId : null);
@@ -402,13 +402,13 @@ class Bulk extends AbstractPlugin
     /**
      * Get a resource template class by label or id.
      */
-    public function getResourceTemplateClassId($labelOrId): ?int
+    public function resourceTemplateClassId($labelOrId): ?int
     {
-        $label = $this->getResourceTemplateLabel($labelOrId);
+        $label = $this->resourceTemplateLabel($labelOrId);
         if (!$label) {
             return null;
         }
-        $classIds = $this->getResourceTemplateClassIds();
+        $classIds = $this->resourceTemplateClassIds();
         return $classIds[$label] ?? null;
     }
 
@@ -417,7 +417,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of ids by label.
      */
-    public function getResourceTemplateIds(): array
+    public function resourceTemplateIds(): array
     {
         if (isset($this->resourceTemplates)) {
             return $this->resourceTemplates;
@@ -441,9 +441,9 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of labels by id.
      */
-    public function getResourceTemplateLabels(): array
+    public function resourceTemplateLabels(): array
     {
-        return array_flip($this->getResourceTemplateIds());
+        return array_flip($this->resourceTemplateIds());
     }
 
     /**
@@ -451,7 +451,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of resource class ids by label.
      */
-    public function getResourceTemplateClassIds(): array
+    public function resourceTemplateClassIds(): array
     {
         if (isset($this->resourceTemplateClassIds)) {
             return $this->resourceTemplateClassIds;
@@ -478,7 +478,7 @@ class Bulk extends AbstractPlugin
      *
      * @return array Associative array of title term ids by template id.
      */
-    public function getResourceTemplateTitleIds(): array
+    public function resourceTemplateTitleIds(): array
     {
         if (isset($this->resourceTemplateTitleIds)) {
             return $this->resourceTemplateTitleIds;
@@ -508,7 +508,7 @@ class Bulk extends AbstractPlugin
      *
      * @todo Remove the fixed vocabularies.
      */
-    public function getVocabularyUris($fixed = false): array
+    public function vocabularyUris($fixed = false): array
     {
         static $vocabularies;
         static $fixedVocabularies;
@@ -537,15 +537,15 @@ class Bulk extends AbstractPlugin
      */
     public function isDataType(?string $dataType): bool
     {
-        return array_key_exists($dataType, $this->getDataTypeNames());
+        return array_key_exists($dataType, $this->dataTypeNames());
     }
 
     /**
      * Get a data type object.
      */
-    public function getDataType(?string $dataType): ?\Omeka\DataType\DataTypeInterface
+    public function dataType(?string $dataType): ?\Omeka\DataType\DataTypeInterface
     {
-        $dataType = $this->getDataTypeName($dataType);
+        $dataType = $this->dataTypeName($dataType);
         return $dataType
             ? $this->dataTypeManager->get($dataType)
             : null;
@@ -554,15 +554,15 @@ class Bulk extends AbstractPlugin
     /**
      * Check if a datatype exists and normalize its name.
      */
-    public function getDataTypeName(?string $dataType): ?string
+    public function dataTypeName(?string $dataType): ?string
     {
         if (!$dataType) {
             return null;
         }
-        $datatypes = $this->getDataTypeNames();
+        $datatypes = $this->dataTypeNames();
         return $datatypes[$dataType]
             // Manage exception for customvocab, that may use label as name.
-            ?? $this->getCustomVocabDataTypeName($dataType);
+            ?? $this->customVocabDataTypeName($dataType);
     }
 
     /**
@@ -570,7 +570,7 @@ class Bulk extends AbstractPlugin
      *
      * @todo Remove the short data types here.
      */
-    public function getDataTypeNames(bool $noShort = false): array
+    public function dataTypeNames(bool $noShort = false): array
     {
         static $dataTypesNoShort;
 
@@ -601,9 +601,9 @@ class Bulk extends AbstractPlugin
      * Get main datatype ("literal", "resource" or "uri") from any data type.
      *
      * @see \BulkEdit\Module::mainDataType()
-     * @see \BulkImport\Mvc\Controller\Plugin\Bulk::getMainDataType()
+     * @see \BulkImport\Mvc\Controller\Plugin\Bulk::dataTypeMain()
      */
-    public function getMainDataType(?string $dataType): ?string
+    public function dataTypeMain(?string $dataType): ?string
     {
         if (empty($dataType)) {
             return null;
@@ -655,70 +655,9 @@ class Bulk extends AbstractPlugin
             return 'uri';
         }
         if (substr($dataType, 0, 11) === 'customvocab') {
-            return $this->getCustomVocabBaseType($dataType);
+            return $this->customVocabBaseType($dataType);
         }
         return null;
-    }
-
-    /**
-     * Normalize custom vocab data type from a "customvocab:label".
-     *
-     *  The check is done against the destination data types.
-     *  @todo Factorize with CustomVocabTrait::getCustomVocabDataTypeName().
-     */
-    public function getCustomVocabDataTypeName(?string $dataType): ?string
-    {
-        static $customVocabs;
-
-        if (empty($dataType) || mb_substr($dataType, 0, 12) !== 'customvocab:') {
-            return null;
-        }
-
-        if (is_null($customVocabs)) {
-            $customVocabs = [];
-            try {
-                $result = $this->api()
-                    ->search('custom_vocabs', [], ['returnScalar' => 'label'])->getContent();
-                foreach ($result  as $id => $label) {
-                    $lowerLabel = mb_strtolower($label);
-                    $cleanLabel = preg_replace('/[\W]/u', '', $lowerLabel);
-                    $customVocabs['customvocab:' . $id] = 'customvocab:' . $id;
-                    $customVocabs['customvocab:' . $label] = 'customvocab:' . $id;
-                    $customVocabs['customvocab' . $cleanLabel] = 'customvocab:' . $id;
-                }
-            } catch (\Exception $e) {
-                // Nothing.
-            }
-        }
-
-        if (empty($customVocabs)) {
-            return null;
-        }
-
-        return $customVocabs[$dataType]
-            ?? $customVocabs[preg_replace('/[\W]/u', '', mb_strtolower($dataType))]
-            ?? null;
-    }
-
-    /**
-     * Get the main type of the custom vocab: "literal", "resource" or "uri".
-     *
-     * @todo Check for dynamic custom vocabs.
-     */
-    public function getCustomVocabBaseType(string $name): ?string
-    {
-        static $customVocabTypes;
-
-        if (is_null($customVocabTypes)) {
-            $customVocabTypes = [];
-            $types = $this->services->get('ViewHelperManager')->get('customVocabBaseType')();
-            foreach ($types as $id => $type) {
-                $customVocabTypes[$id] = $type;
-                $customVocabTypes["customvocab:$id"] = $type;
-            }
-        }
-
-        return $customVocabTypes[$name] ?? null;
     }
 
     /**
@@ -739,7 +678,7 @@ class Bulk extends AbstractPlugin
             $id = (int) substr($customVocabDataType, 12);
             try {
                 /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
-                $customVocab = $this->api()->read('custom_vocabs', ['id' => $id])->getContent();
+                $customVocab = $this->api->read('custom_vocabs', ['id' => $id])->getContent();
             } catch (\Exception $e) {
                 $customVocabs[$customVocabDataType]['cv'] = null;
                 return false;
@@ -790,7 +729,7 @@ class Bulk extends AbstractPlugin
             }
             // Manage dynamic list.
             try {
-                $customVocab = $this->api()->read('custom_vocabs', ['id' => $customVocabs[$customVocabDataType]['cv']])->getContent();
+                $customVocab = $this->api->read('custom_vocabs', ['id' => $customVocabs[$customVocabDataType]['cv']])->getContent();
             } catch (\Exception $e) {
                 return false;
             }
@@ -810,7 +749,7 @@ class Bulk extends AbstractPlugin
                     return true;
                 }
                 try {
-                    $value = $this->api()->read('items', ['id' => $value])->getContent();
+                    $value = $this->api->read('items', ['id' => $value])->getContent();
                 } catch (\Exception $e) {
                     return false;
                 }
@@ -834,7 +773,68 @@ class Bulk extends AbstractPlugin
         return in_array($value, $customVocabs[$customVocabDataType]['terms']);
     }
 
-    public function getEntityClass($name): ?string
+    /**
+     * Normalize custom vocab data type from a "customvocab:label".
+     *
+     *  The check is done against the destination data types.
+     *  @todo Factorize with CustomVocabTrait::getCustomVocabDataTypeName().
+     */
+    public function customVocabDataTypeName(?string $dataType): ?string
+    {
+        static $customVocabs;
+
+        if (empty($dataType) || mb_substr($dataType, 0, 12) !== 'customvocab:') {
+            return null;
+        }
+
+        if (is_null($customVocabs)) {
+            $customVocabs = [];
+            try {
+                $result = $this->api
+                    ->search('custom_vocabs', [], ['returnScalar' => 'label'])->getContent();
+                foreach ($result  as $id => $label) {
+                    $lowerLabel = mb_strtolower($label);
+                    $cleanLabel = preg_replace('/[\W]/u', '', $lowerLabel);
+                    $customVocabs['customvocab:' . $id] = 'customvocab:' . $id;
+                    $customVocabs['customvocab:' . $label] = 'customvocab:' . $id;
+                    $customVocabs['customvocab' . $cleanLabel] = 'customvocab:' . $id;
+                }
+            } catch (\Exception $e) {
+                // Nothing.
+            }
+        }
+
+        if (empty($customVocabs)) {
+            return null;
+        }
+
+        return $customVocabs[$dataType]
+            ?? $customVocabs[preg_replace('/[\W]/u', '', mb_strtolower($dataType))]
+            ?? null;
+    }
+
+    /**
+     * Get the main type of the custom vocab: "literal", "resource" or "uri".
+     *
+     * @todo Check for dynamic custom vocabs.
+     */
+    public function customVocabBaseType(string $name): ?string
+    {
+        static $customVocabTypes;
+
+        if (is_null($customVocabTypes)) {
+            $customVocabTypes = [];
+            $types = $this->services->get('ViewHelperManager')->get('customVocabBaseType')();
+            foreach ($types as $id => $type) {
+                $customVocabTypes[$id] = $type;
+                $customVocabTypes["customvocab:$id"] = $type;
+            }
+        }
+
+        return $customVocabTypes[$name] ?? null;
+    }
+
+    public function entityClass($name): ?string
     {
         $entityClasses = [
             'assets' => \Omeka\Entity\Asset::class,

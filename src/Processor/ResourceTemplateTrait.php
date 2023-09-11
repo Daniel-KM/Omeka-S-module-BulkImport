@@ -29,7 +29,7 @@ trait ResourceTemplateTrait
             return;
         }
 
-        $resourceTemplates = $this->bulk->getResourceTemplateIds();
+        $resourceTemplates = $this->bulk->resourceTemplateIds();
 
         $result = $this->bulk->api()
             ->search('resource_templates')->getContent();

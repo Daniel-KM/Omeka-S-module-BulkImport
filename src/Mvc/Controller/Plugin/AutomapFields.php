@@ -306,7 +306,7 @@ class AutomapFields extends AbstractPlugin
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             if ($outputProperty) {
-                                $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                                $result['property_id'] = $result['field'] ? $this->bulk->propertyId($result['field']) : null;
                             }
                             $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
@@ -334,7 +334,7 @@ class AutomapFields extends AbstractPlugin
                             $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                             $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                             if ($outputProperty) {
-                                $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                                $result['property_id'] = $result['field'] ? $this->bulk->propertyId($result['field']) : null;
                             }
                             $result = $this->appendPattern($result);
                             $automaps[$index][] = $result;
@@ -393,7 +393,7 @@ class AutomapFields extends AbstractPlugin
                     $result['is_public'] = empty($matches['visibility']) ? null : trim($matches['visibility']);
                     $result['pattern'] = empty($matches['pattern']) ? null : trim($matches['pattern']);
                     if ($outputProperty) {
-                        $result['property_id'] = $result['field'] ? $this->bulk->getPropertyId($result['field']) : null;
+                        $result['property_id'] = $result['field'] ? $this->bulk->propertyId($result['field']) : null;
                     }
                     $result = $this->appendPattern($result);
                     $automaps[$index][] = $result;
@@ -622,7 +622,7 @@ class AutomapFields extends AbstractPlugin
         }
 
         foreach ($datatypes as &$datatype) {
-            $datatype = $this->bulk->getDataTypeName($datatype);
+            $datatype = $this->bulk->dataTypeName($datatype);
         }
         unset($datatype);
 

@@ -60,7 +60,7 @@ class ExtractMediaMetadata extends AbstractJob
         $bulk = $plugins->get('bulk');
         $extractMediaMetadata = $plugins->get('extractMediaMetadata');
 
-        $propertyIds = $bulk->getPropertyIds();
+        $propertyIds = $bulk->propertyIds();
 
         /** TODO Remove for Omeka v4. */
         if (!function_exists('array_key_last')) {
@@ -95,11 +95,11 @@ class ExtractMediaMetadata extends AbstractJob
                 $field = strtok($dest, ' ');
                 if ($field === 'o:resource_class') {
                     $value = array_key_last($values);
-                    $id = $bulk->getResourceClassId($value);
+                    $id = $bulk->resourceClassId($value);
                     $data['o:resource_class'] = $id ? ['o:id' => $id] : null;
                 } elseif ($field === 'o:resource_template') {
                     $value = array_key_last($values);
-                    $id = $bulk->getResourceTemplateId($value);
+                    $id = $bulk->resourceTemplateId($value);
                     $data['o:resource_template'] = $id ? ['o:id' => $id] : null;
                 } elseif (isset($propertyIds[$field])) {
                     $data[$field] = [];

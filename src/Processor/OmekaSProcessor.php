@@ -142,7 +142,7 @@ class OmekaSProcessor extends AbstractFullProcessor
             if (!is_array($value) || empty($value)) {
                 continue;
             }
-            $termId = $this->bulk->getPropertyId($term);
+            $termId = $this->bulk->propertyId($term);
             if (!$termId) {
                 continue;
             }

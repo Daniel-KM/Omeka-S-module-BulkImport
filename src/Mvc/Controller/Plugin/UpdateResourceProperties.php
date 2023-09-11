@@ -97,7 +97,7 @@ class UpdateResourceProperties extends AbstractPlugin
             return $this;
         }
 
-        $properties = $this->bulk->getPropertyIds();
+        $properties = $this->bulk->propertyIds();
 
         $resourceProperties = array_intersect_key($this->resource, $properties);
 

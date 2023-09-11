@@ -218,7 +218,7 @@ class ManiocProcessor extends AbstractFullProcessor
 
         // The media data are available only when values are set, even if it is
         // possible to use the original tables.
-        $this->sourceFilenamePropertyId = $this->bulk->getPropertyId('greenstone:sourceFilename');
+        $this->sourceFilenamePropertyId = $this->bulk->properyId('greenstone:sourceFilename');
         $this->filenamesToSha256 = $this->loadKeyValuePair('sha256', true) ?: [];
         $reader = $this->prepareReader('media_items');
         $total = $reader->count();
@@ -381,7 +381,7 @@ class ManiocProcessor extends AbstractFullProcessor
 
         /*
         $identifier = null;
-        $propertyId = $this->bulk->getPropertyId('dcterms:identifier');
+        $propertyId = $this->bulk->properyId('dcterms:identifier');
         foreach ($this->entity->getValues() as $value) {
             if ($value->getProperty()->getId() === $propertyId) {
                 $identifier = $value->getValue();
@@ -390,7 +390,7 @@ class ManiocProcessor extends AbstractFullProcessor
         }
 
         $uri = null;
-        $propertyId = $this->bulk->getPropertyId('bibo:uri');
+        $propertyId = $this->bulk->properyId('bibo:uri');
         foreach ($this->entity->getValues() as $value) {
             if ($value->getProperty()->getId() === $propertyId) {
                 $uri = $value->getValue();
@@ -811,7 +811,7 @@ SQL;
         $sql = $sqlSimple;
         $bind = [
             'template_id' => $this->map['resource_templates']['Audio'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Audio'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'greenstone',
             'property_name' => 'sourceFilename',
@@ -820,7 +820,7 @@ SQL;
         $this->connection->executeStatement($sql, $bind);
         $bind = [
             'template_id' => $this->map['resource_templates']['Audio'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Audio'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Audio'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'format',
@@ -855,7 +855,7 @@ WHERE
 SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']["Document d'archives"],
-            'class_id' => $this->bulk->getResourceTemplateClassId("Document d'archives"),
+            'class_id' => $this->bulk->resourceTemplateClassId("Document d'archives"),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'manioc',
             'property_name' => 'archive',
@@ -904,7 +904,7 @@ WHERE
 SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Image'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Image'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Image'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
@@ -977,7 +977,7 @@ WHERE
 SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Livre'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Livre'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Livre'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
@@ -1007,7 +1007,7 @@ SQL;
         $sql = $sqlSimple;
         $bind = [
             'template_id' => $this->map['resource_templates']['Mémoire et thèse'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Mémoire et thèse'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Mémoire et thèse'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
@@ -1029,7 +1029,7 @@ SQL;
         $sql = $sqlSimple;
         $bind = [
             'template_id' => $this->map['resource_templates']['Numéro de revue'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Numéro de revue'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Numéro de revue'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
@@ -1051,7 +1051,7 @@ SQL;
         $sql = $sqlSimple;
         $bind = [
             'template_id' => $this->map['resource_templates']['Extrait de revue'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Extrait de revue'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Extrait de revue'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'type',
@@ -1100,7 +1100,7 @@ WHERE
 SQL;
         $bind = [
             'template_id' => $this->map['resource_templates']['Vidéo'],
-            'class_id' => $this->bulk->getResourceTemplateClassId('Vidéo'),
+            'class_id' => $this->bulk->resourceTemplateClassId('Vidéo'),
             'resource_type' => \Omeka\Entity\Item::class,
             'vocabulary_prefix' => 'dcterms',
             'property_name' => 'identifier',
@@ -1253,7 +1253,7 @@ SQL;
             } else {
                 $templateIds = [];
                 foreach ($templateLabels as $templateLabel) {
-                    $templateId = $this->bulk->getResourceTemplateId($templateLabel);
+                    $templateId = $this->bulk->resourceTemplateId($templateLabel);
                     if (!$templateId) {
                         $this->logger->warn(
                             'Skipping "{template_group}": no template for "{label}".', // @translate
@@ -1771,7 +1771,7 @@ SQL;
                                 'action' => 'convert_datatype',
                                 'params' => [
                                     'datatype' => 'valuesuggest:geonames:geonames',
-                                    'source' => $this->bulk->getPropertyId('bio:place'),
+                                    'source' => $this->bulk->properyId('bio:place'),
                                     'mapping' => 'geonames',
                                     'partial_mapping' => true,
                                     'name' => 'lieux',
@@ -2049,7 +2049,7 @@ SQL;
                                 'value' => 'Université des Antilles et de la Guyane',
                                 // TODO Use exclude?
                                 'filters' => [
-                                    'template_id' => $this->bulk->getResourceTemplateId('Audio'),
+                                    'template_id' => $this->bulk->resourceTemplateId('Audio'),
                                 ],
                             ],
                         ],
@@ -2183,9 +2183,9 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id_new' => $this->bulk->getPropertyId('dcterms:abstract'),
-            'property_id_old' => $this->bulk->getPropertyId('dcterms:description'),
-            'class_id' => $this->bulk->getResourceClassId('dctype:Sound'),
+            'property_id_new' => $this->bulk->properyId('dcterms:abstract'),
+            'property_id_old' => $this->bulk->properyId('dcterms:description'),
+            'class_id' => $this->bulk->resourceClassId('dctype:Sound'),
             'resource_type' => \Omeka\Entity\Item::class,
         ];
         $this->connection->executeStatement($sql, $bind);
@@ -2209,7 +2209,7 @@ SQL;
             'value_new' => 'dan',
             'uri' => 'http://id.loc.gov/vocabulary/iso639-2/dan',
             'value_old' => 'da',
-            'property_id' => $this->bulk->getPropertyId('dcterms:language'),
+            'property_id' => $this->bulk->properyId('dcterms:language'),
         ];
         $this->connection->executeStatement($sql, $bind);
 
@@ -2239,8 +2239,8 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:format'),
-            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'property_id' => $this->bulk->properyId('dcterms:format'),
+            'template_id' => $this->bulk->resourceTemplateId('Vidéo'),
             'resource_type' => \Omeka\Entity\Item::class,
         ];
         $this->connection->executeStatement($sql, $bind);
@@ -2259,8 +2259,8 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:format'),
-            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'property_id' => $this->bulk->properyId('dcterms:format'),
+            'template_id' => $this->bulk->resourceTemplateId('Vidéo'),
             'resource_type' => \Omeka\Entity\Item::class,
         ];
         $this->connection->executeStatement($sql, $bind);
@@ -2302,13 +2302,13 @@ WHERE
     );
 SQL;
         $bind = [
-            'property_id_new' => $this->bulk->getPropertyId('bibo:identifier'),
-            'property_id_old' => $this->bulk->getPropertyId('bibo:uri'),
+            'property_id_new' => $this->bulk->properyId('bibo:identifier'),
+            'property_id_old' => $this->bulk->properyId('bibo:uri'),
             'resource_type' => \Omeka\Entity\Item::class,
             'template_ids' => [
-                $this->bulk->getResourceTemplateId('Personne'),
-                $this->bulk->getResourceTemplateId('Collectivité'),
-                $this->bulk->getResourceTemplateId('Manifestation'),
+                $this->bulk->resourceTemplateId('Personne'),
+                $this->bulk->resourceTemplateId('Collectivité'),
+                $this->bulk->resourceTemplateId('Manifestation'),
             ],
         ];
         $types = ['template_ids' => $this->connection::PARAM_INT_ARRAY];
@@ -2330,8 +2330,8 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:relation'),
-            'template_id' => $this->bulk->getResourceTemplateId('Vidéo'),
+            'property_id' => $this->bulk->properyId('dcterms:relation'),
+            'template_id' => $this->bulk->resourceTemplateId('Vidéo'),
             'resource_type' => \Omeka\Entity\Item::class,
         ];
         $videos = $this->connection->executeQuery($sql, $bind)->fetchAllAssociative();
@@ -2356,7 +2356,7 @@ WHERE
 ;
 SQL;
             $bind = [
-                'property_id' => $this->bulk->getPropertyId('dcterms:identifier'),
+                'property_id' => $this->bulk->properyId('dcterms:identifier'),
                 'value' => $name,
                 'resource_type' => \Omeka\Entity\Item::class,
             ];
@@ -2390,7 +2390,7 @@ SQL;
                 $bind = [
                     'resource_id' => $resourceId,
                     'value_resource_id' => (int) $video['resource_id'],
-                    'property_id' => $this->bulk->getPropertyId('dcterms:relation'),
+                    'property_id' => $this->bulk->properyId('dcterms:relation'),
                 ];
                 $this->connection->executeStatement($sql, $bind);
             } else {
@@ -2426,8 +2426,8 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:subject'),
-            'property_id_old' => $this->bulk->getPropertyId('manioc:personne'),
+            'property_id' => $this->bulk->properyId('dcterms:subject'),
+            'property_id_old' => $this->bulk->properyId('manioc:personne'),
         ];
         $this->connection->executeStatement($sql, $bind);
 
@@ -2444,7 +2444,7 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:hasPart'),
+            'property_id' => $this->bulk->properyId('dcterms:hasPart'),
             'resource_type' => \Omeka\Entity\Item::class,
         ];
         $result = $this->connection->executeStatement($sql, $bind);
@@ -2461,12 +2461,12 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('dcterms:subject'),
+            'property_id' => $this->bulk->properyId('dcterms:subject'),
             'property_ids' => [
-                $this->bulk->getPropertyId('manioc:themeAudioVideo'),
-                $this->bulk->getPropertyId('manioc:themeImages'),
-                $this->bulk->getPropertyId('manioc:themePatrimoine'),
-                $this->bulk->getPropertyId('manioc:themeTravaux'),
+                $this->bulk->properyId('manioc:themeAudioVideo'),
+                $this->bulk->properyId('manioc:themeImages'),
+                $this->bulk->properyId('manioc:themePatrimoine'),
+                $this->bulk->properyId('manioc:themeTravaux'),
             ],
             'resource_type' => \Omeka\Entity\Item::class,
         ];
@@ -2476,10 +2476,10 @@ SQL;
 
     protected function insertValueFromParentByTemplate(array $data): void
     {
-        $templateId = $this->bulk->getResourceTemplateId($data['template']);
-        $propertyParent = $this->bulk->getPropertyId($data['property_parent']);
-        $propertyParentFetch = $this->bulk->getPropertyId($data['property_parent_fetch']);
-        $propertyFill = $this->bulk->getPropertyId($data['property_parent_fill']);
+        $templateId = $this->bulk->resourceTemplateId($data['template']);
+        $propertyParent = $this->bulk->properyId($data['property_parent']);
+        $propertyParentFetch = $this->bulk->properyId($data['property_parent_fetch']);
+        $propertyFill = $this->bulk->properyId($data['property_parent_fill']);
         if (!$templateId || !$propertyParent || !$propertyParentFetch || !$propertyFill) {
             return;
         }
@@ -2538,7 +2538,7 @@ SQL;
 
         // Ajouter des valeurs aux sources qui ont un parent avec une valeur.
         $sourcesToItems = array_intersect($sourcesToItems, array_keys($parentItems));
-        $propertyId = $this->bulk->getPropertyId($propertyFill);
+        $propertyId = $this->bulk->properyId($propertyFill);
         foreach (array_chunk($sourcesToItems, self::CHUNK_ENTITIES, true) as $chunk) {
             $sql = <<<'SQL'
 INSERT INTO `value`
@@ -2566,7 +2566,7 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('bio:place'),
+            'property_id' => $this->bulk->properyId('bio:place'),
         ];
         $this->connection->executeStatement($sql, $bind);
 
@@ -2581,7 +2581,7 @@ WHERE
 ;
 SQL;
         $bind = [
-            'property_id' => $this->bulk->getPropertyId('bio:place'),
+            'property_id' => $this->bulk->properyId('bio:place'),
         ];
         $ids = $this->connection->executeQuery($sql, $bind)->fetchAllKeyValue();
         if ($ids) {
@@ -2619,7 +2619,7 @@ SQL;
         $sql .= "\nELSE `value`";
         $sql .= "\nEND\nWHERE `property_id` = :property_id;";
         $this->connection->executeStatement($sql, [
-            'property_id' => $this->bulk->getPropertyId($property),
+            'property_id' => $this->bulk->properyId($property),
         ]);
         $this->logger->notice(
             'Added label to {property}.',  // @translate
