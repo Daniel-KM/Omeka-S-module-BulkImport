@@ -45,6 +45,123 @@ use Omeka\Mvc\Controller\Plugin\Api;
  */
 class Bulk extends AbstractPlugin
 {
+    const RESOURCE_CLASSES = [
+        'annotations' => \Annotate\Entity\Annotation::class,
+        'assets' => \Omeka\Entity\Asset::class,
+        'items' => \Omeka\Entity\Item::class,
+        'item_sets' => \Omeka\Entity\ItemSet::class,
+        'media' => \Omeka\Entity\Media::class,
+        'resources' => \Omeka\Entity\Resource::class,
+        'value_annotations' => \Omeka\Entity\ValueAnnotation::class,
+    ];
+
+    const RESOURCE_NAMES = [
+        // Resource names.
+        'annotations' => 'annotations',
+        'assets' => 'assets',
+        'items' => 'items',
+        'item_sets' => 'item_sets',
+        'media' => 'media',
+        'resources' => 'resources',
+        'value_annotations' => 'value_annotations',
+        // Json-ld type.
+        'oa:Annotation' => 'annotations',
+        'o:Asset' => 'assets',
+        'o:Item' => 'items',
+        'o:ItemSet' => 'item_sets',
+        'o:Media' => 'media',
+        'o:Resource' => 'resources',
+        'o:ValueAnnotation'=> 'value_annotations',
+        // Keys in json-ld representation.
+        'oa:annotation' => 'annotations',
+        'o:asset' => 'assets',
+        'o:item' => 'items',
+        'o:items' => 'items',
+        'o:item_set' => 'item_sets',
+        'o:site_item_set' => 'item_sets',
+        'o:media' => 'media',
+        '@annotations' => 'value_annotations',
+        // Controllers and singular.
+        'annotation' => 'annotations',
+        'asset' => 'assets',
+        'item' => 'items',
+        'item-set' => 'item_sets',
+        // 'media' => 'media',
+        'resource' => 'resources',
+        'value-annotation' => 'value_annotations',
+        // Value data types.
+        'resource:annotation' => 'annotations',
+        // 'resource' => 'resources',
+        'resource:item' => 'items',
+        'resource:itemset' => 'item_sets',
+        'resource:media' => 'media',
+        // Representation class.
+        \Annotate\Api\Representation\AnnotationRepresentation::class => 'annotations',
+        \Omeka\Api\Representation\AssetRepresentation::class => 'assets',
+        \Omeka\Api\Representation\ItemRepresentation::class => 'items',
+        \Omeka\Api\Representation\ItemSetRepresentation::class => 'item_sets',
+        \Omeka\Api\Representation\MediaRepresentation::class => 'media',
+        \Omeka\Api\Representation\ResourceReference::class => 'resources',
+        \Omeka\Api\Representation\ValueAnnotationRepresentation::class => 'value_annotations',
+        // Entity class.
+        \Annotate\Entity\Annotation::class => 'annotations',
+        \Omeka\Entity\Asset::class => 'assets',
+        \Omeka\Entity\Item::class => 'items',
+        \Omeka\Entity\ItemSet::class => 'item_sets',
+        \Omeka\Entity\Media::class => 'media',
+        \Omeka\Entity\Resource::class => 'resources',
+        \Omeka\Entity\ValueAnnotation::class => 'value_annotations',
+        // Doctrine entity class (when using get_class() and not getResourceId().
+        \DoctrineProxies\__CG__\Annotate\Entity\Annotation::class => 'annotations',
+        \DoctrineProxies\__CG__\Omeka\Entity\Asset::class => 'assets',
+        \DoctrineProxies\__CG__\Omeka\Entity\Item::class => 'items',
+        \DoctrineProxies\__CG__\Omeka\Entity\ItemSet::class => 'item_sets',
+        \DoctrineProxies\__CG__\Omeka\Entity\Media::class => 'media',
+        // \DoctrineProxies\__CG__\Omeka\Entity\Resource::class => 'resources',
+        \DoctrineProxies\__CG__\Omeka\Entity\ValueAnnotation::class => 'value_annotations',
+        // Other deprecated, future or badly written names.
+        'o:annotation' => 'annotations',
+        'o:Annotation' => 'annotations',
+        'o:annotations' => 'annotations',
+        'o:assets' => 'assets',
+        'resource:items' => 'items',
+        'itemset' => 'item_sets',
+        'item set' => 'item_sets',
+        'item_set' => 'item_sets',
+        'itemsets' => 'item_sets',
+        'item sets' => 'item_sets',
+        'item-sets' => 'item_sets',
+        'o:itemset' => 'item_sets',
+        'o:item-set' => 'item_sets',
+        'o:itemsets' => 'item_sets',
+        'o:item-sets' => 'item_sets',
+        'o:item_sets' => 'item_sets',
+        'resource:itemsets' => 'item_sets',
+        'resource:item-set' => 'item_sets',
+        'resource:item-sets' => 'item_sets',
+        'resource:item_set' => 'item_sets',
+        'resource:item_sets' => 'item_sets',
+        'o:resource' => 'resources',
+        'valueannotation' => 'value_annotations',
+        'value annotation' => 'value_annotations',
+        'value_annotation' => 'value_annotations',
+        'valueannotations' => 'value_annotations',
+        'value annotations' => 'value_annotations',
+        'value-annotations' => 'value_annotations',
+        'o:valueannotation' => 'value_annotations',
+        'o:valueannotations' => 'value_annotations',
+        'o:value-annotation' => 'value_annotations',
+        'o:value-annotations' => 'value_annotations',
+        'o:value_annotation' => 'value_annotations',
+        'o:value_annotations' => 'value_annotations',
+        'resource:valueannotation' => 'value_annotations',
+        'resource:valueannotations' => 'value_annotations',
+        'resource:value-annotation' => 'value_annotations',
+        'resource:value-annotations' => 'value_annotations',
+        'resource:value_annotation' => 'value_annotations',
+        'resource:value_annotations' => 'value_annotations',
+    ];
+
     /**
      * @var ServiceLocatorInterface
      */
@@ -836,112 +953,69 @@ class Bulk extends AbstractPlugin
 
     public function entityClass($name): ?string
     {
-        $entityClasses = [
-            'assets' => \Omeka\Entity\Asset::class,
-            'items' => \Omeka\Entity\Item::class,
-            'item_sets' => \Omeka\Entity\ItemSet::class,
-            'media' => \Omeka\Entity\Media::class,
-            'resources' => '',
-            'resource' => '',
-            'resource:item' => \Omeka\Entity\Item::class,
-            'resource:itemset' => \Omeka\Entity\ItemSet::class,
-            'resource:media' => \Omeka\Entity\Media::class,
-            'resource:annotation' => \Annotate\Entity\Annotation::class,
-            'value_annotations' => \Omeka\Entity\ValueAnnotation::class,
-            // Avoid a check and make the plugin more flexible.
-            \Omeka\Api\Representation\AssetRepresentation::class => \Omeka\Entity\Asset::class,
-            \Omeka\Api\Representation\ItemRepresentation::class => \Omeka\Entity\Item::class,
-            \Omeka\Api\Representation\ItemSetRepresentation::class => \Omeka\Entity\ItemSet::class,
-            \Omeka\Api\Representation\MediaRepresentation::class => \Omeka\Entity\Media::class,
-            \Omeka\Api\Representation\ResourceReference::class => '',
-            \Omeka\Api\Representation\ValueAnnotationRepresentation::class => \Omeka\Entity\ValueAnnotation::class,
-            \Annotate\Api\Representation\AnnotationRepresentation::class => \Annotate\Entity\Annotation::class,
-            \Omeka\Entity\Asset::class => \Omeka\Entity\Asset::class,
-            \Omeka\Entity\Item::class => \Omeka\Entity\Item::class,
-            \Omeka\Entity\ItemSet::class => \Omeka\Entity\ItemSet::class,
-            \Omeka\Entity\Media::class => \Omeka\Entity\Media::class,
-            \Omeka\Entity\Resource::class => '',
-            \Omeka\Entity\ValueAnnotation::class => \Omeka\Entity\ValueAnnotation::class,
-            \Annotate\Entity\Annotation::class => \Annotate\Entity\Annotation::class,
-            'o:asset' => \Omeka\Entity\Asset::class,
-            'o:item' => \Omeka\Entity\Item::class,
-            'o:item_set' => \Omeka\Entity\ItemSet::class,
-            'o:media' => \Omeka\Entity\Media::class,
-            'o:Asset' => \Omeka\Entity\Asset::class,
-            'o:Item' => \Omeka\Entity\Item::class,
-            'o:ItemSet' => \Omeka\Entity\ItemSet::class,
-            'o:Media' => \Omeka\Entity\Media::class,
-            'o:Resource' => '',
-            'o:ValueAnnotation'=> \Omeka\Entity\ValueAnnotation::class,
-            'o:Annotation' => \Annotate\Entity\Annotation::class,
-            // Other resource types or badly written types.
-            'asset' => \Omeka\Entity\Asset::class,
-            'item' => \Omeka\Entity\Item::class,
-            'item_set' => \Omeka\Entity\ItemSet::class,
-            'item-set' => \Omeka\Entity\ItemSet::class,
-            'itemset' => \Omeka\Entity\ItemSet::class,
-            'resource:item_set' => \Omeka\Entity\ItemSet::class,
-            'resource:item-set' => \Omeka\Entity\ItemSet::class,
-            'value-annotation'=> \Omeka\Entity\ValueAnnotation::class,
-            'annotation' => \Annotate\Entity\Annotation::class,
-        ];
-        return $entityClasses[$name] ?? null;
+        return self::RESOURCE_CLASSES[self::RESOURCE_NAMES[$name] ?? null] ?? null;
     }
 
-    public function resourceTable($name): ?string
+    public function resourceName($name): ?string
     {
-        $entityClass = $this->getEntityClass($name);
-        $tableResources = [
-            \Omeka\Entity\Asset::class => 'asset',
-            \Omeka\Entity\Item::class => 'item',
-            \Omeka\Entity\ItemSet::class => 'item_set',
-            \Omeka\Entity\Media::class => 'media',
-            \Omeka\Entity\ValueAnnotation::class => 'value_annotation',
-            \Annotate\Entity\Annotation::class => 'annotation',
-        ];
-        return $tableResources[$entityClass] ?? null;
+        return self::RESOURCE_NAMES[$name] ?? null;
     }
 
     /**
-     * Allows to log resources with a singular name from the resource name, that
-     * is plural in Omeka.
+     * Get the resource label from any common resource name.
+     *
+     * Allows to log a resource with a singular name from the resource name,
+     * that is plural in Omeka.
      */
-    public function resourceLabel($resourceName): ?string
+    public function resourceLabel($name): ?string
     {
         $labels = [
+            'annotations' => 'annotation', // @translate
             'assets' => 'asset', // @translate
             'items' => 'item', // @translate
             'item_sets' => 'item set', // @translate
             'media' => 'media', // @translate
             'resources' => 'resource', // @translate
-            'annotations' => 'annotation', // @translate
-            'vocabularies' => 'vocabulary', // @translate
             'properties' => 'property', // @translate
             'resource_classes' => 'resource class', // @translate
             'resource_templates' => 'resource template', // @translate
+            'vocabularies' => 'vocabulary', // @translate
         ];
-        return $labels[$resourceName] ?? $resourceName;
+        return $labels[self::RESOURCE_NAMES[$name] ?? null] ?? null;
     }
 
     /**
-     * Allows to log resources with a singular name from the resource name, that
-     * is plural in Omeka.
+     * Get the plural resource label from any common resource name.
      */
-    public function resourceLabelPlural($resourceName): ?string
+    public function resourceLabelPlural($name): ?string
     {
         $labels = [
+            'annotations' => 'annotations', // @translate
             'assets' => 'assets', // @translate
             'items' => 'items', // @translate
             'item_sets' => 'item sets', // @translate
             'media' => 'media', // @translate
             'resources' => 'resources', // @translate
-            'annotations' => 'annotations', // @translate
-            'vocabularies' => 'vocabularies', // @translate
             'properties' => 'properties', // @translate
             'resource_classes' => 'resource classes', // @translate
             'resource_templates' => 'resource templates', // @translate
+            'vocabularies' => 'vocabularies', // @translate
         ];
-        return $labels[$resourceName] ?? $resourceName;
+        return $labels[self::RESOURCE_NAMES[$name] ?? null] ?? null;
+    }
+
+    public function resourceTable($name): ?string
+    {
+        $tables = [
+            \Annotate\Entity\Annotation::class => 'annotation',
+            \Omeka\Entity\Asset::class => 'asset',
+            \Omeka\Entity\Item::class => 'item',
+            \Omeka\Entity\ItemSet::class => 'item_set',
+            \Omeka\Entity\Media::class => 'media',
+            \Omeka\Entity\Resource::class => 'resource',
+            \Omeka\Entity\ValueAnnotation::class => 'value_annotation',
+        ];
+        return $tables[self::RESOURCE_NAMES[$name] ?? null] ?? null;
     }
 
     public function basePath(): string
