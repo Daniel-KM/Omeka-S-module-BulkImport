@@ -2,9 +2,10 @@
     "require": {
         "ext-xml": "*",
         "codemirror/codemirror": "^5.65",
+        "cweagans/composer-patches": "^1.7",
         "daniel-km/simple-iso-3166-1": "^0.2",
         "daniel-km/simple-iso-639-3": "^0.2",
-        "flowjs/flow-php-server": "^1.0",
+        "flowjs/flow-php-server": "^1.2",
         "flowjs/flow.js": "^2.14",
         "hakre/xmlreaderiterator": "^0.1",
         "james-heinrich/getid3": "^2.0-dev",
@@ -60,6 +61,12 @@
             "asset/vendor/{$name}/": [
                 "type:omeka-addon-asset"
             ]
+        },
+        "installer-name" : "BulkImport",
+        "patches": {
+            "softcreatr/jsonpath": {
+                "Fix deprecation for JsonPath 0.7.6 on php 8 (minimum required by Omeka is php 7.4)": "patches/jsonpath.patch"
+            }
         }
     },
     "config": {
@@ -68,15 +75,8 @@
         },
         "allow-plugins": {
             "composer/installers": true,
+            "cweagans/composer-patches": true,
             "oomphinc/composer-installers-extender": true
         }
-    },
-    "scripts": {
-        "post-install-cmd": "@build",
-        "post-update-cmd": "@build",
-        "build": [
-            "# Fix deprecation for JsonPath on php 7.4 (minimum required by Omeka).",
-            "@php -r '$r = \"#[\\ReturnTypeWillChange]\\n    \"; $s = [\"public function offsetGet(\\$offset)\", \"public function key()\", \"public function current()\"]; $f = __DIR__ . \"/vendor/softcreatr/jsonpath/src/JSONPath.php\"; file_put_contents($f, str_replace($s, [$r . $s[0], $r . $s[1], $r . $s[2]], file_get_contents($f)));'"
-        ]
     }
 }
