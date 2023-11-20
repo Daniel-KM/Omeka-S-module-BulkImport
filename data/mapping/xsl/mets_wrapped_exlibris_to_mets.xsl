@@ -16,6 +16,11 @@
     La relation sans file_id est la vignette et non prise en compte par défaut dans la liste des relations (paramètre "include_thumbnail" = 0).
     A noter que le mets ne contient pas de référence à cette vignette.
 
+    Configuration des options avec les valeurs par défaut :
+
+    - include_thumbnail (0)
+        Inclure (1) ou non (0) les fichiers des vignettes.
+
     @todo Normaliser les informations sur les "relations" (noms des fichiers, chemin, identifiants et autres données sur les fichiers).
 
     @copyright Daniel Berthereau, 2022 pour la Sorbonne Nouvelle

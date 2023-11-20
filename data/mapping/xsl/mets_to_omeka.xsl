@@ -4,7 +4,33 @@
 
     Seules les options couramment utilisées par les prestataires de numérisation sont gérées.
 
-    @copyright Daniel Berthereau, 2021-2022
+    Configuration des options avec les valeurs par défaut :
+    - basepath (__dirpath__)
+        Url ou chemin de base pour les fichiers, avec le "/" final.
+        La valeur spéciale par défaut `__dirpath__` permet d'insérér le dossier du fichier xml.
+
+    - filepath (valeur interne)
+        Url ou chemin du fichier xml, automatiquement passée.
+
+    - dirpath (valeur interne)
+        Url ou chemin du dossier du fichier xml, automatiquement passée.
+
+    - toc_iiif (1)
+        Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
+
+    - toc_full (0)
+        Ajouter la table des matières avec toutes les pages (1) ou non (0).
+        Ce n'est donc plus une table des matières.
+
+    - toc_xml (0)
+        Ajouter la table des matières avec le type de données "xml" et non "literal".
+        Il n'y a pas de  norme pour présenter une table des matières.
+
+    - full_page_ranges (0)
+        Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
+        Sinon, uniquement la première page de chaque section est indiquée.
+
+    @copyright Daniel Berthereau, 2021-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 

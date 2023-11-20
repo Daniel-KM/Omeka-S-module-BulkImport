@@ -4,7 +4,9 @@
 
     Seules les options couramment utilisées par les prestataires de numérisation sont gérées.
 
-    @copyright Daniel Berthereau, 2021-2022 pour la Sorbonne Nouvelle
+    Cf. les options dans le fichier mets_to_omeka.xsl.
+
+    @copyright Daniel Berthereau, 2021-2023 pour la Sorbonne Nouvelle
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
@@ -35,8 +37,6 @@
     <xsl:import href="mets_to_omeka.xsl"/>
 
     <!-- Paramètres -->
-
-    <!-- Cf. feuille importée. -->
 
     <!-- Constantes -->
 
