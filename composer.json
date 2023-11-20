@@ -9,7 +9,7 @@
         "hakre/xmlreaderiterator": "^0.1",
         "james-heinrich/getid3": "^2.0-dev",
         "mikehaertl/php-pdftk": "^0.9",
-        "mtdowling/jmespath.php": "^2.6",
+        "mtdowling/jmespath.php": "^2.7",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
         "phpoffice/phpword": "^1.1",
