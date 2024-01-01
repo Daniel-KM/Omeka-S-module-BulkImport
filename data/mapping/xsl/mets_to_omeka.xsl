@@ -19,6 +19,9 @@
     - toc_iiif (1)
         Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
 
+    - toc_sections (0)
+        Ajouter la table des matières pour iiif, uniquement pour les sections avec plusieurs pages (cf. module IIIF Server) (1) ou non (0).
+
     - toc_full (0)
         Ajouter la table des matières avec toutes les pages (1) ou non (0).
         Ce n’est donc plus une table des matières.
@@ -88,6 +91,10 @@
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
     <xsl:param name="toc_iiif">1</xsl:param>
 
+    <!-- Ajouter la table des matières avec toutes les pages qui ont des divs internes. -->
+    <!-- Attention: ne prend pas en compte les index correspond à une section d’une seule page. -->
+    <xsl:param name="toc_sections">0</xsl:param>
+
     <!-- Ajouter la table des matières avec toutes les pages. -->
     <!-- Ce n’est donc plus une table des matières. -->
     <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table courte. -->
@@ -128,6 +135,11 @@
                 <xsl:apply-templates select="mets:dmdSec"/>
                 <xsl:if test="$toc_iiif = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc"/>
+                </xsl:if>
+                <xsl:if test="$toc_sections = '1'">
+                    <xsl:apply-templates select="mets:structMap" mode="toc">
+                        <xsl:with-param name="toc_sections_multi" select="true()"/>
+                    </xsl:apply-templates>
                 </xsl:if>
                 <xsl:if test="$toc_full = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc">
@@ -209,17 +221,20 @@
     <!-- TODO Ajouter le type de document (book). -->
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
+        <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <dcterms:tableOfContents>
             <xsl:choose>
                 <xsl:when test="$toc_xml = '1'">
                     <xsl:attribute name="o:type">xml</xsl:attribute>
                     <xsl:apply-templates select="mets:div" mode="toc_xml">
+                        <xsl:with-param name="toc_sections_multi" select="$toc_sections_multi"/>
                         <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
                     </xsl:apply-templates>
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:apply-templates select="mets:div" mode="toc_code">
+                        <xsl:with-param name="toc_sections_multi" select="$toc_sections_multi"/>
                         <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
                     </xsl:apply-templates>
                 </xsl:otherwise>
@@ -242,17 +257,6 @@
             <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles (à gérer dans IIIF Server). -->
             <xsl:attribute name="range">
                 <xsl:choose>
-                    <xsl:when test="$toc_full_pages">
-                        <xsl:choose>
-                            <xsl:when test="$subdiv_fptr">
-                                <xsl:apply-templates select="mets:div" mode="range_full"/>
-                            </xsl:when>
-                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                            <xsl:otherwise>
-                                <xsl:apply-templates select=". | mets:div" mode="range_full"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:when>
                     <xsl:when test="$toc_sections_multi">
                         <xsl:choose>
                             <xsl:when test="$subdiv_fptr">
@@ -261,6 +265,17 @@
                             <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
                             <xsl:otherwise>
                                 <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:when>
+                    <xsl:when test="$toc_full_pages">
+                        <xsl:choose>
+                            <xsl:when test="$subdiv_fptr">
+                                <xsl:apply-templates select="mets:div" mode="range_full"/>
+                            </xsl:when>
+                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                            <xsl:otherwise>
+                                <xsl:apply-templates select=". | mets:div" mode="range_full"/>
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:when>
@@ -296,6 +311,12 @@
             </xsl:if>
             -->
             <xsl:choose>
+                <xsl:when test="$toc_sections_multi = '1'">
+                    <!-- Seulement les sections qui ont un div interne. -->
+                    <xsl:apply-templates select="mets:div[mets:div]" mode="toc_xml">
+                        <xsl:with-param name="toc_sections_multi" select="true()"/>
+                    </xsl:apply-templates>
+                </xsl:when>
                 <xsl:when test="$toc_full_pages">
                     <xsl:apply-templates select="mets:div" mode="toc_xml">
                         <xsl:with-param name="toc_full_pages" select="true()"/>
@@ -310,6 +331,7 @@
 
     <!-- Version codifiée de la table des matières. -->
     <xsl:template match="mets:div" mode="toc_code">
+        <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <xsl:param name="level" select="0"/>
         <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
@@ -319,6 +341,16 @@
         <xsl:value-of select="@LABEL"/>
         <xsl:text>, </xsl:text>
         <xsl:choose>
+            <xsl:when test="$toc_sections_multi">
+                <xsl:choose>
+                    <xsl:when test="$subdiv_fptr">
+                        <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
             <xsl:when test="$toc_full_pages">
                 <xsl:choose>
                     <xsl:when test="$subdiv_fptr">
@@ -342,6 +374,13 @@
         </xsl:choose>
         <xsl:value-of select="$end_of_line"/>
         <xsl:choose>
+            <xsl:when test="$toc_sections_multi">
+                <!-- Seulement les sections qui ont un div interne. -->
+                <xsl:apply-templates select="mets:div[mets:div]" mode="toc_code">
+                    <xsl:with-param name="toc_sections_multi" select="true()"/>
+                    <xsl:with-param name="level" select="$level + 1"/>
+                </xsl:apply-templates>
+            </xsl:when>
             <xsl:when test="$toc_full_pages">
                 <xsl:apply-templates select="mets:div" mode="toc_code">
                     <xsl:with-param name="toc_full_pages" select="true()"/>
@@ -382,6 +421,59 @@
             <xsl:otherwise>
                 <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
                 <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers. -->
+                <xsl:variable name="est_premier_dans_serie" select="position() = 1 or generate-id(preceding-sibling::mets:div[1]) != generate-id(preceding-sibling::mets:div[not(mets:div)][1])"/>
+                <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
+                <xsl:choose>
+                    <!-- Liste de toutes les pages. -->
+                    <xsl:when test="$full_page_ranges = '1' or ($est_premier_dans_serie and $est_dernier_dans_serie)">
+                        <xsl:if test="position() != 1">
+                            <xsl:text>; </xsl:text>
+                        </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <!-- Liste des groupes de pages entre deux sections. -->
+                    <xsl:when test="$est_premier_dans_serie">
+                        <xsl:if test="position() != 1">; </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <xsl:when test="$est_dernier_dans_serie">
+                        <!-- Ne pas tenir compte de la section "book". -->
+                        <xsl:if test="$position_fptr != '1'">
+                            <xsl:text>-</xsl:text>
+                        </xsl:if>
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <!-- Liste des sections ou des positions de page, uniquement pour les sections de plus d’une page (c’est-à-dire avec au moins une div impriquée). -->
+    <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers dans les div. -->
+    <xsl:template match="mets:div" mode="range_sections_multi">
+        <xsl:variable name="position_fptr">
+            <xsl:apply-templates select="mets:fptr" mode="position"/>
+        </xsl:variable>
+        <xsl:choose>
+            <!-- Section nommée contenant des pages ou des sous-sections. -->
+            <!-- Attention : contient "self" qui peut contenir un fptr sans sous div. -->
+            <xsl:when test="mets:div">
+                <xsl:if test="position() != 1">
+                    <xsl:text>; </xsl:text>
+                </xsl:if>
+                <xsl:choose>
+                    <xsl:when test="not($subdiv_fptr) and position() = 1">
+                        <xsl:value-of select="$position_fptr"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>r</xsl:text>
+                        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
+                <!-- Attention : ne pas compter les divs, mais les fptr, c’est à dire la position des fichiers. -->
                 <xsl:variable name="est_premier_dans_serie" select="position() = 1 or generate-id(preceding-sibling::mets:div[1]) != generate-id(preceding-sibling::mets:div[not(mets:div)][1])"/>
                 <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
                 <xsl:choose>
