@@ -5,6 +5,7 @@
     Seules les options couramment utilisées par les prestataires de numérisation sont gérées.
 
     Configuration des options avec les valeurs par défaut :
+
     - basepath (__dirpath__)
         Url ou chemin de base pour les fichiers, avec le "/" final.
         La valeur spéciale par défaut `__dirpath__` permet d'insérér le dossier du fichier xml.
@@ -28,7 +29,7 @@
 
     - full_page_ranges (0)
         Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
-        Sinon, uniquement la première page de chaque section est indiquée.
+        Sinon, uniquement la première et la dernière page de chaque section est indiquée.
 
     @copyright Daniel Berthereau, 2021-2023
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt

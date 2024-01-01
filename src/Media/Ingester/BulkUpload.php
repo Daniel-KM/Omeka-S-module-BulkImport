@@ -261,15 +261,16 @@ HTML;
 
     /**
      * @todo Keys are not checked, but this is only use internaly.
+     * @see \Laminas\View\Helper\HtmlAttributes
      */
     protected function arrayToAttributes(PhpRenderer $view, array $attributes): string
     {
         $escapeAttr = $view->plugin('escapeHtmlAttr');
-        return implode(' ', array_map(function ($key) use ($attributes, $escapeAttr) {
-            if (is_bool($attributes[$key])) {
-                return $attributes[$key] ? $key . '="' . $key . '"' : '';
+        return implode(' ', array_map(function ($key, $value) use ($escapeAttr) {
+            if (is_bool($value)) {
+                return $value ? $key . '="' . $key . '"' : '';
             }
-            return $key . '="' . $escapeAttr($attributes[$key]) . '"';
-        }, array_keys($attributes)));
+            return $key . '="' . $escapeAttr($value) . '"';
+        }, array_keys($attributes), $attributes));
     }
 }
