@@ -748,7 +748,7 @@ class Bulk extends AbstractPlugin
             'geometry:geometry:coordinates' => 'literal',
             'geometry:geometry:position' => 'literal',
             // Module DataTypePlace.
-            'place' => 'literal',
+            'place' => 'uri',
             // Module DataTypeRdf.
             'html' => 'literal',
             'xml' => 'literal',
