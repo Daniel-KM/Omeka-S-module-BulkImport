@@ -1,4 +1,26 @@
 {
+   "name": "daniel-km/omeka-s-module-bulk-import",
+    "type": "library",
+    "description": "Extensible bulk import module for xml, sql databases, spreedsheets, and json endpoints.",
+    "license": "CECILL-2.1",
+    "authors": [
+        {
+            "name": "Daniel Berthereau",
+            "email": "Daniel.packagist@Berthereau.net"
+        }
+    ],
+    "homepage": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport",
+    "support": {
+        "issues": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues",
+        "forum": "https://forum.omeka.org/"
+    },
+    "keywords": [
+        "Omeka S",
+        "module",
+        "admin",
+        "import",
+        "migration"
+    ],
     "require": {
         "ext-xml": "*",
         "codemirror/codemirror": "^5.65",
@@ -56,7 +78,9 @@
         }
     ],
     "extra": {
-        "installer-types": ["omeka-addon-asset"],
+        "installer-types": [
+            "omeka-addon-asset"
+        ],
         "installer-paths": {
             "asset/vendor/{$name}/": [
                 "type:omeka-addon-asset"
