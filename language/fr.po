@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-11-20 00:00+0000\n"
-"PO-Revision-Date: 2023-11-20 00:00+0000\n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
 "Last-Translator: Daniel Berthereau <Daniel.fr@Berthereau.net>\n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -140,22 +140,22 @@ msgstr "ressource"
 msgid "annotation"
 msgstr "annotation"
 
-#: src/Generic/AbstractModule.php:80 src/Generic/AbstractModule.php:88
-#: src/Generic/AbstractModule.php:890
+#: src/Generic/AbstractModule.php:67 src/Generic/AbstractModule.php:75
+#: src/Generic/AbstractModule.php:857
 #, php-format
 msgid "This module requires the module \"%s\"."
 msgstr "Ce module requiert le module \"%s\"."
 
-#: src/Generic/AbstractModule.php:93
+#: src/Generic/AbstractModule.php:80
 #, php-format
 msgid "This module requires modules \"%s\"."
 msgstr "Ce module requiert les modules \"%s\"."
 
-#: src/Generic/AbstractModule.php:101
+#: src/Generic/AbstractModule.php:88
 msgid "This module has resources that cannot be installed."
 msgstr "Ce module a des ressources qui ne peuvent pas être installées."
 
-#: src/Generic/AbstractModule.php:108
+#: src/Generic/AbstractModule.php:95
 msgid ""
 "This module cannot install its tables, because they exist already. Try to "
 "remove them first."
@@ -163,18 +163,18 @@ msgstr ""
 "Ce module ne peut pas installer ses tables car elles existent déjà. Essayez "
 "de les supprimer manuellement."
 
-#: src/Generic/AbstractModule.php:398
+#: src/Generic/AbstractModule.php:365
 #, php-format
 msgid "The module removed tables \"%s\" from a previous broken install."
 msgstr ""
 "Le module a supprimé les tables \"%s\" depuis une installation échouée."
 
-#: src/Generic/AbstractModule.php:885
+#: src/Generic/AbstractModule.php:852
 #, php-format
 msgid "This module requires the module \"%1$s\", version %2$s or above."
 msgstr "Ce module requiert le module « %1$s », version %2$s ou supérieure."
 
-#: src/Generic/AbstractModule.php:982
+#: src/Generic/AbstractModule.php:949
 #, php-format
 msgid ""
 "The module \"%s\" was automatically deactivated because the dependencies are "
@@ -859,13 +859,13 @@ msgid ""
 "examples with iiif manifest mappings."
 msgstr ""
 
-#: data/scripts/upgrade.php:638
+#: data/scripts/upgrade.php:639
 msgid ""
 "It’s now possible to import and update assets and to attach them to "
 "resources."
 msgstr ""
 
-#: data/scripts/upgrade.php:643
+#: data/scripts/upgrade.php:644
 msgid ""
 "The format of destination metadata has been improved: spaces after \"^^\", "
 "\"@\" and \"§\" are no more managed; for multiple datatypes, the \";\" was "
@@ -873,30 +873,30 @@ msgid ""
 "wrapped by quotes or double quotes. Check your custom configs if needed."
 msgstr ""
 
-#: data/scripts/upgrade.php:673
+#: data/scripts/upgrade.php:674
 msgid "It is now possible to import xml mets and xml mods."
 msgstr ""
 
-#: data/scripts/upgrade.php:702
+#: data/scripts/upgrade.php:703
 msgid "It is now possible to import xml ead."
 msgstr ""
 
-#: data/scripts/upgrade.php:706
+#: data/scripts/upgrade.php:707
 msgid "It is now possible to pass params to xsl conversion for xml sources."
 msgstr ""
 
-#: data/scripts/upgrade.php:710
+#: data/scripts/upgrade.php:711
 msgid ""
 "It is now possible to create table of contents for IIIF viewer from mets and "
 "ead sources."
 msgstr ""
 
-#: data/scripts/upgrade.php:718
+#: data/scripts/upgrade.php:719
 #, php-format
 msgid "Since version %s, this module requires php 7.4."
 msgstr ""
 
-#: data/scripts/upgrade.php:727
+#: data/scripts/upgrade.php:728
 msgid ""
 "It is now possible to process a bulk import and to upload files at the same "
 "time. It allows to bypass complex server config, where it is not possible to "
@@ -909,14 +909,14 @@ msgstr ""
 "d’accéder à des urls d’un serveur externe. De plus, les fichiers peuvent "
 "être compressés en zip et ils seront automatiquement disponibles."
 
-#: data/scripts/upgrade.php:806
+#: data/scripts/upgrade.php:807
 #, php-format
 msgid ""
 "It is now possible %1$sto bulk upload files%2$s in a directory of the server "
 "for future bulk uploads."
 msgstr ""
 
-#: data/scripts/upgrade.php:975
+#: data/scripts/upgrade.php:976
 msgid ""
 "Import process has been clarified with three steps: reader, mapping and "
 "import."
