@@ -59,9 +59,19 @@
         "
     >
 
-    <xsl:output method="xml" encoding="UTF-8" indent="yes"/>
-
+    <!-- Si la table des matières est en texte, ne pas indenter. -->
+    <!-- TODO Trouver un moyen xsl d'indenter et de garder les sauts de ligne sans cdata au moins pour la table des matières. -->
+    <xsl:output
+        method="xml"
+        encoding="UTF-8"
+        indent="yes"
+        cdata-section-elements="dcterms:tableOfContents"
+    />
+    <!-- Préserver les espaces de la source par défaut. -->
+    <!--
     <xsl:strip-space elements="*"/>
+    <xsl:preserve-space elements="dcterms:tableOfContents"/>
+    -->
 
     <!-- Paramètres -->
 
@@ -100,6 +110,8 @@
     Cette valeur permet de déterminer le type de structure.
     -->
     <xsl:variable name="subdiv_fptr" select="count(/mets:mets/mets:structMap//mets:div[mets:div and mets:fptr]) = 0"/>
+
+    <xsl:param name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:param>
 
     <!-- Templates -->
 
@@ -313,7 +325,7 @@
                 </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
-        <xsl:text>&#xA;</xsl:text>
+        <xsl:value-of select="$end_of_line"/>
         <xsl:choose>
             <xsl:when test="$full_toc">
                 <xsl:apply-templates select="mets:div" mode="toc_literal">
