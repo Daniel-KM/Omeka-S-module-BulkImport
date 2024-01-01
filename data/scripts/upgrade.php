@@ -586,6 +586,7 @@ if (version_compare($oldVersion, '3.3.35', '<')) {
         $data['owner'] = $user;
         $entity = new \BulkImport\Entity\Importer();
         foreach ($data as $key => $value) {
+            $key = strpos($key, ':') === false ? $key : substr($key, strpos($key, ':') + 1);
             $method = 'set' . ucfirst($key);
             $entity->$method($value);
         }
