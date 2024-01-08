@@ -338,7 +338,7 @@
                 <xsl:when test="$toc_standard = '1'">
                     <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
                     <!-- Utiliser le parent ne fonctionne pas ! -->
-                    <xsl:apply-templates select="mets:div[self::mets:div[mets:div] || preceding-sibling::mets:div[mets:div] || following-sibling::mets:div[mets:div]]" mode="toc_xml">
+                    <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_xml">
                         <xsl:with-param name="toc_standard" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:when>
@@ -406,7 +406,7 @@
             <xsl:when test="$toc_standard">
                 <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
                 <!-- Utiliser le parent ne fonctionne pas ! -->
-                <xsl:apply-templates select="mets:div[self::mets:div[mets:div] || preceding-sibling::mets:div[mets:div] || following-sibling::mets:div[mets:div]]" mode="toc_code">
+                <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_code">
                     <xsl:with-param name="toc_standard" select="true()"/>
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
