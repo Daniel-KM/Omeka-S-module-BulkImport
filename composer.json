@@ -1,7 +1,7 @@
 {
-   "name": "daniel-km/omeka-s-module-bulk-import",
-    "type": "library",
+    "name": "daniel-km/omeka-s-module-bulk-import",
     "description": "Extensible bulk import module for xml, sql databases, spreedsheets, and json endpoints.",
+    "type": "library",
     "license": "CECILL-2.1",
     "authors": [
         {
@@ -35,7 +35,7 @@
         "mtdowling/jmespath.php": "^2.7",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
-        "phpoffice/phpword": "^1.1",
+        "phpoffice/phpword": "^1.2",
         "softcreatr/jsonpath": "^0.7"
     },
     "replace": {
