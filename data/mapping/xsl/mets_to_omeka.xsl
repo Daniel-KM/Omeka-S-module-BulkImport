@@ -16,6 +16,9 @@
     - dirpath (valeur interne)
         Url ou chemin du dossier du fichier xml, automatiquement passée.
 
+    - skip_label_media (0)
+        Ignorer le libellé du média en tant que dcterms:title si présent dans les relations.
+
     - toc_iiif (1)
         Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
 
@@ -88,6 +91,9 @@
 
     <!-- Url ou chemin du dossier du fichier xml, automatiquement passée. -->
     <xsl:param name="dirpath"></xsl:param>
+
+    <!-- Ignorer le libelle du média si présent dans relation/label. -->
+    <xsl:param name="skip_label_media">0</xsl:param>
 
     <!-- Ajouter la table des matières pour iiif (cf. module IIIF Server). -->
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
@@ -184,8 +190,19 @@
         <xsl:variable name="file">
             <xsl:apply-templates select="." mode="file"/>
         </xsl:variable>
-        <o:media o:ingester="file">
-            <xsl:value-of select="concat($basepath, $file)"/>
+        <o:media o:ingester="file" ingest_url="{concat($basepath, $file)}">
+            <xsl:if  test="$skip_label_media != 1">
+                <xsl:variable name="fptr" select="."/>
+                <xsl:variable name="href" select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" />
+                <xsl:variable name="media_title">
+                    <xsl:apply-templates select="/mets:mets/mets:dmdSec//relations/relation[file_id = $href]/label"/>
+                </xsl:variable>
+                <xsl:if test="$media_title != ''">
+                    <dcterms:title>
+                        <xsl:value-of select="$media_title"/>
+                    </dcterms:title>
+                </xsl:if>
+            </xsl:if>
         </o:media>
     </xsl:template>
 
