@@ -451,7 +451,6 @@ class BulkFile extends AbstractPlugin
             'name' => $filepath ? basename($filepath) : '[unknown]',
             'type' => null,
         ];
-
         if (empty($filepath)) {
             $message = new PsrMessage(
                 'File "{filename}" doesn’t exist.', // @translate
@@ -459,6 +458,7 @@ class BulkFile extends AbstractPlugin
             );
             return false;
         }
+        // TODO Add check of path first.
         if (!file_exists($filepath)) {
             $message = new PsrMessage(
                 'File "{filename}" does not exist.', // @translate
