@@ -428,10 +428,11 @@ class MetaMapper
                 continue;
             }
 
+            $from = $fromTo['from']['path'] ?? null;
             $mod = $fromTo['mod'] ?? [];
             $raw = $mod['raw'] ?? '';
-            $val = $mod['val'] ?? '';
-            if (strlen($raw)) {
+
+            if (!$from && strlen($raw)) {
                 $this->convertFinalize($resource, $to, [$raw]);
                 continue;
             }
@@ -440,7 +441,7 @@ class MetaMapper
             // pattern, output as xml in order to get full xml when possible.
             $outputAsXml = !empty($to['datatype']) && reset($to['datatype']) === 'xml';
 
-            $from = $fromTo['from']['path'] ?? null;
+            $val = $mod['val'] ?? '';
             $prepend = $mod['prepend'] ?? '';
             $append = $mod['append'] ?? '';
 
@@ -459,14 +460,21 @@ class MetaMapper
                     continue;
                 }
                 $values = $this->xpathQuery($doc, $from);
-                foreach ($values as $value) {
-                    $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value, true, $outputAsXml);
-                    if ($converted === null || $converted === '') {
-                        continue;
+                if (!count($values)) {
+                    continue;
+                }
+                if (strlen($raw)) {
+                    $result[] = $raw;
+                } else {
+                    foreach ($values as $value) {
+                        $converted = $this->convertTargetToStringXml($from, $mod, $doc, $value, true, $outputAsXml);
+                        if ($converted === null || $converted === '') {
+                            continue;
+                        }
+                        $result[] = strlen($val)
+                            ? $val
+                            : $prepend . $converted . $append;
                     }
-                    $result[] = strlen($val)
-                        ? $val
-                        : $prepend . $converted . $append;
                 }
             }
 
