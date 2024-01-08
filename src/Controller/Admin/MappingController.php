@@ -76,6 +76,8 @@ class MappingController extends AbstractActionController
     {
         if ($action === 'add') {
             $entity = null;
+            $isBulkMapping = false;
+            $isInternalMapping = false;
         } else {
             $entity = $this->getBulkMapping();
             $isBulkMapping = is_object($entity) && $entity instanceof \BulkImport\Api\Representation\MappingRepresentation;

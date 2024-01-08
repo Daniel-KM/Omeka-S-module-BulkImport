@@ -12,6 +12,7 @@ class MappingForm extends Form
         parent::init();
 
         $defaultMapping = <<<'XML'
+<!-- Sample of mapping from Unimarc. -->
 <mapping>
     <map>
         <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
