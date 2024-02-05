@@ -455,6 +455,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         ;
     }
 
+    /**
+     * Normalize the resource name.
+     */
     protected function fillResourceName(ArrayObject $resource, array $data): self
     {
         if (isset($resource['resource_name'])

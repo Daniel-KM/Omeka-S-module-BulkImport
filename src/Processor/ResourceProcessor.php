@@ -356,12 +356,15 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // This fonction is used for sub-resources, so don't mix with main one.
         // TODO Factorize with fillResource().
-        $fillResourceDataAndProperties = function (array $dataArray) use ($properties, $mainResourceName): array {
+        $fillResourceDataAndProperties = function (array $dataArray, ?string $resourceName) use ($properties, $mainResourceName): array {
             // Fill other metadata (for media and item set).
             $resource = new ArrayObject($dataArray);
+            if ($resourceName && empty($resource['resource_name'])) {
+                $resource['resource_name'] = $resourceName;
+            }
             $this
-                ->fillResourceData($resource, $dataArray)
                 ->fillResourceName($resource, $dataArray)
+                ->fillResourceData($resource, $dataArray)
                 ->fillResourceId($resource, $dataArray)
                 ->fillResourceSingleEntities($resource, $dataArray);
             foreach (array_intersect_key($dataArray, $properties) as $term => $values) {
@@ -386,11 +389,12 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Only one level is managed for now, so use the function above instead
         // of the parent one.
         foreach (array_intersect_key($data, array_flip(array_keys($this->fieldTypes, 'entities'))) as $field => $subResources) {
+            $resourceName = $this->bulk->resourceName($field);
             foreach (array_values($subResources) as $key => $dataArray) {
                 // If the source is only a string, it is an identifier that is
                 // already filled, mainly item sets for item.
                 if (is_array($dataArray)) {
-                    $resource[$field][$key] = $fillResourceDataAndProperties($dataArray);
+                    $resource[$field][$key] = $fillResourceDataAndProperties($dataArray, $resourceName);
                 }
             }
         }
