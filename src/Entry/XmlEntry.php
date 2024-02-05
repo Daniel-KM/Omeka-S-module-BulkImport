@@ -112,6 +112,9 @@ class XmlEntry extends BaseEntry
     }
 
     /**
+     * When the xml is an Omeka resource with integrated vocabularies, there is
+     * no need to convert it.
+     *
      * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
      */
     public function extractWithoutMapping(): array
@@ -236,7 +239,7 @@ class XmlEntry extends BaseEntry
                                 $resource['ingest_filename'],
                                 $resource['ingest_directory'],
                                 $resource['html']
-                                );
+                            );
                             $resource = array_replace($resource, $value);
                             $value = null;
                         }

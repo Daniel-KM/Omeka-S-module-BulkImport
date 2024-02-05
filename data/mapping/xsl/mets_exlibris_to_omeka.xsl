@@ -4,9 +4,12 @@
 
     Seules les options couramment utilisées par les prestataires de numérisation sont gérées.
 
-    Cf. les options dans le fichier mets_to_omeka.xsl.
+    Les fichiers ex-Libris et Arkhenum sont vraiment complexes, incomplets, sans références,
+    changeants et non standard ou sans profil.
 
-    @copyright Daniel Berthereau, 2021-2023 pour la Sorbonne Nouvelle
+    Cf. les options dans le fichier mets_to_omeka.xsl, qui est importé dans le présent fichier.
+
+    @copyright Daniel Berthereau, 2021-2024 pour la Sorbonne Nouvelle
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
@@ -50,21 +53,68 @@
     <xsl:template match="mets:fptr" mode="file">
         <!-- Les pointeurs renvoient vers des numéros et non des noms de fichier. -->
         <xsl:variable name="fptr" select="."/>
+        <!-- Mets le chemin du dossier seulement dans un second temps. -->
         <xsl:variable name="href">
-            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" mode="keep"/>
         </xsl:variable>
         <xsl:variable name="relation" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href]"/>
         <xsl:variable name="number" select="substring($relation/file_id, 8)"/>
         <xsl:variable name="index" select="format-number($number, '0000')"/>
-        <xsl:value-of select="concat(
-            $relation/identifier,
-            '_',
-            $source_id,
-            '_',
-            $index,
-            '.',
-            $relation/file_extension
-        )"/>
+        <xsl:choose>
+            <xsl:when test="$index != 'NaN'">
+                <xsl:choose>
+                    <xsl:when test="$basepath = '__dirpath__'">
+                        <xsl:value-of select="concat($dirpath, '/')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="$basepath"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:value-of select="concat(
+                    $relation/identifier,
+                    '_',
+                    $source_id,
+                    '_',
+                    $index,
+                    '.',
+                    $relation/file_extension
+                )"/>
+            </xsl:when>
+            <!-- 2e cas. -->
+            <xsl:otherwise>
+                <xsl:variable name="href_2">
+                    <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                </xsl:variable>
+                <xsl:variable name="relation_2" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href_2]"/>
+                <xsl:variable name="number_2" select="substring($relation_2/file_id, 8)"/>
+                <xsl:variable name="index_2" select="format-number($number_2, '0000')"/>
+                <xsl:choose>
+                    <xsl:when test="$index_2 != 'NaN'">
+                        <xsl:choose>
+                            <xsl:when test="$basepath = '__dirpath__'">
+                                <xsl:value-of select="concat($dirpath, '/')"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="$basepath"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:value-of select="concat(
+                            $relation_2/identifier,
+                            '_',
+                            $source_id,
+                            '_',
+                            $index_2,
+                            '.',
+                            $relation_2/file_extension
+                        )"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <!-- Réapplique le traitement parent importé au cas où le même xslt est utilisé pour des fichiers mets standard. -->
+                        <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
 </xsl:stylesheet>

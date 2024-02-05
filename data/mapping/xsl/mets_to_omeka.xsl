@@ -9,6 +9,7 @@
     - basepath (__dirpath__)
         Url ou chemin de base pour les fichiers, avec le "/" final.
         La valeur spéciale par défaut `__dirpath__` permet d’insérér le dossier du fichier xml.
+        Cette valeur n’est pas utilisée lorsque le fichier est une url complète ou un chemin complet.
 
     - filepath (valeur interne)
         Url ou chemin du fichier xml, automatiquement passée.
@@ -190,7 +191,7 @@
         <xsl:variable name="file">
             <xsl:apply-templates select="." mode="file"/>
         </xsl:variable>
-        <o:media o:ingester="file" ingest_url="{concat($basepath, $file)}">
+        <o:media o:ingester="file" ingest_url="{$file}">
             <xsl:if  test="$skip_label_media != 1">
                 <xsl:variable name="fptr" select="."/>
                 <xsl:variable name="href" select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" />
@@ -212,21 +213,78 @@
         <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
     </xsl:template>
 
+    <!-- Récupère et normalise les urls et les chemins locaux pour avoir des adresses complètes. -->
     <xsl:template match="@xlink:href">
         <xsl:choose>
-            <xsl:when test="$basepath = '__dirpath__'">
-                <xsl:value-of select="concat($dirpath, '/')"/>
+            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
+                <xsl:value-of select="."/>
             </xsl:when>
+            <!-- Corrige les chemins locaux incorrects.
+            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
+            <xsl:when test="substring(., 1, 8) = 'file:///'">
+                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 7) = 'file://'">
+                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 6) = 'file:/'">
+                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
+                <xsl:value-of select="translate(., '\', '/')"/>
+            </xsl:when>
+            <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
             <xsl:otherwise>
-                <xsl:value-of select="$basepath"/>
+                <xsl:choose>
+                    <xsl:when test="$basepath = '__dirpath__'">
+                        <xsl:value-of select="concat($dirpath, '/')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="$basepath"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:choose>
+                    <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
+                        <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="translate(., '\', '/')"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
+    </xsl:template>
+
+    <!-- Récupère et normalise les urls et les chemins locaux, sans les compléter. -->
+    <xsl:template match="@xlink:href" mode="keep">
         <xsl:choose>
-            <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
+            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
+                <xsl:value-of select="."/>
             </xsl:when>
-            <xsl:otherwise>
+            <!-- Corrige les chemins locaux incorrects.
+            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
+            <xsl:when test="substring(., 1, 8) = 'file:///'">
+                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 7) = 'file://'">
+                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 6) = 'file:/'">
+                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
                 <xsl:value-of select="translate(., '\', '/')"/>
+            </xsl:when>
+            <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
+            <xsl:otherwise>
+                <xsl:choose>
+                    <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
+                        <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="translate(., '\', '/')"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
