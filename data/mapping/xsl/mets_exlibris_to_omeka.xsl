@@ -67,7 +67,7 @@
                         <xsl:value-of select="concat($dirpath, '/')"/>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:value-of select="$basepath"/>
+                        <xsl:value-of select="translate($basepath, '\', '/')"/>
                     </xsl:otherwise>
                 </xsl:choose>
                 <xsl:value-of select="concat(
@@ -95,7 +95,7 @@
                                 <xsl:value-of select="concat($dirpath, '/')"/>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:value-of select="$basepath"/>
+                                <xsl:value-of select="translate($basepath, '\', '/')"/>
                             </xsl:otherwise>
                         </xsl:choose>
                         <xsl:value-of select="concat(

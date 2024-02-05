@@ -9,7 +9,12 @@
     - basepath (__dirpath__)
         Url ou chemin de base pour les fichiers, avec le "/" final.
         La valeur spéciale par défaut `__dirpath__` permet d’insérér le dossier du fichier xml.
-        Cette valeur n’est pas utilisée lorsque le fichier est une url complète ou un chemin complet.
+        Cette valeur n’est pas utilisée lorsque le fichier est une url complète (commençant par
+        `https://` ou `http://`) ou un chemin complet (commençant par `file:///` ou `/` ou `\`).
+
+    - basepath_force (0)
+        Ajoute la variable `basepath` ci-dessus même pour les fichiers ayant un chemin complet
+        (commençant par `file:///` ou `/` ou `\`).
 
     - filepath (valeur interne)
         Url ou chemin du fichier xml, automatiquement passée.
@@ -87,6 +92,9 @@
     <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d’insérér le dossier du fichier xml. -->
     <xsl:param name="basepath">__dirpath__</xsl:param>
 
+    <!-- Ajoute le chemin de base même quand le chemin du fichier ressemble à un chemin complet (commence par `file:///` ou `/` ou `\`). -->
+    <xsl:param name="basepath_force">0</xsl:param>
+
     <!-- Url ou chemin du fichier xml, automatiquement passée. -->
     <xsl:param name="filepath"></xsl:param>
 
@@ -127,7 +135,29 @@
     -->
     <xsl:variable name="subdiv_fptr" select="count(/mets:mets/mets:structMap//mets:div[mets:div and mets:fptr]) = 0"/>
 
-    <xsl:param name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:param>
+    <xsl:variable name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:variable>
+
+    <!-- Récupère le chemin de base si l’option basepath_force est mise. -->
+    <xsl:variable name="basepath_forced">
+        <xsl:choose>
+            <xsl:when test="$basepath_force = 1">
+                <xsl:choose>
+                    <xsl:when test="$basepath = '__dirpath__'">
+                        <xsl:value-of select="$dirpath"/>
+                    </xsl:when>
+                    <xsl:when test="substring($basepath, string-length($basepath)) = '/' or substring($basepath, string-length($basepath)) = '\'">
+                        <xsl:value-of select="substring(translate($basepath, '\', '/'), string-length($basepath) - 1)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="translate($basepath, '\', '/')"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text></xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
 
     <!-- Templates -->
 
@@ -222,15 +252,19 @@
             <!-- Corrige les chemins locaux incorrects.
             Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
             <xsl:when test="substring(., 1, 8) = 'file:///'">
+                <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
             </xsl:when>
             <xsl:when test="substring(., 1, 7) = 'file://'">
+                <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
             </xsl:when>
             <xsl:when test="substring(., 1, 6) = 'file:/'">
+                <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
             </xsl:when>
             <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
+                <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(., '\', '/')"/>
             </xsl:when>
             <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
@@ -240,7 +274,7 @@
                         <xsl:value-of select="concat($dirpath, '/')"/>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:value-of select="$basepath"/>
+                        <xsl:value-of select="translate($basepath, '\', '/')"/>
                     </xsl:otherwise>
                 </xsl:choose>
                 <xsl:choose>
