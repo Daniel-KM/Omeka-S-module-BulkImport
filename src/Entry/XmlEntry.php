@@ -264,107 +264,79 @@ class XmlEntry extends BaseEntry
 
     protected function initMediaBase(SimpleXMLElement $element): ?array
     {
-        $resource = $this->attributes($element);
+        $media = $this->attributes($element);
 
         $value = $this->innerXml($element);
         if (!strlen($value)) {
-            return empty($resource['o:ingester'])
+            return empty($media['o:ingester'])
                 ? null
-                : $resource;
+                : $media;
         }
 
-        $ingester = $resource['o:ingester'] ?? 'file ';
+        $media['resource_name'] = 'media';
+
+        /**
+         * @see \BulkImport\Processor\ResourceProcessor::prepareMediaData()
+         * @see \BulkImport\Processor\ResourceProcessor::prepareMediaDataFinalize()
+         */
+        $ingester = $media['o:ingester'] ?? 'file';
         switch ($ingester) {
             default:
+                return null;
             case 'tile':
                 // Deprecated: "tile" is only a renderer, no more an ingester
                 // since ImageServer version 3.6.13. All images are
                 // automatically tiled, so "tile" is a format similar to large/medium/square,
                 // but different.
             case 'file':
+            case 'url':
+            case 'sideload':
+                // A file may be a url for end-user simplicity.
+                $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
                 if ($this->isUrl($value)) {
-                    $resource['o:ingester'] = 'url';
-                    $resource += [
-                        'resource_name' => 'media',
-                        'o:ingester' => 'url',
-                        'ingest_url' => $value,
-                        'o:source' => $value,
-                    ];
-                } else {
-                    $resource['o:ingester'] = 'sideload';
-                    $resource += [
-                        'resource_name' => 'media',
-                        'o:ingester' => 'sideload',
-                        'ingest_filename' => $value,
-                        'o:source' => $value,
-                    ];
+                    $media['o:ingester'] = 'url';
+                    $media['ingest_url'] = $value;
+                    unset($media['ingest_filename']);
+                    unset($media['ingest_directory']);
+                }  else {
+                    // TODO Manage local file bulk upload (but normally checked later)
+                    $media['o:ingester'] = 'sideload';
+                    $media['ingest_filename'] = $value;
+                    unset($media['ingest_url']);
+                    unset($media['ingest_directory']);
                 }
                 break;
 
-            case 'url':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'url',
-                    'ingest_url' => $value,
-                    'o:source' => $value,
-                ];
-                break;
-
-            case 'sideload':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'sideload',
-                    'ingest_filename' => $value,
-                    'o:source' => $value,
-                ];
-                break;
-
             case 'directory':
-                $resource['o:ingester'] = 'sideload_dir';
-                // no break.
             case 'sideload_dir':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'sideload_dir',
-                    'ingest_directory' => $value,
-                    'o:source' => $value,
-                ];
+                $media['o:ingester'] = 'sideload_dir';
+                $media['ingest_directory'] = $value;
+                $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
+                unset($media['ingest_filename']);
+                unset($media['ingest_url']);
                 break;
 
             case 'html':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'html',
-                    'html' => $value,
-                    'o:source' => null,
-                ];
+                $media['o:ingester'] = 'html';
+                $media['html'] = $value;
+                $media['o:source'] ??= null;
+                unset($media['ingest_url']);
+                unset($media['ingest_filename']);
+                unset($media['ingest_directory']);
                 break;
 
             case 'iiif':
                 if (!$this->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
                     $value = $this->options['iiifserver_media_api_url'] . $value;
                 }
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'iiif',
-                    'ingest_url' => $value,
-                    'o:source' => $value,
-                ];
+                $media['o:ingester'] = 'iiif';
+                $media['ingest_url'] = $value;
+                unset($media['ingest_filename']);
+                unset($media['ingest_directory']);
                 break;
-
-            /*
-            case 'tile':
-                $resource += [
-                    'resource_name' => 'media',
-                    'o:ingester' => 'tile',
-                    'ingest_url' => $value,
-                    'o:source' => $value,
-                ];
-                break;
-            */
         }
 
-        return $resource;
+        return $media;
     }
 
     protected function initPropertyValue(SimpleXMLElement $element): ?array

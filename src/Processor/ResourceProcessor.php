@@ -882,6 +882,8 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'iiif':
             case 'tile':
             case 'url':
+                // Here, the media has a key that should not be a key, but the
+                // value of "o:ingester".
                 $value = is_array($values) ? end($values) : $values;
                 $mediaData = $this->prepareMediaData($resource, $field, $value);
                 // Resource is an ArrayObject, so array_replace cannot be used.
@@ -891,6 +893,8 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
         }
 
+        $this->prepareMediaDataFinalize($resource);
+
         return $this;
     }
 
@@ -898,6 +902,9 @@ class ResourceProcessor extends AbstractResourceProcessor
      * Prepare media data and get result array.
      *
      * The resource may be an item or a media.
+     *
+     * @see \BulkImport\Entry\XmlEntry::initMediaBase()
+     * @todo Manage other types (iiif presentation, youtube, etc.).
      */
     protected function prepareMediaData(ArrayObject $resource, string $field, $value): array
     {
@@ -906,29 +913,14 @@ class ResourceProcessor extends AbstractResourceProcessor
         }
 
         switch ($field) {
-            case 'url':
-                $media = [];
-                $media['resource_name'] = 'media';
-                $media['o:ingester'] = 'url';
-                $media['ingest_url'] = $value;
-                $media['o:source'] = $value;
-                return $media;
-
             case 'tile':
                 // Deprecated: tiles are now only a rendering, not an ingester
                 // since ImageServer version 3.6.13. All images are
                 // automatically tiled, so "tile" is a format similar to large/medium/square,
                 // but different.
-                /*
-                $media = [];
-                $media['resource_name'] = 'media';
-                $media['o:ingester'] = 'tile';
-                $media['ingest_url'] = $value;
-                $media['o:source'] = $value;
-                return $media;
-                */
-                // no break.
             case 'file':
+            case 'url':
+            case 'sideload':
                 // A file may be a url for end-user simplicity.
                 $media = [];
                 $media['resource_name'] = 'media';
@@ -956,11 +948,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return $media;
 
             case 'directory':
+            case 'sideload_dir':
                 $media = [];
                 $media['resource_name'] = 'media';
                 $media['o:ingester'] = 'sideload_dir';
                 $media['ingest_directory'] = $value;
-                $media['o:source'] = $value;
+                $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
                 return $media;
 
             case 'html':
@@ -974,7 +967,6 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $media = [];
                 $media['resource_name'] = 'media';
                 $media['o:ingester'] = 'iiif';
-                $media['ingest_url'] = null;
                 if (!$this->bulk->isUrl($value)) {
                     $value = $this->getParam('iiifserver_media_api_url', '') . $value;
                 }
@@ -984,6 +976,97 @@ class ResourceProcessor extends AbstractResourceProcessor
             default:
                 return [];
         }
+    }
+
+    /**
+     * Finalize normalization of media when there is no direct key for ingester.
+     *
+     * Sometime, the data from entry is not consistent (ingester url with a path)
+     * so this early check fix it.
+     *
+     * @see \BulkImport\Processor\ResourceProcessor::prepareMediaData()
+     * @see \BulkImport\Entry\XmlEntry::initiMediaBase()
+     *
+     * @todo Factorize the three methods that manage file ingesters.
+     */
+    protected function prepareMediaDataFinalize(ArrayObject $resource): self
+    {
+        $ingester = $resource['o:ingester'] ?? 'file';
+        $ingestFilename = empty($resource['ingest_filename']) ? null : $resource['ingest_filename'];
+        $ingestUrl = empty($resource['ingest_url']) ? null : $resource['ingest_url'];
+        $ingestDirectory = empty($resource['ingest_directory']) ? null : $resource['ingest_directory'];
+        switch ($ingester) {
+            default:
+                break;
+            case 'tile':
+                // Deprecated: "tile" is only a renderer, no more an ingester
+                // since ImageServer version 3.6.13. All images are
+                // automatically tiled, so "tile" is a format similar to large/medium/square,
+                // but different.
+            case 'url':
+                $value = $ingestUrl ?? $ingestFilename?? $ingestDirectory;
+            case 'file':
+            case 'sideload':
+                $value ??= $ingestFilename ?? $ingestUrl ?? $ingestDirectory;
+                // A file may be a url for end-user simplicity.
+                if ($this->bulk->isUrl($value)) {
+                    $resource['o:ingester'] = 'url';
+                    $resource['ingest_url'] = $value;
+                    unset($resource['ingest_filename']);
+                    unset($resource['ingest_directory']);
+                } elseif ($filepath = $this->bulkFileUploaded->getFileUploaded($value)) {
+                    /** @see \BulkImport\Media\Ingester\Bulk */
+                    // Not fluid.
+                    $tempFile = $this->tempFileFactory->build();
+                    $tempFile->setTempPath($filepath);
+                    $tempFile->setSourceName($value);
+                    $resource['o:ingester'] = 'bulk';
+                    $resource['ingest_ingester'] = 'upload';
+                    $resource['ingest_tempfile'] = $tempFile;
+                    // Don't delete file before validation (that uses
+                    // hydration and removes file);
+                    // $resource['ingest_delete_file'] = true;
+                    $resource['ingest_filename'] = $value;
+                    unset($resource['ingest_url']);
+                    unset($resource['ingest_directory']);
+                }  else {
+                    $resource['o:ingester'] = 'sideload';
+                    $resource['ingest_filename'] = $value;
+                    unset($resource['ingest_url']);
+                    unset($resource['ingest_directory']);
+                }
+                break;
+
+            case 'directory':
+            case 'sideload_dir':
+                $resource['o:ingester'] = 'sideload_dir';
+                $resource['ingest_directory'] = $value;
+                $resource['o:source'] = empty($resource['o:source']) ? $value : $resource['o:source'];
+                unset($resource['ingest_filename']);
+                unset($resource['ingest_url']);
+                break;
+
+            case 'html':
+                $resource['o:ingester'] = 'html';
+                $resource['html'] = $value;
+                $resource['o:source'] ??= null;
+                unset($resource['ingest_url']);
+                unset($resource['ingest_filename']);
+                unset($resource['ingest_directory']);
+                break;
+
+            case 'iiif':
+                if (!$this->bulk->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
+                    $value = $this->options['iiifserver_media_api_url'] . $value;
+                }
+                $resource['o:ingester'] = 'iiif';
+                $resource['ingest_url'] = $value;
+                unset($resource['ingest_filename']);
+                unset($resource['ingest_directory']);
+                break;
+        }
+
+        return $this;
     }
 
     /**
