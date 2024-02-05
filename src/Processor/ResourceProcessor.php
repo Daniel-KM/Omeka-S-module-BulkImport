@@ -412,7 +412,10 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // Don't fill item set for item or item for media here, only common data.
 
-        $fields = array_keys($this->fieldTypes, 'entity');
+        $currentFieldTypes = empty($resource['resource_name']) || $resource['resource_name'] === $this->resourceName
+            ? $this->fieldTypes
+            : $this->getFieldTypesForResource($resource['resource_name']);
+        $fields = array_keys($currentFieldTypes, 'entity');
         $fields = array_combine($fields, $fields);
 
         // Remove processed fields.

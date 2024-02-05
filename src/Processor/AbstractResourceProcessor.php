@@ -384,11 +384,16 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function fillResourceData(ArrayObject $resource, array $data): self
     {
         // Internal keys of the base entities to skip.
-        $metadataTypes = [
+        $baseMetadataTypes = [
             'source_index' => 'skip',
             'checked_id' => 'skip',
             'messageStore' => 'skip',
-        ] + $this->fieldTypes;
+        ];
+
+        $currentFieldTypes = empty($resource['resource_name']) || $resource['resource_name'] === $this->resourceName
+            ? $this->fieldTypes
+            : $this->getFieldTypesForResource($resource['resource_name']);
+        $metadataTypes = $baseMetadataTypes + $currentFieldTypes;
 
         // The values are always a list get from the meta mapper mapping.
         // TODO Why are the values always a list get from the meta mapper mapping? (manage the case of multiple identifiers).
@@ -523,8 +528,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // processor above, so it is always an array of strings or arrays
         // to copy from data into resource.
 
+        $currentFieldTypes = empty($resource['resource_name']) || $resource['resource_name'] === $this->resourceName
+            ? $this->fieldTypes
+            : $this->getFieldTypesForResource($resource['resource_name']);
+
         // Owner is prefilled in base entity. This is a single entity.
-        if ((isset($this->fieldTypes['o:owner']) || isset($this->fieldTypes['o:email']))
+        // TODO Use $this->getFieldTypesForResource().
+        if ((isset($currentFieldTypes['o:owner']) || isset($currentFieldTypes['o:email']))
             && (array_key_exists('o:owner', $data) || array_key_exists('o:email', $data))
         ) {
             $values = array_merge(array_values($data['o:owner'] ?? []), array_values($data['o:email'] ?? []));
@@ -1464,5 +1474,34 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
         return $messages;
+    }
+
+    /**
+     * @todo Find a less quick and dirty way to get the field types.
+     */
+    protected function getFieldTypesForResource(?string $resourceName): array
+    {
+        static $fieldTypesForResource = [];
+
+        $resourceName = $this->bulk->resourceName($resourceName);
+        if (!$resourceName) {
+            return [];
+        }
+
+        $resourceNamesToProcessor = [
+            'asset' => AssetProcessor::class,
+            'items' => ItemProcessor::class,
+            'media' => MediaProcessor::class,
+            'item_sets' => ItemSetProcessor::class,
+            'resources' => ResourceProcessor::class,
+        ];
+
+        if (!isset($fieldTypesForResource[$resourceName])) {
+            $specificProcessor = $resourceNamesToProcessor[$resourceName];
+            $specificProcessor = new $specificProcessor($this->getServiceLocator());
+            $fieldTypesForResource[$resourceName] = $specificProcessor->getFieldTypes();
+        }
+
+        return $fieldTypesForResource[$resourceName];
     }
 }

@@ -45,7 +45,7 @@ abstract class AbstractProcessor implements Processor
      *
      * @var array
      */
-    protected $resourceFieldTypes = [];
+    protected $fieldTypes = [];
 
     /**
      * @var \Omeka\Permissions\Acl
