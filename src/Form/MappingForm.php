@@ -12,7 +12,11 @@ class MappingForm extends Form
         parent::init();
 
         $defaultMapping = <<<'XML'
-<!-- Sample of mapping from Unimarc. -->
+<!--
+Sample of mapping for Unimarc.
+XPaths are case sensitive.
+The base of XPaths is the root element used in the separation step.
+-->
 <mapping>
     <map>
         <from xpath="/record/datafield[@tag='200'][@ind1='1']/subfield[@code='a']"/>
@@ -48,7 +52,6 @@ XML;
                     'rows' => 30,
                     'class' => 'codemirror-code',
                     'placeholder' => $defaultMapping,
-                    'value' => $defaultMapping,
                 ],
             ])
 

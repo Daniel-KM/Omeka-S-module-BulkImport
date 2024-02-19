@@ -510,7 +510,11 @@ SQL;
         }
 
         if (!$this->handleLog) {
-            @unlink($this->filepathLog);
+            // An error can occur because of the file, so check it.
+            if ($this->filepathLog && file_exists($this->filepathLog)) {
+                fclose($this->handleLog);
+                @unlink($this->filepathLog);
+            }
             return [
                 'status' => 'error',
             ];
