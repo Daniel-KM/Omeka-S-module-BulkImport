@@ -7,8 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-01 00:00+0000\n"
-"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"POT-Creation-Date: 2024-02-19 00:00+0000"
+"MI+ZONE\n"
+"PO-Revision-Date: \n"
 "Last-Translator: Daniel Berthereau <Daniel.fr@Berthereau.net>\n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -27,8 +28,8 @@ msgstr ""
 "tableurs pour aligner les champs instantanément, avec le type de données et "
 "la langue. Exemple : %3$s"
 
-#: src/Controller/Admin/MappingController.php:94
-#: src/Controller/Admin/MappingController.php:105
+#: src/Controller/Admin/MappingController.php:96
+#: src/Controller/Admin/MappingController.php:107
 #, php-format
 msgid "%s (copy)"
 msgstr "%s (copie)"
@@ -358,19 +359,19 @@ msgstr "[Sans titre %s #%s]"
 msgid "[Untitled post #%s]"
 msgstr "[Publication sans titre #%s]"
 
-#: src/Stdlib/MetaMapper.php:502
+#: src/Stdlib/MetaMapper.php:510
 msgid "false"
 msgstr "faux"
 
-#: src/Stdlib/MetaMapper.php:504
+#: src/Stdlib/MetaMapper.php:512
 msgid "off"
 msgstr ""
 
-#: src/Stdlib/MetaMapper.php:505
+#: src/Stdlib/MetaMapper.php:513
 msgid "true"
 msgstr "vrai"
 
-#: src/Stdlib/MetaMapper.php:507
+#: src/Stdlib/MetaMapper.php:515
 msgid "on"
 msgstr "sur"
 
@@ -976,24 +977,28 @@ msgstr "Il n’y a aucun fichier téléchargé."
 
 #: Module.php:283
 msgid "File #{index} \"{filename}\" has an error: {error}."
-msgstr ""
+msgstr "Le fichier #{index} « {filename} » a une erreur : {error}."
 
 #: Module.php:290
 msgid "File #{index} \"{filename}\" must not start with a \".\"."
 msgstr ""
+"Le fichier #{index} « {filename} » ne doit pas commencer avec un « . »."
 
 #: Module.php:297
 msgid "File #{index} \"{filename}\" must not contain a reserved character."
 msgstr ""
+"Le fichier #{index} « {filename} » ne doit pas avoir de caractère réservé."
 
 #: Module.php:304
 msgid ""
 "File #{index} temp name \"{filename}\" must not contain a reserved character."
 msgstr ""
+"Le fichier #{index} temporaire avec le nom « {filename} » ne doit pas "
+"contenir de caractère réservé."
 
 #: Module.php:312
 msgid "File #{index} \"{filename}\" is an empty file."
-msgstr ""
+msgstr "Le fichier #{index} « {filename} » est vide."
 
 #: Module.php:665 src/Controller/Admin/UploadController.php:332
 msgid "The directory \"{path}\" is not writeable: {error}."
@@ -1134,7 +1139,7 @@ msgstr "Impossible de récupérer l’url \"{url}\" : l’url est vide."
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:327
 msgid "Cannot fetch url \"{url}\": invalid protocol."
-msgstr "Impossible de récupérer l’url \"{url}\" : protocole incorrec."
+msgstr "Impossible de récupérer l’url \"{url}\" : protocole incorrect."
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:346
 msgid "Cannot fetch url \"{url}\": url cannot be fetched."
@@ -1168,7 +1173,7 @@ msgstr ""
 "Impossible de récupérer l’url \"{url}\" : impossible de pré-vérifier le "
 "media-type."
 
-#: src/Mvc/Controller/Plugin/BulkFile.php:457
+#: src/Mvc/Controller/Plugin/BulkFile.php:456
 msgid "File \"{filename}\" doesn’t exist."
 msgstr "Le fichier \"{filename}\" n’existe pas."
 
@@ -1285,12 +1290,14 @@ msgstr ""
 #: src/Mvc/Controller/Plugin/BulkFile.php:858
 msgid "File {url} ({source}) don’t have an allowed extension: \"{extension}\"."
 msgstr ""
+"Le fichier {url} ({source}) n’a pas une extension autorisée : "
+"« {extension} »."
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:903
 #: src/Mvc/Controller/Plugin/BulkFile.php:925
 #: src/Mvc/Controller/Plugin/BulkFile.php:937
 msgid "File {file} invalid: {error}"
-msgstr ""
+msgstr "Fichier {file} incorrect : {error}"
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:904
 #: src/Mvc/Controller/Plugin/BulkFile.php:926
@@ -1307,7 +1314,7 @@ msgstr "Le fichier {url} n’est pas une image."
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:989
 msgid "File {url} is not an allowed file."
-msgstr ""
+msgstr "Le fichier {url} n’est pas un fichier autorisé."
 
 #: src/Mvc/Controller/Plugin/BulkFile.php:990
 msgid "url"
@@ -1378,7 +1385,7 @@ msgstr "Impossible d’ouvrir la sortie : {error}."
 msgid "Trying to output more than {max} messages. Next messages are skipped."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:532
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:536
 msgid "Results are available in this spreadsheet: {url}."
 msgstr "Les résultats sont disponibles dans le tableau : {url}."
 
@@ -2023,7 +2030,7 @@ msgid "metadata"
 msgstr "métadonnées"
 
 # Attention : Mapping est utilisé pour la carte.
-#: src/Form/MappingForm.php:43
+#: src/Form/MappingForm.php:48
 msgid "Mapping"
 msgstr "Mapping"
 
@@ -3493,18 +3500,18 @@ msgid "Action \"{action}\" for unidentified resource is not managed."
 msgstr ""
 "L’action \"{action}\" pour les ressources non identifiées n’est pas gérée."
 
-#: src/Processor/AbstractResourceProcessor.php:509
+#: src/Processor/AbstractResourceProcessor.php:517
 msgid ""
 "source index #{index}: Internal id cannot be found. The entry is skipped."
 msgstr ""
 "source index #{index} : l’id interne ne peut pas être trouvée. L’entrée est "
 "ignorée."
 
-#: src/Processor/AbstractResourceProcessor.php:543
+#: src/Processor/AbstractResourceProcessor.php:556
 msgid "The user \"{source}\" does not exist."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:590
+#: src/Processor/AbstractResourceProcessor.php:603
 msgid ""
 "The action \"{action}\" cannot have an id or a duplicate identifier "
 "({identifier}, #{resource_id})."
@@ -3512,7 +3519,7 @@ msgstr ""
 "L’action \"{action}\" ne peut avoir une ressource avec un id ou un "
 "identifiant en double ({identifier}, #{resource_id})."
 
-#: src/Processor/AbstractResourceProcessor.php:595
+#: src/Processor/AbstractResourceProcessor.php:608
 msgid ""
 "The action \"{action}\" requires a unique identifier ({identifier}, "
 "#{resource_id})."
@@ -3520,66 +3527,66 @@ msgstr ""
 "L’action \"{action}\" requiert un identifiant unique ({identifier}, "
 "#{resource_id})."
 
-#: src/Processor/AbstractResourceProcessor.php:607
+#: src/Processor/AbstractResourceProcessor.php:620
 msgid "The action \"{action}\" requires an identifier ({identifier})."
 msgstr "L’action \"{action}\" requiert un identifiant ({identifier})."
 
-#: src/Processor/AbstractResourceProcessor.php:612
+#: src/Processor/AbstractResourceProcessor.php:625
 msgid "The action \"{action}\" requires a unique identifier ({identifier})."
 msgstr "L’action \"{action}\" requiert un identifiant unique ({identifier})."
 
-#: src/Processor/AbstractResourceProcessor.php:647
+#: src/Processor/AbstractResourceProcessor.php:660
 msgid "User has no rights to \"{action}\" {resource_name}."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:714
+#: src/Processor/AbstractResourceProcessor.php:727
 msgid "User has no rights to \"{action}\" {resource_name} {resource_id}."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:732
+#: src/Processor/AbstractResourceProcessor.php:745
 msgid "Initialization exception: {exception}"
 msgstr "Erreur d’initialisation : {exception}"
 
-#: src/Processor/AbstractResourceProcessor.php:788
+#: src/Processor/AbstractResourceProcessor.php:801
 msgid "Validation exception: {exception}"
 msgstr "Erreur de validation : {exception}"
 
-#: src/Processor/AbstractResourceProcessor.php:878
+#: src/Processor/AbstractResourceProcessor.php:891
 msgid "Cannot fetch url \"{url}\". The url is skipped."
 msgstr "Impossible de récupérer l’url « {url} ». L’url est ignorée."
 
-#: src/Processor/AbstractResourceProcessor.php:883
+#: src/Processor/AbstractResourceProcessor.php:896
 msgid "Cannot fetch file \"{file}\". The file is skipped."
 msgstr "Impossible de récupérer le fichier « {file} ». Le fichier est ignoré."
 
-#: src/Processor/AbstractResourceProcessor.php:888
+#: src/Processor/AbstractResourceProcessor.php:901
 msgid "Cannot fetch directory \"{file}\". The file is skipped."
 msgstr "Impossible de récupérer le dossier « {file} ». Le dossier est ignoré."
 
-#: src/Processor/AbstractResourceProcessor.php:957
+#: src/Processor/AbstractResourceProcessor.php:970
 msgid ""
 "The resource id #{id} cannot be checked: the resource type is undefined."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:966
+#: src/Processor/AbstractResourceProcessor.php:979
 msgid "The id #{id} of this resource doesn’t exist."
 msgstr "L’id #{id} de la ressource n’existe pas."
 
-#: src/Processor/AbstractResourceProcessor.php:999
+#: src/Processor/AbstractResourceProcessor.php:1012
 msgid "The resource id cannot be filled: the resource type is undefined."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1015
+#: src/Processor/AbstractResourceProcessor.php:1028
 msgid "The resource has no identifier."
 msgstr "La ressource n’a pas d’identifiant."
 
-#: src/Processor/AbstractResourceProcessor.php:1019
+#: src/Processor/AbstractResourceProcessor.php:1032
 msgid ""
 "The resource id cannot be filled: no metadata defined as identifier and "
 "duplicate identifiers are not allowed."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1066
+#: src/Processor/AbstractResourceProcessor.php:1079
 msgid ""
 "Resource doesn’t have a unique identifier. You may check options for "
 "resource identifiers."
@@ -3587,7 +3594,7 @@ msgstr ""
 "La ressource n’a pas d’identifiant unique. Vérifiez les options pour les "
 "identifiants des ressources."
 
-#: src/Processor/AbstractResourceProcessor.php:1070
+#: src/Processor/AbstractResourceProcessor.php:1083
 msgid ""
 "Duplicate identifiers are not allowed. You may check options for resource "
 "identifiers."
@@ -3595,60 +3602,60 @@ msgstr ""
 "Les identifiants en double ne sont pas autorisés. Vérifiez les options pour "
 "les identifiants des ressources."
 
-#: src/Processor/AbstractResourceProcessor.php:1152
+#: src/Processor/AbstractResourceProcessor.php:1165
 msgid "Error during validation of the data before creation."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1161
+#: src/Processor/AbstractResourceProcessor.php:1174
 msgid "Core error during creation: {exception}"
 msgstr "Erreur Omeka durant la création : {exception}"
 
-#: src/Processor/AbstractResourceProcessor.php:1173
+#: src/Processor/AbstractResourceProcessor.php:1186
 msgid "Index #{index}: Created media #{media_id} (item #{item_id})"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1178
+#: src/Processor/AbstractResourceProcessor.php:1191
 #: src/Processor/AssetProcessor.php:263
 msgid "Index #{index}: Created {resource_name} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1201
+#: src/Processor/AbstractResourceProcessor.php:1214
 msgid "Index #{index}: The {resource_name} has no id and cannot be updated."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1222
+#: src/Processor/AbstractResourceProcessor.php:1235
 msgid "The resource id #\"{id}\" has no resource name."
 msgstr "Le ressource id #{id} n’est pas un nom de ressource."
 
-#: src/Processor/AbstractResourceProcessor.php:1278
+#: src/Processor/AbstractResourceProcessor.php:1291
 msgid "Error during validation of the data before update."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1287
+#: src/Processor/AbstractResourceProcessor.php:1300
 msgid "Core error during update: {exception}"
 msgstr "Erreur Omeka durant la mise à jour : {exception}"
 
-#: src/Processor/AbstractResourceProcessor.php:1297
+#: src/Processor/AbstractResourceProcessor.php:1310
 msgid "Unknown error occured during update."
 msgstr "Une erreur inconnue est survenue durant la mise à jour."
 
-#: src/Processor/AbstractResourceProcessor.php:1311
+#: src/Processor/AbstractResourceProcessor.php:1324
 msgid "Index #{index}: Updated {resource_name} #{resource_id}"
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1329
+#: src/Processor/AbstractResourceProcessor.php:1342
 msgid "Index #{index}: The {resource_name} has no id and cannot be deleted."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1340
+#: src/Processor/AbstractResourceProcessor.php:1353
 msgid "Error during validation of the data before deletion."
 msgstr ""
 
-#: src/Processor/AbstractResourceProcessor.php:1350
+#: src/Processor/AbstractResourceProcessor.php:1363
 msgid "Core error during deletion: {exception}"
 msgstr "Erreur Omeka durant la suppression : {exception}"
 
-#: src/Processor/AbstractResourceProcessor.php:1359
+#: src/Processor/AbstractResourceProcessor.php:1372
 msgid "Index #{index}: Deleted {resource_name} #{resource_id}"
 msgstr ""
 
@@ -4108,27 +4115,27 @@ msgstr ""
 "L’action \"{action}\" pour les collections (mise à jour des contenus) n’est "
 "pas gérée."
 
-#: src/Processor/ResourceProcessor.php:444
+#: src/Processor/ResourceProcessor.php:451
 msgid "The resource template \"{source}\" does not exist."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:468
+#: src/Processor/ResourceProcessor.php:475
 msgid "The resource class \"{source}\" does not exist."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:500
+#: src/Processor/ResourceProcessor.php:507
 msgid "The thumbnail \"{source}\" does not exist or cannot be created."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:597
+#: src/Processor/ResourceProcessor.php:604
 msgid "The item set #{item_set_id} does not exist."
 msgstr "La collection #{item_set_id} n’existe pas."
 
-#: src/Processor/ResourceProcessor.php:637
+#: src/Processor/ResourceProcessor.php:644
 msgid "The value \"{value}\" is not an item set."
 msgstr "La valeur \"{value}\" n’est pas une collection."
 
-#: src/Processor/ResourceProcessor.php:682
+#: src/Processor/ResourceProcessor.php:689
 msgid ""
 "The mapping bounds requires four numeric values separated by a comma. "
 "Incorrect value: {value}"
@@ -4136,13 +4143,13 @@ msgstr ""
 "Les limites de zone requièrent quatre valeurs numériques séparées par une "
 "virgule. Valeur incorrect : {value}"
 
-#: src/Processor/ResourceProcessor.php:701
+#: src/Processor/ResourceProcessor.php:708
 msgid ""
 "The mapping marker requires a latitude and a longitude separated by a \"/\". "
 "Incorrect value: {value}"
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:798
+#: src/Processor/ResourceProcessor.php:805
 msgid ""
 "Media with metadata \"{field}\" \"{identifier}\" cannot be found. The entry "
 "is skipped."
@@ -4150,15 +4157,15 @@ msgstr ""
 "Le média avec les métadonnées « {field} » « {identifier} » ne peut pas être "
 "trouvé. L’entrée est ignorée."
 
-#: src/Processor/ResourceProcessor.php:815
+#: src/Processor/ResourceProcessor.php:822
 msgid "The item #{item_id} does not exist."
 msgstr "Le contenu #{item_id} n’existe pas."
 
-#: src/Processor/ResourceProcessor.php:865
+#: src/Processor/ResourceProcessor.php:872
 msgid "The value \"{value}\" is not an item."
 msgstr "La valeur \"{value}\" n’est pas un contenu."
 
-#: src/Processor/ResourceProcessor.php:1074
+#: src/Processor/ResourceProcessor.php:1164
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to create the resource first. Data type "
@@ -4168,7 +4175,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Essayer de créer la ressource d’abord. "
 "Le type de données « literal » est utilisé."
 
-#: src/Processor/ResourceProcessor.php:1079
+#: src/Processor/ResourceProcessor.php:1169
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Data type \"literal\" is used."
@@ -4177,7 +4184,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Le type de données « literal » est "
 "utilisé."
 
-#: src/Processor/ResourceProcessor.php:1086
+#: src/Processor/ResourceProcessor.php:1176
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to create resource first. Or try to add "
@@ -4188,7 +4195,7 @@ msgstr ""
 "Ou essayez d’ajouter « literal » aux types de données ou la mettre par "
 "défaut."
 
-#: src/Processor/ResourceProcessor.php:1091
+#: src/Processor/ResourceProcessor.php:1181
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to add \"literal\" to datatypes or default to "
@@ -4198,7 +4205,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Essayer d’ajouter « literal » aux "
 "types de données ou la mettre par défaut."
 
-#: src/Processor/ResourceProcessor.php:1142
+#: src/Processor/ResourceProcessor.php:1232
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not member of custom vocab "
 "\"{customvocab}\"."
@@ -4206,7 +4213,7 @@ msgstr ""
 "La valeur « {value} » pour la propriété « {term} » ne se trouve pas dans le "
 "vocabulaire personnalisé « {customvocab} »."
 
-#: src/Processor/ResourceProcessor.php:1149
+#: src/Processor/ResourceProcessor.php:1239
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not member of custom vocab "
 "\"{customvocab}\". A literal value is used instead."
@@ -4215,19 +4222,19 @@ msgstr ""
 "vocabulaire personnalisé « {customvocab} ». Une valeur littérale est "
 "utilisée à la place."
 
-#: src/Processor/ResourceProcessor.php:1219
+#: src/Processor/ResourceProcessor.php:1309
 msgid "No resource type set."
 msgstr "Aucun type de ressource n’est spécifié."
 
-#: src/Processor/ResourceProcessor.php:1226
+#: src/Processor/ResourceProcessor.php:1316
 msgid "The resource type \"{resource_name}\" is not managed."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:1316
+#: src/Processor/ResourceProcessor.php:1406
 msgid "o:media"
 msgstr "o:media"
 
-#: src/Processor/ResourceProcessor.php:1340
+#: src/Processor/ResourceProcessor.php:1430
 msgid "No item is set for the media."
 msgstr "Aucun contenu n’a été défini pour ce média."
 
@@ -4619,7 +4626,7 @@ msgstr ""
 msgid "Here are the first invalid dates: {list}."
 msgstr ""
 
-#: src/Entry/XmlEntry.php:399
+#: src/Entry/XmlEntry.php:374
 msgid "Unable to import a linked resource via xml currently."
 msgstr ""
 
@@ -4684,7 +4691,7 @@ msgstr ""
 #: src/Reader/OpenDocumentSpreadsheetReader.php:502
 #: src/Reader/OpenDocumentSpreadsheetReader.php:529
 msgid "File has no available fields."
-msgstr ""
+msgstr "Le fichier n’a pas de champs disponibles."
 
 #: src/Reader/XmlReader.php:21
 msgid "XML"
@@ -4980,32 +4987,32 @@ msgstr "Le fichier \"%s\" ne peut pas être lu. Merci de vérifier le fichier."
 msgid "A vocabulary must have a namespace uri and a prefix."
 msgstr "Un vocabulaire doit avoir une uri pour l’espace de nom et un préfixe."
 
-#: src/Controller/Admin/MappingController.php:105
+#: src/Controller/Admin/MappingController.php:107
 msgid "o:label"
 msgstr ""
 
-#: src/Controller/Admin/MappingController.php:122
+#: src/Controller/Admin/MappingController.php:124
 msgid "Mapping successfully saved"
 msgstr "Alignement enregistré avec succès"
 
-#: src/Controller/Admin/MappingController.php:125
+#: src/Controller/Admin/MappingController.php:127
 msgid "Save of mapping failed"
 msgstr "L’enregistrement de l’alignement a échoué"
 
-#: src/Controller/Admin/MappingController.php:148
-#: src/Controller/Admin/MappingController.php:208
+#: src/Controller/Admin/MappingController.php:150
+#: src/Controller/Admin/MappingController.php:210
 msgid "mapping_id"
 msgstr "mapping_id"
 
-#: src/Controller/Admin/MappingController.php:164
+#: src/Controller/Admin/MappingController.php:166
 msgid "Mapping successfully deleted"
 msgstr "Alignement supprimé avec succès"
 
-#: src/Controller/Admin/MappingController.php:166
+#: src/Controller/Admin/MappingController.php:168
 msgid "Delete of mapping failed"
 msgstr "Échec de la suppression de l’alignement"
 
-#: src/Controller/Admin/MappingController.php:194
+#: src/Controller/Admin/MappingController.php:196
 msgid "No mapping id set."
 msgstr "Aucun id d’alignement n’est indiqué."
 
