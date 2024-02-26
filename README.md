@@ -599,7 +599,7 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [Generic]: https://gitlab.com/Daniel-KM/Omeka-S-module-Generic
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
-[Installing a module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
+[installing a module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [patch]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
 [version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
