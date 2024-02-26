@@ -33,6 +33,7 @@ use DomDocument;
 use Exception;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Service\Exception\RuntimeException;
+use Omeka\Stdlib\Message;
 use XsltProcessor;
 
 /**
@@ -61,7 +62,7 @@ class ProcessXslt extends AbstractPlugin
     /**
      * Apply a process (xslt stylesheet) on an file (xml file) and save result.
      *
-     * @param string $uri Uri of input file.
+     * @param string $url Url of input file.
      * @param string $stylesheet Path of the stylesheet.
      * @param string $output Path of the output file. If none, a temp file will
      * be used.
@@ -69,23 +70,27 @@ class ProcessXslt extends AbstractPlugin
      * @return string|null Path to the output file if ok, null else.
      * @throws \Exception
      */
-    public function __invoke($uri, $stylesheet, $output = '', array $parameters = []): ?string
+    public function __invoke($url, $stylesheet, $output = '', array $parameters = []): ?string
     {
         // The readability is a very common error, so it is checked separately.
         // Furthermore, the input should be local to be processed by php or cli.
-        $filepath = $uri;
-        $isRemote = $this->isRemote($uri);
+        $filepath = $url;
+        $isRemote = $this->isRemote($url);
         if ($isRemote) {
             // TODO Use the Omeka temp dir.
-            $filepath = @tempnam($this->tempDir, basename($uri));
-            $result = file_put_contents($filepath, file_get_contents($uri));
+            $filepath = @tempnam($this->tempDir, basename($url));
+            $result = file_put_contents($filepath, file_get_contents($url));
             if (empty($result)) {
-                $message = sprintf('The remote file "%s" is not readable or empty.', $uri); // @translate
-                throw new RuntimeException($message);
+                throw new RuntimeException(sprintf(
+                    'The remote file "%s" is not readable or empty.', // @translate
+                    $url
+                ));
             }
         } elseif (!is_file($filepath) || !is_readable($filepath) || !filesize($filepath)) {
-            $message = sprintf('The input file "%s" is not readable.', $filepath); // @translate
-            throw new RuntimeException($message);
+            throw new RuntimeException(sprint(
+                'The input file "%s" is not readable.', // @translate
+                $filepath
+            ));
         }
 
         // Default is the internal xslt processor of php.
@@ -103,7 +108,7 @@ class ProcessXslt extends AbstractPlugin
     /**
      * Apply a process (xslt stylesheet) on an input (xml file) and save output.
      *
-     * @param string $uri Path of input file.
+     * @param string $url Path of input file.
      * @param string $stylesheet Path of the stylesheet.
      * @param string $output Path of the output file. If none, a temp file will
      * be used.
@@ -111,33 +116,49 @@ class ProcessXslt extends AbstractPlugin
      * @return string|null Path to the output file if ok, null else.
      * @throws \Exception
      */
-    protected function processXsltViaPhp($uri, $stylesheet, $output = '', array $parameters = [])
+    protected function processXsltViaPhp($url, $stylesheet, $output = '', array $parameters = [])
     {
         if (empty($output)) {
             $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
         }
 
         try {
-            $domXml = $this->domXmlLoad($uri);
+            $domXml = $this->domXmlLoad($url);
             $domXsl = $this->domXmlLoad($stylesheet);
         } catch (Exception $e) {
             throw $e;
         }
 
+        // Don't accept warning (for example a missing file to import).
+        libxml_use_internal_errors(true);
+
         $proc = new XSLTProcessor;
-        $proc->importStyleSheet($domXsl);
+        $result = $proc->importStyleSheet($domXsl);
+        if ($result === false) {
+            $errors = $this->formatXmlErrors();
+            libxml_use_internal_errors(false);
+            throw new RuntimeException(sprintf(
+                'An error occured during the xsl transformation of the file "%1$s" with the sheet "%2$s": %3$s', // @translate
+                $this->isRemote($url) ? $url : basename($url),
+                basename($stylesheet),
+                implode('; ', $errors)
+            ));
+        }
+
         $proc->setParameter('', $parameters);
         $result = $proc->transformToURI($domXml, $output);
         @chmod($output, 0664);
 
         // There is no specific message for error with this processor.
         if ($result === false) {
-            $message = sprintf(
-                'An error occurs during the xsl transformation of the file "%s" with the sheet "%s".', // @translate
-                $uri,
-                $stylesheet
-            );
-            throw new RuntimeException($message);
+            $errors = $this->formatXmlErrors();
+            libxml_use_internal_errors(false);
+            throw new RuntimeException(sprintf(
+                'An error occured during the xsl transformation of the file "%1$s" with the sheet "%2$s": %3$s', // @translate
+                $this->isRemote($url) ? $url : basename($url),
+                basename($stylesheet),
+                implode('; ', $errors)
+            ));
         }
 
         return $output;
@@ -152,17 +173,34 @@ class ProcessXslt extends AbstractPlugin
      */
     protected function domXmlLoad($filepath)
     {
+        libxml_use_internal_errors(true);
+
         $domDocument = new DomDocument;
 
         // If xml file is over http, need to get it locally to process xslt.
         if ($this->isRemote($filepath)) {
             $xmlContent = file_get_contents($filepath);
             if ($xmlContent === false) {
-                $message = sprintf('Could not load "%s". Verify that you have rights to access this folder and subfolders.', $filepath); // @translate
-                throw new RuntimeException($message);
+                $errors = $this->formatXmlErrors();
+                libxml_use_internal_errors(false);
+                if ($errors) {
+                    throw new RuntimeException(sprintf(
+                        'Could not load "%1$s". Verify that you have rights to access this folder and subfolders. %2$s', // @translate
+                        basename($filepath),
+                        implode('; ', $errors)
+                    ));
+                } else {
+                    throw new RuntimeException(sprintf(
+                        'Could not load "%s". Verify that you have rights to access this folder and subfolders.', // @translate
+                        $filepath
+                    ));
+                }
             } elseif (empty($xmlContent)) {
-                $message = sprintf('The file "%s" is empty. Process is aborted.', $filepath); // @translate
-                throw new RuntimeException($message);
+                libxml_use_internal_errors(false);
+                throw new RuntimeException(sprintf(
+                    'The file "%s" is empty. Process is aborted.', // @translate
+                    basename($filepath)
+                ));
             }
             $domDocument->loadXML($xmlContent);
         }
@@ -178,7 +216,7 @@ class ProcessXslt extends AbstractPlugin
     /**
      * Apply a process (xslt stylesheet) on an input (xml file) and save output.
      *
-     * @param string $uri Path of input file.
+     * @param string $url Path of input file.
      * @param string $stylesheet Path of the stylesheet.
      * @param string $output Path of the output file. If none, a temp file will
      * be used.
@@ -187,13 +225,13 @@ class ProcessXslt extends AbstractPlugin
      *
      * @todo Use omeka standard lib cli.
      */
-    protected function processXsltViaExternal($uri, $stylesheet, $output = '', $parameters = [])
+    protected function processXsltViaExternal($url, $stylesheet, $output = '', $parameters = [])
     {
         if (empty($output)) {
             $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
         }
 
-        $command = sprintf($this->command, escapeshellarg($uri), escapeshellarg($stylesheet), escapeshellarg($output));
+        $command = sprintf($this->command, escapeshellarg($url), escapeshellarg($stylesheet), escapeshellarg($output));
         foreach ($parameters as $name => $parameter) {
             $command .= ' ' . escapeshellarg($name . '=' . $parameter);
         }
@@ -203,13 +241,12 @@ class ProcessXslt extends AbstractPlugin
 
         // In Shell, empty is a correct result.
         if (!empty($result)) {
-            $message = sprintf(
+            throw new RuntimeException(sprintf(
                 'An error occurs during the xsl transformation of the file "%s" with the sheet "%s" : %s', // @translate
-                $uri,
-                $stylesheet,
+                $this->isRemote($url) ? $url : basename($url),
+                basename($stylesheet),
                 $result
-            );
-            throw new RuntimeException($message);
+            ));
         }
 
         return $output;
@@ -218,14 +255,27 @@ class ProcessXslt extends AbstractPlugin
     /**
      * Determine if a uri is a remote url or a local path.
      *
-     * @param string $uri
+     * @param string $url
      * @return bool
      */
-    protected function isRemote($uri)
+    protected function isRemote($url)
     {
-        return strpos($uri, 'http://') === 0
-            || strpos($uri, 'https://') === 0
-            || strpos($uri, 'ftp://') === 0
-            || strpos($uri, 'sftp://') === 0;
+        return strpos((string) $url, 'http://') === 0
+            || strpos((string) $url, 'https://') === 0
+            || strpos((string) $url, 'ftp://') === 0
+            || strpos((string) $url, 'sftp://') === 0;
+    }
+
+    protected function formatXmlErrors(): array
+    {
+        $errors = [];
+        /** @var \LibXMLError $error */
+        foreach (libxml_get_errors() as $error) {
+            $errors[] = new Message(
+                '%1$s (file %2$s, line %3$d)', // @translate
+                $error->message, $error->file, $error->line
+            );
+        }
+        return $errors;
     }
 }
