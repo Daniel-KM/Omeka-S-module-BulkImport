@@ -124,12 +124,12 @@
             </xsl:when>
             <xsl:otherwise>
                 <xsl:variable name="filename">
-                    <xsl:call-template name="get-filename">
+                    <xsl:call-template name="get_filename">
                         <xsl:with-param name="filepath" select="$url_source"/>
                     </xsl:call-template>
                 </xsl:variable>
                 <xsl:variable name="extension">
-                    <xsl:call-template name="string-part-last">
+                    <xsl:call-template name="string_part_last">
                         <xsl:with-param name="string" select="$filename"/>
                         <xsl:with-param name="character" select="'.'"/>
                     </xsl:call-template>
@@ -155,10 +155,10 @@
         <xsl:variable name="href">
             <xsl:choose>
                 <xsl:when test="$filepath_replace_from != ''">
-                    <xsl:call-template name="search-and-replace">
+                    <xsl:call-template name="search_and_replace">
                         <xsl:with-param name="input" select="."/>
-                        <xsl:with-param name="search-string" select="$filepath_replace_from"/>
-                        <xsl:with-param name="replace-string" select="$filepath_replace_to"/>
+                        <xsl:with-param name="search_string" select="$filepath_replace_from"/>
+                        <xsl:with-param name="replace_string" select="$filepath_replace_to"/>
                     </xsl:call-template>
                 </xsl:when>
                 <xsl:otherwise>
@@ -195,32 +195,16 @@
         </xsl:choose>
     </xsl:template>
 
-    <xsl:template name="get-filename">
+    <xsl:template name="get_filename">
         <xsl:param name="filepath" />
         <xsl:choose>
             <xsl:when test="substring-after($filepath, '/')">
-                <xsl:call-template name="get-filename">
+                <xsl:call-template name="get_filename">
                     <xsl:with-param name="filepath" select="substring-after($filepath, '/')" />
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="$filepath" />
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:template>
-
-    <xsl:template name="string-part-last">
-        <xsl:param name="string"/>
-        <xsl:param name="character"/>
-        <xsl:choose>
-            <xsl:when test="contains($string, $character)">
-                <xsl:call-template name="string-part-last">
-                    <xsl:with-param name="string" select="substring-after($string, $character)"/>
-                    <xsl:with-param name="character" select="$character"/>
-                </xsl:call-template>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="$string"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>

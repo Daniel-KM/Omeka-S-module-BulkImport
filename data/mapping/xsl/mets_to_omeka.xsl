@@ -41,10 +41,15 @@
         Ajouter la table des matières avec le type de données "xml" et non codifiée.
         Il n’y a pas de norme pour présenter une table des matières.
 
+    - full_ranges (0)
+        Détailler (1) ou non (0) la liste des sections dans la table pour éviter les longues listes dans les sections.
+        Sinon, seuls les premier et dernier numéros de chaque section sont indiqués.
+        Utilisé uniquement pour la table non-xml et dans le nouveau mode (4 colonnes).
+
     - full_page_ranges (0)
         Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
-        Sinon, uniquement la première et la dernière page de chaque section est indiquée.
-        Utile dans l’ancien mode.
+        Sinon, seules les première et dernière pages de chaque section sont indiquées.
+        Utile dans l’ancien mode uniquement (lorsque les pages et les sections sont mélangées).
 
     - hide_view_number (0)
         Cacher le numéro de vue en cours (ancien mode).
@@ -59,6 +64,10 @@
 
     - dirpath (valeur interne)
         Url ou chemin du dossier du fichier xml, automatiquement passée.
+
+    TODO
+
+    - [ ] Factorize some templates.
 
     @copyright Daniel Berthereau, 2021-2024
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -141,6 +150,9 @@
 
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
     <xsl:param name="toc_xml">0</xsl:param>
+
+    <!-- Détailler ou non la liste des sections dans la table non-xml. -->
+    <xsl:param name="full_ranges">0</xsl:param>
 
     <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections (ancien mode). -->
     <xsl:param name="full_page_ranges">0</xsl:param>
@@ -302,10 +314,10 @@
         <xsl:variable name="href">
             <xsl:choose>
                 <xsl:when test="$filepath_replace_from != ''">
-                    <xsl:call-template name="search-and-replace">
+                    <xsl:call-template name="search_and_replace">
                         <xsl:with-param name="input" select="."/>
-                        <xsl:with-param name="search-string" select="$filepath_replace_from"/>
-                        <xsl:with-param name="replace-string" select="$filepath_replace_to"/>
+                        <xsl:with-param name="search_string" select="$filepath_replace_from"/>
+                        <xsl:with-param name="replace_string" select="$filepath_replace_to"/>
                     </xsl:call-template>
                 </xsl:when>
                 <xsl:otherwise>
@@ -396,8 +408,39 @@
             </xsl:attribute>
             <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
             <xsl:if test="$hide_view_number != '1'">
-                <xsl:attribute name="view">
-                    <xsl:apply-templates select="." mode="view_number"/>
+                <xsl:attribute name="views">
+                    <xsl:variable name="view_first">
+                        <xsl:if test="$hide_view_number != '1'">
+                            <xsl:apply-templates select="." mode="view_number"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:variable name="view_last">
+                        <xsl:choose>
+                            <xsl:when test="$hide_view_number = '1'">
+                                <xsl:text></xsl:text>
+                            </xsl:when>
+                            <xsl:when test="following-sibling::mets:div[1]">
+                                <xsl:apply-templates select="following-sibling::mets:div[1]" mode="view_number"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:apply-templates select="parent::mets:div/following-sibling::mets:div[1]" mode="view_number"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="views">
+                        <xsl:choose>
+                            <xsl:when test="$hide_view_number = '1' or $view_first = ''">
+                                <xsl:text></xsl:text>
+                            </xsl:when>
+                            <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
+                                <xsl:value-of select="$view_first"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat($view_first, '-', $view_last - 1)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:value-of select="$views"/>
                 </xsl:attribute>
             </xsl:if>
             <!-- Ajout d’information : position et nom du fichier, généralement inutile ; le type pourrait être utilisé pour bien distinguer section et pages. -->
@@ -516,7 +559,7 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-        <xsl:variable name="view">
+        <xsl:variable name="views">
             <xsl:choose>
                 <xsl:when test="$hide_view_number = '1' or $view_first = ''">
                     <xsl:text></xsl:text>
@@ -579,12 +622,32 @@
                 </xsl:when>
             </xsl:choose>
         </xsl:variable>
+        <xsl:variable name="pages_ou_ranges">
+            <xsl:choose>
+                <xsl:when test="
+                    $toc_merge_pages_and_ranges = '1'
+                    or $full_ranges = '1'
+                    or (string-length($pages_or_ranges) - string-length(translate($pages_or_ranges, ';', ''))) &lt; 2
+                    ">
+                    <xsl:value-of select="$pages_or_ranges"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:variable name="range_last">
+                        <xsl:call-template name="string_part_last">
+                            <xsl:with-param name="string" select="$pages_or_ranges"/>
+                            <xsl:with-param name="character" select="';'"/>
+                        </xsl:call-template>
+                    </xsl:variable>
+                    <xsl:value-of select="concat(' ', normalize-space(substring-before($pages_or_ranges, ';')), '/', normalize-space($range_last))"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:value-of select="concat(
             $indentation,
             'r', $range_number, ', ',
             normalize-space(@LABEL), ', ',
-            $view, $view_comma,
-            $pages_or_ranges,
+            $views, $view_comma,
+            $pages_ou_ranges,
             $end_of_line
         )"/>
         <!-- Ligne suivante. -->
@@ -757,28 +820,44 @@
 
     <!-- Remplace une chaîne par une autre. -->
     <!-- @see https://www.oreilly.com/library/view/xslt-cookbook/0596003722/ch01s07.html -->
-    <xsl:template name="search-and-replace">
+    <xsl:template name="search_and_replace">
         <xsl:param name="input"/>
-        <xsl:param name="search-string"/>
-        <xsl:param name="replace-string"/>
+        <xsl:param name="search_string"/>
+        <xsl:param name="replace_string"/>
         <xsl:choose>
             <!-- See if the input contains the search string -->
-            <xsl:when test="$search-string and contains($input, $search-string)">
+            <xsl:when test="$search_string and contains($input, $search_string)">
                 <!-- If so, then concatenate the substring before the search
                 string to the replacement string and to the result of
                 recursively applying this template to the remaining substring. -->
-                <xsl:value-of select="substring-before($input, $search-string)"/>
-                <xsl:value-of select="$replace-string"/>
-                <xsl:call-template name="search-and-replace">
-                    <xsl:with-param name="input" select="substring-after($input, $search-string)"/>
-                    <xsl:with-param name="search-string" select="$search-string"/>
-                    <xsl:with-param name="replace-string" select="$replace-string"/>
+                <xsl:value-of select="substring-before($input, $search_string)"/>
+                <xsl:value-of select="$replace_string"/>
+                <xsl:call-template name="search_and_replace">
+                    <xsl:with-param name="input" select="substring-after($input, $search_string)"/>
+                    <xsl:with-param name="search_string" select="$search_string"/>
+                    <xsl:with-param name="replace_string" select="$replace_string"/>
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
                 <!-- There are no more occurences of the search string so
                 just return the current input string -->
                 <xsl:value-of select="$input"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <xsl:template name="string_part_last">
+        <xsl:param name="string"/>
+        <xsl:param name="character"/>
+        <xsl:choose>
+            <xsl:when test="contains($string, $character)">
+                <xsl:call-template name="string_part_last">
+                    <xsl:with-param name="string" select="substring-after($string, $character)"/>
+                    <xsl:with-param name="character" select="$character"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$string"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
