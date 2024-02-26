@@ -9,6 +9,14 @@
 
     Cf. les options dans le fichier mets_to_omeka.xsl, qui est importé dans le présent fichier.
 
+    Options complémentaires :
+
+    - extension_replace_from ("")
+        Chaîne à remplacer dans les extensions de fichier, par exemple "pdf".
+
+    - extension_replace_to ("")
+        Chaîne de remplacement dans les extensions de fichier, par exemple "jpeg".
+
     @copyright Daniel Berthereau, 2021-2024 pour la Sorbonne Nouvelle
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
@@ -42,6 +50,12 @@
 
     <!-- Paramètres -->
 
+    <!-- Chaîne à remplacer dans les extensions de fichiers. -->
+    <xsl:param name="extension_replace_from"></xsl:param>
+
+    <!-- Chaîne de remplacement dans les extensions de fichiers. -->
+    <xsl:param name="extension_replace_to"></xsl:param>
+
     <!-- Constantes -->
 
     <!-- TODO Trouver un meilleur moyen d'identifier le nom source quand il y a plusieurs dc:source. -->
@@ -61,43 +75,75 @@
         <xsl:variable name="relation" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href]"/>
         <xsl:variable name="number" select="substring($relation/file_id, 8)"/>
         <xsl:variable name="index" select="format-number($number, '0000')"/>
+        <xsl:variable name="url_source">
+            <xsl:choose>
+                <xsl:when test="$index != 'NaN'">
+                    <xsl:value-of select="concat(
+                        $basepath_slash,
+                        $relation/identifier,
+                        '_',
+                        $source_id,
+                        '_',
+                        $index,
+                        '.',
+                        $relation/file_extension
+                    )"/>
+                </xsl:when>
+                <!-- 2e cas. -->
+                <xsl:otherwise>
+                    <xsl:variable name="href_2">
+                        <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                    </xsl:variable>
+                    <xsl:variable name="relation_2" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href_2]"/>
+                    <xsl:variable name="number_2" select="substring($relation_2/file_id, 8)"/>
+                    <xsl:variable name="index_2" select="format-number($number_2, '0000')"/>
+                    <xsl:choose>
+                        <xsl:when test="$index_2 != 'NaN'">
+                            <xsl:value-of select="concat(
+                                $basepath_slash,
+                                $relation_2/identifier,
+                                '_',
+                                $source_id,
+                                '_',
+                                $index_2,
+                                '.',
+                                $relation_2/file_extension
+                            )"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <!-- Réapplique le traitement parent importé au cas où le même xslt est utilisé pour des fichiers mets standard. -->
+                            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:choose>
-            <xsl:when test="$index != 'NaN'">
-                <xsl:value-of select="concat(
-                    $basepath_slash,
-                    $relation/identifier,
-                    '_',
-                    $source_id,
-                    '_',
-                    $index,
-                    '.',
-                    $relation/file_extension
-                )"/>
+            <xsl:when test="$extension_replace_from = ''">
+                <xsl:value-of select="$url_source"/>
             </xsl:when>
-            <!-- 2e cas. -->
             <xsl:otherwise>
-                <xsl:variable name="href_2">
-                    <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                <xsl:variable name="filename">
+                    <xsl:call-template name="get-filename">
+                        <xsl:with-param name="filepath" select="$url_source"/>
+                    </xsl:call-template>
                 </xsl:variable>
-                <xsl:variable name="relation_2" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href_2]"/>
-                <xsl:variable name="number_2" select="substring($relation_2/file_id, 8)"/>
-                <xsl:variable name="index_2" select="format-number($number_2, '0000')"/>
+                <xsl:variable name="extension">
+                    <xsl:call-template name="string-part-last">
+                        <xsl:with-param name="string" select="$filename"/>
+                        <xsl:with-param name="character" select="'.'"/>
+                    </xsl:call-template>
+                </xsl:variable>
                 <xsl:choose>
-                    <xsl:when test="$index_2 != 'NaN'">
-                        <xsl:value-of select="concat(
-                            $basepath_slash,
-                            $relation_2/identifier,
-                            '_',
-                            $source_id,
-                            '_',
-                            $index_2,
-                            '.',
-                            $relation_2/file_extension
-                        )"/>
+                    <!-- Ajoute l’extension si elle manque -->
+                    <xsl:when test="$extension = ''">
+                        <xsl:value-of select="concat($url_source, '.', $extension_replace_to)"/>
+                    </xsl:when>
+                    <xsl:when test="$extension = $extension_replace_from">
+                        <xsl:value-of select="concat(substring($url_source, 1, string-length($url_source) - string-length($extension)), $extension_replace_to)"/>
                     </xsl:when>
                     <xsl:otherwise>
-                        <!-- Réapplique le traitement parent importé au cas où le même xslt est utilisé pour des fichiers mets standard. -->
-                        <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
+                        <xsl:value-of select="$url_source"/>
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:otherwise>
@@ -145,6 +191,36 @@
             <!-- Sinon on conserve le nom de fichier. -->
             <xsl:otherwise>
                 <xsl:value-of select="translate($href, '\', '/')"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <xsl:template name="get-filename">
+        <xsl:param name="filepath" />
+        <xsl:choose>
+            <xsl:when test="substring-after($filepath, '/')">
+                <xsl:call-template name="get-filename">
+                    <xsl:with-param name="filepath" select="substring-after($filepath, '/')" />
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$filepath" />
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <xsl:template name="string-part-last">
+        <xsl:param name="string"/>
+        <xsl:param name="character"/>
+        <xsl:choose>
+            <xsl:when test="contains($string, $character)">
+                <xsl:call-template name="string-part-last">
+                    <xsl:with-param name="string" select="substring-after($string, $character)"/>
+                    <xsl:with-param name="character" select="$character"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$string"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
