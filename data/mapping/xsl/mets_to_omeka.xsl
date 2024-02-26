@@ -45,6 +45,9 @@
         Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
         Sinon, uniquement la première et la dernière page de chaque section est indiquée.
 
+    - hide_view_number (0)
+        Cacher le numéro de vue en cours (ancien mode).
+
     // Paramètres automatiques.
 
     - filepath (valeur interne)
@@ -137,6 +140,9 @@
 
     <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections. -->
     <xsl:param name="full_page_ranges">0</xsl:param>
+
+    <!-- Cacher le numéro de vue en cours (ancien mode). -->
+    <xsl:param name="hide_view_number">0</xsl:param>
 
     <!-- Constantes -->
 
@@ -381,6 +387,29 @@
             <xsl:attribute name="label">
                 <xsl:value-of select="normalize-space(@LABEL)"/>
             </xsl:attribute>
+            <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
+            <xsl:if test="$hide_view_number != '1'">
+                <xsl:attribute name="view">
+                    <xsl:apply-templates select="." mode="view_number"/>
+                </xsl:attribute>
+            </xsl:if>
+            <!-- Ajout d’information : position et nom du fichier, généralement inutile ; le type pourrait être utilisé pour bien distinguer section et pages. -->
+            <!-- Le numéro d’ordre dans la section en cours n’est pas réellement utile.
+            <xsl:attribute name="order">
+                <xsl:number level="single" format="1"/>
+            </xsl:attribute>
+            <xsl:if test="@TYPE and @TYPE != ''">
+                <xsl:attribute name="type">
+                    <xsl:value-of select="@TYPE"/>
+                </xsl:attribute>
+            </xsl:if>
+            <xsl:if test="mets:fptr">
+                <xsl:attribute name="file">
+                    <xsl:value-of select="$basepath_slash"/>
+                    <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
+                </xsl:attribute>
+            </xsl:if>
+            -->
             <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles (à gérer dans IIIF Server). -->
             <xsl:attribute name="range_standard">
                 <xsl:choose>
@@ -419,23 +448,6 @@
                     </xsl:when>
                 </xsl:choose>
             </xsl:attribute>
-            <!-- Ajout d’information : position et nom du fichier, généralement inutile ; le type pourrait être utilisé pour bien distinguer section et pages. -->
-            <!--
-            <xsl:if test="@TYPE and @TYPE != ''">
-                <xsl:attribute name="type">
-                    <xsl:value-of select="@TYPE"/>
-                </xsl:attribute>
-            </xsl:if>
-            <xsl:if test="mets:fptr">
-                <xsl:attribute name="index">
-                    <xsl:apply-templates select="mets:fptr" mode="position"/>
-                </xsl:attribute>
-                <xsl:attribute name="file">
-                    <xsl:value-of select="$basepath_slash"/>
-                    <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
-                </xsl:attribute>
-            </xsl:if>
-            -->
             <!-- Ligne suivante. -->
             <xsl:choose>
                 <xsl:when test="$toc_standard = '1'">
@@ -471,6 +483,22 @@
         </xsl:variable>
         <xsl:variable name="range_number">
             <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+        </xsl:variable>
+        <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
+        <xsl:variable name="view">
+            <xsl:choose>
+                <xsl:when test="$hide_view_number = '1'">
+                    <xsl:text></xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:apply-templates select="." mode="view_number"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="view_comma">
+            <xsl:if test="$hide_view_number != '1'">
+                <xsl:text>,</xsl:text>
+            </xsl:if>
         </xsl:variable>
         <xsl:variable name="pages_or_ranges">
             <xsl:choose>
@@ -510,6 +538,7 @@
             $indentation,
             'r', $range_number, ', ',
             normalize-space(@LABEL), ', ',
+            $view, $view_comma,
             $pages_or_ranges,
             $end_of_line
         )"/>
@@ -539,6 +568,10 @@
         </xsl:choose>
     </xsl:template>
 
+    <xsl:template match="mets:div" mode="view_number">
+        <xsl:apply-templates select="mets:fptr" mode="position"/>
+    </xsl:template>
+
     <!-- Liste des sections ou des positions de page. -->
     <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers dans les div. -->
     <xsl:template match="mets:div" mode="range_standard">
@@ -562,9 +595,9 @@
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:when>
+            <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
+            <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers. -->
             <xsl:otherwise>
-                <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
-                <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers. -->
                 <xsl:variable name="est_premier_dans_serie" select="position() = 1 or generate-id(preceding-sibling::mets:div[1]) != generate-id(preceding-sibling::mets:div[not(mets:div)][1])"/>
                 <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
                 <xsl:choose>
