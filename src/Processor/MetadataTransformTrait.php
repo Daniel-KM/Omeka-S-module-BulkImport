@@ -572,7 +572,7 @@ SQL;
         $list = $this->listDataValues([$sourceTerm => $sourceId], ['valuesuggest'], 'uri', false);
 
         $headers = [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/116.0',
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
             'Content-Type' => 'application/xml',
             'Accept-Encoding' => 'gzip, deflate',
         ];
@@ -3250,7 +3250,7 @@ SQL;
         // Don't use https, or add certificate to omeka config.
         $url = 'http://api.geonames.org/searchJSON';
         $headers = [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/116.0',
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
             'Content-Type' => 'application/json',
             'Accept-Encoding' => 'gzip, deflate',
         ];
@@ -3384,7 +3384,7 @@ SQL;
         ];
         $url = 'https://www.idref.fr/Sru/Solr';
         $headers = [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/116.0',
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
             'Content-Type' => 'application/json',
             'Accept-Encoding' => 'gzip, deflate',
         ];
@@ -3503,7 +3503,7 @@ SQL;
         ];
         $url = 'https://www.idref.fr/Sru/Solr';
         $headers = [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/116.0',
+            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
             'Content-Type' => 'application/json',
             'Accept-Encoding' => 'gzip, deflate',
         ];
