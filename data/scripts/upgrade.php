@@ -25,6 +25,16 @@ $connection = $services->get('Omeka\Connection');
 $messenger = $plugins->get('messenger');
 $entityManager = $services->get('Omeka\EntityManager');
 
+if (version_compare($newVersion, '3.4.47', '>')
+    && (version_compare($oldVersion, '3.3.35', '<') || version_compare($oldVersion, '3.4.35', '<'))
+) {
+    $message = new Message(
+        'To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.', // @translate
+        $oldVersion, $newVersion, '3.4.47'
+    );
+    throw new ModuleCannotInstallException((string) $message); // @translate
+}
+
 if (version_compare($oldVersion, '3.0.1', '<')) {
     $this->checkDependency();
 
