@@ -497,13 +497,35 @@
             <xsl:number level="multiple" format="1-1" grouping-size="0"/>
         </xsl:variable>
         <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
-        <xsl:variable name="view">
+        <!-- L’ensemble des vues correspondand à la section est indiquée, conformément à la logique du mets. -->
+        <xsl:variable name="view_first">
+            <xsl:if test="$hide_view_number != '1'">
+                <xsl:apply-templates select="." mode="view_number"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="view_last">
             <xsl:choose>
                 <xsl:when test="$hide_view_number = '1'">
                     <xsl:text></xsl:text>
                 </xsl:when>
+                <xsl:when test="following-sibling::mets:div[1]">
+                    <xsl:apply-templates select="following-sibling::mets:div[1]" mode="view_number"/>
+                </xsl:when>
                 <xsl:otherwise>
-                    <xsl:apply-templates select="." mode="view_number"/>
+                    <xsl:apply-templates select="parent::mets:div/following-sibling::mets:div[1]" mode="view_number"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="view">
+            <xsl:choose>
+                <xsl:when test="$hide_view_number = '1' or $view_first = ''">
+                    <xsl:text></xsl:text>
+                </xsl:when>
+                <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
+                    <xsl:value-of select="$view_first"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="concat($view_first, '-', $view_last - 1)"/>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
