@@ -89,7 +89,7 @@
 
     <!-- Paramètres -->
 
-    <!-- Url ou chemin de base pour les fichiers, avec le "/" final. La valeur spéciale par défaut `__dirpath__` permet d’insérér le dossier du fichier xml. -->
+    <!-- Url ou chemin de base pour les fichiers. La valeur spéciale par défaut `__dirpath__` correspond au dossier du fichier xml. -->
     <xsl:param name="basepath">__dirpath__</xsl:param>
 
     <!-- Ajoute le chemin de base même quand le chemin du fichier ressemble à un chemin complet (commence par `file:///` ou `/` ou `\`). -->
@@ -137,21 +137,37 @@
 
     <xsl:variable name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:variable>
 
-    <!-- Récupère le chemin de base si l’option basepath_force est mise. -->
+    <xsl:variable name="basepath_no_slash">
+        <xsl:choose>
+            <xsl:when test="$basepath = '__dirpath__'">
+                <xsl:choose>
+                    <xsl:when test="substring($dirpath, string-length($dirpath)) = '/' or substring($dirpath, string-length($dirpath)) = '\'">
+                        <xsl:value-of select="substring(translate($dirpath, '\', '/'), 1, string-length($dirpath) - 1)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="translate($dirpath, '\', '/')"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:when>
+            <xsl:when test="substring($basepath, string-length($basepath)) = '/' or substring($basepath, string-length($basepath)) = '\'">
+                <xsl:value-of select="substring(translate($basepath, '\', '/'), string-length($basepath) - 1)"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="translate($basepath, '\', '/')"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+
+    <xsl:variable name="basepath_slash">
+        <xsl:value-of select="concat($basepath_no_slash, '/')"/>
+    </xsl:variable>
+
+    <!-- Récupère le chemin de base quand l’option basepath_force est vraie. -->
+    <!-- Sans "/" final. -->
     <xsl:variable name="basepath_forced">
         <xsl:choose>
             <xsl:when test="$basepath_force = 1">
-                <xsl:choose>
-                    <xsl:when test="$basepath = '__dirpath__'">
-                        <xsl:value-of select="$dirpath"/>
-                    </xsl:when>
-                    <xsl:when test="substring($basepath, string-length($basepath)) = '/' or substring($basepath, string-length($basepath)) = '\'">
-                        <xsl:value-of select="substring(translate($basepath, '\', '/'), string-length($basepath) - 1)"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:value-of select="translate($basepath, '\', '/')"/>
-                    </xsl:otherwise>
-                </xsl:choose>
+                <xsl:value-of select="$basepath_no_slash"/>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:text></xsl:text>
@@ -161,7 +177,17 @@
 
     <!-- Templates -->
 
+    <!-- Identity template -->
+    <xsl:template match="@*|node()">
+        <xsl:copy>
+            <xsl:apply-templates select="@*|node()"/>
+        </xsl:copy>
+    </xsl:template>
+
     <xsl:template match="/mets:mets">
+        <xsl:comment>
+            <xsl:text>Créé par mets_to_omeka.xsl</xsl:text>
+        </xsl:comment>
         <resources>
             <!-- Item principal -->
             <resource>
@@ -250,7 +276,7 @@
                 <xsl:value-of select="."/>
             </xsl:when>
             <!-- Corrige les chemins locaux incorrects.
-            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
+            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois (le protocole est suivi de "://" et le chemin local commence par un "/"). -->
             <xsl:when test="substring(., 1, 8) = 'file:///'">
                 <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
@@ -267,58 +293,13 @@
                 <xsl:value-of select="$basepath_forced"/>
                 <xsl:value-of select="translate(., '\', '/')"/>
             </xsl:when>
-            <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
-            <xsl:otherwise>
-                <xsl:choose>
-                    <xsl:when test="$basepath = '__dirpath__'">
-                        <xsl:value-of select="concat($dirpath, '/')"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:value-of select="translate($basepath, '\', '/')"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-                <xsl:choose>
-                    <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                        <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:value-of select="translate(., '\', '/')"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:template>
-
-    <!-- Récupère et normalise les urls et les chemins locaux, sans les compléter. -->
-    <xsl:template match="@xlink:href" mode="keep">
-        <xsl:choose>
-            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
-                <xsl:value-of select="."/>
-            </xsl:when>
-            <!-- Corrige les chemins locaux incorrects.
-            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
-            <xsl:when test="substring(., 1, 8) = 'file:///'">
-                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
-            </xsl:when>
-            <xsl:when test="substring(., 1, 7) = 'file://'">
-                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
-            </xsl:when>
-            <xsl:when test="substring(., 1, 6) = 'file:/'">
-                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
-            </xsl:when>
-            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
-                <xsl:value-of select="translate(., '\', '/')"/>
+            <!-- Cas particulier du chemin relatif commençant par ".:". -->
+            <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
+                <xsl:value-of select="concat($basepath_slash, translate(substring(., 3), '\', '/'))"/>
             </xsl:when>
             <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
             <xsl:otherwise>
-                <xsl:choose>
-                    <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                        <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:value-of select="translate(., '\', '/')"/>
-                    </xsl:otherwise>
-                </xsl:choose>
+                <xsl:value-of select="concat($basepath_slash, translate(., '\', '/'))"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -421,11 +402,12 @@
                     <xsl:apply-templates select="mets:fptr" mode="position"/>
                 </xsl:attribute>
                 <xsl:attribute name="file">
-                    <xsl:value-of select="$basepath"/>
+                    <xsl:value-of select="$basepath_slash"/>
                     <xsl:apply-templates select="mets:fptr" mode="file_exlibris"/>
                 </xsl:attribute>
             </xsl:if>
             -->
+            <!-- Ligne suivante. -->
             <xsl:choose>
                 <xsl:when test="$toc_standard = '1'">
                     <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
@@ -494,6 +476,7 @@
             </xsl:when>
         </xsl:choose>
         <xsl:value-of select="$end_of_line"/>
+        <!-- Ligne suivante. -->
         <xsl:choose>
             <xsl:when test="$toc_standard">
                 <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
@@ -641,11 +624,11 @@
         <xsl:value-of select="count(preceding::mets:fptr[ancestor::mets:structMap/@ID = $structMapId]) + 1"/>
     </xsl:template>
 
-    <!-- Identity template -->
-    <xsl:template match="@*|node()">
-        <xsl:copy>
-            <xsl:apply-templates select="@*|node()"/>
-        </xsl:copy>
+    <!-- Remplace les entités html (sauf dans cdata). -->
+    <!-- Inutile.
+    <xsl:template match="text()">
+        <xsl:copy-of select="normalize-space(.)"/>
     </xsl:template>
+    -->
 
 </xsl:stylesheet>

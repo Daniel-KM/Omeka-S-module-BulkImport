@@ -37,6 +37,7 @@
         "
     >
 
+    <!-- Utilisation des variables, constantes, etc. de mets_to_omeka.xsl. -->
     <xsl:import href="mets_to_omeka.xsl"/>
 
     <!-- Paramètres -->
@@ -55,22 +56,15 @@
         <xsl:variable name="fptr" select="."/>
         <!-- Mets le chemin du dossier seulement dans un second temps. -->
         <xsl:variable name="href">
-            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" mode="keep"/>
+            <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" mode="no_force"/>
         </xsl:variable>
         <xsl:variable name="relation" select="/mets:mets/mets:dmdSec/mets:mdWrap/mets:xmlData/relations/relation[file_id = $href]"/>
         <xsl:variable name="number" select="substring($relation/file_id, 8)"/>
         <xsl:variable name="index" select="format-number($number, '0000')"/>
         <xsl:choose>
             <xsl:when test="$index != 'NaN'">
-                <xsl:choose>
-                    <xsl:when test="$basepath = '__dirpath__'">
-                        <xsl:value-of select="concat($dirpath, '/')"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:value-of select="translate($basepath, '\', '/')"/>
-                    </xsl:otherwise>
-                </xsl:choose>
                 <xsl:value-of select="concat(
+                    $basepath_slash,
                     $relation/identifier,
                     '_',
                     $source_id,
@@ -90,15 +84,8 @@
                 <xsl:variable name="index_2" select="format-number($number_2, '0000')"/>
                 <xsl:choose>
                     <xsl:when test="$index_2 != 'NaN'">
-                        <xsl:choose>
-                            <xsl:when test="$basepath = '__dirpath__'">
-                                <xsl:value-of select="concat($dirpath, '/')"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="translate($basepath, '\', '/')"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
                         <xsl:value-of select="concat(
+                            $basepath_slash,
                             $relation_2/identifier,
                             '_',
                             $source_id,
@@ -113,6 +100,37 @@
                         <xsl:apply-templates select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href"/>
                     </xsl:otherwise>
                 </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+    <!-- Récupère et normalise les urls et les chemins locaux, sans les compléter. -->
+    <xsl:template match="@xlink:href" mode="no_force">
+        <xsl:choose>
+            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
+                <xsl:value-of select="."/>
+            </xsl:when>
+            <!-- Corrige les chemins locaux incorrects.
+            Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
+            <xsl:when test="substring(., 1, 8) = 'file:///'">
+                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 7) = 'file://'">
+                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 6) = 'file:/'">
+                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
+            </xsl:when>
+            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
+                <xsl:value-of select="translate(., '\', '/')"/>
+            </xsl:when>
+            <!-- Cas particulier du chemin relatif commençant par ".:". -->
+            <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
+                <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
+            </xsl:when>
+            <!-- Sinon on conserve le nom de fichier. -->
+            <xsl:otherwise>
+                <xsl:value-of select="translate(., '\', '/')"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
