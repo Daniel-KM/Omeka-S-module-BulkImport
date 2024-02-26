@@ -25,7 +25,10 @@
         Le remplacement s’effectue sur toute la chaîne et avant l’ajout du chemin de base.
 
     - skip_label_media (0)
-        Ignorer le libellé du média en tant que dcterms:title si présent dans les relations.
+        Ignorer le libellé du média en tant que dcterms:title.
+
+    - skip_label_media_relation (0)
+        Ignorer le libellé du média en tant que dcterms:title présent dans les relations.
 
     - toc_iiif (1)
         Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
@@ -132,8 +135,11 @@
     <!-- Url ou chemin du fichier xml, automatiquement passée. -->
     <xsl:param name="filepath"></xsl:param>
 
-    <!-- Ignorer le libelle du média si présent dans relation/label. -->
+    <!-- Ignorer le libellé du média. -->
     <xsl:param name="skip_label_media">0</xsl:param>
+
+    <!-- Ignorer le libellé du média présent dans relation/label. -->
+    <xsl:param name="skip_label_media_relation">0</xsl:param>
 
     <!-- Ajouter la table des matières pour iiif (cf. module IIIF Server). -->
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
@@ -288,11 +294,26 @@
             <xsl:apply-templates select="." mode="file"/>
         </xsl:variable>
         <o:media o:ingester="file" ingest_url="{$file}">
-            <xsl:if  test="$skip_label_media != 1">
+            <xsl:if test="$skip_label_media != '1'">
                 <xsl:variable name="fptr" select="."/>
                 <xsl:variable name="href" select="/mets:mets/mets:fileSec//mets:file[@ID = $fptr/@FILEID]/mets:FLocat/@xlink:href" />
+                <xsl:variable name="media_title_div">
+                    <xsl:value-of select="normalize-space(parent::mets:div/@LABEL)"/>
+                </xsl:variable>
+                <xsl:variable name="media_title_relation">
+                    <xsl:if  test="$skip_label_media_relation != '1'">
+                        <xsl:apply-templates select="/mets:mets/mets:dmdSec//relations/relation[file_id = $href]/label"/>
+                    </xsl:if>
+                </xsl:variable>
                 <xsl:variable name="media_title">
-                    <xsl:apply-templates select="/mets:mets/mets:dmdSec//relations/relation[file_id = $href]/label"/>
+                    <xsl:choose>
+                        <xsl:when test="$media_title_div != ''">
+                            <xsl:value-of select="$media_title_div"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="normalize-space($media_title_relation)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:variable>
                 <xsl:if test="$media_title != ''">
                     <dcterms:title>
