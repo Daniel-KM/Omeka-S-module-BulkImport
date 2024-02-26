@@ -106,31 +106,45 @@
 
     <!-- Récupère et normalise les urls et les chemins locaux, sans les compléter. -->
     <xsl:template match="@xlink:href" mode="no_force">
+        <xsl:variable name="href">
+            <xsl:choose>
+                <xsl:when test="$filepath_replace_from != ''">
+                    <xsl:call-template name="search-and-replace">
+                        <xsl:with-param name="input" select="."/>
+                        <xsl:with-param name="search-string" select="$filepath_replace_from"/>
+                        <xsl:with-param name="replace-string" select="$filepath_replace_to"/>
+                    </xsl:call-template>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="."/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:choose>
-            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
-                <xsl:value-of select="."/>
+            <xsl:when test="substring($href, 1, 8) = 'https://' or substring($href, 1, 7) = 'http://'">
+                <xsl:value-of select="$href"/>
             </xsl:when>
             <!-- Corrige les chemins locaux incorrects.
             Parfois, seuls un ou deux "/" sont présents, mais il en faut trois : le protocole est suivi de "://" et le chemin local commence par un "/". -->
-            <xsl:when test="substring(., 1, 8) = 'file:///'">
-                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
+            <xsl:when test="substring($href, 1, 8) = 'file:///'">
+                <xsl:value-of select="translate(substring($href, 8), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 7) = 'file://'">
-                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
+            <xsl:when test="substring($href, 1, 7) = 'file://'">
+                <xsl:value-of select="translate(substring($href, 7), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 6) = 'file:/'">
-                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
+            <xsl:when test="substring($href, 1, 6) = 'file:/'">
+                <xsl:value-of select="translate(substring($href, 6), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
-                <xsl:value-of select="translate(., '\', '/')"/>
+            <xsl:when test="substring($href, 1, 1) = '/' or substring($href, 1, 1) = '\'">
+                <xsl:value-of select="translate($href, '\', '/')"/>
             </xsl:when>
             <!-- Cas particulier du chemin relatif commençant par ".:". -->
-            <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                <xsl:value-of select="translate(substring(., 3), '\', '/')"/>
+            <xsl:when test="substring($href, 1, 2) = './' or substring($href, 1, 2) = '.\'">
+                <xsl:value-of select="translate(substring($href, 3), '\', '/')"/>
             </xsl:when>
             <!-- Sinon on conserve le nom de fichier. -->
             <xsl:otherwise>
-                <xsl:value-of select="translate(., '\', '/')"/>
+                <xsl:value-of select="translate($href, '\', '/')"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>

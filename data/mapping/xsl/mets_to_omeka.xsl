@@ -16,11 +16,13 @@
         Ajoute la variable `basepath` ci-dessus même pour les fichiers ayant un chemin complet
         (commençant par `file:///` ou `/` ou `\`).
 
-    - filepath (valeur interne)
-        Url ou chemin du fichier xml, automatiquement passée.
+    - filepath_replace_from ("")
+        Chaîne à remplacer dans le chemin des fichiers ou l’url.
+        Le remplacement s’effectue sur toute la chaîne et avant l’ajout du chemin de base.
 
-    - dirpath (valeur interne)
-        Url ou chemin du dossier du fichier xml, automatiquement passée.
+    - filepath_replace_to ("")
+        Chaîne de remplacement dans le chemin des fichiers ou l’url.
+        Le remplacement s’effectue sur toute la chaîne et avant l’ajout du chemin de base.
 
     - skip_label_media (0)
         Ignorer le libellé du média en tant que dcterms:title si présent dans les relations.
@@ -43,9 +45,15 @@
         Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
         Sinon, uniquement la première et la dernière page de chaque section est indiquée.
 
-    @todo Décoder les entités ("&apos;", etc.) en xslt1.
+    // Paramètres automatiques.
 
-    @copyright Daniel Berthereau, 2021-2023
+    - filepath (valeur interne)
+        Url ou chemin du fichier xml, automatiquement passée.
+
+    - dirpath (valeur interne)
+        Url ou chemin du dossier du fichier xml, automatiquement passée.
+
+    @copyright Daniel Berthereau, 2021-2024
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
@@ -95,11 +103,18 @@
     <!-- Ajoute le chemin de base même quand le chemin du fichier ressemble à un chemin complet (commence par `file:///` ou `/` ou `\`). -->
     <xsl:param name="basepath_force">0</xsl:param>
 
-    <!-- Url ou chemin du fichier xml, automatiquement passée. -->
-    <xsl:param name="filepath"></xsl:param>
+    <!-- Chaîne à remplacer dans le chemin des fichiers ou l’url. -->
+    <!-- Le remplacement s’effectue sur toute la chaîne et avant l’ajout du chemin de base. -->
+    <xsl:param name="filepath_replace_from"></xsl:param>
+
+    <!-- Chaîne de remplacement dans le chemin des fichiers ou l’url. -->
+    <xsl:param name="filepath_replace_to"></xsl:param>
 
     <!-- Url ou chemin du dossier du fichier xml, automatiquement passée. -->
     <xsl:param name="dirpath"></xsl:param>
+
+    <!-- Url ou chemin du fichier xml, automatiquement passée. -->
+    <xsl:param name="filepath"></xsl:param>
 
     <!-- Ignorer le libelle du média si présent dans relation/label. -->
     <xsl:param name="skip_label_media">0</xsl:param>
@@ -271,35 +286,49 @@
 
     <!-- Récupère et normalise les urls et les chemins locaux pour avoir des adresses complètes. -->
     <xsl:template match="@xlink:href">
+        <xsl:variable name="href">
+            <xsl:choose>
+                <xsl:when test="$filepath_replace_from != ''">
+                    <xsl:call-template name="search-and-replace">
+                        <xsl:with-param name="input" select="."/>
+                        <xsl:with-param name="search-string" select="$filepath_replace_from"/>
+                        <xsl:with-param name="replace-string" select="$filepath_replace_to"/>
+                    </xsl:call-template>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="."/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:choose>
-            <xsl:when test="substring(., 1, 8) = 'https://' or substring(., 1, 7) = 'http://'">
-                <xsl:value-of select="."/>
+            <xsl:when test="substring($href, 1, 8) = 'https://' or substring($href, 1, 7) = 'http://'">
+                <xsl:value-of select="$href"/>
             </xsl:when>
             <!-- Corrige les chemins locaux incorrects.
             Parfois, seuls un ou deux "/" sont présents, mais il en faut trois (le protocole est suivi de "://" et le chemin local commence par un "/"). -->
-            <xsl:when test="substring(., 1, 8) = 'file:///'">
+            <xsl:when test="substring($href, 1, 8) = 'file:///'">
                 <xsl:value-of select="$basepath_forced"/>
-                <xsl:value-of select="translate(substring(., 8), '\', '/')"/>
+                <xsl:value-of select="translate(substring($href, 8), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 7) = 'file://'">
+            <xsl:when test="substring($href, 1, 7) = 'file://'">
                 <xsl:value-of select="$basepath_forced"/>
-                <xsl:value-of select="translate(substring(., 7), '\', '/')"/>
+                <xsl:value-of select="translate(substring($href, 7), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 6) = 'file:/'">
+            <xsl:when test="substring($href, 1, 6) = 'file:/'">
                 <xsl:value-of select="$basepath_forced"/>
-                <xsl:value-of select="translate(substring(., 6), '\', '/')"/>
+                <xsl:value-of select="translate(substring($href, 6), '\', '/')"/>
             </xsl:when>
-            <xsl:when test="substring(., 1, 1) = '/' or substring(., 1, 1) = '\'">
+            <xsl:when test="substring($href, 1, 1) = '/' or substring($href, 1, 1) = '\'">
                 <xsl:value-of select="$basepath_forced"/>
-                <xsl:value-of select="translate(., '\', '/')"/>
+                <xsl:value-of select="translate($href, '\', '/')"/>
             </xsl:when>
             <!-- Cas particulier du chemin relatif commençant par ".:". -->
-            <xsl:when test="substring(., 1, 2) = './' or substring(., 1, 2) = '.\'">
-                <xsl:value-of select="concat($basepath_slash, translate(substring(., 3), '\', '/'))"/>
+            <xsl:when test="substring($href, 1, 2) = './' or substring($href, 1, 2) = '.\'">
+                <xsl:value-of select="concat($basepath_slash, translate(substring($href, 3), '\', '/'))"/>
             </xsl:when>
             <!-- Sinon concaténation du nom de dossier et du fichier (chemin relatif). -->
             <xsl:otherwise>
-                <xsl:value-of select="concat($basepath_slash, translate(., '\', '/'))"/>
+                <xsl:value-of select="concat($basepath_slash, translate($href, '\', '/'))"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
@@ -630,5 +659,33 @@
         <xsl:copy-of select="normalize-space(.)"/>
     </xsl:template>
     -->
+
+    <!-- Remplace une chaîne par une autre. -->
+    <!-- @see https://www.oreilly.com/library/view/xslt-cookbook/0596003722/ch01s07.html -->
+    <xsl:template name="search-and-replace">
+        <xsl:param name="input"/>
+        <xsl:param name="search-string"/>
+        <xsl:param name="replace-string"/>
+        <xsl:choose>
+            <!-- See if the input contains the search string -->
+            <xsl:when test="$search-string and contains($input, $search-string)">
+                <!-- If so, then concatenate the substring before the search
+                string to the replacement string and to the result of
+                recursively applying this template to the remaining substring. -->
+                <xsl:value-of select="substring-before($input, $search-string)"/>
+                <xsl:value-of select="$replace-string"/>
+                <xsl:call-template name="search-and-replace">
+                    <xsl:with-param name="input" select="substring-after($input, $search-string)"/>
+                    <xsl:with-param name="search-string" select="$search-string"/>
+                    <xsl:with-param name="replace-string" select="$replace-string"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <!-- There are no more occurences of the search string so
+                just return the current input string -->
+                <xsl:value-of select="$input"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
 
 </xsl:stylesheet>
