@@ -44,11 +44,15 @@
     - full_page_ranges (0)
         Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
         Sinon, uniquement la première et la dernière page de chaque section est indiquée.
+        Utile dans l’ancien mode.
 
     - hide_view_number (0)
         Cacher le numéro de vue en cours (ancien mode).
 
-    // Paramètres automatiques.
+    - toc_merge_pages_and_ranges (0)
+        Enregistrer les pages et les sections ensemble (ancien mode).
+
+    # Paramètres automatiques.
 
     - filepath (valeur interne)
         Url ou chemin du fichier xml, automatiquement passée.
@@ -138,11 +142,14 @@
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
     <xsl:param name="toc_xml">0</xsl:param>
 
-    <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections. -->
+    <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections (ancien mode). -->
     <xsl:param name="full_page_ranges">0</xsl:param>
 
     <!-- Cacher le numéro de vue en cours (ancien mode). -->
     <xsl:param name="hide_view_number">0</xsl:param>
+
+    <!-- Enregistrer les pages et les sections ensemble (ancien mode). -->
+    <xsl:param name="toc_merge_pages_and_ranges">0</xsl:param>
 
     <!-- Constantes -->
 
@@ -410,44 +417,49 @@
                 </xsl:attribute>
             </xsl:if>
             -->
-            <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles (à gérer dans IIIF Server). -->
-            <xsl:attribute name="range_standard">
-                <xsl:choose>
-                    <xsl:when test="$toc_standard">
-                        <xsl:choose>
-                            <xsl:when test="$subdiv_fptr">
-                                <xsl:apply-templates select="mets:div" mode="range_standard"/>
-                            </xsl:when>
-                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                            <xsl:otherwise>
-                                <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:when>
-                    <xsl:when test="$toc_sections_multi">
-                        <xsl:choose>
-                            <xsl:when test="$subdiv_fptr">
-                                <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
-                            </xsl:when>
-                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                            <xsl:otherwise>
-                                <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:when>
-                    <xsl:when test="$toc_full_pages">
-                        <xsl:choose>
-                            <xsl:when test="$subdiv_fptr">
-                                <xsl:apply-templates select="mets:div" mode="range_full"/>
-                            </xsl:when>
-                            <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                            <xsl:otherwise>
-                                <xsl:apply-templates select=". | mets:div" mode="range_full"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:when>
-                </xsl:choose>
-            </xsl:attribute>
+            <!-- La liste est inutile car la structure est hiérarchique. Cependant, si les numéro de pages sont cachés, il faut pouvoir la reconstituer. -->
+            <xsl:if test="$hide_view_number = '1'">
+                <xsl:attribute name="ranges">
+                    <xsl:choose>
+                        <xsl:when test="$toc_standard">
+                            <xsl:choose>
+                                <!-- La liste contient seulement les sous-sections. -->
+                                <xsl:when test="$subdiv_fptr">
+                                    <xsl:apply-templates select="mets:div" mode="range_standard"/>
+                                </xsl:when>
+                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                                <xsl:otherwise>
+                                    <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:when>
+                        <xsl:when test="$toc_sections_multi">
+                            <xsl:choose>
+                                <!-- La liste contient seulement les sous-sections. -->
+                                <xsl:when test="$subdiv_fptr">
+                                    <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
+                                </xsl:when>
+                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                                <xsl:otherwise>
+                                    <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:when>
+                        <xsl:when test="$toc_full_pages">
+                            <xsl:choose>
+                                <!-- La liste contient seulement les sous-sections. -->
+                                <xsl:when test="$subdiv_fptr">
+                                    <xsl:apply-templates select="mets:div" mode="range_full"/>
+                                </xsl:when>
+                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
+                                <xsl:otherwise>
+                                    <xsl:apply-templates select=". | mets:div" mode="range_full"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:when>
+                    </xsl:choose>
+                </xsl:attribute>
+            </xsl:if>
             <!-- Ligne suivante. -->
             <xsl:choose>
                 <xsl:when test="$toc_standard = '1'">
@@ -502,6 +514,17 @@
         </xsl:variable>
         <xsl:variable name="pages_or_ranges">
             <xsl:choose>
+                <xsl:when test="$toc_merge_pages_and_ranges != '1'">
+                    <xsl:choose>
+                        <xsl:when test="mets:div">
+                            <xsl:text> </xsl:text>
+                            <xsl:apply-templates select="mets:div" mode="ranges_sub"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text> -</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:when>
                 <xsl:when test="$toc_standard">
                     <xsl:choose>
                         <xsl:when test="$subdiv_fptr">
@@ -570,6 +593,15 @@
 
     <xsl:template match="mets:div" mode="view_number">
         <xsl:apply-templates select="mets:fptr" mode="position"/>
+    </xsl:template>
+
+    <!-- Liste des sous-sections. -->
+    <xsl:template match="mets:div" mode="ranges_sub">
+        <xsl:if test="position() != 1">
+            <xsl:text>; </xsl:text>
+        </xsl:if>
+        <xsl:text>r</xsl:text>
+        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
     </xsl:template>
 
     <!-- Liste des sections ou des positions de page. -->
