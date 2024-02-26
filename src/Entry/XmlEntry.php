@@ -230,8 +230,6 @@ class XmlEntry extends BaseEntry
                 $term = ($prefix ? $prefix . ':' : '') . $element->getName();
                 switch ($term) {
                     case 'o:media':
-                        // No recursive here: this is already a media, so this
-                        // is the base media.
                         $value = $this->initMediaBase($element);
                         if ($value) {
                             unset(
@@ -266,8 +264,8 @@ class XmlEntry extends BaseEntry
     {
         $media = $this->attributes($element);
 
-        $value = $this->innerXml($element);
-        if (!strlen($value)) {
+        $inner = $this->innerXml($element);
+        if (!strlen($inner)) {
             return empty($media['o:ingester'])
                 ? null
                 : $media;
@@ -280,60 +278,83 @@ class XmlEntry extends BaseEntry
          * @see \BulkImport\Processor\ResourceProcessor::prepareMediaDataFinalize()
          */
         $ingester = $media['o:ingester'] ?? 'file';
-        switch ($ingester) {
-            default:
-                return null;
-            case 'tile':
-                // Deprecated: "tile" is only a renderer, no more an ingester
-                // since ImageServer version 3.6.13. All images are
-                // automatically tiled, so "tile" is a format similar to large/medium/square,
-                // but different.
-            case 'file':
-            case 'url':
-            case 'sideload':
-                // A file may be a url for end-user simplicity.
-                $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
-                if ($this->isUrl($value)) {
-                    $media['o:ingester'] = 'url';
+
+        // Except html that is rare, it is a path or url, so without <.
+        if (mb_strpos($inner, '<')) {
+            $value = $inner;
+            switch ($ingester) {
+                default:
+                    return null;
+                case 'tile':
+                    // Deprecated: "tile" is only a renderer, no more an ingester
+                    // since ImageServer version 3.6.13. All images are
+                    // automatically tiled, so "tile" is a format similar to large/medium/square,
+                    // but different.
+                case 'file':
+                case 'url':
+                case 'sideload':
+                    // A file may be a url for end-user simplicity.
+                    $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
+                    if ($this->isUrl($value)) {
+                        $media['o:ingester'] = 'url';
+                        $media['ingest_url'] = $value;
+                        unset($media['ingest_filename']);
+                        unset($media['ingest_directory']);
+                    }  else {
+                        // TODO Manage local file bulk upload (but normally checked later)
+                        $media['o:ingester'] = 'sideload';
+                        $media['ingest_filename'] = $value;
+                        unset($media['ingest_url']);
+                        unset($media['ingest_directory']);
+                    }
+                    break;
+
+                case 'directory':
+                case 'sideload_dir':
+                    $media['o:ingester'] = 'sideload_dir';
+                    $media['ingest_directory'] = $value;
+                    $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
+                    unset($media['ingest_filename']);
+                    unset($media['ingest_url']);
+                    break;
+
+                // TODO Manager html value data in media.
+                case 'html':
+                    $media['o:ingester'] = 'html';
+                    $media['html'] = $value;
+                    $media['o:source'] ??= null;
+                    unset($media['ingest_url']);
+                    unset($media['ingest_filename']);
+                    unset($media['ingest_directory']);
+                    break;
+
+                case 'iiif':
+                    if (!$this->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
+                        $value = $this->options['iiifserver_media_api_url'] . $value;
+                    }
+                    $media['o:ingester'] = 'iiif';
                     $media['ingest_url'] = $value;
                     unset($media['ingest_filename']);
                     unset($media['ingest_directory']);
-                }  else {
-                    // TODO Manage local file bulk upload (but normally checked later)
-                    $media['o:ingester'] = 'sideload';
-                    $media['ingest_filename'] = $value;
-                    unset($media['ingest_url']);
-                    unset($media['ingest_directory']);
+                    break;
+            }
+        }
+
+        // Get properties if any.
+        $mainElement = $element;
+        /** @var \XMLReaderNode $data */
+        $namespaces = [null] + $mainElement->getNamespaces(true);
+        foreach ($namespaces as $prefix => $namespace) {
+            $nsElements = $namespace
+                ? $mainElement->children($namespace)
+                : $mainElement->children();
+            foreach ($nsElements as $element) {
+                $term = ($prefix ? $prefix . ':' : '') . $element->getName();
+                $value = $this->initPropertyValue($element, $prefix);
+                if ($value) {
+                    $media[$term][] = $value;
                 }
-                break;
-
-            case 'directory':
-            case 'sideload_dir':
-                $media['o:ingester'] = 'sideload_dir';
-                $media['ingest_directory'] = $value;
-                $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
-                unset($media['ingest_filename']);
-                unset($media['ingest_url']);
-                break;
-
-            case 'html':
-                $media['o:ingester'] = 'html';
-                $media['html'] = $value;
-                $media['o:source'] ??= null;
-                unset($media['ingest_url']);
-                unset($media['ingest_filename']);
-                unset($media['ingest_directory']);
-                break;
-
-            case 'iiif':
-                if (!$this->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
-                    $value = $this->options['iiifserver_media_api_url'] . $value;
-                }
-                $media['o:ingester'] = 'iiif';
-                $media['ingest_url'] = $value;
-                unset($media['ingest_filename']);
-                unset($media['ingest_directory']);
-                break;
+            }
         }
 
         return $media;
@@ -580,7 +601,6 @@ class XmlEntry extends BaseEntry
             $value = trim(mb_substr($value, 9, -3));
         }
 
-        // If string is an xml output, indent it because simpleXml removes it.
         if (mb_substr($value, 0, 1) !== '<' || mb_substr($value, -1) !== '>') {
             return $value;
         }
