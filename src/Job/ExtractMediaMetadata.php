@@ -29,7 +29,7 @@ class ExtractMediaMetadata extends AbstractJob
             return;
         }
 
-        $itemId = (int) $this->getArg('itemId');
+        $itemId = (int) $this->getArg('item_id');
         if (!$itemId) {
             $logger->warn(new PsrMessage(
                 'No item is set.' // @translate
@@ -50,7 +50,7 @@ class ExtractMediaMetadata extends AbstractJob
         }
 
         // Process only new medias if existing medias are set.
-        $skipMediaIds = $this->getArg('skipMediaIds', []);
+        $skipMediaIds = $this->getArg('skip_media_ids', []);
 
         /**
          * @var \BulkImport\Mvc\Controller\Plugin\Bulk $bulk

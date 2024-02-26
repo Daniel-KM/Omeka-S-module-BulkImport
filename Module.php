@@ -419,8 +419,8 @@ class Module extends AbstractModule
             $itemId = $item->getId();
             // Run a job for item to avoid the 30 seconds issue with many files.
             $args = [
-                'itemId' => $itemId,
-                'skipMediaIds' => $this->storeExistingItemMediaIds($itemId),
+                'item_id' => $itemId,
+                'skip_media_ids' => $this->storeExistingItemMediaIds($itemId),
             ];
             // FIXME Use a plugin, not a fake job. Or strategy "sync", but there is a doctrine exception on owner of the job.
             // Of course, it is useless for a background job.
