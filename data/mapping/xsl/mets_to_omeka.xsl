@@ -379,7 +379,7 @@
                 <xsl:number level="multiple" format="1-1" grouping-size="0"/>
             </xsl:attribute>
             <xsl:attribute name="label">
-                <xsl:value-of select="@LABEL"/>
+                <xsl:value-of select="normalize-space(@LABEL)"/>
             </xsl:attribute>
             <!-- TODO La liste est inutile si elle ne contient que des sections, pas des pages individuelles (à gérer dans IIIF Server). -->
             <xsl:attribute name="range_standard">
@@ -466,45 +466,53 @@
         <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <xsl:param name="level" select="0"/>
-        <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
-        <xsl:text>r</xsl:text>
-        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
-        <xsl:text>, </xsl:text>
-        <xsl:value-of select="@LABEL"/>
-        <xsl:text>, </xsl:text>
-        <xsl:choose>
-            <xsl:when test="$toc_standard">
-                <xsl:choose>
-                    <xsl:when test="$subdiv_fptr">
-                        <xsl:apply-templates select="mets:div" mode="range_standard"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:when>
-            <xsl:when test="$toc_sections_multi">
-                <xsl:choose>
-                    <xsl:when test="$subdiv_fptr">
-                        <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:when>
-            <xsl:when test="$toc_full_pages">
-                <xsl:choose>
-                    <xsl:when test="$subdiv_fptr">
-                        <xsl:apply-templates select="mets:div" mode="range_full"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:apply-templates select=". | mets:div" mode="range_full"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:when>
-        </xsl:choose>
-        <xsl:value-of select="$end_of_line"/>
+        <xsl:variable name="indentation">
+            <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
+        </xsl:variable>
+        <xsl:variable name="range_number">
+            <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+        </xsl:variable>
+        <xsl:variable name="pages_or_ranges">
+            <xsl:choose>
+                <xsl:when test="$toc_standard">
+                    <xsl:choose>
+                        <xsl:when test="$subdiv_fptr">
+                            <xsl:apply-templates select="mets:div" mode="range_standard"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:when>
+                <xsl:when test="$toc_sections_multi">
+                    <xsl:choose>
+                        <xsl:when test="$subdiv_fptr">
+                            <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:when>
+                <xsl:when test="$toc_full_pages">
+                    <xsl:choose>
+                        <xsl:when test="$subdiv_fptr">
+                            <xsl:apply-templates select="mets:div" mode="range_full"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select=". | mets:div" mode="range_full"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:when>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="concat(
+            $indentation,
+            'r', $range_number, ', ',
+            normalize-space(@LABEL), ', ',
+            $pages_or_ranges,
+            $end_of_line
+        )"/>
         <!-- Ligne suivante. -->
         <xsl:choose>
             <xsl:when test="$toc_standard">
