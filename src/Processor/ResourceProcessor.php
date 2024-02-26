@@ -1029,11 +1029,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $resource['ingest_filename'] = $value;
                     unset($resource['ingest_url']);
                     unset($resource['ingest_directory']);
+                    // Early remove useless "file://".
+                    if (mb_substr($resource['ingest_filename'], 0, 7) === 'file://') {
+                        $resource['ingest_filename'] = mb_substr($resource['ingest_filename'], 7);
+                    }
                 }  else {
                     $resource['o:ingester'] = 'sideload';
                     $resource['ingest_filename'] = $value;
                     unset($resource['ingest_url']);
                     unset($resource['ingest_directory']);
+                    // Early remove useless "file://".
+                    if (mb_substr($resource['ingest_filename'], 0, 7) === 'file://') {
+                        $resource['ingest_filename'] = mb_substr($resource['ingest_filename'], 7);
+                    }
                 }
                 break;
 
@@ -1044,6 +1052,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['o:source'] = empty($resource['o:source']) ? $value : $resource['o:source'];
                 unset($resource['ingest_filename']);
                 unset($resource['ingest_url']);
+                // Early remove useless "file://".
+                if (mb_substr($resource['ingest_directory'], 0, 7) === 'file://') {
+                    $resource['ingest_directory'] = mb_substr($resource['ingest_directory'], 7);
+                }
                 break;
 
             case 'html':
@@ -1063,6 +1075,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $resource['ingest_url'] = $value;
                 unset($resource['ingest_filename']);
                 unset($resource['ingest_directory']);
+                // Early remove useless "file://".
+                if (mb_substr($resource['ingest_url'], 0, 7) === 'file://') {
+                    $resource['ingest_url'] = mb_substr($resource['ingest_url'], 7);
+                }
                 break;
         }
 
