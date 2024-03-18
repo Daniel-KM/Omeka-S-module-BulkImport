@@ -30,14 +30,15 @@
     - skip_label_media_relation (0)
         Ignorer le libellé du média en tant que dcterms:title présent dans les relations.
 
-    - toc_iiif (1)
-        Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
+    - table_of_contents (1)
+        Ajouter la table des matières (1) ou non (0).
+        Elle peut-être utilisée par le module IIIF Server.
 
-    - toc_full (0)
-        Ajouter la table des matières avec toutes les pages (1) ou non (0).
-        Ce n’est donc plus une table des matières.
+    - table_of_views (0)
+        Ajouter la table de toutes les vues de manière structurée (1) ou non (0).
+        Elle peut être utilisée par le module IIIF Server.
 
-    - toc_xml (0)
+    - table_format_xml (0)
         Ajouter la table des matières avec le type de données "xml" et non codifiée.
         Il n’y a pas de norme pour présenter une table des matières.
 
@@ -127,17 +128,16 @@
     <!-- Ignorer le libellé du média présent dans relation/label. -->
     <xsl:param name="skip_label_media_relation">0</xsl:param>
 
-    <!-- Ajouter la table des matières pour iiif (cf. module IIIF Server). -->
+    <!-- Ajouter la table des matières. Elle peut-être utilisée par le module IIIF Server. -->
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
-    <xsl:param name="toc_iiif">1</xsl:param>
+    <xsl:param name="table_of_contents">1</xsl:param>
 
-    <!-- Ajouter la table des matières avec toutes les pages. -->
-    <!-- Ce n’est donc plus une table des matières. -->
-    <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table courte. -->
-    <xsl:param name="toc_full">0</xsl:param>
+    <!-- Ajouter la table des matières avec toutes les vues de manière structurée. -->
+    <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table des matières. -->
+    <xsl:param name="table_of_views">0</xsl:param>
 
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
-    <xsl:param name="toc_xml">0</xsl:param>
+    <xsl:param name="table_format_xml">0</xsl:param>
 
     <!-- Détailler ou non la liste des sections dans la table non-xml. -->
     <xsl:param name="full_ranges">0</xsl:param>
@@ -217,14 +217,14 @@
                     <xsl:apply-templates select="mets:metsHdr/@LASTMODDATE"/>
                 </xsl:attribute>
                 <xsl:apply-templates select="mets:dmdSec"/>
-                <xsl:if test="$toc_iiif = '1'">
+                <xsl:if test="$table_of_contents = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc">
-                        <xsl:with-param name="toc_standard" select="true()"/>
+                        <xsl:with-param name="toc" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
-                <xsl:if test="$toc_full = '1'">
+                <xsl:if test="$table_of_views = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc">
-                        <xsl:with-param name="toc_full_pages" select="true()"/>
+                        <xsl:with-param name="tov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
                 <!-- Fichiers -->
@@ -358,21 +358,21 @@
     <!-- TODO Ajouter le type de document (book). -->
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
-        <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_full_pages" select="false()"/>
+        <xsl:param name="toc" select="false()"/>
+        <xsl:param name="tov" select="false()"/>
         <dcterms:tableOfContents>
             <xsl:choose>
-                <xsl:when test="$toc_xml = '1'">
+                <xsl:when test="$table_format_xml = '1'">
                     <xsl:attribute name="o:type">xml</xsl:attribute>
-                    <xsl:apply-templates select="mets:div" mode="toc_xml">
-                        <xsl:with-param name="toc_standard" select="$toc_standard"/>
-                        <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
+                    <xsl:apply-templates select="mets:div" mode="table_format_xml">
+                        <xsl:with-param name="toc" select="$toc"/>
+                        <xsl:with-param name="tov" select="$tov"/>
                     </xsl:apply-templates>
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:apply-templates select="mets:div" mode="toc_code">
-                        <xsl:with-param name="toc_standard" select="$toc_standard"/>
-                        <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
+                    <xsl:apply-templates select="mets:div" mode="table_format_text">
+                        <xsl:with-param name="toc" select="$toc"/>
+                        <xsl:with-param name="tov" select="$tov"/>
                     </xsl:apply-templates>
                 </xsl:otherwise>
             </xsl:choose>
@@ -380,9 +380,9 @@
     </xsl:template>
 
     <!-- Version xml de la table des matières. -->
-    <xsl:template match="mets:div" mode="toc_xml">
-        <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_full_pages" select="false()"/>
+    <xsl:template match="mets:div" mode="table_format_xml">
+        <xsl:param name="toc" select="false()"/>
+        <xsl:param name="tov" select="false()"/>
         <c>
             <xsl:attribute name="id">
                 <xsl:text>r</xsl:text>
@@ -441,16 +441,16 @@
             <!-- La liste des sections est inutile car la structure est hiérarchique. Cf. mode toc si on veut l’ajouter. -->
             <!-- Ligne suivante. -->
             <xsl:choose>
-                <xsl:when test="$toc_standard = '1'">
+                <xsl:when test="$toc = '1'">
                     <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
                     <!-- Utiliser le parent ne fonctionne pas ! -->
-                    <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_xml">
-                        <xsl:with-param name="toc_standard" select="true()"/>
+                    <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="table_format_xml">
+                        <xsl:with-param name="toc" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:when>
-                <xsl:when test="$toc_full_pages">
-                    <xsl:apply-templates select="mets:div" mode="toc_xml">
-                        <xsl:with-param name="toc_full_pages" select="true()"/>
+                <xsl:when test="$tov">
+                    <xsl:apply-templates select="mets:div" mode="table_format_xml">
+                        <xsl:with-param name="tov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:when>
             </xsl:choose>
@@ -458,9 +458,9 @@
     </xsl:template>
 
     <!-- Version codifiée de la table des matières. -->
-    <xsl:template match="mets:div" mode="toc_code">
-        <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_full_pages" select="false()"/>
+    <xsl:template match="mets:div" mode="table_format_text">
+        <xsl:param name="toc" select="false()"/>
+        <xsl:param name="tov" select="false()"/>
         <xsl:param name="level" select="0"/>
         <xsl:variable name="indentation">
             <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
@@ -540,17 +540,17 @@
         )"/>
         <!-- Ligne suivante. -->
         <xsl:choose>
-            <xsl:when test="$toc_standard">
+            <xsl:when test="$toc">
                 <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
                 <!-- Utiliser le parent ne fonctionne pas ! -->
-                <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_code">
-                    <xsl:with-param name="toc_standard" select="true()"/>
+                <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="table_format_text">
+                    <xsl:with-param name="toc" select="true()"/>
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
             </xsl:when>
-            <xsl:when test="$toc_full_pages">
-                <xsl:apply-templates select="mets:div" mode="toc_code">
-                    <xsl:with-param name="toc_full_pages" select="true()"/>
+            <xsl:when test="$tov">
+                <xsl:apply-templates select="mets:div" mode="table_format_text">
+                    <xsl:with-param name="tov" select="true()"/>
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
             </xsl:when>
