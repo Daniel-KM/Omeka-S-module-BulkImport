@@ -496,32 +496,16 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
+        <!-- La précédente version contenait la liste des sous-sections avec les pages
+        et gérait le cas où le div en cours contenait un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
         <xsl:variable name="ranges_list">
             <xsl:choose>
-                <xsl:when test="$toc_standard">
-                    <xsl:choose>
-                        <!-- La liste contient seulement les sous-sections. -->
-                        <xsl:when test="$subdiv_fptr">
-                            <xsl:apply-templates select="mets:div" mode="range_standard"/>
-                        </xsl:when>
-                        <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                        <xsl:otherwise>
-                            <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
+                <xsl:when test="mets:div">
+                    <xsl:apply-templates select="mets:div" mode="ranges_sub"/>
                 </xsl:when>
-                <xsl:when test="$toc_full_pages">
-                    <xsl:choose>
-                        <!-- La liste contient seulement les sous-sections. -->
-                        <xsl:when test="$subdiv_fptr">
-                            <xsl:apply-templates select="mets:div" mode="range_full"/>
-                        </xsl:when>
-                        <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                        <xsl:otherwise>
-                            <xsl:apply-templates select=". | mets:div" mode="range_full"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>-</xsl:text>
+                </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
         <xsl:variable name="ranges">
