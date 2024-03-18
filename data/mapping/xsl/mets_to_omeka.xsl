@@ -44,6 +44,11 @@
         colonne des sous-sections.
         Elle peut être utilisée par le module IIIF Server.
 
+    - index_of_views (0)
+        Ajouter l’index des vues (1) ou non (0).
+        La liste des vues correspond à la liste des libellés et des pages.
+        Elle peut être utilisée par le module IIIF Server.
+
     - table_format_xml (0)
         Ajouter la table des matières avec le type de données "xml" et non codifiée.
         Il n’y a pas de norme pour présenter une table des matières.
@@ -144,6 +149,9 @@
 
     <!-- Ajouter la liste simple des vues. -->
     <xsl:param name="list_of_views">0</xsl:param>
+
+    <!-- Ajouter l’index des vues. -->
+    <xsl:param name="index_of_views">0</xsl:param>
 
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
     <xsl:param name="table_format_xml">0</xsl:param>
@@ -252,6 +260,11 @@
                 <xsl:if test="$list_of_views = '1'">
                     <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
                         <xsl:with-param name="lov" select="true()"/>
+                    </xsl:apply-templates>
+                </xsl:if>
+                <xsl:if test="$index_of_views = '1'">
+                    <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="iov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
                 <!-- Fichiers -->
@@ -380,6 +393,7 @@
         <xsl:param name="toc" select="false()"/>
         <xsl:param name="tov" select="false()"/>
         <xsl:param name="lov" select="false()"/>
+        <xsl:param name="iov" select="false()"/>
 
         <dcterms:tableOfContents>
             <xsl:choose>
@@ -388,6 +402,16 @@
                     <xsl:choose>
                         <xsl:when test="$lov">
                             <xsl:apply-templates select="mets:div" mode="lov_xml"/>
+                        </xsl:when>
+                        <xsl:when test="$iov">
+                            <c>
+                                <xsl:if test="mets:div[1][not(mets:fptr)]/@LABEL">
+                                    <xsl:attribute name="label">
+                                        <xsl:value-of select="normalize-space(mets:div[1][not(mets:fptr)]/@LABEL)"/>
+                                    </xsl:attribute>
+                                </xsl:if>
+                                <xsl:apply-templates select="//mets:fptr" mode="iov_xml"/>
+                            </c>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:apply-templates select="mets:div" mode="table_format_xml">
@@ -398,11 +422,18 @@
                     </xsl:choose>
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:apply-templates select="mets:div" mode="table_format_text">
-                        <xsl:with-param name="toc" select="$toc"/>
-                        <xsl:with-param name="tov" select="$tov"/>
-                        <xsl:with-param name="lov" select="$lov"/>
-                    </xsl:apply-templates>
+                    <xsl:choose>
+                        <xsl:when test="$iov">
+                            <xsl:apply-templates select="//mets:fptr" mode="iov_text"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select="mets:div" mode="table_format_text">
+                                <xsl:with-param name="toc" select="$toc"/>
+                                <xsl:with-param name="tov" select="$tov"/>
+                                <xsl:with-param name="lov" select="$lov"/>
+                            </xsl:apply-templates>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:otherwise>
             </xsl:choose>
         </dcterms:tableOfContents>
@@ -641,6 +672,14 @@
                 <xsl:with-param name="lov" select="true()"/>
             </xsl:apply-templates>
         </xsl:if>
+    </xsl:template>
+
+    <xsl:template match="mets:fptr" mode="iov_xml">
+        <c label="{normalize-space(parent::mets:div/@LABEL)}" views="{position()}"/>
+    </xsl:template>
+
+    <xsl:template match="mets:fptr" mode="iov_text">
+        <xsl:value-of select="concat(normalize-space(parent::mets:div/@LABEL), ', ', position(), $end_of_line)"/>
     </xsl:template>
 
     <xsl:template match="mets:div" mode="view_number">
