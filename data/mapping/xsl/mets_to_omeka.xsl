@@ -38,6 +38,12 @@
         Ajouter la table de toutes les vues de manière structurée (1) ou non (0).
         Elle peut être utilisée par le module IIIF Server.
 
+    - list_of_views (0)
+        Ajouter la liste des vues (1) ou non (0).
+        La liste des vues correspond à la table des vues sans arborescence et sans la quatrième
+        colonne des sous-sections.
+        Elle peut être utilisée par le module IIIF Server.
+
     - table_format_xml (0)
         Ajouter la table des matières avec le type de données "xml" et non codifiée.
         Il n’y a pas de norme pour présenter une table des matières.
@@ -136,6 +142,9 @@
     <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table des matières. -->
     <xsl:param name="table_of_views">0</xsl:param>
 
+    <!-- Ajouter la liste simple des vues. -->
+    <xsl:param name="list_of_views">0</xsl:param>
+
     <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
     <xsl:param name="table_format_xml">0</xsl:param>
 
@@ -143,6 +152,21 @@
     <xsl:param name="full_ranges">0</xsl:param>
 
     <!-- Constantes -->
+
+    <xsl:variable name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:variable>
+
+    <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence la carte physique. -->
+    <!-- La plupart du temps, il n’y en a qu’une de toute façon. -->
+    <xsl:variable name="structmap_index">
+        <xsl:choose>
+            <xsl:when test="/mets:mets/mets:structMap[@TYPE = 'physical']">
+                <xsl:value-of select="count(/mets:mets/mets:structMap[@TYPE = 'physical']/preceding-sibling::mets:structMap) + 1"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="count(/mets:mets)"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
 
     <!--
     Certaines structures contiennent ou non un div pour les pointeurs :
@@ -152,9 +176,7 @@
     Le second cas est plus complexe à gérer pour créer la table des matières pour les groupes de pages.
     Cette valeur permet de déterminer le type de structure.
     -->
-    <xsl:variable name="subdiv_fptr" select="count(/mets:mets/mets:structMap//mets:div[mets:div and mets:fptr]) = 0"/>
-
-    <xsl:variable name="end_of_line"><xsl:text>&#x0A;</xsl:text></xsl:variable>
+    <xsl:variable name="subdiv_fptr" select="count(/mets:mets/mets:structMap[$structmap_index]//mets:div[mets:div and mets:fptr]) = 0"/>
 
     <xsl:variable name="basepath_no_slash">
         <xsl:choose>
@@ -218,25 +240,22 @@
                 </xsl:attribute>
                 <xsl:apply-templates select="mets:dmdSec"/>
                 <xsl:if test="$table_of_contents = '1'">
-                    <xsl:apply-templates select="mets:structMap" mode="toc">
+                    <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
                         <xsl:with-param name="toc" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
                 <xsl:if test="$table_of_views = '1'">
-                    <xsl:apply-templates select="mets:structMap" mode="toc">
+                    <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
                         <xsl:with-param name="tov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
+                <xsl:if test="$list_of_views = '1'">
+                    <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="lov" select="true()"/>
+                    </xsl:apply-templates>
+                </xsl:if>
                 <!-- Fichiers -->
-                <!-- Utilisation de structMap pour avoir le bon ordre des fichiers, de préférence la carte physique. -->
-                <xsl:choose>
-                    <xsl:when test="mets:structMap[@TYPE = 'physical']">
-                        <xsl:apply-templates select="mets:structMap[@TYPE = 'physical']//mets:fptr"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:apply-templates select="mets:structMap[1]//mets:fptr"/>
-                    </xsl:otherwise>
-                </xsl:choose>
+                <xsl:apply-templates select="mets:structMap[$structmap_index]//mets:fptr"/>
             </resource>
         </resources>
     </xsl:template>
@@ -360,19 +379,29 @@
     <xsl:template match="mets:structMap" mode="toc">
         <xsl:param name="toc" select="false()"/>
         <xsl:param name="tov" select="false()"/>
+        <xsl:param name="lov" select="false()"/>
+
         <dcterms:tableOfContents>
             <xsl:choose>
                 <xsl:when test="$table_format_xml = '1'">
                     <xsl:attribute name="o:type">xml</xsl:attribute>
-                    <xsl:apply-templates select="mets:div" mode="table_format_xml">
-                        <xsl:with-param name="toc" select="$toc"/>
-                        <xsl:with-param name="tov" select="$tov"/>
-                    </xsl:apply-templates>
+                    <xsl:choose>
+                        <xsl:when test="$lov">
+                            <xsl:apply-templates select="mets:div" mode="lov_xml"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select="mets:div" mode="table_format_xml">
+                                <xsl:with-param name="toc" select="$toc"/>
+                                <xsl:with-param name="tov" select="$tov"/>
+                            </xsl:apply-templates>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:apply-templates select="mets:div" mode="table_format_text">
                         <xsl:with-param name="toc" select="$toc"/>
                         <xsl:with-param name="tov" select="$tov"/>
+                        <xsl:with-param name="lov" select="$lov"/>
                     </xsl:apply-templates>
                 </xsl:otherwise>
             </xsl:choose>
@@ -383,6 +412,7 @@
     <xsl:template match="mets:div" mode="table_format_xml">
         <xsl:param name="toc" select="false()"/>
         <xsl:param name="tov" select="false()"/>
+
         <c>
             <xsl:attribute name="id">
                 <xsl:text>r</xsl:text>
@@ -441,7 +471,7 @@
             <!-- La liste des sections est inutile car la structure est hiérarchique. Cf. mode toc si on veut l’ajouter. -->
             <!-- Ligne suivante. -->
             <xsl:choose>
-                <xsl:when test="$toc = '1'">
+                <xsl:when test="$toc">
                     <!-- Les sections qui ont un div interne ou dont l’un des siblings a une div interne. -->
                     <!-- Utiliser le parent ne fonctionne pas ! -->
                     <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="table_format_xml">
@@ -461,6 +491,7 @@
     <xsl:template match="mets:div" mode="table_format_text">
         <xsl:param name="toc" select="false()"/>
         <xsl:param name="tov" select="false()"/>
+        <xsl:param name="lov" select="false()"/>
         <xsl:param name="level" select="0"/>
         <xsl:variable name="indentation">
             <xsl:value-of select="substring('                                                                                ', 1, $level * 4)"/>
@@ -488,6 +519,9 @@
                 <xsl:when test="$view_first = ''">
                     <xsl:text></xsl:text>
                 </xsl:when>
+                <xsl:when test="$lov">
+                    <xsl:value-of select="$view_first"/>
+                </xsl:when>
                 <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
                     <xsl:value-of select="$view_first"/>
                 </xsl:when>
@@ -496,11 +530,21 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
+        <xsl:variable name="views_comma">
+            <xsl:choose>
+                <xsl:when test="$lov">
+                    <xsl:text></xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>,</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <!-- La précédente version contenait la liste des sous-sections avec les pages
         et gérait le cas où le div en cours contenait un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
         <xsl:variable name="ranges_list">
             <xsl:choose>
-                <xsl:when test="mets:div">
+                <xsl:when test="not($lov) and mets:div">
                     <xsl:apply-templates select="mets:div" mode="ranges_sub"/>
                 </xsl:when>
                 <xsl:otherwise>
@@ -510,6 +554,9 @@
         </xsl:variable>
         <xsl:variable name="ranges">
             <xsl:choose>
+                <xsl:when test="$lov">
+                    <xsl:text></xsl:text>
+                </xsl:when>
                 <xsl:when test="
                     $full_ranges = '1'
                     or (string-length($ranges_list) - string-length(translate($ranges_list, ';', ''))) &lt; 2
@@ -534,7 +581,7 @@
             $indentation,
             'r', $range_number, ', ',
             normalize-space(@LABEL), ', ',
-            $views, ',',
+            $views, $views_comma,
             $ranges,
             $end_of_line
         )"/>
@@ -548,13 +595,52 @@
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
             </xsl:when>
-            <xsl:when test="$tov">
+            <xsl:when test="$tov or $lov">
                 <xsl:apply-templates select="mets:div" mode="table_format_text">
-                    <xsl:with-param name="tov" select="true()"/>
+                    <xsl:with-param name="tov" select="$tov"/>
+                    <xsl:with-param name="lov" select="$lov"/>
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
             </xsl:when>
         </xsl:choose>
+    </xsl:template>
+
+    <xsl:template match="mets:div" mode="lov_xml">
+        <xsl:variable name="is_first_div">
+            <xsl:value-of select="generate-id(.) = generate-id(//mets:div[1])"/>
+        </xsl:variable>
+
+        <xsl:choose>
+            <xsl:when test="mets:fptr or $is_first_div">
+                <c>
+                    <xsl:attribute name="id">
+                        <xsl:text>r</xsl:text>
+                        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="label">
+                        <xsl:value-of select="normalize-space(@LABEL)"/>
+                    </xsl:attribute>
+                    <xsl:if test="mets:fptr">
+                        <xsl:attribute name="views">
+                            <xsl:apply-templates select="." mode="view_number"/>
+                        </xsl:attribute>
+                    </xsl:if>
+                    <!-- Ligne suivante imbriquée seulement pour le premier niveau. -->
+                    <xsl:if test="$is_first_div">
+                        <xsl:apply-templates select="mets:div" mode="table_format_xml">
+                            <xsl:with-param name="lov" select="true()"/>
+                        </xsl:apply-templates>
+                    </xsl:if>
+                </c>
+            </xsl:when>
+        </xsl:choose>
+
+        <!-- Ligne suivante. -->
+        <xsl:if test="not($is_first_div)">
+            <xsl:apply-templates select="mets:div" mode="table_format_xml">
+                <xsl:with-param name="lov" select="true()"/>
+            </xsl:apply-templates>
+        </xsl:if>
     </xsl:template>
 
     <xsl:template match="mets:div" mode="view_number">
