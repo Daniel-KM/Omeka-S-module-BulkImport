@@ -31,27 +31,23 @@
         Ignorer le libellé du média en tant que dcterms:title présent dans les relations.
 
     - table_of_contents (1)
-        Ajouter la table des matières (1) ou non (0).
+        Ajouter la table des matières au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false). Activé par défaut.
         Elle peut-être utilisée par le module IIIF Server.
 
     - table_of_views (0)
-        Ajouter la table de toutes les vues de manière structurée (1) ou non (0).
+        Ajouter la table de toutes les vues de manière structurée au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false).
         Elle peut être utilisée par le module IIIF Server.
 
     - list_of_views (0)
-        Ajouter la liste des vues (1) ou non (0).
+        Ajouter la liste des vues au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false).
         La liste des vues correspond à la table des vues sans arborescence et sans la quatrième
         colonne des sous-sections.
         Elle peut être utilisée par le module IIIF Server.
 
     - index_of_views (0)
-        Ajouter l’index des vues (1) ou non (0).
+        Ajouter l’index des vues au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false).
         La liste des vues correspond à la liste des libellés et des pages.
         Elle peut être utilisée par le module IIIF Server.
-
-    - table_format_xml (0)
-        Ajouter la table des matières avec le type de données "xml" et non codifiée.
-        Il n’y a pas de norme pour présenter une table des matières.
 
     - full_ranges (0)
         Détailler (1) ou non (0) la liste des sections dans la table pour éviter les longues listes dans les sections.
@@ -139,22 +135,23 @@
     <!-- Ignorer le libellé du média présent dans relation/label. -->
     <xsl:param name="skip_label_media_relation">0</xsl:param>
 
-    <!-- Ajouter la table des matières. Elle peut-être utilisée par le module IIIF Server. -->
+    <!-- Ajouter la table des matières au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false). Activé par défaut. -->
+    <!-- Elle peut-être utilisée par le module IIIF Server. -->
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
     <xsl:param name="table_of_contents">1</xsl:param>
 
-    <!-- Ajouter la table des matières avec toutes les vues de manière structurée. -->
+    <!-- Ajouter la table des matières avec toutes les vues de manière structurée au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false). -->
+    <!-- Elle peut-être utilisée par le module IIIF Server. -->
     <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table des matières. -->
     <xsl:param name="table_of_views">0</xsl:param>
 
-    <!-- Ajouter la liste simple des vues. -->
+    <!-- Ajouter la liste simple des vues au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false). -->
+    <!-- Elle peut-être utilisée par le module IIIF Server. -->
     <xsl:param name="list_of_views">0</xsl:param>
 
-    <!-- Ajouter l’index des vues. -->
+    <!-- Ajouter l’index des vues au format texte (1 ou text ou true), xml (2 ou xml) ou non (0 ou false). -->
+    <!-- Elle peut-être utilisée par le module IIIF Server. -->
     <xsl:param name="index_of_views">0</xsl:param>
-
-    <!-- Ajouter la table des matières avec le type de données "xml" et non "literal". -->
-    <xsl:param name="table_format_xml">0</xsl:param>
 
     <!-- Détailler ou non la liste des sections dans la table non-xml. -->
     <xsl:param name="full_ranges">0</xsl:param>
@@ -247,23 +244,27 @@
                     <xsl:apply-templates select="mets:metsHdr/@LASTMODDATE"/>
                 </xsl:attribute>
                 <xsl:apply-templates select="mets:dmdSec"/>
-                <xsl:if test="$table_of_contents = '1'">
+                <xsl:if test="$table_of_contents = '1' or $table_of_contents = 'text' or $table_of_contents = 'true' or $table_of_contents = '2' or $table_of_contents = 'xml'">
                     <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="as_xml" select="$table_of_contents = '2' or $table_of_contents = 'xml'"/>
                         <xsl:with-param name="toc" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
-                <xsl:if test="$table_of_views = '1'">
+                <xsl:if test="$table_of_views = '1' or $table_of_views = 'text' or $table_of_views = '2' or $table_of_views = 'xml'">
                     <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="as_xml" select="$table_of_views = '2' or $table_of_views = 'xml'"/>
                         <xsl:with-param name="tov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
-                <xsl:if test="$list_of_views = '1'">
+                <xsl:if test="$list_of_views = '1' or $list_of_views = 'text' or $list_of_views = '2' or $list_of_views = 'xml'">
                     <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="as_xml" select="$list_of_views = '2' or $list_of_views = 'xml'"/>
                         <xsl:with-param name="lov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
-                <xsl:if test="$index_of_views = '1'">
-                    <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+               <xsl:if test="$index_of_views = '1' or $index_of_views = 'text' or $index_of_views = '2' or $index_of_views = 'xml'">
+                     <xsl:apply-templates select="mets:structMap[$structmap_index]" mode="toc">
+                        <xsl:with-param name="as_xml" select="$index_of_views = '2' or $index_of_views = 'xml'"/>
                         <xsl:with-param name="iov" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
@@ -390,6 +391,7 @@
     <!-- TODO Ajouter le type de document (book). -->
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
+        <xsl:param name="as_xml" select="false()"/>
         <xsl:param name="toc" select="false()"/>
         <xsl:param name="tov" select="false()"/>
         <xsl:param name="lov" select="false()"/>
@@ -397,7 +399,7 @@
 
         <dcterms:tableOfContents>
             <xsl:choose>
-                <xsl:when test="$table_format_xml = '1'">
+                <xsl:when test="$as_xml">
                     <xsl:attribute name="o:type">xml</xsl:attribute>
                     <xsl:choose>
                         <xsl:when test="$lov">
