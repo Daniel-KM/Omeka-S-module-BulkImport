@@ -6,7 +6,7 @@ use ArrayIterator;
 use BulkImport\Form\Reader\SqlReaderConfigForm;
 use BulkImport\Form\Reader\SqlReaderParamsForm;
 use Laminas\Db\Adapter\Adapter as DbAdapter;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 class SqlReader extends AbstractPaginatedReader
 {

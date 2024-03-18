@@ -3,9 +3,10 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use ArrayObject;
+use Common\Stdlib\EasyMeta;
+use Common\Stdlib\PsrMessage;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Log\Stdlib\PsrMessage;
 use Omeka\Api\Manager as ApiManager;
 use Omeka\Api\Representation\AbstractEntityRepresentation;
 use Omeka\Api\Representation\AssetRepresentation;
@@ -21,9 +22,9 @@ class BulkIdentifiers extends AbstractPlugin
     protected $api;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $bulk;
+    protected $easyMeta;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers
@@ -103,12 +104,12 @@ class BulkIdentifiers extends AbstractPlugin
 
     public function __construct(
         ApiManager $api,
-        Bulk $bulk,
+        EasyMeta $easyMeta,
         FindResourcesFromIdentifiers $findResourcesFromIdentifiers,
         Logger $logger
     ) {
         $this->api = $api;
-        $this->bulk = $bulk;
+        $this->easyMeta = $easyMeta;
         $this->logger = $logger;
         $this->findResourcesFromIdentifiers = $findResourcesFromIdentifiers;
 
@@ -171,7 +172,7 @@ class BulkIdentifiers extends AbstractPlugin
      */
     public function getIdFromResourceValues(array $resource): array
     {
-        $properties = $this->bulk->propertyIds();
+        $properties = $this->easyMeta->propertyIds();
         foreach (array_intersect_key($this->identifierNames, $properties, $resource) as $term => $values) {
             if (!is_array($values)) {
                 continue;
@@ -272,7 +273,7 @@ class BulkIdentifiers extends AbstractPlugin
                 $storeMain($resource['o:name'] ?? null, $mainResourceName);
             } else {
                 // TODO Normally already initialized.
-                $term = $this->bulk->propertyTerm($identifierName);
+                $term = $this->easyMeta->propertyTerm($identifierName);
                 foreach ($resource[$term] ?? [] as $value) {
                     if (!empty($value['@value'])) {
                         $storeMain($value['@value'], 'resources');
@@ -316,7 +317,7 @@ class BulkIdentifiers extends AbstractPlugin
         // TODO It's now possible to store an identifier for the asset from the resource.
 
         // Store identifiers for linked resources.
-        $properties = $this->bulk->propertyIds();
+        $properties = $this->easyMeta->propertyIds();
         foreach (array_intersect_key($resource, $properties) as $term => $values) {
             if (!is_array($values)) {
                 continue;
@@ -390,7 +391,7 @@ class BulkIdentifiers extends AbstractPlugin
                         [
                             'identifier' => key($ids),
                             'metadata' => $identifierName,
-                            'resource_name' => $this->bulk->resourceLabel($resourceName),
+                            'resource_name' => $this->easyMeta->resourceLabel($resourceName),
                             'resource_id' => $resource['o:id'],
                         ]
                     ));
@@ -401,7 +402,7 @@ class BulkIdentifiers extends AbstractPlugin
                             'index' => $resource['source_index'],
                             'identifier' => key($ids),
                             'metadata' => $identifierName,
-                            'resource_name' => $this->bulk->resourceLabel($resourceName),
+                            'resource_name' => $this->easyMeta->resourceLabel($resourceName),
                             'resource_id' => $resource['o:id'],
                         ]
                     );

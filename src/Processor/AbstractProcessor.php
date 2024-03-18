@@ -5,7 +5,7 @@ namespace BulkImport\Processor;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractEntityRepresentation;
 
 abstract class AbstractProcessor implements Processor
@@ -92,6 +92,11 @@ abstract class AbstractProcessor implements Processor
     protected $bulkIdentifiers;
 
     /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
+
+    /**
      * @var Logger
      */
     protected $logger;
@@ -164,6 +169,7 @@ abstract class AbstractProcessor implements Processor
         $this->api = $services->get('Omeka\ApiManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
 
+        $this->easyMeta = $services->get('EasyMeta');
         $this->metaMapper = $services->get('Bulk\MetaMapper');
 
         $plugins = $services->get('ControllerPluginManager');

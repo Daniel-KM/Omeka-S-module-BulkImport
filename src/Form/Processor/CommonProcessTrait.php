@@ -2,8 +2,8 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Omeka\Form\Element as OmekaElement;
@@ -31,7 +31,7 @@ trait CommonProcessTrait
 
             ->add([
                 'name' => 'processing',
-                'type' => BulkImportElement\OptionalRadio::class,
+                'type' => CommonElement\OptionalRadio::class,
                 'options' => [
                     'label' => 'Process control', // @translate
                     'info' => 'In all cases, the check of identifiers, linked resources, template values, and files presence is done during a first loop.', // @translate

@@ -2,7 +2,7 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\Element\OptionalUrl;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
@@ -102,7 +102,7 @@ class ManiocProcessorParamsForm extends ManiocProcessorConfigForm
             ])
             ->add([
                 'name' => 'endpoint',
-                'type' => OptionalUrl::class,
+                'type' => CommonElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'Url of original site to fetch files', // @translate
                 ],

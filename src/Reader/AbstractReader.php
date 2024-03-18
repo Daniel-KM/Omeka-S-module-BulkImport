@@ -12,7 +12,7 @@ use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Form;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 /**
  * Reader implements Iterator and Countable.

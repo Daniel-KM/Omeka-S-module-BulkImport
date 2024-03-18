@@ -17,7 +17,7 @@ trait BulkResourceTrait
             return [];
         }
 
-        $propertyId = $this->bulk->propertyId($term);
+        $propertyId = $this->easyMeta->propertyId($term);
 
         $order = [
             'type' => null,
@@ -70,7 +70,7 @@ trait BulkResourceTrait
             return [];
         }
 
-        $propertyIds = $this->bulk->propertyIds();
+        $propertyIds = $this->easyMeta->propertyIds();
 
         // This serialization does not serialize sub-objects as array.
         $resourceArray = $resource->jsonSerialize();
@@ -108,7 +108,7 @@ trait BulkResourceTrait
                             $repr[$term][] = json_decode(json_encode($value), true);
                         }
                     } catch (\Exception $e) {
-                        if ($this->bulk->dataTypeMain($valueType) === 'resource') {
+                        if ($this->easyMeta->dataTypeMain($valueType) === 'resource') {
                             $this->logger->warn(
                                 'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
                                 ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]

@@ -2,8 +2,8 @@
 
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Form;
 use Omeka\Form\Element as OmekaElement;
 
@@ -27,7 +27,7 @@ class XmlReaderConfigForm extends Form
             ->setAttribute('id', 'form-bulk-importer')
             ->add([
                 'name' => 'url',
-                'type' => BulkImportElement\OptionalUrl::class,
+                'type' => CommonElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'XML url', // @translate
                 ],
@@ -49,7 +49,7 @@ class XmlReaderConfigForm extends Form
             ])
             ->add([
                 'name' => 'xsl_sheet_pre',
-                'type' => BulkImportElement\OptionalSelect::class,
+                'type' => CommonElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'XSLT file used to preprocess xml or normalize source', // @translate
                     'value_options' => $xslConfig,
@@ -64,7 +64,7 @@ class XmlReaderConfigForm extends Form
             ])
             ->add([
                 'name' => 'xsl_sheet',
-                'type' => BulkImportElement\OptionalSelect::class,
+                'type' => CommonElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'XSLT file used to separate resources or normalize source', // @translate
                     'value_options' => $xslConfig,

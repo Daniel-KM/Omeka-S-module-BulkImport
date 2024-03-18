@@ -4,7 +4,7 @@ namespace BulkImport\Reader;
 
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 abstract class AbstractGenericFileReader extends AbstractFileReader
 {

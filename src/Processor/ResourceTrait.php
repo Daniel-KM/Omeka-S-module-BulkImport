@@ -2,7 +2,7 @@
 
 namespace BulkImport\Processor;
 
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Entity\Resource;
 
 /**
@@ -38,8 +38,8 @@ trait ResourceTrait
         }
 
         $this->sourceKeyId = $keyId;
-        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->bulk->resourceClassId($this->mapping[$sourceType]['resource_class_id']);
-        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->bulk->resourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
+        $classId = empty($this->mapping[$sourceType]['resource_class_id']) ? null : $this->easyMeta->resourceClassId($this->mapping[$sourceType]['resource_class_id']);
+        $templateId = empty($this->mapping[$sourceType]['resource_template_id']) ? null : $this->easyMeta->resourceTemplateId($this->mapping[$sourceType]['resource_template_id']);
         $thumbnailId = $this->mapping[$sourceType]['thumbnail_id'] ?? null;
 
         // Check the size of the import.
@@ -836,11 +836,11 @@ SQL;
         if (empty($values) || empty($termOrId)) {
             return [];
         }
-        $termId = $this->bulk->propertyId($termOrId);
+        $termId = $this->easyMeta->propertyId($termOrId);
         if (!$termId) {
             return [];
         }
-        $termLabel = $this->bulk->propertyLabel($termId);
+        $termLabel = $this->easyMeta->propertyLabel($termId);
         foreach ($values as &$value) {
             $value['property_id'] = $termId;
             $value['property_label'] = $termLabel;

@@ -139,7 +139,7 @@ trait ConfigTrait
             if (empty($field) || empty($term)) {
                 unset($table[$key]);
             } else {
-                $termId = $this->bulk->propertyId($term);
+                $termId = $this->easyMeta->propertyId($term);
                 if ($termId) {
                     $map['property_id'] = $termId;
                 } else {

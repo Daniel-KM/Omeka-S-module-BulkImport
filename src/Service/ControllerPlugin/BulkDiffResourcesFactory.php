@@ -17,9 +17,9 @@ class BulkDiffResourcesFactory implements FactoryInterface
         $basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
 
         return new BulkDiffResources(
-            $plugins->get('bulk'),
             $plugins->get('bulkCheckLog'),
             $plugins->get('diffResources'),
+            $services->get('EasyMeta'),
             $services->get('Omeka\Logger'),
             $basePath,
             $baseUrl

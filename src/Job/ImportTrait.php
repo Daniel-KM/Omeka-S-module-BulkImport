@@ -14,19 +14,14 @@ use BulkImport\Interfaces\Parametrizable;
 trait ImportTrait
 {
     /**
-     * @var \Omeka\Api\Manager
-     */
-    protected $api;
-
-    /**
      * @var \Omeka\Api\Adapter\Manager
      */
     protected $adapterManager;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     * @var \Omeka\Api\Manager
      */
-    protected $bulk;
+    protected $api;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\BulkCheckLog
@@ -37,6 +32,11 @@ trait ImportTrait
      * @var \BulkImport\Mvc\Controller\Plugin\BulkIdentifiers
      */
     protected $bulkIdentifiers;
+
+    /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
 
     /**
      * @var \Doctrine\ORM\EntityManager
@@ -442,9 +442,9 @@ trait ImportTrait
         // For quicker search, prepare the ids of the properties.
         $result = [];
         foreach ($identifierNames as $identifierName) {
-            $id = $this->bulk->propertyId($identifierName);
+            $id = $this->easyMeta->propertyId($identifierName);
             if ($id) {
-                $result[$this->bulk->propertyTerm($id)] = $id;
+                $result[$this->easyMeta->propertyTerm($id)] = $id;
             } else {
                 $result[$identifierName] = $identifierName;
             }
@@ -818,7 +818,7 @@ trait ImportTrait
                 ) {
                     $this->logger->warn(
                         'Index #{index}: The {resource_name} #{resource_id} has no values.', // @translate
-                        ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($representation->resourceName()), 'resource_id' => $representation->id()]
+                        ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($representation->resourceName()), 'resource_id' => $representation->id()]
                     );
                 }
             }

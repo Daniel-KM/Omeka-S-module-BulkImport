@@ -2,6 +2,7 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use Common\Stdlib\EasyMeta;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Stdlib\Message;
@@ -20,11 +21,6 @@ class BulkDiffResources extends AbstractPlugin
     use BulkOutputTrait;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
-     */
-    protected $bulk;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\BulkCheckLog
      */
     protected $bulkCheckLog;
@@ -33,6 +29,11 @@ class BulkDiffResources extends AbstractPlugin
      * @var \BulkImport\Mvc\Controller\Plugin\DiffResources
      */
     protected $diffResources;
+
+    /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
 
     /**
      * @var \Laminas\Log\Logger
@@ -70,16 +71,16 @@ class BulkDiffResources extends AbstractPlugin
     protected $nameFile;
 
     public function __construct(
-        Bulk $bulk,
         BulkCheckLog $bulkCheckLog,
         DiffResources $diffResources,
+        EasyMeta $easyMeta,
         Logger $logger,
         string $basePath,
         string $baseUrl
     ) {
-        $this->bulk = $bulk;
         $this->bulkCheckLog = $bulkCheckLog;
         $this->diffResources = $diffResources;
+        $this->easyMeta = $easyMeta;
         $this->logger = $logger;
         $this->basePath = $basePath;
         $this->baseUrl = $baseUrl;

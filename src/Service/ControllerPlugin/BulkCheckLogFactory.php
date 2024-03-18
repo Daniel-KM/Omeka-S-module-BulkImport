@@ -10,8 +10,6 @@ class BulkCheckLogFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $services, $requestedName, array $options = null)
     {
-        $plugins = $services->get('ControllerPluginManager');
-
         $identity = $services->get('Omeka\AuthenticationService')->getIdentity();
         $userSettings = $services->get('Omeka\Settings\User');
         $userSettings->setTargetId($identity ? $identity->getId() : null);
@@ -21,7 +19,6 @@ class BulkCheckLogFactory implements FactoryInterface
         $basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
 
         return new BulkCheckLog(
-            $plugins->get('bulk'),
             $services->get('Omeka\Connection'),
             $services->get('Omeka\Logger'),
             $services->get('MvcTranslator'),

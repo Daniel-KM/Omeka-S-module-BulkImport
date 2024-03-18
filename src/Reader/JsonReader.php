@@ -8,7 +8,7 @@ use BulkImport\Entry\JsonEntry;
 use BulkImport\Form\Reader\JsonReaderConfigForm;
 use BulkImport\Form\Reader\JsonReaderParamsForm;
 use Laminas\Http\Response;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 /**
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?

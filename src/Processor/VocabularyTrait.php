@@ -25,7 +25,8 @@ trait VocabularyTrait
     {
         // Check existing namespace, but avoid some issues with uri, that may
         // have a trailing "#" or "/".
-        $vocabularies = $this->bulk->vocabularyUris(true);
+        $vocabularies = $this->easyMeta->vocabularyUrisByPrefixes();
+        $vocabularies = array_map(fn ($v) => rtrim($v, '#/'), $vocabularies);
         $prefix = array_search(rtrim($vocabulary['o:namespace_uri'], '#/'), $vocabularies);
         if ($prefix) {
             /** @var \Omeka\Api\Representation\VocabularyRepresentation $vocabularyRepresentation */
@@ -187,11 +188,11 @@ trait VocabularyTrait
 
         switch ($resourceName) {
             case 'properties':
-                $memberIdsByTerm = $this->bulk->propertyIds();
+                $memberIdsByTerm = $this->easyMeta->propertyIds();
                 $class = \Omeka\Entity\Property::class;
                 break;
             case 'resource_classes':
-                $memberIdsByTerm = $this->bulk->resourceClassIds();
+                $memberIdsByTerm = $this->easyMeta->resourceClassIds();
                 $class = \Omeka\Entity\ResourceClass::class;
                 break;
             default:
@@ -218,7 +219,7 @@ trait VocabularyTrait
                 ++$skipped;
                 $this->logger->warn(
                     'The vocabulary of the {member} {term} does not exist.', // @translate
-                    ['member' => $this->bulk->resourceLabel($resourceName), 'term' => $sourceTerm]
+                    ['member' => $this->easyMeta->resourceLabel($resourceName), 'term' => $sourceTerm]
                 );
                 continue;
             }
@@ -245,7 +246,7 @@ trait VocabularyTrait
             if (!$vocabulary) {
                 $this->logger->err(
                     'Unable to find vocabulary for {member} {term}.', // @translate
-                    ['member' => $this->bulk->resourceLabel($resourceName), 'term' => $member['o:term']]
+                    ['member' => $this->easyMeta->resourceLabel($resourceName), 'term' => $member['o:term']]
                 );
                 $this->hasError = true;
                 return;
@@ -265,7 +266,7 @@ trait VocabularyTrait
                 ++$skipped;
                 $this->logger->err(
                     'Unable to create {member} {term}.', // @translate
-                    ['member' => $this->bulk->resourceLabel($resourceName), 'term' => $member['o:term']]
+                    ['member' => $this->easyMeta->resourceLabel($resourceName), 'term' => $member['o:term']]
                 );
                 $this->logErrors($this->entity, $errorStore);
                 continue;
@@ -280,13 +281,13 @@ trait VocabularyTrait
                 $this->refreshMainResources();
                 $this->logger->notice(
                     '{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} skipped.', // @translate
-                    ['count' => $created, 'total' => $this->totals[$resourceName], 'existing' => $existing, 'member' => $this->bulk->resourceLabel($resourceName), 'skipped' => $skipped]
+                    ['count' => $created, 'total' => $this->totals[$resourceName], 'existing' => $existing, 'member' => $this->easyMeta->resourceLabel($resourceName), 'skipped' => $skipped]
                 );
             }
 
             $this->logger->notice(
                 'Vocabulary {member} {term} has been created.', // @translate
-                ['member' => $this->bulk->resourceLabel($resourceName), 'term' => $member['o:term']]
+                ['member' => $this->easyMeta->resourceLabel($resourceName), 'term' => $member['o:term']]
             );
             ++$created;
         }
@@ -307,7 +308,7 @@ trait VocabularyTrait
                 $this->hasError = true;
                 $this->logger->err(
                     'Unable to find {member} {term}.', // @translate
-                    ['member' => $this->bulk->resourceLabel($resourceName), 'term' => $data['term']]
+                    ['member' => $this->easyMeta->resourceLabel($resourceName), 'term' => $data['term']]
                 );
                 continue;
             }

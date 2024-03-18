@@ -2,7 +2,7 @@
 
 namespace BulkImport\Form;
 
-use BulkImport\Form\Element as BulkImportElement;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 
@@ -47,7 +47,7 @@ class SettingsFieldset extends Fieldset
             // TODO Option "bulkimport_convert_html" is too specific and should be moved somewhere else.
             ->add([
                 'name' => 'bulkimport_convert_html',
-                'type' => BulkImportElement\OptionalMultiCheckbox::class,
+                'type' => CommonElement\OptionalMultiCheckbox::class,
                 'options' => [
                     'element_group' => 'import',
                     'label' => 'Convert new files to html (styles are kept when html purifier is disabled)', // @translate

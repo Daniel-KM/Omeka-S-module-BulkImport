@@ -3,6 +3,7 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Processor\AbstractProcessor;
+use Common\Stdlib\EasyMeta;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\Log\Logger;
 use Omeka\Api\Manager as ApiManager;
@@ -30,9 +31,9 @@ class UpdateResource extends AbstractPlugin
     protected $adapterManager;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $bulk;
+    protected $easyMeta;
 
     /**
      * @var \Laminas\Log\Logger
@@ -97,12 +98,12 @@ class UpdateResource extends AbstractPlugin
     public function __construct(
         ApiManager $api,
         AdapterManager $adapterManager,
-        Bulk $bulk,
+        EasyMeta $easyMeta,
         Logger $logger
     ) {
         $this->api = $api;
         $this->adapterManager = $adapterManager;
-        $this->bulk = $bulk;
+        $this->easyMeta = $easyMeta;
         $this->logger = $logger;
     }
 
@@ -520,7 +521,7 @@ class UpdateResource extends AbstractPlugin
      */
     protected function extractPropertyValuesFromResource(array $resourceJson): array
     {
-        return array_intersect_key($resourceJson, $this->bulk->propertyIds());
+        return array_intersect_key($resourceJson, $this->easyMeta->propertyIds());
     }
 
     /**

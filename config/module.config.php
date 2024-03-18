@@ -51,25 +51,9 @@ return [
             'ViewJsonStrategy',
         ],
     ],
-    'view_helpers' => [
-        'factories' => [
-            // Copy from AdvancedResourceTemplate. Copy in BulkExport, BulkEdit and BulkImport. Used in Contribute.
-            'customVocabBaseType' => Service\ViewHelper\CustomVocabBaseTypeFactory::class,
-        ],
-        'delegators' => [
-            'Laminas\Form\View\Helper\FormElement' => [
-                Service\Delegator\FormElementDelegatorFactory::class,
-            ],
-        ],
-    ],
     // TODO Merge the forms.
     'form_elements' => [
         'invokables' => [
-            Form\Element\ArrayText::class => Form\Element\ArrayText::class,
-            Form\Element\OptionalMultiCheckbox::class => Form\Element\OptionalMultiCheckbox::class,
-            Form\Element\OptionalRadio::class => Form\Element\OptionalRadio::class,
-            Form\Element\OptionalSelect::class => Form\Element\OptionalSelect::class,
-            Form\Element\OptionalUrl::class => Form\Element\OptionalUrl::class,
             Form\SettingsFieldset::class => Form\SettingsFieldset::class,
             Form\MappingDeleteForm::class => Form\MappingDeleteForm::class,
             Form\MappingForm::class => Form\MappingForm::class,

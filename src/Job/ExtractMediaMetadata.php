@@ -2,7 +2,7 @@
 
 namespace BulkImport\Job;
 
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Job\AbstractJob;
 
 /**

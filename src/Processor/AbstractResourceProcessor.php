@@ -9,7 +9,7 @@ use BulkImport\Stdlib\MessageStore;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
 use Laminas\Form\Form;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
 use Omeka\Api\Representation\AbstractEntityRepresentation;
 use Omeka\Api\Request;
@@ -469,8 +469,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Don't revalidate data from the resource base entity.
             && $resource['resource_name'] !== $this->resourceName
         ) {
-            $resource['resource_name'] = $this->bulk->resourceName($resource['resource_name'])
-                ?? $this->bulk->resourceName(mb_strtolower($resource['resource_name']))
+            $resource['resource_name'] = $this->easyMeta->resourceName($resource['resource_name'])
+                ?? $this->easyMeta->resourceName(mb_strtolower($resource['resource_name']))
                 ?? $this->resourceNamesMore[mb_strtolower($resource['resource_name'])]
                 ?? $resource['resource_name'];
         }
@@ -1189,7 +1189,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         } else {
             $this->logger->notice(
                 'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $representation->id()]
+                ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($resourceName), 'resource_id' => $representation->id()]
             );
         }
 
@@ -1212,7 +1212,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Normally already checked.
             $this->logger->warn(
                 'Index #{index}: The {resource_name} has no id and cannot be updated.', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName)]
+                ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($resourceName)]
             );
             return null;
         }
@@ -1322,7 +1322,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->logger->notice(
             'Index #{index}: Updated {resource_name} #{resource_id}', // @translate
-            ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $resource['o:id']]
+            ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($resourceName), 'resource_id' => $resource['o:id']]
         );
 
         return $representation;
@@ -1340,7 +1340,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // Normally already checked.
             $this->logger->warn(
                 'Index #{index}: The {resource_name} has no id and cannot be deleted.', // @translate
-                ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName)]
+                ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($resourceName)]
             );
             return null;
         }
@@ -1370,7 +1370,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->logger->notice(
             'Index #{index}: Deleted {resource_name} #{resource_id}', // @translate
-            ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel($resourceName), 'resource_id' => $id]
+            ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel($resourceName), 'resource_id' => $id]
         );
         return null;
     }
@@ -1483,7 +1483,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         static $fieldTypesForResource = [];
 
-        $resourceName = $this->bulk->resourceName($resourceName);
+        $resourceName = $this->easyMeta->resourceName($resourceName);
         if (!$resourceName) {
             return [];
         }

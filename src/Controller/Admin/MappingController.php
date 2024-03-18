@@ -6,7 +6,7 @@ use BulkImport\Form\MappingDeleteForm;
 use BulkImport\Form\MappingForm;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\ViewModel;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 class MappingController extends AbstractActionController
 {

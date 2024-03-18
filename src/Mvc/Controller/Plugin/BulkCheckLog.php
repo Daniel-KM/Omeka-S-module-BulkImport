@@ -8,17 +8,12 @@ use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\Mvc\I18n\Translator;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Settings\UserSettings;
 
 class BulkCheckLog extends AbstractPlugin
 {
     use BulkOutputTrait;
-
-    /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
-     */
-    protected $bulk;
 
     /**
      * @var \Doctrine\DBAL\Connection
@@ -102,7 +97,6 @@ class BulkCheckLog extends AbstractPlugin
     protected $nameFile;
 
     public function __construct(
-        Bulk $bulk,
         Connection $connection,
         Logger $logger,
         Translator $translator,
@@ -110,7 +104,6 @@ class BulkCheckLog extends AbstractPlugin
         string $basePath,
         string $baseUrl
     ) {
-        $this->bulk = $bulk;
         $this->connection = $connection;
         $this->logger = $logger;
         $this->translator = $translator;
@@ -352,7 +345,7 @@ SQL;
             if (is_string($message)) {
                 return [$message, []];
             }
-            if ($message instanceof \Log\Stdlib\PsrMessage) {
+            if ($message instanceof \Common\Stdlib\PsrMessage) {
                 return [$message->getMessage(), $message->getContext()];
             }
             return [(string) $message, []];

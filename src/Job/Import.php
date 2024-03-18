@@ -10,7 +10,7 @@ use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Reader\Reader;
 use Laminas\Log\Logger;
 use Laminas\Router\Http\RouteMatch;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Api\Exception\NotFoundException;
 use Omeka\Job\AbstractJob;
 
@@ -29,9 +29,9 @@ class Import extends AbstractJob
         $plugins = $services->get('ControllerPluginManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
         $this->api = $services->get('Omeka\ApiManager');
-        $this->bulk = $plugins->get('bulk');
         $this->bulkCheckLog = $plugins->get('bulkCheckLog');
         $this->bulkIdentifiers = $plugins->get('bulkIdentifiers');
+        $this->easyMeta = $services->get('EasyMeta');
         $this->entityManager = $services->get('Omeka\EntityManager');
         $this->logger = $services->get('Omeka\Logger');
         $this->metaMapper = $services->get('Bulk\MetaMapper');

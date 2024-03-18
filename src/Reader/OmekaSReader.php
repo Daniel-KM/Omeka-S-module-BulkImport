@@ -6,7 +6,7 @@ use ArrayIterator;
 use BulkImport\Form\Reader\OmekaSReaderConfigForm;
 use BulkImport\Form\Reader\OmekaSReaderParamsForm;
 use Laminas\Http\Response as HttpResponse;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 /**
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?

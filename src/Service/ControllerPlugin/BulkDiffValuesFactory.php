@@ -19,8 +19,8 @@ class BulkDiffValuesFactory implements FactoryInterface
         $isOldOmeka = version_compare(\Omeka\Module::VERSION, '4', '<');
 
         return new BulkDiffValues(
-            $plugins->get('bulk'),
             $plugins->get('diffResources'),
+            $services->get('EasyMeta'),
             $services->get('Omeka\EntityManager'),
             $services->get('Omeka\Logger'),
             $basePath,

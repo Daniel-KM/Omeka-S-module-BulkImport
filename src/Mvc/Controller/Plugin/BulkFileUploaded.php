@@ -4,7 +4,7 @@ namespace BulkImport\Mvc\Controller\Plugin;
 
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Stdlib\ErrorStore;
 use ZipArchive;
 

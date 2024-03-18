@@ -6,7 +6,7 @@ use ArrayObject;
 use BulkImport\Form\Processor\ResourceProcessorConfigForm;
 use BulkImport\Form\Processor\ResourceProcessorParamsForm;
 use BulkImport\Stdlib\MessageStore;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 /**
  * Can be used for all derivative of AbstractResourceEntityRepresentation.
@@ -332,7 +332,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             ->fillResourceSingleEntities($resource, $data);
 
         // Manage properties.
-        $properties = $this->bulk->propertyIds();
+        $properties = $this->easyMeta->propertyIds();
         foreach (array_intersect_key($data, $properties) as $term => $values) {
             $this->fillProperty($resource, $term, $values);
         }
@@ -389,7 +389,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Only one level is managed for now, so use the function above instead
         // of the parent one.
         foreach (array_intersect_key($data, array_flip(array_keys($this->fieldTypes, 'entities'))) as $field => $subResources) {
-            $resourceName = $this->bulk->resourceName($field);
+            $resourceName = $this->easyMeta->resourceName($field);
             foreach (array_values($subResources) as $key => $dataArray) {
                 // If the source is only a string, it is an identifier that is
                 // already filled, mainly item sets for item.
@@ -440,7 +440,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $label = empty($value['o:label']) ? null : $value['o:label'];
                     $value = $id ?? $label ?? reset($value);
                 }
-                $id = $this->bulk->resourceTemplateId($value);
+                $id = $this->easyMeta->resourceTemplateId($value);
                 if ($id) {
                     $resource['o:resource_template'] = empty($label)
                         ? ['o:id' => $id]
@@ -464,7 +464,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $term = empty($value['o:term']) ? null : $value['o:term'];
                     $value = $id ?? $term ?? reset($value);
                 }
-                $id = $this->bulk->resourceClassId($value);
+                $id = $this->easyMeta->resourceClassId($value);
                 if ($id) {
                     $resource['o:resource_class'] = empty($term)
                         ? ['o:id' => $id]
@@ -542,8 +542,8 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // Normalize the resource name.
         if ($resourceName) {
-            $resourceName = $this->bulk->resourceName($resourceName)
-                ?? $this->bulk->resourceName(mb_strtolower($resourceName))
+            $resourceName = $this->easyMeta->resourceName($resourceName)
+                ?? $this->easyMeta->resourceName(mb_strtolower($resourceName))
                 ?? $this->resourceNamesMore[mb_strtolower($resourceName)]
                 ?? null;
             if (!$resourceName) {
@@ -565,7 +565,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillItem(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in item for resources.
-        // Remove notice when a key is not present.
+        // Remove notice when a key is not present for php 8 to 8.2.
         $errorReporting = error_reporting();
         error_reporting(0);
         unset(
@@ -726,7 +726,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillItemSet(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in item set for resources.
-        // Remove notice when a key is not present.
+        // Remove notice when a key is not present for php 8 to 8.2.
         $errorReporting = error_reporting();
         error_reporting(0);
         unset(
@@ -755,7 +755,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillMedia(ArrayObject $resource, array $data): self
     {
         // Remove keys that are not present in media for resources.
-        // Remove notice when a key is not present.
+        // Remove notice when a key is not present for php 8 to 8.2.
         $errorReporting = error_reporting();
         error_reporting(0);
         unset(
@@ -1094,7 +1094,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function fillProperty(ArrayObject $resource, string $term, array $values): self
     {
         // Normally, the property id is already set.
-        $propertyId = $this->bulk->propertyId($term);
+        $propertyId = $this->easyMeta->propertyId($term);
 
         // The datatype should be checked for each value. The value is checked
         // against each datatype and get the first valid one.
@@ -1128,7 +1128,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 }
                 // Use the real data type name, mainly for custom vocab.
                 $dataTypeName = $dataType->getName();
-                $mainDataType = $this->bulk->dataTypeMain($dataTypeName);
+                $mainDataType = $this->easyMeta->dataTypeMain($dataTypeName);
                 if ($dataTypeName === 'literal') {
                     $this->fillPropertyForValue($resource, $indexValue, $term, $dataTypeName, $value);
                     $hasDatatype = true;
@@ -1175,7 +1175,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->fillPropertyForValue($resource, $indexValue, $term, 'literal', $value);
                     $val = (string) $val;
                     $valueForMsg = mb_strlen($val) > 120 ? mb_substr($val, 0, 120) . '…' : $val;
-                    if ($this->bulk->dataTypeMain(reset($dataTypeNames)) === 'resource') {
+                    if ($this->easyMeta->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
                             'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
                             ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
@@ -1187,7 +1187,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                         ));
                     }
                 } else {
-                    if ($this->bulk->dataTypeMain(reset($dataTypeNames)) === 'resource') {
+                    if ($this->easyMeta->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addError('values', new PsrMessage(
                             'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
                             ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
@@ -1227,11 +1227,11 @@ class ResourceProcessor extends AbstractResourceProcessor
         // Common data for all data types.
         $resourceValue = [
             'type' => $dataType,
-            'property_id' => $value['property_id'] ?? $this->bulk->propertyId($term),
+            'property_id' => $value['property_id'] ?? $this->easyMeta->propertyId($term),
             'is_public' => $value['is_public'] ?? true,
         ];
 
-        $mainDataType = $this->bulk->dataTypeMain($dataType);
+        $mainDataType = $this->easyMeta->dataTypeMain($dataType);
 
         // Some mappers fully format the value.
         $val = $value['value_resource_id'] ?? $value['@id'] ?? $value['@value'] ?? $value['o:label'] ?? $value['value'] ?? $value['__value'] ?? null;

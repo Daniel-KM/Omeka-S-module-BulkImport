@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2023 Daniel Berthereau
+ * Copyright 2017-2024 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -29,6 +29,7 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use Common\Stdlib\EasyMeta;
 use Doctrine\DBAL\Connection;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -45,123 +46,6 @@ use Omeka\Mvc\Controller\Plugin\Api;
  */
 class Bulk extends AbstractPlugin
 {
-    const RESOURCE_CLASSES = [
-        'annotations' => \Annotate\Entity\Annotation::class,
-        'assets' => \Omeka\Entity\Asset::class,
-        'items' => \Omeka\Entity\Item::class,
-        'item_sets' => \Omeka\Entity\ItemSet::class,
-        'media' => \Omeka\Entity\Media::class,
-        'resources' => \Omeka\Entity\Resource::class,
-        'value_annotations' => \Omeka\Entity\ValueAnnotation::class,
-    ];
-
-    const RESOURCE_NAMES = [
-        // Resource names.
-        'annotations' => 'annotations',
-        'assets' => 'assets',
-        'items' => 'items',
-        'item_sets' => 'item_sets',
-        'media' => 'media',
-        'resources' => 'resources',
-        'value_annotations' => 'value_annotations',
-        // Json-ld type.
-        'oa:Annotation' => 'annotations',
-        'o:Asset' => 'assets',
-        'o:Item' => 'items',
-        'o:ItemSet' => 'item_sets',
-        'o:Media' => 'media',
-        'o:Resource' => 'resources',
-        'o:ValueAnnotation'=> 'value_annotations',
-        // Keys in json-ld representation.
-        'oa:annotation' => 'annotations',
-        'o:asset' => 'assets',
-        'o:item' => 'items',
-        'o:items' => 'items',
-        'o:item_set' => 'item_sets',
-        'o:site_item_set' => 'item_sets',
-        'o:media' => 'media',
-        '@annotations' => 'value_annotations',
-        // Controllers and singular.
-        'annotation' => 'annotations',
-        'asset' => 'assets',
-        'item' => 'items',
-        'item-set' => 'item_sets',
-        // 'media' => 'media',
-        'resource' => 'resources',
-        'value-annotation' => 'value_annotations',
-        // Value data types.
-        'resource:annotation' => 'annotations',
-        // 'resource' => 'resources',
-        'resource:item' => 'items',
-        'resource:itemset' => 'item_sets',
-        'resource:media' => 'media',
-        // Representation class.
-        \Annotate\Api\Representation\AnnotationRepresentation::class => 'annotations',
-        \Omeka\Api\Representation\AssetRepresentation::class => 'assets',
-        \Omeka\Api\Representation\ItemRepresentation::class => 'items',
-        \Omeka\Api\Representation\ItemSetRepresentation::class => 'item_sets',
-        \Omeka\Api\Representation\MediaRepresentation::class => 'media',
-        \Omeka\Api\Representation\ResourceReference::class => 'resources',
-        \Omeka\Api\Representation\ValueAnnotationRepresentation::class => 'value_annotations',
-        // Entity class.
-        \Annotate\Entity\Annotation::class => 'annotations',
-        \Omeka\Entity\Asset::class => 'assets',
-        \Omeka\Entity\Item::class => 'items',
-        \Omeka\Entity\ItemSet::class => 'item_sets',
-        \Omeka\Entity\Media::class => 'media',
-        \Omeka\Entity\Resource::class => 'resources',
-        \Omeka\Entity\ValueAnnotation::class => 'value_annotations',
-        // Doctrine entity class (when using get_class() and not getResourceId().
-        \DoctrineProxies\__CG__\Annotate\Entity\Annotation::class => 'annotations',
-        \DoctrineProxies\__CG__\Omeka\Entity\Asset::class => 'assets',
-        \DoctrineProxies\__CG__\Omeka\Entity\Item::class => 'items',
-        \DoctrineProxies\__CG__\Omeka\Entity\ItemSet::class => 'item_sets',
-        \DoctrineProxies\__CG__\Omeka\Entity\Media::class => 'media',
-        // \DoctrineProxies\__CG__\Omeka\Entity\Resource::class => 'resources',
-        \DoctrineProxies\__CG__\Omeka\Entity\ValueAnnotation::class => 'value_annotations',
-        // Other deprecated, future or badly written names.
-        'o:annotation' => 'annotations',
-        'o:Annotation' => 'annotations',
-        'o:annotations' => 'annotations',
-        'o:assets' => 'assets',
-        'resource:items' => 'items',
-        'itemset' => 'item_sets',
-        'item set' => 'item_sets',
-        'item_set' => 'item_sets',
-        'itemsets' => 'item_sets',
-        'item sets' => 'item_sets',
-        'item-sets' => 'item_sets',
-        'o:itemset' => 'item_sets',
-        'o:item-set' => 'item_sets',
-        'o:itemsets' => 'item_sets',
-        'o:item-sets' => 'item_sets',
-        'o:item_sets' => 'item_sets',
-        'resource:itemsets' => 'item_sets',
-        'resource:item-set' => 'item_sets',
-        'resource:item-sets' => 'item_sets',
-        'resource:item_set' => 'item_sets',
-        'resource:item_sets' => 'item_sets',
-        'o:resource' => 'resources',
-        'valueannotation' => 'value_annotations',
-        'value annotation' => 'value_annotations',
-        'value_annotation' => 'value_annotations',
-        'valueannotations' => 'value_annotations',
-        'value annotations' => 'value_annotations',
-        'value-annotations' => 'value_annotations',
-        'o:valueannotation' => 'value_annotations',
-        'o:valueannotations' => 'value_annotations',
-        'o:value-annotation' => 'value_annotations',
-        'o:value-annotations' => 'value_annotations',
-        'o:value_annotation' => 'value_annotations',
-        'o:value_annotations' => 'value_annotations',
-        'resource:valueannotation' => 'value_annotations',
-        'resource:valueannotations' => 'value_annotations',
-        'resource:value-annotation' => 'value_annotations',
-        'resource:value-annotations' => 'value_annotations',
-        'resource:value_annotation' => 'value_annotations',
-        'resource:value_annotations' => 'value_annotations',
-    ];
-
     /**
      * @var ServiceLocatorInterface
      */
@@ -181,6 +65,11 @@ class Bulk extends AbstractPlugin
      * @var \Omeka\DataType\Manager
      */
     protected $dataTypeManager;
+
+    /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
 
     /**
      * @var Logger
@@ -234,6 +123,7 @@ class Bulk extends AbstractPlugin
         Api $api,
         Connection $connection,
         DataTypeManager $dataTypeManager,
+        EasyMeta $easyMeta,
         Logger $logger,
         Translator $translator,
         string $basePath
@@ -242,6 +132,7 @@ class Bulk extends AbstractPlugin
         $this->api = $api;
         $this->connection = $connection;
         $this->dataTypeManager = $dataTypeManager;
+        $this->easyMeta = $easyMeta;
         $this->logger = $logger;
         $this->translator = $translator;
         $this->basePath = $basePath;
@@ -260,114 +151,7 @@ class Bulk extends AbstractPlugin
      */
     public function isPropertyTerm($termOrId): bool
     {
-        return $this->propertyId($termOrId) !== null;
-    }
-
-    /**
-     * Get a property id by term or id.
-     */
-    public function propertyId($termOrId): ?int
-    {
-        $ids = $this->propertyIds();
-        return is_numeric($termOrId)
-            ? (array_search($termOrId, $ids) ? $termOrId : null)
-            : ($ids[$termOrId] ?? null);
-    }
-
-    /**
-     * Get a property term by term or id.
-     */
-    public function propertyTerm($termOrId): ?string
-    {
-        $ids = $this->propertyIds();
-        return is_numeric($termOrId)
-            ? (array_search($termOrId, $ids) ?: null)
-            : (array_key_exists($termOrId, $ids) ? $termOrId : null);
-    }
-
-    /**
-     * Get a property label by term or id.
-     */
-    public function propertyLabel($termOrId): ?string
-    {
-        $term = $this->propertyTerm($termOrId);
-        return $term
-            ? $this->propertyLabels()[$term]
-            : null;
-    }
-
-    /**
-     * Get all property ids by term.
-     *
-     * @return array Associative array of ids by term.
-     */
-    public function propertyIds(): array
-    {
-        if (isset($this->properties)) {
-            return $this->properties;
-        }
-
-        /** @var \Doctrine\DBAL\Query\QueryBuilder $qb */
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'DISTINCT CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
-                'property.id AS id',
-                // Only the two first selects are needed, but some databases
-                // require "order by" or "group by" value to be in the select.
-                'vocabulary.id'
-            )
-            ->from('property', 'property')
-            ->innerJoin('property', 'vocabulary', 'vocabulary', 'property.vocabulary_id = vocabulary.id')
-            ->orderBy('vocabulary.id', 'asc')
-            ->addOrderBy('property.id', 'asc')
-            ->addGroupBy('property.id')
-        ;
-        $this->properties = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
-        return $this->properties;
-    }
-
-    /**
-     * Get all property terms by id.
-     *
-     * @return array Associative array of terms by id.
-     */
-    public function propertyTerms(): array
-    {
-        return array_flip($this->propertyIds());
-    }
-
-    /**
-     * Get all property local labels by term.
-     *
-     * @return array Associative array of labels by term.
-     */
-    public function propertyLabels()
-    {
-        static $propertyLabels;
-
-        if (is_array($propertyLabels)) {
-            return $propertyLabels;
-        }
-
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'DISTINCT CONCAT(vocabulary.prefix, ":", property.local_name) AS term',
-                'property.label AS label',
-                // Only the two first selects are needed, but some databases
-                // require "order by" or "group by" value to be in the select.
-                'vocabulary.id',
-                'property.id'
-            )
-            ->from('property', 'property')
-            ->innerJoin('property', 'vocabulary', 'vocabulary', 'property.vocabulary_id = vocabulary.id')
-            ->orderBy('vocabulary.id', 'asc')
-            ->addOrderBy('property.id', 'asc')
-            ->addGroupBy('property.id')
-        ;
-        $propertyLabels = $this->connection->executeQuery($qb)->fetchAllKeyValue();
-        return $propertyLabels;
+        return $termOrId && $this->easyMeta->propertyId($termOrId) !== null;
     }
 
     /**
@@ -375,115 +159,7 @@ class Bulk extends AbstractPlugin
      */
     public function isResourceClass($termOrId): bool
     {
-        return $this->resourceClassId($termOrId) !== null;
-    }
-
-    /**
-     * Get a resource class by term or by id.
-     */
-    public function resourceClassId($termOrId): ?int
-    {
-        $ids = $this->resourceClassIds();
-        return is_numeric($termOrId)
-            ? (array_search($termOrId, $ids) ? $termOrId : null)
-            : ($ids[$termOrId] ?? null);
-    }
-
-    /**
-     * Get a resource class term by term or id.
-     */
-    public function resourceClassTerm($termOrId): ?string
-    {
-        $ids = $this->resourceClassIds();
-        return is_numeric($termOrId)
-            ? (array_search($termOrId, $ids) ?: null)
-            : (array_key_exists($termOrId, $ids) ? $termOrId : null);
-    }
-
-    /**
-     * Get a resource class label by term or id.
-     *
-     * @param string|int $termOrId
-     */
-    public function resourceClassLabel($termOrId): ?string
-    {
-        $term = $this->resourceClassTerm($termOrId);
-        return $term
-            ? $this->resourceClassLabels()[$term]
-            : null;
-    }
-
-    /**
-     * Get all resource classes by term.
-     *
-     * @return array Associative array of ids by term.
-     */
-    public function resourceClassIds(): array
-    {
-        if (isset($this->resourceClasses)) {
-            return $this->resourceClasses;
-        }
-
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'DISTINCT CONCAT(vocabulary.prefix, ":", resource_class.local_name) AS term',
-                'resource_class.id AS id',
-                // Only the two first selects are needed, but some databases
-                // require "order by" or "group by" value to be in the select.
-                'vocabulary.id'
-            )
-            ->from('resource_class', 'resource_class')
-            ->innerJoin('resource_class', 'vocabulary', 'vocabulary', 'resource_class.vocabulary_id = vocabulary.id')
-            ->orderBy('vocabulary.id', 'asc')
-            ->addOrderBy('resource_class.id', 'asc')
-            ->addGroupBy('resource_class.id')
-        ;
-        $this->resourceClasses = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
-        return $this->resourceClasses;
-    }
-
-    /**
-     * Get all resource class terms by id.
-     *
-     * @return array Associative array of terms by id.
-     */
-    public function resourceClassTerms(): array
-    {
-        return array_flip($this->resourceClassIds());
-    }
-
-    /**
-     * Get all resource class labels by term.
-     *
-     * @return array Associative array of resource class labels by term.
-     */
-    public function resourceClassLabels()
-    {
-        static $resourceClassLabels;
-
-        if (is_array($resourceClassLabels)) {
-            return $resourceClassLabels;
-        }
-
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'DISTINCT CONCAT(vocabulary.prefix, ":", resource_class.local_name) AS term',
-                'resource_class.label AS label',
-                // Only the two first selects are needed, but some databases
-                // require "order by" or "group by" value to be in the select.
-                'vocabulary.id',
-                'resource_class.id'
-            )
-            ->from('resource_class', 'resource_class')
-            ->innerJoin('resource_class', 'vocabulary', 'vocabulary', 'resource_class.vocabulary_id = vocabulary.id')
-            ->orderBy('vocabulary.id', 'asc')
-            ->addOrderBy('resource_class.id', 'asc')
-            ->addGroupBy('resource_class.id')
-        ;
-        $resourceClassLabels = $this->connection->executeQuery($qb)->fetchAllKeyValue();
-        return $resourceClassLabels;
+        return $termOrId && $this->easyMeta->resourceClassId($termOrId) !== null;
     }
 
     /**
@@ -491,37 +167,17 @@ class Bulk extends AbstractPlugin
      */
     public function isResourceTemplate($labelOrId): bool
     {
-        return $this->resourceTemplateId($labelOrId) !== null;
-    }
-
-    /**
-     * Get a resource template by label or by id.
-     */
-    public function resourceTemplateId($labelOrId): ?int
-    {
-        $ids = $this->resourceTemplateIds();
-        return is_numeric($labelOrId)
-            ? (array_search($labelOrId, $ids) ? $labelOrId : null)
-            : ($ids[$labelOrId] ?? null);
-    }
-
-    /**
-     * Get a resource template label by label or id.
-     */
-    public function resourceTemplateLabel($labelOrId): ?string
-    {
-        $ids = $this->resourceTemplateIds();
-        return is_numeric($labelOrId)
-            ? (array_search($labelOrId, $ids) ?: null)
-            : (array_key_exists($labelOrId, $ids) ? $labelOrId : null);
+        return $labelOrId && $this->easyMeta->resourceTemplateId($labelOrId) !== null;
     }
 
     /**
      * Get a resource template class by label or id.
+     *
+     * @deprecated Use EasyMeta 3.4.55.
      */
     public function resourceTemplateClassId($labelOrId): ?int
     {
-        $label = $this->resourceTemplateLabel($labelOrId);
+        $label = $this->easyMeta->resourceTemplateLabel($labelOrId);
         if (!$label) {
             return null;
         }
@@ -530,45 +186,13 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Get all resource templates by label.
-     *
-     * @return array Associative array of ids by label.
-     */
-    public function resourceTemplateIds(): array
-    {
-        if (isset($this->resourceTemplates)) {
-            return $this->resourceTemplates;
-        }
-
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'resource_template.label AS label',
-                'resource_template.id AS id'
-            )
-            ->from('resource_template', 'resource_template')
-            ->orderBy('resource_template.id', 'asc')
-        ;
-        $this->resourceTemplates = array_map('intval', $this->connection->executeQuery($qb)->fetchAllKeyValue());
-        return $this->resourceTemplates;
-    }
-
-    /**
-     * Get all resource template labels by id.
-     *
-     * @return array Associative array of labels by id.
-     */
-    public function resourceTemplateLabels(): array
-    {
-        return array_flip($this->resourceTemplateIds());
-    }
-
-    /**
      * Get all resource class ids for templates by label.
      *
      * @return array Associative array of resource class ids by label.
+     *
+     * @deprecated Use EasyMeta 3.4.55.
      */
-    public function resourceTemplateClassIds(): array
+    private function resourceTemplateClassIds(): array
     {
         if (isset($this->resourceTemplateClassIds)) {
             return $this->resourceTemplateClassIds;
@@ -618,43 +242,12 @@ class Bulk extends AbstractPlugin
     }
 
     /**
-     * Get the list of vocabulary uris by prefix.
-     *
-     * @param bool $fixed If fixed, the uri are returned without final "#" and "/".
-     * @return array
-     *
-     * @todo Remove the fixed vocabularies.
-     */
-    public function vocabularyUris($fixed = false): array
-    {
-        static $vocabularies;
-        static $fixedVocabularies;
-        if (!is_null($vocabularies)) {
-            return $fixed ? $fixedVocabularies : $vocabularies;
-        }
-
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select(
-                'vocabulary.prefix AS prefix',
-                'vocabulary.namespace_uri AS uri'
-            )
-            ->from('vocabulary', 'vocabulary')
-            ->orderBy('vocabulary.prefix', 'asc')
-        ;
-        $vocabularies = $this->connection->executeQuery($qb)->fetchAllKeyValue();
-        $fixedVocabularies = array_map(function ($v) {
-            return rtrim($v, '#/');
-        }, $vocabularies);
-        return $fixed ? $fixedVocabularies : $vocabularies;
-    }
-
-    /**
      * Check if a string is a managed data type.
      */
-    public function isDataType(?string $dataType): bool
+    public function isDataType($dataType): bool
     {
-        return array_key_exists($dataType, $this->dataTypeNames());
+        return is_string($dataType)
+            && $this->easyMeta->dataTypeName($dataType) === null;
     }
 
     /**
@@ -662,7 +255,7 @@ class Bulk extends AbstractPlugin
      */
     public function dataType(?string $dataType): ?\Omeka\DataType\DataTypeInterface
     {
-        $dataType = $this->dataTypeName($dataType);
+        $dataType = $this->easyMeta->dataTypeName($dataType);
         return $dataType
             ? $this->dataTypeManager->get($dataType)
             : null;
@@ -670,6 +263,8 @@ class Bulk extends AbstractPlugin
 
     /**
      * Check if a datatype exists and normalize its name.
+     *
+     * @todo Move to automapFields (see MetaMapperConfig too).
      */
     public function dataTypeName(?string $dataType): ?string
     {
@@ -678,16 +273,17 @@ class Bulk extends AbstractPlugin
         }
         $datatypes = $this->dataTypeNames();
         return $datatypes[$dataType]
-            // Manage exception for customvocab, that may use label as name.
-            ?? $this->customVocabDataTypeName($dataType);
+        // Manage exception for customvocab, that may use label as name.
+        ?? $this->customVocabDataTypeName($dataType);
     }
 
     /**
      * Get the list of datatype names.
      *
      * @todo Remove the short data types here.
+     * @todo Move to automapFields (see MetaMapperConfig too).
      */
-    public function dataTypeNames(bool $noShort = false): array
+    protected function dataTypeNames(bool $noShort = false): array
     {
         static $dataTypesNoShort;
 
@@ -712,69 +308,6 @@ class Bulk extends AbstractPlugin
         }
 
         return $noShort ? $dataTypesNoShort : $this->dataTypes;
-    }
-
-    /**
-     * Get main datatype ("literal", "resource" or "uri") from any data type.
-     *
-     * @see \BulkEdit\Module::mainDataType()
-     * @see \BulkImport\Mvc\Controller\Plugin\Bulk::dataTypeMain()
-     */
-    public function dataTypeMain(?string $dataType): ?string
-    {
-        if (empty($dataType)) {
-            return null;
-        }
-        $mainDataTypes = [
-            'literal' => 'literal',
-            'uri' => 'uri',
-            'resource' => 'resource',
-            'resource:item' => 'resource',
-            'resource:itemset' => 'resource',
-            'resource:media' => 'resource',
-            // Module Annotate.
-            'resource:annotation' => 'resource',
-            'annotation' => 'resource',
-            // Module DataTypeGeometry.
-            'geography' => 'literal',
-            'geography:coordinates' => 'literal',
-            'geometry' => 'literal',
-            'geometry:coordinates' => 'literal',
-            'geometry:position' => 'literal',
-            // Module DataTypeGeometry (deprecated).
-            'geometry:geography' => 'literal',
-            'geometry:geography:coordinates' => 'literal',
-            'geometry:geometry' => 'literal',
-            'geometry:geometry:coordinates' => 'literal',
-            'geometry:geometry:position' => 'literal',
-            // Module DataTypePlace.
-            'place' => 'uri',
-            // Module DataTypeRdf.
-            'html' => 'literal',
-            'xml' => 'literal',
-            'boolean' => 'literal',
-            // Specific module.
-            'email' => 'literal',
-            // Module NumericDataTypes.
-            'numeric:timestamp' => 'literal',
-            'numeric:integer' => 'literal',
-            'numeric:duration' => 'literal',
-            'numeric:interval' => 'literal',
-        ];
-        $dataType = strtolower($dataType);
-        if (array_key_exists($dataType, $mainDataTypes)) {
-            return $mainDataTypes[$dataType];
-        }
-        // Module ValueSuggest.
-        if (substr($dataType, 0, 12) === 'valuesuggest'
-            // || substr($dataType, 0, 15) === 'valuesuggestall'
-        ) {
-            return 'uri';
-        }
-        if (substr($dataType, 0, 11) === 'customvocab') {
-            return $this->customVocabBaseType($dataType);
-        }
-        return null;
     }
 
     /**
@@ -895,6 +428,7 @@ class Bulk extends AbstractPlugin
      *
      *  The check is done against the destination data types.
      *  @todo Factorize with CustomVocabTrait::getCustomVocabDataTypeName().
+     *  @deprecated To be moved somewhere.
      */
     public function customVocabDataTypeName(?string $dataType): ?string
     {
@@ -930,80 +464,6 @@ class Bulk extends AbstractPlugin
             ?? null;
     }
 
-    /**
-     * Get the main type of the custom vocab: "literal", "resource" or "uri".
-     *
-     * @todo Check for dynamic custom vocabs.
-     */
-    public function customVocabBaseType(string $name): ?string
-    {
-        static $customVocabTypes;
-
-        if (is_null($customVocabTypes)) {
-            $customVocabTypes = [];
-            $types = $this->services->get('ViewHelperManager')->get('customVocabBaseType')();
-            foreach ($types as $id => $type) {
-                $customVocabTypes[$id] = $type;
-                $customVocabTypes["customvocab:$id"] = $type;
-            }
-        }
-
-        return $customVocabTypes[$name] ?? null;
-    }
-
-    public function entityClass($name): ?string
-    {
-        return self::RESOURCE_CLASSES[self::RESOURCE_NAMES[$name] ?? null] ?? null;
-    }
-
-    public function resourceName($name): ?string
-    {
-        return self::RESOURCE_NAMES[$name] ?? null;
-    }
-
-    /**
-     * Get the resource label from any common resource name.
-     *
-     * Allows to log a resource with a singular name from the resource name,
-     * that is plural in Omeka.
-     */
-    public function resourceLabel($name): ?string
-    {
-        $labels = [
-            'annotations' => 'annotation', // @translate
-            'assets' => 'asset', // @translate
-            'items' => 'item', // @translate
-            'item_sets' => 'item set', // @translate
-            'media' => 'media', // @translate
-            'resources' => 'resource', // @translate
-            'properties' => 'property', // @translate
-            'resource_classes' => 'resource class', // @translate
-            'resource_templates' => 'resource template', // @translate
-            'vocabularies' => 'vocabulary', // @translate
-        ];
-        return $labels[self::RESOURCE_NAMES[$name] ?? null] ?? null;
-    }
-
-    /**
-     * Get the plural resource label from any common resource name.
-     */
-    public function resourceLabelPlural($name): ?string
-    {
-        $labels = [
-            'annotations' => 'annotations', // @translate
-            'assets' => 'assets', // @translate
-            'items' => 'items', // @translate
-            'item_sets' => 'item sets', // @translate
-            'media' => 'media', // @translate
-            'resources' => 'resources', // @translate
-            'properties' => 'properties', // @translate
-            'resource_classes' => 'resource classes', // @translate
-            'resource_templates' => 'resource templates', // @translate
-            'vocabularies' => 'vocabularies', // @translate
-        ];
-        return $labels[self::RESOURCE_NAMES[$name] ?? null] ?? null;
-    }
-
     public function resourceTable($name): ?string
     {
         $tables = [
@@ -1015,7 +475,7 @@ class Bulk extends AbstractPlugin
             \Omeka\Entity\Resource::class => 'resource',
             \Omeka\Entity\ValueAnnotation::class => 'value_annotation',
         ];
-        return $tables[self::RESOURCE_NAMES[$name] ?? null] ?? null;
+        return $tables[EasyMeta::RESOURCE_NAMES[$name] ?? null] ?? null;
     }
 
     public function basePath(): string

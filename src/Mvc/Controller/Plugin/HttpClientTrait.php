@@ -6,7 +6,7 @@ use Laminas\Http\Client as HttpClient;
 use Laminas\Http\ClientStatic as HttpClientStatic;
 use Laminas\Http\Request as HttpRequest;
 use Laminas\Http\Response as HttpResponse;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 /**
  * @todo Factorize with BulkFile.

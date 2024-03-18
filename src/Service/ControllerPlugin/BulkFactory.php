@@ -17,6 +17,7 @@ class BulkFactory implements FactoryInterface
             $plugins->get('api'),
             $services->get('Omeka\Connection'),
             $services->get('Omeka\DataTypeManager'),
+            $services->get('EasyMeta'),
             $services->get('Omeka\Logger'),
             $services->get('MvcTranslator'),
             $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files'

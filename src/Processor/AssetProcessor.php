@@ -8,7 +8,7 @@ use BulkImport\Form\Processor\AssetProcessorParamsForm;
 use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Stdlib\MessageStore;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use Omeka\Api\Exception\ValidationException;
 use Omeka\Api\Representation\AssetRepresentation;
 
@@ -261,7 +261,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $this->bulkIdentifiers->storeSourceIdentifiersIds($resource, $asset);
         $this->logger->notice(
             'Index #{index}: Created {resource_name} #{resource_id}', // @translate
-            ['index' => $this->indexResource, 'resource_name' => $this->bulk->resourceLabel('assets'), 'resource_id' => $asset->id()]
+            ['index' => $this->indexResource, 'resource_name' => $this->easyMeta->resourceLabel('assets'), 'resource_id' => $asset->id()]
         );
 
         $resource['o:id'] = $asset->id();

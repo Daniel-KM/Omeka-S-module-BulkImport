@@ -6,7 +6,7 @@ use BulkImport\Entry\Entry;
 use BulkImport\Entry\SpreadsheetEntry;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderConfigForm;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use OpenSpout\Common\Type;
 use OpenSpout\Reader\Common\Creator\ReaderEntityFactory;
 use OpenSpout\Reader\ReaderInterface;

@@ -3,6 +3,7 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Processor\AbstractProcessor;
+use Common\Stdlib\EasyMeta;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 class DiffResources extends AbstractPlugin
@@ -34,9 +35,9 @@ class DiffResources extends AbstractPlugin
     ];
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $bulk;
+    protected $easyMeta;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\UpdateResourceProperties
@@ -64,10 +65,10 @@ class DiffResources extends AbstractPlugin
     protected $result;
 
     public function __construct(
-        Bulk $bulk,
+        EasyMeta $easyMeta,
         UpdateResourceProperties $updateResourceProperties
     ) {
-        $this->bulk = $bulk;
+        $this->easyMeta = $easyMeta;
         $this->updateResourceProperties = $updateResourceProperties;
     }
 
@@ -234,7 +235,7 @@ class DiffResources extends AbstractPlugin
 
         // Manage metadata in a generic way.
 
-        $isProperty = is_integer($this->bulk->propertyId($meta));
+        $isProperty = is_integer($this->easyMeta->propertyId($meta));
 
         if (!$isProperty) {
             $resultMeta = [

@@ -2,10 +2,10 @@
 
 namespace BulkImport\Form;
 
-use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Processor\Manager as ProcessorManager;
 use BulkImport\Reader\Manager as ReaderManager;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Form\Form;
@@ -50,7 +50,7 @@ class ImporterForm extends Form
 
             ->add([
                 'name' => 'o-bulk:mapper',
-                'type' => BulkImportElement\OptionalSelect::class,
+                'type' => CommonElement\OptionalSelect::class,
                 'options' => [
                     'label' => 'Mapper', // @translate
                     'value_options' => [

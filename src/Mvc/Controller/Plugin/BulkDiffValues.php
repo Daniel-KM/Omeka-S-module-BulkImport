@@ -3,6 +3,7 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Reader\Reader;
+use Common\Stdlib\EasyMeta;
 use Doctrine\ORM\EntityManager;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -21,14 +22,14 @@ class BulkDiffValues extends AbstractPlugin
     use BulkOutputTrait;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
-     */
-    protected $bulk;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\DiffResources
      */
     protected $diffResources;
+
+    /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
 
     /**
      * @var \Doctrine\ORM\EntityManager
@@ -71,16 +72,16 @@ class BulkDiffValues extends AbstractPlugin
     protected $nameFile;
 
     public function __construct(
-        Bulk $bulk,
         DiffResources $diffResources,
+        EasyMeta $easyMeta,
         EntityManager $entityManager,
         Logger $logger,
         string $basePath,
         string $baseUrl,
         bool $isOldOmeka
     ) {
-        $this->bulk = $bulk;
         $this->diffResources = $diffResources;
+        $this->easyMeta = $easyMeta;
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->basePath = $basePath;
@@ -145,11 +146,11 @@ class BulkDiffValues extends AbstractPlugin
                 continue 2;
             }
             // Only properties are processed for now.
-            if (!$this->bulk->propertyId($fromToFields[$from])) {
+            if (!$this->easyMeta->propertyId($fromToFields[$from])) {
                 continue 2;
             }
             $type = $fromToTypes[$from];
-            $mainType = $this->bulk->dataTypeMain($type);
+            $mainType = $this->easyMeta->dataTypeMain($type);
             $result[$from] = array_unique(array_merge($result[$from], array_values($values)));
         }
 
@@ -165,7 +166,7 @@ class BulkDiffValues extends AbstractPlugin
         foreach (array_keys(array_filter($result)) as $from) {
             $term = $fromToFields[$from];
             $type = $fromToTypes[$from];
-            $mainType = $this->bulk->dataTypeMain($type);
+            $mainType = $this->easyMeta->dataTypeMain($type);
             $existingValues = $this->existingValues($term, $mainType);
             if ($existingValues) {
                 // $result[$from] = array_udiff($result[$from], $existingValues, 'strcasecmp');
@@ -201,7 +202,7 @@ class BulkDiffValues extends AbstractPlugin
             'uri' => 'uri',
         ];
         $column = $mainTypeColumns[$mainType] ?? 'value';
-        $propertyId = $this->bulk->propertyId($term);
+        $propertyId = $this->easyMeta->propertyId($term);
 
         $qb = $this->entityManager->createQueryBuilder();
         $expr = $qb->expr();

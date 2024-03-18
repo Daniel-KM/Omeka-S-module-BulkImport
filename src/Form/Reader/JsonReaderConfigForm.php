@@ -2,8 +2,8 @@
 
 namespace BulkImport\Form\Reader;
 
-use BulkImport\Form\Element as BulkImportElement;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Form;
 use Omeka\Form\Element as OmekaElement;
 
@@ -17,7 +17,7 @@ class JsonReaderConfigForm extends Form
             ->setAttribute('id', 'form-bulk-importer')
             ->add([
                 'name' => 'url',
-                'type' => BulkImportElement\OptionalUrl::class,
+                'type' => CommonElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'Json url', // @translate
                 ],

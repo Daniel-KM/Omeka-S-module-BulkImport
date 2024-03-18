@@ -2,26 +2,34 @@
 
 namespace BulkImport;
 
-if (!class_exists(\Generic\AbstractModule::class)) {
-    require file_exists(dirname(__DIR__) . '/Generic/AbstractModule.php')
-        ? dirname(__DIR__) . '/Generic/AbstractModule.php'
-        : __DIR__ . '/src/Generic/AbstractModule.php';
+if (!class_exists(\Common\TraitModule::class)) {
+    require_once dirname(__DIR__) . '/Common/TraitModule.php';
 }
 
-use Generic\AbstractModule;
+use Common\Stdlib\PsrMessage;
+use Common\TraitModule;
+
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
 use Laminas\Mvc\MvcEvent;
-use Log\Stdlib\PsrMessage;
 use Omeka\Entity\Media;
-use Omeka\Module\Exception\ModuleCannotInstallException;
+use Omeka\Module\AbstractModule;
 
+/**
+ * Bulk Import
+ *
+ * @copyright Daniel Berthereau, 2018-2024
+ * @license http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.txt
+ */
 class Module extends AbstractModule
 {
+    use TraitModule;
+
     const NAMESPACE = __NAMESPACE__;
 
     protected $dependencies = [
+        'Common',
         'Log',
     ];
 
@@ -58,13 +66,15 @@ class Module extends AbstractModule
     protected function preInstall(): void
     {
         $services = $this->getServiceLocator();
+        $translate = $services->get('ControllerPluginManager')->get('translate');
+        $translator = $services->get('MvcTranslator');
 
-        if (PHP_VERSION_ID < 70400) {
-            $message = new PsrMessage(
-                'Since version {version}, this module requires php 7.4.', // @translate
-                ['version' => '3.4.39']
+        if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.54')) {
+            $message = new \Omeka\Stdlib\Message(
+                $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
+                'Common', '3.4.54'
             );
-            throw new ModuleCannotInstallException((string) $message);
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
         }
 
         $js = __DIR__ . '/asset/vendor/flow.js/flow.min.js';
@@ -72,25 +82,26 @@ class Module extends AbstractModule
             $message = new PsrMessage(
                 'The libraries should be installed. See module’s installation documentation.' // @translate
             );
-            throw new ModuleCannotInstallException((string) $message);
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
 
         $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+
         if (!$this->checkDestinationDir($basePath . '/xsl')) {
             $message = new PsrMessage(
-                'The directory "{path}" is not writeable.', // @translate
-                ['path' => $basePath . '/xsl']
+                'The directory "{directory}" is not writeable.', // @translate
+                ['directory' => $basePath . '/xsl']
             );
-            throw new ModuleCannotInstallException((string) $message);
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
 
         if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
             $message = new PsrMessage(
-                'The directory "{path}" is not writeable.', // @translate
-                ['path' => $basePath . '/bulk_import']
+                'The directory "{directory}" is not writeable.', // @translate
+                ['directory' => $basePath . '/bulk_import']
             );
-            throw new ModuleCannotInstallException((string) $message);
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
     }
 
@@ -637,38 +648,8 @@ class Module extends AbstractModule
         $status = $this->getServiceLocator()->get('Omeka\Status');
         return !$status->isApiRequest()
             && !$status->isAdminRequest()
-            && !$status->isSiteRequest();
-    }
-
-   /**
-     * Check or create the destination folder.
-     *
-     * @param string $dirPath Absolute path.
-     * @return string|null
-     */
-    protected function checkDestinationDir(string $dirPath): ?string
-    {
-        if (file_exists($dirPath)) {
-            if (!is_dir($dirPath) || !is_readable($dirPath) || !is_writeable($dirPath)) {
-                $this->getServiceLocator()->get('Omeka\Logger')->err(
-                    'The directory "{path}" is not writeable.', // @translate
-                    ['path' => $dirPath]
-                );
-                return null;
-            }
-            return $dirPath;
-        }
-
-        $result = @mkdir($dirPath, 0775, true);
-        if (!$result) {
-            $this->getServiceLocator()->get('Omeka\Logger')->err(
-                'The directory "{path}" is not writeable: {error}.', // @translate
-                ['path' => $dirPath, 'error' => error_get_last()['message']]
-            );
-            return null;
-        }
-
-        return $dirPath;
+            && !$status->isSiteRequest()
+            && (!method_exists($status, 'isKeyauthRequest') || !$status->isKeyauthRequest());
     }
 
     protected function storeExistingItemMediaIds(?int $itemId = null, ?array $mediaIds = null): ?array

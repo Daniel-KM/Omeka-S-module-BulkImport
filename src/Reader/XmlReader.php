@@ -7,7 +7,7 @@ use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use XMLElementIterator;
 use XMLReader as XMLReaderCore;
 use XMLReaderNode;

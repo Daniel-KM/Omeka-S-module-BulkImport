@@ -2,7 +2,7 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Form\Element as BulkElement;
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
@@ -155,7 +155,7 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
             ])
             ->add([
                 'name' => 'endpoint',
-                'type' => BulkElement\OptionalUrl::class,
+                'type' => CommonElement\OptionalUrl::class,
                 'options' => [
                     'label' => 'Base url', // @translate
                 ],

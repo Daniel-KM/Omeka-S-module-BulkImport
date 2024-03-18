@@ -3,6 +3,7 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Processor\AbstractProcessor;
+use Common\Stdlib\EasyMeta;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 
 class UpdateResourceProperties extends AbstractPlugin
@@ -10,9 +11,9 @@ class UpdateResourceProperties extends AbstractPlugin
     use BulkResourceTrait;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\Bulk
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $bulk;
+    protected $easyMeta;
 
     /**
      * @var array
@@ -34,9 +35,10 @@ class UpdateResourceProperties extends AbstractPlugin
      */
     protected $result;
 
-    public function __construct(Bulk $bulk)
-    {
-        $this->bulk = $bulk;
+    public function __construct(
+        EasyMeta $easyMeta,
+    ) {
+        $this->easyMeta = $easyMeta;
     }
 
     /**
@@ -97,7 +99,7 @@ class UpdateResourceProperties extends AbstractPlugin
             return $this;
         }
 
-        $properties = $this->bulk->propertyIds();
+        $properties = $this->easyMeta->propertyIds();
 
         $resourceProperties = array_intersect_key($this->resource, $properties);
 

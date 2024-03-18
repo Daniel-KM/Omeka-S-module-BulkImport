@@ -13,7 +13,7 @@ class BulkIdentifiersFactory implements FactoryInterface
         $plugins = $services->get('ControllerPluginManager');
         return new BulkIdentifiers(
             $services->get('Omeka\ApiManager'),
-            $plugins->get('bulk'),
+            $services->get('EasyMeta'),
             // Use class name to use it even when CsvImport is installed.
             $plugins->get(\BulkImport\Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class),
             $services->get('Omeka\Logger')

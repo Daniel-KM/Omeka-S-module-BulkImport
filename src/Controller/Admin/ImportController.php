@@ -7,7 +7,7 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\View\Model\ViewModel;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 
 class ImportController extends AbstractActionController
 {

@@ -31,19 +31,20 @@ namespace BulkImport\Stdlib;
 
 use BulkImport\Mvc\Controller\Plugin\AutomapFields;
 use BulkImport\Mvc\Controller\Plugin\Bulk;
+use Common\Stdlib\EasyMeta;
 use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
-use Log\Stdlib\PsrMessage;
+use Common\Stdlib\PsrMessage;
 use SimpleXMLElement;
 
 class MetaMapperConfig
 {
     /**
-     * @var \Laminas\Log\Logger
+     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
      */
-    protected $logger;
+    protected $automapFields;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\Bulk
@@ -51,9 +52,14 @@ class MetaMapperConfig
     protected $bulk;
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\AutomapFields
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $automapFields;
+    protected $easyMeta;
+
+    /**
+     * @var \Laminas\Log\Logger
+     */
+    protected $logger;
 
     /**
      * @var \JmesPath\Env
@@ -113,13 +119,15 @@ class MetaMapperConfig
      * Current options.
      */
     public function __construct(
-        Logger $logger,
+        AutomapFields $automapFields,
         Bulk $bulk,
-        AutomapFields $automapFields
+        EasyMeta $easyMeta,
+        Logger $logger
     ) {
-        $this->logger = $logger;
-        $this->bulk = $bulk;
         $this->automapFields = $automapFields;
+        $this->bulk = $bulk;
+        $this->easyMeta = $easyMeta;
+        $this->logger = $logger;
         $this->jmesPathEnv = new JmesPathEnv;
         $this->jmesPathParser = new JmesPathParser;
         $this->jsonPathQuerier = new JSONPath;
@@ -1124,7 +1132,7 @@ class MetaMapperConfig
 
         $result['to']['field'] = (string) $xmlArray['to']['@attributes']['field'];
 
-        $termId = $this->bulk->propertyId($result['to']['field']);
+        $termId = $this->easyMeta->propertyId($result['to']['field']);
 
         if ($termId) {
             $result['to']['property_id'] = $termId;
@@ -1139,6 +1147,7 @@ class MetaMapperConfig
             $patternDataTypes = '#(?<datatype>(?:customvocab:(?:"[^\n\r"]+"|\'[^\n\r\']+\')|[a-zA-Z_][\w:-]*))#';
             if (preg_match_all($patternDataTypes, (string) $xmlArray['to']['@attributes']['datatype'], $matchesDataTypes, PREG_SET_ORDER, 0)) {
                 foreach (array_column($matchesDataTypes, 'datatype') as $datatype) {
+                    // TODO Factorize data type name generic with automapFields.
                     $result['to']['datatype'][] = $this->bulk->dataTypeName($datatype);
                 }
                 $result['to']['datatype'] = array_values(array_filter(array_unique($result['to']['datatype'])));
@@ -1256,7 +1265,7 @@ class MetaMapperConfig
 
         $toField = $map['to']['field'] ?? null;
 
-        if ($this->bulk->isPropertyTerm($toField)) {
+        if ($this->easyMeta->propertyTerm($toField)) {
             $toKeys = [
                 'field' => null,
                 'field_type' => 'arrays',
