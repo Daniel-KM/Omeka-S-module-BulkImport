@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "aae5a631d02db0e5afb295f1cc721174",
+    "content-hash": "cbd1c9b8ee7351525210aed663b8034a",
     "packages": [
         {
             "name": "codemirror/codemirror",
@@ -418,16 +418,16 @@
         },
         {
             "name": "mikehaertl/php-pdftk",
-            "version": "0.9.2",
+            "version": "0.13.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mikehaertl/php-pdftk.git",
-                "reference": "84720d0a644368ee379a78357d42237f8cef1511"
+                "reference": "3851b08c1027489e48387d7c14c27bc295d98239"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mikehaertl/php-pdftk/zipball/84720d0a644368ee379a78357d42237f8cef1511",
-                "reference": "84720d0a644368ee379a78357d42237f8cef1511",
+                "url": "https://api.github.com/repos/mikehaertl/php-pdftk/zipball/3851b08c1027489e48387d7c14c27bc295d98239",
+                "reference": "3851b08c1027489e48387d7c14c27bc295d98239",
                 "shasum": ""
             },
             "require": {
@@ -461,9 +461,9 @@
             ],
             "support": {
                 "issues": "https://github.com/mikehaertl/php-pdftk/issues",
-                "source": "https://github.com/mikehaertl/php-pdftk/tree/0.9.2"
+                "source": "https://github.com/mikehaertl/php-pdftk/tree/0.13.1"
             },
-            "time": "2020-12-11T07:23:23+00:00"
+            "time": "2023-11-03T16:06:08+00:00"
         },
         {
             "name": "mikehaertl/php-shellcommand",

@@ -30,7 +30,7 @@
         "flowjs/flow-php-server": "^1.2",
         "flowjs/flow.js": "^2.14",
         "hakre/xmlreaderiterator": "^0.1",
-        "mikehaertl/php-pdftk": "^0.9",
+        "mikehaertl/php-pdftk": "^0.13",
         "mtdowling/jmespath.php": "^2.7",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
