@@ -4,6 +4,7 @@ namespace BulkImport;
 
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Stdlib\Message;
+use Common\Stdlib\PsrMessage;
 
 /**
  * @var Module $this
@@ -12,6 +13,7 @@ use Omeka\Stdlib\Message;
  * @var string $oldVersion
  *
  * @var \Omeka\Api\Manager $api
+ * @var array $config
  * @var \Omeka\Settings\Settings $settings
  * @var \Doctrine\DBAL\Connection $connection
  * @var \Doctrine\ORM\EntityManager $entityManager
@@ -984,6 +986,17 @@ SQL;
 
     $message = new Message(
         'Import process has been clarified with three steps: reader, mapping and import.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.4.53', '<')) {
+    $settings->delete('bulkimport_extract_metadata_log');
+    $settings->delete('bulkimport_extract_metadata');
+    $settings->delete('bulkimport_convert_html');
+
+    $message = new PsrMessage(
+        'Extraction of media metadata were moved back to module BulkImportFiles.' // @translate
     );
     $messenger->addSuccess($message);
 }
