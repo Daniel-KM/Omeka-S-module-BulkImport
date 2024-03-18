@@ -43,10 +43,10 @@ Les importeurs par défaut sont :
 Installation
 ------------
 
-Ce module nécessite le module [Log] et optionnellement [Generic]. Un processeur
-xslt 2 externe peut être nécessaire si vous importez des fichiers xml qui ne
-sont pas importables avec xlt 1. Certains lecteurs ou processeurs spécifiques
-peuvent nécessiter d’autres modules.
+Ce module nécessite le module [Log] et [Common]. Un processeur xslt 2 externe
+peut être nécessaire si vous importez des fichiers xml qui ne sont pas
+importables avec xlt 1. Certains lecteurs ou processeurs spécifiques peuvent
+nécessiter d’autres modules.
 
 À partir de la version 3.4.39, le module requiert php 7.4.
 
@@ -611,7 +611,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2022 (voir [Daniel-KM] sur GitLab)
+* Copyright Daniel Berthereau, 2017-2024 (voir [Daniel-KM] sur GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code de Spip)
 * Copyright 2011-2022, Steffen Fagerström Christensen & alii (bibliothèques [Flow.js] et [flow-php-server])
 * Copyright 2011-2023, Marijn Haverbeke & alii (Bibliothèque [CodeMirror])
@@ -631,7 +631,7 @@ l’entrepôt institutionnel des travaux étudiants [Dante] de l’[Université 
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
 [taille ou nombre de fichierss]: https://github.com/omeka/omeka-s/issues/1785
-[Generic]: https://gitlab.com/Daniel-KM/Omeka-S-module-Generic
+[Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installer un module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
