@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-19 00:00+0000"
+"POT-Creation-Date: 2024-03-18 00:00+0000"
 "MI+ZONE\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Daniel Berthereau <Daniel.fr@Berthereau.net>\n"
@@ -17,6 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.2.2\n"
+
+#: Module.php:72
+#, php-format
+msgid "The module %1$s should be upgraded to version %2$s or later."
+msgstr "Le module %1$s doit être mis à niveau à la version %2$s ou supérieure."
 
 #: src/Controller/Admin/ImporterController.php:528
 #, php-format
@@ -141,49 +146,6 @@ msgstr "ressource"
 msgid "annotation"
 msgstr "annotation"
 
-#: src/Generic/AbstractModule.php:67 src/Generic/AbstractModule.php:75
-#: src/Generic/AbstractModule.php:857
-#, php-format
-msgid "This module requires the module \"%s\"."
-msgstr "Ce module requiert le module \"%s\"."
-
-#: src/Generic/AbstractModule.php:80
-#, php-format
-msgid "This module requires modules \"%s\"."
-msgstr "Ce module requiert les modules \"%s\"."
-
-#: src/Generic/AbstractModule.php:88
-msgid "This module has resources that cannot be installed."
-msgstr "Ce module a des ressources qui ne peuvent pas être installées."
-
-#: src/Generic/AbstractModule.php:95
-msgid ""
-"This module cannot install its tables, because they exist already. Try to "
-"remove them first."
-msgstr ""
-"Ce module ne peut pas installer ses tables car elles existent déjà. Essayez "
-"de les supprimer manuellement."
-
-#: src/Generic/AbstractModule.php:365
-#, php-format
-msgid "The module removed tables \"%s\" from a previous broken install."
-msgstr ""
-"Le module a supprimé les tables \"%s\" depuis une installation échouée."
-
-#: src/Generic/AbstractModule.php:852
-#, php-format
-msgid "This module requires the module \"%1$s\", version %2$s or above."
-msgstr "Ce module requiert le module « %1$s », version %2$s ou supérieure."
-
-#: src/Generic/AbstractModule.php:949
-#, php-format
-msgid ""
-"The module \"%s\" was automatically deactivated because the dependencies are "
-"unavailable."
-msgstr ""
-"Le module %s\" a été automatiquement désactivé car ses dépendances ne sont "
-"plus disponibles."
-
 #: src/Media/Ingester/Bulk.php:73
 msgid "Used only for internal bulk process."
 msgstr ""
@@ -248,44 +210,44 @@ msgstr "Cacher les fichiers téléchargés"
 msgid "Allow to submit before full upload"
 msgstr "Autoriser l’enregistrement avant la fin du téléversement"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:259
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:252
 #: view/bulk/admin/import/logs.phtml:38
 msgid "Emergency"
 msgstr "Urgence"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:260
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:253
 #: view/bulk/admin/import/logs.phtml:39
 msgid "Alert"
 msgstr "Alerte"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:261
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:254
 #: view/bulk/admin/import/logs.phtml:40
 msgid "Critical"
 msgstr "Critique"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:264
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:257
 #: view/bulk/admin/import/logs.phtml:43
 msgid "Notice"
 msgstr "Avis"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:266
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:259
 #: view/bulk/admin/import/logs.phtml:45
 msgid "Debug"
 msgstr "Débogage"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:282
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:275
 msgid "Skipped"
 msgstr "Ignoré"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:295
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:288
 msgid "Empty source"
 msgstr "Source vide"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:308
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:301
 msgid "Source is empty"
 msgstr "La source est vide"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:322
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:315
 msgid "Source cannot be converted"
 msgstr "La source ne peut pas être convertie"
 
@@ -813,91 +775,40 @@ msgstr "Ce module requiert le module %s version %s ou supérieur."
 msgid "The vocabulary \"%s\" was updated successfully."
 msgstr "Le vocabulaire \"%s\" a déjà été installé et a été conservé."
 
-#: data/scripts/upgrade.php:37
-msgid "BulkImport requires module Log version 3.2.2 or higher."
-msgstr "BulkImport requiert le module Log version 3.2.2 ou plus."
-
-#: data/scripts/upgrade.php:193
+#: data/scripts/upgrade.php:34
 #, php-format
-msgid "This module requires the module \"%s\", version %s or above."
-msgstr "Ce module requiert le module \"%s\", version \"%s\" ou supérieur."
-
-#: data/scripts/upgrade.php:202 data/scripts/upgrade.php:210
-#, php-format
-msgid "The directory \"%s\" is not writeable."
-msgstr "Le dossier \"%s\" n’est pas inscriptible."
-
-#: data/scripts/upgrade.php:392
-msgid "It’s now possible to upload files and directories in bulk in item form."
-msgstr ""
-
-#: data/scripts/upgrade.php:505
 msgid ""
-"It’s now possible to edit online the mappings between any json or xml source "
-"and omeka resources."
+"To upgrade from version %1$s to version %2$s, you must upgrade to version "
+"%3$s first."
 msgstr ""
 
-#: data/scripts/upgrade.php:509
-msgid ""
-"It’s now possible to create import/update tasks to be run via command line "
-"or cron (for module Easy Admin)."
-msgstr ""
-"Il est désormais possible de créer des tâches d’import ou de mise à jour "
-"pouvant être lancées depuis la ligne de commande ou un \"cron\" (pour le "
-"module Easy Admin)."
-
-#: data/scripts/upgrade.php:536
-msgid "Install sql file does not exist"
+#: data/scripts/upgrade.php:35
+msgid "3.4.47"
 msgstr ""
 
-#: data/scripts/upgrade.php:562
-msgid "New mappers where added to import iiif manifests."
-msgstr ""
-
-#: data/scripts/upgrade.php:566
-msgid ""
-"Two new formats are supported to write mappings: jsonpath and  jmespath. See "
-"examples with iiif manifest mappings."
-msgstr ""
-
-#: data/scripts/upgrade.php:639
-msgid ""
-"It’s now possible to import and update assets and to attach them to "
-"resources."
-msgstr ""
-
-#: data/scripts/upgrade.php:644
-msgid ""
-"The format of destination metadata has been improved: spaces after \"^^\", "
-"\"@\" and \"§\" are no more managed; for multiple datatypes, the \";\" was "
-"replaced by \"^^\"; for custom vocab with a label, the label should be "
-"wrapped by quotes or double quotes. Check your custom configs if needed."
-msgstr ""
-
-#: data/scripts/upgrade.php:674
+#: data/scripts/upgrade.php:73
 msgid "It is now possible to import xml mets and xml mods."
 msgstr ""
 
-#: data/scripts/upgrade.php:703
+#: data/scripts/upgrade.php:102
 msgid "It is now possible to import xml ead."
 msgstr ""
 
-#: data/scripts/upgrade.php:707
+#: data/scripts/upgrade.php:106
 msgid "It is now possible to pass params to xsl conversion for xml sources."
 msgstr ""
 
-#: data/scripts/upgrade.php:711
+#: data/scripts/upgrade.php:110
 msgid ""
 "It is now possible to create table of contents for IIIF viewer from mets and "
 "ead sources."
 msgstr ""
 
-#: data/scripts/upgrade.php:719
-#, php-format
-msgid "Since version %s, this module requires php 7.4."
+#: data/scripts/upgrade.php:118
+msgid "Since version {version}, this module requires php 7.4."
 msgstr ""
 
-#: data/scripts/upgrade.php:728
+#: data/scripts/upgrade.php:127
 msgid ""
 "It is now possible to process a bulk import and to upload files at the same "
 "time. It allows to bypass complex server config, where it is not possible to "
@@ -910,150 +821,154 @@ msgstr ""
 "d’accéder à des urls d’un serveur externe. De plus, les fichiers peuvent "
 "être compressés en zip et ils seront automatiquement disponibles."
 
-#: data/scripts/upgrade.php:807
-#, php-format
+#: data/scripts/upgrade.php:206
 msgid ""
-"It is now possible %1$sto bulk upload files%2$s in a directory of the server "
-"for future bulk uploads."
+"It is now possible {link}to bulk upload files{link_end} in a directory of "
+"the server for future bulk uploads."
 msgstr ""
 
-#: data/scripts/upgrade.php:976
+#: data/scripts/upgrade.php:375
 msgid ""
 "Import process has been clarified with three steps: reader, mapping and "
 "import."
 msgstr ""
 
-#: Module.php:64
-msgid "Since version {version}, this module requires php 7.4."
+#: data/scripts/upgrade.php:386
+msgid "Extraction of media metadata were moved back to module BulkImportFiles."
 msgstr ""
 
-#: Module.php:73
+#: Module.php:81
 msgid ""
 "The libraries should be installed. See module’s installation documentation."
 msgstr ""
 "Les dépendances doivent être installées. Consulter la documentation "
 "d’installation du module."
 
-#: Module.php:82 Module.php:90 Module.php:654
-#: src/Controller/Admin/UploadController.php:321
-msgid "The directory \"{path}\" is not writeable."
-msgstr "Le dossier \"{path}\" n’est pas inscriptible."
+#: Module.php:91 Module.php:99
+msgid "The directory \"{directory}\" is not writeable."
+msgstr "Le dossier « {directory} » n’est pas accessible en écriture."
 
-#: Module.php:237
+#: Module.php:229
 msgid "File successfuly uploaded."
 msgstr "Fichier téléversé avec succès."
 
-#: Module.php:238
+#: Module.php:230
 msgid "The total of file sizes exceeds the the server limit directive."
 msgstr "La taille des fichiers excède la valeur limite du serveur."
 
-#: Module.php:239
+#: Module.php:231
 msgid "The file size exceeds the specified limit."
 msgstr "Le fichier excède la taille maximale."
 
-#: Module.php:240
+#: Module.php:232
 msgid "The file was only partially uploaded."
 msgstr "Le fichier a été partiellement chargé."
 
-#: Module.php:241
+#: Module.php:233
 msgid "No file was uploaded."
 msgstr "Aucun fichier n’a été téléchargé."
 
-#: Module.php:242
+#: Module.php:234
 msgid "The temporary folder to store the file is missing."
 msgstr "Le dossier temporaire pour les fichiers est absent."
 
-#: Module.php:243
+#: Module.php:235
 msgid "Failed to write file to disk."
 msgstr "Impossible d’écrire le fichier sur le disque."
 
-#: Module.php:244
+#: Module.php:236
 msgid "A PHP extension stopped the file upload."
 msgstr "Une extension php a arrêté le téléchargement du fichier."
 
-#: Module.php:259 Module.php:264
+#: Module.php:251 Module.php:256
 msgid "There is no uploaded files."
 msgstr "Il n’y a aucun fichier téléchargé."
 
-#: Module.php:283
+#: Module.php:275
 msgid "File #{index} \"{filename}\" has an error: {error}."
 msgstr "Le fichier #{index} « {filename} » a une erreur : {error}."
 
-#: Module.php:290
+#: Module.php:282
 msgid "File #{index} \"{filename}\" must not start with a \".\"."
 msgstr ""
 "Le fichier #{index} « {filename} » ne doit pas commencer avec un « . »."
 
-#: Module.php:297
+#: Module.php:289
 msgid "File #{index} \"{filename}\" must not contain a reserved character."
 msgstr ""
 "Le fichier #{index} « {filename} » ne doit pas avoir de caractère réservé."
 
-#: Module.php:304
+#: Module.php:296
 msgid ""
 "File #{index} temp name \"{filename}\" must not contain a reserved character."
 msgstr ""
 "Le fichier #{index} temporaire avec le nom « {filename} » ne doit pas "
 "contenir de caractère réservé."
 
-#: Module.php:312
+#: Module.php:304
 msgid "File #{index} \"{filename}\" is an empty file."
 msgstr "Le fichier #{index} « {filename} » est vide."
-
-#: Module.php:665 src/Controller/Admin/UploadController.php:332
-msgid "The directory \"{path}\" is not writeable: {error}."
-msgstr "Le dossier \"{path}\" n’est pas inscriptible : {error}."
 
 #: test/BulkImportTest/Job/ImportTest.php:306
 #, php-format
 msgid "No argument files (%s)."
 msgstr "Fichiers de paramètres manquants (%s)."
 
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:389
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:390
 msgid ""
 "Identifier \"{identifier}\" ({metadata}) matches {resource_name} "
 "#{resource_id}."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:399
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:400
 msgid ""
 "Index #{index}: Identifier \"{identifier}\" ({metadata}) matches "
 "{resource_name} #{resource_id}."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:624
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:629
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:625
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:630
 msgid ""
 "Identifier \"{identifier}\" is not unique ({count} values). First is #{id}."
 msgstr ""
 "L’identifiant « {identifier} » n’est pas unique ({count} valeurs). Le "
 "premier est la ressource #{id}."
 
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:642
-#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:646
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:643
+#: src/Mvc/Controller/Plugin/BulkIdentifiers.php:647
 msgid "Duplicate identifiers are not allowed."
 msgstr "Les identifiants en double ne sont pas autorisés."
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:83
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:85
 #, php-format
 msgid "The remote file \"%s\" is not readable or empty."
 msgstr "Le fichier distant \"%s\" n’est pas lisible ou vide."
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:87
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:91
 #, php-format
 msgid "The input file \"%s\" is not readable."
 msgstr "Le fichier d’entrée \"%s\" n'est pas lisible."
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:136
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:141
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:157
 #, php-format
 msgid ""
-"An error occurs during the xsl transformation of the file \"%s\" with the "
-"sheet \"%s\"."
+"An error occured during the xsl transformation of the file \"%1$s\" with the "
+"sheet \"%2$s\": %3$s"
 msgstr ""
-"Une erreur est survenue durant la transformation xsl du fichier \"%s\" avec "
-"la feuille \"%s\"."
+"Une erreur est survenue durant la transformation xsl du fichier \"%1$s\" "
+"avec la feuille \"%2$s\" : %3$s"
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:161
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:188
+#, php-format
+msgid ""
+"Could not load \"%1$s\". Verify that you have rights to access this folder "
+"and subfolders. %2$s"
+msgstr ""
+"Impossible de charger \"%1$s\". Vérifiez que vous disposez des droits "
+"d’accès au dossier et aux sous-dossiers. %2$s"
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:194
 #, php-format
 msgid ""
 "Could not load \"%s\". Verify that you have rights to access this folder and "
@@ -1062,12 +977,12 @@ msgstr ""
 "Impossible de charger \"%s\". Vérifiez que vous disposez des droits d’accès "
 "au dossier et aux sous-dossiers."
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:164
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:201
 #, php-format
 msgid "The file \"%s\" is empty. Process is aborted."
 msgstr "Le fichier \"%s\" est vide. Le traitement est abandonné."
 
-#: src/Mvc/Controller/Plugin/ProcessXslt.php:207
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:245
 #, php-format
 msgid ""
 "An error occurs during the xsl transformation of the file \"%s\" with the "
@@ -1075,6 +990,11 @@ msgid ""
 msgstr ""
 "Une erreur est survenue durant la transformation xsl du fichier \"%s\" avec "
 "la feuille \"%s\" : %s"
+
+#: src/Mvc/Controller/Plugin/ProcessXslt.php:275
+#, php-format
+msgid "%1$s (file %2$s, line %3$d)"
+msgstr "%1$s (fichier %2$s, ligne %3$d)"
 
 #: src/Mvc/Controller/Plugin/BulkFileUploaded.php:94
 #: src/Mvc/Controller/Plugin/BulkFileUploaded.php:183
@@ -1100,21 +1020,21 @@ msgstr "Impossible d’extraire le fichier zip « {file} »."
 msgid "Unable to extract all files from zip file \"{file}\"."
 msgstr "Impossible d’extraire tous les fichiers du fichier zip « {file} »."
 
-#: src/Mvc/Controller/Plugin/UpdateResource.php:151
+#: src/Mvc/Controller/Plugin/UpdateResource.php:152
 msgid ""
 "Index #{index}: The resource {resource} #{id} is not available and cannot be "
 "really updated."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/UpdateResource.php:195
+#: src/Mvc/Controller/Plugin/UpdateResource.php:196
 msgid "Index #{index}: Unable to update data with action \"{action}\"."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/UpdateResource.php:208
+#: src/Mvc/Controller/Plugin/UpdateResource.php:209
 msgid "Index #{index}: Unable to find mappings #{mapping_id}."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/UpdateResource.php:222
+#: src/Mvc/Controller/Plugin/UpdateResource.php:223
 msgid "Index #{index}: Unable to find mapping marker #{mapping_marker_id}."
 msgstr ""
 
@@ -1185,7 +1105,7 @@ msgstr "Fichier « {filename} » n'existe pas."
 msgid "File \"{filename}\" is empty."
 msgstr "Le fichier \"{filename}\" est vide."
 
-#: src/Mvc/Controller/Plugin/BulkFile.php:478 src/Reader/XmlReader.php:292
+#: src/Mvc/Controller/Plugin/BulkFile.php:478 src/Reader/XmlReader.php:289
 msgid "File \"{filename}\" is not readable."
 msgstr "Le fichier \"{filename}\" ne peut pas être lu."
 
@@ -1333,93 +1253,61 @@ msgstr ""
 "Erreur lors de l’enregistrement de \"{filename}\" (fichier temporaire : "
 "\"{tempfile}\") : {error}"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:71
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:66
 msgid "Index"
 msgstr "Index"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:72
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:67
 msgid "Total errors"
 msgstr "Total des erreurs"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:73
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:68
 msgid "Index message"
 msgstr "Index message"
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:276
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:269
 msgid "Index #{index}: Skipped"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:289
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:282
 msgid "Index #{index}: Empty source"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:302
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:295
 msgid "Index #{index}: Source is empty"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:315
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:308
 msgid "Index #{index}: Source cannot be converted"
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:329
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:322
 msgid "Index #{index}: Error processing data."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:334
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:327
 msgid "Index #{index}: Warning about data processed."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:339
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:332
 msgid "Index #{index}: Notices about data processed."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:344
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:337
 msgid "Index #{index}: Info about data processed."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:424
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:417
 msgid "Unable to open output: {error}."
 msgstr "Impossible d’ouvrir la sortie : {error}."
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:471
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:464
 msgid "Trying to output more than {max} messages. Next messages are skipped."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkCheckLog.php:536
+#: src/Mvc/Controller/Plugin/BulkCheckLog.php:529
 msgid "Results are available in this spreadsheet: {url}."
 msgstr "Les résultats sont disponibles dans le tableau : {url}."
-
-#: src/Mvc/Controller/Plugin/Bulk.php:979
-msgid "property"
-msgstr "propriété"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:980
-msgid "resource class"
-msgstr "classe de ressource"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:993
-msgid "annotations"
-msgstr "annotations"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:998
-msgid "resources"
-msgstr "ressources"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:999
-msgid "properties"
-msgstr "propriétés"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:1000
-msgid "resource classes"
-msgstr "classes de ressource"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:1001
-msgid "resource templates"
-msgstr "modèles de ressource"
-
-#: src/Mvc/Controller/Plugin/Bulk.php:1002
-msgid "vocabularies"
-msgstr "vocabulaires"
 
 #: src/Mvc/Controller/Plugin/HttpClientTrait.php:86
 msgid "No file, url or endpoint was defined."
@@ -1445,7 +1333,7 @@ msgstr ""
 "Le jeu de caractères \"{charset}\" est incorrect pour l’url \"{url}\". Cela "
 "devrait petre \"{charset_2}\""
 
-#: src/Mvc/Controller/Plugin/AutomapFields.php:416
+#: src/Mvc/Controller/Plugin/AutomapFields.php:424
 #, php-format
 msgid ""
 "The destination pattern \"%s\" follows the old format. To avoid issue, you "
@@ -1453,11 +1341,6 @@ msgid ""
 "spaces after \"^^\", \"@\" and \"§\", and wrapping custom vocab labels with "
 "quote or double quotes."
 msgstr ""
-
-#: src/Mvc/Controller/Plugin/ExtractDataFromPdf.php:106
-#, php-format
-msgid "Command pdftk unavailable or failed: %s"
-msgstr "Commande pdftk indisponible ou erreur : %s"
 
 #: src/Mvc/Controller/Plugin/MetaMapperConfigList.php:49
 msgid "User mapping files"
@@ -1467,39 +1350,27 @@ msgstr "Fichiers d’alignement utilisateur"
 msgid "Module mapping files"
 msgstr "Fichiers d’alignement du module"
 
-#: src/Mvc/Controller/Plugin/ExtractMediaMetadata.php:115
-msgid "Error in the mapping config \"{name}\"."
-msgstr ""
-
-#: src/Mvc/Controller/Plugin/ExtractMediaMetadata.php:120
-msgid "Error in the mapping config: {message}"
-msgstr ""
-
-#: src/Mvc/Controller/Plugin/ExtractMediaMetadata.php:141
-msgid "Extracted metadata for media #{media_id}: {json}"
-msgstr ""
-
-#: src/Mvc/Controller/Plugin/BulkDiffValues.php:186
+#: src/Mvc/Controller/Plugin/BulkDiffValues.php:187
 msgid "There is no new value."
 msgstr "Il n’y a pas de nouvelles valeurs."
 
-#: src/Mvc/Controller/Plugin/BulkDiffValues.php:296
+#: src/Mvc/Controller/Plugin/BulkDiffValues.php:297
 msgid "New values"
 msgstr "Nouvelles valeurs"
 
-#: src/Mvc/Controller/Plugin/BulkDiffValues.php:334
+#: src/Mvc/Controller/Plugin/BulkDiffValues.php:335
 msgid ""
 "Data about new values is available in this json {url_1} or in this "
 "spreadsheet {url_2}. Check is case sensitive."
 msgstr ""
 
-#: src/Mvc/Controller/Plugin/BulkDiffResources.php:227
-#: src/Mvc/Controller/Plugin/BulkDiffResources.php:319
+#: src/Mvc/Controller/Plugin/BulkDiffResources.php:228
+#: src/Mvc/Controller/Plugin/BulkDiffResources.php:320
 #, php-format
 msgid "Diff (%s)"
 msgstr "Diff (%s)"
 
-#: src/Mvc/Controller/Plugin/BulkDiffResources.php:441
+#: src/Mvc/Controller/Plugin/BulkDiffResources.php:442
 msgid ""
 "Data about update is available in this json {url_1} and in this spreadsheet "
 "by row {url_2} or by column {url_3}."
@@ -1781,63 +1652,6 @@ msgid ""
 "Media #{media_id}: an issue occurred during thumbnail creation or it is not "
 "thumbnailable."
 msgstr ""
-
-#: src/Job/ExtractMediaMetadata.php:27
-msgid "The setting to extract metadata is not set."
-msgstr "Le paramètre pour extraire les métadonnées n’est pas défini."
-
-#: src/Job/ExtractMediaMetadata.php:35
-msgid "No item is set."
-msgstr "Aucun contenu n’est défini."
-
-#: src/Job/ExtractMediaMetadata.php:46
-msgid "The item #{item_id} is not available."
-msgstr "Le contenu #{item_id} n’est pas disponible."
-
-#: src/Job/ExtractMediaMetadata.php:126
-msgid "Media #{media_id}: an issue occurred during update: {exception}."
-msgstr ""
-"Média #{media_id} : une erreur est survenue pendant la mise à jour : "
-"{exception}"
-
-#: src/Job/ExtractMediaMetadata.php:133
-msgid "Item #{item_id}: data extracted for {total} media."
-msgstr ""
-
-#: src/Form/SettingsFieldset.php:14
-msgid "Bulk Import module"
-msgstr "Module Import en lot"
-
-#: src/Form/SettingsFieldset.php:30
-msgid "Extract metadata from files on save (manual or import)"
-msgstr ""
-
-#: src/Form/SettingsFieldset.php:41
-msgid "Output extracted metadata temporary in logs to help preparing mapping"
-msgstr ""
-
-#: src/Form/SettingsFieldset.php:53
-msgid ""
-"Convert new files to html (styles are kept when html purifier is disabled)"
-msgstr ""
-"Convertir les nouveaux fichiers en html (les styles sont conservés quand "
-"html purifier est désactivé)."
-
-#: src/Form/SettingsFieldset.php:55
-msgid "Microsoft .doc"
-msgstr "Microsoft .doc"
-
-#: src/Form/SettingsFieldset.php:56
-msgid "Microsoft .docx"
-msgstr "Microsoft .docx"
-
-#: src/Form/SettingsFieldset.php:57
-msgid "OpenDocument .odt (partial)"
-msgstr "OpenDocument .odt (partiel)"
-
-#: src/Form/SettingsFieldset.php:58
-msgid ".rtf"
-msgstr ".rtf"
 
 #: src/Form/ConfigForm.php:17
 msgid "Folder for local files"
@@ -4165,7 +3979,7 @@ msgstr "Le contenu #{item_id} n’existe pas."
 msgid "The value \"{value}\" is not an item."
 msgstr "La valeur \"{value}\" n’est pas un contenu."
 
-#: src/Processor/ResourceProcessor.php:1164
+#: src/Processor/ResourceProcessor.php:1180
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to create the resource first. Data type "
@@ -4175,7 +3989,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Essayer de créer la ressource d’abord. "
 "Le type de données « literal » est utilisé."
 
-#: src/Processor/ResourceProcessor.php:1169
+#: src/Processor/ResourceProcessor.php:1185
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Data type \"literal\" is used."
@@ -4184,7 +3998,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Le type de données « literal » est "
 "utilisé."
 
-#: src/Processor/ResourceProcessor.php:1176
+#: src/Processor/ResourceProcessor.php:1192
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to create resource first. Or try to add "
@@ -4195,7 +4009,7 @@ msgstr ""
 "Ou essayez d’ajouter « literal » aux types de données ou la mettre par "
 "défaut."
 
-#: src/Processor/ResourceProcessor.php:1181
+#: src/Processor/ResourceProcessor.php:1197
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not compatible with "
 "datatypes \"{datatypes}\". Try to add \"literal\" to datatypes or default to "
@@ -4205,7 +4019,7 @@ msgstr ""
 "les types de données \"{datatypes}\". Essayer d’ajouter « literal » aux "
 "types de données ou la mettre par défaut."
 
-#: src/Processor/ResourceProcessor.php:1232
+#: src/Processor/ResourceProcessor.php:1248
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not member of custom vocab "
 "\"{customvocab}\"."
@@ -4213,7 +4027,7 @@ msgstr ""
 "La valeur « {value} » pour la propriété « {term} » ne se trouve pas dans le "
 "vocabulaire personnalisé « {customvocab} »."
 
-#: src/Processor/ResourceProcessor.php:1239
+#: src/Processor/ResourceProcessor.php:1255
 msgid ""
 "The value \"{value}\" for property \"{term}\" is not member of custom vocab "
 "\"{customvocab}\". A literal value is used instead."
@@ -4222,19 +4036,19 @@ msgstr ""
 "vocabulaire personnalisé « {customvocab} ». Une valeur littérale est "
 "utilisée à la place."
 
-#: src/Processor/ResourceProcessor.php:1309
+#: src/Processor/ResourceProcessor.php:1325
 msgid "No resource type set."
 msgstr "Aucun type de ressource n’est spécifié."
 
-#: src/Processor/ResourceProcessor.php:1316
+#: src/Processor/ResourceProcessor.php:1332
 msgid "The resource type \"{resource_name}\" is not managed."
 msgstr ""
 
-#: src/Processor/ResourceProcessor.php:1406
+#: src/Processor/ResourceProcessor.php:1422
 msgid "o:media"
 msgstr "o:media"
 
-#: src/Processor/ResourceProcessor.php:1430
+#: src/Processor/ResourceProcessor.php:1446
 msgid "No item is set for the media."
 msgstr "Aucun contenu n’a été défini pour ce média."
 
@@ -4562,45 +4376,45 @@ msgstr ""
 msgid "Des menus ont été ajoutés au niveau des secteurs : \"{list}\"."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:38
+#: src/Processor/VocabularyTrait.php:39
 msgid ""
 "Vocabulary \"{prefix}\" exists as vocabulary #{vocabulary_id}, but the "
 "prefix is not the same (\"{prefix_2}\")."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:46
+#: src/Processor/VocabularyTrait.php:47
 msgid "Check properties for prefix \"{prefix}\"."
 msgstr "Vérification des propriétés pour le préfixe \"{prefix}\"."
 
-#: src/Processor/VocabularyTrait.php:77
+#: src/Processor/VocabularyTrait.php:78
 msgid "Vocabulary prefix {prefix} is used so the imported one is renamed."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:113
+#: src/Processor/VocabularyTrait.php:114
 msgid "The properties are different for the {prefix}."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:151
+#: src/Processor/VocabularyTrait.php:152
 msgid "Vocabulary {prefix} has been created."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:171
+#: src/Processor/VocabularyTrait.php:172
 msgid "{total} vocabularies ready, {created} created."
 msgstr "{total} vocabulaires prêts, {created} créés."
 
-#: src/Processor/VocabularyTrait.php:220
+#: src/Processor/VocabularyTrait.php:221
 msgid "The vocabulary of the {member} {term} does not exist."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:247
+#: src/Processor/VocabularyTrait.php:248
 msgid "Unable to find vocabulary for {member} {term}."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:267
+#: src/Processor/VocabularyTrait.php:268
 msgid "Unable to create {member} {term}."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:282
+#: src/Processor/VocabularyTrait.php:283
 msgid ""
 "{count}/{total} vocabulary {member} imported, {existing} existing, {skipped} "
 "skipped."
@@ -4608,11 +4422,11 @@ msgstr ""
 "{count}/{total} vocabulaires {member} importées, {existing} existants, "
 "{skipped} ignorés."
 
-#: src/Processor/VocabularyTrait.php:288
+#: src/Processor/VocabularyTrait.php:289
 msgid "Vocabulary {member} {term} has been created."
 msgstr ""
 
-#: src/Processor/VocabularyTrait.php:309
+#: src/Processor/VocabularyTrait.php:310
 msgid "Unable to find {member} {term}."
 msgstr ""
 
@@ -4626,7 +4440,7 @@ msgstr ""
 msgid "Here are the first invalid dates: {list}."
 msgstr ""
 
-#: src/Entry/XmlEntry.php:374
+#: src/Entry/XmlEntry.php:395
 msgid "Unable to import a linked resource via xml currently."
 msgstr ""
 
@@ -4723,15 +4537,7 @@ msgstr ""
 msgid "No output."
 msgstr "Pas de sortie."
 
-#: src/Reader/XmlReader.php:265
-msgid ""
-"An issue occurred during initial transformation by the xsl sheet "
-"\"{xslname}\": {message}."
-msgstr ""
-"Une erreur est survenue durant la transformation par la feuille xsl "
-"\"{xslname}\" : {message}."
-
-#: src/Reader/XmlReader.php:311
+#: src/Reader/XmlReader.php:308
 msgid ""
 "The file \"{filename}\" to import is not well formed: {message} (line "
 "#{line})."
@@ -4867,126 +4673,6 @@ msgstr "Le fichier \"{filename}\" n’est pas entièrement utf-8."
 msgid "Fake reader"
 msgstr "Lecteur factice"
 
-#: src/Generic/InstallResources.php:84
-#, php-format
-msgid ""
-"An error occured when loading vocabulary \"%s\": file has no json content."
-msgstr ""
-"Une erreur est survenue en chargeant le vocabulaire \"%s\" : le fichier n’a "
-"pas de contenu json."
-
-#: src/Generic/InstallResources.php:91
-#, php-format
-msgid ""
-"An error occured when adding the prefix \"%s\": another vocabulary exists. "
-"Resolve the conflict before installing this module."
-msgstr ""
-"Une erreur est survenue en ajoutant le préfixe \"%s\" : un autre vocabulaire "
-"existe. Merci de résoudre le conflit avant d'installer ce module."
-
-#: src/Generic/InstallResources.php:103
-#, php-format
-msgid ""
-"A custom vocab exists for \"%s\". Remove it or rename it before installing "
-"this module."
-msgstr ""
-"Un vocabulaire personnalisé existe pour \"%s\" : renommez-le ou supprimez-le "
-"avant d’installer ce module."
-
-#: src/Generic/InstallResources.php:114
-#, php-format
-msgid ""
-"A resource template exists for %s. Rename it or remove it before installing "
-"this module."
-msgstr ""
-"Un modèle de ressource nommé \"%s\" existe : merci de le renommer ou de le "
-"supprimer avant d'installer ce module."
-
-#: src/Generic/InstallResources.php:318
-#, php-format
-msgid "The vocabulary \"%s\" was already installed and was kept."
-msgstr "Le vocabulaire \"%s\" a déjà été installé et a été conservé."
-
-#: src/Generic/InstallResources.php:327
-#, php-format
-msgid ""
-"An error occured when adding the prefix \"%s\": another vocabulary exists "
-"with the same prefix. Resolve the conflict before installing this module."
-msgstr ""
-"Une erreur est survenue lors de l'ajout du préfixe \"%s\" : un autre "
-"vocabulaire existe avec le même préfixe. Merci de résoudre le conflit avant "
-"d'installer ce module."
-
-#: src/Generic/InstallResources.php:339
-#, php-format
-msgid ""
-"An error occured when adding the prefix \"%1$s\" and the associated "
-"properties: %2$s"
-msgstr ""
-"Une erreur est survenue en ajoutant le préfixe « %1$s » et les propriétés "
-"associées : « %2$s »"
-
-#: src/Generic/InstallResources.php:419
-#, php-format
-msgid ""
-"An error occured when updating vocabulary \"%s\" and the associated "
-"properties: %s"
-msgstr ""
-"Une erreur est survenue en ajoutant le préfixe \"%s\" et les propriétés "
-"associées : %s"
-
-#: src/Generic/InstallResources.php:429
-#, php-format
-msgid ""
-"An error occured when updating vocabulary \"%1$s\" and the associated "
-"properties: %2$s"
-msgstr ""
-"Une erreur est survenue en ajoutant le préfixe « %1$s » et les propriétés "
-"associées : %2$s"
-
-#: src/Generic/InstallResources.php:523
-#, php-format
-msgid "The following \"%1$s\" of the vocabulary \"%2$s\" were replaced: %3$s"
-msgstr ""
-"Les \"%1$s\" suivantes du vocabulaire \"%2$s\" ont été remplacées : %3$s"
-
-#: src/Generic/InstallResources.php:532
-msgid ""
-"Resources, values and templates were updated, but you may check settings "
-"where the old ones were used."
-msgstr ""
-"Les ressources, valeurs et modèles ont été mis à jour, mais vous pouvez "
-"vérifier les paramètres où les anciennes valeurs étaient utilisées."
-
-#: src/Generic/InstallResources.php:558
-#, php-format
-msgid "The resource template named \"%s\" is already available and is skipped."
-msgstr ""
-"Le modèle de ressource nommé \"%s\" est déjà disponible et a été conservé."
-
-#: src/Generic/InstallResources.php:830
-#, php-format
-msgid "The custom vocab named \"%s\" is not available."
-msgstr "Le vocabulaire personnalisé nommé \"%s\" n'est pas disponible."
-
-#: src/Generic/InstallResources.php:1039
-msgid "No file or url set for the vocabulary."
-msgstr "Pas de fichier ou d’url pour le vocabulaire."
-
-#: src/Generic/InstallResources.php:1049
-#, php-format
-msgid "The file \"%s\" cannot be read. Check the url."
-msgstr "Le fichier \"%s\" ne peut pas être lu. Merci de vérifier l’url."
-
-#: src/Generic/InstallResources.php:1059
-#, php-format
-msgid "The file \"%s\" cannot be read. Check the file."
-msgstr "Le fichier \"%s\" ne peut pas être lu. Merci de vérifier le fichier."
-
-#: src/Generic/InstallResources.php:1080
-msgid "A vocabulary must have a namespace uri and a prefix."
-msgstr "Un vocabulaire doit avoir une uri pour l’espace de nom et un préfixe."
-
 #: src/Controller/Admin/MappingController.php:107
 msgid "o:label"
 msgstr ""
@@ -5015,6 +4701,14 @@ msgstr "Échec de la suppression de l’alignement"
 #: src/Controller/Admin/MappingController.php:196
 msgid "No mapping id set."
 msgstr "Aucun id d’alignement n’est indiqué."
+
+#: src/Controller/Admin/UploadController.php:321
+msgid "The directory \"{path}\" is not writeable."
+msgstr "Le dossier \"{path}\" n’est pas inscriptible."
+
+#: src/Controller/Admin/UploadController.php:332
+msgid "The directory \"{path}\" is not writeable: {error}."
+msgstr "Le dossier \"{path}\" n’est pas inscriptible : {error}."
 
 #: src/Controller/Admin/ImporterController.php:63
 #: src/Controller/Admin/ImporterController.php:115
@@ -5152,89 +4846,329 @@ msgstr ""
 msgid "The \"temp_dir\" is not configured"
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:83
+#: src/Stdlib/MetaMapperConfig.php:89
 msgid "Default empty mapping"
 msgstr "Alignement vide par défaut"
 
-#: src/Stdlib/MetaMapperConfig.php:396
+#: src/Stdlib/MetaMapperConfig.php:404
 msgid "Mapping \"{mapping_name}\": invalid map in section \"{section}\"."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:411
+#: src/Stdlib/MetaMapperConfig.php:419
 msgid "Mapping \"{mapping_name}\" not found."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:416
+#: src/Stdlib/MetaMapperConfig.php:424
 msgid "Mapping \"{mapping_name}\" is empty."
 msgstr "L’alignement « {mapping_name} » est vide."
 
-#: src/Stdlib/MetaMapperConfig.php:471
+#: src/Stdlib/MetaMapperConfig.php:479
 msgid "Mapping \"{mapping_name}\": invalid provided mapping."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:564
+#: src/Stdlib/MetaMapperConfig.php:572
 msgid "Too many included mappings or recursive mapping."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:661
+#: src/Stdlib/MetaMapperConfig.php:669
 msgid "A section should have a name."
 msgstr "Une section doit avoir un nom."
 
-#: src/Stdlib/MetaMapperConfig.php:666
+#: src/Stdlib/MetaMapperConfig.php:674
 msgid "The section \"{name}\" is not managed."
 msgstr "La section « {name} » n’est pas gérée."
 
-#: src/Stdlib/MetaMapperConfig.php:729 src/Stdlib/MetaMapperConfig.php:1074
+#: src/Stdlib/MetaMapperConfig.php:737 src/Stdlib/MetaMapperConfig.php:1082
 msgid "The xml string is not a valid xml."
 msgstr "La chaîne xml n’est pas valide."
 
-#: src/Stdlib/MetaMapperConfig.php:808
+#: src/Stdlib/MetaMapperConfig.php:816
 msgid "Mapping \"{mapping_name}\": contains an invalid map."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:971
+#: src/Stdlib/MetaMapperConfig.php:979
 msgid "The map \"{map}\" has no source or destination."
 msgstr "L’alignement « {map} » n’a pas de source ou de destination."
 
-#: src/Stdlib/MetaMapperConfig.php:979
+#: src/Stdlib/MetaMapperConfig.php:987
 msgid "The map \"{map}\" has no source."
 msgstr "L’alignement « {map} » n’a pas de source."
 
-#: src/Stdlib/MetaMapperConfig.php:1032
+#: src/Stdlib/MetaMapperConfig.php:1040
 msgid "The map \"{map}\" has no destination."
 msgstr "L’alignement « {map} » n’a pas de destination."
 
-#: src/Stdlib/MetaMapperConfig.php:1043
+#: src/Stdlib/MetaMapperConfig.php:1051
 msgid "The map \"{map}\" has an invalid destination \"{destination}\"."
 msgstr ""
 
-#: src/Stdlib/MetaMapperConfig.php:1109
+#: src/Stdlib/MetaMapperConfig.php:1117
 msgid "The map has no path."
 msgstr "L’alignement n’a pas de chemin."
 
-#: src/Stdlib/MetaMapperConfig.php:1117
+#: src/Stdlib/MetaMapperConfig.php:1125
 msgid "The mapping \"{index}\" has no destination."
 msgstr "L’alignement « {index} » n’a pas de destination."
 
-#: config/module.config.php:249
+#: config/module.config.php:230
 msgid "Past Imports"
 msgstr "Imports précédents"
 
-#: config/module.config.php:270
+#: config/module.config.php:251
 msgid "Configuration"
 msgstr "Configuration"
 
-#: config/module.config.php:314
+#: config/module.config.php:295
 msgid "Field mappings"
 msgstr "Alignements"
 
-#: config/module.config.php:331
+#: config/module.config.php:312
 msgid "Params"
 msgstr "Paramètres"
 
-#: config/module.config.php:338
+#: config/module.config.php:319
 msgid "Logs"
 msgstr "Journaux"
+
+#, php-format
+#~ msgid "This module requires the module \"%s\"."
+#~ msgstr "Ce module requiert le module \"%s\"."
+
+#, php-format
+#~ msgid "This module requires modules \"%s\"."
+#~ msgstr "Ce module requiert les modules \"%s\"."
+
+#~ msgid "This module has resources that cannot be installed."
+#~ msgstr "Ce module a des ressources qui ne peuvent pas être installées."
+
+#~ msgid ""
+#~ "This module cannot install its tables, because they exist already. Try to "
+#~ "remove them first."
+#~ msgstr ""
+#~ "Ce module ne peut pas installer ses tables car elles existent déjà. "
+#~ "Essayez de les supprimer manuellement."
+
+#, php-format
+#~ msgid "The module removed tables \"%s\" from a previous broken install."
+#~ msgstr ""
+#~ "Le module a supprimé les tables \"%s\" depuis une installation échouée."
+
+#, php-format
+#~ msgid "This module requires the module \"%1$s\", version %2$s or above."
+#~ msgstr "Ce module requiert le module « %1$s », version %2$s ou supérieure."
+
+#, php-format
+#~ msgid ""
+#~ "The module \"%s\" was automatically deactivated because the dependencies "
+#~ "are unavailable."
+#~ msgstr ""
+#~ "Le module %s\" a été automatiquement désactivé car ses dépendances ne "
+#~ "sont plus disponibles."
+
+#~ msgid "BulkImport requires module Log version 3.2.2 or higher."
+#~ msgstr "BulkImport requiert le module Log version 3.2.2 ou plus."
+
+#, php-format
+#~ msgid "This module requires the module \"%s\", version %s or above."
+#~ msgstr "Ce module requiert le module \"%s\", version \"%s\" ou supérieur."
+
+#, php-format
+#~ msgid "The directory \"%s\" is not writeable."
+#~ msgstr "Le dossier \"%s\" n’est pas inscriptible."
+
+#~ msgid ""
+#~ "It’s now possible to create import/update tasks to be run via command "
+#~ "line or cron (for module Easy Admin)."
+#~ msgstr ""
+#~ "Il est désormais possible de créer des tâches d’import ou de mise à jour "
+#~ "pouvant être lancées depuis la ligne de commande ou un \"cron\" (pour le "
+#~ "module Easy Admin)."
+
+#, php-format
+#~ msgid ""
+#~ "An error occurs during the xsl transformation of the file \"%s\" with the "
+#~ "sheet \"%s\"."
+#~ msgstr ""
+#~ "Une erreur est survenue durant la transformation xsl du fichier \"%s\" "
+#~ "avec la feuille \"%s\"."
+
+#~ msgid "property"
+#~ msgstr "propriété"
+
+#~ msgid "resource class"
+#~ msgstr "classe de ressource"
+
+#~ msgid "annotations"
+#~ msgstr "annotations"
+
+#~ msgid "resources"
+#~ msgstr "ressources"
+
+#~ msgid "properties"
+#~ msgstr "propriétés"
+
+#~ msgid "resource classes"
+#~ msgstr "classes de ressource"
+
+#~ msgid "resource templates"
+#~ msgstr "modèles de ressource"
+
+#~ msgid "vocabularies"
+#~ msgstr "vocabulaires"
+
+#, php-format
+#~ msgid "Command pdftk unavailable or failed: %s"
+#~ msgstr "Commande pdftk indisponible ou erreur : %s"
+
+#~ msgid "The setting to extract metadata is not set."
+#~ msgstr "Le paramètre pour extraire les métadonnées n’est pas défini."
+
+#~ msgid "No item is set."
+#~ msgstr "Aucun contenu n’est défini."
+
+#~ msgid "The item #{item_id} is not available."
+#~ msgstr "Le contenu #{item_id} n’est pas disponible."
+
+#~ msgid "Media #{media_id}: an issue occurred during update: {exception}."
+#~ msgstr ""
+#~ "Média #{media_id} : une erreur est survenue pendant la mise à jour : "
+#~ "{exception}"
+
+#~ msgid "Bulk Import module"
+#~ msgstr "Module Import en lot"
+
+#~ msgid ""
+#~ "Convert new files to html (styles are kept when html purifier is disabled)"
+#~ msgstr ""
+#~ "Convertir les nouveaux fichiers en html (les styles sont conservés quand "
+#~ "html purifier est désactivé)."
+
+#~ msgid "Microsoft .doc"
+#~ msgstr "Microsoft .doc"
+
+#~ msgid "Microsoft .docx"
+#~ msgstr "Microsoft .docx"
+
+#~ msgid "OpenDocument .odt (partial)"
+#~ msgstr "OpenDocument .odt (partiel)"
+
+#~ msgid ".rtf"
+#~ msgstr ".rtf"
+
+#~ msgid ""
+#~ "An issue occurred during initial transformation by the xsl sheet "
+#~ "\"{xslname}\": {message}."
+#~ msgstr ""
+#~ "Une erreur est survenue durant la transformation par la feuille xsl "
+#~ "\"{xslname}\" : {message}."
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when loading vocabulary \"%s\": file has no json content."
+#~ msgstr ""
+#~ "Une erreur est survenue en chargeant le vocabulaire \"%s\" : le fichier "
+#~ "n’a pas de contenu json."
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when adding the prefix \"%s\": another vocabulary "
+#~ "exists. Resolve the conflict before installing this module."
+#~ msgstr ""
+#~ "Une erreur est survenue en ajoutant le préfixe \"%s\" : un autre "
+#~ "vocabulaire existe. Merci de résoudre le conflit avant d'installer ce "
+#~ "module."
+
+#, php-format
+#~ msgid ""
+#~ "A custom vocab exists for \"%s\". Remove it or rename it before "
+#~ "installing this module."
+#~ msgstr ""
+#~ "Un vocabulaire personnalisé existe pour \"%s\" : renommez-le ou supprimez-"
+#~ "le avant d’installer ce module."
+
+#, php-format
+#~ msgid ""
+#~ "A resource template exists for %s. Rename it or remove it before "
+#~ "installing this module."
+#~ msgstr ""
+#~ "Un modèle de ressource nommé \"%s\" existe : merci de le renommer ou de "
+#~ "le supprimer avant d'installer ce module."
+
+#, php-format
+#~ msgid "The vocabulary \"%s\" was already installed and was kept."
+#~ msgstr "Le vocabulaire \"%s\" a déjà été installé et a été conservé."
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when adding the prefix \"%s\": another vocabulary exists "
+#~ "with the same prefix. Resolve the conflict before installing this module."
+#~ msgstr ""
+#~ "Une erreur est survenue lors de l'ajout du préfixe \"%s\" : un autre "
+#~ "vocabulaire existe avec le même préfixe. Merci de résoudre le conflit "
+#~ "avant d'installer ce module."
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when adding the prefix \"%1$s\" and the associated "
+#~ "properties: %2$s"
+#~ msgstr ""
+#~ "Une erreur est survenue en ajoutant le préfixe « %1$s » et les propriétés "
+#~ "associées : « %2$s »"
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when updating vocabulary \"%s\" and the associated "
+#~ "properties: %s"
+#~ msgstr ""
+#~ "Une erreur est survenue en ajoutant le préfixe \"%s\" et les propriétés "
+#~ "associées : %s"
+
+#, php-format
+#~ msgid ""
+#~ "An error occured when updating vocabulary \"%1$s\" and the associated "
+#~ "properties: %2$s"
+#~ msgstr ""
+#~ "Une erreur est survenue en ajoutant le préfixe « %1$s » et les propriétés "
+#~ "associées : %2$s"
+
+#, php-format
+#~ msgid ""
+#~ "The following \"%1$s\" of the vocabulary \"%2$s\" were replaced: %3$s"
+#~ msgstr ""
+#~ "Les \"%1$s\" suivantes du vocabulaire \"%2$s\" ont été remplacées : %3$s"
+
+#~ msgid ""
+#~ "Resources, values and templates were updated, but you may check settings "
+#~ "where the old ones were used."
+#~ msgstr ""
+#~ "Les ressources, valeurs et modèles ont été mis à jour, mais vous pouvez "
+#~ "vérifier les paramètres où les anciennes valeurs étaient utilisées."
+
+#, php-format
+#~ msgid ""
+#~ "The resource template named \"%s\" is already available and is skipped."
+#~ msgstr ""
+#~ "Le modèle de ressource nommé \"%s\" est déjà disponible et a été conservé."
+
+#, php-format
+#~ msgid "The custom vocab named \"%s\" is not available."
+#~ msgstr "Le vocabulaire personnalisé nommé \"%s\" n'est pas disponible."
+
+#~ msgid "No file or url set for the vocabulary."
+#~ msgstr "Pas de fichier ou d’url pour le vocabulaire."
+
+#, php-format
+#~ msgid "The file \"%s\" cannot be read. Check the url."
+#~ msgstr "Le fichier \"%s\" ne peut pas être lu. Merci de vérifier l’url."
+
+#, php-format
+#~ msgid "The file \"%s\" cannot be read. Check the file."
+#~ msgstr ""
+#~ "Le fichier \"%s\" ne peut pas être lu. Merci de vérifier le fichier."
+
+#~ msgid "A vocabulary must have a namespace uri and a prefix."
+#~ msgstr ""
+#~ "Un vocabulaire doit avoir une uri pour l’espace de nom et un préfixe."
 
 #~ msgid "itemset"
 #~ msgstr "collection"
