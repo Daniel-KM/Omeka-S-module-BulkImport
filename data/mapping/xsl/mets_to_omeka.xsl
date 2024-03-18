@@ -33,9 +33,6 @@
     - toc_iiif (1)
         Ajouter la table des matières pour iiif (cf. module IIIF Server) (1) ou non (0).
 
-    - toc_sections (0)
-        Ajouter la table des matières pour iiif, uniquement pour les sections avec plusieurs pages (cf. module IIIF Server) (1) ou non (0).
-
     - toc_full (0)
         Ajouter la table des matières avec toutes les pages (1) ou non (0).
         Ce n’est donc plus une table des matières.
@@ -47,18 +44,7 @@
     - full_ranges (0)
         Détailler (1) ou non (0) la liste des sections dans la table pour éviter les longues listes dans les sections.
         Sinon, seuls les premier et dernier numéros de chaque section sont indiqués.
-        Utilisé uniquement pour la table non-xml et dans le nouveau mode (4 colonnes).
-
-    - full_page_ranges (0)
-        Détailler (1) ou non (0) la liste des pages dans la table pour éviter les longues listes de nombres dans les sections.
-        Sinon, seules les première et dernière pages de chaque section sont indiquées.
-        Utile dans l’ancien mode uniquement (lorsque les pages et les sections sont mélangées).
-
-    - hide_view_number (0)
-        Cacher le numéro de vue en cours (ancien mode).
-
-    - toc_merge_pages_and_ranges (0)
-        Enregistrer les pages et les sections ensemble (ancien mode).
+        Utilisé uniquement pour la table non-xml.
 
     # Paramètres automatiques.
 
@@ -145,10 +131,6 @@
     <!-- TODO Dans l’idéal, il faudrait tenir compte des informations de la structure : "book", "section", "page", rarement mis dans les numérisations de masse actuellement. -->
     <xsl:param name="toc_iiif">1</xsl:param>
 
-    <!-- Ajouter la table des matières avec toutes les pages qui ont des divs internes. -->
-    <!-- Attention: ne prend pas en compte les index correspond à une section d’une seule page. -->
-    <xsl:param name="toc_sections">0</xsl:param>
-
     <!-- Ajouter la table des matières avec toutes les pages. -->
     <!-- Ce n’est donc plus une table des matières. -->
     <!-- Une option dans le module IiifServer permet d’afficher cette table complète via le table courte. -->
@@ -159,15 +141,6 @@
 
     <!-- Détailler ou non la liste des sections dans la table non-xml. -->
     <xsl:param name="full_ranges">0</xsl:param>
-
-    <!-- Détailler ou non la liste des pages dans la table pour éviter les longues listes de nombres dans les sections (ancien mode). -->
-    <xsl:param name="full_page_ranges">0</xsl:param>
-
-    <!-- Cacher le numéro de vue en cours (ancien mode). -->
-    <xsl:param name="hide_view_number">0</xsl:param>
-
-    <!-- Enregistrer les pages et les sections ensemble (ancien mode). -->
-    <xsl:param name="toc_merge_pages_and_ranges">0</xsl:param>
 
     <!-- Constantes -->
 
@@ -247,11 +220,6 @@
                 <xsl:if test="$toc_iiif = '1'">
                     <xsl:apply-templates select="mets:structMap" mode="toc">
                         <xsl:with-param name="toc_standard" select="true()"/>
-                    </xsl:apply-templates>
-                </xsl:if>
-                <xsl:if test="$toc_sections = '1'">
-                    <xsl:apply-templates select="mets:structMap" mode="toc">
-                        <xsl:with-param name="toc_sections_multi" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:if>
                 <xsl:if test="$toc_full = '1'">
@@ -391,7 +359,6 @@
     <!-- TODO Ajouter le type de structure (physical/logical). -->
     <xsl:template match="mets:structMap" mode="toc">
         <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <dcterms:tableOfContents>
             <xsl:choose>
@@ -399,14 +366,12 @@
                     <xsl:attribute name="o:type">xml</xsl:attribute>
                     <xsl:apply-templates select="mets:div" mode="toc_xml">
                         <xsl:with-param name="toc_standard" select="$toc_standard"/>
-                        <xsl:with-param name="toc_sections_multi" select="$toc_sections_multi"/>
                         <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
                     </xsl:apply-templates>
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:apply-templates select="mets:div" mode="toc_code">
                         <xsl:with-param name="toc_standard" select="$toc_standard"/>
-                        <xsl:with-param name="toc_sections_multi" select="$toc_sections_multi"/>
                         <xsl:with-param name="toc_full_pages" select="$toc_full_pages"/>
                     </xsl:apply-templates>
                 </xsl:otherwise>
@@ -417,7 +382,6 @@
     <!-- Version xml de la table des matières. -->
     <xsl:template match="mets:div" mode="toc_xml">
         <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <c>
             <xsl:attribute name="id">
@@ -428,42 +392,35 @@
                 <xsl:value-of select="normalize-space(@LABEL)"/>
             </xsl:attribute>
             <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
-            <xsl:if test="$hide_view_number != '1'">
-                <xsl:attribute name="views">
-                    <xsl:variable name="view_first">
-                        <xsl:if test="$hide_view_number != '1'">
-                            <xsl:apply-templates select="." mode="view_number"/>
-                        </xsl:if>
-                    </xsl:variable>
-                    <xsl:variable name="view_last">
-                        <xsl:choose>
-                            <xsl:when test="$hide_view_number = '1'">
-                                <xsl:text></xsl:text>
-                            </xsl:when>
-                            <xsl:when test="following-sibling::mets:div[1]">
-                                <xsl:apply-templates select="following-sibling::mets:div[1]" mode="view_number"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:apply-templates select="parent::mets:div/following-sibling::mets:div[1]" mode="view_number"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="views">
-                        <xsl:choose>
-                            <xsl:when test="$hide_view_number = '1' or $view_first = ''">
-                                <xsl:text></xsl:text>
-                            </xsl:when>
-                            <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
-                                <xsl:value-of select="$view_first"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="concat($view_first, '-', $view_last - 1)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:value-of select="$views"/>
-                </xsl:attribute>
-            </xsl:if>
+            <xsl:attribute name="views">
+                <xsl:variable name="view_first">
+                    <xsl:apply-templates select="." mode="view_number"/>
+                </xsl:variable>
+                <xsl:variable name="view_last">
+                    <xsl:choose>
+                        <xsl:when test="following-sibling::mets:div[1]">
+                            <xsl:apply-templates select="following-sibling::mets:div[1]" mode="view_number"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:apply-templates select="parent::mets:div/following-sibling::mets:div[1]" mode="view_number"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="views">
+                    <xsl:choose>
+                        <xsl:when test="$view_first = ''">
+                            <xsl:text></xsl:text>
+                        </xsl:when>
+                        <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
+                            <xsl:value-of select="$view_first"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($view_first, '-', $view_last - 1)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="$views"/>
+            </xsl:attribute>
             <!-- Ajout d’information : position et nom du fichier, généralement inutile ; le type pourrait être utilisé pour bien distinguer section et pages. -->
             <!-- Le numéro d’ordre dans la section en cours n’est pas réellement utile.
             <xsl:attribute name="order">
@@ -481,49 +438,7 @@
                 </xsl:attribute>
             </xsl:if>
             -->
-            <!-- La liste est inutile car la structure est hiérarchique. Cependant, si les numéro de pages sont cachés, il faut pouvoir la reconstituer. -->
-            <xsl:if test="$hide_view_number = '1'">
-                <xsl:attribute name="ranges">
-                    <xsl:choose>
-                        <xsl:when test="$toc_standard">
-                            <xsl:choose>
-                                <!-- La liste contient seulement les sous-sections. -->
-                                <xsl:when test="$subdiv_fptr">
-                                    <xsl:apply-templates select="mets:div" mode="range_standard"/>
-                                </xsl:when>
-                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                                <xsl:otherwise>
-                                    <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:when>
-                        <xsl:when test="$toc_sections_multi">
-                            <xsl:choose>
-                                <!-- La liste contient seulement les sous-sections. -->
-                                <xsl:when test="$subdiv_fptr">
-                                    <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
-                                </xsl:when>
-                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                                <xsl:otherwise>
-                                    <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:when>
-                        <xsl:when test="$toc_full_pages">
-                            <xsl:choose>
-                                <!-- La liste contient seulement les sous-sections. -->
-                                <xsl:when test="$subdiv_fptr">
-                                    <xsl:apply-templates select="mets:div" mode="range_full"/>
-                                </xsl:when>
-                                <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
-                                <xsl:otherwise>
-                                    <xsl:apply-templates select=". | mets:div" mode="range_full"/>
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:when>
-                    </xsl:choose>
-                </xsl:attribute>
-            </xsl:if>
+            <!-- La liste des sections est inutile car la structure est hiérarchique. Cf. mode toc si on veut l’ajouter. -->
             <!-- Ligne suivante. -->
             <xsl:choose>
                 <xsl:when test="$toc_standard = '1'">
@@ -531,12 +446,6 @@
                     <!-- Utiliser le parent ne fonctionne pas ! -->
                     <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_xml">
                         <xsl:with-param name="toc_standard" select="true()"/>
-                    </xsl:apply-templates>
-                </xsl:when>
-                <xsl:when test="$toc_sections_multi = '1'">
-                    <!-- Seulement les sections qui ont un div interne. -->
-                    <xsl:apply-templates select="mets:div[mets:div]" mode="toc_xml">
-                        <xsl:with-param name="toc_sections_multi" select="true()"/>
                     </xsl:apply-templates>
                 </xsl:when>
                 <xsl:when test="$toc_full_pages">
@@ -551,7 +460,6 @@
     <!-- Version codifiée de la table des matières. -->
     <xsl:template match="mets:div" mode="toc_code">
         <xsl:param name="toc_standard" select="false()"/>
-        <xsl:param name="toc_sections_multi" select="false()"/>
         <xsl:param name="toc_full_pages" select="false()"/>
         <xsl:param name="level" select="0"/>
         <xsl:variable name="indentation">
@@ -563,15 +471,10 @@
         <!-- Le numéro de la vue est le numéro du fichier numérisé. Ce n'est pas le numéro de la page, ni de l'index (quand il manque des images). -->
         <!-- L’ensemble des vues correspondand à la section est indiquée, conformément à la logique du mets. -->
         <xsl:variable name="view_first">
-            <xsl:if test="$hide_view_number != '1'">
-                <xsl:apply-templates select="." mode="view_number"/>
-            </xsl:if>
+            <xsl:apply-templates select="." mode="view_number"/>
         </xsl:variable>
         <xsl:variable name="view_last">
             <xsl:choose>
-                <xsl:when test="$hide_view_number = '1'">
-                    <xsl:text></xsl:text>
-                </xsl:when>
                 <xsl:when test="following-sibling::mets:div[1]">
                     <xsl:apply-templates select="following-sibling::mets:div[1]" mode="view_number"/>
                 </xsl:when>
@@ -582,7 +485,7 @@
         </xsl:variable>
         <xsl:variable name="views">
             <xsl:choose>
-                <xsl:when test="$hide_view_number = '1' or $view_first = ''">
+                <xsl:when test="$view_first = ''">
                     <xsl:text></xsl:text>
                 </xsl:when>
                 <xsl:when test="$view_last = '' or $view_first &gt;= ($view_last - 1)">
@@ -593,49 +496,27 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-        <xsl:variable name="view_comma">
-            <xsl:if test="$hide_view_number != '1'">
-                <xsl:text>,</xsl:text>
-            </xsl:if>
-        </xsl:variable>
-        <xsl:variable name="pages_or_ranges">
+        <xsl:variable name="ranges_list">
             <xsl:choose>
-                <xsl:when test="$toc_merge_pages_and_ranges != '1'">
-                    <xsl:choose>
-                        <xsl:when test="mets:div">
-                            <xsl:text> </xsl:text>
-                            <xsl:apply-templates select="mets:div" mode="ranges_sub"/>
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:text> -</xsl:text>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                </xsl:when>
                 <xsl:when test="$toc_standard">
                     <xsl:choose>
+                        <!-- La liste contient seulement les sous-sections. -->
                         <xsl:when test="$subdiv_fptr">
                             <xsl:apply-templates select="mets:div" mode="range_standard"/>
                         </xsl:when>
+                        <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
                         <xsl:otherwise>
                             <xsl:apply-templates select=". | mets:div" mode="range_standard"/>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:when>
-                <xsl:when test="$toc_sections_multi">
-                    <xsl:choose>
-                        <xsl:when test="$subdiv_fptr">
-                            <xsl:apply-templates select="mets:div" mode="range_sections_multi"/>
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:apply-templates select=". | mets:div" mode="range_sections_multi"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                </xsl:when>
                 <xsl:when test="$toc_full_pages">
                     <xsl:choose>
+                        <!-- La liste contient seulement les sous-sections. -->
                         <xsl:when test="$subdiv_fptr">
                             <xsl:apply-templates select="mets:div" mode="range_full"/>
                         </xsl:when>
+                        <!-- La liste contient le div en cours, car il peut contenir un fptr non encapsulé avec un div comme les div enfants ("self or child"). -->
                         <xsl:otherwise>
                             <xsl:apply-templates select=". | mets:div" mode="range_full"/>
                         </xsl:otherwise>
@@ -643,23 +524,25 @@
                 </xsl:when>
             </xsl:choose>
         </xsl:variable>
-        <xsl:variable name="pages_ou_ranges">
+        <xsl:variable name="ranges">
             <xsl:choose>
                 <xsl:when test="
-                    $toc_merge_pages_and_ranges = '1'
-                    or $full_ranges = '1'
-                    or (string-length($pages_or_ranges) - string-length(translate($pages_or_ranges, ';', ''))) &lt; 2
+                    $full_ranges = '1'
+                    or (string-length($ranges_list) - string-length(translate($ranges_list, ';', ''))) &lt; 2
                     ">
-                    <xsl:value-of select="$pages_or_ranges"/>
+                    <xsl:value-of select="concat(' ', normalize-space($ranges_list))"/>
                 </xsl:when>
                 <xsl:otherwise>
+                    <xsl:variable name="range_first">
+                        <xsl:value-of select="substring-before($ranges_list, ';')"/>
+                    </xsl:variable>
                     <xsl:variable name="range_last">
                         <xsl:call-template name="string_part_last">
-                            <xsl:with-param name="string" select="$pages_or_ranges"/>
+                            <xsl:with-param name="string" select="$ranges_list"/>
                             <xsl:with-param name="character" select="';'"/>
                         </xsl:call-template>
                     </xsl:variable>
-                    <xsl:value-of select="concat(' ', normalize-space(substring-before($pages_or_ranges, ';')), '/', normalize-space($range_last))"/>
+                    <xsl:value-of select="concat(' ', normalize-space($range_first), '/', normalize-space($range_last))"/>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
@@ -667,8 +550,8 @@
             $indentation,
             'r', $range_number, ', ',
             normalize-space(@LABEL), ', ',
-            $views, $view_comma,
-            $pages_ou_ranges,
+            $views, ',',
+            $ranges,
             $end_of_line
         )"/>
         <!-- Ligne suivante. -->
@@ -678,13 +561,6 @@
                 <!-- Utiliser le parent ne fonctionne pas ! -->
                 <xsl:apply-templates select="mets:div[self::mets:div[mets:div] | preceding-sibling::mets:div[mets:div] | following-sibling::mets:div[mets:div]]" mode="toc_code">
                     <xsl:with-param name="toc_standard" select="true()"/>
-                    <xsl:with-param name="level" select="$level + 1"/>
-                </xsl:apply-templates>
-            </xsl:when>
-            <xsl:when test="$toc_sections_multi">
-                <!-- Seulement les sections qui ont un div interne. -->
-                <xsl:apply-templates select="mets:div[mets:div]" mode="toc_code">
-                    <xsl:with-param name="toc_sections_multi" select="true()"/>
                     <xsl:with-param name="level" select="$level + 1"/>
                 </xsl:apply-templates>
             </xsl:when>
@@ -740,60 +616,7 @@
                 <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
                 <xsl:choose>
                     <!-- Liste de toutes les pages. -->
-                    <xsl:when test="$full_page_ranges = '1' or ($est_premier_dans_serie and $est_dernier_dans_serie)">
-                        <xsl:if test="position() != 1">
-                            <xsl:text>; </xsl:text>
-                        </xsl:if>
-                        <xsl:value-of select="$position_fptr"/>
-                    </xsl:when>
-                    <!-- Liste des groupes de pages entre deux sections. -->
-                    <xsl:when test="$est_premier_dans_serie">
-                        <xsl:if test="position() != 1">; </xsl:if>
-                        <xsl:value-of select="$position_fptr"/>
-                    </xsl:when>
-                    <xsl:when test="$est_dernier_dans_serie">
-                        <!-- Ne pas tenir compte de la section "book". -->
-                        <xsl:if test="$position_fptr != '1'">
-                            <xsl:text>-</xsl:text>
-                        </xsl:if>
-                        <xsl:value-of select="$position_fptr"/>
-                    </xsl:when>
-                </xsl:choose>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:template>
-
-    <!-- Liste des sections ou des positions de page, uniquement pour les sections de plus d’une page (c’est-à-dire avec au moins une div impriquée). -->
-    <!-- Attention : ne pas compter les divs, mais les fptr, c’est-à-dire la position des fichiers dans les div. -->
-    <xsl:template match="mets:div" mode="range_sections_multi">
-        <xsl:variable name="position_fptr">
-            <xsl:apply-templates select="mets:fptr" mode="position"/>
-        </xsl:variable>
-        <xsl:choose>
-            <!-- Section nommée contenant des pages ou des sous-sections. -->
-            <!-- Attention : contient "self" qui peut contenir un fptr sans sous div. -->
-            <xsl:when test="mets:div">
-                <xsl:if test="position() != 1">
-                    <xsl:text>; </xsl:text>
-                </xsl:if>
-                <xsl:choose>
-                    <xsl:when test="not($subdiv_fptr) and position() = 1">
-                        <xsl:value-of select="$position_fptr"/>
-                    </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:text>r</xsl:text>
-                        <xsl:number level="multiple" format="1-1" grouping-size="0"/>
-                    </xsl:otherwise>
-                </xsl:choose>
-            </xsl:when>
-            <xsl:otherwise>
-                <!-- Nombre de pages indépendantes ininterrompues : sans sous-sections non séparées par une section. -->
-                <!-- Attention : ne pas compter les divs, mais les fptr, c’est à dire la position des fichiers. -->
-                <xsl:variable name="est_premier_dans_serie" select="position() = 1 or generate-id(preceding-sibling::mets:div[1]) != generate-id(preceding-sibling::mets:div[not(mets:div)][1])"/>
-                <xsl:variable name="est_dernier_dans_serie" select="not(following-sibling::mets:div) or generate-id(following-sibling::mets:div) != generate-id(following-sibling::mets:div[not(mets:div)])"/>
-                <xsl:choose>
-                    <!-- Liste de toutes les pages. -->
-                    <xsl:when test="$full_page_ranges = '1' or ($est_premier_dans_serie and $est_dernier_dans_serie)">
+                    <xsl:when test="$est_premier_dans_serie and $est_dernier_dans_serie">
                         <xsl:if test="position() != 1">
                             <xsl:text>; </xsl:text>
                         </xsl:if>
