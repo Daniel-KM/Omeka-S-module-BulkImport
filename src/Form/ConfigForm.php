@@ -11,14 +11,6 @@ class ConfigForm extends Form
     {
         $this
             ->add([
-                'name' => 'bulkimport_local_path',
-                'type' => Element\Text::class,
-                'options' => [
-                    'label' => 'Folder for local files', // @translate
-                    'info' => 'For security reasons, local files to import should be inside this folder.', // @translate
-                ],
-            ])
-            ->add([
                 'name' => 'bulkimport_xslt_processor',
                 'type' => Element\Text::class,
                 'options' => [
@@ -36,14 +28,6 @@ class ConfigForm extends Form
                 ],
                 'attributes' => [
                     'id' => 'bulkimport_pdftk',
-                ],
-            ])
-            ->add([
-                'name' => 'bulkimport_allow_empty_files',
-                'type' => Element\Checkbox::class,
-                'options' => [
-                    'label' => 'Allow empty files in manual upload', // @translate
-                    'info' => 'In rare cases, an admin may want to upload empty files. This option requires to disable file validation or to add the media type "application/x-empty" in main settings.', // @translate
                 ],
             ])
         ;

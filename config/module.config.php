@@ -32,9 +32,6 @@ return [
             // This is an internal ingester.
             'bulk' => Media\Ingester\Bulk::class,
         ],
-        'factories' => [
-            'bulk_upload' => Service\Ingester\BulkUploadFactory::class,
-        ],
     ],
     'view_manager' => [
         'template_path_stack' => [
@@ -45,7 +42,6 @@ return [
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
             Controller\Admin\MappingController::class => 'bulk/admin/mapping',
-            Controller\Admin\UploadController::class => 'bulk/admin/upload',
         ],
         'strategies' => [
             'ViewJsonStrategy',
@@ -111,7 +107,6 @@ return [
             'BulkImport\Controller\Admin\BulkImport' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Import' => Service\Controller\ControllerFactory::class,
             'BulkImport\Controller\Admin\Importer' => Service\Controller\ControllerFactory::class,
-            'BulkImport\Controller\Admin\Upload' => Service\Controller\UploadControllerFactory::class,
         ],
     ],
     'controller_plugins' => [
@@ -180,19 +175,6 @@ return [
                                     ],
                                 ],
                             ],
-                            'upload' => [
-                                'type' => \Laminas\Router\Http\Segment::class,
-                                'options' => [
-                                    'route' => '/upload[/:action]',
-                                    'constraints' => [
-                                        'action' => 'index|files',
-                                    ],
-                                    'defaults' => [
-                                        'controller' => 'Upload',
-                                        'action' => 'index',
-                                    ],
-                                ],
-                            ],
                         ],
                     ],
                 ],
@@ -238,14 +220,6 @@ return [
                                 'visible' => false,
                             ],
                         ],
-                    ],
-                    [
-                        // Not "Upload" because translation is not good here.
-                        'label' => 'Upload files', // @translate
-                        'route' => 'admin/bulk/upload',
-                        'controller' => 'Upload',
-                        'action' => 'files',
-                        'resource' => 'BulkImport\Controller\Admin\Upload',
                     ],
                     [
                         'label' => 'Configuration', // @translate
@@ -336,10 +310,8 @@ return [
     ],
     'bulkimport' => [
         'config' => [
-            'bulkimport_local_path' => OMEKA_PATH . '/files/import',
             'bulkimport_xslt_processor' => '',
             'bulkimport_pdftk' => '',
-            'bulkimport_allow_empty_files' => false,
         ],
     ],
     'bulk_import' => [

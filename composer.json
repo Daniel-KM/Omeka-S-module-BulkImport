@@ -1,6 +1,6 @@
 {
     "name": "daniel-km/omeka-s-module-bulk-import",
-    "description": "Extensible bulk import module for xml, sql databases, spreedsheets, and json endpoints.",
+    "description": "Module for Omeka S implementing extensible bulk import for xml, sql databases, spreedsheets, and json endpoints.",
     "type": "library",
     "license": "CECILL-2.1",
     "authors": [
@@ -27,8 +27,6 @@
         "cweagans/composer-patches": "^1.7",
         "daniel-km/simple-iso-3166-1": "^0.2",
         "daniel-km/simple-iso-639-3": "^0.2",
-        "flowjs/flow-php-server": "^1.2",
-        "flowjs/flow.js": "^2.14",
         "hakre/xmlreaderiterator": "^0.1",
         "mikehaertl/php-pdftk": "^0.13",
         "mtdowling/jmespath.php": "^2.7",
@@ -50,18 +48,6 @@
         }
     },
    "repositories": [
-        {
-            "type": "package",
-            "package": {
-                "type": "omeka-addon-asset",
-                "name": "flowjs/flow.js",
-                "version": "2.14.1",
-                "dist": {
-                    "type": "file",
-                    "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.30.0/flow.min.js"
-                }
-            }
-        },
         {
             "type": "package",
             "package": {

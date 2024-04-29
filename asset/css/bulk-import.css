@@ -7,11 +7,9 @@
     .bulk-imports .subhead::before,
     .bulk-importers .subhead::before,
     .bulk-mappings .subhead::before,
-    .bulk-uploads .subhead::before,
     .bulk-imports .no-resources:before,
     .bulk-importers .no-resources:before,
-    .bulk-mappings .no-resources:before,
-    .bulk-uploads .no-resources:before {
+    .bulk-mappings .no-resources:before {
         content:"";
     }
 
@@ -38,108 +36,6 @@
     .bulk-imports .actions .no-action {
         padding-right: 24px;
         vertical-align: top;
-    }
-
-    /* Resource add/edit media files and folders */
-    .media-bulk-upload .bulk-drop {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-    }
-    /* @todo Improve drag and drop with a file (requires js) */
-    .media-bulk-upload .bulk-drop:hover {
-        outline: 2px dashed grey;
-    }
-    #bulk-import .media-bulk-upload .bulk-drop {
-        outline: 2px dashed lightgrey;
-    }
-    #bulk-import .media-bulk-upload .bulk-drop:hover {
-        outline: 2px dashed grey;
-    }
-    #bulk-import .media-bulk-upload .bulk-drop span {
-        padding-left: 10px;
-    }
-    #media-list .bulk-upload-actions {
-        width: 100%;
-    }
-    .media-files-input-full-progress {
-        text-align: right;
-    }
-    .bulk-upload-actions-pre {
-        display: flex;
-        justify-content: space-between;
-    }
-    .bulk-upload-actions-pre.empty,
-    .bulk-upload-actions-pre .empty {
-        display: none;
-    }
-    .bulk-upload-actions-pre > div {
-        display: flex;
-        flex-direction: column;
-    }
-    .bulk-upload-actions-sort .field-meta {
-        vertical-align: bottom;
-    }
-    .media-files-input-preview > ol {
-        width: 100%;
-    }
-    .media-files-input-preview > ol > li {
-        min-height: 80px;
-        max-height: 112px;
-        margin-bottom: 16px;
-    }
-    .media-files-input-preview > ol > li > div {
-        display: flex;
-    }
-    .media-files-input-preview .media-info {
-        display: inline-flex;
-        align-items: initial;
-        max-width: 100%;
-        min-width: 0;
-    }
-    .media-files-input-preview .media-info.messages {
-        display: block;
-    }
-    .media-files-input-preview .media-info.messages .error {
-        background-color: #f4b4b4;
-        border-radius: 3px;
-        padding: 6px 10px;
-        margin-top: 6px;
-        display: block;
-        width: 100%;
-    }
-    .media-files-input-preview .media-info .resource-thumbnail {
-        height: 64px;
-        width: 64px;
-        margin-right: 6px;
-    }
-    .media-files-input-preview .media-info .resource-thumbnail img {
-        max-height: 64px;
-        max-width: 64px;
-    }
-    .media-files-input-preview .media-info .resource-thumbnail .upload-progress {
-        width: 64px;
-        height: 10px;
-        max-height: 64px;
-        max-width: 64px;
-        padding-top: 4px;
-        padding-bottom: 4px;
-    }
-    .media-files-input-preview .media-info .resource-name {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .media-info.messages .warning {
-        background-color: #fff6e6;
-        border-radius: 3px;
-        padding: 6px 10px;
-        margin-top: 6px;
-        display: block;
-        width: 100%;
-    }
-    .media-info.messages.warning {
-        color: orange;
     }
 
     .bulk-importers table.batch-edit .configure .o-icon-edit {

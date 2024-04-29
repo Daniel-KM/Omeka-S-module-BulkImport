@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cbd1c9b8ee7351525210aed663b8034a",
+    "content-hash": "7e99774e26164467e29493a5382fea06",
     "packages": [
         {
             "name": "codemirror/codemirror",
@@ -291,76 +291,6 @@
                 "source": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3"
             },
             "time": "2023-05-29T00:00:00+00:00"
-        },
-        {
-            "name": "flowjs/flow-php-server",
-            "version": "v1.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/flowjs/flow-php-server.git",
-                "reference": "fe8890c25e835d0b4f58d8bd91331326ab1808ba"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/flowjs/flow-php-server/zipball/fe8890c25e835d0b4f58d8bd91331326ab1808ba",
-                "reference": "fe8890c25e835d0b4f58d8bd91331326ab1808ba",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.4"
-            },
-            "require-dev": {
-                "ext-mongodb": "*",
-                "fabpot/php-cs-fixer": "~2.2",
-                "league/phpunit-coverage-listener": "~1.1",
-                "mikey179/vfsstream": "v1.2.0",
-                "mongodb/mongodb": "^1.4.0",
-                "phpunit/phpunit": "4.*"
-            },
-            "suggest": {
-                "mongodb/mongodb": "Required to use this package with Mongo DB"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "Flow": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Aidas Klimas",
-                    "email": "aidaskk@gmail.com"
-                }
-            ],
-            "description": "PHP library for handling chunk uploads. Works with flow.js html5 file uploads.",
-            "keywords": [
-                "chunks",
-                "file upload",
-                "flow",
-                "flow.js",
-                "html5 file upload",
-                "resumable",
-                "resumable.js",
-                "upload"
-            ],
-            "support": {
-                "issues": "https://github.com/flowjs/flow-php-server/issues",
-                "source": "https://github.com/flowjs/flow-php-server/tree/v1.2.0"
-            },
-            "time": "2022-08-26T15:50:37+00:00"
-        },
-        {
-            "name": "flowjs/flow.js",
-            "version": "2.14.1",
-            "dist": {
-                "type": "file",
-                "url": "https://github.com/Daniel-KM/Omeka-S-module-BulkImport/releases/download/3.3.30.0/flow.min.js"
-            },
-            "type": "omeka-addon-asset"
         },
         {
             "name": "hakre/xmlreaderiterator",
@@ -893,5 +823,5 @@
     "platform-overrides": {
         "php": "7.4"
     },
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.2.0"
 }
