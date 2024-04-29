@@ -383,7 +383,39 @@ if (version_compare($oldVersion, '3.4.53', '<')) {
     $settings->delete('bulkimport_convert_html');
 
     $message = new PsrMessage(
-        'Extraction of media metadata were moved back to module BulkImportFiles.' // @translate
+        'Extraction of media metadata and conversion to html were moved back to module BulkImportFiles.' // @translate
     );
     $messenger->addSuccess($message);
 }
+
+if (version_compare($oldVersion, '3.4.54', '<')) {
+    // Set mapping "manual" for all spreadsheet reader.
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET
+    `mapper` = "manual"
+WHERE `reader` LIKE "%CsvReader"
+    OR `reader` LIKE "%TsvReader"
+    OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
+    OR `reader` LIKE "%SpreadsheetReader"
+;
+SQL;
+    $connection->executeStatement($sql);
+
+    $message = new PsrMessage(
+        'The installer and the spreadsheet readers were fixed to allow to adapt mapping manually.', //@translate
+    );
+    $messenger->addWarning($message);
+
+    $message = new PsrMessage(
+        'The feature to upload files without server limitation was moved to module {link}Easy Admin{link_end}. Install it if you need it.', //@translate
+        [
+            'link' => '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-EasyAdmin" target="_blank" rel="noopener">',
+            'link_end' => '</a>',
+        ]
+    );
+    $message->setEscapeHtml(false);
+    $messenger->addWarning($message);
+}
+
+// TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.

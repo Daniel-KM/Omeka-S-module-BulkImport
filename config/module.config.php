@@ -281,6 +281,7 @@ return [
                 ],
             ],
         ],
+        // TODO What are the BulkImport params and logs in navigation?
         'BulkImport' => [
             [
                 'label' => 'Params', // @translate
