@@ -128,7 +128,9 @@ class FileDerivative extends AbstractJob
             return;
         }
 
-        $imageServerTileManual = $services->get('Omeka\Settings')->get('imageserver_tile_manual', false);
+        $settings = $services->get('Omeka\Settings');
+        // Manage old version of ImageServer.
+        $imageServerTileManual = $settings->get('imageserver_tile_mode', $settings->get('imageserver_tile_manual') ? 'manual' : 'auto') === 'manual';
         // Don't un bulksizer if MediaDimension is done.
         if ($hasMediaDimension && $imageServerTileManual) {
             $subJobClasses = [
