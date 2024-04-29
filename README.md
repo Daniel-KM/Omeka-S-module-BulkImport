@@ -11,9 +11,6 @@ Voir le [Lisez-moi] en fran√ßais.
 and is built to be extensible. It allows to manage importers and to process bulk
 import of resources.
 
-Furthermore, it adds a way to bulk upload files manually without limit of [size or number of files]
-in resource form and via a separate bulk upload form for future imports.
-
 The import process is done in three steps:
 
 - read a source, that can be a file, a endpoint, a url, or a list of urls or
@@ -595,7 +592,6 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [CSV Import]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
-[size or number of files]: https://github.com/omeka/omeka-s/issues/1785
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases

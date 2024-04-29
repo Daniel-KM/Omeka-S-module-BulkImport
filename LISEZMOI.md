@@ -11,11 +11,6 @@ See [English readme].
 et il est construit pour être extensible. Il permet de gérer des importeurs et
 de traiter l’importation de ressources en lot.
 
-De plus, il ajoute un moyen de télécharger manuellement des fichiers en masse
-sans limite de [taille ou nombre de fichiers] dans le formulaire de ressource
-et dans le formulaire séparé pour le téléchargement des fichiers, utilisé pour
-les imports ultérieurs.
-
 Un import s’effectue en trois étapes :
 
 - lecture d’une source, qui peut être un fichier, une api, une url, ou une liste
@@ -630,7 +625,6 @@ l’entrepôt institutionnel des travaux étudiants [Dante] de l’[Université 
 [CSV Import]: https://omeka.org/s/modules/CSVImport
 [Omeka Classic]: https://omeka.org/classic
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
-[taille ou nombre de fichierss]: https://github.com/omeka/omeka-s/issues/1785
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
