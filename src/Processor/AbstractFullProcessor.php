@@ -1379,7 +1379,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                     $args = [
                         'scheme' => $this->main[$config['main_name']]['item_id'],
                     ];
-                    $this->dispatchJob(\Thesaurus\Job\Indexing::class, $args);
+                    $this->dispatchJob(\Thesaurus\Job\IndexThesaurus::class, $args);
                 }
             }
             $this->logger->notice('Thesaurus reindexed.'); // @translate

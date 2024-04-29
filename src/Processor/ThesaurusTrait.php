@@ -120,7 +120,10 @@ trait ThesaurusTrait
         $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => 'skos']);
         $classSkosConceptScheme = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
         $classSkosCollection = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'Collection']);
-        $templateThesaurusScheme = $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
+        $templateThesaurusSchemeId = (int) $this->getServiceLocator()->get('Omeka\Settings')->get('thesaurus_skos_scheme_template_id');
+        $templateThesaurusScheme = $templateThesaurusSchemeId
+            ? $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->find($templateThesaurusSchemeId)
+            : $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->findOneBy(['label' => 'Thesaurus Scheme']);
 
         $item = $schemeReal ?? new \Omeka\Entity\Item;
         $item->setOwner($this->owner);

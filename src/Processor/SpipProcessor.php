@@ -2387,8 +2387,8 @@ class SpipProcessor extends AbstractFullProcessor
             return;
         }
 
-        /** @var \Thesaurus\Mvc\Controller\Plugin\Thesaurus $thesaurus */
-        $thesaurus = $this->getServiceLocator()->get('ControllerPluginManager')->get('thesaurus');
+        /** @var \Thesaurus\Stdlib\Thesaurus $thesaurus */
+        $thesaurus = $this->getServiceLocator()->get('Thesaurus\Thesaurus');
         $scheme = $this->bulk->api()->read('resources', ['id' => $this->main['concept']['item_id']])->getContent();
         $thesaurus = $thesaurus($scheme);
         if (!$thesaurus->isSkos()) {
