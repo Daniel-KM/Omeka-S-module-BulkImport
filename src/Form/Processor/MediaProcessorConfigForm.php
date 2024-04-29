@@ -6,7 +6,7 @@ use Omeka\Form\Element as OmekaElement;
 
 class MediaProcessorConfigForm extends AbstractResourceProcessorConfigForm
 {
-    protected function addFieldsets(): \Laminas\Form\Form
+    protected function addFieldsets(): self
     {
         parent::addFieldsets();
 
@@ -40,7 +40,7 @@ class MediaProcessorConfigForm extends AbstractResourceProcessorConfigForm
         return $this;
     }
 
-    protected function addInputFilter(): \Laminas\Form\Form
+    protected function addInputFilter(): self
     {
         parent::addInputFilter();
 

@@ -21,7 +21,7 @@ class AssetMappingParamsForm extends Form
             ->addMappingFilter();
     }
 
-    protected function addMapping(): \Laminas\Form\Form
+    protected function addMapping(): self
     {
         // Add all columns from file as inputs.
         $availableFields = $this->getOption('availableFields');
@@ -78,7 +78,7 @@ class AssetMappingParamsForm extends Form
         return $this;
     }
 
-    protected function addMappingFilter(): \Laminas\Form\Form
+    protected function addMappingFilter(): self
     {
         $inputFilter = $this->getInputFilter();
         if (!$inputFilter->has('mapping')) {

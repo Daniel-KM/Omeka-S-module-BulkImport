@@ -21,7 +21,7 @@ abstract class AbstractResourceMappingParamsForm extends Form
             ->addMappingFilter();
     }
 
-    protected function addMapping(): \Laminas\Form\Form
+    protected function addMapping(): self
     {
         // Add all columns from file as inputs.
         $availableFields = $this->getOption('availableFields');
@@ -101,12 +101,12 @@ abstract class AbstractResourceMappingParamsForm extends Form
         ];
     }
 
-    protected function addInputFilter(): \Laminas\Form\Form
+    protected function addInputFilter(): self
     {
         return $this;
     }
 
-    protected function addMappingFilter(): \Laminas\Form\Form
+    protected function addMappingFilter(): self
     {
         $inputFilter = $this->getInputFilter();
         if (!$inputFilter->has('mapping')) {

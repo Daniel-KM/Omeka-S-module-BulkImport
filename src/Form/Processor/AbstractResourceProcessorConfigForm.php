@@ -22,7 +22,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
             ->addInputFilter();
     }
 
-    protected function baseFieldset(): \Laminas\Form\Form
+    protected function baseFieldset(): self
     {
         $this
             ->addCommonProcess()
@@ -234,12 +234,12 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         return $this;
     }
 
-    protected function addFieldsets(): \Laminas\Form\Form
+    protected function addFieldsets(): self
     {
         return $this;
     }
 
-    protected function baseInputFilter(): \Laminas\Form\Form
+    protected function baseInputFilter(): self
     {
         $this
             ->addCommonProcessInputFilter()
@@ -289,7 +289,7 @@ abstract class AbstractResourceProcessorConfigForm extends Form
         return $this;
     }
 
-    protected function addInputFilter(): \Laminas\Form\Form
+    protected function addInputFilter(): self
     {
         return $this;
     }

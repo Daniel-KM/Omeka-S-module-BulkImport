@@ -30,6 +30,7 @@ class ItemMappingParamsForm extends AbstractResourceMappingParamsForm
             ],
         ]);
 
+        // TODO Disable file/directory but keep them visible in the selector.
         if (!$this->isModuleActive('FileSideload')) {
             unset($mapping['media']['options']['file']);
             unset($mapping['media']['options']['directory']);

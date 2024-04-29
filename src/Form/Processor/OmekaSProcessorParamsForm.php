@@ -22,7 +22,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
             ->baseInputFilter();
     }
 
-    protected function baseFieldset(): \Laminas\Form\Form
+    protected function baseFieldset(): self
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -101,7 +101,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
         return $this;
     }
 
-    protected function baseInputFilter(): \Laminas\Form\Form
+    protected function baseInputFilter(): self
     {
         $this->getInputFilter()
             ->add([

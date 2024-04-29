@@ -12,7 +12,7 @@ trait CommonProcessTrait
 {
     use ServiceLocatorAwareTrait;
 
-    protected function addCommonProcess(): \Laminas\Form\Form
+    protected function addCommonProcess(): self
     {
         $this
             ->add([
@@ -101,7 +101,7 @@ trait CommonProcessTrait
         return $this;
     }
 
-    protected function addOwner(): \Laminas\Form\Form
+    protected function addOwner(): self
     {
         $services = $this->getServiceLocator();
         $urlHelper = $services->get('ViewHelperManager')->get('url');
@@ -135,7 +135,7 @@ trait CommonProcessTrait
         return $this;
     }
 
-    protected function addFiles(): \Laminas\Form\Form
+    protected function addFiles(): self
     {
         // Set binary content encoding
         $this
@@ -169,7 +169,7 @@ trait CommonProcessTrait
         return $this;
     }
 
-    protected function addCommonProcessInputFilter(): \Laminas\Form\Form
+    protected function addCommonProcessInputFilter(): self
     {
         $this->getInputFilter()
             ->add([
@@ -184,7 +184,7 @@ trait CommonProcessTrait
         return $this;
     }
 
-    protected function addOwnerInputFilter(): \Laminas\Form\Form
+    protected function addOwnerInputFilter(): self
     {
         $this->getInputFilter()
             ->add([
@@ -194,7 +194,7 @@ trait CommonProcessTrait
         return $this;
     }
 
-    protected function addFilesFilter(): \Laminas\Form\Form
+    protected function addFilesFilter(): self
     {
         $this->getInputFilter()
             ->get('files')
