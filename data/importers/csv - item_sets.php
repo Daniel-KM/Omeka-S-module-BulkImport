@@ -4,7 +4,7 @@ return [
     'o:owner' => null,
     'o:label' => 'CSV - Item sets', // @translate
     'o-bulk:reader' => \BulkImport\Reader\CsvReader::class,
-    'o-bulk:mapper' => null,
+    'o-bulk:mapper' => 'manual',
     'o-bulk:processor' => \BulkImport\Processor\ItemSetProcessor::class,
     'o:config' => [
         'reader' => [

@@ -4,7 +4,7 @@ return [
     'o:owner' => null,
     'o:label' => 'TSV (tab-separated values) - Items', // @translate
     'o-bulk:reader' => \BulkImport\Reader\TsvReader::class,
-    'o-bulk:mapper' => null,
+    'o-bulk:mapper' => 'manual',
     'o-bulk:processor' => \BulkImport\Processor\ItemProcessor::class,
     'o:config' => [
         'reader' => [

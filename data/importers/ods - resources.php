@@ -4,7 +4,7 @@ return [
     'o:owner' => null,
     'o:label' => 'OpenDocument spreadsheet (ods) - Mixed resources', // @translate
     'o-bulk:reader' => \BulkImport\Reader\OpenDocumentSpreadsheetReader::class,
-    'o-bulk:mapper' => null,
+    'o-bulk:mapper' => 'manual',
     'o-bulk:processor' => \BulkImport\Processor\ResourceProcessor::class,
     'o:config' => [
         'reader' => [
