@@ -355,11 +355,7 @@ Specific metadata of other modules are currently not managed.
 Spip
 ----
 
-Simply set the database credentials and  the endpoint and go on. You need to
-install some more modules: [Advanced Resource Template], [Custom Vocab],
-[Data Type Rdf], [Numeric Data Types], [Spip ], [Thesaurus], [User Profile].
-
-This importer is no more available for now.
+The direct import from [Spip] was removed in version 3.4.55.
 
 
 Spreadsheet

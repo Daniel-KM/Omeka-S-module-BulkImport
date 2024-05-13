@@ -376,12 +376,7 @@ actuellement pas gérées.
 Spip
 ----
 
-Il suffit de définir les informations d’identification de la base de données et
-l’url et de continuer. Vous devez installer d’autres modules : [Advanced Resource Template],
-[Custom Vocab], [Data Type Rdf], [Numeric Data Types], [Spip ], [Thesaurus],
-[User Profile].
-
-Cet importeur n’est plus disponible actuellement.
+La prise en charge directe de [Spip] a été supprimée dans la version 3.4.55.
 
 
 Tableur

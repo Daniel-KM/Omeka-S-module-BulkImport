@@ -77,8 +77,6 @@ return [
             Form\Processor\OmekaSProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ResourceProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\ResourceProcessorParamsForm::class => Service\Form\FormFactory::class,
-            Form\Processor\SpipProcessorConfigForm::class => Service\Form\FormFactory::class,
-            Form\Processor\SpipProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderConfigForm::class => Service\Form\FormFactory::class,
             Form\Reader\CsvReaderParamsForm::class => Service\Form\FormFactory::class,
             Form\Reader\JsonReaderConfigForm::class => Service\Form\FormFactory::class,
@@ -337,7 +335,6 @@ return [
             // TODO Deprecated these processors and create meta-processor.
             Processor\EprintsProcessor::class => Processor\EprintsProcessor::class,
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
-            Processor\SpipProcessor::class => Processor\SpipProcessor::class,
         ],
     ],
 ];
