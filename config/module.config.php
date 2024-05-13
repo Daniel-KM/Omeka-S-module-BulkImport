@@ -71,8 +71,6 @@ return [
             Form\Processor\ItemProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemSetProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\ItemSetProcessorParamsForm::class => Service\Form\FormFactory::class,
-            Form\Processor\ManiocProcessorConfigForm::class => Service\Form\FormFactory::class,
-            Form\Processor\ManiocProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\MediaProcessorConfigForm::class => Service\Form\FormFactory::class,
             Form\Processor\MediaProcessorParamsForm::class => Service\Form\FormFactory::class,
             Form\Processor\OmekaSProcessorConfigForm::class => Service\Form\FormFactory::class,
@@ -338,7 +336,6 @@ return [
             Processor\AssetProcessor::class => Processor\AssetProcessor::class,
             // TODO Deprecated these processors and create meta-processor.
             Processor\EprintsProcessor::class => Processor\EprintsProcessor::class,
-            Processor\ManiocProcessor::class => Processor\ManiocProcessor::class,
             Processor\OmekaSProcessor::class => Processor\OmekaSProcessor::class,
             Processor\SpipProcessor::class => Processor\SpipProcessor::class,
         ],
