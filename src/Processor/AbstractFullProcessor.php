@@ -460,7 +460,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * A list of specific resources to reload when the entity manager is cleared.
      *
-     * @see SpipProcessor
+     * @see old SpipProcessor
      *
      * @var array
      */

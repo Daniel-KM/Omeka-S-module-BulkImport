@@ -143,8 +143,6 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 
     /**
      * Reader constructor.
-     *
-     * @param ServiceLocatorInterface $serviceLocator
      */
     public function __construct(ServiceLocatorInterface $services)
     {

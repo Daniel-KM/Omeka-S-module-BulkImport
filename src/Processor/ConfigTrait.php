@@ -19,7 +19,7 @@ trait ConfigTrait
      * It contains a filepath (inside Omeka "files" or inside the folder "data/configs"
      * of the module) and the mapping of the headers with the standard headers.
      *
-     * @see ManiocProcessor as an example.
+     * @see Old ManiocProcessor as an example.
      *
      * This is not the configurable trait.
      *
