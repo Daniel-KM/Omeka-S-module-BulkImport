@@ -138,12 +138,14 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
         $readerClass = $this->readerClass();
         $readerManager = $this->getReaderManager();
-        if ($readerManager->has($readerClass)) {
-            $this->reader = $readerManager->get($readerClass);
-            if ($this->reader instanceof Configurable) {
-                $config = $this->readerConfig();
-                $this->reader->setConfig($config);
-            }
+        if (!$readerManager->has($readerClass)) {
+            return null;
+        }
+
+        $this->reader = $readerManager->get($readerClass);
+        if ($this->reader instanceof Configurable) {
+            $config = $this->readerConfig();
+            $this->reader->setConfig($config);
         }
 
         $logger = $this->getServiceLocator()->get('Omeka\Logger');
@@ -158,6 +160,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         if (in_array((string) $mapper, ['', 'automatic', 'manual'])) {
             return null;
         }
+
         /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
         return $metaMapperConfig(
@@ -195,12 +198,14 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
         $processorClass = $this->processorClass();
         $processorManager = $this->getProcessorManager();
-        if ($processorManager->has($processorClass)) {
-            $this->processor = $processorManager->get($processorClass);
-            if ($this->processor instanceof Configurable) {
-                $config = $this->processorConfig();
-                $this->processor->setConfig($config);
-            }
+        if (!$processorManager->has($processorClass)) {
+            return null;
+        }
+
+        $this->processor = $processorManager->get($processorClass);
+        if ($this->processor instanceof Configurable) {
+            $config = $this->processorConfig();
+            $this->processor->setConfig($config);
         }
 
         $logger = $this->getServiceLocator()->get('Omeka\Logger');
