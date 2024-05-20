@@ -142,7 +142,7 @@ class ImportController extends AbstractActionController
 
         $dispatcher = $this->jobDispatcher();
         $job = $dispatcher->dispatch(\BulkImport\Job\Undo::class, ['bulkImportId' => $import->id()]);
-        $this->api()->update('bulk_imports', $import->id(), ['undo_job' => $job]);
+        $this->api()->update('bulk_imports', $import->id(), ['undo_job' => $job], [], ['isPartial' => true]);
 
         $message = new PsrMessage(
             'Undo in progress for import #{import} with job #{job}.', // @translate
