@@ -81,8 +81,11 @@ class Import extends AbstractJob
         }
 
         // Make compatible with EasyAdmin tasks, that may use a fake job.
-        if ($this->job->getId()) {
-            $this->api->update('bulk_imports', $this->import->id(), ['o:job' => $this->job], [], ['isPartial' => true]);
+        $jobId = $this->job->getId();
+        if ($jobId) {
+            // Refresh job to avoid a doctrine issue.
+            $jobReference = $this->entityManager->getReference(\Omeka\Entity\Job::class, $jobId);
+            $this->api->update('bulk_imports', $this->import->id(), ['o:job' => $jobReference], [], ['isPartial' => true]);
         }
 
         $this->reader = $this->getReader();

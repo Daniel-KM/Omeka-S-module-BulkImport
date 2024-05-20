@@ -270,7 +270,10 @@ trait ImportTrait
 
         // Store the file in params to get it in user interface and next.
         /** @var \Omeka\Entity\Job $jobJob */
-        if ($this->job->getId()) {
+        $jobId = $this->job->getId();
+        if ($jobId) {
+            // Refresh job to avoid a doctrine issue.
+            $this->job = $this->entityManager->find(\Omeka\Entity\Job::class, $jobId);
             $jobArgs = $this->job->getArgs();
             $jobArgs['filename_log'] = basename($this->bulkCheckLog->getFilepathLog());
             $this->job->setArgs($jobArgs);
