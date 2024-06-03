@@ -38,6 +38,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         // TODO Use all data names and storage ids from data to find existing assets before update. Keep source data as a key of resource to simplify process.
         'file' => 'string',
         'url' => 'string',
+        // The name should be set after file/url to set it according to param.
         'o:name' => 'string',
         'o:storage_id' => 'string',
         'o:media_type' => 'string',
@@ -56,6 +57,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
             'action' => null,
             'action_unidentified' => null,
             'identifier_name' => null,
+
+            'asset_name' => 'filename',
 
             'o:owner' => null,
         ];
@@ -212,6 +215,35 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     }
                 }
                 continue 2;
+
+            case 'o:name':
+                if ($resource['o:name'] === null || $resource['o:name'] === '') {
+                    // According to list of fields, the url/file is already filled.
+                    $setAssetName = $this->getParam('asset_name', 'filename');
+                    switch ($setAssetName) {
+                        default:
+                        case 'filename':
+                            $resource['o:name'] = $resource['ingest_url'] ?? $resource['ingest_filename'] ?? null;
+                            $resource['o:name'] = $resource['o:name'] ? basename($resource['o:name']) : null;
+                            break;
+                        case 'filename_url':
+                            if (!empty($resource['ingest_url'])) {
+                                $resource['o:name'] = $resource['ingest_url'];
+                            } elseif (!empty($resource['ingest_filename'])) {
+                                $resource['o:name'] = basename($resource['ingest_filename']);
+                            }
+                            break;
+                        case 'full':
+                            $resource['o:name'] = $resource['ingest_url'] ?? $resource['ingest_filename'] ?? null;
+                            break;
+                        case 'none':
+                            break;
+                    }
+                    if ($resource['o:name'] === '') {
+                        $resource['o:name'] = null;
+                    }
+                }
+                break;
         }
 
         return $this;

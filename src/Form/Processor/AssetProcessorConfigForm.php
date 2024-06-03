@@ -106,6 +106,24 @@ class AssetProcessorConfigForm extends Form
                 ],
             ])
 
+            ->add([
+                'name' => 'asset_name',
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Create the required name', // @translate
+                    'value_options' => [
+                        'filename' => 'Use the file name or the last part of the url', // @translate
+                        'filename_url' => 'Use the file name or the full url', // @translate
+                        'full' => 'Use the full file path or url', // @translate
+                        'none' => 'None (should be provided or exist)', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'asset_name',
+                    'value' => 'filename',
+                ],
+            ])
+
             ->addOwner()
         ;
 

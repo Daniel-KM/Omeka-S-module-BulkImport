@@ -1489,7 +1489,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         $resourceNamesToProcessor = [
-            'asset' => AssetProcessor::class,
+            'assets' => AssetProcessor::class,
             'items' => ItemProcessor::class,
             'media' => MediaProcessor::class,
             'item_sets' => ItemSetProcessor::class,

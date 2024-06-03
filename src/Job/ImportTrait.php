@@ -667,8 +667,10 @@ trait ImportTrait
                 }
             }
 
-            // TODO Reuse and complete the resource extracted during listing of identifiers: only the id may be missing. Or store during previous loop.
             ++$this->totalIndexResources;
+
+            // TODO Reuse and complete the resource extracted during listing of identifiers: only the id may be missing. Or store during previous loop.
+            /** @var array|null $resource */
             $resource = $this->processEntry($entry);
 
             if ($resource === null) {
