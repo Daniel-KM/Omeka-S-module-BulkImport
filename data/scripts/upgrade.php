@@ -4,7 +4,6 @@ namespace BulkImport;
 
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Stdlib\Message;
-use Common\Stdlib\PsrMessage;
 
 /**
  * @var Module $this
@@ -13,7 +12,6 @@ use Common\Stdlib\PsrMessage;
  * @var string $oldVersion
  *
  * @var \Omeka\Api\Manager $api
- * @var array $config
  * @var \Omeka\Settings\Settings $settings
  * @var \Doctrine\DBAL\Connection $connection
  * @var \Doctrine\ORM\EntityManager $entityManager

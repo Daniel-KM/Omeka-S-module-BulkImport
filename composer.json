@@ -28,10 +28,12 @@
         "daniel-km/simple-iso-3166-1": "^0.2",
         "daniel-km/simple-iso-639-3": "^0.2",
         "hakre/xmlreaderiterator": "^0.1",
+        "james-heinrich/getid3": "^2.0-dev",
         "mikehaertl/php-pdftk": "^0.13",
         "mtdowling/jmespath.php": "^2.7",
         "oomphinc/composer-installers-extender": "^2.0",
         "openspout/openspout": "^3.7",
+        "phpoffice/phpword": "^1.2",
         "softcreatr/jsonpath": "^0.7"
     },
     "replace": {

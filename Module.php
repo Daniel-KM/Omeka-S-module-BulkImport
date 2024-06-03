@@ -11,6 +11,8 @@ use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
+use Laminas\Mvc\MvcEvent;
+use Omeka\Entity\Media;
 use Omeka\Module\AbstractModule;
 
 /**
@@ -107,6 +109,40 @@ class Module extends AbstractModule
             'service.registered_names',
             [$this, 'handleMediaIngesterRegisteredNames']
         );
+
+        // Manage the conversion of documents to html.
+        // Manage the extraction of medata from medias.
+        // The process should be done only for new medias, so keep the list
+        // of existing medias before processing.
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.update.pre',
+            [$this, 'handleBeforeSaveItem'],
+        );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.create.post',
+            [$this, 'handleAfterSaveItem'],
+            -10
+        );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\ItemAdapter::class,
+            'api.update.post',
+            [$this, 'handleAfterSaveItem'],
+            -10
+        );
+        $sharedEventManager->attach(
+            \Omeka\Api\Adapter\MediaAdapter::class,
+            'api.create.post',
+            [$this, 'handleAfterCreateMedia'],
+            -10
+        );
+
+        $sharedEventManager->attach(
+            \Omeka\Form\SettingForm::class,
+            'form.add_elements',
+            [$this, 'handleMainSettings']
+        );
     }
 
     /**
@@ -118,5 +154,258 @@ class Module extends AbstractModule
         $key = array_search('bulk', $names);
         unset($names[$key]);
         $event->setParam('registered_names', $names);
+    }
+
+    /**
+     * Store ids of existing medias to avoid to process them twice.
+     */
+    public function handleBeforeSaveItem(Event $event): void
+    {
+        /**
+         * @var \Omeka\Api\Request $request
+         */
+        $request = $event->getParam('request');
+
+        $itemId = (int) $request->getId();
+        if (!$itemId) {
+            return;
+        }
+
+        /** @var \Omeka\Api\Manager $api */
+        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+        try {
+            /** @var \Omeka\Api\Representation\ItemRepresentation $item */
+            $item = $api->read('items', $itemId, [], ['initialize' => false, 'finalize' => false])->getContent();
+        } catch (\Exception $e) {
+            return;
+        }
+
+        $mediaIds = [];
+        foreach ($item->getMedia() as $media) {
+            $mediaId = (int) $media->getId() ?? null;;
+            if ($mediaId) {
+                $mediaIds[$mediaId] = $mediaId;
+            }
+        }
+        $this->storeExistingItemMediaIds($itemId, $mediaIds);
+    }
+
+    public function handleAfterSaveItem(Event $event): void
+    {
+        // Process extraction of metadata only when there is an original file.
+        $hasFile = false;
+
+        /**
+         * @var \Omeka\Entity\Item $item
+         * @var \Omeka\Entity\Media $media
+         */
+        $item = $event->getParam('response')->getContent();
+        foreach ($item->getMedia() as $media) {
+            if (!$media->getMediaType()) {
+                continue;
+            }
+            $hasFile = true;
+            $this->afterSaveMedia($media);
+        }
+
+        $services = $this->getServiceLocator();
+
+        if ($hasFile
+            && $services->get('Omeka\Settings')->get('bulkimport_extract_metadata', false)
+        ) {
+            $itemId = $item->getId();
+            // Run a job for item to avoid the 30 seconds issue with many files.
+            $args = [
+                'item_id' => $itemId,
+                'skip_media_ids' => $this->storeExistingItemMediaIds($itemId),
+            ];
+            // FIXME Use a plugin, not a fake job. Or strategy "sync", but there is a doctrine exception on owner of the job.
+            // Of course, it is useless for a background job.
+            // $strategy = $this->isBackgroundProcess() ? $services->get(\Omeka\Job\DispatchStrategy\Synchronous::class) : null;
+            $strategy = null;
+            if ($this->isBackgroundProcess()) {
+                $job = new \Omeka\Entity\Job();
+                $job->setPid(null);
+                $job->setStatus(\Omeka\Entity\Job::STATUS_IN_PROGRESS);
+                $job->setClass(\BulkImport\Job\ExtractMediaMetadata::class);
+                $job->setArgs($args);
+                $job->setOwner($services->get('Omeka\AuthenticationService')->getIdentity());
+                $job->setStarted(new \DateTime('now'));
+                $jobClass = new \BulkImport\Job\ExtractMediaMetadata($job, $services);
+                $jobClass->perform();
+            } else {
+                /** @var \Omeka\Job\Dispatcher $dispatcher */
+                $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
+                $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, $args, $strategy);
+            }
+        }
+    }
+
+    public function handleAfterCreateMedia(Event $event): void
+    {
+        /** @var \Omeka\Entity\Media $media */
+        $media = $event->getParam('response')->getContent();
+        if (!$media->getMediaType()) {
+            return;
+        }
+        $this->afterSaveMedia($media, true);
+    }
+
+    /**
+     * @todo Use the same process (job) for extract html and extract metadata.
+     *
+     * @param Media $media Media with a media type.
+     */
+    protected function afterSaveMedia(Media $media, bool $isSingleMediaCreation = false): void
+    {
+        static $processedMedia = [];
+
+        $mediaId = $media->getId();
+        if (isset($processedMedia[$mediaId])) {
+            return;
+        }
+        $processedMedia[$mediaId] = true;
+
+        $services = $this->getServiceLocator();
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
+        $entityManager = $services->get('Omeka\EntityManager');
+
+        if ($isSingleMediaCreation) {
+            $settings = $services->get('Omeka\Settings');
+            if ($settings->get('bulkimport_extract_metadata', false)) {
+                $extractFileMetadata = $services->get('ControllerPluginManager')->get('extractFileMetadata');
+                $result = $extractFileMetadata->__invoke($media);
+                if ($result) {
+                    $entityManager->refresh($media);
+                }
+            }
+        }
+
+        $html = $this->convertToHtml($media);
+        if (is_null($html)) {
+            return;
+        }
+
+        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+
+        // There is no thumbnails, else keep them anyway.
+        @unlink($basePath . '/original/' . $media->getFilename());
+
+        $mediaData = $media->getData() ?: [];
+        $mediaData['html'] = $html;
+        $media->setData($mediaData);
+        $media->setRenderer('html');
+        $media->setExtension(null);
+        $media->setMediaType(null);
+        $media->setHasOriginal(false);
+        $media->setSha256(null);
+        $media->setStorageId(null);
+
+        $entityManager->persist($media);
+        $entityManager->flush();
+    }
+
+    protected function convertToHtml(Media $media): ?string
+    {
+        static $settingsTypes;
+        static $basePath;
+
+        if (is_null($settingsTypes)) {
+            $services = $this->getServiceLocator();
+            $settings = $services->get('Omeka\Settings');
+            $convertTypes = $settings->get('bulkimport_convert_html', []);
+            $settingsTypes = [
+                'doc' => 'MsDoc',
+                'docx' => 'Word2007',
+                'html' => 'HTML',
+                'htm' => 'HTML',
+                'odt' => 'ODText',
+                'rtf' => 'RTF',
+            ];
+            $settingsTypes = array_intersect_key($settingsTypes, array_flip($convertTypes));
+            $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        }
+
+        if (!$settingsTypes) {
+            return null;
+        }
+
+        /** @var \Omeka\Entity\Media $media */
+        // Api create post: the media is already saved.
+        $filename = $media->getFilename();
+        if (!$filename) {
+            return null;
+        }
+
+        // TODO Manage cloud paths.
+        $filepath = $basePath . '/original/' . $filename;
+        $mediaType = $media->getMediaType();
+        $extension = $media->getExtension();
+
+        if (!file_exists($filepath) || !is_readable($filepath)) {
+            return null;
+        }
+
+        $types = [
+            'application/msword' => 'MsDoc',
+            'application/rtf' => 'RTF',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
+            'application/vnd.oasis.opendocument.text' => 'ODText',
+            'text/html' => 'HTML',
+            'doc' => 'MsDoc',
+            'docx' => 'Word2007',
+            'html' => 'HTML',
+            'htm' => 'HTML',
+            'odt' => 'ODText',
+            'rtf' => 'RTF',
+        ];
+        $phpWordType = $types[$mediaType] ?? $types[$extension] ?? null;
+        if (empty($phpWordType)
+            || !in_array($phpWordType, $settingsTypes)
+        ) {
+            return null;
+        }
+
+        $phpWord = \PhpOffice\PhpWord\IOFactory::load($filepath, $phpWordType);
+        $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+        $html = $htmlWriter->getContent();
+        if (!$html) {
+            return null;
+        }
+
+        $startBody = mb_strpos($html, '<body>') + 6;
+        $endBody = mb_strrpos($html, '</body>');
+        return trim(mb_substr($html, $startBody, $endBody - $startBody))
+            ?: null;
+    }
+
+    /**
+     * Check if the current process is a background one.
+     *
+     * The library to get status manages only admin, site or api requests.
+     * A background process is none of them.
+     */
+    protected function isBackgroundProcess(): bool
+    {
+        // Warning: there is a matched route ("site") for backend processes.
+        /** @var \Omeka\Mvc\Status $status */
+        $status = $this->getServiceLocator()->get('Omeka\Status');
+        return !$status->isApiRequest()
+            && !$status->isAdminRequest()
+            && !$status->isSiteRequest()
+            && (!method_exists($status, 'isKeyauthRequest') || !$status->isKeyauthRequest());
+    }
+
+    protected function storeExistingItemMediaIds(?int $itemId = null, ?array $mediaIds = null): ?array
+    {
+        static $store = [];
+        if (!$itemId) {
+            return $store;
+        }
+        if  (is_null($mediaIds)) {
+            return $store[$itemId] ?? [];
+        }
+        $store[$itemId] = $mediaIds;
+        return null;
     }
 }

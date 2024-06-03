@@ -50,6 +50,7 @@ return [
     // TODO Merge the forms.
     'form_elements' => [
         'invokables' => [
+            Form\SettingsFieldset::class => Form\SettingsFieldset::class,
             Form\MappingDeleteForm::class => Form\MappingDeleteForm::class,
             Form\MappingForm::class => Form\MappingForm::class,
         ],
@@ -116,6 +117,8 @@ return [
             'bulkFileUploaded' => Service\ControllerPlugin\BulkFileUploadedFactory::class,
             'bulkIdentifiers' => Service\ControllerPlugin\BulkIdentifiersFactory::class,
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
+            'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
+            'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
             'metaMapperConfigList' => Service\ControllerPlugin\MetaMapperConfigListFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
@@ -309,6 +312,11 @@ return [
         'config' => [
             'bulkimport_xslt_processor' => '',
             'bulkimport_pdftk' => '',
+        ],
+        'settings' => [
+            'bulkimport_extract_metadata' => false,
+            'bulkimport_extract_metadata_log' => false,
+            'bulkimport_convert_html' => [],
         ],
     ],
     'bulk_import' => [
