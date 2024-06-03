@@ -7,6 +7,7 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Api\Manager as ApiManager;
 use Omeka\Mvc\Controller\Plugin\Messenger;
+use Omeka\Mvc\Controller\Plugin\Translate;
 
 /**
  * TODO @deprecated Use MetaMapper or MetaMapperConfig.
@@ -109,6 +110,11 @@ class AutomapFields extends AbstractPlugin
     protected $messenger;
 
     /**
+     * @var \Omeka\Mvc\Controller\Plugin\Translate
+     */
+    protected $translate;
+
+    /**
      * @var array
      */
     protected $map;
@@ -122,6 +128,7 @@ class AutomapFields extends AbstractPlugin
         EasyMeta $easyMeta,
         Logger $logger,
         Messenger $messenger,
+        Translate $translate,
         array $map
     ) {
         $this->api = $api;
@@ -129,6 +136,7 @@ class AutomapFields extends AbstractPlugin
         $this->easyMeta = $easyMeta;
         $this->logger = $logger;
         $this->messenger = $messenger;
+        $this->translate = $translate;
         $this->map = $map;
     }
 
@@ -240,6 +248,18 @@ class AutomapFields extends AbstractPlugin
         $automapList = [];
         if ($this->map) {
             $automapList = $this->map;
+            // Add all translations too.
+            foreach ($this->map as $name => $norm) {
+                $translation = $this->translate->__invoke($name);
+                if ($translation !== $name) {
+                    $automapList[$translation] = $norm;
+                }
+                $lowerName = mb_strtolower($name);
+                $translation = $this->translate->__invoke($lowerName);
+                if ($translation !== $lowerName) {
+                    $automapList[$translation] = $norm;
+                }
+            }
             // Add all the defined values as key too.
             $automapList += array_combine($automapList, $automapList);
             $automapLists['base'] = array_combine(

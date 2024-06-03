@@ -18,6 +18,7 @@ class AutomapFieldsFactory implements FactoryInterface
             $services->get('EasyMeta'),
             $services->get('Omeka\Logger'),
             $plugins->get('messenger'),
+            $plugins->get('translate'),
             $map
         );
     }
