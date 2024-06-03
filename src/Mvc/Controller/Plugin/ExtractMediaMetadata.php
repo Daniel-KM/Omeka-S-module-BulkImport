@@ -3,8 +3,11 @@
 namespace BulkImport\Mvc\Controller\Plugin;
 
 // The autoload doesn’t work with GetId3.
+// And all main classes should be loaded.
 if (!class_exists(\JamesHeinrich\GetID3\GetId3::class)) {
     require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/GetID3.php';
+    require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/Exception.php';
+    require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/Utils.php';
 }
 
 use BulkImport\Stdlib\MetaMapper;
