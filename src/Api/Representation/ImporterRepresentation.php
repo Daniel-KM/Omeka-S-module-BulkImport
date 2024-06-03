@@ -163,14 +163,11 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
         /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-        return $metaMapperConfig(
-            $mapper,
-            $mapper,
-            [
-                'resource_name' => $this->processor()->getResourceName(),
-                'field_types' => $this->processor()->getFieldTypes(),
-            ]
-        );
+        $processor = $this->importer()->processor();
+        return $metaMapperConfig($mapper, $mapper, [
+            'resource_name' => $processor->getResourceName(),
+            'field_types' => $processor->getFieldTypes(),
+        ]);
     }
 
     public function bulkMapping(): ?MappingRepresentation

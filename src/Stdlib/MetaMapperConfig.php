@@ -249,6 +249,8 @@ class MetaMapperConfig
      * // To be removed?
      * - resource_name (string) : same as info[to]
      * - field_types (array) : Field types of a resource from the processor.
+     * // Tempo fix to be removed with new manual form
+     * - is_single_manual (bool): should prepare mapping with full data from keys.
      * @return self|array The normalized mapping.
      */
     public function __invoke(?string $mappingName = null, $mappingOrReference = null, array $options = [])
@@ -451,6 +453,8 @@ class MetaMapperConfig
             // TODO Options or mapping to store tables in mapping list (for spreadsheet)? Or module Table.
             'tables' => $options['tables'] ?? [],
             'has_error' => false,
+            // TODO To be removed, only for single manual select.
+            'is_single_manual' => !empty($options['is_single_manual']),
         ];
 
         foreach (['default', 'maps'] as $section) {
@@ -952,6 +956,14 @@ class MetaMapperConfig
         // Skip comments.
         if (!mb_strlen($mapString) || mb_substr($mapString, 0, 1) === ';') {
             return $normalizedMap;
+        }
+
+        if (isset($options['index'])
+            && !empty($options['is_single_manual'])
+            && ($pos = mb_strpos($options['index'], ' '))
+            && !mb_strpos($mapString, ' ')
+        ) {
+            $mapString .= mb_substr($options['index'], $pos);
         }
 
         // The map may be only a destination (like spreadsheet headers), so

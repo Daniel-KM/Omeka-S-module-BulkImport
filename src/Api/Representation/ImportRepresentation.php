@@ -101,14 +101,15 @@ class ImportRepresentation extends AbstractEntityRepresentation
         // Create the manual or automatic mapping from the params.
         /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
         $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-        return $metaMapperConfig(
-            $this->mapper(),
-            $this->mappingParams(),
-            [
-                'resource_name' => $this->importer()->processor()->getResourceName(),
-                'field_types' => $this->importer()->processor()->getFieldTypes(),
-            ]
-        );
+        $mapper = $this->mapper();
+        $mappingParams = $this->mappingParams();
+        $processor = $this->importer()->processor();
+        return $metaMapperConfig($mapper, $mappingParams, [
+            'resource_name' => $processor->getResourceName(),
+            'field_types' => $processor->getFieldTypes(),
+            // TODO Temp option waiting for the full manual form outputing right format, not only the term.
+            'is_single_manual' => $this->importer()->mapper() === 'manual',
+        ]);
     }
 
     public function mappingParams(): array
