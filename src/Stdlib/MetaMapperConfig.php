@@ -401,6 +401,9 @@ class MetaMapperConfig
         // Validate mapping as a whole for default and maps.
         if ($normalizedMapping) {
             foreach (['default', 'maps'] as $section) {
+                if (!isset($normalizedMapping[$section])) {
+                    continue;
+                }
                 if (!$this->areValidMaps($normalizedMapping[$section])) {
                     $this->logger->err(
                         'Mapping "{mapping_name}": invalid map in section "{section}".', // @translate
