@@ -43,7 +43,7 @@ class BulkIdentifiers extends AbstractPlugin
      *
      * @var string
      */
-    protected $us;
+    protected $unitSeparator;
 
     /**
      * @see \BulkImport\Job\ImportTrait
@@ -114,7 +114,7 @@ class BulkIdentifiers extends AbstractPlugin
         $this->findResourcesFromIdentifiers = $findResourcesFromIdentifiers;
 
         // Prepare the unit separator one time.
-        $this->us = function_exists('mb_chr') ? mb_chr(31, 'UTF-8') : chr(31);
+        $this->unitSeparator = function_exists('mb_chr') ? mb_chr(31, 'UTF-8') : chr(31);
     }
 
     public function __invoke(): self
@@ -146,11 +146,13 @@ class BulkIdentifiers extends AbstractPlugin
      */
     public function getId($identifier, ?string $resourceName = null): ?int
     {
+        // TODO Manage the case where there is the same identifier for an item set as title and as preferred label for an item. This is the normal case for a thesaurus.
+        // If the resource name is precise, use it only, else use "resources"? It won't fix issue. Use only the precise name? Use an array or a boolean flag? What for the value stored as "resources": the last value or the first?
         $mainResourceName = $this->mainResourceNames[$resourceName] ?? $resourceName ?? 'resources';
-        $fullIdentifier = $identifier . $this->us . $mainResourceName;
+        $fullIdentifier = $identifier . $this->unitSeparator . $mainResourceName;
         return empty($this->identifiers['map'][$fullIdentifier])
             ? null
-            : (int) strtok((string) $this->identifiers['map'][$fullIdentifier], $this->us);
+            : (int) strtok((string) $this->identifiers['map'][$fullIdentifier], $this->unitSeparator);
     }
 
     /**
@@ -164,7 +166,7 @@ class BulkIdentifiers extends AbstractPlugin
     {
         return empty($this->identifiers['mapx'][$index])
             ? null
-            : (int) strtok((string) $this->identifiers['mapx'][$index], $this->us);
+            : (int) strtok((string) $this->identifiers['mapx'][$index], $this->unitSeparator);
     }
 
     /**
@@ -204,7 +206,7 @@ class BulkIdentifiers extends AbstractPlugin
     public function isPreparedIdentifier($identifier, ?string $resourceName = null): bool
     {
         $mainResourceName = $this->mainResourceNames[$resourceName] ?? $resourceName ?? 'resources';
-        $fullIdentifier = $identifier . $this->us . $mainResourceName;
+        $fullIdentifier = $identifier . $this->unitSeparator . $mainResourceName;
         return array_key_exists($fullIdentifier, $this->identifiers['map']);
     }
 
@@ -236,29 +238,29 @@ class BulkIdentifiers extends AbstractPlugin
         $storeMain = function ($idOrIdentifier, $mainResourceName) use ($resource): void {
             if ($idOrIdentifier) {
                 // No check for duplicates here: it depends on action.
-                $this->identifiers['source'][$resource['source_index']][] = $idOrIdentifier . $this->us . $mainResourceName;
-                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName][$resource['source_index']] = $resource['source_index'];
+                $this->identifiers['source'][$resource['source_index']][] = $idOrIdentifier . $this->unitSeparator . $mainResourceName;
+                $this->identifiers['revert'][$idOrIdentifier . $this->unitSeparator . $mainResourceName][$resource['source_index']] = $resource['source_index'];
             }
             // Source indexes to resource id.
             $this->identifiers['mapx'][$resource['source_index']] = empty($resource['o:id'])
                 ? null
-                : $resource['o:id'] . $this->us . $mainResourceName;
+                : $resource['o:id'] . $this->unitSeparator . $mainResourceName;
             if ($idOrIdentifier) {
                 // Source identifiers to resource id.
                 // No check for duplicate here: last map is the right one.
-                $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = empty($resource['o:id'])
+                $this->identifiers['map'][$idOrIdentifier . $this->unitSeparator . $mainResourceName] = empty($resource['o:id'])
                     ? null
-                    : $resource['o:id'] . $this->us . $mainResourceName;
+                    : $resource['o:id'] . $this->unitSeparator . $mainResourceName;
             }
         };
 
         $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
             // As soon as an array exists, a check can be done on identifier,
             // even if the id is defined later. The same for map.
-            if (!isset($this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName])) {
-                $this->identifiers['revert'][$idOrIdentifier . $this->us . $mainResourceName] = [];
+            if (!isset($this->identifiers['revert'][$idOrIdentifier . $this->unitSeparator . $mainResourceName])) {
+                $this->identifiers['revert'][$idOrIdentifier . $this->unitSeparator . $mainResourceName] = [];
             }
-            $this->identifiers['map'][$idOrIdentifier . $this->us . $mainResourceName] = $vrId;
+            $this->identifiers['map'][$idOrIdentifier . $this->unitSeparator . $mainResourceName] = $vrId;
         };
 
         $mainResourceName = $resource['resource_name'] ?? 'resources';
@@ -349,12 +351,12 @@ class BulkIdentifiers extends AbstractPlugin
         $mainResourceName = $this->mainResourceNames[$resourceName] ?? $resourceName;
 
         // Source indexes to resource id (filled when found or created).
-        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . $this->us . $mainResourceName;
+        $this->identifiers['mapx'][$dataResource['source_index']] = $resourceId . $this->unitSeparator . $mainResourceName;
 
         // Source identifiers to resource id (filled when found or created).
         // No check for duplicate here: last map is the right one.
         foreach ($this->identifiers['source'][$dataResource['source_index']] ?? [] as $idOrIdentifierWithResourceName) {
-            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . $this->us . $mainResourceName;
+            $this->identifiers['map'][$idOrIdentifierWithResourceName] = $resourceId . $this->unitSeparator . $mainResourceName;
         }
 
         return $this;
@@ -381,9 +383,9 @@ class BulkIdentifiers extends AbstractPlugin
             // TODO Merge with storeSourceIdentifiersIds().
             if ($ids) {
                 foreach ($ids as $identifier => $id) {
-                    $idEntity = $id . $this->us . $mainResourceName;
+                    $idEntity = $id . $this->unitSeparator . $mainResourceName;
                     $this->identifiers['mapx'][$resource['source_index']] = $idEntity;
-                    $this->identifiers['map'][$identifier . $this->us . $mainResourceName] = $idEntity;
+                    $this->identifiers['map'][$identifier . $this->unitSeparator . $mainResourceName] = $idEntity;
                 }
                 if (isset($resource['messageStore'])) {
                     $resource['messageStore']->addInfo('identifier', new PsrMessage(
@@ -409,7 +411,7 @@ class BulkIdentifiers extends AbstractPlugin
                 }
             }
         } elseif (!empty($this->identifiers['mapx'][$resource['source_index']])) {
-            $ids = array_fill_keys($identifiers, (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us));
+            $ids = array_fill_keys($identifiers, (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->unitSeparator));
         }
 
         return $ids;
@@ -456,7 +458,7 @@ class BulkIdentifiers extends AbstractPlugin
         $emptyIdentifiers = [];
         foreach ($this->identifiers['map'] as $identifier => $id) {
             if (empty($id)) {
-                $emptyIdentifiers[] = strtok((string) $identifier, $this->us);
+                $emptyIdentifiers[] = strtok((string) $identifier, $this->unitSeparator);
             }
         }
 
@@ -468,16 +470,16 @@ class BulkIdentifiers extends AbstractPlugin
         }
 
         foreach ($ids as $identifier => $id) {
-            $this->identifiers['map'][$identifier . $this->us . $mainResourceName] = $id
-                ? $id . $this->us . $mainResourceName
+            $this->identifiers['map'][$identifier . $this->unitSeparator . $mainResourceName] = $id
+                ? $id . $this->unitSeparator . $mainResourceName
                 : null;
         }
 
         // Fill mapx when possible.
         foreach ($ids as $identifier => $id) {
-            if (!empty($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])) {
-                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . $this->us . $mainResourceName])]
-                    = $id . $this->us . $mainResourceName;
+            if (!empty($this->identifiers['revert'][$identifier . $this->unitSeparator . $mainResourceName])) {
+                $this->identifiers['mapx'][reset($this->identifiers['revert'][$identifier . $this->unitSeparator . $mainResourceName])]
+                    = $id . $this->unitSeparator . $mainResourceName;
             }
         }
 
@@ -501,7 +503,7 @@ class BulkIdentifiers extends AbstractPlugin
             && !empty($resource['source_index'])
             && !empty($this->identifiers['mapx'][$resource['source_index']])
         ) {
-            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->us);
+            $resource['o:id'] = (int) strtok((string) $this->identifiers['mapx'][$resource['source_index']], $this->unitSeparator);
         }
 
         // TODO Move these checks into the right processor.
@@ -511,10 +513,10 @@ class BulkIdentifiers extends AbstractPlugin
             foreach ($resource['o:item_set'] ?? [] as $key => $itemSet) {
                 if (empty($itemSet['o:id'])
                     && !empty($itemSet['source_identifier'])
-                    && !empty($this->identifiers['map'][$itemSet['source_identifier'] . $this->us . 'resources'])
+                    && !empty($this->identifiers['map'][$itemSet['source_identifier'] . $this->unitSeparator . 'resources'])
                     // TODO Add a check for item set identifier.
                 ) {
-                    $resource['o:item_set'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$itemSet['source_identifier'] . $this->us . 'resources'], $this->us);
+                    $resource['o:item_set'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$itemSet['source_identifier'] . $this->unitSeparator . 'resources'], $this->unitSeparator);
                 }
             }
             // TODO Fill media identifiers for update here?
@@ -523,10 +525,10 @@ class BulkIdentifiers extends AbstractPlugin
         if ($resource['resource_name'] === 'media'
             && empty($resource['o:item']['o:id'])
             && !empty($resource['o:item']['source_identifier'])
-            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->us . 'resources'])
+            && !empty($this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->unitSeparator . 'resources'])
             // TODO Add a check for item identifier.
         ) {
-            $resource['o:item']['o:id'] = (int) strtok((string) $this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->us . 'resources'], $this->us);
+            $resource['o:item']['o:id'] = (int) strtok((string) $this->identifiers['map'][$resource['o:item']['source_identifier'] . $this->unitSeparator . 'resources'], $this->unitSeparator);
         }
 
         // TODO Useless for now with assets: don't create resource on unknown resources. Maybe separate options create/skip for main resources and related resources.
@@ -534,10 +536,10 @@ class BulkIdentifiers extends AbstractPlugin
             foreach ($resource['o:resource'] ?? [] as $key => $thumbnailForResource) {
                 if (empty($thumbnailForResource['o:id'])
                     && !empty($thumbnailForResource['source_identifier'])
-                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->us . 'resources'])
+                    && !empty($this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->unitSeparator . 'resources'])
                     // TODO Add a check for resource identifier.
                 ) {
-                    $resource['o:resource'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->us . 'resources'], $this->us);
+                    $resource['o:resource'][$key]['o:id'] = (int) strtok((string) $this->identifiers['map'][$thumbnailForResource['source_identifier'] . $this->unitSeparator . 'resources'], $this->unitSeparator);
                 }
             }
         }
@@ -553,9 +555,9 @@ class BulkIdentifiers extends AbstractPlugin
                     && array_key_exists('value_resource_id', $value)
                     && empty($value['value_resource_id'])
                     && !empty($value['source_identifier'])
-                    && !empty($this->identifiers['map'][$value['source_identifier'] . $this->us . 'resources'])
+                    && !empty($this->identifiers['map'][$value['source_identifier'] . $this->unitSeparator . 'resources'])
                 ) {
-                    $resource[$term][$key]['value_resource_id'] = (int) strtok((string) $this->identifiers['map'][$value['source_identifier'] . $this->us . 'resources'], $this->us);
+                    $resource[$term][$key]['value_resource_id'] = (int) strtok((string) $this->identifiers['map'][$value['source_identifier'] . $this->unitSeparator . 'resources'], $this->unitSeparator);
                 }
             }
         }
