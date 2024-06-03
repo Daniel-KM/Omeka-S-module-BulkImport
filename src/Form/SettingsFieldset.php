@@ -19,6 +19,7 @@ class SettingsFieldset extends Fieldset
 
     public function init(): void
     {
+        // TODO Add a way to override this option for manual import.
         $this
             ->setAttribute('id', 'bulk-import')
             ->setOption('element_groups', $this->elementGroups)
@@ -42,25 +43,6 @@ class SettingsFieldset extends Fieldset
                 ],
                 'attributes' => [
                     'id' => 'bulkimport_extract_metadata_log',
-                ],
-            ])
-            // TODO Option "bulkimport_convert_html" is too specific and should be moved somewhere else.
-            ->add([
-                'name' => 'bulkimport_convert_html',
-                'type' => CommonElement\OptionalMultiCheckbox::class,
-                'options' => [
-                    'element_group' => 'import',
-                    'label' => 'Convert new files to html (styles are kept when html purifier is disabled)', // @translate
-                    'value_options' => [
-                        'doc' => 'Microsoft .doc', // @translate
-                        'docx' => 'Microsoft .docx', // @translate
-                        'odt' => 'OpenDocument .odt (partial)', // @translate
-                        'rtf' => '.rtf', // @translate
-                    ],
-                ],
-                'attributes' => [
-                    'id' => 'bulkimport_convert_html',
-                    'required' => false,
                 ],
             ])
         ;

@@ -110,7 +110,6 @@ class Module extends AbstractModule
             [$this, 'handleMediaIngesterRegisteredNames']
         );
 
-        // Manage the conversion of documents to html.
         // Manage the extraction of medata from medias.
         // The process should be done only for new medias, so keep the list
         // of existing medias before processing.
@@ -252,8 +251,6 @@ class Module extends AbstractModule
     }
 
     /**
-     * @todo Use the same process (job) for extract html and extract metadata.
-     *
      * @param Media $media Media with a media type.
      */
     protected function afterSaveMedia(Media $media, bool $isSingleMediaCreation = false): void
@@ -280,103 +277,6 @@ class Module extends AbstractModule
                 }
             }
         }
-
-        $html = $this->convertToHtml($media);
-        if (is_null($html)) {
-            return;
-        }
-
-        $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-
-        // There is no thumbnails, else keep them anyway.
-        @unlink($basePath . '/original/' . $media->getFilename());
-
-        $mediaData = $media->getData() ?: [];
-        $mediaData['html'] = $html;
-        $media->setData($mediaData);
-        $media->setRenderer('html');
-        $media->setExtension(null);
-        $media->setMediaType(null);
-        $media->setHasOriginal(false);
-        $media->setSha256(null);
-        $media->setStorageId(null);
-
-        $entityManager->persist($media);
-        $entityManager->flush();
-    }
-
-    protected function convertToHtml(Media $media): ?string
-    {
-        static $settingsTypes;
-        static $basePath;
-
-        if (is_null($settingsTypes)) {
-            $services = $this->getServiceLocator();
-            $settings = $services->get('Omeka\Settings');
-            $convertTypes = $settings->get('bulkimport_convert_html', []);
-            $settingsTypes = [
-                'doc' => 'MsDoc',
-                'docx' => 'Word2007',
-                'html' => 'HTML',
-                'htm' => 'HTML',
-                'odt' => 'ODText',
-                'rtf' => 'RTF',
-            ];
-            $settingsTypes = array_intersect_key($settingsTypes, array_flip($convertTypes));
-            $basePath = $services->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        }
-
-        if (!$settingsTypes) {
-            return null;
-        }
-
-        /** @var \Omeka\Entity\Media $media */
-        // Api create post: the media is already saved.
-        $filename = $media->getFilename();
-        if (!$filename) {
-            return null;
-        }
-
-        // TODO Manage cloud paths.
-        $filepath = $basePath . '/original/' . $filename;
-        $mediaType = $media->getMediaType();
-        $extension = $media->getExtension();
-
-        if (!file_exists($filepath) || !is_readable($filepath)) {
-            return null;
-        }
-
-        $types = [
-            'application/msword' => 'MsDoc',
-            'application/rtf' => 'RTF',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
-            'application/vnd.oasis.opendocument.text' => 'ODText',
-            'text/html' => 'HTML',
-            'doc' => 'MsDoc',
-            'docx' => 'Word2007',
-            'html' => 'HTML',
-            'htm' => 'HTML',
-            'odt' => 'ODText',
-            'rtf' => 'RTF',
-        ];
-        $phpWordType = $types[$mediaType] ?? $types[$extension] ?? null;
-        if (empty($phpWordType)
-            || !in_array($phpWordType, $settingsTypes)
-        ) {
-            return null;
-        }
-
-        $phpWord = \PhpOffice\PhpWord\IOFactory::load($filepath, $phpWordType);
-        $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
-        $html = $htmlWriter->getContent();
-        if (!$html) {
-            return null;
-        }
-
-        $startBody = mb_strpos($html, '<body>') + 6;
-        $endBody = mb_strrpos($html, '</body>');
-        return trim(mb_substr($html, $startBody, $endBody - $startBody))
-            ?: null;
     }
 
     /**

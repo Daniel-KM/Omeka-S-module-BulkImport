@@ -376,12 +376,9 @@ SQL;
 }
 
 if (version_compare($oldVersion, '3.4.53', '<')) {
-    $settings->delete('bulkimport_extract_metadata_log');
-    $settings->delete('bulkimport_extract_metadata');
     $settings->delete('bulkimport_convert_html');
-
     $message = new PsrMessage(
-        'Extraction of media metadata and conversion to html were moved back to module BulkImportFiles.' // @translate
+        'The feature to convert documents to html has been removed from this module and will be reintegrated in another one.' // @translate
     );
     $messenger->addSuccess($message);
 }
