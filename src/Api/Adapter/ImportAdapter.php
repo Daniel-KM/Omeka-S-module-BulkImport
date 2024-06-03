@@ -75,9 +75,24 @@ class ImportAdapter extends AbstractEntityAdapter
     {
         $data = $request->getContent();
         $inflector = InflectorFactory::create()->build();
+        /** @var \Doctrine\ORM\EntityManager $entityManager */
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
         foreach ($data as $key => $value) {
             $posColon = strpos($key, ':');
             $keyName = $posColon === false ? $key : substr($key, $posColon + 1);
+            // Refresh values.
+            if (in_array($keyName, ['importer', 'job', 'undo_job'])) {
+                if (is_object($value) && $value->getId()) {
+                    $value = $entityManager->getReference($value->getResourceId(), $value->getId());
+                } elseif (is_numeric($value)) {
+                    $linkeds = [
+                        'importer' => \BulkImport\Entity\Importer::class,
+                        'job' => \Omeka\Entity\Job::class,
+                        'undo_job' => \Omeka\Entity\Job::class,
+                    ];
+                    $value = $entityManager->getReference($linkeds[$keyName], (int) $value);
+                }
+            }
             $method = 'set' . ucfirst($inflector->camelize($keyName));
             if (method_exists($entity, $method)) {
                 $entity->$method($value);

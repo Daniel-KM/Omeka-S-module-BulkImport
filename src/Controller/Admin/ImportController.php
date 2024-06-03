@@ -3,22 +3,19 @@
 namespace BulkImport\Controller\Admin;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Stdlib\PsrMessage;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\View\Model\ViewModel;
-use Common\Stdlib\PsrMessage;
 
 class ImportController extends AbstractActionController
 {
     use ServiceLocatorAwareTrait;
 
-    /**
-     * @param ServiceLocatorInterface $serviceLocator
-     */
-    public function __construct(ServiceLocatorInterface $serviceLocator)
+    public function __construct(ServiceLocatorInterface $services)
     {
-        $this->setServiceLocator($serviceLocator);
+        $this->setServiceLocator($services);
     }
 
     public function indexAction()
@@ -140,9 +137,10 @@ class ImportController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk-import']);
         }
 
+        /** @var \Omeka\Job\Dispatcher $dispatcher */
         $dispatcher = $this->jobDispatcher();
         $job = $dispatcher->dispatch(\BulkImport\Job\Undo::class, ['bulkImportId' => $import->id()]);
-        $this->api()->update('bulk_imports', $import->id(), ['undo_job' => $job], [], ['isPartial' => true]);
+        $this->api()->update('bulk_imports', $import->id(), ['undo_job' => $job->getId()], [], ['isPartial' => true]);
 
         $message = new PsrMessage(
             'Undo in progress for import #{import} with job #{job}.', // @translate
