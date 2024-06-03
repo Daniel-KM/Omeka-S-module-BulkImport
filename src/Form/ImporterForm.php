@@ -54,7 +54,7 @@ class ImporterForm extends Form
                 'options' => [
                     'label' => 'Mapper', // @translate
                     'value_options' => [
-                        // 'automatic' => 'Automatic', // @translate
+                        // 'automatic' => 'Automatic', // @ translate
                         'manual' => 'Manual', // @translate
                     ] + $this->getMapperOptions(),
                     'empty_option' => '',

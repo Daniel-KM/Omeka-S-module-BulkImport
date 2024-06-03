@@ -281,7 +281,7 @@ trait ImportTrait
             $this->entityManager->flush();
         }
 
-        // Process  the import for the resource name.
+        // Process the import for the resource name.
         $this->resourceName = $this->processor->getResourceName();
         $this->reader->setResourceName($this->resourceName);
 

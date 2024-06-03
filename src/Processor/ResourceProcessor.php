@@ -1171,10 +1171,10 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
 
             if (!$hasDatatype) {
+                $val = (string) $val;
+                $valueForMsg = mb_strlen($val) > 120 ? mb_substr($val, 0, 120) . '…' : $val;
                 if ($this->useDatatypeLiteral) {
                     $this->fillPropertyForValue($resource, $indexValue, $term, 'literal', $value);
-                    $val = (string) $val;
-                    $valueForMsg = mb_strlen($val) > 120 ? mb_substr($val, 0, 120) . '…' : $val;
                     if ($this->easyMeta->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
                             'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
