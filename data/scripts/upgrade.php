@@ -2,6 +2,7 @@
 
 namespace BulkImport;
 
+use Common\Stdlib\PsrMessage;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Stdlib\Message;
 
@@ -32,7 +33,7 @@ if (version_compare($newVersion, '3.4.47', '>')
         'To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.', // @translate
         $oldVersion, $newVersion, '3.4.47'
     );
-    throw new ModuleCannotInstallException((string) $message); // @translate
+    throw new ModuleCannotInstallException((string) $message);
 }
 
 if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.58')) {
@@ -411,6 +412,30 @@ SQL;
     );
     $message->setEscapeHtml(false);
     $messenger->addWarning($message);
+}
+
+if (version_compare($oldVersion, '3.4.55', '<')) {
+    $message = new PsrMessage(
+        'The feature to extract metadata from media that was moved in another module in version 3.4.53 is reintegrated. You should set the option in main settings to use it.' // @translate
+    );
+    $messenger->addSuccess($message);
+
+    /** @see \Common\ManageModuleAndResources::checkStringsInFiles() */
+    $manageModuleAndResources = $this->getManageModuleAndResources();
+
+    $checks = [
+        '[mapping]',
+    ];
+    $result = $manageModuleAndResources->checkStringsInFiles($checks, 'data/mapping/json/file.*') ?? [];
+    if ($result) {
+        $message = new PsrMessage(
+            'To keep the feature to extract metadata from media working, you should replace "[mapping]" by "[maps]" in the customized files "data/mapping/file.xxx". Matching files: {json}', // @translate
+            ['json' => json_encode($result, 448)]
+        );
+        $messenger->addError($message);
+        $logger = $services->get('Omeka\Logger');
+        $logger->warn($message->getMessage(), $message->getContext());
+    }
 }
 
 // TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.
