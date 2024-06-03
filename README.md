@@ -37,7 +37,7 @@ Default importers are:
 Installation
 ------------
 
-This module requires the module [Log] and [Common]. An external xslt 2 processor
+This module requires the modules [Log] and [Common]. An external xslt 2 processor
 may be needed if you import xml files that are not importable with xlt 1. Some
 specific readers or processors may need some other modules.
 
@@ -419,8 +419,8 @@ Numeric Data Types) if modules are present:
 - `numeric:timestamp`
 - `numeric:integer`
 - `numeric:duration`
-- `geometry:geography`
-- `geometry:geometry`
+- `geography`
+- `geometry`
 - `customvocab:xxx`
 - `valuesuggest:yyy`
 - `html`
@@ -498,6 +498,7 @@ TODO
 - [ ] Rename "params" by "settings" ("settings" is used job, etc.)?
 - [ ] Implement possibility to select identifier names by column (see old target_data).
 - [ ] Reimplement multiple columns for media when importing items, so possibility to set title, etc. for each media in the same line (see old appendRelated()).
+- [ ] Improve global setting for extraction of metadata in manual item edit and in import settings form.
 
 
 Warning
