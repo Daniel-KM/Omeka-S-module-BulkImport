@@ -10,6 +10,13 @@ use DateTimeZone;
  * methods getDateTimeFromValue (without cache and returns only DateTime, no exception) and
  * getLastDay (of a month).
  * If a cache is needed, use original static method.
+ *
+ * Adapted from module Numeric Data Type.
+ * @see \NumericDataTypes\DataType\AbstractDateTimeDataType::getDateTimeFromValue()
+ *
+ * Copied in:
+ * @see \BulkImport\Processor\DateTimeTrait
+ * @see \Timeline\Mvc\Controller\Plugin\AbstractTimelineData
  */
 trait DateTimeTrait
 {
@@ -46,9 +53,11 @@ trait DateTimeTrait
      * include colons as separators. This follows the standard's best practices,
      * which notes that "The basic format should be avoided in plain text."
      *
+     * Unlike NumericDataTypes, allow non-padded date until 999 (no need 0999).
+     *
      * @var string
      */
-    protected $patternIso8601 = '^(?<date>(?<year>-?\d{4,})(-(?<month>\d{2}))?(-(?<day>\d{2}))?)(?<time>(T(?<hour>\d{2}))?(:(?<minute>\d{2}))?(:(?<second>\d{2}))?)(?<offset>((?<offset_hour>[+-]\d{2})?(:(?<offset_minute>\d{2}))?)|Z?)$';
+    protected $patternIso8601 = '^(?<date>(?<year>-?\d{1,})(-(?<month>\d{2}))?(-(?<day>\d{2}))?)(?<time>(T(?<hour>\d{2}))?(:(?<minute>\d{2}))?(:(?<second>\d{2}))?)(?<offset>((?<offset_hour>[+-]\d{2})?(:(?<offset_minute>\d{2}))?)|Z?)$';
 
     /**
      * Strangely, the "timestamp" may have date time data.
@@ -333,7 +342,7 @@ SQL;
      *
      * @return DateTime|string|null
      */
-    protected function getDateTimeFromValue($value, bool $defaultFirst = true, bool $formatted = false, bool $fullDatetime = false, bool $forSql = false)
+    protected function getDateTimeFromValue($value, bool $defaultFirst = true, bool $formatted = false, bool $fullDatetime = false, bool $forSql = false, $fullData = false)
     {
         // Match against ISO 8601, allowing for reduced accuracy.
         $matches = [];
@@ -479,7 +488,9 @@ SQL;
                 : $dateTime['date']->format($dateTime['format_iso8601']);
         }
 
-        return $dateTime['date'];
+        return $fullData
+            ? $dateTime
+            : $dateTime['date'];
     }
 
     /**
