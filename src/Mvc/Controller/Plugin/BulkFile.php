@@ -425,6 +425,10 @@ class BulkFile extends AbstractPlugin
                 ));
             }
         } else {
+            // The media type may be an invalid or a full one.
+            // Example: https://gallica.bnf.fr/ark:/12148/btv1b11337301n.thumbnail
+            // is "image/jpeg;charset=UTF-8" (for BnF, an image is like a text).
+            $mediaType = strtok($mediaType, ';');
             // In all cases, the media type is checked for aliases.
             // @see \Omeka\File\TempFile::getMediaType().
             $mediaType = \Omeka\File\TempFile::MEDIA_TYPE_ALIASES[$mediaType] ?? $mediaType;
