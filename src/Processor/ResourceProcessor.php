@@ -1215,6 +1215,11 @@ class ResourceProcessor extends AbstractResourceProcessor
      * The value may be a valid value array (with filled key @value or
      * value_resource_id or @id) or an array with a key "__value" for the
      * extracted value by the meta mapper.
+     *
+     * Copy / adapted in:
+     * @see \BulkImport\Processor\ResourceProcessor::fillPropertyForValue()
+     * @see \BulkImport\Job\ExtractMediaMetadata::fillPropertyForValue()
+     * @todo Factorize or normalize fillPropertyForValue().
      */
     protected function fillPropertyForValue(
         ArrayObject $resource,

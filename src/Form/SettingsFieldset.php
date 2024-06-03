@@ -14,7 +14,7 @@ class SettingsFieldset extends Fieldset
     protected $label = 'Bulk Import module'; // @translate
 
     protected $elementGroups = [
-        'import' => 'Import', // @translate
+        'bulk_import' => 'Bulk import', // @translate
     ];
 
     public function init(): void
@@ -27,7 +27,7 @@ class SettingsFieldset extends Fieldset
                 'name' => 'bulkimport_extract_metadata',
                 'type' => Element\Checkbox::class,
                 'options' => [
-                    'element_group' => 'import',
+                    'element_group' => 'bulk_import',
                     'label' => 'Extract metadata from files on save (manual or import)', // @translate
                 ],
                 'attributes' => [
@@ -38,7 +38,7 @@ class SettingsFieldset extends Fieldset
                 'name' => 'bulkimport_extract_metadata_log',
                 'type' => Element\Checkbox::class,
                 'options' => [
-                    'element_group' => 'import',
+                    'element_group' => 'bulk_import',
                     'label' => 'Output extracted metadata temporary in logs to help preparing mapping', // @translate
                 ],
                 'attributes' => [

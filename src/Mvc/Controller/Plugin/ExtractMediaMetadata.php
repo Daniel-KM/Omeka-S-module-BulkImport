@@ -144,7 +144,9 @@ class ExtractMediaMetadata extends AbstractPlugin
             ));
         }
 
-        $resource = $this->metaMapper->__invoke($mappingReference)->convert($data);
+        $resource = $this->metaMapper
+            ->__invoke($mediaType, $mappingReference)
+            ->convert($data);
         return $resource;
     }
 }

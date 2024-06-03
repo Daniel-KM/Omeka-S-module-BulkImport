@@ -130,6 +130,7 @@ class Module extends AbstractModule
             [$this, 'handleAfterSaveItem'],
             -10
         );
+        // TODO Check if the listener "api.create.post" for media is still needed.
         $sharedEventManager->attach(
             \Omeka\Api\Adapter\MediaAdapter::class,
             'api.create.post',
@@ -204,7 +205,6 @@ class Module extends AbstractModule
                 continue;
             }
             $hasFile = true;
-            $this->afterSaveMedia($media);
         }
 
         $services = $this->getServiceLocator();
@@ -240,40 +240,109 @@ class Module extends AbstractModule
         }
     }
 
+    /**
+     * Create metadata for file.
+     *
+     * Normally, this method is never processed directly, only via item.
+     *
+     * @param \Laminas\EventManager\Event $event
+     */
     public function handleAfterCreateMedia(Event $event): void
     {
         /** @var \Omeka\Entity\Media $media */
         $media = $event->getParam('response')->getContent();
-        if (!$media->getMediaType()) {
-            return;
+        if ($media->getMediaType()) {
+            $this->afterSaveMedia($media, true);
         }
-        $this->afterSaveMedia($media, true);
     }
 
     /**
-     * @param Media $media Media with a media type.
+     * @param Media $media Media with a media type and not already processed.
      */
-    protected function afterSaveMedia(Media $media, bool $isSingleMediaCreation = false): void
+    protected function afterSaveMedia(Media $media): void
     {
         static $processedMedia = [];
 
         $mediaId = $media->getId();
-        if (isset($processedMedia[$mediaId])) {
+        if (!$mediaId || isset($processedMedia[$mediaId])) {
             return;
         }
+
         $processedMedia[$mediaId] = true;
 
-        $services = $this->getServiceLocator();
-        /** @var \Doctrine\ORM\EntityManager $entityManager */
-        $entityManager = $services->get('Omeka\EntityManager');
+        $itemId = (int) $media->getItem()->getId();
+        if (!$itemId) {
+            return;
+        }
 
-        if ($isSingleMediaCreation) {
-            $settings = $services->get('Omeka\Settings');
-            if ($settings->get('bulkimport_extract_metadata', false)) {
-                $extractFileMetadata = $services->get('ControllerPluginManager')->get('extractFileMetadata');
-                $result = $extractFileMetadata->__invoke($media);
-                if ($result) {
-                    $entityManager->refresh($media);
+        /**
+         * @var \Doctrine\ORM\EntityManager $entityManager
+         * @var \Omeka\Settings\Settings $settings
+         * @var \Common\Stdlib\EasyMeta $easyMeta
+         * @var \BulkImport\Mvc\Controller\Plugin\ExtractMediaMetadata $extractMediaMetadata
+         *
+         *  @see \BulkImport\Job\ExtractMediaMetadata
+         */
+        $services = $this->getServiceLocator();
+        $entityManager = $services->get('Omeka\EntityManager');
+        $settings = $services->get('Omeka\Settings');
+
+        if ($settings->get('bulkimport_extract_metadata', false)) {
+            $plugins = $services->get('ControllerPluginManager');
+            $easyMeta = $plugins->get('$easyMeta');
+            $extractMediaMetadata = $plugins->get('extractMediaMetadata');
+            $extractedData = $extractMediaMetadata->__invoke($media);
+            if ($extractedData) {
+                /** TODO Remove for Omeka v4. */
+                if (!function_exists('array_key_last')) {
+                    function array_key_last(array $array)
+                    {
+                        return empty($array) ? null : key(array_slice($array, -1, 1, true));
+                    }
+                }
+
+                // Convert the extracted metadata into properties and resource.
+                // TODO Move ResourceProcessor process into a separated Filler to be able to use it anywhere.
+                // For now, just manage resource class, template and properties without check neither linked resource.
+                $data = [];
+                foreach ($extractedData as $dest => $values) {
+                    // TODO Reconvert dest.
+                    $field = strtok($dest, ' ');
+                    if ($field === 'o:resource_class') {
+                        $value = array_key_last($values);
+                        $id = $easyMeta->resourceClassId($value);
+                        $data['o:resource_class'] = $id ? ['o:id' => $id] : null;
+                    } elseif ($field === 'o:resource_template') {
+                        $value = array_key_last($values);
+                        $id = $easyMeta->resourceTemplateId($value);
+                        $data['o:resource_template'] = $id ? ['o:id' => $id] : null;
+                    } elseif (isset($propertyIds[$field])) {
+                        $data[$field] = [];
+                        $values = array_unique($values);
+                        foreach ($values as $value) {
+                            $data[$field][] = [
+                                'type' => 'literal',
+                                'property_id' => $propertyIds[$field],
+                                'is_public' => true,
+                                '@value' => $value,
+                            ];
+                        }
+                    }
+                }
+
+                if ($data) {
+                    try {
+                        $services->get('Omeka\ApiManager')->update('media', ['id' => $mediaId], $data, [], ['isPartial' => true]);
+                        $services->get('Omeka\Logger')->notice(
+                            'Data extracted for media #{media_id}.', // @translate
+                            ['media_id' => $mediaId]
+                        );
+                    } catch (\Exception $e) {
+                        $services->get('Omeka\Logger')->err(
+                            'Media #{media_id}: an issue occurred during update: {exception}.', // @translate
+                            ['media_id' => $mediaId, 'exception' => $e]
+                        );
+                    }
                 }
             }
         }
