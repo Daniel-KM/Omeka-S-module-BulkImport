@@ -440,4 +440,13 @@ if (version_compare($oldVersion, '3.4.55', '<')) {
     }
 }
 
+if (version_compare($oldVersion, '3.4.56', '<')) {
+    // Update existing importers for default action for unidentified resources.
+    $sql = <<<'SQL'
+UPDATE `bulk_importer`
+SET `config` = REPLACE(`config`, '"action_unidentified":"skip"', '"action_unidentified":"error"')
+SQL;
+    $connection->executeStatement($sql);
+}
+
 // TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.
