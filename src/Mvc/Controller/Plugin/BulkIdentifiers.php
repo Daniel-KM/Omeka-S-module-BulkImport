@@ -371,6 +371,7 @@ class BulkIdentifiers extends AbstractPlugin
     {
         // Use source index first, because resource may have no identifier.
         $ids = [];
+
         if (empty($this->identifiers['mapx'][$resource['source_index']])) {
             $mainResourceName = $this->mainResourceNames[$resourceName] ?? $resourceName ?? 'resources';
             if ($mainResourceName === 'assets') {

@@ -11,7 +11,6 @@ use Common\TraitModule;
 use Laminas\EventManager\Event;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\ModuleManager\ModuleManager;
-use Laminas\Mvc\MvcEvent;
 use Omeka\Entity\Media;
 use Omeka\Module\AbstractModule;
 

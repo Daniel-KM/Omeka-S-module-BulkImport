@@ -51,7 +51,7 @@ trait CommonProcessTrait
                 'name' => 'skip_missing_files',
                 'type' => Element\Checkbox::class,
                 'options' => [
-                    'label' => 'Don’t stop process when a file is missing (import item metadata only)', // @translate
+                    'label' => 'Don’t stop process when a file attached to an item is missing (import item metadata only)', // @translate
                 ],
                 'attributes' => [
                     'id' => 'skip_missing_files',
