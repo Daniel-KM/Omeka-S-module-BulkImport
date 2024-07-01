@@ -62,13 +62,14 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                     'label' => 'Action on unidentified resources', // @translate
                     'info' => 'What to do when a resource to update does not exist.', // @translate
                     'value_options' => [
+                        \BulkImport\Processor\AbstractResourceProcessor::ACTION_ERROR => 'Set error', // @translate
                         \BulkImport\Processor\AbstractProcessor::ACTION_SKIP => 'Skip entry', // @translate
                         \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create a new resource', // @translate
                     ],
                 ],
                 'attributes' => [
                     'id' => 'action_unidentified',
-                    'value' => \BulkImport\Processor\AbstractProcessor::ACTION_SKIP,
+                    'value' => \BulkImport\Processor\AbstractResourceProcessor::ACTION_ERROR,
                 ],
             ])
 

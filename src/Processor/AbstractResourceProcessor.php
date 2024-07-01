@@ -22,6 +22,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     use ConfigurableTrait, ParametrizableTrait;
 
     /**
+     * Specific action used for unidentified identifiers..
+     *
+     * @var string
+     */
+    const ACTION_ERROR = 'error';
+
+    /**
      * Specific action used for sub update, for example the resources for a new
      * thumbnail.
      *
@@ -310,6 +317,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     {
         $this->actionUnidentified = $this->getParam('action_unidentified') ?: self::ACTION_SKIP;
         if (!in_array($this->actionUnidentified, [
+            'error',
             self::ACTION_CREATE,
             self::ACTION_SKIP,
         ])) {
@@ -588,6 +596,21 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->fillId($resource);
         }
 
+        $listIdentifiers = function (ArrayObject $resource): array {
+            // To simplify check of source, log all identifiers when
+            // possible and append common identifiers and titles.
+            $identifiers = $this->extractIdentifiersAll($resource);
+            $identifierCommon = $this->extractIdentifierCommon($resource);
+            if ($identifierCommon) {
+                $identifiers['identifier'][] = $identifierCommon;
+            }
+            $identifierTitle = $this->extractIdentifierTitle($resource);
+            if ($identifierTitle) {
+                $identifiers['title'][] = $identifierTitle;
+            }
+            return $identifiers;
+        };
+
         if ($resource['o:id']) {
             if (!$this->actionRequiresId()) {
                 if ($this->allowDuplicateIdentifiers) {
@@ -597,34 +620,50 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         unset($resource['o:id']);
                     }
                 } else {
-                    $identifier = $this->extractIdentifierOrTitle($resource);
-                    if ($this->action === self::ACTION_CREATE) {
+                    $identifiers = $listIdentifiers($resource);
+                    $resourceNameLabel = $this->easyMeta->resourceLabel($resource['resource_name']);
+                    if (!$identifiers) {
                         $resource['messageStore']->addError('resource', new PsrMessage(
-                            'The action "{action}" cannot have an id or a duplicate identifier ({identifier}, #{resource_id}).', // @translate
-                            ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
+                            'The action "{action}" requires an identifier ({resource_name} #{resource_id}).', // @translate
+                            ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id']]
+                        ));
+                    } elseif ($this->action === self::ACTION_CREATE) {
+                        $resource['messageStore']->addError('resource', new PsrMessage(
+                            'The action "{action}" cannot have an id or a duplicate identifier ({resource_name} #{resource_id}): {json}', // @translate
+                            ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id'], 'json' => $identifiers]
                         ));
                     } else {
                         $resource['messageStore']->addError('resource', new PsrMessage(
-                            'The action "{action}" requires a unique identifier ({identifier}, #{resource_id}).', // @translate
-                            ['action' => $this->action, 'identifier' => $identifier, 'resource_id' => $resource['o:id']]
+                            'The action "{action}" requires a unique identifier ({resource_name} #{resource_id}): {json}', // @translate
+                            ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id'], 'json' => $identifiers]
                         ));
                     }
                 }
             }
         }
-        // No resource id, so it is an error, so add message if choice is skip.
-        elseif ($this->actionRequiresId() && $this->actionUnidentified === self::ACTION_SKIP) {
-            $identifier = $this->extractIdentifierOrTitle($resource);
-            if ($this->allowDuplicateIdentifiers) {
-                $resource['messageStore']->addError('identifier', new PsrMessage(
-                    'The action "{action}" requires an identifier ({identifier}).', // @translate
-                    ['action' => $this->action, 'identifier' => $identifier]
-                ));
+        // No resource id but the action requires one. If the option for
+        // undefined id is to create new resources, it is normal. If the option
+        // is to skip the current line, add a warning, else an error.
+        elseif ($this->actionRequiresId()
+            && in_array($this->actionUnidentified, [self::ACTION_ERROR, self::ACTION_SKIP])
+        ) {
+            $identifiers = $listIdentifiers($resource);
+            $logLevel = $this->actionUnidentified === self::ACTION_SKIP ? \Laminas\Log\Logger::WARN: \Laminas\Log\Logger::ERR;
+            if (!$identifiers) {
+                $resource['messageStore']->addMessage('identifier', new PsrMessage(
+                    'The action "{action}" requires an identifier.', // @translate
+                    ['action' => $this->action]
+                ), $logLevel);
+            } elseif ($this->allowDuplicateIdentifiers) {
+                $resource['messageStore']->addMessage('identifier', new PsrMessage(
+                    'The action "{action}" requires an identifier: {json}', // @translate
+                    ['action' => $this->action, 'json' => $identifiers]
+                ), $logLevel);
             } else {
-                $resource['messageStore']->addError('identifier', new PsrMessage(
-                    'The action "{action}" requires a unique identifier ({identifier}).', // @translate
-                    ['action' => $this->action, 'identifier' => $identifier]
-                ));
+                $resource['messageStore']->addMessage('identifier', new PsrMessage(
+                    'The action "{action}" requires a unique identifier: {json}', // @translate
+                    ['action' => $this->action, 'json' => $identifiers]
+                ), $logLevel);
             }
         }
 
@@ -1375,15 +1414,43 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         return null;
     }
 
-    protected function extractIdentifierOrTitle(ArrayObject $resource): ?string
+    protected function extractIdentifiersAll(ArrayObject $resource): array
+    {
+        $result = [];
+        foreach ($this->identifierNames as $identifierName) {
+            if (empty($resource[$identifierName])) {
+                continue;
+            }
+            if ($identifierName === 'o:display_title') {
+                if (!empty($resource['o:display_title'])) {
+                    $result[$identifierName][] = (string) $resource['o:display_title'];
+                }
+            } elseif ($this->easyMeta->propertyId($identifierName)) {
+                foreach ($resource[$identifierName] as $value) {
+                    if (!empty($value['@value'])) {
+                        $result[$identifierName][] = (string) $value['@value'];
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+    protected function extractIdentifierCommon(ArrayObject $resource): ?string
     {
         if (!empty($resource['dcterms:identifier'][0]['@value'])) {
             return (string) $resource['dcterms:identifier'][0]['@value'];
+        } elseif (!empty($resource['bibo:identifier'][0]['@value'])) {
+            return (string) $resource['bibo:identifier'][0]['@value'];
         }
+        return null;
+    }
+
+    protected function extractIdentifierTitle(ArrayObject $resource): ?string
+    {
         if (!empty($resource['o:display_title'])) {
             return (string) $resource['o:display_title'];
-        }
-        if (!empty($resource['o:resource_template']['o:id'])) {
+        } elseif (!empty($resource['o:resource_template']['o:id'])) {
             $templateTitleId = $this->bulk->resourceTemplateTitleIds()[($resource['o:resource_template']['o:id'])] ?? null;
             if ($templateTitleId && !empty($resource[$templateTitleId][0]['@value'])) {
                 return (string) $resource[$templateTitleId][0]['@value'];
@@ -1391,11 +1458,9 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
         if (!empty($resource['dcterms:title'][0]['@value'])) {
             return (string) $resource['dcterms:title'][0]['@value'];
-        }
-        if (!empty($resource['foaf:name'][0]['@value'])) {
+        } elseif (!empty($resource['foaf:name'][0]['@value'])) {
             return (string) $resource['foaf:name'][0]['@value'];
-        }
-        if (!empty($resource['skos:preferredLabel'][0]['@value'])) {
+        } elseif (!empty($resource['skos:preferredLabel'][0]['@value'])) {
             return (string) $resource['skos:preferredLabel'][0]['@value'];
         }
         return null;

@@ -17,7 +17,7 @@ return [
             'entries_max' => null,
             'o:owner' => "current",
             'action' => 'create',
-            'action_unidentified' => 'skip',
+            'action_unidentified' => 'error',
             'identifier_name' => [
                 'o:id',
             ],

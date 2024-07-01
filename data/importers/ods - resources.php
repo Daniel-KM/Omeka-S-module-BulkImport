@@ -20,7 +20,7 @@ return [
             'o:owner' => "current",
             'o:is_public' => null,
             'action' => 'create',
-            'action_unidentified' => 'skip',
+            'action_unidentified' => 'error',
             'identifier_name' => [
                 'o:id',
             ],
