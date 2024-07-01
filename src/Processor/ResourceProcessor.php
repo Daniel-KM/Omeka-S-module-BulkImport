@@ -37,18 +37,17 @@ class ResourceProcessor extends AbstractResourceProcessor
         'o:owner' => 'entity',
         // Alias of "o:owner" here.
         'o:email' => 'entity',
-        // A common, but special and complex key, so managed in meta config too.
-        'property' => 'arrays',
         // Generic.
         'o:resource_template' => 'entity',
         'o:resource_class' => 'entity',
         'o:thumbnail' => 'entity',
+        // A common, but special and complex key, so managed in meta config too.
+        'property' => 'arrays',
+
         // Item.
         'o:item_set' => 'entities',
-        'o:media' => 'entities',
-        // Media.
-        'o:item' => 'entity',
         // Media, but there may be multiple urls, files, etc. for an item.
+        'o:media' => 'entities',
         'o:lang' => 'strings',
         'o:ingester' => 'strings',
         'o:source' => 'strings',
@@ -56,9 +55,21 @@ class ResourceProcessor extends AbstractResourceProcessor
         'ingest_directory' => 'strings',
         'ingest_url' => 'strings',
         'html' => 'strings',
+
+        // Media.
+        'o:item' => 'entity',
+        // 'o:lang' => 'string',
+        // 'o:ingester' => 'string',
+        // 'o:source' => 'string',
+        // 'ingest_filename' => 'string',
+        // 'ingest_directory' => 'string',
+        // 'ingest_url' => 'string',
+        // 'html' => 'string',
+
         // Item set.
         'o:is_open' => 'boolean',
         'o:items' => 'entities',
+
         // Modules.
         // Module Mapping.
         // There can be only one mapping zone.

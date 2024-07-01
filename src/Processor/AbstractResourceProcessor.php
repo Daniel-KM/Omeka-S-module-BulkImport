@@ -398,6 +398,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'messageStore' => 'skip',
         ];
 
+        // The generic resource contains all field types of specific resources.
+
         $currentFieldTypes = empty($resource['resource_name']) || $resource['resource_name'] === $this->resourceName
             ? $this->fieldTypes
             : $this->getFieldTypesForResource($resource['resource_name']);

@@ -22,10 +22,6 @@ class ItemProcessor extends ResourceProcessor
      * @var array
      */
     protected $fieldTypes = [
-        // Internal keys of the base entities to skip.
-        'checked_id' => 'skip',
-        'source_index' => 'skip',
-        'messageStore' => 'skip',
         // Common metadata.
         'resource_name' => 'string',
         // "o:id" may be an identifier.
@@ -36,12 +32,10 @@ class ItemProcessor extends ResourceProcessor
         'o:owner' => 'entity',
         // Alias of "o:owner" here.
         'o:email' => 'entity',
+        // Generic.
         'o:resource_template' => 'entity',
         'o:resource_class' => 'entity',
         'o:thumbnail' => 'entity',
-        'o:owner' => 'entity',
-        // Alias of 'o:owner'.
-        'o:email' => 'entity',
         // A common, but special and complex key, so managed in meta config too.
         'property' => 'arrays',
         // Item.

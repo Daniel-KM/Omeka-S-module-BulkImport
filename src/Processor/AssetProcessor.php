@@ -32,6 +32,8 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         'resource_name' => 'string',
         // "o:id" may be an identifier.
         'o:id' => 'string',
+        'o:created' => 'datetime',
+        'o:modified' => 'datetime',
         'o:owner' => 'entity',
         // Alias of "o:owner" here.
         'o:email' => 'entity',

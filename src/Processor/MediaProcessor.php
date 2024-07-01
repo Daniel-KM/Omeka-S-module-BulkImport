@@ -32,6 +32,7 @@ class MediaProcessor extends ResourceProcessor
         'o:owner' => 'entity',
         // Alias of "o:owner" here.
         'o:email' => 'entity',
+        // Generic.
         'o:resource_template' => 'entity',
         'o:resource_class' => 'entity',
         'o:thumbnail' => 'entity',

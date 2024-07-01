@@ -249,7 +249,7 @@ class MetaMapperConfig
      * // To be removed?
      * - resource_name (string) : same as info[to]
      * - field_types (array) : Field types of a resource from the processor.
-     * // Tempo fix to be removed with new manual form
+     * // Tempo fix to be removed with new manual form.
      * - is_single_manual (bool): should prepare mapping with full data from keys.
      * @return self|array The normalized mapping.
      */
@@ -316,8 +316,8 @@ class MetaMapperConfig
      *
      * Only the settings for the namable sections can be get, of course.
      *
-     * For sections with type "mapping", the name is the "from" path and all the
-     * setting is output.
+     * For sections with type "mapping" or "maps", the name is the "from" path
+     * and all the setting is output.
      *
      * @todo Remove the exception for mapping.
      */
@@ -390,6 +390,7 @@ class MetaMapperConfig
         } elseif (is_array($mappingOrReference) && isset($mappingOrReference['info'])) {
             $normalizedMapping = $this->prepareMappingNormalized($mappingOrReference, $options);
         } elseif (is_array($mappingOrReference)) {
+            // In particular for spreadsheet.
             $normalizedMapping = $this->prepareMappingList($mappingOrReference, $options);
         } else {
             $content = $this->prepareMappingContent($mappingOrReference);
@@ -875,6 +876,7 @@ class MetaMapperConfig
         if (is_array($map)) {
             // When the map is an array of maps, each map can be a string or an
             // array, so do a recursive loop in such a case.
+            // It is used in particular for spreadsheet.
             if (is_numeric(key($map))) {
                 $result = [];
                 foreach ($map as $mapp) {
@@ -961,10 +963,19 @@ class MetaMapperConfig
             return $normalizedMap;
         }
 
+        // TODO To be removed, only for single manual select (in particular spreadsheet).
+        // With the manual mapping for now, the source is limited to the a
+        // single field, for example "dcterms:date ^^numeric:timestamp" is
+        // mapped to "dcterms:date" only, so the next part of the source should
+        // be reappended. It is managed only for valid property term for now
+        // (useless anywhere else anyway).
+        // It will be fixed when the manual mapping will contains all details.
         if (isset($options['index'])
             && !empty($options['is_single_manual'])
             && ($pos = mb_strpos($options['index'], ' '))
             && !mb_strpos($mapString, ' ')
+            && $mapString !== $options['index']
+            && $this->easyMeta->propertyId($mapString)
         ) {
             $mapString .= mb_substr($options['index'], $pos);
         }
@@ -1049,7 +1060,7 @@ class MetaMapperConfig
                 ];
             }
         } else {
-            // Type of section is "mapping".
+            // Type of section is "mapping" / "maps".
             if (!strlen($to)) {
                 if (!strlen($from)) {
                     $normalizedMap['has_error'] = new PsrMessage('The map "{map}" has no destination.', // @translate
