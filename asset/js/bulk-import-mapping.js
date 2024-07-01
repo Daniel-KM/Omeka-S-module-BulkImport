@@ -111,6 +111,9 @@
 
         var editor = CodeMirror.fromTextArea(document.getElementById(textarea), {
             mode: 'xml',
+            matchTags: true,
+            // autoCloseTags: true,
+            showTrailingSpace: true,
             lineNumbers: true,
             indentUnit: 4,
             undoDepth: 1000,
