@@ -697,7 +697,7 @@ trait ImportTrait
         }
 
         $this->logger->notice(
-            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when existing or linked resources are not found.', // @translate
+            'Fields used to map identifiers: {names}. Check them if the mapping is not right or when existing or linked resources are not found. If you use title, check for duplicates.', // @translate
             ['names' => implode(', ', array_keys($this->identifierNames))]
         );
 

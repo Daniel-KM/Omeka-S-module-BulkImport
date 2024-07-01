@@ -2,7 +2,6 @@
 
 namespace BulkImport\Processor;
 
-use Common\Stdlib\PsrMessage;
 use Omeka\Entity\Resource;
 
 /**
@@ -927,16 +926,16 @@ SQL;
             // Continue in order to update other metadata, in particular item.
             else {
                 if ($source['o:media_type'] !== $result['data']['media_type']) {
-                    $this->logger->err(new PsrMessage(
+                    $this->logger->err(
                         'Media type of media #{id} is different from the original one ({media_type}).', // @translate
                         ['id' => $this->entity->getId(), 'media_type' => $source['o:media_type']]
-                    ));
+                    );
                 }
                 if ($source['o:sha256'] !== $result['data']['sha256']) {
-                    $this->logger->err(new PsrMessage(
+                    $this->logger->err(
                         'Hash of media #{id} is different from the original one.', // @translate
                         ['id' => $this->entity->getId()]
-                    ));
+                    );
                 }
                 $this->entity->setStorageId($storageId);
                 $this->entity->setExtension($extension);

@@ -45,17 +45,17 @@ class ExtractMediaMetadata extends AbstractJob
 
         $settings = $services->get('Omeka\Settings');
         if (!$settings->get('bulkimport_extract_metadata', false)) {
-            $logger->warn(new PsrMessage(
+            $logger->warn(
                 'The setting to extract metadata is not set.' // @translate
-            ));
+            );
             return;
         }
 
         $itemId = (int) $this->getArg('item_id');
         if (!$itemId) {
-            $logger->warn(new PsrMessage(
+            $logger->warn(
                 'No item is set.' // @translate
-            ));
+            );
             return;
         }
 
@@ -64,10 +64,10 @@ class ExtractMediaMetadata extends AbstractJob
         try {
             $item = $api->read('items', ['id' => $itemId], [], ['responseContent' => 'resource'])->getContent();
         } catch (\Exception $e) {
-            $logger->err(new PsrMessage(
+            $logger->err(
                 'The item #{item_id} is not available.', // @translate
                 ['item_id' => $itemId]
-            ));
+            );
             return;
         }
 

@@ -14,7 +14,6 @@ use BulkImport\Stdlib\MetaMapper;
 use JamesHeinrich\GetID3\GetId3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Common\Stdlib\PsrMessage;
 use Omeka\Entity\Media;
 
 /**
@@ -114,15 +113,15 @@ class ExtractMediaMetadata extends AbstractPlugin
 
         if (!empty($mapping['has_error'])) {
             if ($mapping['has_error'] === true) {
-                $this->logger->err(new PsrMessage(
+                $this->logger->err(
                     'Error in the mapping config "{name}".', // @translate
                     ['name' => $mappingReference]
-                ));
+                );
             } else {
-                $this->logger->err(new PsrMessage(
+                $this->logger->err(
                     'Error in the mapping config: {message}', // @translate
                     ['message' => $mapping['has_error']]
-                ));
+                );
             }
             return null;
         }
@@ -140,11 +139,15 @@ class ExtractMediaMetadata extends AbstractPlugin
         }
 
         if ($this->logExtractedMetadata) {
-            $this->logger->info(new PsrMessage(
-                'Extracted metadata for media #{media_id}: {json}', // @translate
+            $this->logger->info(
+                'Extracted metadata for media #{media_id} (item #{item_id}): {json}', // @translate
                 // Use pretty print and JSON_INVALID_UTF8_SUBSTITUTE.
-                ['media_id' => $media->getId(), 'json' => json_encode($data, 2097600)]
-            ));
+                [
+                    'media_id' => $media->getId(),
+                    'item_id' => $media->getItem()->getId(),
+                    'json' => json_encode($data, 2097600)
+                ]
+            );
         }
 
         $resource = $this->metaMapper

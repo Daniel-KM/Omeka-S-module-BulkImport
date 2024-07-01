@@ -22,6 +22,8 @@ $plugins = $services->get('ControllerPluginManager');
 $api = $plugins->get('api');
 $config = $services->get('Config');
 $settings = $services->get('Omeka\Settings');
+$translate = $plugins->get('translate');
+$translator = $services->get('MvcTranslator');
 $connection = $services->get('Omeka\Connection');
 $messenger = $plugins->get('messenger');
 $entityManager = $services->get('Omeka\EntityManager');
@@ -30,7 +32,7 @@ if (version_compare($newVersion, '3.4.47', '>')
     && (version_compare($oldVersion, '3.3.35', '<') || version_compare($oldVersion, '3.4.35', '<'))
 ) {
     $message = new Message(
-        'To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.', // @translate
+        $translate('To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.'), // @translate
         $oldVersion, $newVersion, '3.4.47'
     );
     throw new ModuleCannotInstallException((string) $message);
@@ -38,7 +40,7 @@ if (version_compare($newVersion, '3.4.47', '>')
 
 if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.58')) {
     $message = new Message(
-        'The module %1$s should be upgraded to version %2$s or later.', // @translate
+        $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
         'Common', '3.4.58'
     );
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
@@ -68,7 +70,7 @@ if (version_compare($oldVersion, '3.3.36', '<')) {
     }
     $entityManager->flush();
 
-    $message = new Message(
+    $message = new PsrMessage(
         'It is now possible to import xml mets and xml mods.' // @translate
     );
     $messenger->addSuccess($message);
@@ -97,15 +99,15 @@ if (version_compare($oldVersion, '3.3.38', '<')) {
     }
     $entityManager->flush();
 
-    $message = new Message(
+    $message = new PsrMessage(
         'It is now possible to import xml ead.' // @translate
     );
     $messenger->addSuccess($message);
-    $message = new Message(
+    $message = new PsrMessage(
         'It is now possible to pass params to xsl conversion for xml sources.' // @translate
     );
     $messenger->addSuccess($message);
-    $message = new Message(
+    $message = new PsrMessage(
         'It is now possible to create table of contents for IIIF viewer from mets and ead sources.' // @translate
     );
     $messenger->addSuccess($message);
@@ -399,7 +401,7 @@ SQL;
     $connection->executeStatement($sql);
 
     $message = new PsrMessage(
-        'The installer and the spreadsheet readers were fixed to allow to adapt mapping manually.', //@translate
+        'The installer and the spreadsheet readers were fixed to allow to adapt mapping manually.' //@translate
     );
     $messenger->addWarning($message);
 

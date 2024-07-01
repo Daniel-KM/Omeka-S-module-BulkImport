@@ -394,7 +394,7 @@ class BulkIdentifiers extends AbstractPlugin
                             'identifier' => key($ids),
                             'metadata' => $identifierName,
                             'resource_name' => $this->easyMeta->resourceLabel($resourceName),
-                            'resource_id' => $resource['o:id'],
+                            'resource_id' => $id,
                         ]
                     ));
                 } else {
@@ -405,7 +405,7 @@ class BulkIdentifiers extends AbstractPlugin
                             'identifier' => key($ids),
                             'metadata' => $identifierName,
                             'resource_name' => $this->easyMeta->resourceLabel($resourceName),
-                            'resource_id' => $resource['o:id'],
+                            'resource_id' => $id,
                         ]
                     );
                 }

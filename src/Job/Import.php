@@ -301,9 +301,9 @@ class Import extends AbstractJob
         try {
             $mailer->send($message);
         } catch (\Exception $e) {
-            $this->logger->log(Logger::ERR, new \Omeka\Stdlib\Message(
+            $this->logger->err(
                 'Error when sending email to notify end of process.' // @translate
-            ));
+            );
         }
 
         return $this;

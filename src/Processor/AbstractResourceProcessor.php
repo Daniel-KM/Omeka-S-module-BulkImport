@@ -699,7 +699,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (!$this->checkAdapter($resource['resource_name'], $operation)) {
             $resource['messageStore']->addError('rights', new PsrMessage(
                 'User has no rights to "{action}" {resource_name}.', // @translate
-                ['action' => $operation, 'resource_name' => $resource['resource_name']]
+                ['action' => $operation, 'resource_name' => $this->easyMeta->resourceLabel($resource['resource_name'])]
             ));
             return false;
         }
@@ -766,7 +766,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             if (!$this->acl->userIsAllowed($entity, $operation)) {
                 $resource['messageStore']->addError('rights', new PsrMessage(
                     'User has no rights to "{action}" {resource_name} {resource_id}.', // @translate
-                    ['action' => $operation, 'resource_name' => $resource['resource_name'], 'resource_id' => $resource['o:id']]
+                    ['action' => $operation, 'resource_name' => $this->easyMeta->resourceLabel($resource['resource_name']), 'resource_id' => $resource['o:id']]
                 ));
                 return false;
             }
@@ -1006,9 +1006,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($resource['o:id']) {
             $resourceName = $resource['resource_name'] ?: $this->getResourceName();
             $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
-            if (empty($resourceName) || $resourceName === 'resources') {
+            if (empty($resourceName)) {
                 $resource['messageStore']->addError('resource_name', new PsrMessage(
                     'The resource id #{id} cannot be checked: the resource type is undefined.', // @translate
+                    ['id' => $resource['o:id']]
+                ));
+            } elseif ($resourceName === 'resources') {
+                $resource['messageStore']->addError('resource_name', new PsrMessage(
+                    'The resource id #{id} cannot be checked: the resource type is unspecified.', // @translate
                     ['id' => $resource['o:id']]
                 ));
             } else {
@@ -1048,9 +1053,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resourceName = empty($resource['resource_name'])
             ? $this->getResourceName()
             : $resource['resource_name'];
-        if (empty($resourceName) || $resourceName === 'resources') {
+        if (empty($resourceName)) {
             $resource['messageStore']->addError('resource_name', new PsrMessage(
                 'The resource id cannot be filled: the resource type is undefined.' // @translate
+            ));
+        } elseif ($resourceName === 'resources') {
+            $resource['messageStore']->addError('resource_name', new PsrMessage(
+                'The resource id cannot be filled: the resource type is unspecified.' // @translate
             ));
         }
 
@@ -1066,11 +1075,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if (empty($idNames)) {
             if ($this->allowDuplicateIdentifiers) {
                 $resource['messageStore']->addWarning('identifier', new PsrMessage(
-                    'The resource has no identifier.' // @translate
+                    'The resource has no identifier. You may check the identifier names set in import form or check if the resource type is the right one.' // @translate
                 ));
             } else {
                 $resource['messageStore']->addError('identifier', new PsrMessage(
-                    'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed.' // @translate
+                    'The resource id cannot be filled: no metadata defined as identifier and duplicate identifiers are not allowed. You may check the identifier names set in import form or check if the resource type is the right one.' // @translate
                 ));
             }
             return false;
