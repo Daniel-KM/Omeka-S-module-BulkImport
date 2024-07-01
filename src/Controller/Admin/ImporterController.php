@@ -523,7 +523,9 @@ class ImporterController extends AbstractActionController
         }
 
         $messagePre = '';
-        if ($form instanceof \BulkImport\Form\Reader\SpreadsheetReaderConfigForm) {
+        if ($form instanceof \BulkImport\Form\Reader\SpreadsheetReaderConfigForm
+            || $form instanceof \BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderConfigForm
+        ) {
             $messagePre = sprintf(
                 $this->translate('See the %1$sread me%2$s to learn how to write spreadsheets headers for a quick mapping, with data type and language. Example : %3$s'), // @translate
                 '<a href="https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#spreadsheet">', '</a>', '<br/>dcterms:date ^^timestamp ^^literal @fra §private'
