@@ -1079,6 +1079,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 break;
 
             case 'iiif':
+                $value = $ingestUrl ?? $ingestFilename;
                 if (!$this->bulk->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
                     $value = $this->options['iiifserver_media_api_url'] . $value;
                 }
