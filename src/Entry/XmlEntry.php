@@ -329,10 +329,11 @@ class XmlEntry extends BaseEntry
                     break;
 
                 case 'iiif':
+                case 'iiif_presentation':
                     if (!$this->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
                         $value = $this->options['iiifserver_media_api_url'] . $value;
                     }
-                    $media['o:ingester'] = 'iiif';
+                    $media['o:ingester'] = $ingester;
                     $media['ingest_url'] = $value;
                     unset($media['ingest_filename']);
                     unset($media['ingest_directory']);

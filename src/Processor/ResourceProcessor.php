@@ -664,6 +664,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'file':
             case 'html':
             case 'iiif':
+            case 'iiif_presentation':
             case 'tile':
             case 'url':
                 // These values are already filled in the resource.
@@ -891,6 +892,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'file':
             case 'html':
             case 'iiif':
+            case 'iiif_presentation':
             case 'tile':
             case 'url':
                 // Here, the media has a key that should not be a key, but the
@@ -915,7 +917,7 @@ class ResourceProcessor extends AbstractResourceProcessor
      * The resource may be an item or a media.
      *
      * @see \BulkImport\Entry\XmlEntry::initMediaBase()
-     * @todo Manage other types (iiif presentation, youtube, etc.).
+     * @todo Manage other types (youtube, etc.).
      */
     protected function prepareMediaData(ArrayObject $resource, string $field, $value): array
     {
@@ -975,9 +977,10 @@ class ResourceProcessor extends AbstractResourceProcessor
                 return $media;
 
             case 'iiif':
+            case 'iiif_presentation':
                 $media = [];
                 $media['resource_name'] = 'media';
-                $media['o:ingester'] = 'iiif';
+                $media['o:ingester'] = $field;
                 if (!$this->bulk->isUrl($value)) {
                     $value = $this->getParam('iiifserver_media_api_url', '') . $value;
                 }
@@ -1079,11 +1082,12 @@ class ResourceProcessor extends AbstractResourceProcessor
                 break;
 
             case 'iiif':
+            case 'iiif_presentation':
                 $value = $ingestUrl ?? $ingestFilename;
                 if (!$this->bulk->isUrl($value) && !empty($this->options['iiifserver_media_api_url'])) {
                     $value = $this->options['iiifserver_media_api_url'] . $value;
                 }
-                $resource['o:ingester'] = 'iiif';
+                $resource['o:ingester'] = $ingester;
                 $resource['ingest_url'] = $value;
                 unset($resource['ingest_filename']);
                 unset($resource['ingest_directory']);

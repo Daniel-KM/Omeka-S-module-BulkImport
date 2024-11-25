@@ -151,6 +151,10 @@ return [
         => 'iiif',
     'iiif image' // @translate
         => 'iiif',
+    'iiif presentation' // @translate
+        => 'iiif_presentation',
+    'iiif_presentation' // @translate
+        => 'iiif_presentation',
     'oembed' // @translate
         => 'oembed',
     'youtube' // @translate

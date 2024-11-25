@@ -43,6 +43,7 @@ class ResourceMappingParamsForm extends AbstractResourceMappingParamsForm
                     'directory' => 'Directory', // @translate
                     'html' => 'Html', // @translate
                     'iiif' => 'IIIF Image', // @translate
+                    'iiif_presentation' => 'IIIF Presentation', // @translate
                     // Removed since Image Server 3.6.13.
                     // 'tile' => 'Tile', // @translate
                     'o:media/dcterms:title' => 'Title', // @translate
