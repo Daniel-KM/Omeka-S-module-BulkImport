@@ -53,11 +53,12 @@ trait DateTimeTrait
      * include colons as separators. This follows the standard's best practices,
      * which notes that "The basic format should be avoided in plain text."
      *
-     * Unlike NumericDataTypes, allow non-padded date until 999 (no need 0999).
+     * Unlike NumericDataTypes, allow non-padded date until 999 (no need 0999)
+     * and allow missing ":" between hours and minutes in offset.
      *
      * @var string
      */
-    protected $patternIso8601 = '^(?<date>(?<year>-?\d{1,})(-(?<month>\d{2}))?(-(?<day>\d{2}))?)(?<time>(T(?<hour>\d{2}))?(:(?<minute>\d{2}))?(:(?<second>\d{2}))?)(?<offset>((?<offset_hour>[+-]\d{2})?(:(?<offset_minute>\d{2}))?)|Z?)$';
+    protected $patternIso8601 = '^(?<date>(?<year>-?\d{1,})(-(?<month>\d{2}))?(-(?<day>\d{2}))?)(?<time>(T(?<hour>\d{2}))?(:(?<minute>\d{2}))?(:(?<second>\d{2}))?)(?<offset>((?<offset_hour>[+-]\d{2})?(:?(?<offset_minute>\d{2}))?)|Z?)$';
 
     /**
      * Strangely, the "timestamp" may have date time data.
@@ -496,22 +497,15 @@ SQL;
     /**
      * Get the last day of a given year/month.
      */
-    protected function getLastDay(int $year, int $month): int
+    protected function getLastDay($year, $month): int
     {
-        switch ($month) {
-            case 2:
-                // February (accounting for leap year)
-                $leapYear = date('L', mktime(0, 0, 0, 1, 1, $year));
-                return $leapYear ? 29 : 28;
-            case 4:
-            case 6:
-            case 9:
-            case 11:
-                // April, June, September, November
-                return 30;
-            default:
-                // January, March, May, July, August, October, December
-                return 31;
+        $month = (int) $month;
+        if (in_array($month, [4, 6, 9, 11], true)) {
+            return 30;
+        } elseif ($month === 2) {
+            return date('L', mktime(0, 0, 0, 1, 1, $year)) ? 29 : 28;
+        } else {
+            return 31;
         }
     }
 }
