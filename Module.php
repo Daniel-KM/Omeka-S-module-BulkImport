@@ -73,8 +73,29 @@ class Module extends AbstractModule
     protected function postInstall(): void
     {
         $services = $this->getServiceLocator();
-        $entityManager = $services->get('Omeka\EntityManager');
 
+        // Included application/json and application/ld+json in the whitelist of
+        // media-types and json and jsonld in the whitelist of extensions.
+        $settings = $services->get('Omeka\Settings');
+
+        $whitelist = $settings->get('media_type_whitelist', []);
+        $whitelist = array_unique(array_merge(array_values($whitelist), [
+            'application/json',
+            'application/ld+json',
+        ]));
+        sort($whitelist);
+        $settings->set('media_type_whitelist', $whitelist);
+
+        $whitelist = $settings->get('extension_whitelist', []);
+        $whitelist = array_unique(array_merge(array_values($whitelist), [
+            'json',
+            'jsonld',
+        ]));
+        sort($whitelist);
+        $settings->set('extension_whitelist', $whitelist);
+
+        // Create default importer and exporter.
+        $entityManager = $services->get('Omeka\EntityManager');
         $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
         // The module api is not available during install/upgrade.
