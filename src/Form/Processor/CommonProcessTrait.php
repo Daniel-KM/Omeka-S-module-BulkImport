@@ -87,6 +87,27 @@ trait CommonProcessTrait
             ])
 
             ->add([
+                'name' => 'clean',
+                'type' => CommonElement\OptionalMultiCheckbox::class,
+                'options' => [
+                    'label' => 'Clean strings', // @translate
+                    'value_options' => [
+                        'trim' => 'Trim', // @translate
+                        'trim_punctuation' => 'Remove trailing punctuation', // @translate
+                        'lowercase' => 'Lower case for string', // @translate
+                        'ucfirst' => 'Lower case for string and upper case for first letter', // @translate
+                        'ucwords' => 'Lower case for string and upper case for each word', // @translate
+                        'uppercase' => 'Upper case for string', // @translate
+                        'apostrophe' => 'Replace single quote by apostrophe', // @translate
+                        'single_quote' => 'Replace apostrophe by single quote', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'clean',
+                ],
+            ])
+
+            ->add([
                 'name' => 'info_diffs',
                 'type' => Element\Checkbox::class,
                 'options' => [

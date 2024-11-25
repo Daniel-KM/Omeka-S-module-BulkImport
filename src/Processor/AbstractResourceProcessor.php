@@ -411,9 +411,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             case 'skip':
                 // Nothing to do.
                 break;
+            case 'string':
+                $v = is_array($values) ? end($values) : $values;
+                $resource[$field] = $this->cleanString($v);
+                break;
             case 'boolean':
             case 'integer':
-            case 'string':
             case 'array':
                 $resource[$field] = is_array($values) ? end($values) : $values;
                 break;
@@ -440,9 +443,14 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 }
                 break;
             */
+            case 'strings':
+                $vv = is_array($values) ? $values : [$values];
+                foreach ($vv as $v) {
+                    $resource[$field][] = $this->cleanString($v);
+                }
+                break;
             case 'booleans':
             case 'integers':
-            case 'strings':
             case 'arrays':
             default:
                 $resource[$field] = is_array($values) ? $values : [$values];

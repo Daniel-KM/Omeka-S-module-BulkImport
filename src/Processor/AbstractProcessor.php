@@ -240,4 +240,49 @@ abstract class AbstractProcessor implements Processor
     {
         return null;
     }
+
+    /**
+     * Clean string according to options.
+     */
+    protected function cleanString($string): string
+    {
+        static $cleaners;
+
+        $string = (string) $string;
+
+        if ($cleaners === false) {
+            return $string;
+        }
+
+        if ($cleaners === null) {
+            $cleaners = $this->getParam('clean') ?: false;
+        }
+
+        if (in_array('trim', $cleaners)) {
+            $string = trim($string);
+        }
+        if (in_array('trim_punctuation', $cleaners)) {
+            $string = trim($string, " \n\r\t\v\x00.,-?!:;");
+        }
+        if (in_array('lowercase', $cleaners)) {
+            $string = mb_strtolower($string);
+        }
+        if (in_array('ucfirst', $cleaners)) {
+            $string = ucfirst(mb_strtolower($string));
+        }
+        if (in_array('ucwords', $cleaners)) {
+            $string = ucwords(mb_strtolower($string));
+        }
+        if (in_array('uppercase', $cleaners)) {
+            $string = mb_strtoupper($string);
+        }
+        if (in_array('apostrophe', $cleaners)) {
+            $string = str_replace("'", '’', $string);
+        }
+        if (in_array('single_quote', $cleaners)) {
+            $string = str_replace('’', "'", $string);
+        }
+
+        return $string;
+    }
 }
