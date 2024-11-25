@@ -1543,13 +1543,19 @@ class ResourceProcessor extends AbstractResourceProcessor
     }
 
     /**
-     * Check if an asset exists from id.
+     * Check if an asset exists from id and return it.
      */
     protected function getAssetId($id): ?int
     {
         $id = (int) $id;
-        return $id
-            ? $this->api->searchOne('assets', ['id' => $id])->getContent()
-            : null;
+        if (!$id) {
+            return null;
+        }
+        try {
+            $this->api->read('assets', ['id' => $id]);
+            return $id;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }
