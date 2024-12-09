@@ -256,6 +256,9 @@ abstract class AbstractProcessor implements Processor
 
         if ($cleaners === null) {
             $cleaners = $this->getParam('clean') ?: false;
+            if (!$cleaners) {
+                return $string;
+            }
         }
 
         if (in_array('trim', $cleaners)) {
