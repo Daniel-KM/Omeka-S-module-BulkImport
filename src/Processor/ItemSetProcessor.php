@@ -41,6 +41,10 @@ class ItemSetProcessor extends ResourceProcessor
         // Item set.
         'o:is_open' => 'boolean',
         'o:items' => 'entities',
+
+        // Modules.
+        // Advanced Resource Template.
+        'item_set_query_items' => 'string',
     ];
 
     protected function handleFormSpecific(ArrayObject $args, array $values): self

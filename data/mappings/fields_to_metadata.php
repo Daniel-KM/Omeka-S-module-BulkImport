@@ -235,6 +235,12 @@ return [
     'base filename' // @translate
         => 'o:basename',
 
+    // Module AdvancedResourceTemplate.
+    'item set query items' // @translate
+        => 'item_set_query_items',
+    'items query' // @translate
+        => 'item_set_query_items',
+
     // Deprecated: "tile" is only a renderer, no more an ingester since
     // ImageServer version 3.6.13. All images are automatically tiled, so "tile"
     // is a format similar to large/medium/square, but different.

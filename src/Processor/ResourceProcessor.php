@@ -71,6 +71,9 @@ class ResourceProcessor extends AbstractResourceProcessor
         'o:items' => 'entities',
 
         // Modules.
+        // Advanced Resource Template.
+        'item_set_query_items' => 'string',
+
         // Module Mapping.
         // There can be only one mapping zone.
         'o-module-mapping:bounds' => 'string',
@@ -760,6 +763,19 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // Only "o:is_open" is specific to item sets, but already processed via
         // fillResourceData().
+
+        /*
+        foreach ($resource as $field => $values) switch ($field) {
+            default:
+                continue 2;
+
+            case 'item_set_query_items':
+                // Managed directly via the module.
+                /** @see \AdvancedResourceTemplate\Module::handleApiSavePostItemSet() * /
+                // There can be only one value and it can be string or array.
+                continue 2;
+        }
+        */
 
         return $this;
     }

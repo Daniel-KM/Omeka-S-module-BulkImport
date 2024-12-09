@@ -13,6 +13,7 @@ class ItemSetMappingParamsForm extends AbstractResourceMappingParamsForm
                 // 'label' => 'Resource metadata', // @translate
                 'options' => [
                     'o:is_open' => 'Openness', // @translate
+                    'item_set_query_items' => 'Items query for dynamic item set', // @translate
                 ],
             ],
         ]);
