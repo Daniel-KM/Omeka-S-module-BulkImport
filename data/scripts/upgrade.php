@@ -449,4 +449,34 @@ SQL;
     $connection->executeStatement($sql);
 }
 
+if (version_compare($oldVersion, '3.4.57', '<')) {
+    // Included application/json and application/ld+json in the whitelist of
+    // media-types and json and jsonld in the whitelist of extensions.
+    $whitelist = $settings->get('media_type_whitelist', []);
+    $whitelist = array_unique(array_merge(array_values($whitelist), [
+        'application/json',
+        'application/ld+json',
+    ]));
+    sort($whitelist);
+    $settings->set('media_type_whitelist', $whitelist);
+
+    $whitelist = $settings->get('extension_whitelist', []);
+    $whitelist = array_unique(array_merge(array_values($whitelist), [
+        'json',
+        'jsonld',
+    ]));
+    sort($whitelist);
+    $settings->set('extension_whitelist', $whitelist);
+
+    $message = new PsrMessage(
+        'It is now possible to import iiif presentation, not only iiif image.' // @translate
+    );
+    $messenger->addSuccess($message);
+
+    $message = new PsrMessage(
+        'A new option allows to clean inputs data, for example trim, change case, replace single quote by apostrophe, etc.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
+
 // TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.
