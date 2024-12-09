@@ -433,7 +433,7 @@ The prefixes can be omitted when they are simple: `item`, `itemset`, `media`,
 Multiple datatypes can be set for one column: `dcterms:relation ^^customvocab:15 ^^resource:item ^^resource ^^literal`.
 The datatype is checked for each value and if it is not valid, the next datatype
 is tried. It is useful when some data are normalized and some not, for example
-with a list of dates or subjects: `dcterms:date ^^numeric:timestamp ^^literal`,
+with a list of dates or subjects: `dcterms:date ^^timestamp ^^interval  ^^literal`,
 or `dcterms:subject ^^valuesuggest:idref:rameau ^^literal`.
 
 To import multiple target destination for a column, use the separator `|` in the
