@@ -17,6 +17,9 @@ trait ConfigurableTrait
         return $this->config;
     }
 
+    /**
+     * @todo Remove default arg.
+     */
     public function getConfigParam($name, $default = null)
     {
         return array_key_exists($name, $this->config)

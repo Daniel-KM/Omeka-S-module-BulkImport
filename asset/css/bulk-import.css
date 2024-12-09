@@ -10,7 +10,7 @@
     .bulk-imports .no-resources:before,
     .bulk-importers .no-resources:before,
     .bulk-mappings .no-resources:before {
-        content:"";
+        content: "";
     }
 
     .bulk-label-sub {

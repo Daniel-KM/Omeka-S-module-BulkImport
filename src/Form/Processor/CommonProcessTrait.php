@@ -167,7 +167,7 @@ trait CommonProcessTrait
                 'name' => 'files',
                 'type' => Fieldset::class,
                 'options' => [
-                    'label' => 'Files to import', // @translate
+                    'label' => 'Files to store', // @translate
                 ],
             ]);
 
@@ -177,7 +177,7 @@ trait CommonProcessTrait
                 'name' => 'files',
                 'type' => Element\File::class,
                 'options' => [
-                    'label' => 'Files to import (multiple individual files or zipped)', // @translate
+                    'label' => 'Files to store on the server before import (multiple individual files or zipped)', // @translate
                     'info' => 'When access to server is complex or when it cannot access internet or other servers, it is possible to upload them here.', // @translate
                 ],
                 'attributes' => [

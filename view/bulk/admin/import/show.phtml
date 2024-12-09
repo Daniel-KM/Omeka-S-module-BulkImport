@@ -20,8 +20,8 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
 
 $importer = $import->importer();
 $processorParams = $import->processorParams();
-foreach ($processorParams['files'] ?? [] as &$value) {
-    unset($value['tmp_name'], $value['filename']);
+foreach (array_keys($processorParams['files'] ?? []) as $key) {
+    unset($processorParams['files'][$key]['tmp_name'], $processorParams['files'][$key]['filename']);
 }
 ?>
 

@@ -337,6 +337,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'table' => 'mapping',
             'fill' => 'fillMappingMapping',
         ],
+        // TODO Upgrade for Mapping features.
         'mapping_markers' => [
             'name' => 'mapping_markers',
             'class' => \Mapping\Entity\MappingMarker::class,
@@ -460,7 +461,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
     /**
      * A list of specific resources to reload when the entity manager is cleared.
      *
-     * @see old SpipProcessor
+     * See Old SpipProcessor
      *
      * @var array
      */

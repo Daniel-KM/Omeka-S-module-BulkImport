@@ -149,6 +149,8 @@ return [
         => 'html',
     'iiif' // @translate
         => 'iiif',
+    'file iiif' // @translate
+        => 'iiif',
     'iiif image' // @translate
         => 'iiif',
     'iiif presentation' // @translate
@@ -225,10 +227,7 @@ return [
         => 'directory',
     'sideload_folder'
         => 'directory',
-    'iiif' // @translate
-        => 'iiif',
-    'file iiif' // @translate
-        => 'iiif',
+
     // When used with module Archive Repertory.
     'base file name' // @translate
         => 'o:basename',
@@ -240,6 +239,27 @@ return [
         => 'item_set_query_items',
     'items query' // @translate
         => 'item_set_query_items',
+
+    // From module Folksonomy.
+    // But compatibility with included vocabulary curation first.
+    'tag' // @translate
+        => 'curation:tag',
+    'tags' // @translate
+        => 'curation:tag',
+    // 'tag' => 'o-module-folksonomy:tag',
+    // 'tags' => 'o-module-folksonomy:tag',
+    'tagger' // @translate
+        => 'o-module-folksonomy:tagging/o:owner',
+    'tag status' // @translate
+        => 'o-module-folksonomy:tagging/o:status',
+    'tag date' // @translate
+        => 'o-module-folksonomy:tagging/o:created',
+
+    // From module Group.
+    'group' // @translate
+        => 'o:group',
+    'groups' // @translate
+        => 'o:group',
 
     // Deprecated: "tile" is only a renderer, no more an ingester since
     // ImageServer version 3.6.13. All images are automatically tiled, so "tile"
@@ -284,25 +304,4 @@ return [
         => 'o-module-mapping:default_marker',
     'default zoom' // @translate
         => 'o-module-mapping:default_zoom',
-
-    // From module Folksonomy.
-    // But compatibility with included vocabulary curation first.
-    'tag' // @translate
-        => 'curation:tag',
-    'tags' // @translate
-        => 'curation:tag',
-    // 'tag' => 'o-module-folksonomy:tag',
-    // 'tags' => 'o-module-folksonomy:tag',
-    'tagger' // @translate
-        => 'o-module-folksonomy:tagging/o:owner',
-    'tag status' // @translate
-        => 'o-module-folksonomy:tagging/o:status',
-    'tag date' // @translate
-        => 'o-module-folksonomy:tagging/o:created',
-
-    // From module Group.
-    'group' // @translate
-        => 'o:group',
-    'groups' // @translate
-        => 'o:group',
 ];

@@ -130,7 +130,7 @@ class Module extends AbstractModule
             [$this, 'handleMediaIngesterRegisteredNames']
         );
 
-        // Manage the extraction of medata from medias.
+        // Manage the extraction of metadata from medias.
         // The process should be done only for new medias, so keep the list
         // of existing medias before processing.
         $sharedEventManager->attach(

@@ -1034,7 +1034,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 // automatically tiled, so "tile" is a format similar to large/medium/square,
                 // but different.
             case 'url':
-                $value = $ingestUrl ?? $ingestFilename?? $ingestDirectory;
+                $value = $ingestUrl ?? $ingestFilename ?? $ingestDirectory;
             case 'file':
             case 'sideload':
                 $value ??= $ingestFilename ?? $ingestUrl ?? $ingestDirectory;

@@ -268,7 +268,7 @@ class Import extends AbstractJob
          */
         $services = $this->getServiceLocator();
         $mailer = $services->get('Omeka\Mailer');
-        $urlPlugin = $services->get('ControllerPluginManager')->get('url');
+        $urlHelper = $services->get('ViewHelperManager')->get('url');
         $to = $owner->getEmail();
         $jobId = (int) $this->job->getId();
         $subject = new PsrMessage(
@@ -280,13 +280,13 @@ class Import extends AbstractJob
             [
                 'link_open_job' => sprintf(
                     '<a href="%s">',
-                    htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $jobId], ['force_canonical' => true]))
+                    htmlspecialchars($urlHelper('admin/id', ['controller' => 'job', 'id' => $jobId], ['force_canonical' => true]))
                 ),
                 'jobId' => $jobId,
                 'link_close' => '</a>',
                 'link_open_log' => sprintf(
                     '<a href="%s">',
-                    htmlspecialchars($urlPlugin->fromRoute('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->import->id()], ['force_canonical' => true]))
+                    htmlspecialchars($urlHelper('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $this->import->id()], ['force_canonical' => true]))
                 ),
             ]
         );

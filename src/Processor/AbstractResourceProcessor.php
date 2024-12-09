@@ -1208,12 +1208,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $resource = $this->bulkIdentifiers->completeResourceIdentifierIds($resource);
 
         // Remove uploaded files for items.
-        foreach ($resource['o:media'] ?? [] as &$media) {
+        foreach ($resource['o:media'] ?? [] as $key => $media) {
             if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
-                $media['ingest_delete_file'] = true;
+                $resource['o:media'][$key]['ingest_delete_file'] = true;
             }
         }
-        unset($media);
 
         try {
             $response = $this->bulk->api(null, true)
@@ -1335,12 +1334,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Remove uploaded files.
-        foreach ($resource['o:media'] ?? [] as &$media) {
-            if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
-                $media['ingest_delete_file'] = true;
+        foreach ($resource['o:media'] ?? [] as $key => $media) {
+            if (($media['o:ingester'] ?? null) === 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+                $resource['o:media'][$key]['ingest_delete_file'] = true;
             }
         }
-        unset($media);
 
         try {
             $response = $api->update($resourceName, $resource['o:id'], $resource, $fileData, $options);

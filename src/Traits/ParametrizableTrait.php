@@ -17,6 +17,9 @@ trait ParametrizableTrait
         return $this->params;
     }
 
+    /**
+     * @todo Remove default arg.
+     */
     public function getParam($name, $default = null)
     {
         return array_key_exists($name, $this->params)
