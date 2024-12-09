@@ -42,10 +42,10 @@ class Module extends AbstractModule
         $translate = $services->get('ControllerPluginManager')->get('translate');
         $translator = $services->get('MvcTranslator');
 
-        if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.60')) {
+        if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.64')) {
             $message = new \Omeka\Stdlib\Message(
                 $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
-                'Common', '3.4.60'
+                'Common', '3.4.64'
             );
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
         }
@@ -309,7 +309,7 @@ class Module extends AbstractModule
 
         if ($settings->get('bulkimport_extract_metadata', false)) {
             $plugins = $services->get('ControllerPluginManager');
-            $easyMeta = $plugins->get('$easyMeta');
+            $easyMeta = $plugins->get('easyMeta');
             $extractMediaMetadata = $plugins->get('extractMediaMetadata');
             $extractedData = $extractMediaMetadata->__invoke($media);
             if ($extractedData) {

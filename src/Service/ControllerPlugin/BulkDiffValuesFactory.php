@@ -20,7 +20,7 @@ class BulkDiffValuesFactory implements FactoryInterface
 
         return new BulkDiffValues(
             $plugins->get('diffResources'),
-            $services->get('EasyMeta'),
+            $services->get('Common\EasyMeta'),
             $services->get('Omeka\EntityManager'),
             $services->get('Omeka\Logger'),
             $basePath,

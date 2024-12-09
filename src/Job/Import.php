@@ -31,7 +31,7 @@ class Import extends AbstractJob
         $this->api = $services->get('Omeka\ApiManager');
         $this->bulkCheckLog = $plugins->get('bulkCheckLog');
         $this->bulkIdentifiers = $plugins->get('bulkIdentifiers');
-        $this->easyMeta = $services->get('EasyMeta');
+        $this->easyMeta = $services->get('Common\EasyMeta');
         $this->entityManager = $services->get('Omeka\EntityManager');
         $this->logger = $services->get('Omeka\Logger');
         $this->metaMapper = $services->get('Bulk\MetaMapper');

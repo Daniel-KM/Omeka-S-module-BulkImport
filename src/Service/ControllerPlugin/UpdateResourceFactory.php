@@ -13,7 +13,7 @@ class UpdateResourceFactory implements FactoryInterface
         return new UpdateResource(
             $services->get('Omeka\ApiManager'),
             $services->get('Omeka\ApiAdapterManager'),
-            $services->get('EasyMeta'),
+            $services->get('Common\EasyMeta'),
             $services->get('Omeka\Logger')
         );
     }

@@ -19,7 +19,7 @@ class BulkDiffResourcesFactory implements FactoryInterface
         return new BulkDiffResources(
             $plugins->get('bulkCheckLog'),
             $plugins->get('diffResources'),
-            $services->get('EasyMeta'),
+            $services->get('Common\EasyMeta'),
             $services->get('Omeka\Logger'),
             $basePath,
             $baseUrl

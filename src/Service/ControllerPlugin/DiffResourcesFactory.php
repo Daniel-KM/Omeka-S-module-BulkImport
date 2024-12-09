@@ -12,7 +12,7 @@ class DiffResourcesFactory implements FactoryInterface
     {
         $plugins = $services->get('ControllerPluginManager');
         return new DiffResources(
-            $services->get('EasyMeta'),
+            $services->get('Common\EasyMeta'),
             $plugins->get('updateResourceProperties')
         );
     }

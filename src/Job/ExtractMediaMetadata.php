@@ -79,7 +79,7 @@ class ExtractMediaMetadata extends AbstractJob
          * @var \BulkImport\Mvc\Controller\Plugin\ExtractMediaMetadata $extractMediaMetadata
          */
         $plugins = $services->get('ControllerPluginManager');
-        $easyMeta = $services->get('EasyMeta');
+        $easyMeta = $services->get('Common\EasyMeta');
         $extractMediaMetadata = $plugins->get('extractMediaMetadata');
 
         $this->bulk = $plugins->get('bulk');

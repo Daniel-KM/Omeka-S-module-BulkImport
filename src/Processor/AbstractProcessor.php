@@ -169,7 +169,7 @@ abstract class AbstractProcessor implements Processor
         $this->api = $services->get('Omeka\ApiManager');
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
 
-        $this->easyMeta = $services->get('EasyMeta');
+        $this->easyMeta = $services->get('Common\EasyMeta');
         $this->metaMapper = $services->get('Bulk\MetaMapper');
 
         $plugins = $services->get('ControllerPluginManager');

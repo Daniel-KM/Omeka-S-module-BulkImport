@@ -14,7 +14,7 @@ class MetaMapperConfigFactory implements FactoryInterface
         return new MetaMapperConfig(
             $plugins->get('automapFields'),
             $plugins->get('bulk'),
-            $services->get('EasyMeta'),
+            $services->get('Common\EasyMeta'),
             $services->get('Omeka\Logger')
         );
     }
