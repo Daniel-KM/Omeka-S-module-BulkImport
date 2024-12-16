@@ -338,6 +338,15 @@ class XmlEntry extends BaseEntry
                     unset($media['ingest_filename']);
                     unset($media['ingest_directory']);
                     break;
+
+                case 'oembed':
+                case 'youtube':
+                    $media['o:ingester'] = $ingester;
+                    $media['o:source'] = empty($media['o:source']) ? $value : $media['o:source'];
+                    unset($media['ingest_filename']);
+                    unset($media['ingest_directory']);
+                    unset($media['ingest_url']);
+                    break;
             }
         }
 

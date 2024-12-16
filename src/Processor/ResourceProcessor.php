@@ -668,8 +668,10 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'html':
             case 'iiif':
             case 'iiif_presentation':
+            case 'oembed':
             case 'tile':
             case 'url':
+            case 'youtube':
                 // These values are already filled in the resource.
                 foreach ($values as $value) {
                     $mediaData = $this->prepareMediaData($resource, $field, $value);
@@ -909,8 +911,10 @@ class ResourceProcessor extends AbstractResourceProcessor
             case 'html':
             case 'iiif':
             case 'iiif_presentation':
+            case 'oembed':
             case 'tile':
             case 'url':
+            case 'youtube':
                 // Here, the media has a key that should not be a key, but the
                 // value of "o:ingester".
                 $value = is_array($values) ? end($values) : $values;
@@ -933,7 +937,6 @@ class ResourceProcessor extends AbstractResourceProcessor
      * The resource may be an item or a media.
      *
      * @see \BulkImport\Entry\XmlEntry::initMediaBase()
-     * @todo Manage other types (youtube, etc.).
      */
     protected function prepareMediaData(ArrayObject $resource, string $field, $value): array
     {
@@ -1003,6 +1006,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                 $media['o:source'] = $value;
                 return $media;
 
+            case 'oembed':
+            case 'youtube':
+                $media = [];
+                $media['resource_name'] = 'media';
+                $media['o:ingester'] = $field;
+                $media['o:source'] = $value;
+                return $media;
+
             default:
                 return [];
         }
@@ -1026,8 +1037,6 @@ class ResourceProcessor extends AbstractResourceProcessor
         $ingestUrl = empty($resource['ingest_url']) ? null : $resource['ingest_url'];
         $ingestDirectory = empty($resource['ingest_directory']) ? null : $resource['ingest_directory'];
         switch ($ingester) {
-            default:
-                break;
             case 'tile':
                 // Deprecated: "tile" is only a renderer, no more an ingester
                 // since ImageServer version 3.6.13. All images are
@@ -1111,6 +1120,19 @@ class ResourceProcessor extends AbstractResourceProcessor
                 if (mb_substr($resource['ingest_url'], 0, 7) === 'file://') {
                     $resource['ingest_url'] = mb_substr($resource['ingest_url'], 7);
                 }
+                break;
+
+            case 'oembed':
+            case 'youtube':
+                $value = $ingestUrl ?? $ingestFilename;
+                $resource['o:ingester'] = $ingester;
+                $resource['o:source'] = $value;
+                unset($resource['ingest_filename']);
+                unset($resource['ingest_directory']);
+                unset($resource['ingest_url']);
+                break;
+
+            default:
                 break;
         }
 
