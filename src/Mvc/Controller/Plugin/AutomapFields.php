@@ -17,7 +17,7 @@ class AutomapFields extends AbstractPlugin
     /**
      * The pattern checks five components:
      * - a field (term or keyword): `dcterms:title`
-     * - one or more datatypes: `^^datatype ^^literal`,
+     * - one or more datatypes: `^^resource:item ^^literal`,
      * - a language: `@fra`,
      * - a visibility, private or public: `§private`,
      * - a transformation pattern: `~pattern`.
