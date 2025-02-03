@@ -93,6 +93,7 @@ trait CommonProcessTrait
                     'label' => 'Clean strings', // @translate
                     'value_options' => [
                         'trim' => 'Trim', // @translate
+                        'merge_space' => 'Replace consecutive spaces by a single space', // @translate
                         'trim_punctuation' => 'Remove trailing punctuation', // @translate
                         'lowercase' => 'Lower case for string', // @translate
                         'ucfirst' => 'Lower case for string and upper case for first letter', // @translate

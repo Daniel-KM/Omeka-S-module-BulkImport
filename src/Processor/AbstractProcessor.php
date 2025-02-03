@@ -264,6 +264,9 @@ abstract class AbstractProcessor implements Processor
         if (in_array('trim', $cleaners)) {
             $string = trim($string);
         }
+        if (in_array('merge_space', $cleaners)) {
+            $string = preg_replace('/\s+/', ' ', $string);
+        }
         if (in_array('trim_punctuation', $cleaners)) {
             $string = trim($string, " \n\r\t\v\x00.,-?!:;");
         }
