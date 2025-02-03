@@ -601,7 +601,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2024 (voir [Daniel-KM] sur GitLab)
+* Copyright Daniel Berthereau, 2017-2025 (voir [Daniel-KM] sur GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code de Spip)
 * Copyright 2011-2022, Steffen Fagerström Christensen & alii (bibliothèques [Flow.js] et [flow-php-server])
 * Copyright 2011-2023, Marijn Haverbeke & alii (Bibliothèque [CodeMirror])
