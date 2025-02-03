@@ -1,6 +1,6 @@
 /* Import: styles */
 
-@media screen {
+@media all {
     header nav .bulk-imports::before,
     header nav .bulk-importers::before,
     header nav .bulk-mappings::before,
