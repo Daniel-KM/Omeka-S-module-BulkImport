@@ -653,7 +653,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                             // Only for first loop. Normally not possible after:
                             // all identifiers are stored in the list "map"
                             // during first loop.
-                            $valueForMsg = mb_strlen($value) > 120 ? mb_substr($value, 0, 120) . '…' : $value;
+                            $valueForMsg = mb_strlen((string) $value) > 120 ? mb_substr((string) $value, 0, 120) . '…' : $value;
                             $resource['messageStore']->addError('values', new PsrMessage(
                                 'The value "{value}" is not an item set.', // @translate
                                 ['value' => $valueForMsg]
@@ -1069,7 +1069,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     unset($resource['ingest_url']);
                     unset($resource['ingest_directory']);
                     // Early remove useless "file://".
-                    if (mb_substr($resource['ingest_filename'], 0, 7) === 'file://') {
+                    if (mb_substr((string) $resource['ingest_filename'], 0, 7) === 'file://') {
                         $resource['ingest_filename'] = mb_substr($resource['ingest_filename'], 7);
                     }
                 }  else {
@@ -1078,7 +1078,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     unset($resource['ingest_url']);
                     unset($resource['ingest_directory']);
                     // Early remove useless "file://".
-                    if (mb_substr($resource['ingest_filename'], 0, 7) === 'file://') {
+                    if (mb_substr((string) $resource['ingest_filename'], 0, 7) === 'file://') {
                         $resource['ingest_filename'] = mb_substr($resource['ingest_filename'], 7);
                     }
                 }
@@ -1092,7 +1092,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 unset($resource['ingest_filename']);
                 unset($resource['ingest_url']);
                 // Early remove useless "file://".
-                if (mb_substr($resource['ingest_directory'], 0, 7) === 'file://') {
+                if (mb_substr((string) $resource['ingest_directory'], 0, 7) === 'file://') {
                     $resource['ingest_directory'] = mb_substr($resource['ingest_directory'], 7);
                 }
                 break;
@@ -1117,7 +1117,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 unset($resource['ingest_filename']);
                 unset($resource['ingest_directory']);
                 // Early remove useless "file://".
-                if (mb_substr($resource['ingest_url'], 0, 7) === 'file://') {
+                if (mb_substr((string) $resource['ingest_url'], 0, 7) === 'file://') {
                     $resource['ingest_url'] = mb_substr($resource['ingest_url'], 7);
                 }
                 break;
