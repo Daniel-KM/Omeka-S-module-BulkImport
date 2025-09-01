@@ -550,7 +550,9 @@ trait ImportTrait
             // During this first loop, the entry cannot be processed fully when
             // there are identifiers and relations.
             ++$this->totalIndexResources;
-            $resource = $this->processEntry($entry);
+            $resource = $entry
+                ? $this->processEntry($entry)
+                : null;
 
             if ($resource === null) {
                 ++$this->totalEmpty;
@@ -671,7 +673,9 @@ trait ImportTrait
 
             // TODO Reuse and complete the resource extracted during listing of identifiers: only the id may be missing. Or store during previous loop.
             /** @var array|null $resource */
-            $resource = $this->processEntry($entry);
+            $resource = $entry
+                ? $this->processEntry($entry)
+                : null;
 
             if ($resource === null) {
                 ++$this->totalEmpty;
@@ -789,7 +793,9 @@ trait ImportTrait
             }
 
             // TODO Clarify computation of total errors.
-            $resource = $this->bulkCheckLog->loadCheckedResource($this->indexResource);
+            $resource = $entry
+                ? $this->bulkCheckLog->loadCheckedResource($this->indexResource)
+                : null;
 
             // Skip empty source.
             if ($resource === null) {

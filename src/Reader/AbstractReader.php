@@ -23,6 +23,11 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     use ConfigurableTrait, ParametrizableTrait, ServiceLocatorAwareTrait;
 
     /**
+     * @var int
+     */
+    const BATCH_SIZE = 100;
+
+    /**
      * @var string
      */
     protected $entryClass = BaseEntry::class;

@@ -9,47 +9,48 @@ namespace BulkImport\Reader;
 
 $xmlReaderIterator_libPath = dirname(__DIR__, 2) . '/vendor/hakre/xmlreaderiterator/src';
 
-require $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
-require $xmlReaderIterator_libPath . '/XMLBuild.php';
-require $xmlReaderIterator_libPath . '/XMLAttributeIterator.php';
-require $xmlReaderIterator_libPath . '/XMLReaderIterator.php';
-require $xmlReaderIterator_libPath . '/XMLReaderIteration.php';
-require $xmlReaderIterator_libPath . '/XMLReaderNextIteration.php';
-require $xmlReaderIterator_libPath . '/DOMReadingIteration.php';
-require $xmlReaderIterator_libPath . '/XMLWritingIteration.php';
-require $xmlReaderIterator_libPath . '/XMLReaderNode.php';
-require $xmlReaderIterator_libPath . '/XMLReaderElement.php';
-require $xmlReaderIterator_libPath . '/XMLChildIterator.php';
-require $xmlReaderIterator_libPath . '/XMLElementIterator.php';
-require $xmlReaderIterator_libPath . '/XMLChildElementIterator.php';
-require $xmlReaderIterator_libPath . '/XMLReaderFilterBase.php';
-require $xmlReaderIterator_libPath . '/XMLNodeTypeFilter.php';
-require $xmlReaderIterator_libPath . '/XMLAttributeFilterBase.php';
-require $xmlReaderIterator_libPath . '/XMLAttributeFilter.php';
-require $xmlReaderIterator_libPath . '/XMLAttributePreg.php';
-require $xmlReaderIterator_libPath . '/XMLElementXpathFilter.php';
-require $xmlReaderIterator_libPath . '/BufferedFileRead.php';
-require $xmlReaderIterator_libPath . '/BufferedFileReaders.php';
-require $xmlReaderIterator_libPath . '/XMLSequenceStreamPath.php';
-require $xmlReaderIterator_libPath . '/XMLSequenceStream.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
+require_once $xmlReaderIterator_libPath . '/XMLBuild.php';
+require_once $xmlReaderIterator_libPath . '/XMLAttributeIterator.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderIterator.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderIteration.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderNextIteration.php';
+require_once $xmlReaderIterator_libPath . '/DOMReadingIteration.php';
+require_once $xmlReaderIterator_libPath . '/XMLWritingIteration.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderNode.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderElement.php';
+require_once $xmlReaderIterator_libPath . '/XMLChildIterator.php';
+require_once $xmlReaderIterator_libPath . '/XMLElementIterator.php';
+require_once $xmlReaderIterator_libPath . '/XMLChildElementIterator.php';
+require_once $xmlReaderIterator_libPath . '/XMLReaderFilterBase.php';
+require_once $xmlReaderIterator_libPath . '/XMLNodeTypeFilter.php';
+require_once $xmlReaderIterator_libPath . '/XMLAttributeFilterBase.php';
+require_once $xmlReaderIterator_libPath . '/XMLAttributeFilter.php';
+require_once $xmlReaderIterator_libPath . '/XMLAttributePreg.php';
+require_once $xmlReaderIterator_libPath . '/XMLElementXpathFilter.php';
+require_once $xmlReaderIterator_libPath . '/BufferedFileRead.php';
+require_once $xmlReaderIterator_libPath . '/BufferedFileReaders.php';
+require_once $xmlReaderIterator_libPath . '/XMLSequenceStreamPath.php';
+require_once $xmlReaderIterator_libPath . '/XMLSequenceStream.php';
 
-use AppendIterator;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use Common\Stdlib\PsrMessage;
+use Iterator;
+use Laminas\Http\Response as HttpResponse;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 use XMLElementIterator;
 use XMLReader as XMLReaderCore;
-use XMLReaderNode;
 
 /**
  * Once transformed into a normalized xml, the reader uses XmlElementIterator
  * instead of XmlReader, that is forward only.
  */
-class XmlReader extends AbstractFileMultipleReader
+class XmlReader extends AbstractMultiplePaginatedReader
 {
     protected $label = 'XML'; // @translate
+    protected $charset = 'utf-8';
     protected $mediaType = 'text/xml';
     protected $configFormClass = XmlReaderConfigForm::class;
     protected $paramsFormClass = XmlReaderParamsForm::class;
@@ -75,26 +76,6 @@ class XmlReader extends AbstractFileMultipleReader
     ];
 
     /**
-     * With AppendIterator, the key of the foreach can be the same in a loop.
-     * @see https://www.php.net/manual/en/appenditerator.construct.php
-     *
-     * @var \AppendIterator of \XMLElementIterator
-     */
-    protected $iterator;
-
-    /**
-     * XmlReader does not support rewind, so reprepare the iterator when needed.
-     *
-     * @var bool
-     */
-    protected $doRewind = false;
-
-    /**
-     * @var \XMLReaderNode
-     */
-    protected $currentData;
-
-    /**
      * @var \BulkImport\Mvc\Controller\Plugin\ProcessXslt
      */
     protected $processXslt;
@@ -103,6 +84,15 @@ class XmlReader extends AbstractFileMultipleReader
      * @var string
      */
     protected $normalizedXmlpath;
+
+    protected $rootToFormats = [
+        'atom' => 'application/atom+xml',
+        'atom:feed' => 'application/atom+xml',
+        'srw:searchRetrieveResponse' => 'application/sru+xml',
+        'searchRetrieveResponse' => 'application/sru+xml',
+        // This is the format used by the module, not a standard format.
+        'resources' => 'application/vnd.omeka-resources+xml',
+    ];
 
     public function __construct(ServiceLocatorInterface $services)
     {
@@ -155,13 +145,16 @@ class XmlReader extends AbstractFileMultipleReader
     public function isValid(): bool
     {
         // Before checking each xml file, check if the xsl file is ok, if any.
-        // It may be empty if the input is a flat xml file with resources.
+        // It may be empty if the input is a flat xml file with valid resources
+        // formatted for omeka.
+
         $configNames = array_filter([
             $this->getParam('xsl_sheet_pre'),
             $this->getParam('xsl_sheet'),
             // TODO Remove mapping_config from here and anywhere.
             $this->getParam('mapping_config'),
         ]);
+
         foreach ($configNames as $configName) {
             // Check if the basepath is inside Omeka path for security.
             if (mb_substr($configName, 0, 5) === 'user:' || mb_substr($configName, 0, 7) === 'module:') {
@@ -220,55 +213,197 @@ class XmlReader extends AbstractFileMultipleReader
         return $this->checkWellFormedXml($this->currentFilepath);
     }
 
-    public function rewind(): void
+    protected function countFileResources(string $filePath): int
     {
-        // XmlReader cannot rewind and the XmlIterator may not manage it, so
-        // reprepare the main iterator, but with local files and without check.
-        // Note: AppendIterator is uncloneable.
-        $this->doRewind = true;
-        $this->isReady();
+        return $this->countXmlElements($filePath, ['resource', 'o:resource']);
+    }
+
+    protected function preprocessFile(string $filePath): string
+    {
+        return $this->preprocessXslt($filePath);
+    }
+
+    protected function countTotalResourcesFromFirstResponse(string $filePath): int
+    {
+        static $counts = [];
+
+        if (isset($counts[$filePath])) {
+            return $counts[$filePath];
+        }
+
+        $counts[$filePath] = 0;
+
+        $rootName = $this->getRootElementName($filePath);
+        switch ($rootName) {
+            case 'atom:feed':
+            case 'feed':
+                // Atom format does not provide the total number of entries.
+                $counts[$filePath] = $this->countXmlElements($filePath, ['atom:entry', 'entry']);
+                break;
+            case 'srw:searchRetrieveResponse':
+            case 'searchRetrieveResponse':
+                // SRU/SRW.
+                $counts[$filePath] = (int) $this->getValueOfFirstXmlElement($filePath,['srw:numberOfRecords', 'numberOfRecords']);
+                break;
+            case 'o:resources':
+            case 'resources':
+                // Omeka format for this module.
+                $counts[$filePath] = $this->countFileResources($filePath);
+                break;
+            default:
+                break;
+        }
+
+        return $counts[$filePath];
+    }
+
+    protected function countPerPageFromFirstResponse(string $filePath): int
+    {
+        static $counts = [];
+
+        if (isset($counts[$filePath])) {
+            return $counts[$filePath];
+        }
+
+        $counts[$filePath] = 0;
+
+        $rootName = $this->getRootElementName($filePath);
+        switch ($rootName) {
+            case 'atom:feed':
+            case 'feed':
+                // Atom format does not provide the number of entries per page.
+                // $counts[$filePath] = $this->countXmlElements($filePath, ['atom:entry', 'entry']);
+                break;
+            case 'srw:searchRetrieveResponse':
+            case 'searchRetrieveResponse':
+                // SRU/SRW.
+                // Warning: the page may not be the first and the url may not contain "maximumRecords".
+                // So count the number of entries.
+                // $nextRecordPosition = (int) $this->getValueOfFirstXmlElement($filePath,['srw:nextRecordPosition', 'nextRecordPosition']);
+                // $resultsPerPage = $nextRecordPosition ? $nextRecordPosition - 1 : 0;
+                // Use xpath because the element "record" is too much common.
+                // $counts[$filePath] = $this->countXmlElements($filePath, ['srw:record', 'record']);
+                $counts[$filePath] = $this->countXmlElementsViaXpath(
+                    $filePath,
+                    '/srw:searchRetrieveResponse/srw:records/srw:record',
+                    ['srw' => 'http://www.loc.gov/zing/srw/']
+                ) ?: $this->countXmlElementsViaXpath($filePath, '/searchRetrieveResponse/records/record');
+                break;
+            case 'o:resources':
+            case 'resources':
+                // Omeka format for this module. It does not provide number of
+                // entries per page for now, since it should be a single file.
+                // $counts[$filePath] = $this->countFileResources($filePath);
+                break;
+            default:
+                break;
+        }
+
+        return $counts[$filePath];
+    }
+
+    protected function getFormatFromFirstResponse(string $filePath): string
+    {
+        static $values = [];
+
+        $cacheKey = $filePath;
+        if (isset($values[$cacheKey])) {
+            return $values[$cacheKey];
+        }
+
+        $values[$cacheKey] = '';
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return '';
+        }
+
+        $format = $this->getRootElementName($filePath);
+        if (isset($this->rootToFormats[$format])) {
+            $values[$cacheKey] = $this->rootToFormats[$format];
+        } else {
+            $values[$cacheKey] = $format;
+        }
+
+        return $values[$cacheKey];
+    }
+
+    protected function getPaginatedPathOrUrl(
+        string $format,
+        string $baseUrl,
+        int $page,
+        ?int $perPage = null,
+        ?HttpResponse $response = null
+    ): string {
+        $page = $page ?: 1;
+        $perPage = (int) $perPage;
+        switch ($format) {
+            case 'application/atom+xml':
+                // There is no pagination, but the links to self/first/previous/next/last
+                // may be included in the headers of the response, generally
+                // with a query ?page=xxx.
+                // TODO Manage pagination from http response.
+                return $page <= 1 ? $baseUrl : '';
+            case 'application/sru+xml':
+                // SRU/SRW uses startRecord and maximumRecords, but they may not be present in url.
+                // TODO Should the maximum record managed here? Not for now.
+                // 1-based offset.
+                $startRecord = ($page - 1) * ($perPage ?: $this->resultsPerPage) + 1;
+                return strpos($baseUrl, 'startRecord=')
+                    ? preg_replace('~startRecord=\d+~', 'startRecord=' . $startRecord, $baseUrl)
+                    : $baseUrl . (strpos($baseUrl, '?') ? '&' : '?') . 'startRecord=' . $startRecord;
+            case 'application/vnd.omeka-resources+xml':
+                return $page <= 1 ? $baseUrl : '';
+            default:
+                return '';
+        }
     }
 
     /**
-     * This is required since XMLReaderIterator may return a null.
-     * @todo Fix dependency XMLReaderIterator.
+     * The page is no more used with last version.
      */
-    public function valid(): bool
+    protected function getEntries(string $filePath, int $page): Iterator
     {
-        return (bool) parent::valid();
-    }
+        $reader = new XMLReaderCore();
+        $reader->open($filePath);
+        $elementIterator = new XmlElementIterator($reader, 'resource');
 
-    protected function isReady(): bool
-    {
-        if ($this->isReady) {
-            if ($this->doRewind) {
-                $this->initializeReader();
-                $this->doRewind = false;
-            }
-            return true;
+        // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
+        // $elementIterator->rewind();
+
+        $currentIndexInPage = 0;
+        foreach ($elementIterator as $resource) {
+            // $this->currentData = $resource;
+            yield new XmlEntry(
+                // $this->currentData,
+                $resource,
+                // The key is needed only for spreedsheets.
+                // $this->key(),
+                $currentIndexInPage,
+                $this->availableFields,
+                // TODO Remove metamapper.
+                $this->getParams() + ['metaMapper' => $this->metaMapper]
+            );
+            ++$currentIndexInPage;
         }
-        $this->prepareIterator();
-        return $this->isReady;
+
+        // No return, this is a generator.
     }
 
+    /**
+     * @todo Probably useless now.
+     *
+     * {@inheritDoc}
+     * @see \BulkImport\Reader\AbstractReader::initializeReader()
+     */
     protected function initializeReader(): self
     {
-        $this->iterator = new AppendIterator();
+        $this->prepareListFiles();
+        return $this;
+    }
 
-        // The list of files is prepared during check in isValid().
-        foreach ($this->listFiles as $fileUrl) {
-            if (!$fileUrl) {
-                continue;
-            }
-            $normalizedCurrentPath = $this->preprocessXslt($fileUrl);
-            $reader = new XMLReaderCore();
-            $reader->open($normalizedCurrentPath);
-            $xmlIterator = new XMLElementIterator($reader, 'resource');
-            // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
-            $xmlIterator->rewind();
-            $this->iterator->append($xmlIterator);
-        }
-
+    protected function finalizePrepareIterator(): self
+    {
+        // Skip parent.
         return $this;
     }
 
@@ -279,7 +414,7 @@ class XmlReader extends AbstractFileMultipleReader
      *
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function preprocessXslt($xmlPath): string
+    protected function preprocessXslt(string $xmlPath): string
     {
         $xslParams = $this->getParam('xsl_params') ?: [];
         $xslParams['filepath'] = $xmlPath;
@@ -377,5 +512,160 @@ class XmlReader extends AbstractFileMultipleReader
             return null;
         }
         return realpath($xslpath) ?: null;
+    }
+
+    /**
+     * Get the root name of an xml file.
+     */
+    protected function getRootElementName(string $filePath): string
+    {
+        static $values = [];
+
+        $cacheKey = $filePath;
+        if (isset($values[$cacheKey])) {
+            return $values[$cacheKey];
+        }
+
+        $values[$cacheKey] = '';
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return '';
+        }
+
+        $reader = new XMLReaderCore();
+        if (!$reader->open($filePath)) {
+            return '';
+        }
+
+        while ($reader->read()) {
+            if ($reader->nodeType === \XMLReader::ELEMENT) {
+                $values[$cacheKey] = $reader->localName;
+                break;
+            }
+        }
+        $reader->close();
+
+        return $values[$cacheKey];
+    }
+
+    /**
+     * Count the number of specific elements from a valid xml file.
+     */
+    protected function countXmlElements(string $filePath, array $elements): int
+    {
+        static $counts = [];
+
+        $cacheKey = $filePath . '§' . implode(',', $elements);
+        if (isset($counts[$cacheKey])) {
+            return $counts[$cacheKey];
+        }
+
+        $counts[$cacheKey] = 0;
+
+        if (!$elements || !$filePath || !file_exists($filePath) || !is_readable($filePath)) {
+            return 0;
+        }
+
+        $reader = new XMLReaderCore();
+        if (!$reader->open($filePath)) {
+            return 0;
+        }
+
+        $count = 0;
+        while ($reader->read()) {
+            if ($reader->nodeType === XMLReaderCore::ELEMENT
+                && in_array($reader->localName, $elements, true)
+            ) {
+                ++$count;
+            }
+        }
+        $reader->close();
+        $counts[$cacheKey] = $count;
+
+        return $counts[$cacheKey];
+    }
+
+    /**
+     * Count the number of specific elements via xpath on a valid xml file.
+     *
+     * Warning: it is not recommended for large files.
+     */
+    protected function countXmlElementsViaXpath(string $filePath, string $xpath, array $namespaces = []): int
+    {
+        static $counts = [];
+
+        $cacheKey = $filePath . '§' . $xpath;
+        if (isset($counts[$cacheKey])) {
+            return $counts[$cacheKey];
+        }
+
+        $counts[$cacheKey] = 0;
+
+        if (!$xpath || !$filePath || !file_exists($filePath) || !is_readable($filePath)) {
+            return 0;
+        }
+
+        libxml_use_internal_errors(true);
+        $xml = simplexml_load_file($filePath);
+        if ($xml === false) {
+            return 0;
+        }
+
+        foreach ($namespaces as $prefix => $namespace) {
+            $xml->registerXPathNamespace($prefix, $namespace);
+        }
+
+        $nodes = $xml->xpath($xpath);
+        $counts[$cacheKey] = $nodes ? count($nodes) : 0;
+
+        return $counts[$cacheKey];
+    }
+
+    /**
+     * Extract value from attribute or text from first element from an xml file.
+     *
+     * The first element is used, whatever the first element has data or not.
+     * The output is not trimmed.
+     */
+    protected function getValueOfFirstXmlElement(string $filePath, array $elements, ?string $attribute = null): string
+    {
+        static $values = [];
+
+        $cacheKey = $filePath . '§' . implode(',', $elements) . '£' . $attribute;
+        if (isset($values[$cacheKey])) {
+            return $values[$cacheKey];
+        }
+
+        $values[$cacheKey] = '';
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return '';
+        }
+
+        $reader = new XMLReaderCore();
+        if (!$reader->open($filePath)) {
+            return '';
+        }
+
+        $attribute = $attribute === null || $attribute === '' ? null : $attribute;
+
+        while ($reader->read()) {
+            if ($reader->nodeType === XMLReaderCore::ELEMENT
+                && in_array($reader->localName, $elements, true)
+            ) {
+                if ($attribute !== null) {
+                    if ($reader->hasAttributes) {
+                        $values[$cacheKey] = (string) $reader->getAttribute($attribute);
+                    }
+                } else {
+                    $values[$cacheKey] = (string) $reader->readString();
+                }
+                break;
+            }
+        }
+
+        $reader->close();
+
+        return $values[$cacheKey];
     }
 }

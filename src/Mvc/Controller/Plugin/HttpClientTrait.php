@@ -216,8 +216,11 @@ trait HttpClientTrait
      * @throws \Laminas\Http\Exception\RuntimeException
      * @throws \Laminas\Http\Client\Exception\RuntimeException
      */
-    public function fetchUrl(string $url, array $query = [], array $headers = []): HttpResponse
-    {
+    public function fetchUrl(
+        string $url,
+        array $query = [],
+        array $headers = []
+    ): HttpResponse {
         $this->lastRequestUrl = $url;
         return $this->getHttpClient()
             ->resetParameters()

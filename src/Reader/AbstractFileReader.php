@@ -12,6 +12,16 @@ use SplFileObject;
  */
 abstract class AbstractFileReader extends AbstractReader
 {
+    /**
+     * @var string
+     */
+    protected $charset;
+
+    /**
+     * @var string
+     */
+    protected $medaiType;
+
     public function handleParamsForm(Form $form): self
     {
         $this->lastErrorMessage = null;

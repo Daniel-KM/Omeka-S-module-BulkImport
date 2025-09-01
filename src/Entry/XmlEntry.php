@@ -7,7 +7,7 @@ use XMLReaderNode;
 
 class XmlEntry extends BaseEntry
 {
-    protected $xmlOptions = LIBXML_BIGLINES
+    const LIBXML_OPTIONS = LIBXML_BIGLINES
         | LIBXML_COMPACT
         | LIBXML_NOBLANKS
         // | LIBXML_NOCDATA
@@ -22,14 +22,35 @@ class XmlEntry extends BaseEntry
         | LIBXML_NSCLEAN
     ;
 
+    protected $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed', 'none'];
+    protected $true = [1, true, '1', 'true', 'yes', 'on', 'public', 'open'];
+    protected $null = [null, 'null'];
+
     protected function init(): void
     {
-        if ($this->data instanceof XMLReaderNode) {
+        if (!$this->data) {
+            $this->data = [];
+            return;
+        } elseif (is_string($this->data)) {
+            // Try to load the xml, but normally, it should be done early.
+            if (mb_substr($this->data, 0, 1) !== '<' || mb_substr($this->data, -1) !== '>') {
+                if (mb_substr($this->data, 0, 1) !== '/' && !$this->isUrl($this->data)) {
+                    $this->data = [];
+                    return;
+                }
+                $this->data = simplexml_load_file($this->data);
+            } else {
+                $this->data = simplexml_load_string($this->data);
+            }
+            $simpleXml = $this->data;
+        } elseif ($this->data instanceof XMLReaderNode) {
             $simpleXml = $this->data->getSimpleXMLElement();
             // Fix issue with cdata (no: it will escape html tags).
-            // $simpleXml = new SimpleXMLElement($simpleXml->asXML(), $this->xmlOptions);
-            $simpleXml = new \BulkImport\Entry\SimpleXMLElementNamespaced($simpleXml->asXML(), $this->xmlOptions);
-        } elseif (!$this->data instanceof SimpleXMLElement) {
+            // $simpleXml = new SimpleXMLElement($simpleXml->asXML(), self::LIBXML_OPTIONS);
+            $simpleXml = new \BulkImport\Entry\SimpleXMLElementNamespaced($simpleXml->asXML(), self::LIBXML_OPTIONS);
+        } elseif ($this->data instanceof SimpleXMLElement) {
+            $simpleXml = $this->data;
+        } else {
             $this->data = [];
             return;
         }
@@ -598,7 +619,7 @@ class XmlEntry extends BaseEntry
         $doc->preserveWhiteSpace = false;
         $doc->formatOutput = true;
         foreach ($doc->childNodes as $child) {
-            $value .= $child->ownerDocument->saveXML($child, $this->xmlOptions) . PHP_EOL;
+            $value .= $child->ownerDocument->saveXML($child, self::LIBXML_OPTIONS) . PHP_EOL;
         }
         $value = trim($value);
          */
@@ -618,14 +639,14 @@ class XmlEntry extends BaseEntry
         $doc = new \DomDocument();
         $doc->preserveWhiteSpace = false;
         $doc->formatOutput = true;
-        $result = $doc->loadXML($value, $this->xmlOptions);
+        $result = $doc->loadXML($value, self::LIBXML_OPTIONS);
         if (!$result) {
-            $result = $doc->loadHTML($value, $this->xmlOptions);
+            $result = $doc->loadHTML($value, self::LIBXML_OPTIONS);
             return $result
                 ? $doc->saveHTML()
                 : $value;
         }
-        $output = $doc->saveXML(null, $this->xmlOptions);
+        $output = $doc->saveXML(null, self::LIBXML_OPTIONS);
         return mb_substr($output, 0, 2) === '<?'
             ? trim(mb_substr($output, mb_strpos($output, '?>') + 2))
             : $output;
