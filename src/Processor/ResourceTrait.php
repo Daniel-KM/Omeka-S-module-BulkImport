@@ -155,13 +155,13 @@ trait ResourceTrait
 
             case 'items':
                 $sql = <<<SQL
-INSERT INTO `item`
-SELECT `resource`.`id`
-FROM `resource` AS `resource`
-LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
-WHERE `specific`.`id` IS NULL
-    AND `resource`.`resource_type` = $resourceClass;
-SQL;
+                    INSERT INTO `item` (`id`)
+                    SELECT `resource`.`id`
+                    FROM `resource` AS `resource`
+                    LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
+                    WHERE `specific`.`id` IS NULL
+                        AND `resource`.`resource_type` = $resourceClass;
+                    SQL;
                 $this->connection->executeStatement($sql);
                 return;
 
@@ -169,13 +169,13 @@ SQL;
                 // Finalize custom vocabs early: item sets map is available.
                 $this->prepareCustomVocabsFinalize();
                 $sql = <<<SQL
-INSERT INTO `item_set`
-SELECT `resource`.`id`, 0
-FROM `resource` AS `resource`
-LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
-WHERE `specific`.`id` IS NULL
-    AND `resource`.`resource_type` = $resourceClass;
-SQL;
+                    INSERT INTO `item_set` (`id`, `is_open`)
+                    SELECT `resource`.`id`, 0
+                    FROM `resource` AS `resource`
+                    LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
+                    WHERE `specific`.`id` IS NULL
+                        AND `resource`.`resource_type` = $resourceClass;
+                    SQL;
                 $this->connection->executeStatement($sql);
                 return;
 
@@ -194,15 +194,14 @@ SQL;
 
                 // To update with a temporary table and without big bind is quicker.
                 $sql = <<<SQL
-# Copy the mapping of source ids and destination item ids.
-DROP TABLE IF EXISTS `_temporary_source_media`;
-CREATE TEMPORARY TABLE `_temporary_source_media` (
-    `id` INT unsigned NOT NULL,
-    `item_id` INT unsigned NOT NULL,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
-
-SQL;
+                    # Copy the mapping of source ids and destination item ids.
+                    DROP TABLE IF EXISTS `_temporary_source_media`;
+                    CREATE TEMPORARY TABLE `_temporary_source_media` (
+                        `id` INT unsigned NOT NULL,
+                        `item_id` INT unsigned NOT NULL,
+                        PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB;
+                    SQL . "\n";
                 $parent = $this->importables[$sourceType]['parent'] ?? 'items';
 
                 if ($sourceType === 'media_items_sub') {
@@ -221,15 +220,14 @@ SQL;
                     }
                 }
                 $sql .= <<<'SQL'
-INSERT INTO `media`
-    (`id`, `item_id`, `ingester`, `renderer`, `data`, `source`, `media_type`, `storage_id`, `extension`, `sha256`, `has_original`, `has_thumbnails`, `position`, `lang`, `size`)
-SELECT
-    `resource`.`id`, `_temporary_source_media`.`item_id`, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
-FROM `resource` AS `resource`
-JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`id`;
-DROP TABLE IF EXISTS `_temporary_source_media`;
-
-SQL;
+                    INSERT INTO `media`
+                        (`id`, `item_id`, `ingester`, `renderer`, `data`, `source`, `media_type`, `storage_id`, `extension`, `sha256`, `has_original`, `has_thumbnails`, `position`, `lang`, `size`)
+                    SELECT
+                        `resource`.`id`, `_temporary_source_media`.`item_id`, '', '', NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, NULL, NULL
+                    FROM `resource` AS `resource`
+                    JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`id`;
+                    DROP TABLE IF EXISTS `_temporary_source_media`;
+                    SQL;
                 $this->connection->executeStatement($sql);
                 break;
         }
