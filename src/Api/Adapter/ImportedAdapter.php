@@ -72,9 +72,13 @@ class ImportedAdapter extends AbstractEntityAdapter
         ErrorStore $errorStore
     ): void {
         /** @var \BulkImport\Entity\Imported $entity */
+
         $data = $request->getContent();
+
+        $entityManager = $this->getEntityManager();
+
         if (isset($data['o:job']['o:id'])) {
-            $job = $this->getAdapter('jobs')->findEntity($data['o:job']['o:id']);
+            $job = $entityManager->find(\Omeka\Entity\Job::class, (int) $data['o:job']['o:id']);
             $entity->setJob($job);
         }
 

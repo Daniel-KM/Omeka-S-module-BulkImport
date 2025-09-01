@@ -728,8 +728,12 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         // Check through hydration and standard api.
-        /** @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter */
+        /**
+         * @var \Omeka\Api\Adapter\AbstractResourceEntityAdapter $adapter
+         * @var \Doctrine\ORM\EntityManager $entityManager
+         */
         $adapter = $this->adapterManager->get($resource['resource_name']);
+        $entityManager = $this->getServiceLocator()->get('Omeka\EntityManager');
 
         // Some options are useless here, but added anyway.
         /** @see \Omeka\Api\Request::setOption() */
@@ -765,11 +769,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         $entityItem = new \Omeka\Entity\Item;
                     }
                 } else {
-                    try {
-                        $entityItem = $adapter->getAdapter('items')->findEntity($resource['o:item']['o:id']);
-                    } catch (\Exception $e) {
-                        // Managed below.
-                    }
+                    $entityItem = $entityManager->find(\Omeka\Entity\Item::class, (int) $resource['o:item']['o:id']);
                 }
                 if (!$entityItem) {
                     $resource['messageStore']->addError('media', new PsrMessage(
@@ -785,8 +785,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         } else {
             $request
                 ->setId($resource['o:id']);
-
-            $entity = $adapter->findEntity($resource['o:id']);
+            $entityClass = $this->easyMeta->entityClass($resource['resource_name']);
+            $entity = $entityManager->find($entityClass, $resource['o:id']);
             // \Omeka\Api\Adapter\AbstractEntityAdapter::authorize() is protected.
             if (!$this->acl->userIsAllowed($entity, $operation)) {
                 $resource['messageStore']->addError('rights', new PsrMessage(

@@ -49,9 +49,18 @@ class ImportedRepresentation extends AbstractEntityRepresentation
         if (empty($name) || empty($id)) {
             return null;
         }
+
+        /**
+         * @var \Common\Stdlib\EasyMeta $easyMeta
+         * @var \Doctrine\ORM\EntityManager $entityManager
+         */
         try {
             $adapter = $this->getAdapter($name);
-            $entity = $adapter->findEntity(['id' => $id]);
+            $services = $this->getServiceLocator();
+            $easyMeta = $services->get('Common\EasyMeta');
+            $entityManager = $services->get('Omeka\EntityManager');
+            $entityClass = $easyMeta->entityClass($name);
+            $entity = $entityManager->find($entityClass, $id);
             return $adapter->getRepresentation($entity);
         } catch (NotFoundException $e) {
             return null;
