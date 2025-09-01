@@ -187,6 +187,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox")',
                 // There is a filter on eprints, so use it here too.
                 '`document`.`format` != "other"',
+                '`document`.`main` NOT IN ("preview.jpg", "indexcodes.txt")',
             ],
         ],
         // 'media_items' => [],
