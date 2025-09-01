@@ -40,4 +40,4 @@ if ($processor && ($processor instanceof ConfigurableImport)) {
 }
 ?>
 
-<?= str_replace(array_keys($replace), array_values($replace), $this->sectionNav($nav)) ?>
+<?= strtr($this->sectionNav($nav), $replace) ?>

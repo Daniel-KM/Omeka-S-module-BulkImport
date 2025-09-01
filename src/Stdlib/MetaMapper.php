@@ -803,14 +803,14 @@ class MetaMapper
             ];
             $baseReplace = $replace;
             foreach ($replace as &$replaceValue) {
-                $replaceValue = str_replace(array_keys($replaceQuotes), array_values($replaceQuotes), $replaceValue);
+                $replaceValue = strtr($replaceValue, $replaceQuotes);
             }
             unset($replaceValue);
             $hasQuote = $baseReplace !== $replace;
         }
 
         $value = $replace
-            ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
+            ? strtr($mod['pattern'], $replace)
             : $mod['pattern'];
 
         if ($hasTwig) {
@@ -819,7 +819,7 @@ class MetaMapper
 
         if ($hasTwig && $hasQuote) {
             foreach ($replace as &$replaceValue) {
-                $replaceValue = str_replace(array_values($replaceQuotes), array_keys($replaceQuotes), $replaceValue);
+                $replaceValue = strtr($replaceValue, array_flip($replaceQuotes));
             }
             unset($replaceValue);
         }
@@ -1004,14 +1004,14 @@ class MetaMapper
             ];
             $baseReplace = $replace;
             foreach ($replace as &$replaceValue) {
-                $replaceValue = str_replace(array_keys($replaceQuotes), array_values($replaceQuotes), $replaceValue);
+                $replaceValue = strtr($replaceValue, $replaceQuotes);
             }
             unset($replaceValue);
             $hasQuote = $baseReplace !== $replace;
         }
 
         $value = $replace
-            ? str_replace(array_keys($replace), array_values($replace), $mod['pattern'])
+            ? strtr($mod['pattern'], $replace)
             : $mod['pattern'];
 
         if ($hasTwig) {
@@ -1020,7 +1020,7 @@ class MetaMapper
 
         if ($hasTwig && $hasQuote) {
             foreach ($replace as &$replaceValue) {
-                $replaceValue = str_replace(array_values($replaceQuotes), array_keys($replaceQuotes), $replaceValue);
+                $replaceValue = strtr($replaceValue, array_flip($replaceQuotes));
             }
             unset($replaceValue);
         }
@@ -1148,7 +1148,7 @@ class MetaMapper
     private function _flatArray(array &$array, array &$flatArray, ?string $keys = null): void
     {
         foreach ($array as $key => $value) {
-            $nKey = str_replace(['.', '\\'], ['\.', '\\\\'], (string) $key);
+            $nKey = strtr((string) $key, ['.' => '\.', '\\' => '\\\\']);
             if (is_array($value)) {
                 $this->_flatArray($value, $flatArray, $keys . '.' . $nKey);
             } else {

@@ -162,7 +162,7 @@ class BulkCheckLog extends AbstractPlugin
         $base = preg_replace('/[^A-Za-z0-9]/', '_', $this->baseName);
         $base = $base ? substr(preg_replace('/_+/', '_', $base), 0, 20) . '-' : '';
         $date = (new \DateTime())->format('Ymd-His');
-        $random = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(128))), 0, 6);
+        $random = substr(strtr(base64_encode(random_bytes(128)), ['+' => '', '/' => '', '=' => '']), 0, 6);
         $this->keyStore = sprintf('_cache_bulkimport_%s%s_%s', $base, $date, $random);
 
         return $this;
@@ -223,9 +223,7 @@ SQL;
      */
     public function getTotalCheckedResources(): int
     {
-        $escapeSqlLike = function ($string) {
-            return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $string);
-        };
+        $escapeSqlLike = fn ($string) => strtr((string) $string, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
         return (int) $this->connection
             ->executeQuery('SELECT COUNT(`id`) FROM `user_setting` WHERE `id` LIKE :key_store', [
                 'key_store' => $escapeSqlLike($this->keyStore) . '%',
@@ -476,9 +474,9 @@ SQL;
             $row = array_replace($columnKeys, array_intersect_key($row, $columnKeys));
         }
 
-        // Remove end of lines for each cell.
+        // Remove end of lines for each cell, replacing with double space.
         $row = array_map(function ($v) {
-            $v = str_replace(["\r\n", "\n\r", "\r", "\n"], ['  ', '  ', '  ', '  '], (string) $v);
+            $v = strtr((string) $v, ["\r\n" => '  ', "\n\r" => '  ', "\r" => '  ', "\n" => '  ']);
             if (($pos = strpos($v, 'Stack trace:')) > 0) {
                 $v = substr($v, 0, $pos);
             }

@@ -1225,7 +1225,7 @@ SQL;
         }
 
         if (empty($params['name'])) {
-            $params['name'] = str_replace(':', '-', $datatype . '_' . $this->transformIndex);
+            $params['name'] = strtr($datatype . '_' . $this->transformIndex, [':' => '-']);
         }
 
         // Only literal: the already mapped values (label + uri) can be used as
@@ -1451,7 +1451,7 @@ SQL;
         }
 
         if (empty($params['name'])) {
-            $params['name'] = str_replace(':', '-', $datatype . '_' . $this->transformIndex);
+            $params['name'] = strtr($datatype . '_' . $this->transformIndex, [':' => '-']);
         }
 
         $isValueSuggest = substr($datatype, 0, 12) === 'valuesuggest';
@@ -1714,8 +1714,8 @@ SQL;
                         if (isset($setting['replace']) && mb_strlen($setting['replace'])) {
                             $sourceForValue = empty($setting['remove_space_source'])
                                 ? $source
-                                : str_replace(' ', '', $source);
-                            $value = str_replace(['{source}', '{destination}'], [$sourceForValue, $value], $value);
+                                : strtr($source, [' ' => '']);
+                            $value = strtr($value, ['{source}' => $sourceForValue, '{destination}' => $value]);
                         }
                         unset($setting);
                     }
@@ -2311,7 +2311,7 @@ SQL;
             // Clean the list of items, merge it with previous ones and store it
             // separately, in all cases.
             if ($items) {
-                $items = array_unique(array_filter(array_map('intval', explode(' ', str_replace('#', ' ', $items)))));
+                $items = array_unique(array_filter(array_map('intval', explode(' ', strtr($items, ['#' => ' '])))));
                 sort($items);
             } else {
                 $items = [];
@@ -3589,7 +3589,7 @@ SQL;
 
     protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): ?string
     {
-        $relativePath = 'bulk_import/' . 'import_' . $this->job->getImportId() . '_' . str_replace(':', '-', $filename) . '.' . $extension;
+        $relativePath = 'bulk_import/' . 'import_' . $this->job->getImportId() . '_' . strtr($filename, [':' => '-']) . '.' . $extension;
         if ($relative) {
             return 'files/' . $relativePath;
         }

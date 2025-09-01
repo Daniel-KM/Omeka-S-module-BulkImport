@@ -390,11 +390,8 @@ trait ResourceTrait
         }
 
         $this->entity->setIsPublic(!empty($source['o:is_public']));
-
         // TODO Replace by implodeDate() in previous steps.
-        $sqlDate = function ($value) {
-            return substr(str_replace('T', ' ', $value), 0, 19) ?: $this->currentDateTimeFormatted;
-        };
+        $sqlDate = fn ($value) => substr(strtr($value, ['T' => ' ']), 0, 19) ?: $this->currentDateTimeFormatted;
 
         $created = new \DateTime($sqlDate($source['o:created']['@value']));
         $this->entity->setCreated($created);

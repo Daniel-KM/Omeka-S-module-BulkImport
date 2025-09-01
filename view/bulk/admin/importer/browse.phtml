@@ -80,7 +80,7 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'Bulk
                     <?= $bulkMapping->link($bulkMapping->label(), 'show') ?>
                     <?= $bulkMapping->link('', 'edit', ['class' => 'o-icon-edit']) ?>
                     <?php elseif ($mapper): ?>
-                    <?= $escape(str_replace(['/', ':'], [' / ', ': '], (string) $mapper)) ?>
+                    <?= $escape(strtr((string) $mapper, ['/' => ' / ', ':' => ': '])) ?>
                 <?php endif; ?>
             </td>
             <td class="configure">

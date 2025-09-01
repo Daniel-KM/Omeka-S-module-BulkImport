@@ -110,7 +110,7 @@ trait DateTimeTrait
 
         try {
             $dateTime = strpos($date, ':', 1) || strpos($date, '-', 1)
-                ? new DateTime(substr(str_replace('T', ' ', $date), 0, 19), $dateTimeZone)
+                ? new DateTime(substr(strtr($date, ['T' => ' ']), 0, 19), $dateTimeZone)
                 : new DateTime(date('Y-m-d H:i:s', $date), $dateTimeZone);
         } catch (\Exception $e) {
             return null;

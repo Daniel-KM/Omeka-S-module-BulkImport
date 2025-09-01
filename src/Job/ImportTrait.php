@@ -1000,7 +1000,7 @@ trait ImportTrait
             $class = get_class($resource);
             if (empty($classes[$class])) {
                 $classes[$class] = $this->adapterManager
-                    ->get(substr_replace(str_replace('\\Representation\\', '\\Adapter\\', get_class($resource)), 'Adapter', -14))
+                    ->get(substr_replace(strtr(get_class($resource), ['\\Representation\\' => '\\Adapter\\']), 'Adapter', -14))
                     ->getResourceName();
             }
             $importeds[] = [

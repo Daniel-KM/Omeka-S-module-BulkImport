@@ -1610,7 +1610,7 @@ class EprintsProcessor extends AbstractFullProcessor
         }
 
         // The separator is not defined, so use the ones found.
-        $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords']))));
+        $list = array_filter(array_map('trim', explode("\n", strtr((string) $source['keywords'], [',' => "\n", ';' => "\n", "\n" => "\n"]))));
         foreach ($list as $keyword) {
             $values[] = [
                 'term' => 'curation:tag',
@@ -2027,7 +2027,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
-        $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords_other']))));
+        $list = array_filter(array_map('trim', explode("\n", strtr((string) $source['keywords_other'], [',' => "\n", ';' => "\n", "\n" => "\n"]))));
         foreach ($list as $keyword) {
             $values[] = [
                 'term' => 'curation:tag',
@@ -2131,7 +2131,7 @@ class EprintsProcessor extends AbstractFullProcessor
             ];
         }
 
-        $list = array_filter(array_map('trim', explode("\n", str_replace([',', ';', "\n"], ["\n", "\n", "\n"], (string) $source['keywords_english']))));
+        $list = array_filter(array_map('trim', explode("\n", strtr((string) $source['keywords_english'], [',' => "\n", ';' => "\n", "\n" => "\n"]))));
         foreach ($list as $keyword) {
             $values[] = [
                 'term' => 'curation:tag',

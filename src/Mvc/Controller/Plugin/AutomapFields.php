@@ -517,7 +517,7 @@ class AutomapFields extends AbstractPlugin
             foreach ($result['replace'] as $i => $replacement) {
                 $replacements[$replacement] = '__To_Be_Replaced__' . $i . '__';
             }
-            $cleanPattern = str_replace(array_keys($replacements), array_values($replacements), $pattern);
+            $cleanPattern = strtr($pattern, $replacements);
         }
 
         // Instead of complex regex to check pattern not nested, use a
@@ -543,12 +543,12 @@ class AutomapFields extends AbstractPlugin
 
         if (count($skips) === 2) {
             // Explode everything.
-            $cleanerPattern = str_replace(array_keys($skips), array_values($skips), $cleanerPattern);
+            $cleanerPattern = strtr($cleanerPattern, $skips);
             $regex = '~' . $skips['{{ '] . '([^' . $skips['{{ '] . $skips[' }}'] . ']+)' . $skips[' }}'] . '~';
             if (preg_match_all($regex, $cleanerPattern, $matches) !== false) {
                 $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
                 foreach ($result['twig'] as &$twig) {
-                    $twig = str_replace(array_values($skips), array_keys($skips), $twig);
+                    $twig = strtr($twig, array_flip($skips));
                 }
                 unset($twig);
                 // Avoid to use twig when a replacement is enough.
@@ -556,7 +556,7 @@ class AutomapFields extends AbstractPlugin
                 // Keep original replacements values.
                 if (!empty($replacements)) {
                     foreach ($result['twig'] as $key => $twigPattern) {
-                        $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                        $originalPattern = strtr($twigPattern, array_flip($replacements));
                         $result['twig'][$key] = $originalPattern;
                         // When there are replacements, the twig transformation
                         // should be done on real value or on a transformed filter.
@@ -578,7 +578,7 @@ class AutomapFields extends AbstractPlugin
             // Keep original replacements values.
             if (!empty($replacements)) {
                 foreach ($result['twig'] as $key => $twigPattern) {
-                    $originalPattern = str_replace(array_values($replacements), array_keys($replacements), $twigPattern);
+                    $originalPattern = strtr($twigPattern, array_flip($replacements));
                     $result['twig'][$key] = $originalPattern;
                     // When there are replacements, the twig transformation
                     // should be done on real value or on a transformed filter.

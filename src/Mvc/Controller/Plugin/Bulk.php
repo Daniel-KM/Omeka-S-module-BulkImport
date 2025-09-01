@@ -507,7 +507,7 @@ class Bulk extends AbstractPlugin
      */
     public function fixEndOfLine($string): string
     {
-        return str_replace(["\r\n", "\n\r", "\r"], ["\n", "\n", "\n"], (string) $string);
+        return strtr((string) $string, ["\r\n" => "\n", "\n\r" => "\n", "\r" => "\n"]);
     }
 
     /**

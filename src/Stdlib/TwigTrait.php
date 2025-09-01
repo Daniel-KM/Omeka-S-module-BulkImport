@@ -115,7 +115,7 @@ trait TwigTrait
             // cannot be a reserved keyword.
             foreach ($filters as $filter) {
                 $v = $hasReplaceQuery
-                    ? $this->twigProcess($v, str_replace(array_keys($replace), array_values($replace), $filter))
+                    ? $this->twigProcess($v, strtr($filter, $replace))
                     : $this->twigProcess($v, $filter);
             }
             // A twig pattern may return an array.
@@ -124,12 +124,12 @@ trait TwigTrait
                 $v = $v instanceof \DOMNode ? (string) $v->nodeValue : (string) $v;
             }
             if ($hasReplaceQuery) {
-                $twigReplace[str_replace(array_keys($replace), array_values($replace), $query)] = $v;
+                $twigReplace[strtr($query, $replace)] = $v;
             } else {
                 $twigReplace[$query] = $v;
             }
         }
-        return str_replace(array_keys($twigReplace), array_values($twigReplace), $pattern);
+        return strtr($pattern, $twigReplace);
     }
 
     /**
@@ -237,7 +237,7 @@ trait TwigTrait
             case 'replace':
                 $arga = $this->extractAssociative($args);
                 if ($arga) {
-                    $v = str_replace(array_keys($arga), array_values($arga), $w);
+                    $v = strtr($w, $arga);
                 }
                 break;
 

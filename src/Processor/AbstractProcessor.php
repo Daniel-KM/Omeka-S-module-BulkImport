@@ -283,10 +283,10 @@ abstract class AbstractProcessor implements Processor
             $string = mb_strtoupper($string);
         }
         if (in_array('apostrophe', $cleaners)) {
-            $string = str_replace("'", '’', $string);
+            $string = strtr($string, ["'" => '’']);
         }
         if (in_array('single_quote', $cleaners)) {
-            $string = str_replace('’', "'", $string);
+            $string = strtr($string, ['’' => "'"]);
         }
 
         return $string;

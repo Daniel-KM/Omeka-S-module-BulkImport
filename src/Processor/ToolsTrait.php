@@ -374,7 +374,7 @@ SQL;
     protected function randomString(int $length = 1): string
     {
         $length = max(1, $length);
-        return substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(16 * $length))), 0, $length);
+        return substr(strtr(base64_encode(random_bytes(16 * $length)), ['+' => '', '/' => '', '=' => '']), 0, $length);
     }
 
     protected function asciiArrayToString(array $array): string
