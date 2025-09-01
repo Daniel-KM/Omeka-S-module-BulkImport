@@ -261,12 +261,12 @@ SQL;
             if ($sourceType) {
                 $this->logger->warn(
                     'To import "{source}", the Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
-                    ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                    ['source' => $sourceType, 'sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['host'])]
                 );
             } else {
                 $this->logger->warn(
                     'The Omeka database user should be able to read the source database directly, so run this query or a similar one with a database admin user: "{sql}".',  // @translate
-                    ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['hostname'])]
+                    ['sql' => sprintf("GRANT SELECT ON `%s`.* TO '%s'@'%s';", $dbConfig['database'], $dbConfig['username'], $dbConfig['host'])]
                 );
             }
             $this->logger->err(

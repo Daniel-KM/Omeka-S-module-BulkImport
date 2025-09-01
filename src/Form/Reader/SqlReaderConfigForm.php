@@ -45,13 +45,13 @@ class SqlReaderConfigForm extends AbstractReaderConfigForm
                 ],
             ])
             ->add([
-                'name' => 'hostname',
+                'name' => 'host',
                 'type' => Element\Text::class,
                 'options' => [
                     'label' => 'Database host name', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'hostname',
+                    'id' => 'host',
                     'required' => false,
                 ],
             ])

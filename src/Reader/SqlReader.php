@@ -365,7 +365,7 @@ SQL;
         $this->dbConfig['database'] = $this->getParam('database', '');
         $this->dbConfig['username'] = $this->getParam('username', '');
         $this->dbConfig['password'] = $this->getParam('password', '');
-        $this->dbConfig['hostname'] = $this->getParam('hostname') ?: 'localhost';
+        $this->dbConfig['host'] = $this->getParam('host') ?: 'localhost';
         $this->dbConfig['port'] = $this->getParam('port') ?: null;
         $this->dbConfig['charset'] = $this->getParam('charset') ?: null;
         $this->dbConfig['driver'] = $this->getParam('driver') ?: 'Pdo_Mysql';
