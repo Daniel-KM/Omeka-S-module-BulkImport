@@ -82,6 +82,11 @@ class ProcessXslt extends AbstractPlugin
             // url contains query with some characters (cf. some gallica sru)
             // that are not loaded by the xslt processor.
             $filepath = @tempnam($this->tempDir, 'omk_xml_');
+            if ($filepath === false) {
+                throw new RuntimeException('Unable to create a temporary file.'); // @translate
+            }
+            rename($filepath, $filepath . '.xml');
+            $filepath .= '.xml';
             $result = file_put_contents($filepath, file_get_contents($url));
             if (empty($result)) {
                 throw new RuntimeException(sprintf(
@@ -122,7 +127,12 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaPhp($url, $stylesheet, $output = '', array $parameters = [])
     {
         if (empty($output)) {
-            $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
+            $output = @tempnam($this->tempDir, 'omk_xsl_');
+            if ($output === false) {
+                throw new RuntimeException('Unable to create a temporary file.'); // @translate
+            }
+            rename($output, $output . '.xml');
+            $output .= '.xml';
         }
 
         try {
@@ -257,7 +267,12 @@ class ProcessXslt extends AbstractPlugin
     protected function processXsltViaExternal($url, $stylesheet, $output = '', $parameters = [])
     {
         if (empty($output)) {
-            $output = @tempnam($this->tempDir, 'omk_xsl_') . '.xml';
+            $output = @tempnam($this->tempDir, 'omk_xsl_');
+            if ($output === false) {
+                throw new RuntimeException('Unable to create a temporary file.'); // @translate
+            }
+            rename($output, $output . '.xml');
+            $output .= '.xml';
         }
 
         $command = sprintf($this->command, escapeshellarg($url), escapeshellarg($stylesheet), escapeshellarg($output));
