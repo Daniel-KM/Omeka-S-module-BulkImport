@@ -1402,7 +1402,7 @@ class EprintsProcessor extends AbstractFullProcessor
             true,
             true
         );
-        $created = $created ?? $modified ?? $this->currentDateTimeFormatted;
+        $created ??= $modified ?? $this->currentDateTimeFormatted;
         if (!$modified && $source['rev_number'] > 1) {
             $modified = $this->currentDateTimeFormatted;
         }
@@ -1468,7 +1468,7 @@ class EprintsProcessor extends AbstractFullProcessor
             false,
             false
         );
-        $created = $created ?? $modified;
+        $created ??= $modified;
         if ($created) {
             $values[] = [
                 'term' => 'dcterms:created',
@@ -2976,9 +2976,7 @@ class EprintsProcessor extends AbstractFullProcessor
 
         // All tables manage multiple data (many-to-one relations), except "subject".
         // So prepare them to be an array of array.
-        $depositables = array_map(function ($v) {
-            return $v === 'TRUE';
-        }, $depositables);
+        $depositables = array_map(fn ($v) => $v === 'TRUE', $depositables);
         $parentByIds = [];
         foreach ($parents as $data) {
             $parentByIds[$data['subjectid']][] = $data;

@@ -105,9 +105,7 @@ SQL;
 
         /** @var \Omeka\Entity\Value[] $values */
         $values = $resource->getValues()->toArray();
-        $values = array_filter($values, function (\Omeka\Entity\Value $v) use ($termId) {
-            return $v->getProperty()->getId() === $termId;
-        });
+        $values = array_filter($values, fn (\Omeka\Entity\Value $v) => $v->getProperty()->getId() === $termId);
         if (!count($values)) {
             return null;
         }

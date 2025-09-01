@@ -90,7 +90,7 @@ trait UserTrait
             $email = mb_strtolower((string) $user['email']);
             if (!$validator->isValid($email)) {
                 $cleanName = empty($user['name'])
-                    ?$this->randomString(5)
+                    ? $this->randomString(5)
                     : preg_replace('/[^\da-z_-]/i', '_', $user['name']);
                 $user['email'] = $user['id'] . '-' . $importId . '-' . $index . '-' . strtolower($cleanName) . '@user.net';
                 $this->logger->warn(

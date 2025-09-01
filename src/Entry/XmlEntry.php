@@ -323,7 +323,7 @@ class XmlEntry extends BaseEntry
                         $media['ingest_url'] = $value;
                         unset($media['ingest_filename']);
                         unset($media['ingest_directory']);
-                    }  else {
+                    } else {
                         // TODO Manage local file bulk upload (but normally checked later)
                         $media['o:ingester'] = 'sideload';
                         $media['ingest_filename'] = $value;

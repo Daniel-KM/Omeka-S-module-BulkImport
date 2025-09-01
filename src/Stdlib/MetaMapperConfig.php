@@ -32,11 +32,11 @@ namespace BulkImport\Stdlib;
 use BulkImport\Mvc\Controller\Plugin\AutomapFields;
 use BulkImport\Mvc\Controller\Plugin\Bulk;
 use Common\Stdlib\EasyMeta;
+use Common\Stdlib\PsrMessage;
 use Flow\JSONPath\JSONPath;
 use JmesPath\Env as JmesPathEnv;
 use JmesPath\Parser as JmesPathParser;
 use Laminas\Log\Logger;
-use Common\Stdlib\PsrMessage;
 use SimpleXMLElement;
 
 class MetaMapperConfig
@@ -270,7 +270,7 @@ class MetaMapperConfig
         }
 
         // The mappings are not overridable.
-        if (!isset($this->mappings[$mappingName]) && $mappingOrReference!== null) {
+        if (!isset($this->mappings[$mappingName]) && $mappingOrReference !== null) {
             $this->prepareMapping($mappingOrReference, $options);
         }
 
@@ -752,13 +752,13 @@ class MetaMapperConfig
         }
 
         if (isset($xmlMapping->info)) {
-            foreach ($xmlMapping->info->children()  as $element) {
+            foreach ($xmlMapping->info->children() as $element) {
                 $normalizedMapping['info'][$element->getName()] = $element->__toString();
             }
         }
 
         if (isset($xmlMapping->params)) {
-            foreach ($xmlMapping->params->children()  as $element) {
+            foreach ($xmlMapping->params->children() as $element) {
                 $normalizedMapping['params'][$element->getName()] = $element->__toString();
             }
         }

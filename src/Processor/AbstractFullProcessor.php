@@ -1331,9 +1331,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
 
         $this->logger->notice('Assigning items to sites.'); // @translate
         $sitePools = $this->bulk->api()->search('sites', [], ['returnScalar' => 'itemPool'])->getContent();
-        $sitePools = array_map(function ($v) {
-            return is_array($v) ? $v : [];
-        }, $sitePools);
+        $sitePools = array_map(fn ($v) => is_array($v) ? $v : [], $sitePools);
         $this->dispatchJob(\Omeka\Job\UpdateSiteItems::class, [
             'sites' => $sitePools,
             'action' => 'add',

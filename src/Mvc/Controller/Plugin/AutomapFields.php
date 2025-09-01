@@ -664,9 +664,7 @@ class AutomapFields extends AbstractPlugin
      */
     protected function cleanStrings(array $strings): array
     {
-        return array_map(function ($string) {
-            return preg_replace('~\s*:\s*~', ':', $this->cleanUnicode($string));
-        }, $strings);
+        return array_map(fn ($string) => preg_replace('~\s*:\s*~', ':', $this->cleanUnicode($string)), $strings);
     }
 
     /**

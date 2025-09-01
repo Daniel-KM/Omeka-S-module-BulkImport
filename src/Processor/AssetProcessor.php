@@ -140,7 +140,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $resource['o:id'] = is_object($id) ? $id->id() : $id;
                     $resource['checked_id'] = true;
                 } else {
-                    $resource['o:id'] = $resource['o:id'] ?? null;
+                    $resource['o:id'] ??= null;
                     $resource['messageStore']->addError('resource', new PsrMessage(
                         'Source index #{index}: Storage id cannot be found. The entry is skipped.', // @translate
                         ['index' => $resource['source_index']]
@@ -314,7 +314,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
      */
     protected function createAsset(array $resource): ?AssetRepresentation
     {
-        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+        $resource['messageStore'] ??= new MessageStore();
 
         $resource = $this->bulkIdentifiers->completeResourceIdentifierIds($resource);
 
@@ -391,7 +391,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
     {
         // Unlike resource, the only fields updatable via standard methods are
         // name, alternative text and attached resources.
-        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+        $resource['messageStore'] ??= new MessageStore();
 
         // Always reload the resource that is currently managed to manage
         // multiple update of the same resource.
@@ -454,7 +454,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         $assetAction = $this->action;
         $this->action = self::ACTION_SUB_UPDATE;
         foreach ($resourcesToUpdateThumbnail as $key => $resourceForThumbnail) {
-            $resourceForThumbnail['messageStore'] = $resourceForThumbnail['messageStore'] ?? $resource['messageStore'] ?? new MessageStore();
+            $resourceForThumbnail['messageStore'] ??= $resource['messageStore'] ?? new MessageStore();
             // These resources are logged with a negative index to avoid to
             // override assets.
             // This is normally useless anyway.

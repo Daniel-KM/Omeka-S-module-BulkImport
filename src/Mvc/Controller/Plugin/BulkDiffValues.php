@@ -128,7 +128,6 @@ class BulkDiffValues extends AbstractPlugin
          * @var \BulkImport\Reader\AbstractReader $reader
          * @var \BulkImport\Entry\Entry $entry
          */
-
         $result = [];
 
         // Prepare the meta mapping for easier process.

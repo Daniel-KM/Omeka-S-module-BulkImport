@@ -23,9 +23,7 @@ class MediaProcessorConfigForm extends AbstractResourceProcessorConfigForm
                     'resource_value_options' => [
                         'resource' => 'items',
                         'query' => [],
-                        'option_text_callback' => function ($resource) {
-                            return $resource->displayTitle();
-                        },
+                        'option_text_callback' => fn ($resource) => $resource->displayTitle(),
                     ],
                 ],
                 'attributes' => [

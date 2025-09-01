@@ -160,7 +160,6 @@ trait ImportTrait
     protected $processingError;
 
     /**
-     *
      * @var bool
      */
     protected $skipMissingFiles;
@@ -195,7 +194,6 @@ trait ImportTrait
      *
      * @var string
      */
-
     protected $resourceName;
 
     /**

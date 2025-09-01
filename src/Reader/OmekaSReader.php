@@ -5,8 +5,8 @@ namespace BulkImport\Reader;
 use ArrayIterator;
 use BulkImport\Form\Reader\OmekaSReaderConfigForm;
 use BulkImport\Form\Reader\OmekaSReaderParamsForm;
-use Laminas\Http\Response as HttpResponse;
 use Common\Stdlib\PsrMessage;
+use Laminas\Http\Response as HttpResponse;
 
 /**
  * A full recursive array iterator is useless; it's mainly a paginator. Use yield? AppendGenerator?
@@ -128,7 +128,7 @@ class OmekaSReader extends AbstractPaginatedReader
 
     protected function initArgs(): self
     {
-        $this->endpoint =rtrim($this->getParam('endpoint'), '/ ');
+        $this->endpoint = rtrim($this->getParam('endpoint'), '/ ');
         $this->bulkFile->setEndpoint($this->endpoint);
         $this->queryCredentials = [];
         $keyIdentity = $this->getParam('key_identity');

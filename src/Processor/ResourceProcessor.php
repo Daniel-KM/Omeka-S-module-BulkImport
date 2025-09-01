@@ -1074,7 +1074,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                     if (mb_substr((string) $resource['ingest_filename'], 0, 7) === 'file://') {
                         $resource['ingest_filename'] = mb_substr($resource['ingest_filename'], 7);
                     }
-                }  else {
+                } else {
                     $resource['o:ingester'] = 'sideload';
                     $resource['ingest_filename'] = $value;
                     unset($resource['ingest_url']);
@@ -1345,7 +1345,7 @@ class ResourceProcessor extends AbstractResourceProcessor
                 } else {
                     $resourceValue['@id'] = $val;
                     // The label may be set early too.
-                    $resourceValue['o:label'] = $resourceValue['o:label'] ?? null;
+                    $resourceValue['o:label'] ??= null;
                 }
                 $resourceValue['o:lang'] = ($value['o:lang'] ?? $value['@language'] ?? $value['language'] ?? null) ?: null;
                 break;

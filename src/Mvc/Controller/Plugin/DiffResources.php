@@ -235,7 +235,7 @@ class DiffResources extends AbstractPlugin
 
         // Manage metadata in a generic way.
 
-        $isProperty = is_integer($this->easyMeta->propertyId($meta));
+        $isProperty = is_int($this->easyMeta->propertyId($meta));
 
         if (!$isProperty) {
             $resultMeta = [
@@ -282,7 +282,7 @@ class DiffResources extends AbstractPlugin
                         $this->updateMode
                     )->asArray();
                 $dataNorm2 = reset($dataNorm2) ?: [];
-            }  else {
+            } else {
                 $dataNorm2 = [];
             }
         }

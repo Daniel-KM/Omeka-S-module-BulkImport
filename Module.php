@@ -202,7 +202,7 @@ class Module extends AbstractModule
 
         $mediaIds = [];
         foreach ($item->getMedia() as $media) {
-            $mediaId = (int) $media->getId() ?? null;;
+            $mediaId = (int) $media->getId() ?? null;
             if ($mediaId) {
                 $mediaIds[$mediaId] = $mediaId;
             }

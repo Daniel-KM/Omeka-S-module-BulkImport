@@ -4,10 +4,10 @@ namespace BulkImport\Mvc\Controller\Plugin;
 
 use BulkImport\Processor\AbstractProcessor;
 use Common\Stdlib\EasyMeta;
-use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Laminas\Log\Logger;
-use Omeka\Api\Manager as ApiManager;
+use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Api\Adapter\Manager as AdapterManager;
+use Omeka\Api\Manager as ApiManager;
 
 /**
  * Helper to manage specific update modes.
@@ -393,9 +393,7 @@ class UpdateResource extends AbstractPlugin
             $data['o:media'] = $currentData['o:media'];
             return $data;
         }
-        $currentIds = array_map(function ($v) {
-            return (int) $v['o:id'];
-        }, $currentData['o:media']);
+        $currentIds = array_map(fn ($v) => (int) $v['o:id'], $currentData['o:media']);
         $dataMedias = $data['o:media'];
         $data['o:media'] = $currentData['o:media'];
         foreach ($dataMedias as $newMedia) {
@@ -418,9 +416,7 @@ class UpdateResource extends AbstractPlugin
             $data['o:item_set'] = $currentData['o:item_set'];
             return $data;
         }
-        $currentIds = array_map(function ($v) {
-            return (int) $v['o:id'];
-        }, $currentData['o:item_set']);
+        $currentIds = array_map(fn ($v) => (int) $v['o:id'], $currentData['o:item_set']);
         $dataItemSets = $data['o:item_set'];
         $data['o:item_set'] = $currentData['o:item_set'];
         foreach ($dataItemSets as $newItemSet) {
@@ -534,9 +530,7 @@ class UpdateResource extends AbstractPlugin
         $data = array_map('unserialize', array_unique(array_map(
             'serialize',
             // Normalize data.
-            array_map(function ($v) {
-                return isset($v['o:id']) ? ['o:id' => $v['o:id']] : $v;
-            }, $data)
+            array_map(fn ($v) => isset($v['o:id']) ? ['o:id' => $v['o:id']] : $v, $data)
         )));
         // Keep original data first.
         return array_intersect_key($dataBase, $data);
@@ -566,5 +560,6 @@ class UpdateResource extends AbstractPlugin
         $newVals = $this->normalizePropertyValues($term, $values);
         return count($newVals) <= 1
             ? $newVals
-            : array_map('unserialize', array_unique(array_map('serialize', $newVals)));}
+            : array_map('unserialize', array_unique(array_map('serialize', $newVals)));
+    }
 }

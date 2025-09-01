@@ -2,9 +2,8 @@
 
 namespace BulkImport\Reader;
 
-use Laminas\Form\Form;
 use Common\Stdlib\PsrMessage;
-use SplFileObject;
+use Laminas\Form\Form;
 
 /**
  * @todo Replace all abstract reader by a single IteratorIterator and prepare data separately.

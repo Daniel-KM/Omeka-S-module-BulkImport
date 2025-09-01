@@ -29,8 +29,8 @@
 
 namespace BulkImport\Stdlib;
 
-use Iso639p3\Iso639p3;
 use Iso3166p1\Iso3166p1;
+use Iso639p3\Iso639p3;
 
 /**
  * @todo Finalize clarification of twig command. Normally, only a pattern, that may be pre-parsed, and variables, and make it a service.
@@ -565,7 +565,7 @@ trait TwigTrait
         foreach ($matches['args'] as $key => $arg) {
             // If this is a var, take it, else this is a string or a number,
             // so remove the quotes if any.
-            $args[$key] = $this->twigVars['{{ ' . $arg . ' }}'] ?? (is_numeric($arg)? $arg : mb_substr($arg, 1, -1));
+            $args[$key] = $this->twigVars['{{ ' . $arg . ' }}'] ?? (is_numeric($arg) ? $arg : mb_substr($arg, 1, -1));
         }
         $countKeys = count($keys);
         return $countKeys
@@ -582,8 +582,8 @@ trait TwigTrait
         foreach (array_chunk($matches['args'], 2) as $keyValue) {
             if (count($keyValue) === 2) {
                 // The key cannot be a value, but may be numeric.
-                $key = is_numeric($keyValue[0])? $keyValue[0] : mb_substr($keyValue[0], 1, -1);
-                $value = $this->twigVars['{{ ' . $keyValue[1] . ' }}'] ?? (is_numeric($keyValue[1])? $keyValue[1] : mb_substr($keyValue[1], 1, -1));
+                $key = is_numeric($keyValue[0]) ? $keyValue[0] : mb_substr($keyValue[0], 1, -1);
+                $value = $this->twigVars['{{ ' . $keyValue[1] . ' }}'] ?? (is_numeric($keyValue[1]) ? $keyValue[1] : mb_substr($keyValue[1], 1, -1));
                 $output[$key] = $value;
             }
         }
@@ -631,9 +631,7 @@ trait TwigTrait
         $table = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'z'];
         $tableKeys = array_flip($table);
         $vals = str_split($value, 1);
-        $sum = array_sum(array_map(function ($k, $v) use ($tableKeys) {
-            return ($tableKeys[$v] ?? 0) * ($k + 1);
-        }, array_keys($vals), array_values($vals)));
+        $sum = array_sum(array_map(fn ($k, $v) => ($tableKeys[$v] ?? 0) * ($k + 1), array_keys($vals), array_values($vals)));
         $mod = $sum % count($table);
         return $table[$mod];
     }

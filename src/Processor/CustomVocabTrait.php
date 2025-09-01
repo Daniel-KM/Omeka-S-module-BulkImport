@@ -188,7 +188,7 @@ trait CustomVocabTrait
             'a' => $termsA,
             'b' => $termsB,
         ];
-        foreach ($terms  as &$termsList) {
+        foreach ($terms as &$termsList) {
             if (!is_array($termsList)) {
                 $termsList = explode("\n", $termsList);
             }

@@ -2,7 +2,6 @@
 
 namespace BulkImport\Job;
 
-use Common\Stdlib\PsrMessage;
 use Omeka\Job\AbstractJob;
 
 /**
@@ -258,7 +257,7 @@ class ExtractMediaMetadata extends AbstractJob
                 } else {
                     $resourceValue['@id'] = $val;
                     // The label may be set early too.
-                    $resourceValue['o:label'] = $resourceValue['o:label'] ?? null;
+                    $resourceValue['o:label'] ??= null;
                 }
                 $resourceValue['o:lang'] = ($value['o:lang'] ?? $value['@language'] ?? $value['language'] ?? null) ?: null;
                 break;

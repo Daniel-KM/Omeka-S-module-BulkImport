@@ -6,7 +6,6 @@ namespace BulkImport\Reader;
  * The xmlreader itherator is not included by default in the autoload, so load
  * it just for BulkImport.
  */
-
 $xmlReaderIterator_libPath = dirname(__DIR__, 2) . '/vendor/hakre/xmlreaderiterator/src';
 
 require_once $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
@@ -118,7 +117,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 }
             } elseif (mb_substr($xmlConfig, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($xmlConfig, 8);
-                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                /* @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
                 try {
                     $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
                     $result[$xmlConfig] = trim((string) $mapping->mapping());
@@ -187,7 +186,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 }
             } elseif (mb_substr($configName, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($configName, 8);
-                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                /* @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
                 try {
                     $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
                 } catch (\Exception $e) {
@@ -253,7 +252,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
             case 'srw:searchRetrieveResponse':
             case 'searchRetrieveResponse':
                 // SRU/SRW.
-                $counts[$filePath] = (int) $this->getValueOfFirstXmlElement($filePath,['srw:numberOfRecords', 'numberOfRecords']);
+                $counts[$filePath] = (int) $this->getValueOfFirstXmlElement($filePath, ['srw:numberOfRecords', 'numberOfRecords']);
                 break;
             case 'o:resources':
             case 'resources':

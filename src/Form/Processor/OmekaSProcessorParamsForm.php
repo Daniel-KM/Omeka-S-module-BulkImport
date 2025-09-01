@@ -2,7 +2,6 @@
 
 namespace BulkImport\Form\Processor;
 
-use BulkImport\Traits\ServiceLocatorAwareTrait;
 use Laminas\Form\Element;
 use Omeka\Form\Element as OmekaElement;
 
@@ -52,9 +51,7 @@ class OmekaSProcessorParamsForm extends OmekaSProcessorConfigForm
                     'resource_value_options' => [
                         'resource' => 'users',
                         'query' => ['sort_by' => 'name', 'sort_dir' => 'ASC'],
-                        'option_text_callback' => function ($user) {
-                            return sprintf('%s (%s)', $user->name(), $user->email());
-                        },
+                        'option_text_callback' => fn ($user) => sprintf('%s (%s)', $user->name(), $user->email()),
                     ],
                 ],
                 'attributes' => [

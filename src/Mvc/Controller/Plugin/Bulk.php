@@ -208,9 +208,7 @@ class Bulk extends AbstractPlugin
             ->orderBy('resource_template.label', 'asc')
         ;
         $this->resourceTemplateClassIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
-        $this->resourceTemplateClassIds = array_map(function ($v) {
-            return empty($v) ? null : (int) $v;
-        }, $this->resourceTemplateClassIds);
+        $this->resourceTemplateClassIds = array_map(fn ($v) => empty($v) ? null : (int) $v, $this->resourceTemplateClassIds);
         return $this->resourceTemplateClassIds;
     }
 
@@ -235,9 +233,7 @@ class Bulk extends AbstractPlugin
             ->orderBy('resource_template.id', 'asc')
         ;
         $this->resourceTemplateTitleIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
-        $this->resourceTemplateTitleIds = array_map(function ($v) {
-            return empty($v) ? null : (int) $v;
-        }, $this->resourceTemplateTitleIds);
+        $this->resourceTemplateTitleIds = array_map(fn ($v) => empty($v) ? null : (int) $v, $this->resourceTemplateTitleIds);
         return $this->resourceTemplateTitleIds;
     }
 
@@ -443,7 +439,7 @@ class Bulk extends AbstractPlugin
             try {
                 $result = $this->api
                     ->search('custom_vocabs', [], ['returnScalar' => 'label'])->getContent();
-                foreach ($result  as $id => $label) {
+                foreach ($result as $id => $label) {
                     $lowerLabel = mb_strtolower($label);
                     $cleanLabel = preg_replace('/[\W]/u', '', $lowerLabel);
                     $customVocabs['customvocab:' . $id] = 'customvocab:' . $id;

@@ -10,13 +10,13 @@ use BulkImport\Interfaces\Configurable;
 use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Job\Import as JobImport;
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Stdlib\PsrMessage;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Session\Container;
 use Laminas\View\Model\ViewModel;
-use Common\Stdlib\PsrMessage;
 
 class ImporterController extends AbstractActionController
 {
@@ -86,7 +86,7 @@ class ImporterController extends AbstractActionController
                     $response = $this->api($form)->create('bulk_importers', $data);
                 } else {
                     $oConfig = $currentData['o:config'];
-                    $oConfig['importer'] = $data['o:config']['importer'] ?? [];;
+                    $oConfig['importer'] = $data['o:config']['importer'] ?? [];
                     $data['o:config'] = $oConfig;
                     $response = $this->api($form)->update('bulk_importers', $this->params('id'), $data, [], ['isPartial' => true]);
                 }
@@ -324,7 +324,7 @@ class ImporterController extends AbstractActionController
             return $this->redirect()->toRoute('admin/bulk');
         }
 
-        /** @var \BulkImport\Processor\Processor $processor*/
+        /** @var \BulkImport\Processor\Processor $processor */
         $processor = $importer->processor();
         if (!$processor) {
             $message = new PsrMessage('Processor "{processor}" does not exist', ['processor' => $importer->processorClass()]); // @translate
@@ -467,7 +467,7 @@ class ImporterController extends AbstractActionController
                         }
                         $importData['o:params'] = [
                             'reader' => $reader instanceof Parametrizable ? $reader->getParams() : null,
-                            'mapping' => empty($session->mapping) ? null :  unserialize($session->mapping),
+                            'mapping' => empty($session->mapping) ? null : unserialize($session->mapping),
                             'processor' => $processorParams,
                         ];
                         $response = $this->api()->create('bulk_imports', $importData);

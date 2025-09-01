@@ -110,7 +110,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         if (empty($args)) {
             return $isSingle ? null : [];
         }
-        list($identifierTypeNames, $entityClass, $itemId) = $args;
+        [$identifierTypeNames, $entityClass, $itemId] = $args;
 
         $results = [
             'result' => [],
@@ -156,9 +156,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         switch ($identifierType) {
             case 'o:id':
                 $result = $this->findResourcesFromInternalIds($identifiers, $entityClass);
-                $count = array_map(function ($v) {
-                    return empty($v) ? 0 : 1;
-                }, $result);
+                $count = array_map(fn ($v) => empty($v) ? 0 : 1, $result);
                 return [
                     'result' => $result,
                     'count' => $count,
@@ -261,7 +259,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         foreach ($identifierNames as $identifierName) {
             $args = $this->normalizeArgs($identifierName, $resourceName);
             if ($args) {
-                list($identifierTypeName) = $args;
+                [$identifierTypeName] = $args;
                 $identifierName = reset($identifierTypeName);
                 $identifierType = key($identifierTypeName);
                 switch ($identifierType) {
@@ -586,7 +584,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         $prefixLike = $isPartial ? '%' : '';
         if (count($identifiers) === 1) {
-            list($storageId, $extension) = $getStorageIdAndExtension(reset($identifiers));
+            [$storageId, $extension] = $getStorageIdAndExtension(reset($identifiers));
             $andWhere = $expr->andX(
                 $isPartial
                     ? $expr->like('media.storage_id', ':storage_id')
@@ -600,7 +598,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         } else {
             $orX = [];
             foreach (array_values($identifiers) as $key => $value) {
-                list($storageId, $extension) = $getStorageIdAndExtension($value);
+                [$storageId, $extension] = $getStorageIdAndExtension($value);
                 $placeholderStorageId = 'value_storageid_' . $key;
                 $parameters[$placeholderStorageId] = $prefixLike . $storageId;
                 $placeholderExtension = 'value_extension_' . $key;
@@ -648,9 +646,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $count = [];
 
         // Prepare the lowercase result one time only.
-        $lowerResult = array_map(function ($v) {
-            return ['identifier' => strtolower((string) $v['identifier']), 'id' => $v['id'], 'count' => $v['count']];
-        }, $result);
+        $lowerResult = array_map(fn ($v) => ['identifier' => strtolower((string) $v['identifier']), 'id' => $v['id'], 'count' => $v['count']], $result);
 
         foreach (array_keys($cleanedResult) as $key) {
             // Look for the first case sensitive result.
@@ -672,9 +668,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             }
         }
 
-        $duplicates = array_filter($count, function ($v) {
-            return $v > 1;
-        });
+        $duplicates = array_filter($count, fn ($v) => $v > 1);
 
         return [
             'result' => $cleanedResult,

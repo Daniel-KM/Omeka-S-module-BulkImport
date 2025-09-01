@@ -9,7 +9,7 @@ class AssetProcessorParamsForm extends AssetProcessorConfigForm
         $this
             ->setAttribute('id', 'form-bulk-importer')
             ->baseFieldset();
-            // TODO Files.
+        // TODO Files.
 
         $this
             ->baseInputFilter();

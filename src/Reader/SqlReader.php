@@ -5,8 +5,8 @@ namespace BulkImport\Reader;
 use ArrayIterator;
 use BulkImport\Form\Reader\SqlReaderConfigForm;
 use BulkImport\Form\Reader\SqlReaderParamsForm;
-use Laminas\Db\Adapter\Adapter as DbAdapter;
 use Common\Stdlib\PsrMessage;
+use Laminas\Db\Adapter\Adapter as DbAdapter;
 
 class SqlReader extends AbstractPaginatedReader
 {
@@ -95,7 +95,7 @@ class SqlReader extends AbstractPaginatedReader
     public function setDbConfig(array $dbConfig): self
     {
         $this->dbConfig = $dbConfig;
-        $this->dbConfig['driver'] = $this->dbConfig['driver'] ?? 'Pdo_Mysql';
+        $this->dbConfig['driver'] ??= 'Pdo_Mysql';
         return $this;
     }
 

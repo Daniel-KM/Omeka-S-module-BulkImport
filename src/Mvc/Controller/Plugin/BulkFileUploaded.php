@@ -2,9 +2,9 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use Common\Stdlib\PsrMessage;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Common\Stdlib\PsrMessage;
 use Omeka\Stdlib\ErrorStore;
 use ZipArchive;
 
@@ -75,7 +75,7 @@ class BulkFileUploaded extends AbstractPlugin
 
         // Fix when no files are submitted in processor.
         if ($files === [['name' => '', 'type' => '', 'tmp_name' => '', 'error' => 4, 'size' => 0]]
-            || $files === [['name' => '', 'full_path' => '', 'type' => '', 'tmp_name' =>'', 'error' => 4, 'size' => 0]]
+            || $files === [['name' => '', 'full_path' => '', 'type' => '', 'tmp_name' => '', 'error' => 4, 'size' => 0]]
         ) {
             $this->filesUploaded = [];
             return [];

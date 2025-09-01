@@ -428,9 +428,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             if ($firstIndexIsOneBased === null) {
                 $firstIndexIsOneBased = (int) empty($index);
             }
-            $data = array_filter($row->getCells(), function (\OpenSpout\Common\Entity\Cell $cell) {
-                return $cell->getValue() !== '';
-            });
+            $data = array_filter($row->getCells(), fn (\OpenSpout\Common\Entity\Cell $cell) => $cell->getValue() !== '');
             if (count($data)) {
                 // Index is 0-based, but the header should be included.
                 $total = $index + $firstIndexIsOneBased;

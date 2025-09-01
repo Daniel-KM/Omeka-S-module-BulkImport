@@ -8,8 +8,8 @@ use BulkImport\Interfaces\Parametrizable;
 use BulkImport\Stdlib\MessageStore;
 use BulkImport\Traits\ConfigurableTrait;
 use BulkImport\Traits\ParametrizableTrait;
-use Laminas\Form\Form;
 use Common\Stdlib\PsrMessage;
+use Laminas\Form\Form;
 use Omeka\Api\Exception\ValidationException;
 use Omeka\Api\Representation\AbstractEntityRepresentation;
 use Omeka\Api\Request;
@@ -584,7 +584,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                         ? ['o:id' => $id]
                         : ['o:id' => $id, 'o:email' => $email];
                 } else {
-                    $resource['o:owner'] = $resource['o:owner'] ?? null;
+                    $resource['o:owner'] ??= null;
                     $resource['messageStore']->addError('resource', new PsrMessage(
                         'The user "{source}" does not exist.', // @translate
                         ['source' => $value]
@@ -649,17 +649,17 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resourceNameLabel = $this->easyMeta->resourceLabel($resource['resource_name']);
                     if (!$identifiers) {
                         $resource['messageStore']->addError('resource', new PsrMessage(
-                            'The action "{action}" requires an identifier ({resource_name} #{resource_id}).', // @translate
+                            'The action "{action}" requires an identifier ({resource_name} #{resource_id}).', // @translate
                             ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id']]
                         ));
                     } elseif ($this->action === self::ACTION_CREATE) {
                         $resource['messageStore']->addError('resource', new PsrMessage(
-                            'The action "{action}" cannot have an id or a duplicate identifier ({resource_name} #{resource_id}): {json}', // @translate
+                            'The action "{action}" cannot have an id or a duplicate identifier ({resource_name} #{resource_id}): {json}', // @translate
                             ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id'], 'json' => $identifiers]
                         ));
                     } else {
                         $resource['messageStore']->addError('resource', new PsrMessage(
-                            'The action "{action}" requires a unique identifier ({resource_name} #{resource_id}): {json}', // @translate
+                            'The action "{action}" requires a unique identifier ({resource_name} #{resource_id}): {json}', // @translate
                             ['action' => $this->action, 'resource_name' => $resourceNameLabel, 'resource_id' => $resource['o:id'], 'json' => $identifiers]
                         ));
                     }
@@ -673,7 +673,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             && in_array($this->actionUnidentified, [self::ACTION_ERROR, self::ACTION_SKIP])
         ) {
             $identifiers = $listIdentifiers($resource);
-            $logLevel = $this->actionUnidentified === self::ACTION_SKIP ? \Laminas\Log\Logger::WARN: \Laminas\Log\Logger::ERR;
+            $logLevel = $this->actionUnidentified === self::ACTION_SKIP ? \Laminas\Log\Logger::WARN : \Laminas\Log\Logger::ERR;
             if (!$identifiers) {
                 $resource['messageStore']->addMessage('identifier', new PsrMessage(
                     'The action "{action}" requires an identifier.', // @translate
@@ -961,7 +961,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-         return !$resource['messageStore']->hasErrors();
+        return !$resource['messageStore']->hasErrors();
     }
 
     /**
@@ -1057,7 +1057,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Check if the resource name is the good one.
         if ($resource['o:id']) {
             $resourceName = $resource['resource_name'] ?: $this->getResourceName();
-            $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+            $resource['messageStore'] ??= new MessageStore();
             if (empty($resourceName)) {
                 $resource['messageStore']->addError('resource_name', new PsrMessage(
                     'The resource id #{id} cannot be checked: the resource type is undefined.', // @translate
@@ -1099,7 +1099,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             return true;
         }
 
-        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+        $resource['messageStore'] ??= new MessageStore();
 
         // TODO getResourceName() is only in child AbstractResourceProcessor.
         $resourceName = empty($resource['resource_name'])
@@ -1201,7 +1201,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         // TODO Complete output with representation.
 
         $this->indexResource = $resource['source_index'];
-        $resource['messageStore'] = $resource['messageStore'] ?? new MessageStore();
+        $resource['messageStore'] ??= new MessageStore();
 
         switch ($this->action) {
             case self::ACTION_SKIP:
@@ -1253,7 +1253,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         // Remove uploaded files for items.
         foreach ($resource['o:media'] ?? [] as $key => $media) {
-            if (($media['o:ingester'] ?? null )=== 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
+            if (($media['o:ingester'] ?? null) === 'bulk' && ($media['ingest_ingester'] ?? null) === 'upload') {
                 $resource['o:media'][$key]['ingest_delete_file'] = true;
             }
         }

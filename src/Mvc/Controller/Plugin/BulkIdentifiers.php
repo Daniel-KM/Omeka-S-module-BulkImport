@@ -484,12 +484,8 @@ class BulkIdentifiers extends AbstractPlugin
             }
         }
 
-        $this->identifiers['mapx'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['mapx']);
-        $this->identifiers['map'] = array_map(function ($v) {
-            return $v ?: null;
-        }, $this->identifiers['map']);
+        $this->identifiers['mapx'] = array_map(fn ($v) => $v ?: null, $this->identifiers['mapx']);
+        $this->identifiers['map'] = array_map(fn ($v) => $v ?: null, $this->identifiers['map']);
 
         return $this;
     }

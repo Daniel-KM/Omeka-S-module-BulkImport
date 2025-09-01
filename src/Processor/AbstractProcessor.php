@@ -3,9 +3,9 @@
 namespace BulkImport\Processor;
 
 use BulkImport\Traits\ServiceLocatorAwareTrait;
+use Common\Stdlib\PsrMessage;
 use Laminas\Log\Logger;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use Common\Stdlib\PsrMessage;
 use Omeka\Api\Representation\AbstractEntityRepresentation;
 
 abstract class AbstractProcessor implements Processor
@@ -150,7 +150,7 @@ abstract class AbstractProcessor implements Processor
      */
     protected $totalErrors;
 
-        /**
+    /**
      * @var string|null
      */
     protected $lastErrorMessage;
@@ -174,7 +174,7 @@ abstract class AbstractProcessor implements Processor
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
-        $this->bulkCheckLog= $plugins->get('bulkCheckLog');
+        $this->bulkCheckLog = $plugins->get('bulkCheckLog');
         $this->bulkFile = $plugins->get('bulkFile');
         $this->bulkFileUploaded = $plugins->get('bulkFileUploaded');
         $this->bulkIdentifiers = $plugins->get('bulkIdentifiers');

@@ -145,7 +145,7 @@ class ExtractMediaMetadata extends AbstractPlugin
                 [
                     'media_id' => $media->getId(),
                     'item_id' => $media->getItem()->getId(),
-                    'json' => json_encode($data, 2097600)
+                    'json' => json_encode($data, 2097600),
                 ]
             );
         }

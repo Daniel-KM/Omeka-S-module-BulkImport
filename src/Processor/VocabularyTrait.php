@@ -45,7 +45,7 @@ trait VocabularyTrait
 
             $this->logger->info(
                 'Check properties for prefix "{prefix}".', // @translate
-                 ['prefix' => $prefix]
+                ['prefix' => $prefix]
             );
             $this->checkVocabularyProperties($vocabulary, $vocabularyRepresentation);
             if ($this->hasError) {
