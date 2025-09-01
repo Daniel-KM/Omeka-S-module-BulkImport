@@ -4,7 +4,8 @@
 
     Manage elements non included in oai dc and manage all dcterms.
 
-    To download files, see the xsl file "sru.dublin-core_with_file_gallica_to_omeka.xsl".
+    Important : to load images, the extension "highres" should be allowed in main settings, or 
+    the security file check should be disabled.
 
     @copyright Daniel Berthereau, 2021-2025
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
@@ -60,6 +61,7 @@
     <xsl:template match="oai_dc:dcterms | oai_dc:dc">
         <resource o:is_public="true" o:resource_template="{$resource_template}">
             <xsl:apply-templates select="*"/>
+            <xsl:apply-templates select="../../srw:extraRecordData/highres[normalize-space(.) != '']"/>
         </resource>
     </xsl:template>
 
@@ -68,6 +70,12 @@
         <xsl:element name="{concat('dcterms:', local-name(.))}">
             <xsl:value-of select="."/>
         </xsl:element>
+    </xsl:template>
+
+    <xsl:template match="srw:extraRecordData/highres">
+        <!-- The url has no extension (.highres), and is jpeg by default. -->
+        <o:media o:ingester="url" ingest_url="{.}">
+        </o:media>
     </xsl:template>
 
 </xsl:stylesheet>
