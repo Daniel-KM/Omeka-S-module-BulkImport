@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2015-2024 Daniel Berthereau
+ * Copyright 2015-2025 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -78,7 +78,10 @@ class ProcessXslt extends AbstractPlugin
         $isRemote = $this->isRemote($url);
         if ($isRemote) {
             // TODO Use the Omeka temp dir.
-            $filepath = @tempnam($this->tempDir, basename($url));
+            // The use of prefix instead of original base name avoids issue when
+            // url contains query with some characters (cf. some gallica sru)
+            // that are not loaded by the xslt processor.
+            $filepath = @tempnam($this->tempDir, 'omk_xml_');
             $result = file_put_contents($filepath, file_get_contents($url));
             if (empty($result)) {
                 throw new RuntimeException(sprintf(
@@ -88,7 +91,7 @@ class ProcessXslt extends AbstractPlugin
             }
         } elseif (!is_file($filepath) || !is_readable($filepath) || !filesize($filepath)) {
             throw new RuntimeException(sprint(
-                'The input file "%s" is not readable.', // @translate
+                'The input file "%s" is not readable or empty.', // @translate
                 $filepath
             ));
         }
@@ -147,10 +150,12 @@ class ProcessXslt extends AbstractPlugin
 
         $proc->setParameter('', $parameters);
         $result = $proc->transformToURI($domXml, $output);
-        @chmod($output, 0664);
 
         // There is no specific message for error with this processor.
         if ($result === false) {
+            if (file_exists($output)) {
+                unlink($output);
+            }
             $errors = $this->formatXmlErrors();
             libxml_use_internal_errors(false);
             throw new RuntimeException(sprintf(
@@ -160,6 +165,30 @@ class ProcessXslt extends AbstractPlugin
                 implode('; ', $errors)
             ));
         }
+
+        if (!file_exists($output) || !filesize($output)) {
+            if (file_exists($output)) {
+                unlink($output);
+            }
+            $errors = $this->formatXmlErrors();
+            libxml_use_internal_errors(false);
+            if ($errors) {
+                throw new RuntimeException(sprintf(
+                    'An error occured during the xsl transformation of the file "%1$s" with the sheet "%2$s": %3$s', // @translate
+                    $this->isRemote($url) ? $url : basename($url),
+                    basename($stylesheet),
+                    implode('; ', $errors)
+                ));
+            } else {
+                throw new RuntimeException(sprintf(
+                    'An error occured during the xsl transformation of the file "%1$s" with the sheet "%2$s": The output is empty.', // @translate
+                    $this->isRemote($url) ? $url : basename($url),
+                    basename($stylesheet)
+                ));
+            }
+        }
+
+        @chmod($output, 0660);
 
         return $output;
     }
@@ -235,19 +264,33 @@ class ProcessXslt extends AbstractPlugin
         foreach ($parameters as $name => $parameter) {
             $command .= ' ' . escapeshellarg($name . '=' . $parameter);
         }
-
         $result = shell_exec($command . ' 2>&1 1>&-');
-        @chmod($output, 0640);
 
         // In Shell, empty is a correct result.
         if (!empty($result)) {
+            if (file_exists($output)) {
+                unlink($output);
+            }
             throw new RuntimeException(sprintf(
-                'An error occurs during the xsl transformation of the file "%s" with the sheet "%s" : %s', // @translate
+                'An error occurs during the xsl transformation of the file "%1$s" with the sheet "%2$s": %3$s', // @translate
                 $this->isRemote($url) ? $url : basename($url),
                 basename($stylesheet),
                 $result
             ));
         }
+
+        if (!file_exists($output) || !file_size($output)) {
+            if (file_exists($output)) {
+                unlink($output);
+            }
+            throw new RuntimeException(sprintf(
+                'An error occured during the xsl transformation of the file "%1$s" with the sheet "%2$s": The output is empty.', // @translate
+                $this->isRemote($url) ? $url : basename($url),
+                basename($stylesheet)
+            ));
+        }
+
+        @chmod($output, 0660);
 
         return $output;
     }

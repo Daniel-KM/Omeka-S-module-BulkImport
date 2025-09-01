@@ -248,14 +248,14 @@ class XmlReader extends AbstractFileMultipleReader
      *
      * @throws \Omeka\Service\Exception\RuntimeException
      */
-    protected function preprocessXslt($xmlpath): string
+    protected function preprocessXslt($xmlPath): string
     {
         $xslParams = $this->getParam('xsl_params') ?: [];
-        $xslParams['filepath'] = $xmlpath;
-        $xslParams['dirpath'] = dirname($xmlpath);
+        $xslParams['filepath'] = $xmlPath;
+        $xslParams['dirpath'] = dirname($xmlPath);
         foreach ($this->xslpaths() as $xslpath) {
             try {
-                $tmpPath = $this->processXslt->__invoke($xmlpath, $xslpath, '', $xslParams);
+                $tmpPath = $this->processXslt->__invoke($xmlPath, $xslpath, '', $xslParams);
                 if (empty($tmpPath)) {
                     $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
                     throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
@@ -264,10 +264,16 @@ class XmlReader extends AbstractFileMultipleReader
                 $this->lastErrorMessage = $e->getMessage();
                 throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
             }
-            $xmlpath = $tmpPath;
+            if (!file_exists($tmpPath) || !is_file($tmpPath) || !is_readable($tmpPath) || !filesize($tmpPath)) {
+                $this->lastErrorMessage = new PsrMessage(
+                    'The normalized xml file "{filename}" is not readable or empty.', // @translate
+                    ['filename' => basename($tmpPath)]
+                );
+                throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
+            }
+            $xmlPath = $tmpPath;
         }
-        // Get the output of xml here if needed.
-        return $xmlpath;
+        return $xmlPath;
     }
 
     /**
