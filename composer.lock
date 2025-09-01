@@ -4,11 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "273c98a4a0366511329e3a610e14eafa",
+    "content-hash": "edfb3bddb4f4e969b0e2b0f1e67458de",
     "packages": [
         {
             "name": "codemirror/codemirror",
-            "version": "5.65.13",
+            "version": "5.65.20",
             "dist": {
                 "type": "zip",
                 "url": "https://codemirror.net/5/codemirror.zip"
@@ -163,16 +163,16 @@
         },
         {
             "name": "daniel-km/simple-iso-3166-1",
-            "version": "0.2.0",
+            "version": "0.2.1",
             "source": {
                 "type": "git",
-                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-3166-1.git",
-                "reference": "2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694"
+                "url": "https://gitlab.com/Daniel-KM/Simple-ISO-3166-1.git",
+                "reference": "ef6758a388888bddd9ecb826203753ca41f218a4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-3166-1/repository/archive.zip?sha=2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694",
-                "reference": "2aa46ffc0df6155ad1b2afa2c2521b6c39b8b694",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-3166-1/repository/archive.zip?sha=ef6758a388888bddd9ecb826203753ca41f218a4",
+                "reference": "ef6758a388888bddd9ecb826203753ca41f218a4",
                 "shasum": ""
             },
             "type": "library",
@@ -201,20 +201,20 @@
                 "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-3166-1/-/issues",
                 "source": "https://gitlab.com/Daniel-KM/Simple-ISO-3166-1"
             },
-            "time": "2023-05-22T00:00:00+00:00"
+            "time": "2025-07-07T00:00:00+00:00"
         },
         {
             "name": "daniel-km/simple-iso-639-3",
-            "version": "0.2.1",
+            "version": "0.2.2",
             "source": {
                 "type": "git",
-                "url": "git@gitlab.com:Daniel-KM/Simple-ISO-639-3.git",
-                "reference": "f8a3be76254e7d1aa90c37bb9a3b3176097e9402"
+                "url": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3.git",
+                "reference": "fc017f1d4ee0549cd7b2f2c206ef7c47a947de2c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=f8a3be76254e7d1aa90c37bb9a3b3176097e9402",
-                "reference": "f8a3be76254e7d1aa90c37bb9a3b3176097e9402",
+                "url": "https://gitlab.com/api/v4/projects/Daniel-KM%2FSimple-ISO-639-3/repository/archive.zip?sha=fc017f1d4ee0549cd7b2f2c206ef7c47a947de2c",
+                "reference": "fc017f1d4ee0549cd7b2f2c206ef7c47a947de2c",
                 "shasum": ""
             },
             "type": "library",
@@ -243,61 +243,16 @@
                 "issues": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3/-/issues",
                 "source": "https://gitlab.com/Daniel-KM/Simple-ISO-639-3"
             },
-            "time": "2023-05-29T00:00:00+00:00"
+            "time": "2025-07-07T00:00:00+00:00"
         },
         {
             "name": "hakre/xmlreaderiterator",
-            "version": "v0.1.12",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/hakre/XMLReaderIterator.git",
-                "reference": "d32c9878f11e1d94f013d0220cf4b30c93048b84"
-            },
+            "version": "0.1.13",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/hakre/XMLReaderIterator/zipball/d32c9878f11e1d94f013d0220cf4b30c93048b84",
-                "reference": "d32c9878f11e1d94f013d0220cf4b30c93048b84",
-                "shasum": ""
+                "type": "tar",
+                "url": "https://github.com/Daniel-KM/XMLReaderIterator/archive/refs/tags/v0.1.13.tar.gz"
             },
-            "require": {
-                "ext-dom": "*",
-                "ext-simplexml": "*",
-                "ext-xmlreader": "*",
-                "ext-xmlwriter": "*"
-            },
-            "require-dev": {
-                "ext-bz2": "*",
-                "ext-libxml": "*",
-                "phpunit/phpunit": "3.7.*"
-            },
-            "type": "library",
-            "autoload": {
-                "classmap": [
-                    "src/"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "AGPL-3.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "hakre",
-                    "homepage": "https://hakre.wordpress.com/"
-                }
-            ],
-            "description": "Iterators for PHP XMLReader for ease of parsing",
-            "homepage": "https://github.com/hakre/XMLReaderIterator",
-            "keywords": [
-                "XMLReader",
-                "iterator",
-                "xml"
-            ],
-            "support": {
-                "issues": "https://github.com/hakre/XMLReaderIterator/issues",
-                "source": "https://github.com/hakre/XMLReaderIterator/tree/v0.1.12"
-            },
-            "time": "2022-08-18T12:46:46+00:00"
+            "type": "library"
         },
         {
             "name": "james-heinrich/getid3",

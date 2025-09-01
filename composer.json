@@ -47,16 +47,27 @@
             "BulkImportTest\\": "test/BulkImportTest/"
         }
     },
-   "repositories": [
+    "repositories": [
         {
             "type": "package",
             "package": {
                 "type": "omeka-addon-asset",
                 "name": "codemirror/codemirror",
-                "version": "5.65.13",
+                "version": "5.65.20",
                 "dist": {
                     "type": "zip",
                     "url": "https://codemirror.net/5/codemirror.zip"
+                }
+            }
+        },
+        {
+            "type": "package",
+            "package": {
+                "name": "hakre/xmlreaderiterator",
+                "version": "0.1.13",
+                "dist": {
+                    "type": "tar",
+                    "url": "https://github.com/Daniel-KM/XMLReaderIterator/archive/refs/tags/v0.1.13.tar.gz"
                 }
             }
         }

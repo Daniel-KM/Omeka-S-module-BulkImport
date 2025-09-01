@@ -2,6 +2,37 @@
 
 namespace BulkImport\Reader;
 
+/**
+ * The xmlreader itherator is not included by default in the autoload, so load
+ * it just for BulkImport.
+ */
+
+$xmlReaderIterator_libPath = dirname(__DIR__, 2) . '/vendor/hakre/xmlreaderiterator/src';
+
+require $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
+require $xmlReaderIterator_libPath . '/XMLBuild.php';
+require $xmlReaderIterator_libPath . '/XMLAttributeIterator.php';
+require $xmlReaderIterator_libPath . '/XMLReaderIterator.php';
+require $xmlReaderIterator_libPath . '/XMLReaderIteration.php';
+require $xmlReaderIterator_libPath . '/XMLReaderNextIteration.php';
+require $xmlReaderIterator_libPath . '/DOMReadingIteration.php';
+require $xmlReaderIterator_libPath . '/XMLWritingIteration.php';
+require $xmlReaderIterator_libPath . '/XMLReaderNode.php';
+require $xmlReaderIterator_libPath . '/XMLReaderElement.php';
+require $xmlReaderIterator_libPath . '/XMLChildIterator.php';
+require $xmlReaderIterator_libPath . '/XMLElementIterator.php';
+require $xmlReaderIterator_libPath . '/XMLChildElementIterator.php';
+require $xmlReaderIterator_libPath . '/XMLReaderFilterBase.php';
+require $xmlReaderIterator_libPath . '/XMLNodeTypeFilter.php';
+require $xmlReaderIterator_libPath . '/XMLAttributeFilterBase.php';
+require $xmlReaderIterator_libPath . '/XMLAttributeFilter.php';
+require $xmlReaderIterator_libPath . '/XMLAttributePreg.php';
+require $xmlReaderIterator_libPath . '/XMLElementXpathFilter.php';
+require $xmlReaderIterator_libPath . '/BufferedFileRead.php';
+require $xmlReaderIterator_libPath . '/BufferedFileReaders.php';
+require $xmlReaderIterator_libPath . '/XMLSequenceStreamPath.php';
+require $xmlReaderIterator_libPath . '/XMLSequenceStream.php';
+
 use AppendIterator;
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
