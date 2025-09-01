@@ -215,7 +215,11 @@ class XmlReader extends AbstractMultiplePaginatedReader
 
     protected function countFileResources(string $filePath): int
     {
-        return $this->countXmlElements($filePath, ['resource', 'o:resource']);
+        $firstLevelElementName = $this->getFirstLevelElementName($filePath);
+        if (!$firstLevelElementName) {
+            return 0;
+        }
+        return $this->countXmlElements($filePath, [$firstLevelElementName]);
     }
 
     protected function preprocessFile(string $filePath): string
@@ -247,10 +251,10 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 break;
             case 'o:resources':
             case 'resources':
-                // Omeka format for this module.
-                $counts[$filePath] = $this->countFileResources($filePath);
-                break;
             default:
+                // Omeka format for this module.
+                // Or unknown xml with first-level resources.
+                $counts[$filePath] = $this->countFileResources($filePath);
                 break;
         }
 
@@ -293,9 +297,8 @@ class XmlReader extends AbstractMultiplePaginatedReader
             case 'resources':
                 // Omeka format for this module. It does not provide number of
                 // entries per page for now, since it should be a single file.
-                // $counts[$filePath] = $this->countFileResources($filePath);
-                break;
             default:
+                $counts[$filePath] = $this->countFileResources($filePath);
                 break;
         }
 
@@ -352,9 +355,8 @@ class XmlReader extends AbstractMultiplePaginatedReader
                     ? preg_replace('~startRecord=\d+~', 'startRecord=' . $startRecord, $baseUrl)
                     : $baseUrl . (strpos($baseUrl, '?') ? '&' : '?') . 'startRecord=' . $startRecord;
             case 'application/vnd.omeka-resources+xml':
-                return $page <= 1 ? $baseUrl : '';
             default:
-                return '';
+                return $page <= 1 ? $baseUrl : '';
         }
     }
 
@@ -363,9 +365,20 @@ class XmlReader extends AbstractMultiplePaginatedReader
      */
     protected function getEntries(string $filePath, int $page): Iterator
     {
+        // Most of the time, the first level is "resource" because it is the
+        // wrapper used by xsl. For automatic process, the first level may be
+        // different.
+        $firstLevelElementName = $this->getFirstLevelElementName($filePath);
+
+        // Empty xml.
+        if (!$firstLevelElementName) {
+            return [];
+        }
+
         $reader = new XMLReaderCore();
         $reader->open($filePath);
-        $elementIterator = new XmlElementIterator($reader, 'resource');
+
+        $elementIterator = new XmlElementIterator($reader, $firstLevelElementName);
 
         // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
         // $elementIterator->rewind();
@@ -545,6 +558,46 @@ class XmlReader extends AbstractMultiplePaginatedReader
         }
         $reader->close();
 
+        return $values[$cacheKey];
+    }
+
+    protected function getFirstLevelElementName(string $filePath): string
+    {
+        static $values = [];
+
+        $cacheKey = $filePath;
+        if (isset($values[$cacheKey])) {
+            return $values[$cacheKey];
+        }
+
+        $values[$cacheKey] = '';
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return '';
+        }
+
+        $reader = new XMLReaderCore();
+        if (!$reader->open($filePath)) {
+            return '';
+        }
+
+        while ($reader->read() && $reader->nodeType !== \XMLReader::ELEMENT) {
+            // Skip until root element.
+        }
+        $rootDepth = $reader->depth;
+
+        // Find the first child element of the root.
+        while ($reader->read()) {
+            if ($reader->nodeType === \XMLReader::ELEMENT && $reader->depth === $rootDepth + 1) {
+                $values[$cacheKey] = $reader->localName;
+                break;
+            }
+            // Quit when end of children.
+            if ($reader->depth <= $rootDepth) {
+                break;
+            }
+        }
+        $reader->close();
         return $values[$cacheKey];
     }
 

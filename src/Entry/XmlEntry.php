@@ -94,6 +94,8 @@ class XmlEntry extends BaseEntry
         // And when the content matches the json-ld representation, a mapping is
         // useless.
 
+        // TODO @wrapper is probably useless now, it is used only with old (but working) xsl.
+
         // Remove the wrapper if any.
         $isWrapper = $simpleXml->xpath('/resource/@wrapper');
         $isWrapper = $isWrapper ? (bool) $isWrapper[0] : false;
