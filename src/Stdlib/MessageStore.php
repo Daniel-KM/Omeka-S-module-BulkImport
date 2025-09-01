@@ -192,7 +192,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function flatMessages($severity = null): self
     {
-        if (is_null($severity)) {
+        if ($severity === null) {
             $severities = array_keys($this->messages);
             foreach ($severities as $severity) {
                 $this->flatMessages($severity);
@@ -221,7 +221,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function getMessages($severity = null): array
     {
-        return is_null($severity)
+        return $severity === null
             ? $this->messages
             : $this->messages[$severity] ?? [];
     }
@@ -231,7 +231,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function clearMessages($severity = null): self
     {
-        if (is_null($severity)) {
+        if ($severity === null) {
             $this->messages = [];
         } else {
             unset($this->messages[$severity]);
@@ -244,7 +244,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
      */
     public function hasMessages($severity = null): bool
     {
-        return is_null($severity)
+        return $severity === null
             ? (bool) count($this->messages)
             : !empty($this->messages[$severity]);
     }

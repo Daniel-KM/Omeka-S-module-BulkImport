@@ -795,7 +795,7 @@ trait ResourceTrait
             $source = $this->entity;
         }
 
-        if (is_null($orderOfProperties)) {
+        if ($orderOfProperties === null) {
             $orderOfProperties = $this->orderedListTemplatePropertyTerms($source);
             $orderOfProperties = array_fill_keys($orderOfProperties, []);
         }

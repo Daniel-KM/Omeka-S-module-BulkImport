@@ -50,7 +50,7 @@ class UpdateResourceProperties extends AbstractPlugin
             return $this;
         }
 
-        $this->resource = is_null($resource) || is_array($resource)
+        $this->resource = $resource === null || is_array($resource)
             ? $resource
             : $this->resourceJson($resource);
 

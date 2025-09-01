@@ -271,7 +271,7 @@ trait ConfigTrait
             return null;
         }
 
-        if (is_null($mapper)) {
+        if ($mapper === null) {
             $this->hasError = true;
             $this->logger->err(
                 'An issue occurred when preparing file "{filepath}".', // @translate

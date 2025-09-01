@@ -244,7 +244,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         if ($resourceName) {
             $entityClass = $this->getEntityClass($resourceName);
-            if (is_null($entityClass)) {
+            if ($entityClass === null) {
                 return null;
             }
         }
@@ -283,7 +283,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
 
         if ($resourceName) {
             $entityClass = $this->getEntityClass($resourceName);
-            if (is_null($entityClass)) {
+            if ($entityClass === null) {
                 return null;
             }
         } else {

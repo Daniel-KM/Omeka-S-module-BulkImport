@@ -46,7 +46,7 @@ abstract class AbstractFileMultipleReader extends AbstractReader
             $params['list_files'] = [];
         } else {
             $file = $this->bulkFile->getUploadedFile($form);
-            if (is_null($file)) {
+            if ($file === null) {
                 unset($params['file']);
                 $params['list_files'] = $params['list_files']
                     ? array_unique(array_filter(array_map('trim', $params['list_files'])))

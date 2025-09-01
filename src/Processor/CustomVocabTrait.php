@@ -101,7 +101,7 @@ trait CustomVocabTrait
 
             // Some custom vocabs from old versions can be empty.
             // They are created with a false term and updated later.
-            $isEmpty = is_null($source['o:item_set']) && is_null($source['o:terms']);
+            $isEmpty = $source['o:item_set'] === null && $source['o:terms'] === null;
             if ($isEmpty) {
                 $source['o:terms'] = 'Added by Bulk Import. To be removed.';
             }

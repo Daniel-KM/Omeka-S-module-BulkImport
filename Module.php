@@ -391,7 +391,7 @@ class Module extends AbstractModule
         if (!$itemId) {
             return $store;
         }
-        if  (is_null($mediaIds)) {
+        if ($mediaIds === null) {
             return $store[$itemId] ?? [];
         }
         $store[$itemId] = $mediaIds;

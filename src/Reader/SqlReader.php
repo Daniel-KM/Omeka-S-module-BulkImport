@@ -472,7 +472,7 @@ class SqlReader extends AbstractPaginatedReader
         // Prepare first page if needed.
         if ($this->totalCount) {
             $this->currentPage();
-            if (is_null($this->currentResponse)) {
+            if ($this->currentResponse === null) {
                 return;
             }
         }

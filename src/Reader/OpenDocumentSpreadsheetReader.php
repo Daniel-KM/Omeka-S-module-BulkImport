@@ -218,7 +218,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         if (!$this->valid()) {
             $this->sheetIndex = null;
             $this->sheetName = null;
-        } elseif (is_null($this->sheetIndex)) {
+        } elseif ($this->sheetIndex === null) {
             $sheet = $this->sheetIterator->current();
             $this->sheetIndex = $sheet->getIndex();
             $this->sheetName = $sheet->getName();
@@ -234,7 +234,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         if (!$this->valid()) {
             $this->sheetIndex = null;
             $this->sheetName = null;
-        } elseif (is_null($this->sheetIndex)) {
+        } elseif ($this->sheetIndex === null) {
             $sheet = $this->sheetIterator->current();
             $this->sheetIndex = $sheet->getIndex();
             $this->sheetName = $sheet->getName();
@@ -249,7 +249,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     {
         if (!$this->valid()) {
             return null;
-        } elseif (is_null($this->sheetIndex) || !isset($this->sheetsRowCount[$this->sheetIndex])) {
+        } elseif ($this->sheetIndex === null || !isset($this->sheetsRowCount[$this->sheetIndex])) {
             $sheet = $this->sheetIterator->current();
             $this->sheetIndex = $sheet->getIndex();
             $this->sheetName = $sheet->getName();
@@ -339,7 +339,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             }
         } else {
             // Multisheet.
-            if (is_null($this->sheetIndex)) {
+            if ($this->sheetIndex === null) {
                 /** @var \OpenSpout\Reader\ODS\Sheet $currentSheet */
                 foreach ($this->sheetIterator as $currentSheet) {
                     if ($currentSheet->isVisible()) {
@@ -425,7 +425,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // TODO Why in some cases, the index starts from 0 or 1?
         $firstIndexIsOneBased = null;
         foreach ($rowIterator as $index => $row) {
-            if (is_null($firstIndexIsOneBased)) {
+            if ($firstIndexIsOneBased === null) {
                 $firstIndexIsOneBased = (int) empty($index);
             }
             $data = array_filter($row->getCells(), function (\OpenSpout\Common\Entity\Cell $cell) {

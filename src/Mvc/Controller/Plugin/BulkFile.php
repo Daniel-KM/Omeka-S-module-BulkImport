@@ -267,7 +267,7 @@ class BulkFile extends AbstractPlugin
             return false;
         } else {
             $realPath = $this->verifyFile($filepath, $messageStore);
-            if (is_null($realPath)) {
+            if ($realPath === null) {
                 $this->isAsset = false;
                 return false;
             }
@@ -308,7 +308,7 @@ class BulkFile extends AbstractPlugin
         $filepath = (string) $dirpath;
 
         $realPath = $this->verifyFile($filepath, $messageStore, true);
-        if (is_null($realPath)) {
+        if ($realPath === null) {
             return false;
         }
 
@@ -605,7 +605,7 @@ class BulkFile extends AbstractPlugin
 
         // Check if the dir is inside main directory: don't import root files.
         $directory = $this->verifyFile($directory, null, true);
-        if (is_null($directory)) {
+        if ($directory === null) {
             return [];
         }
 
@@ -643,7 +643,7 @@ class BulkFile extends AbstractPlugin
             /** @var \DirectoryIterator $file */
             foreach ($iterator as $filepath => $file) {
                 $filepath = $this->verifyFile($file->getRealPath());
-                if (!is_null($filepath)) {
+                if ($filepath !== null) {
                     // For security, don't display the full path to the user.
                     $relativePath = substr($filepath, $lengthDir);
                     // Use keys for quicker process on big directories.

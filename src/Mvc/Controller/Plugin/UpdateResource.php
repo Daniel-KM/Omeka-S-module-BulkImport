@@ -481,7 +481,7 @@ class UpdateResource extends AbstractPlugin
             foreach ($typeNames as $name) {
                 if (array_key_exists($name, $currentData)) {
                     if (array_key_exists($name, $newData)) {
-                        if (is_null($newData[$name])) {
+                        if ($newData[$name] === null) {
                             $merged[$name] = $keepIfNull
                                 ? $currentData[$name]
                                 : ($type == 'boolean' ? false : null);

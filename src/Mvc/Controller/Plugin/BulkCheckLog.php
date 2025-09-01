@@ -247,7 +247,7 @@ SQL;
     {
         static $severities;
 
-        if (is_null($severities)) {
+        if ($severities === null) {
             $severities = [
                 Logger::EMERG => $this->translator->translate('Emergency'), // @translate
                 Logger::ALERT => $this->translator->translate('Alert'), // @translate
@@ -467,7 +467,7 @@ SQL;
             return $this;
         }
 
-        if (is_null($columnKeys)) {
+        if ($columnKeys === null) {
             $columnKeys = array_fill_keys(array_keys($this->columnsLog), null);
         }
 

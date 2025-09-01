@@ -438,7 +438,7 @@ class Bulk extends AbstractPlugin
             return null;
         }
 
-        if (is_null($customVocabs)) {
+        if ($customVocabs === null) {
             $customVocabs = [];
             try {
                 $result = $this->api

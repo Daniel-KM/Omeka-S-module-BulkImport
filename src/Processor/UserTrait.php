@@ -32,7 +32,7 @@ trait UserTrait
 
         // Emails and user names should be lower-cased to be checked.
         $existingUsers = array_map('mb_strtolower', $existingUsers);
-        $existingUsernames = is_null($existingUsernames) ? null :  array_map('mb_strtolower', $existingUsernames);
+        $existingUsernames = $existingUsernames === null ? null : array_map('mb_strtolower', $existingUsernames);
 
         $validator = new EmailAddress();
 
@@ -412,7 +412,7 @@ trait UserTrait
 
         $userSettingRepository = $this->entityManager->getRepository(UserSetting::class);
         foreach ($source['o:settings'] as $name => $value) {
-            if (is_null($value)
+            if ($value === null
                 || (is_array($value) && !count($value))
                 || (!is_array($value) && !strlen((string) $value))
             ) {
@@ -483,7 +483,7 @@ trait UserTrait
             $userId = $this->map['users'][$source['o:id']]['id'];
             $user = $this->entityManager->find(User::class, $userId);
             foreach ($source['o:settings'] ?? [] as $name => $value) {
-                if (is_null($value)
+                if ($value === null
                     || (is_array($value) && !count($value))
                     || (!is_array($value) && !strlen((string) $value))
                 ) {

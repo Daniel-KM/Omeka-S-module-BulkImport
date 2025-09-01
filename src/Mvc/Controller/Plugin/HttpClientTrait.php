@@ -244,7 +244,7 @@ trait HttpClientTrait
             'User-Agent' => $this->userAgent,
             'Content-Type' => 'application/json',
         ];
-        $headers = is_null($headers) ? $defaultHeaders : $headers + $defaultHeaders;
+        $headers = $headers === null ? $defaultHeaders : $headers + $defaultHeaders;
 
         $this->lastRequestUrl = $url;
         $response = HttpClientStatic::get($url, $query, $headers);

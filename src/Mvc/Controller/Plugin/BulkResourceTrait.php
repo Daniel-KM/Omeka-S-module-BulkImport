@@ -36,7 +36,7 @@ trait BulkResourceTrait
             $values[$key] = [
                 'type' => empty($values[$key]['type']) ? 'literal' : (string) $values[$key]['type'],
                 'property_id' => $propertyId,
-                'is_public' => is_null($values[$key]['is_public']) ? true : (bool) $values[$key]['is_public'],
+                'is_public' => $values[$key]['is_public'] === null ? true : (bool) $values[$key]['is_public'],
                 '@annotations' => empty($values[$key]['@annotations']) || !is_array($values[$key]['@annotations']) ? [] : $values[$key]['@annotations'],
                 '@value' => is_scalar($values[$key]['@value']) ? (string) $values[$key]['@value'] : $values[$key]['@value'],
                 '@id' => empty($values[$key]['@id']) ? null : (string) $values[$key]['@id'],

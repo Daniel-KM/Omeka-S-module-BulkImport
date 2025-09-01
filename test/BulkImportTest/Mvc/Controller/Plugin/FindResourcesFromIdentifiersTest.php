@@ -116,7 +116,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
      */
     public function testResourceIdentifier($identifier, $identifierProperty, $resourceName, $expected): void
     {
-        $expected = is_null($expected) ? null : $this->resources[$expected]->id();
+        $expected = $expected === null ? null : $this->resources[$expected]->id();
 
         $findResourcesFromIdentifiers = $this->findResourcesFromIdentifiers;
 
@@ -151,7 +151,7 @@ class FindResourcesFromIdentifiersTest extends OmekaControllerTestCase
     public function testResourceIdentifiers($identifiers, $identifierProperty, $resourceName, $expecteds): void
     {
         foreach ($expecteds as &$expected) {
-            $expected = is_null($expected) ? null : $this->resources[$expected]->id();
+            $expected = $expected === null ? null : $this->resources[$expected]->id();
         }
 
         $findResourcesFromIdentifiers = $this->findResourcesFromIdentifiers;

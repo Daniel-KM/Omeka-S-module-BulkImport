@@ -87,11 +87,11 @@ class DiffResources extends AbstractPlugin
             return $this;
         }
 
-        $this->resource1 = is_null($resource1) || is_array($resource1)
+        $this->resource1 = $resource1 === null || is_array($resource1)
             ? $resource1
             : $this->resourceJson($resource1);
 
-        $this->resource2 = is_null($resource2) || is_array($resource2)
+        $this->resource2 = $resource2 === null || is_array($resource2)
             ? $resource2
             : $this->resourceJson($resource2);
 
@@ -246,8 +246,8 @@ class DiffResources extends AbstractPlugin
             ];
 
             // Don't manage unknown data with sub-arrays for now.
-            if ((!is_null($data1) && !is_scalar($data1))
-                || (!is_null($data2) && !is_scalar($data2))
+            if (($data1 !== null && !is_scalar($data1))
+                || ($data2 !== null && !is_scalar($data2))
             ) {
                 $resultMeta['diff'] = '?';
             } elseif ($data1 === $data2) {

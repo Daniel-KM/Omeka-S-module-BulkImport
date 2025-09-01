@@ -171,7 +171,7 @@ class OmekaSReader extends AbstractPaginatedReader
     protected function preparePageIterator(): void
     {
         $this->currentPage();
-        if (is_null($this->currentResponse)) {
+        if ($this->currentResponse === null) {
             return;
         }
 

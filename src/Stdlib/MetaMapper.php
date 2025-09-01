@@ -216,7 +216,7 @@ class MetaMapper
      */
     public function convertString(?string $value, array $map = []): string
     {
-        if (is_null($value)) {
+        if ($value === null) {
             return '';
         }
 
@@ -234,7 +234,7 @@ class MetaMapper
         }
 
         $result = $this->convertTargetToStringJson($value, $map, null, 'value', true);
-        return is_null($result) || !strlen($result)
+        return $result === null || !strlen($result)
             ? ''
             : (($map['prepend'] ?? '') . $result . ($map['append'] ?? ''));
     }
@@ -326,7 +326,7 @@ class MetaMapper
                 $result[] = strlen($val)
                     ? $val
                     : $prepend . $converted . $append;
-            } elseif (is_null($fromPath)) {
+            } elseif ($fromPath === null) {
                 continue;
             } else {
                 if ($querier === 'jmespath' || $querier === 'jsonpath') {
@@ -684,7 +684,7 @@ class MetaMapper
         ?string $querier = null,
         bool $atLeastOneReplacement = false
     ): ?string {
-        if (is_null($mod) || is_string($mod)) {
+        if ($mod === null || is_string($mod)) {
             return $mod;
         }
 
@@ -699,11 +699,11 @@ class MetaMapper
             $fromValue = $data[$from];
         } elseif ($querier === 'jmespath') {
             // TODO Check if data for jmespath are cacheable or automatically cached.
-            $fromValue = $data && !is_null($from) ? $this->jmesPathEnv->search($from, $data) : null;
+            $fromValue = $data && $from !== null ? $this->jmesPathEnv->search($from, $data) : null;
         } elseif ($querier === 'jsonpath') {
             // TODO Check if data for jsonpath are cacheable or automatically cached.
             $this->jsonPathQuerier = new JSONPath($data);
-            if ($data && !is_null($from)) {
+            if ($data && $from !== null) {
                 $fromValue = $this->jsonPathQuerier->find($from)->getData();
             } else {
                 $fromValue = null;
@@ -718,7 +718,7 @@ class MetaMapper
         $this->setVariable('value', $fromValue);
 
         if (!isset($mod['pattern']) || !strlen($mod['pattern'])) {
-            if (is_null($fromValue)) {
+            if ($fromValue === null) {
                 return null;
             }
             if (is_scalar($fromValue)) {
@@ -880,7 +880,7 @@ class MetaMapper
         bool $atLeastOneReplacement = false,
         bool $keepXmlContent = false
     ): ?string {
-        if (is_null($mod) || is_string($mod)) {
+        if ($mod === null || is_string($mod)) {
             return $mod;
         }
 
@@ -892,11 +892,11 @@ class MetaMapper
 
         $mod = $mod['mod'] ?? $mod;
 
-        if (is_null($fromValue) && $from && $data) {
+        if ($fromValue === null && $from && $data) {
             $fromValue = $this->xpathQuery($data, $from);
         }
 
-        if (is_null($fromValue)) {
+        if ($fromValue === null) {
             $first = null;
         } elseif (is_scalar($fromValue)) {
             $first = (string) $fromValue;
@@ -1049,8 +1049,8 @@ class MetaMapper
      */
     protected function checkAtLeastOneReplacement(?string $value, ?string $result, array $map): bool
     {
-        if (is_null($value)
-            || is_null($result)
+        if ($value === null
+            || $result === null
             || !strlen($result)
             || empty($map['mod'])
             || empty($map['mod']['pattern'])
@@ -1083,7 +1083,7 @@ class MetaMapper
      */
     public function extractSubValue($data, ?string $path, $default = null)
     {
-        if (is_null($path) || !strlen($path)) {
+        if ($path === null || !strlen($path)) {
             return $data;
         }
 

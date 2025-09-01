@@ -814,7 +814,7 @@ class MetaMapperConfig
 
         foreach ($mapping as $indexMap => $map) {
             $options['index'] = $indexMap;
-            if (is_null($map) || empty($map)) {
+            if ($map === null || empty($map)) {
                 $normalizedMapping[] = $normalizedMapDefault;
                 continue;
             }
@@ -1189,11 +1189,11 @@ class MetaMapperConfig
         $result['mod']['raw'] = isset($xmlArray['mod']['@attributes']['raw']) && strlen((string) $xmlArray['mod']['@attributes']['raw'])
             ? (string) $xmlArray['mod']['@attributes']['raw']
             : null;
-        $hasNoRaw = is_null($result['mod']['raw']);
+        $hasNoRaw = $result['mod']['raw'] === null;
         $result['mod']['val'] = $hasNoRaw && isset($xmlArray['mod']['@attributes']['val']) && strlen((string) $xmlArray['mod']['@attributes']['val'])
             ? (string) $xmlArray['mod']['@attributes']['val']
             : null;
-        $hasNoVal = is_null($result['mod']['val']);
+        $hasNoVal = $result['mod']['val'] === null;
         $hasNoRawVal = $hasNoRaw && $hasNoVal;
         $result['mod']['prepend'] = $hasNoRawVal && isset($xmlArray['mod']['@attributes']['prepend'])
             ? (string) $xmlArray['mod']['@attributes']['prepend']
@@ -1323,9 +1323,7 @@ class MetaMapperConfig
             'twig_has_replace' => [],
         ];
 
-        $map['mod'] = array_filter(array_intersect_key($map['mod'] ?? [], $modKeys), function ($v) {
-            return !is_null($v) && $v !== '' && $v !== [];
-        });
+        $map['mod'] = array_filter(array_intersect_key($map['mod'] ?? [], $modKeys), fn ($v) => $v !== null && $v !== '' && $v !== []);
 
         return $map;
     }

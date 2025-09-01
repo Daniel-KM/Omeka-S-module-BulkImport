@@ -296,7 +296,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     public function count(): int
     {
         $this->isReady();
-        if (is_null($this->totalEntries)) {
+        if ($this->totalEntries === null) {
             $this->totalEntries = method_exists($this->iterator, 'count')
                 ? $this->iterator->count()
                 : iterator_count($this->iterator);

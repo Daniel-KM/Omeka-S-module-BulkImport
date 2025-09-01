@@ -1233,7 +1233,7 @@ SQL;
         // For example, when authors are created in a previous step, foaf:name
         // is always literal.
         $list = $this->listDataValues([$sourceTerm => $sourceId], ['', 'literal'], 'value', true);
-        if (is_null($list)) {
+        if ($list === null) {
             return false;
         }
         $totalList = count($list);
@@ -2079,7 +2079,7 @@ SQL;
         // For example, when authors are created in a previous step, foaf:name
         // is always literal.
         $list = $this->listDataValues([$sourceTerm => $sourceId], ['', 'literal'], 'value', true);
-        if (is_null($list)) {
+        if ($list === null) {
             return false;
         }
         $totalList = count($list);
@@ -2492,7 +2492,7 @@ SQL;
                 foreach ($result as $k => $r) {
                     if ($r['value'] === $source) {
                         ++$count;
-                        if (is_null($first)) {
+                        if ($first === null) {
                             $first = $k;
                         }
                     }
@@ -3126,7 +3126,7 @@ SQL;
         static $language2;
         static $searchType;
 
-        if (is_null($language2)) {
+        if ($language2 === null) {
             $countries = $this->loadTableAsKeyValue('countries_iso-3166', 'ISO-2', true);
             $language2 = $this->getParam('language_2') ?: '';
             $searchType = $this->getParam('geonames_search') ?: 'strict';
@@ -3223,7 +3223,7 @@ SQL;
                     $arguments = (array) $format['arguments'];
                     foreach ($arguments as $argument) {
                         $v = array_shift($valueList);
-                        if (is_null($v)) {
+                        if ($v === null) {
                             break;
                         }
                         if ($v === '') {

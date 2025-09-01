@@ -19,7 +19,7 @@ abstract class AbstractSpreadsheetFileReader extends AbstractFileReader
             $this->currentData = null;
             return null;
         }
-        if (is_null($this->currentData)) {
+        if ($this->currentData === null) {
             return null;
         }
         if (!is_array($this->currentData)) {

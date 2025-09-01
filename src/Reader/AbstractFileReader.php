@@ -41,7 +41,7 @@ abstract class AbstractFileReader extends AbstractReader
             unset($params['file']);
         } else {
             $file = $this->bulkFile->getUploadedFile($form);
-            if (is_null($file)) {
+            if ($file === null) {
                 $params['file'] = null;
             } else {
                 $params['filename'] = $file['filename'];
