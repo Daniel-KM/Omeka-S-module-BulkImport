@@ -50,6 +50,14 @@ class Module extends AbstractModule
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
         }
 
+        if (!$this->checkModuleActiveVersion('Log', '3.4.32')) {
+            $message = new \Common\Stdlib\PsrMessage(
+                'The module {module} should be upgraded to version {version} or later.', // @translate
+                ['module' => 'Log', 'version' => '3.4.32']
+            );
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+        }
+
         $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
 

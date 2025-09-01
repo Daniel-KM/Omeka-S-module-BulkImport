@@ -46,6 +46,14 @@ if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActi
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
 }
 
+if (!$this->checkModuleActiveVersion('Log', '3.4.32')) {
+    $message = new PsrMessage(
+        'The module {module} should be upgraded to version {version} or later.', // @translate
+        ['module' => 'Log', 'version' => '3.4.32']
+    );
+    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+}
+
 if (version_compare($oldVersion, '3.3.36', '<')) {
     $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
@@ -471,6 +479,18 @@ if (version_compare($oldVersion, '3.4.57', '<')) {
 
     $message = new PsrMessage(
         'A new option allows to clean inputs data, for example trim, change case, replace single quote by apostrophe, etc.' // @translate
+    );
+    $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.4.59', '<')) {
+    $message = new PsrMessage(
+        'A spinner allows to check quickly if a job is really running (system state of the process).' // @translate
+    );
+    $messenger->addSuccess($message);
+
+    $message = new PsrMessage(
+        'A new option allows to skip full check of files, so only their presence, not if they are well formed and thumbnailable.' // @translate
     );
     $messenger->addSuccess($message);
 }
