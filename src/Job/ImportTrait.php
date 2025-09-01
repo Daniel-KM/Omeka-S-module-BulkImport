@@ -168,6 +168,11 @@ trait ImportTrait
     /**
      * @var string
      */
+    protected $checkFiles = 'quick';
+
+    /**
+     * @var string
+     */
     protected $action;
 
     /**
@@ -296,7 +301,9 @@ trait ImportTrait
         $this->toSkip = 0;
         $this->maxEntries = 0;
         $this->processingError = 'stop_on_error';
+        // TODO Check if options "skipMissingFiles" and "checkFiles" are still useful here.
         $this->skipMissingFiles = false;
+        $this->checkFiles = 'quick';
         $infoDiffs = false;
 
         $isProcessorParametrizable = $this->processor instanceof \BulkImport\Interfaces\Parametrizable;
@@ -307,6 +314,8 @@ trait ImportTrait
             $this->maxEntries = (int) $this->processor->getParam('entries_max', 0);
             $this->processingError = (string) $this->processor->getParam('processing', 'stop_on_error') ?: 'stop_on_error';
             $this->skipMissingFiles = (bool) $this->processor->getParam('skip_missing_files', false);
+            $this->checkFiles = $this->processor->getParam('file_check_mode', 'quick');
+            $this->checkFiles = in_array($this->checkFiles, ['skip', 'full']) ? $this->checkFiles : 'quick';
             $infoDiffs = (bool) $this->processor->getParam('info_diffs');
         }
 

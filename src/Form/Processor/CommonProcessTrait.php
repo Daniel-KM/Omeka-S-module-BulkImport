@@ -59,6 +59,23 @@ trait CommonProcessTrait
             ])
 
             ->add([
+                'name' => 'file_check_mode',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Early check of files', // @translate
+                    'value_options' => [
+                        'skip' => 'Skip (when files are already checked)', // @translate
+                        'quick' => 'Quick (only presence)', // @translate
+                        'full' => 'Full (slow, full validity and thumbnail creation)', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'file_check_mode',
+                    'value' => 'quick',
+                ],
+            ])
+
+            ->add([
                 'name' => 'entries_to_skip',
                 'type' => Element\Number::class,
                 'options' => [

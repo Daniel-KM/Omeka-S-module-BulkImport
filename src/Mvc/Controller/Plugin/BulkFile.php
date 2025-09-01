@@ -112,9 +112,18 @@ class BulkFile extends AbstractPlugin
     protected $basePath;
 
     /**
+     * This option is set in main settings and is designed for security.
+     *
      * @var bool
      */
-    protected $disableFileValidation = false;
+    protected $skipCheckOfMediaTypeAndExtension = false;
+
+    /**
+     * The mode may be skip, quick (only presence and type) or full (derivate).
+     *
+     * @var string
+     */
+    protected $fileCheckMode = 'quick';
 
     /**
      * @var bool
@@ -162,7 +171,7 @@ class BulkFile extends AbstractPlugin
         string $basePath,
         string $tempDir,
         bool $isFileSideloadActive,
-        bool $disableFileValidation,
+        bool $skipCheckOfMediaTypeAndExtension,
         array $allowedMediaTypes,
         array $allowedExtensions,
         array $allowedMediaTypesAssets,
@@ -179,7 +188,7 @@ class BulkFile extends AbstractPlugin
         $this->basePath = $basePath;
         $this->tempDir = $tempDir;
         $this->isFileSideloadActive = $isFileSideloadActive;
-        $this->disableFileValidation = $disableFileValidation;
+        $this->skipCheckOfMediaTypeAndExtension = $skipCheckOfMediaTypeAndExtension;
         $this->allowedMediaTypes = $allowedMediaTypes;
         $this->allowedExtensions = $allowedExtensions;
         $this->allowedMediaTypesAssets = $allowedMediaTypesAssets;
@@ -202,10 +211,28 @@ class BulkFile extends AbstractPlugin
     }
 
     /**
+     * The mode may be skip, quick (only presence and type) or full (derivate).
+     */
+    public function setFileCheckMode(string $fileCheckMode): self
+    {
+        $this->fileCheckMode = in_array($fileCheckMode, ['skip', 'full']) ? $fileCheckMode : 'quick';
+        return $this;
+    }
+
+    public function getFileCheckMode(): bool
+    {
+        return $this->fileCheckMode;
+    }
+
+    /**
      * Check if a file or url exists and is readable.
      */
     public function checkFileOrUrl($fileOrUrl, ?ErrorStore $messageStore = null): bool
     {
+        if ($this->fileCheckMode === 'skip') {
+            return true;
+        }
+
         $result = $this->bulk->isUrl($fileOrUrl)
             ? $this->checkUrl($fileOrUrl, $messageStore)
             : $this->checkFile($fileOrUrl, $messageStore);
@@ -220,6 +247,10 @@ class BulkFile extends AbstractPlugin
      */
     public function checkFile($filepath, ?ErrorStore $messageStore = null): bool
     {
+        if ($this->fileCheckMode === 'skip') {
+            return true;
+        }
+
         $filepath = (string) $filepath;
 
         // Check if this is a directly uploaded file. They are already checked.
@@ -270,6 +301,10 @@ class BulkFile extends AbstractPlugin
      */
     public function checkDirectory($dirpath, ?ErrorStore $messageStore = null): bool
     {
+        if ($this->fileCheckMode === 'skip') {
+            return true;
+        }
+
         $filepath = (string) $dirpath;
 
         $realPath = $this->verifyFile($filepath, $messageStore, true);
@@ -306,6 +341,10 @@ class BulkFile extends AbstractPlugin
      */
     public function checkUrl($url, ?ErrorStore $messageStore = null): bool
     {
+        if ($this->fileCheckMode === 'skip') {
+            return true;
+        }
+
         $url = (string) $url;
         if (!strlen($url)) {
             if ($messageStore) {
@@ -752,9 +791,10 @@ class BulkFile extends AbstractPlugin
         ?string $extension = null,
         ?ErrorStore $messageStore = null
     ): bool {
-        if ($this->disableFileValidation) {
+        if ($this->skipCheckOfMediaTypeAndExtension) {
             return true;
         }
+
         $isValid = true;
         if ($mediaType) {
             if (($this->isAsset && !in_array($mediaType, $this->allowedMediaTypesAssets))
@@ -769,6 +809,7 @@ class BulkFile extends AbstractPlugin
                 }
             }
         }
+
         if ($extension) {
             $extension = strtolower($extension);
             if (($this->isAsset && !in_array($extension, $this->allowedExtensionsAssets))
@@ -841,7 +882,7 @@ class BulkFile extends AbstractPlugin
     public function fetchAndStore($type, $sourceName, $filename, $storageId, $extension, $fileOrUrl)
     {
         // Quick check.
-        if (!$this->disableFileValidation
+        if (!$this->skipCheckOfMediaTypeAndExtension
             && $type !== 'asset'
             && !in_array($extension, $this->allowedExtensions)
             && in_array(strtolower($extension), $this->allowedExtensions)
@@ -852,7 +893,7 @@ class BulkFile extends AbstractPlugin
         }
 
         // Quick check.
-        if (!$this->disableFileValidation
+        if (!$this->skipCheckOfMediaTypeAndExtension
             && $type !== 'asset'
             && !in_array($extension, $this->allowedExtensions)
         ) {
@@ -969,7 +1010,7 @@ class BulkFile extends AbstractPlugin
         $mediaType = $tempFile->getMediaType();
 
         // Check the media type for security.
-        if (!$this->disableFileValidation) {
+        if (!$this->skipCheckOfMediaTypeAndExtension) {
             if ($type === 'asset') {
                 if (!in_array($mediaType, $this->allowedMediaTypesAssets)) {
                     if ($isUrl) {

@@ -118,6 +118,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $skipMissingFiles = false;
 
     /**
+     * @var string
+     */
+    protected $fileCheckMode = 'quick';
+
+    /**
      * @var bool
      */
     protected $fakeFiles = false;
@@ -246,6 +251,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $this->fakeFiles = (bool) $this->getParam('fake_files', false);
         $this->identifierNames = $this->getParam('identifier_name', $this->identifierNames);
         $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
+        $this->fileCheckMode = $this->getParam('file_check_mode', 'quick');
+        $this->fileCheckMode = in_array($this->fileCheckMode, ['skip', 'full']) ? $this->fileCheckMode : 'quick';
+
+        $this->bulkFile->setFileCheckMode($this->fileCheckMode);
 
         $this->bulkIdentifiers->setAllowDuplicateIdentifiers($this->allowDuplicateIdentifiers);
 
@@ -722,6 +731,8 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             'continueOnError' => true,
             'flushEntityManager' => false,
             'responseContent' => 'resource',
+            // This is not an option of omeka, but it is used by some modules.
+            'checkMode' => $this->fileCheckMode,
         ];
 
         $request = new Request($operation, $resource['resource_name']);
@@ -785,9 +796,25 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             }
         }
 
-        // Complete from api modules (api.execute/create/update.pre).
-        /** @see \Omeka\Api\Manager::initialize() */
+        $resourceWithoutMedia = $resource->getArrayCopy();
+        unset($resourceWithoutMedia['o:media']);
+        // Anyway, there is no file data here.
+        // $resourceFileData= $request->getFileData();
+
+        if ($this->fileCheckMode !== 'full') {
+            if ($resource['resource_name'] === 'items') {
+                $request
+                    ->setContent($resourceWithoutMedia)
+                    ->setFileData([]);
+            } elseif ($resource['resource_name'] === 'media') {
+                // TODO How to remove check of file when importing media alone? Use special request option.
+            }
+        }
+
+        // Complete api initialization for api modules (api.execute/create/update.pre).
+        // TODO Do check via api finalization too?
         try {
+            /** @see \Omeka\Api\Manager::initialize() */
             $this->api->initialize($adapter, $request);
         } catch (\Exception $e) {
             $resource['messageStore']->addError('modules', new PsrMessage(
@@ -806,6 +833,13 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         if ($this->skipMissingFiles) {
             $request
                 ->setContent($resource->getArrayCopy());
+        }
+
+        // FIXME The metadata of media should be checked too (but rare anyway when importing items).
+        if ($this->fileCheckMode !== 'full' && $resource['resource_name'] === 'items') {
+            $request
+                ->setContent($resourceWithoutMedia)
+                ->setFileData([]);
         }
 
         // The entity is checked here to store error when there is a file issue.
@@ -881,6 +915,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected function checkNewFiles(ArrayObject $resource): bool
     {
         if (!in_array($resource['resource_name'], ['items', 'media', 'assets'])) {
+            return true;
+        }
+
+        if ($this->fileCheckMode === 'skip') {
             return true;
         }
 

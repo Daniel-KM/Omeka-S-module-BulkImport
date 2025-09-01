@@ -100,6 +100,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         $defaults = [
             'processing' => 'stop_on_error',
             'skip_missing_files' => false,
+            'file_check_mode' => 'quick',
             'entries_to_skip' => 0,
             'entries_max' => 0,
             'info_diffs' => false,
@@ -122,6 +123,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
         $result['skip_missing_files'] = (bool) $result['skip_missing_files'];
+        $result['file_check_mode'] = in_array($result['file_check_mode'] ?? '', ['skip', 'full']) ? $result['file_check_mode'] : 'quick';
         $result['entries_to_skip'] = (int) $result['entries_to_skip'];
         $result['entries_max'] = (int) $result['entries_max'];
         $result['info_diffs'] = (bool) $result['info_diffs'];
@@ -1386,6 +1388,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             return false;
         }
 
+        // TODO Manage import of value annotations.
         if (!in_array($resource['resource_name'], ['items', 'item_sets', 'media'])) {
             $resource['messageStore']->addError('resource_name', new PsrMessage(
                 'The resource type "{resource_name}" is not managed.', // @translate
@@ -1448,7 +1451,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        // The check is needed to avoid a notice because it's an ArrayObject.
+        // The check is needed to avoid a notice because it is an ArrayObject.
         if (property_exists($resource, 'o:item')) {
             unset($resource['o:item']);
         }
@@ -1458,7 +1461,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
     protected function checkItemSet(ArrayObject $resource): bool
     {
-        // The check is needed to avoid a notice because it's an ArrayObject.
+        // The check is needed to avoid a notice because it is an ArrayObject.
         if (property_exists($resource, 'o:item')) {
             unset($resource['o:item']);
         }
@@ -1483,7 +1486,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        // This check is useless now, because action when unidentified is "skip"
+        // This check is useless ebc1fa462now, because action when unidentified is "skip"
         // or "create" anyway. Furthermore, the id can be set later.
         /*
         if (empty($resource['o:id'])
@@ -1508,7 +1511,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             }
         }
 
-        // The check is needed to avoid a notice because it's an ArrayObject.
+        // The check is needed to avoid a notice because it is an ArrayObject.
         if (property_exists($resource, 'o:item_set')) {
             unset($resource['o:item_set']);
         }
