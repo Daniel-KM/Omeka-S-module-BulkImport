@@ -350,6 +350,8 @@ class ImporterController extends AbstractActionController
             $postData = $request->getPost()->toArray();
             $postFiles = $request->getFiles()->toArray();
             $data = array_merge_recursive($postData, $postFiles);
+            // Fix issue "The input was not found in the haystack".
+            $data['identifier_name'] = array_filter($data['identifier_name'] ?? []);
 
             // Pass data to form.
             $form->setData($data);
