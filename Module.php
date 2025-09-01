@@ -336,13 +336,13 @@ class Module extends AbstractModule
                         $value = array_key_last($values);
                         $id = $easyMeta->resourceTemplateId($value);
                         $data['o:resource_template'] = $id ? ['o:id' => $id] : null;
-                    } elseif (isset($propertyIds[$field])) {
+                    } elseif ($propertyId = $easyMeta->propertyId($field)) {
                         $data[$field] = [];
                         $values = array_unique($values);
                         foreach ($values as $value) {
                             $data[$field][] = [
                                 'type' => 'literal',
-                                'property_id' => $propertyIds[$field],
+                                'property_id' => $propertyId,
                                 'is_public' => true,
                                 '@value' => $value,
                             ];
