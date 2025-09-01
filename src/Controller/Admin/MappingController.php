@@ -143,8 +143,14 @@ class MappingController extends AbstractActionController
 
     public function deleteAction()
     {
+        /** @var \BulkImport\Api\Representation\MappingRepresentation $entity */
         $id = (int) $this->params()->fromRoute('id');
-        $entity = $id ? $this->api()->searchOne('bulk_mappings', ['id' => $id])->getContent() : null;
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $entity = $id ? $this->api()->read('bulk_mappings', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $entity = null;
+        }
 
         if (!$entity) {
             $message = new PsrMessage('Mapping #{mapping_id} does not exist', ['mapping_id' => $id]); // @translate

@@ -607,7 +607,12 @@ trait TwigTrait
         }
 
         if (!array_key_exists($idOrSlug, $tables)) {
-            $tables[$idOrSlug] = $this->bulk->api()->searchOne('tables', is_numeric($idOrSlug) ? ['id' => $idOrSlug] : ['slug' => $idOrSlug])->getContent();
+            // Don't use searchOne for performance and simplicity.
+            try {
+                $tables[$idOrSlug] = $this->bulk->api()->read('tables', is_numeric($idOrSlug) ? ['id' => $idOrSlug] : ['slug' => $idOrSlug])->getContent();
+            } catch (\Exception $e) {
+                $tables[$idOrSlug] = null;
+            }
         }
 
         return $tables[$idOrSlug];

@@ -57,8 +57,12 @@ class ImporterController extends AbstractActionController
     {
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
-
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $importer = null;
+        }
         if ($id && !$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);
@@ -109,7 +113,12 @@ class ImporterController extends AbstractActionController
     {
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $importer = null;
+        }
 
         if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
@@ -154,7 +163,12 @@ class ImporterController extends AbstractActionController
     {
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $importer = null;
+        }
 
         if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
@@ -215,7 +229,12 @@ class ImporterController extends AbstractActionController
     {
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
         $id = (int) $this->params()->fromRoute('id');
-        $importer = ($id) ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $importer = null;
+        }
 
         if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
@@ -282,10 +301,15 @@ class ImporterController extends AbstractActionController
      */
     public function startAction()
     {
-        $id = (int) $this->params()->fromRoute('id');
-
         /** @var \BulkImport\Api\Representation\ImporterRepresentation $importer */
-        $importer = $id ? $this->api()->searchOne('bulk_importers', ['id' => $id])->getContent() : null;
+        $id = (int) $this->params()->fromRoute('id');
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $importer = null;
+        }
+
         if (!$importer) {
             $message = new PsrMessage('Importer #{importer_id} does not exist', ['importer_id' => $id]); // @translate
             $this->messenger()->addError($message);

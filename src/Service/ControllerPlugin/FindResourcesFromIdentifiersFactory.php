@@ -10,10 +10,9 @@ class FindResourcesFromIdentifiersFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $services, $requestedName, array $options = null)
     {
-        $plugins = $services->get('ControllerPluginManager');
         return new FindResourcesFromIdentifiers(
             $services->get('Omeka\Connection'),
-            $plugins->get('api')
+            $services->get('Common\EasyMeta')
         );
     }
 }

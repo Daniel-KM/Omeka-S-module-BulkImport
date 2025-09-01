@@ -985,8 +985,13 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
      */
     protected function prepareMainResource(string $name): void
     {
+        // TODO Don't use easyMeta (or refresh it), it may be new resources?
         if (!empty($this->main[$name]['template'])) {
-            $entity = $this->bulk->api()->searchOne('resource_templates', ['label' => $this->main[$name]['template']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            try {
+                $entity = $this->bulk->api()->read('resource_templates', ['label' => $this->main[$name]['template']], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            } catch (\Exception $e) {
+                $entity = null;
+            }
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -1000,7 +1005,14 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if (!empty($this->main[$name]['class'])) {
-            $entity = $this->bulk->api()->searchOne('resource_classes', ['term' => $this->main[$name]['class']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            try {
+                $entityVocabulary = $this->bulk->api()->read('vocabulary', ['prefix' => strtok($this->main[$name]['class'], ':')], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+                $entity = $entityVocabulary
+                    ? $this->bulk->api()->read('resource_classes', ['vocabulary' => $entityVocabulary->getId(), 'localName' => strtok(':')], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent()
+                    : null;
+            } catch (\Exception $e) {
+                $entity = null;
+            }
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(
@@ -1014,7 +1026,11 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         }
 
         if (!empty($this->main[$name]['custom_vocab'])) {
-            $entity = $this->bulk->api()->searchOne('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            try {
+                $entity = $this->bulk->api()->read('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
+            } catch (\Exception $e) {
+                $entity = null;
+            }
             if (!$entity) {
                 $this->hasError = true;
                 $this->logger->err(

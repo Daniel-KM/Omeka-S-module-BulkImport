@@ -536,9 +536,11 @@ class MetaMapperConfig
         $content = null;
         if (mb_substr($reference, 0, 8) === 'mapping:') {
             $mappingId = (int) mb_substr($reference, 8);
-            /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
-            $bulkMapping = $this->bulk->api()->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
-            if (!$bulkMapping) {
+            // Don't use searchOne for performance and simplicity.
+            try {
+                /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                $bulkMapping = $this->bulk->api()->read('bulk_mappings', ['id' => $mappingId])->getContent();
+            } catch (\Exception $e) {
                 return null;
             }
             $content = $bulkMapping->mapping();

@@ -539,7 +539,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             // TODO Use a generic method.
             $resource['o:id'] = in_array($resourceName, [null, 'items', 'media', 'item_sets', 'value_annotations', 'annotations'])
                 ? $this->bulkIdentifiers->findResourceFromIdentifier($resource['o:id'], 'o:id', $resourceName, $resource['messageStore'])
-                : $this->api->searchOne($resourceName, ['id' => $resource['o:id']], ['returnScalar' => 'id'])->getContent();
+                : $this->api->read($resourceName, ['id' => $resource['o:id']], [], ['responseContent' => 'reference'])->getContent()->id();
         }
 
         if ($resource['o:id']) {

@@ -119,9 +119,11 @@ class XmlReader extends AbstractMultiplePaginatedReader
             } elseif (mb_substr($xmlConfig, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($xmlConfig, 8);
                 /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
-                $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
-                if ($mapping) {
+                try {
+                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
                     $result[$xmlConfig] = trim((string) $mapping->mapping());
+                } catch (\Exception $e) {
+                    $mapping = null;
                 }
             }
         }
@@ -186,7 +188,11 @@ class XmlReader extends AbstractMultiplePaginatedReader
             } elseif (mb_substr($configName, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($configName, 8);
                 /** @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
-                $mapping = $this->getServiceLocator()->get('ControllerPluginManager')->get('api')->searchOne('bulk_mappings', ['id' => $mappingId])->getContent();
+                try {
+                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
+                } catch (\Exception $e) {
+                    $mapping = null;
+                }
                 if (!$mapping) {
                     $this->lastErrorMessage = new PsrMessage(
                         'Xsl config #{mapping_id} is unavailable.', // @translate

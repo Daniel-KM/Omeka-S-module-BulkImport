@@ -42,6 +42,7 @@ class ImportController extends AbstractActionController
 
     public function showAction()
     {
+        /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
         $id = $this->params()->fromRoute('id');
         $import = $this->api()->read('bulk_imports', $id)->getContent();
 
@@ -52,10 +53,15 @@ class ImportController extends AbstractActionController
 
     public function stopAction()
     {
-        $id = $this->params()->fromRoute('id');
-
         /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
-        $import = $this->api()->searchOne('bulk_imports', ['id' => $id])->getContent();
+        $id = $this->params()->fromRoute('id');
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $import = $id ? $this->api()->read('bulk_imports', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $import = null;
+        }
+
         if (!$import) {
             $this->messenger()->addWarning(new PsrMessage(
                 'The import process #{import} does not exists.', // @translate
@@ -116,13 +122,19 @@ class ImportController extends AbstractActionController
 
     public function undoAction()
     {
-        $importId = (int) $this->params()->fromRoute('id');
         /** @var \BulkImport\Api\Representation\ImportRepresentation $import */
-        $import = $this->api()->searchOne('bulk_imports', ['id' => $importId])->getContent();
-        if (!$importId || !$import) {
+        $id = $this->params()->fromRoute('id');
+        try {
+            // Don't use searchOne for performance and simplicity.
+            $import = $id ? $this->api()->read('bulk_imports', ['id' => $id])->getContent() : null;
+        } catch (\Exception $e) {
+            $import = null;
+        }
+
+        if (!$id || !$import) {
             $message = new PsrMessage(
                 'Import #{import} does not exist.', // @translate
-                ['import' => $importId]
+                ['import' => $id]
             );
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk-import']);
@@ -131,7 +143,7 @@ class ImportController extends AbstractActionController
         if (!$import->isUndoable()) {
             $message = new PsrMessage(
                 'The import #{import} is not undoable currently.', // @translate
-                ['import' => $importId]
+                ['import' => $id]
             );
             $this->messenger()->addError($message);
             return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk-import']);
@@ -144,7 +156,7 @@ class ImportController extends AbstractActionController
 
         $message = new PsrMessage(
             'Undo in progress for import #{import} with job #{job}.', // @translate
-            ['import' => $importId, 'job' => $job->getId()]
+            ['import' => $id, 'job' => $job->getId()]
         );
         $this->messenger()->addSuccess($message);
 

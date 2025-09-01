@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * Copyright 2017-2023 Daniel Berthereau
+ * Copyright 2017-2025 Daniel Berthereau
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software. You can use, modify and/or
@@ -29,9 +29,9 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
+use Common\Stdlib\EasyMeta;
 use Doctrine\DBAL\Connection;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
-use Omeka\Mvc\Controller\Plugin\Api;
 
 /**
  * Improvements from the controller plugin of the module Csv Import.
@@ -41,19 +41,19 @@ use Omeka\Mvc\Controller\Plugin\Api;
 class FindResourcesFromIdentifiers extends AbstractPlugin
 {
     /**
-     * @var Connection
+     * @var \Doctrine\DBAL\Connection $connection
      */
     protected $connection;
 
     /**
-     * @var Api
+     * @var \Common\Stdlib\EasyMeta
      */
-    protected $api;
+    protected $easyMeta;
 
-    public function __construct(Connection $connection, Api $api)
+    public function __construct(Connection $connection, EasyMeta $easyMeta)
     {
         $this->connection = $connection;
-        $this->api = $api;
+        $this->easyMeta = $easyMeta;
     }
 
     /**
@@ -230,11 +230,10 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             $resourceName = 'media';
             $itemId = null;
         } else {
-            $property = $this->api
-                ->searchOne('properties', ['term' => $identifierName])->getContent();
-            if ($property) {
+            $propertyId = $this->easyMeta->propertyId($identifierName);
+            if ($propertyId) {
                 $identifierType = 'property';
-                $identifierTypeName = $property->id();
+                $identifierTypeName = $propertyId;
             }
         }
 

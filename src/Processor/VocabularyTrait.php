@@ -303,7 +303,15 @@ trait VocabularyTrait
             if ($data['id']) {
                 continue;
             }
-            $member = $api->searchOne($resourceName, ['term' => $data['term']])->getContent();
+            // Don't use easyMeta or refresh it.
+            try {
+                $vocabulary = $api->read('vocabularies', ['prefix' => strtok($data['term'], ':')])->getContent();
+                $member = $vocabulary
+                    ? $api->read($resourceName, ['vocabulary' => $vocabulary->id(), 'localName' => strtok(':')])->getContent()
+                    : null;
+            } catch (\Exception $e) {
+                $member = null;
+            }
             if (!$member) {
                 $this->hasError = true;
                 $this->logger->err(

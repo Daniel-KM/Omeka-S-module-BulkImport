@@ -158,7 +158,11 @@ trait CustomVocabTrait
             }
             $id = (int) substr($customVocab['datatype'], 12);
             /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
-            $customVocabRepr = $api->searchOne('custom_vocabs', $id)->getContent();
+            try {
+                $customVocabRepr = $id ? $api->read('custom_vocabs', $id)->getContent() : null;
+            } catch (\Exception $e) {
+                $customVocabRepr = null;
+            }
             if (!$customVocabRepr) {
                 unset($customVocab['is_empty']);
                 continue;
