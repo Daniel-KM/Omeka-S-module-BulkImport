@@ -8,8 +8,15 @@ $plugins = $this->getHelperPluginManager();
 $url = $plugins->get('url');
 $i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$jobState = $plugins->get('jobState');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
+
+$this->headLink()
+    ->appendStylesheet($assetUrl('css/job.css', 'Log'));
+$this->headScript()
+    ->appendFile($assetUrl('js/job.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
 ?>
 
 <script>
@@ -34,6 +41,9 @@ $(document).ready(function(){
             $job = $import->job();
             $owner = $job ? $job->owner() : null;
             $importer = $import->importer();
+            $undoJob = $import->undoJob();
+            $currentJob = $undoJob ?? $job;
+            $stateHtml = $jobState($job, ['output' => 'html']);
             ?>
         <tr>
             <td>
@@ -78,7 +88,13 @@ $(document).ready(function(){
                     <?php endif; ?>
                 </ul>
             </td>
-            <td><?= $import->undoJob() ? $translate($import->undoStatusLabel()) : $translate($import->statusLabel()) ?></td>
+            <td class="log-job job-status" data-job-id="<?= $currentJob ? $currentJob->id() : null ?>">
+                <?php if ($stateHtml): ?>
+                <?= $jobState($currentJob, ['output' => 'html', 'include_job_status' => true, 'skip_css_js' => true]) ?>
+                <?php else: ?>
+                <span class="log-job-status job-status-label"><?= $undoJob ? $translate($import->undoStatusLabel()) : $translate($import->statusLabel()) ?></span>
+                <?php endif; ?>
+            </td>
             <td class="process">
                 <?php if (!$import->started() && !$import->undoStarted()): ?>
                 <?php // Nothing. ?>

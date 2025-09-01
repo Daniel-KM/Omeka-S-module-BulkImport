@@ -8,17 +8,32 @@ $plugins = $this->getHelperPluginManager();
 $url = $plugins->get('url');
 $i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
+$jobState = $plugins->get('jobState');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
 
 // For security, remove the temp name.
 $readerParams = $import->readerParams();
 unset($readerParams['filename']);
 
+$this->headLink()
+    ->appendStylesheet($this->assetUrl('css/job.css', 'Log'))
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+
+$this->headScript()
+    ->appendFile($assetUrl('js/job.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
+
 $this->htmlElement('body')->appendAttribute('class', 'bulk-imports show');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
+
+$job = $import->job();
+$undoJob = $import->undoJob();
+$state = $jobState($job);
+$stateUndo = $jobState($undoJob);
 
 $importer = $import->importer();
+
 $processorParams = $import->processorParams();
 foreach (array_keys($processorParams['files'] ?? []) as $key) {
     unset($processorParams['files'][$key]['tmp_name'], $processorParams['files'][$key]['filename']);
@@ -29,6 +44,9 @@ foreach (array_keys($processorParams['files'] ?? []) as $key) {
 
 <div id="page-actions">
     <?php if ($import->isInProgress()): ?>
+    <?php if ($state || $stateUndo): ?>
+    <?= $jobState($state ? $job : $undoJob, ['output' => 'html', 'inline' => true]) ?>
+    <?php endif; ?>
     <?= $hyperlink($translate('Attempt to stop job'), $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()], true), ['class' => 'button']) ?>
     <?php endif; ?>
 </div>
@@ -42,12 +60,37 @@ foreach (array_keys($processorParams['files'] ?? []) as $key) {
     <ul>
         <li><?= sprintf($translate('Importer: %s'), $importer ? $importer->label() : $translate('Unknown')) ?></li>
         <li><?= sprintf($translate('Comment: %s'), $import->comment()) ?></li>
-        <li><?= sprintf($translate('Status: %s'), $import->statusLabel()) ?></li>
+
+        <li class=job-status" data-job-id="<?= $job ? $job->id() : null ?>"
+            <?= sprintf($translate('Status: %s'), '<span class="job-status-label">' . $import->statusLabel() . '</span>') ?>
+        </li>
+        <?php if ($state): ?>
+        <li>
+            <span><?= $translate('System state:') ?></span>
+            <?= $jobState($job, ['output' => 'html', 'include_state_label' => true, 'inline' => true]) ?>
+        </li>
+        <?php endif; ?>
         <?php if ($v = $import->started()): ?>
         <li><?= sprintf($translate('Started: %s'), $i18n->dateFormat($v, 'medium', 'medium')) ?></li>
         <?php endif; ?>
         <?php if ($v = $import->ended()): ?>
         <li><?= sprintf($translate('Ended: %s'), $i18n->dateFormat($v, 'medium', 'medium')) ?></li>
+        <?php endif; ?>
+
+        <?php if ($undoJob): ?>
+        <li class=job-status" data-job-id="<?= $undoJob ? $undoJob->id() : null ?>"
+            <?= sprintf($translate('Status for undo job: %s'), '<span class="job-status-label">' . $import->undoStatusLabel() . '</span>') ?>
+        </li>
+        <?php if ($stateUndo): ?>
+        <li>
+            <span><?= $translate('System state:') ?></span>
+            <?= $jobState($undoJob, ['output' => 'html', 'include_state_label' => true, 'inline' => true]) ?>
+        </li>
+        <?php endif; ?>
+        <li><?= sprintf($translate('Started: %s'), $i18n->dateFormat($v, 'medium', 'medium')) ?></li>
+        <?php if ($v = $import->undoEnded()): ?>
+        <li><?= sprintf($translate('Ended: %s'), $i18n->dateFormat($v, 'medium', 'medium')) ?></li>
+        <?php endif; ?>
         <?php endif; ?>
     </ul>
     <h3><?= $escape($translate('Parameters')) ?></h3>

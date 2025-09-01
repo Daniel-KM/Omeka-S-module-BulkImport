@@ -10,6 +10,7 @@ $plugins = $this->getHelperPluginManager();
 $url = $plugins->get('url');
 $i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
+$jobState = $plugins->get('jobState');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
 
@@ -27,11 +28,11 @@ JS;
 
 $this->headLink()
     ->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'))
-    ->appendStylesheet($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.css', 'Log'))
+    ->appendStylesheet($this->assetUrl('css/job.css', 'Log'))
     ->appendStylesheet($this->assetUrl('css/log.css', 'Log'));
 $this->headScript()
     ->appendScript($script)
-    ->appendFile($this->assetUrl('vendor/webui-popover/jquery.webui-popover.min.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
+    ->appendFile($this->assetUrl('js/job.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
     ->appendFile($this->assetUrl('js/log.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
 
 $severityNames = [
@@ -44,12 +45,18 @@ $severityNames = [
     \Laminas\Log\Logger::INFO => $escape($translate('Info')),
     \Laminas\Log\Logger::DEBUG => $escape($translate('Debug')),
 ];
+
+$job = $import->job();
+$state = $jobState($job);
 ?>
 
 <?= $this->pageTitle(sprintf($translate('Import #%d'), $import->id()), 1, $translate('Bulk import')) ?>
 
 <div id="page-actions">
     <?php if ($import->isInProgress()): ?>
+    <?php if ($state): ?>
+    <?= $jobState($job, ['output' => 'html', 'inline' => true]) ?>
+    <?php endif; ?>
     <?= $hyperlink($translate('Attempt to stop job'), $url('admin/bulk/id', ['controller' => 'import', 'action' => 'stop', 'id' => $import->id()], true), ['class' => 'button']) ?>
     <?php endif; ?>
     <?php if (count($logs)): ?>
@@ -87,13 +94,16 @@ $severityNames = [
         </tr>
         </thead>
         <tbody>
-        <?php foreach ($logs as $log) { ?>
+        <?php foreach ($logs as $log): ?>
             <tr>
-                <td class="webui-popover-parent">
+                <td class="log-popover-parent">
                     <span class="log-message">
-                        <?php $shouldEscape = $log->text()->escapeHtml(); ?>
-                        <?php $text = $log->text()->translate(); ?>
-                        <?php $isLong = mb_strlen($shouldEscape ? $text : strip_tags($text)) > $strLength; ?>
+                        <?php
+                        $text = $log->text();
+                        $shouldEscape = $text->getEscapeHtml();
+                        $text = $text->translate();
+                        $isLong = mb_strlen($shouldEscape ? $text : strip_tags($text)) > $strLength;
+                        ?>
                         <?php if ($isLong): ?>
                         <span class="log-message-truncated truncate"><?= nl2br($escape(mb_substr(strip_tags($text), 0, $strLength))) . '…' ?></span>
                         <?php else: ?>
@@ -106,15 +116,15 @@ $severityNames = [
                                 'class' => 'o-icon- fa fa-expand popover',
                                 'title' => $translate('Full log'),
                             ]) ?>
-                            <div class="log-message-full webui-popover-content webui-popover-current"><?= $shouldEscape ? nl2br($escape($text)) : nl2br($text) ?></div>
+                            <div class="log-message-full log-popover-content log-popover-current"><?= $shouldEscape ? $escape($text) : $text ?></div>
                         </li>
                         <?php endif; ?>
                     </ul>
                 </td>
-                <td><?= $translate($log->severityLabel()) ?> </td>
+                <td><?= $translate($log->severityLabel()) ?></td>
                 <td><?= $i18n->dateFormat($log->created(), 'medium', 'medium') ?></td>
             </tr>
-        <?php } ?>
+        <?php endforeach; ?>
         </tbody>
     </table>
 
