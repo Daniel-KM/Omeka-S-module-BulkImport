@@ -17,7 +17,7 @@ class ImportedRepresentation extends AbstractEntityRepresentation
     public function getJsonLd()
     {
         return [
-            'o:job' => $this->job()->getReference(),
+            'o:job' => $this->job()->getReference()->jsonSerialize(),
             'entity_id' => $this->entityId(),
             'entity_name' => $this->entityName(),
         ];

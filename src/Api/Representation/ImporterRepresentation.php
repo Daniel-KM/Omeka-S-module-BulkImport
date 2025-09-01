@@ -50,7 +50,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
 
         return [
             'o:id' => $this->id(),
-            'o:owner' => $owner ? $owner->getReference() : null,
+            'o:owner' => $owner ? $owner->getReference()->jsonSerialize() : null,
             'o:label' => $this->label(),
             'o-bulk:reader' => $this->readerClass(),
             'o-bulk:mapper' => $this->mapper(),

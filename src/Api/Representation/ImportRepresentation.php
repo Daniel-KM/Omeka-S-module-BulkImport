@@ -19,18 +19,27 @@ class ImportRepresentation extends AbstractEntityRepresentation
 
     public function getJsonLd()
     {
+        $getDateTimeJsonLd = function (?\DateTime $dateTime): ?array {
+            return $dateTime
+            ? [
+                '@value' => $dateTime->format('c'),
+                '@type' => 'http://www.w3.org/2001/XMLSchema#dateTime',
+            ]
+            : null;
+        };
+
         $importer = $this->importer();
         $job = $this->job();
         $undoJob = $this->undoJob();
         return [
             'o:id' => $this->id(),
-            'o-bulk:importer' => $importer ? $importer->getReference() : null,
+            'o-bulk:importer' => $importer ? $importer->getReference()->jsonSerialize() : null,
             'o-bulk:comment' => $this->comment(),
-            'o:job' => $job ? $job->getReference() : null,
-            'o:undo_job' => $undoJob ? $undoJob->getReference() : null,
+            'o:job' => $job ? $job->getReference()->jsonSerialize() : null,
+            'o:undo_job' => $undoJob ? $undoJob->getReference()->jsonSerialize() : null,
             'o:status' => $this->status(),
-            'o:started' => $this->started(),
-            'o:ended' => $this->ended(),
+            'o:started' => $getDateTimeJsonLd($this->started()),
+            'o:ended' => $getDateTimeJsonLd($this->ended()),
             'o:params' => $this->params(),
         ];
     }

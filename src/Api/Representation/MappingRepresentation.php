@@ -20,26 +20,22 @@ class MappingRepresentation extends AbstractEntityRepresentation
     {
         $owner = $this->owner();
 
-        $created = [
-            '@value' => $this->getDateTime($this->created()),
-            '@type' => 'http://www.w3.org/2001/XMLSchema#dateTime',
-        ];
-
-        $modified = $this->modified();
-        if ($modified) {
-            $modified = [
-                '@value' => $this->getDateTime($modified),
-                '@type' => 'http://www.w3.org/2001/XMLSchema#dateTime',
-            ];
-        }
+        $getDateTimeJsonLd = function (?\DateTime $dateTime): ?array {
+            return $dateTime
+                ? [
+                    '@value' => $dateTime->format('c'),
+                    '@type' => 'http://www.w3.org/2001/XMLSchema#dateTime',
+                ]
+                : null;
+        };
 
         return [
             'o:id' => $this->id(),
-            'o:owner' => $owner ? $owner->getReference() : null,
+            'o:owner' => $owner ? $owner->getReference()->jsonSerialize() : null,
             'o:label' => $this->label(),
             'o-bulk:mapping' => $this->mapping(),
-            'o:created' => $created,
-            'o:modified' => $modified,
+            'o:created' => $getDateTimeJsonLd($this->resource->getCreated()),
+            'o:modified' => $getDateTimeJsonLd($this->resource->getModified()),
         ];
     }
 
