@@ -34,7 +34,8 @@
 
     <xsl:strip-space elements="*"/>
 
-    <!-- Constantes -->
+    <!-- Constants -->
+    <!-- Set the name of the resource template. None by default. -->
     <xsl:variable name="resource_template" select="''"/>
 
     <xsl:template match="@*|node()">

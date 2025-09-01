@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Description : Convertit les sorties Dublin Core SRU en liste de ressources pour Omeka S.
+    Description : Convert SRU/SRW output from Dublin Core (oai_dc) to a list of resources for Omeka S.
 
-    Gère les éléments non-inclus dans l'oai dc.
+    Manage elements non included in oai dc and manage all dcterms.
 
-    @copyright Daniel Berthereau, 2021-2022
+    @copyright Daniel Berthereau, 2021-2025
     @license CeCILL 2.1 https://cecill.info/licences/Licence_CeCILL_V2.1-fr.txt
 -->
 
@@ -32,8 +32,9 @@
 
     <xsl:strip-space elements="*"/>
 
-    <!-- Constantes -->
-    <xsl:variable name="resource_template" select="'Base ressource Unimarc'"/>
+    <!-- Constants -->
+    <!-- Set the name of the resource template. None by default. -->
+    <xsl:variable name="resource_template" select="''"/>
 
     <xsl:template match="@*|node()">
         <xsl:copy>
@@ -43,18 +44,26 @@
 
     <xsl:template match="/srw:searchRetrieveResponse">
         <resources>
-            <xsl:apply-templates select="srw:records/srw:record/srw:recordData/oai_dc:dc"/>
+            <xsl:choose>
+                <xsl:when test="srw:records/srw:record/srw:recordData/oai_dc:dcterms">
+                    <xsl:apply-templates select="srw:records/srw:record/srw:recordData/oai_dc:dcterms"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:apply-templates select="srw:records/srw:record/srw:recordData/oai_dc:dc"/>
+                </xsl:otherwise>
+            </xsl:choose>
         </resources>
     </xsl:template>
 
-    <xsl:template match="oai_dc:dc">
+    <xsl:template match="oai_dc:dcterms | oai_dc:dc">
         <resource o:is_public="true" o:resource_template="{$resource_template}">
             <xsl:apply-templates select="*"/>
         </resource>
     </xsl:template>
 
-    <xsl:template match="oai_dc:*/*">
-    <xsl:element name="{concat('dcterms:', local-name(.))}">
+    <!-- Replace prefix "dc" by "dcterms", used in omeka. -->
+    <xsl:template match="dc:*">
+        <xsl:element name="{concat('dcterms:', local-name(.))}">
             <xsl:value-of select="."/>
         </xsl:element>
     </xsl:template>

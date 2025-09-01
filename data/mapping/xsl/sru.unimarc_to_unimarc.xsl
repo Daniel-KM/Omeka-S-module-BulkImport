@@ -69,8 +69,9 @@
 
     <xsl:strip-space elements="*"/>
 
-    <!-- Constantes -->
-    <xsl:variable name="resource_template" select="'Base ressource Unimarc'"/>
+    <!-- Constants -->
+    <!-- Set the name of the resource template. None by default. -->
+    <xsl:variable name="resource_template" select="''"/>
 
     <xsl:template match="@*|node()">
         <xsl:copy>
