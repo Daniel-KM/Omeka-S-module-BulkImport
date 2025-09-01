@@ -147,6 +147,8 @@ class SqlReader extends AbstractPaginatedReader
             return false;
         }
 
+        // The database is already checked above.
+
         $database = $this->getParam('database');
         $host = $this->getParam('host') ?? 'localhost';
 
@@ -154,6 +156,7 @@ class SqlReader extends AbstractPaginatedReader
         $connection = $this->getServiceLocator()->get('Omeka\Connection');
         $mainDbConfig = $connection->getParams();
 
+        // Skip checks when the host is different.
         if (empty($mainDbConfig['host']) || $mainDbConfig['host'] !== $host) {
             $this->lastErrorMesage = 'The database should be on the same server to allow direct access by the main database user.'; // @translate
             $this->logger->err($this->lastErrorMessage);
@@ -191,10 +194,11 @@ class SqlReader extends AbstractPaginatedReader
 
         // Check grants of the main database user on this database.
         $username = $connection->quote($mainDbConfig['user']);
+        $host = $connection->quote($mainDbConfig['host']);
 
         $sql = <<<SQL
-SHOW GRANTS FOR $username@'$host';
-SQL;
+            SHOW GRANTS FOR $username@$host;
+            SQL;
         try {
             /** @uses \Laminas\Db\Adapter\Driver\Pdo\Statement */
             $result = $this->dbAdapter->query($sql)->execute();
@@ -220,8 +224,8 @@ SQL;
         }
 
         $sql = <<<SQL
-GRANT SELECT ON `$database`.* TO $username@'$host';
-SQL;
+            GRANT SELECT ON `$database`.* TO $username@$host;
+            SQL;
         try {
             $this->dbAdapter->query($sql)->execute();
         } catch (\Exception $e) {
@@ -278,13 +282,12 @@ SQL;
         // @see https://dev.mysql.com/doc/refman/8.0/en/load-data.html
         // Default output is tab-separated values without enclosure.
         $sql = <<<SQL
-SELECT `$this->objectType`.*
-FROM `$this->objectType`
-$skips
-INTO OUTFILE "$filepath"
-CHARACTER SET utf8;
-
-SQL;
+            SELECT `$this->objectType`.*
+            FROM `$this->objectType`
+            $skips
+            INTO OUTFILE "$filepath"
+            CHARACTER SET utf8;
+            SQL;
         $stmt = $this->dbAdapter->query($sql);
         $stmt->execute();
         return $filepath;
