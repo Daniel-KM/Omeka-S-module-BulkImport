@@ -338,6 +338,13 @@ fetch all metadata.
 
 Simply select the sql reader and the eprints processor, then follow the forms.
 
+To give rights to read a database by an another user:
+
+```sql
+GRANT ALL PRIVILEGES ON eprints.* TO user IDENTIFIED BY 'password';
+FLUSH PRIVILEGES;
+```
+
 This importer is no more available for now.
 
 
