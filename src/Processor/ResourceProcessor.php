@@ -1156,10 +1156,16 @@ class ResourceProcessor extends AbstractResourceProcessor
         // against each datatype and get the first valid one.
         foreach ($resource[$term] as $indexValue => $value) {
             // Some mappers fully format the value.
-            $val = $value['value_resource_id'] ?? $value['@id'] ?? $value['@value'] ?? $value['o:label'] ?? $value['value'] ?? $value['__value'] ?? null;
+            $val = $value['value_resource_id']
+                ?? $value['@id']
+                ?? $value['@value']
+                ?? $value['o:label']
+                ?? $value['value']
+                ?? $value['__value']
+                ?? null;
 
             // There should be a value.
-            if ($val === null || $val === [] || $val === '') {
+            if ($val === null || $val === '' || $val === []) {
                 unset($resource[$term][$indexValue]);
                 continue;
             }
@@ -1233,25 +1239,25 @@ class ResourceProcessor extends AbstractResourceProcessor
                     $this->fillPropertyForValue($resource, $indexValue, $term, 'literal', $value);
                     if ($this->easyMeta->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
-                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create the resource first. Data type "literal" is used.', // @translate
-                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes {datatypes}. Try to create the resource first. Data type "literal" is used.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode(', ', $dataTypeNames)]
                         ));
                     } else {
                         $resource['messageStore']->addNotice('values', new PsrMessage(
-                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Data type "literal" is used.', // @translate
-                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes {datatypes}. Data type "literal" is used.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode(', ', $dataTypeNames)]
                         ));
                     }
                 } else {
                     if ($this->easyMeta->dataTypeMain(reset($dataTypeNames)) === 'resource') {
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
-                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes {datatypes}. Try to create resource first. Or try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode(', ', $dataTypeNames)]
                         ));
                     } else {
                         $resource['messageStore']->addError('values', new PsrMessage(
-                            'The value "{value}" for property "{term}" is not compatible with datatypes "{datatypes}". Try to add "literal" to datatypes or default to it.', // @translate
-                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode('", "', $dataTypeNames)]
+                            'The value "{value}" for property "{term}" is not compatible with datatypes {datatypes}. Try to add "literal" to datatypes or default to it.', // @translate
+                            ['value' => $valueForMsg, 'term' => $term, 'datatypes' => implode(', ', $dataTypeNames)]
                         ));
                     }
                 }

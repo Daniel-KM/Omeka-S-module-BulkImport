@@ -3388,55 +3388,55 @@ class EprintsProcessor extends AbstractFullProcessor
         // This table has no null.
 
         $sqls .= <<<SQL
-# Mapping columns and copy source table.
-# Not managed: requester_country, requester_institution.
-INSERT INTO `$destinationDatabase`.`hit` (
-    $insertId
-    `url`,
-    `entity_id`,
-    `entity_name`,
-    `user_id`,
-    `ip`,
-    `query`,
-    `referrer`,
-    `user_agent`,
-    `accept_language`,
-    `created`
-)
-SELECT
-    $selectId
-    IF(`referent_id`,
-        IF(`referent_docid`,
-            CONCAT("/eprints/", `referent_id`, "/document/", `referent_docid`),
-            CONCAT("/eprints/", `referent_id`)
-        ),
-        IF(`referent_docid`,
-            CONCAT("/eprints/0/document/", `referent_docid`),
-            "/eprints/"
-        )
-    ),
-    IFNULL(
-        `_temporary__media`.`to`,
-        IFNULL(`_temporary__items`.`to`, 0)
-    ),
-    IF(`_temporary__media`.`to`,
-        "media",
-        IF(`_temporary__items`.`to`,
-            "items",
-            ""
-    )),
-    0,
-    IFNULL(`requester_id`, ""),
-    IFNULL(`service_type_id`, ""),
-    IFNULL(`requester_entity_id`, ""),
-    IFNULL(`requester_user_agent`, ""),
-    "",
-    STR_TO_DATE(CONCAT(
-        `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
-        `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
-    ), "%Y-%m-%d %H:%i:%s")
-FROM `$sourceDatabase`.`$sourceTable`
-SQL;
+            # Mapping columns and copy source table.
+            # Not managed: requester_country, requester_institution.
+            INSERT INTO `$destinationDatabase`.`hit` (
+                $insertId
+                `url`,
+                `entity_id`,
+                `entity_name`,
+                `user_id`,
+                `ip`,
+                `query`,
+                `referrer`,
+                `user_agent`,
+                `accept_language`,
+                `created`
+            )
+            SELECT
+                $selectId
+                IF(`referent_id`,
+                    IF(`referent_docid`,
+                        CONCAT("/eprints/", `referent_id`, "/document/", `referent_docid`),
+                        CONCAT("/eprints/", `referent_id`)
+                    ),
+                    IF(`referent_docid`,
+                        CONCAT("/eprints/0/document/", `referent_docid`),
+                        "/eprints/"
+                    )
+                ),
+                IFNULL(
+                    `_temporary__media`.`to`,
+                    IFNULL(`_temporary__items`.`to`, 0)
+                ),
+                IF(`_temporary__media`.`to`,
+                    "media",
+                    IF(`_temporary__items`.`to`,
+                        "items",
+                        ""
+                )),
+                0,
+                IFNULL(`requester_id`, ""),
+                IFNULL(`service_type_id`, ""),
+                IFNULL(`requester_entity_id`, ""),
+                IFNULL(`requester_user_agent`, ""),
+                "",
+                STR_TO_DATE(CONCAT(
+                    `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
+                    `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
+                ), "%Y-%m-%d %H:%i:%s")
+            FROM `$sourceDatabase`.`$sourceTable`
+            SQL;
         $sqls .= "\n";
         $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'eprintid', 'items', 'left');
         $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'docid', 'media', 'left');
@@ -3512,54 +3512,54 @@ SQL;
         $sqls .= "\n";
 
         $sqls .= <<<SQL
-# Mapping columns and copy source table.
-# Not managed: expiry date; user email; code (hash).
-INSERT INTO `$destinationDatabase`.`contact_message` (
-    $insertId
-    `owner_id`,
-    `resource_id`,
-    `site_id`,
-    `email`,
-    `name`,
-    `subject`,
-    `body`,
-    `source`,
-    `media_type`,
-    `storage_id`,
-    `extension`,
-    `request_url`,
-    `ip`,
-    `user_agent`,
-    `is_read`,
-    `is_spam`,
-    `newsletter`,
-    `created`
-)
-SELECT
-    $selectId
-    `_temporary__users`.`to`,
-    IFNULL(`_temporary__media`.`to`, `_temporary__items`.`to`),
-    1,
-    IFNULL(`requester_email`, ""),
-    `requester_email`,
-    $subject,
-    IFNULL(`reason`, ""),
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    "::",
-    "",
-    0,
-    0,
-    0,
-    STR_TO_DATE(CONCAT(
-        `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
-        `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
-    ), "%Y-%m-%d %H:%i:%s")
-FROM `$sourceDatabase`.`$sourceTable`
-SQL;
+            # Mapping columns and copy source table.
+            # Not managed: expiry date; user email; code (hash).
+            INSERT INTO `$destinationDatabase`.`contact_message` (
+                $insertId
+                `owner_id`,
+                `resource_id`,
+                `site_id`,
+                `email`,
+                `name`,
+                `subject`,
+                `body`,
+                `source`,
+                `media_type`,
+                `storage_id`,
+                `extension`,
+                `request_url`,
+                `ip`,
+                `user_agent`,
+                `is_read`,
+                `is_spam`,
+                `newsletter`,
+                `created`
+            )
+            SELECT
+                $selectId
+                `_temporary__users`.`to`,
+                IFNULL(`_temporary__media`.`to`, `_temporary__items`.`to`),
+                1,
+                IFNULL(`requester_email`, ""),
+                `requester_email`,
+                $subject,
+                IFNULL(`reason`, ""),
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                "::",
+                "",
+                0,
+                0,
+                0,
+                STR_TO_DATE(CONCAT(
+                    `datestamp_year`, "-", `datestamp_month`, "-", `datestamp_day`, " ",
+                    `datestamp_hour`, ":", `datestamp_minute`, ":", `datestamp_second`
+                ), "%Y-%m-%d %H:%i:%s")
+            FROM `$sourceDatabase`.`$sourceTable`
+            SQL;
         $sqls .= "\n";
         $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'eprintid', 'items', 'left');
         $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'docid', 'media', 'left');
@@ -3622,35 +3622,35 @@ SQL;
         $sqls = $this->sqlTemporaryTableForIdsCreate($sourceType, 'users');
 
         $sqls .= <<<SQL
-# Mapping columns and copy source table.
-# Not managed, but stored : frequency, public. Not managed: mailempty.
-INSERT INTO `$destinationDatabase`.`search_request` (
-    $insertId
-    `user_id`,
-    `site_id`,
-    `comment`,
-    `engine`,
-    `query`,
-    `created`,
-    `modified`
-)
-SELECT
-    $selectId
-    `_temporary__users`.`to`,
-    1,
-    CONCAT(
-        SUBSTR(TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-            `name`, "\n\r", " "), "\n", " "), "\r", " "), "\t", " "), "  ", " ")
-        ), 1, 160),
-        " (", $subject, ") [",
-        LOWER(`frequency`), "/", IF(`public` = "FALSE", "private", "public"), "]"
-    ),
-    "item",
-    `spec`,
-    "$this->currentDateTimeFormatted",
-    NULL
-FROM `$sourceDatabase`.`$sourceTable`
-SQL;
+            # Mapping columns and copy source table.
+            # Not managed, but stored : frequency, public. Not managed: mailempty.
+            INSERT INTO `$destinationDatabase`.`search_request` (
+                $insertId
+                `user_id`,
+                `site_id`,
+                `comment`,
+                `engine`,
+                `query`,
+                `created`,
+                `modified`
+            )
+            SELECT
+                $selectId
+                `_temporary__users`.`to`,
+                1,
+                CONCAT(
+                    SUBSTR(TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                        `name`, "\n\r", " "), "\n", " "), "\r", " "), "\t", " "), "  ", " ")
+                    ), 1, 160),
+                    " (", $subject, ") [",
+                    LOWER(`frequency`), "/", IF(`public` = "FALSE", "private", "public"), "]"
+                ),
+                "item",
+                `spec`,
+                "$this->currentDateTimeFormatted",
+                NULL
+            FROM `$sourceDatabase`.`$sourceTable`
+            SQL;
         $sqls .= "\n";
         $sqls .= $this->sqlTemporaryTableForIdsJoin($sourceType, 'userid', 'users', 'left');
         $sqls .= ";\n";

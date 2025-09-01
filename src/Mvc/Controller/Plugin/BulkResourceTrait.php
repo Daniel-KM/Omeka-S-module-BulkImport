@@ -77,6 +77,7 @@ trait BulkResourceTrait
 
         // There is only issue for properties.
         $repr = array_diff_key($resourceArray, $propertyIds);
+        // TODO Don't use json_decode(json_encode()).
         $repr = json_decode(json_encode($repr), true);
 
         $isOldOmeka = version_compare(\Omeka\Module::VERSION, '3.2', '<');
@@ -105,6 +106,7 @@ trait BulkResourceTrait
                                 // 'display_title' => $vr->displayTitle(),
                             ];
                         } else {
+                            // TODO Don't use json_decode(json_encode()).
                             $repr[$term][] = json_decode(json_encode($value), true);
                         }
                     } catch (\Exception $e) {

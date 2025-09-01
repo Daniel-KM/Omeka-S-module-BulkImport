@@ -68,7 +68,7 @@ trait DateTimeTrait
      *
      * @link https://dev.mysql.com/doc/refman/8.0/en/datetime.html
      *
-     * @var ?string $timeZone The time zone can be "true" to use the Omeka one.
+     * @var string|null $timeZone The time zone can be "true" to use the Omeka one.
      */
     protected function getSqlDateTime($date, $timeZone = null): ?DateTime
     {
@@ -150,25 +150,23 @@ trait DateTimeTrait
         // To avoid issues with big import, use a temporary table for ids.
 
         $sql = <<<'SQL'
-# Create a table with all created resource ids.
-DROP TABLE IF EXISTS `_temporary_rid`;
-CREATE TABLE `_temporary_rid` (
-    `id` int(11) NOT NULL,
-    UNIQUE (`id`)
-);
-
-SQL;
+            # Create a table with all created resource ids.
+            DROP TABLE IF EXISTS `_temporary_rid`;
+            CREATE TABLE `_temporary_rid` (
+                `id` int(11) NOT NULL,
+                UNIQUE (`id`)
+            );
+            SQL . "\n";
         foreach (array_chunk($ids, self::CHUNK_RECORD_IDS) as $chunk) {
             $sql .= 'INSERT INTO `_temporary_rid` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
         }
 
         $sql .= <<<'SQL'
-# Remove numeric timestamp for the resource ids.
-DELETE `numeric_data_types_timestamp`
-FROM `numeric_data_types_timestamp`
-JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `numeric_data_types_timestamp`.`resource_id`;
-
-SQL;
+            # Remove numeric timestamp for the resource ids.
+            DELETE `numeric_data_types_timestamp`
+            FROM `numeric_data_types_timestamp`
+            JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `numeric_data_types_timestamp`.`resource_id`;
+            SQL . "\n";
 
         $this->connection->executeStatement($sql);
 
@@ -180,27 +178,27 @@ SQL;
         // various results and may be memory intensive.
 
         $sql = <<<'SQL'
-# Create a table with all converted dates in order to process dates one time only.
-DROP TABLE IF EXISTS `_temporary_date`;
-CREATE TABLE `_temporary_date` (
-    `value` LONGTEXT NULL,
-    `timestamp` BIGINT(20) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO `_temporary_date` (`value`)
-SELECT DISTINCT
-    `value`.`value`
-FROM `value`
-JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
-WHERE
-    `value`.`type` = 'numeric:timestamp'
-;
-SQL;
+            # Create a table with all converted dates in order to process dates one time only.
+            DROP TABLE IF EXISTS `_temporary_date`;
+            CREATE TABLE `_temporary_date` (
+                `value` LONGTEXT NULL,
+                `timestamp` BIGINT(20) DEFAULT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            INSERT INTO `_temporary_date` (`value`)
+            SELECT DISTINCT
+                `value`.`value`
+            FROM `value`
+            JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
+            WHERE
+                `value`.`type` = 'numeric:timestamp'
+            ;
+            SQL;
 
         $this->connection->executeStatement($sql);
 
         $sql = <<<'SQL'
-SELECT `value` FROM `_temporary_date`;
-SQL;
+            SELECT `value` FROM `_temporary_date`;
+            SQL;
         $stmt = $this->connection->executeQuery($sql);
         // TODO Add a loop for big source sizes or increase database and php memory.
         $result = $stmt->fetchFirstColumn();
@@ -232,21 +230,21 @@ SQL;
                 }
 
                 $sql = <<<'SQL'
-# Copy timestamps in destination table.
-INSERT INTO `numeric_data_types_timestamp`
-    (`resource_id`, `property_id`, `value`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    `value`.`property_id`,
-    `_temporary_date`.`timestamp`
-FROM `value`
-JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
-JOIN `_temporary_date` ON `_temporary_date`.`value` = `value`.`value`
-WHERE
-    `value`.`type` = 'numeric:timestamp'
-    AND `_temporary_date`.`timestamp` IS NOT NULL
-;
-SQL;
+                    # Copy timestamps in destination table.
+                    INSERT INTO `numeric_data_types_timestamp`
+                        (`resource_id`, `property_id`, `value`)
+                    SELECT DISTINCT
+                        `value`.`resource_id`,
+                        `value`.`property_id`,
+                        `_temporary_date`.`timestamp`
+                    FROM `value`
+                    JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
+                    JOIN `_temporary_date` ON `_temporary_date`.`value` = `value`.`value`
+                    WHERE
+                        `value`.`type` = 'numeric:timestamp'
+                        AND `_temporary_date`.`timestamp` IS NOT NULL
+                    ;
+                    SQL;
                 $this->connection->executeStatement($sql);
             }
 
@@ -254,16 +252,16 @@ SQL;
             $notTimestamps = array_filter($result, 'is_null');
             if (count($notTimestamps)) {
                 $sql = <<<'SQL'
-UPDATE `value`
-JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
-JOIN `_temporary_date` ON `_temporary_date`.`value` = `value`.`value`
-SET
-    `value`.`type` = "literal"
-WHERE
-    `value`.`type` = 'numeric:timestamp'
-    AND `_temporary_date`.`timestamp` IS NULL
-;
-SQL;
+                    UPDATE `value`
+                    JOIN `_temporary_rid` ON `_temporary_rid`.`id` = `value`.`resource_id`
+                    JOIN `_temporary_date` ON `_temporary_date`.`value` = `value`.`value`
+                    SET
+                        `value`.`type` = "literal"
+                    WHERE
+                        `value`.`type` = 'numeric:timestamp'
+                        AND `_temporary_date`.`timestamp` IS NULL
+                    ;
+                    SQL;
                 $this->connection->executeStatement($sql);
 
                 $this->logger->warn(
@@ -278,9 +276,9 @@ SQL;
         }
 
         $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_rid`;
-DROP TABLE IF EXISTS `_temporary_date`;
-SQL;
+            DROP TABLE IF EXISTS `_temporary_rid`;
+            DROP TABLE IF EXISTS `_temporary_date`;
+            SQL;
         $this->connection->executeStatement($sql);
     }
 

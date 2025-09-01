@@ -32,11 +32,13 @@ abstract class AbstractResourceProcessorConfigForm extends Form
                 'type' => Element\Select::class,
                 'options' => [
                     'label' => 'Action', // @translate
-                    'info' => 'In addition to the default "Create" and to the common "Delete", to manage most of the common cases, four modes of update are provided:
-- append: add new data to complete the resource;
-- revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
-- update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
-- replace: remove all properties of the resource, and fill new ones from the entry.', // @translate
+                    'info' => <<<'TXT'
+                        In addition to the default "Create" and to the common "Delete", to manage most of the common cases, four modes of update are provided:
+                        - append: add new data to complete the resource;
+                        - revise: replace existing data by the ones set in each entry, except if empty (don’t modify data that are not provided, except for default values);
+                        - update: replace existing data by the ones set in each entry, even empty (don’t modify data that are not provided, except for default values);
+                        - replace: remove all properties of the resource, and fill new ones from the entry.
+                        TXT, // @translate
                     'value_options' => [
                         \BulkImport\Processor\AbstractProcessor::ACTION_CREATE => 'Create new resources', // @translate
                         \BulkImport\Processor\AbstractProcessor::ACTION_APPEND => 'Append data to resources', // @translate

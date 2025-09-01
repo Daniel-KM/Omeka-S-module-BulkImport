@@ -124,13 +124,12 @@ trait ToolsTrait
             ? 'VARCHAR(1024) COLLATE `latin1_bin`'
             : 'INT unsigned';
         $sqls = <<<SQL
-DROP TABLE IF EXISTS `_temporary_source_entities`;
-CREATE TABLE `_temporary_source_entities` (
-    `id` $idType NOT NULL,
-    UNIQUE (`id`)
-);
-
-SQL;
+            DROP TABLE IF EXISTS `_temporary_source_entities`;
+            CREATE TABLE `_temporary_source_entities` (
+                `id` $idType NOT NULL,
+                UNIQUE (`id`)
+            );
+            SQL . "\n";
 
         // TODO Find a way to prepare the ids without the map, but original source.
         if ($isAlreadyFilled) {
@@ -153,20 +152,18 @@ SQL;
         }
 
         $sqls .= <<<SQL
-INSERT INTO `$table`
-    ($columnsString)
-SELECT
-    $valuesString
-FROM `_temporary_source_entities`;
-
-SQL;
+            INSERT INTO `$table`
+                ($columnsString)
+            SELECT
+                $valuesString
+            FROM `_temporary_source_entities`;
+            SQL . "\n";
 
         // Don't need to fill the ids when they are filled.
         if ($isAlreadyFilled) {
             $sqls .= <<<SQL
-DROP TABLE IF EXISTS `_temporary_source_entities`;
-
-SQL;
+                DROP TABLE IF EXISTS `_temporary_source_entities`;
+                SQL . "\n";
             $this->connection->executeStatement($sqls);
             return;
         }
@@ -174,13 +171,12 @@ SQL;
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
-SELECT
-    SUBSTR(`$table`.`$columnKeepId`, $randomPrefixLength) AS `s`,
-    `$table`.`id` AS `d`
-FROM `$table` AS `$table`
-JOIN `_temporary_source_entities` AS `tempo` ON CONCAT("$randomPrefix", `tempo`.`id`) = `$table`.`$columnKeepId`;
-
-SQL;
+            SELECT
+                SUBSTR(`$table`.`$columnKeepId`, $randomPrefixLength) AS `s`,
+                `$table`.`id` AS `d`
+            FROM `$table` AS `$table`
+            JOIN `_temporary_source_entities` AS `tempo` ON CONCAT("$randomPrefix", `tempo`.`id`) = `$table`.`$columnKeepId`;
+            SQL . "\n";
 
         $result = $this->connection->executeQuery($sql)->fetchAllKeyValue();
         if (!count($result)) {
@@ -201,9 +197,8 @@ SQL;
         $this->map[$sourceType] = $result ? array_map('intval', $result) : [];
 
         $sql = <<<SQL
-DROP TABLE IF EXISTS `_temporary_source_entities`;
-
-SQL;
+            DROP TABLE IF EXISTS `_temporary_source_entities`;
+            SQL . "\n";
         $this->connection->executeStatement($sql);
     }
 
@@ -281,14 +276,13 @@ SQL;
     protected function sqlTemporaryTableForIdsCreate(string $sourceType, string $entityName): string
     {
         $sqls = <<<SQL
-# Create a temporary table to store the mapping between original ids and new ids for "$sourceType" ($entityName).
-DROP TABLE IF EXISTS `_temporary__$entityName`;
-CREATE TABLE `_temporary__$entityName` (
-    `from` INT(11) NOT NULL,
-    `to` INT(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SQL;
+            # Create a temporary table to store the mapping between original ids and new ids for "$sourceType" ($entityName).
+            DROP TABLE IF EXISTS `_temporary__$entityName`;
+            CREATE TABLE `_temporary__$entityName` (
+                `from` INT(11) NOT NULL,
+                `to` INT(11) DEFAULT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL . "\n";
         if (empty($this->map[$sourceType])) {
             return $sqls;
         }
@@ -320,10 +314,9 @@ SQL;
         $joinType = strtolower((string) $joinType) === 'left' ? 'LEFT ' : '';
 
         return <<<SQL
-{$joinType}JOIN `$destinationDatabase`.`_temporary__$entityName`
-    ON `$sourceDatabase`.`$sourceTable`.`$sourceKey` = `$destinationDatabase`.`_temporary__$entityName`.`from`
-
-SQL;
+            {$joinType}JOIN `$destinationDatabase`.`_temporary__$entityName`
+                ON `$sourceDatabase`.`$sourceTable`.`$sourceKey` = `$destinationDatabase`.`_temporary__$entityName`.`from`
+            SQL . "\n";
     }
 
     protected function sqlTemporaryTableForIdsDrop(string $entityName): string

@@ -176,10 +176,10 @@ class BulkCheckLog extends AbstractPlugin
     public function purgeCheckStore(): self
     {
         $sql = <<<'SQL'
-DELETE FROM `user_setting`
-WHERE `id` LIKE "#_cache#_bulkimport#_%" ESCAPE "#"
-;
-SQL;
+            DELETE FROM `user_setting`
+            WHERE `id` LIKE "#_cache#_bulkimport#_%" ESCAPE "#"
+            ;
+            SQL;
         $this->connection->executeStatement($sql);
         return $this;
     }

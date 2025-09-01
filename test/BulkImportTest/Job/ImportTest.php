@@ -91,17 +91,17 @@ class ImportTest extends OmekaControllerTestCase
     {
         $conn = $this->getServiceLocator()->get('Omeka\Connection');
         $sql = <<<'SQL'
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE item;
-TRUNCATE TABLE item_set;
-TRUNCATE TABLE item_item_set;
-TRUNCATE TABLE media;
-TRUNCATE TABLE resource;
-TRUNCATE TABLE value;
-TRUNCATE TABLE bulk_import;
-TRUNCATE TABLE bulk_importer;
-SET FOREIGN_KEY_CHECKS = 1;
-SQL;
+            SET FOREIGN_KEY_CHECKS = 0;
+            TRUNCATE TABLE item;
+            TRUNCATE TABLE item_set;
+            TRUNCATE TABLE item_item_set;
+            TRUNCATE TABLE media;
+            TRUNCATE TABLE resource;
+            TRUNCATE TABLE value;
+            TRUNCATE TABLE bulk_import;
+            TRUNCATE TABLE bulk_importer;
+            SET FOREIGN_KEY_CHECKS = 1;
+            SQL;
         $conn->exec($sql);
         $this->entityManager->clear();
     }

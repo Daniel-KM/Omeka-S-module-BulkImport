@@ -8,13 +8,13 @@ trait InternalIntegrityTrait
     {
         // Check if there are empty data, for example from an incomplete import.
         $sql = <<<SQL
-SELECT `id`
-FROM `asset`
-WHERE `asset`.`name` = ""
-    AND `asset`.`media_type` = ""
-    AND `asset`.`extension` = ""
-    AND `asset`.`owner_id` IS NULL;
-SQL;
+            SELECT `id`
+            FROM `asset`
+            WHERE `asset`.`name` = ""
+                AND `asset`.`media_type` = ""
+                AND `asset`.`extension` = ""
+                AND `asset`.`owner_id` IS NULL;
+            SQL;
         $result = $this->connection->executeQuery($sql)->fetchFirstColumn();
         if (count($result)) {
             $this->hasError = true;
@@ -37,12 +37,12 @@ SQL;
         foreach ($resourceTables as $resourceTable => $class) {
             $resourceClass = $this->connection->quote($class);
             $sql = <<<SQL
-SELECT `resource`.`id`
-FROM `resource` AS `resource`
-LEFT JOIN `$resourceTable` AS `spec` ON `spec`.`id` = `resource`.`id`
-WHERE `resource`.`resource_type` = $resourceClass
-    AND `spec`.`id` IS NULL;
-SQL;
+                SELECT `resource`.`id`
+                FROM `resource` AS `resource`
+                LEFT JOIN `$resourceTable` AS `spec` ON `spec`.`id` = `resource`.`id`
+                WHERE `resource`.`resource_type` = $resourceClass
+                    AND `spec`.`id` IS NULL;
+                SQL;
             $result = $this->connection->executeQuery($sql)->fetchFirstColumn();
             if (count($result)) {
                 $this->hasError = true;

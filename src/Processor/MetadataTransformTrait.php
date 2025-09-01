@@ -295,34 +295,34 @@ trait MetadataTransformTrait
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
-# Attach items to item sets according to a value.
-INSERT INTO `item_item_set`
-    (`item_id`, `item_set_id`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    `value_item_set`.`resource_id`
-FROM `value`
-JOIN `value` AS `value_item_set`
-JOIN `item_set`
-    ON `item_set`.`id` = `value_item_set`.`resource_id`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceId
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
-    AND `value_item_set`.`property_id` = $sourceIdentifierId
-    AND (`value_item_set`.`type` = "literal" OR `value_item_set`.`type` = "" OR `value_item_set`.`type` IS NULL)
-    AND `value`.`value` = `value_item_set`.`value`
-$sqlExcludeWhere
-ORDER BY `value`.`resource_id` ASC
-ON DUPLICATE KEY UPDATE
-    `item_id` = `item_item_set`.`item_id`,
-    `item_set_id` = `item_item_set`.`item_set_id`
-;
-SQL;
+            # Attach items to item sets according to a value.
+            INSERT INTO `item_item_set`
+                (`item_id`, `item_set_id`)
+            SELECT DISTINCT
+                `value`.`resource_id`,
+                `value_item_set`.`resource_id`
+            FROM `value`
+            JOIN `value` AS `value_item_set`
+            JOIN `item_set`
+                ON `item_set`.`id` = `value_item_set`.`resource_id`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            WHERE
+                `value`.`property_id` = $sourceId
+                AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+                AND `value`.`value` <> ""
+                AND `value`.`value` IS NOT NULL
+                AND `value_item_set`.`property_id` = $sourceIdentifierId
+                AND (`value_item_set`.`type` = "literal" OR `value_item_set`.`type` = "" OR `value_item_set`.`type` IS NULL)
+                AND `value`.`value` = `value_item_set`.`value`
+            $sqlExcludeWhere
+            ORDER BY `value`.`resource_id` ASC
+            ON DUPLICATE KEY UPDATE
+                `item_id` = `item_item_set`.`item_id`,
+                `item_set_id` = `item_item_set`.`item_set_id`
+            ;
+            SQL;
 
         return true;
     }
@@ -440,83 +440,83 @@ SQL;
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
-# Create linked values for all values that have an identifiable value.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    $destinationId,
-    `value_linked`.`resource_id`,
-    $quotedType,
-    $isPublic
-FROM `value`
-JOIN `value` AS `value_linked`
-    ON `value_linked`.`value` = `value`.`value`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceId
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
-    AND `value_linked`.`property_id` = $sourceIdentifierId
-    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
-    AND `value_linked`.`value` <> ""
-    AND `value_linked`.`value` IS NOT NULL
-    $sqlExcludeWhere
-ORDER BY `value`.`resource_id` ASC
-;
-SQL;
+            # Create linked values for all values that have an identifiable value.
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+            SELECT DISTINCT
+                `value`.`resource_id`,
+                $destinationId,
+                `value_linked`.`resource_id`,
+                $quotedType,
+                $isPublic
+            FROM `value`
+            JOIN `value` AS `value_linked`
+                ON `value_linked`.`value` = `value`.`value`
+            $sqlExclude
+            WHERE
+                `value`.`property_id` = $sourceId
+                AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+                AND `value`.`value` <> ""
+                AND `value`.`value` IS NOT NULL
+                AND `value_linked`.`property_id` = $sourceIdentifierId
+                AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+                AND `value_linked`.`value` <> ""
+                AND `value_linked`.`value` IS NOT NULL
+                $sqlExcludeWhere
+            ORDER BY `value`.`resource_id` ASC
+            ;
+            SQL;
 
         if ($reciprocalId) {
             $this->operationSqls[] = <<<SQL
-# Create reciprocal linked values for all values that have an identifiable value.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
-SELECT DISTINCT
-    `value_linked`.`resource_id`,
-    $reciprocalId,
-    `value`.`resource_id`,
-    $quotedType,
-    $isPublic
-FROM `value`
-JOIN `value` AS `value_linked`
-    ON `value_linked`.`value` = `value`.`value`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceId
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
-    AND `value_linked`.`property_id` = $sourceIdentifierId
-    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
-    AND `value_linked`.`value` <> ""
-    AND `value_linked`.`value` IS NOT NULL
-    $sqlExcludeWhere
-ORDER BY `value`.`resource_id` ASC
-;
-SQL;
+                # Create reciprocal linked values for all values that have an identifiable value.
+                INSERT INTO `value`
+                    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+                SELECT DISTINCT
+                    `value_linked`.`resource_id`,
+                    $reciprocalId,
+                    `value`.`resource_id`,
+                    $quotedType,
+                    $isPublic
+                FROM `value`
+                JOIN `value` AS `value_linked`
+                    ON `value_linked`.`value` = `value`.`value`
+                $sqlExclude
+                WHERE
+                    `value`.`property_id` = $sourceId
+                    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+                    AND `value`.`value` <> ""
+                    AND `value`.`value` IS NOT NULL
+                    AND `value_linked`.`property_id` = $sourceIdentifierId
+                    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+                    AND `value_linked`.`value` <> ""
+                    AND `value_linked`.`value` IS NOT NULL
+                    $sqlExcludeWhere
+                ORDER BY `value`.`resource_id` ASC
+                ;
+                SQL;
         }
 
         if (empty($params['keep_source'])) {
             $this->operationSqls[] = <<<SQL
-# Remove the values that were linked.
-DELETE `value`
-FROM `value`
-JOIN `value` AS `value_linked`
-    ON `value_linked`.`value` = `value`.`value`
-$sqlExclude
-WHERE
-    `value`.`property_id` = $sourceId
-    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
-    AND `value`.`value` <> ""
-    AND `value`.`value` IS NOT NULL
-    AND `value_linked`.`property_id` = $sourceIdentifierId
-    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
-    AND `value_linked`.`value` <> ""
-    AND `value_linked`.`value` IS NOT NULL
-    $sqlExcludeWhere
-;
-SQL;
+                # Remove the values that were linked.
+                DELETE `value`
+                FROM `value`
+                JOIN `value` AS `value_linked`
+                    ON `value_linked`.`value` = `value`.`value`
+                $sqlExclude
+                WHERE
+                    `value`.`property_id` = $sourceId
+                    AND (`value`.`type` = "literal" OR `value`.`type` = "" OR `value`.`type` IS NULL)
+                    AND `value`.`value` <> ""
+                    AND `value`.`value` IS NOT NULL
+                    AND `value_linked`.`property_id` = $sourceIdentifierId
+                    AND (`value_linked`.`type` = "literal" OR `value_linked`.`type` = "" OR `value_linked`.`type` IS NULL)
+                    AND `value_linked`.`value` <> ""
+                    AND `value_linked`.`value` IS NOT NULL
+                    $sqlExcludeWhere
+                ;
+                SQL;
         }
 
         return true;
@@ -808,32 +808,32 @@ SQL;
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
-# Create distinct values from a list of values of linked resources.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT DISTINCT
-    `value_linked`.`value_resource_id`,
-    `value`.`property_id`,
-    `value`.`value_resource_id`,
-    `value`.`type`,
-    `value`.`lang`,
-    `value`.`value`,
-    `value`.`uri`,
-    `value`.`is_public`
-FROM `value`
-JOIN `value` AS `value_linked`
-    ON `value_linked`.`resource_id` = `value`.`resource_id`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value_linked`.`value_resource_id` IS NOT NULL
-    AND `value`.`property_id` IN ($propertyIds)
-    AND `value_linked`.`property_id` = $sourceId
-    $sqlExcludeWhere
-ORDER BY `value_linked`.`value_resource_id` ASC
-;
-SQL;
+            # Create distinct values from a list of values of linked resources.
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+            SELECT DISTINCT
+                `value_linked`.`value_resource_id`,
+                `value`.`property_id`,
+                `value`.`value_resource_id`,
+                `value`.`type`,
+                `value`.`lang`,
+                `value`.`value`,
+                `value`.`uri`,
+                `value`.`is_public`
+            FROM `value`
+            JOIN `value` AS `value_linked`
+                ON `value_linked`.`resource_id` = `value`.`resource_id`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            WHERE
+                `value_linked`.`value_resource_id` IS NOT NULL
+                AND `value`.`property_id` IN ($propertyIds)
+                AND `value_linked`.`property_id` = $sourceId
+                $sqlExcludeWhere
+            ORDER BY `value_linked`.`value_resource_id` ASC
+            ;
+            SQL;
 
         return true;
     }
@@ -879,17 +879,17 @@ SQL;
             }
 
             $this->operationSqls[] = <<<SQL
-# Delete values for specific properties.
-DELETE `value`
-FROM `value`
-JOIN `resource`
-    ON `resource`.`id` = `value`.`resource_id`
-JOIN `_temporary_new_resource`
-    ON `_temporary_new_resource`.`id` = `resource`.`id`
-WHERE
-    `value`.`property_id` IN ($propertyIds)
-;
-SQL;
+                # Delete values for specific properties.
+                DELETE `value`
+                FROM `value`
+                JOIN `resource`
+                    ON `resource`.`id` = `value`.`resource_id`
+                JOIN `_temporary_new_resource`
+                    ON `_temporary_new_resource`.`id` = `resource`.`id`
+                WHERE
+                    `value`.`property_id` IN ($propertyIds)
+                ;
+                SQL;
             return true;
         }
 
@@ -914,18 +914,18 @@ SQL;
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
-# Delete values for specific properties.
-DELETE `value`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` IN ($propertyIds)
-    $sqlFilters
-    $sqlExcludeWhere
-;
-SQL;
+            # Delete values for specific properties.
+            DELETE `value`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            WHERE
+                `value`.`property_id` IN ($propertyIds)
+                $sqlFilters
+                $sqlExcludeWhere
+            ;
+            SQL;
 
         return true;
     }
@@ -1041,19 +1041,19 @@ SQL;
         $updates = implode(",\n    ", $updates);
 
         $this->operationSqls[] = <<<SQL
-# Update values according to rules for each column.
-UPDATE `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-SET
-    $updates
-WHERE
-    `value`.`property_id` = $sourceId
-    $sqlFilters
-    $sqlExcludeWhere
-;
-SQL;
+            # Update values according to rules for each column.
+            UPDATE `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            SET
+                $updates
+            WHERE
+                `value`.`property_id` = $sourceId
+                $sqlFilters
+                $sqlExcludeWhere
+            ;
+            SQL;
 
         return true;
     }
@@ -1097,62 +1097,62 @@ SQL;
         $random = $this->operationRandoms[$this->operationIndex];
 
         $this->operationSqls[] = <<<SQL
-# Create a new trimmed value with first part.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    {$binds['property_id_1']},
-    `value`.`value_resource_id`,
-    # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
-    CONCAT("$random ", `value`.`type`),
-    TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
-    `value`.`uri`,
-    `value`.`lang`,
-    `value`.`is_public`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`value` LIKE '%$separator%'
-    $sqlExcludeWhere
-;
-SQL;
+            # Create a new trimmed value with first part.
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
+            SELECT DISTINCT
+                `value`.`resource_id`,
+                {$binds['property_id_1']},
+                `value`.`value_resource_id`,
+                # Hack to keep list of all inserted ids for next operations (or create another temporary table?).
+                CONCAT("$random ", `value`.`type`),
+                TRIM(SUBSTRING_INDEX(`value`.`value`, $quotedSeparator, 1)),
+                `value`.`uri`,
+                `value`.`lang`,
+                `value`.`is_public`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            WHERE
+                `value`.`value` LIKE '%$separator%'
+                $sqlExcludeWhere
+            ;
+            SQL;
         $this->operationSqls[] = <<<SQL
-# Update source with the trimmed second part.
-UPDATE `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-SET
-    `value`.`property_id` = {$binds['property_id_2']},
-    `value`.`value` = TRIM(SUBSTRING(`value`.`value`, LOCATE($quotedSeparator, `value`.`value`) + 1))
-WHERE
-    value.value LIKE '%$separator%'
-    $sqlExcludeWhere
-;
-SQL;
+            # Update source with the trimmed second part.
+            UPDATE `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            SET
+                `value`.`property_id` = {$binds['property_id_2']},
+                `value`.`value` = TRIM(SUBSTRING(`value`.`value`, LOCATE($quotedSeparator, `value`.`value`) + 1))
+            WHERE
+                value.value LIKE '%$separator%'
+                $sqlExcludeWhere
+            ;
+            SQL;
         $this->operationSqls[] = <<<SQL
-# Store the new value ids to manage next operations.
-INSERT INTO `_temporary_value` (`id`)
-SELECT `value`.`id`
-FROM `value`
-WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "$random %")
-ON DUPLICATE KEY UPDATE
-    `_temporary_value`.`id` = `_temporary_value`.`id`
-;
-SQL;
+            # Store the new value ids to manage next operations.
+            INSERT INTO `_temporary_value` (`id`)
+            SELECT `value`.`id`
+            FROM `value`
+            WHERE `value`.`property_id` = {$binds['property_id_1']}
+                AND (`value`.`type` LIKE "$random %")
+            ON DUPLICATE KEY UPDATE
+                `_temporary_value`.`id` = `_temporary_value`.`id`
+            ;
+            SQL;
         $this->operationSqls[] = <<<SQL
-# Finalize type for first part.
-UPDATE `value`
-SET
-    `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
-WHERE `value`.`property_id` = {$binds['property_id_1']}
-    AND (`value`.`type` LIKE "$random %")
-;
-SQL;
+            # Finalize type for first part.
+            UPDATE `value`
+            SET
+                `value`.`type` = SUBSTRING_INDEX(`value`.`type`, " ", -1)
+            WHERE `value`.`property_id` = {$binds['property_id_1']}
+                AND (`value`.`type` LIKE "$random %")
+            ;
+            SQL;
         return true;
     }
 
@@ -1365,10 +1365,10 @@ SQL;
         $sqlExclude = '';
         if (!empty($params['filters'])) {
             $sqlExclude = <<<'SQL'
-JOIN `resource`
-    ON `resource`.`id` = `value`.`resource_id`
-WHERE 1 = 1
-SQL;
+                JOIN `resource`
+                    ON `resource`.`id` = `value`.`resource_id`
+                WHERE 1 = 1
+                SQL;
             foreach ($params['filters'] as $name => $value) {
                 $quotedVal = $this->connection->quote($value);
                 switch ($name) {
@@ -1394,24 +1394,24 @@ SQL;
         foreach ($propertyIds as $propertyId) {
             // The "distinct" allows to add the value one time only.
             $this->operationSqls[] = <<<SQL
-# Insert a raw value.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    $propertyId,
-    NULL,
-    $quotedType,
-    $quotedValue,
-    $quotedUri,
-    $quotedLang,
-    $isPublic
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-;
-SQL;
+                # Insert a raw value.
+                INSERT INTO `value`
+                    (`resource_id`, `property_id`, `value_resource_id`, `type`, `value`, `uri`, `lang`, `is_public`)
+                SELECT DISTINCT
+                    `value`.`resource_id`,
+                    $propertyId,
+                    NULL,
+                    $quotedType,
+                    $quotedValue,
+                    $quotedUri,
+                    $quotedLang,
+                    $isPublic
+                FROM `value`
+                JOIN `_temporary_value`
+                    ON `_temporary_value`.`id` = `value`.`id`
+                $sqlExclude
+                ;
+                SQL;
         }
 
         return true;
@@ -1511,29 +1511,29 @@ SQL;
         $this->operationExcludes[] = $index;
         // To exclude is to keep only other ones.
         $this->operationSqls[] = <<<SQL
-# Prepare the list of values not to process.
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
-CREATE TABLE `_temporary_value_exclude_$index` (
-    `exclude` longtext COLLATE utf8mb4_unicode_ci,
-    KEY `IDX_exclude` (`exclude`(190))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-SQL;
+            # Prepare the list of values not to process.
+            DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+            CREATE TABLE `_temporary_value_exclude_$index` (
+                `exclude` longtext COLLATE utf8mb4_unicode_ci,
+                KEY `IDX_exclude` (`exclude`(190))
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            SQL;
         // The list is already filtered.
         foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
             $chunkString = implode('),(', array_map([$this->connection, 'quote'], $chunk));
             $this->operationSqls[] = <<<SQL
-INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
-VALUES($chunkString);
-SQL;
+                INSERT INTO `_temporary_value_exclude_$index` (`exclude`)
+                VALUES($chunkString);
+                SQL;
         }
 
         $sqlExclude = <<<SQL
-LEFT JOIN `_temporary_value_exclude_$index`
-    ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
-SQL;
+            LEFT JOIN `_temporary_value_exclude_$index`
+                ON `_temporary_value_exclude_$index`.`exclude` = `value`.`value`
+            SQL;
         $sqlExcludeWhere = <<<SQL
-    AND `_temporary_value_exclude_$index`.`exclude` IS NULL
-SQL;
+                AND `_temporary_value_exclude_$index`.`exclude` IS NULL
+            SQL;
 
         return [
             $sqlExclude,
@@ -1546,8 +1546,8 @@ SQL;
         // Remove operationExcludes.
         foreach ($this->operationExcludes as $index) {
             $this->operationSqls[] = <<<SQL
-DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
-SQL;
+                DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
+                SQL;
         }
     }
 
@@ -1777,7 +1777,7 @@ SQL;
 
                         case 'numeric:timestamp':
                             // As a mapping table is used, we may assume clean data.
-                            if (class_exists(\NumericDataTypes\DataType\Timestamp::class)) {
+                            if (class_exists('NumericDataTypes\Module', false)) {
                                 try {
                                     \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value);
                                 } catch (\InvalidArgumentException $e) {
@@ -1791,7 +1791,7 @@ SQL;
 
                         case 'numeric:interval':
                             // As a mapping table is used, we may assume clean data.
-                            if (class_exists(\NumericDataTypes\DataType\Interval::class)) {
+                            if (class_exists('NumericDataTypes\Module', false)) {
                                 // See \NumericDataTypes\DataType\Interval.
                                 $intervalPoints = explode('/', $value);
                                 if (2 !== count($intervalPoints)) {
@@ -1826,7 +1826,7 @@ SQL;
 
                         case 'numeric:duration':
                             // As a mapping table is used, we may assume clean data.
-                            if (class_exists(\NumericDataTypes\DataType\Duration::class)) {
+                            if (class_exists('NumericDataTypes\Module', false)) {
                                 try {
                                     \NumericDataTypes\DataType\Duration::getDurationFromValue($value);
                                 } catch (\InvalidArgumentException $e) {
@@ -1903,14 +1903,14 @@ SQL;
     {
         // Create a temporary table with the mapper.
         $this->operationSqls[] = <<<'SQL'
-# Create a temporary table to map values.
-DROP TABLE IF EXISTS `_temporary_mapper`;
-CREATE TABLE `_temporary_mapper` LIKE `value`;
-ALTER TABLE `_temporary_mapper`
-    DROP `resource_id`,
-    ADD `source` longtext COLLATE utf8mb4_unicode_ci
-;
-SQL;
+            # Create a temporary table to map values.
+            DROP TABLE IF EXISTS `_temporary_mapper`;
+            CREATE TABLE `_temporary_mapper` LIKE `value`;
+            ALTER TABLE `_temporary_mapper`
+                DROP `resource_id`,
+                ADD `source` longtext COLLATE utf8mb4_unicode_ci
+            ;
+            SQL;
     }
 
     /**
@@ -1941,10 +1941,9 @@ SQL;
             });
             $chunkString = implode('),(', $chunk);
             $this->operationSqls[] = <<<SQL
-INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`value_resource_id`,`is_public`,`source`)
-VALUES($chunkString);
-
-SQL;
+                INSERT INTO `_temporary_mapper` (`property_id`,`type`,`value`,`uri`,`lang`,`value_resource_id`,`is_public`,`source`)
+                VALUES($chunkString);
+                SQL . "\n";
         }
 
         if ($flush && $mapper) {
@@ -2018,36 +2017,36 @@ SQL;
         $this->storeMappingTablePrepare();
 
         $this->operationSqls[] = <<<SQL
-# Fill temporary table with unique values from existing values.
-INSERT INTO `_temporary_mapper`
-    (`property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`, `source`)
-SELECT DISTINCT
-    $sourceToDestination,
-    `value`.`type`,
-    `value`.`value`,
-    `value`.`uri`,
-    `value`.`lang`,
-    `value`.`value_resource_id`,
-    `value`.`is_public`,
-    `value`.`value`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` IN ($sourceIds)
-    $sqlExcludeWhere
-;
-SQL;
+            # Fill temporary table with unique values from existing values.
+            INSERT INTO `_temporary_mapper`
+                (`property_id`, `type`, `value`, `uri`, `lang`, `value_resource_id`, `is_public`, `source`)
+            SELECT DISTINCT
+                $sourceToDestination,
+                `value`.`type`,
+                `value`.`value`,
+                `value`.`uri`,
+                `value`.`lang`,
+                `value`.`value_resource_id`,
+                `value`.`is_public`,
+                `value`.`value`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            $sqlExclude
+            WHERE
+                `value`.`property_id` IN ($sourceIds)
+                $sqlExcludeWhere
+            ;
+            SQL;
         return true;
     }
 
     protected function removeMappingTables(): void
     {
         $this->operationSqls[] = <<<'SQL'
-DROP TABLE IF EXISTS `_temporary_mapper`;
-DROP TABLE IF EXISTS `_temporary_new_resource`;
-SQL;
+            DROP TABLE IF EXISTS `_temporary_mapper`;
+            DROP TABLE IF EXISTS `_temporary_new_resource`;
+            SQL;
     }
 
     /**
@@ -2174,25 +2173,25 @@ SQL;
 
         // Get the list of unique values (case insensitive).
         $sql = <<<SQL
-SELECT DISTINCT
-    `value`.`$column` AS `v`,
-    GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` ASC SEPARATOR ' ') AS r
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `item`
-    ON `item`.`id` = `value`.`resource_id`
-WHERE
-    `value`.`property_id` IN (:property_ids)
-    $whereDatatype
-    AND `value`.`$column` <> ""
-    AND `value`.`$column` IS NOT NULL
-GROUP BY `v`
-ORDER BY `v` ASC
-;
-SQL;
+            SELECT DISTINCT
+                `value`.`$column` AS `v`,
+                GROUP_CONCAT(DISTINCT `value`.`resource_id` ORDER BY `value`.`resource_id` ASC SEPARATOR ' ') AS r
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `item`
+                ON `item`.`id` = `value`.`resource_id`
+            WHERE
+                `value`.`property_id` IN (:property_ids)
+                $whereDatatype
+                AND `value`.`$column` <> ""
+                AND `value`.`$column` IS NOT NULL
+            GROUP BY `v`
+            ORDER BY `v` ASC
+            ;
+            SQL;
         $bind = [
-            'property_ids' => $properties,
+            'property_ids' => array_values($properties),
         ];
         $types = [
             'property_ids' => $this->connection::PARAM_INT_ARRAY,
@@ -2564,25 +2563,25 @@ SQL;
         }
 
         $this->operationSqls[] = <<<SQL
-# Update values according to the temporary table.
-UPDATE `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
-    $joinMapper
-SET
-    `value`.`property_id` = `_temporary_mapper`.`property_id`,
-    `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
-    `value`.`type` = `_temporary_mapper`.`type`,
-    `value`.`lang` = `_temporary_mapper`.`lang`,
-    `value`.`value` = `_temporary_mapper`.`value`,
-    `value`.`uri` = `_temporary_mapper`.`uri`,
-    `value`.`is_public` = `_temporary_mapper`.`is_public`
-WHERE 1 = 1
-    $sqlProperty
-;
-SQL;
+            # Update values according to the temporary table.
+            UPDATE `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `_temporary_mapper`
+                ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+                $joinMapper
+            SET
+                `value`.`property_id` = `_temporary_mapper`.`property_id`,
+                `value`.`value_resource_id` = `_temporary_mapper`.`value_resource_id`,
+                `value`.`type` = `_temporary_mapper`.`type`,
+                `value`.`lang` = `_temporary_mapper`.`lang`,
+                `value`.`value` = `_temporary_mapper`.`value`,
+                `value`.`uri` = `_temporary_mapper`.`uri`,
+                `value`.`is_public` = `_temporary_mapper`.`is_public`
+            WHERE 1 = 1
+                $sqlProperty
+            ;
+            SQL;
     }
 
     protected function processValuesTransformInsert(array $propertyIds = [], string $joinColumn = 'value'): void
@@ -2595,26 +2594,26 @@ SQL;
             : '';
 
         $this->operationSqls[] = <<<SQL
-# Insert values according to the temporary table.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    `_temporary_mapper`.`property_id`,
-    `_temporary_mapper`.`value_resource_id`,
-    `_temporary_mapper`.`type`,
-    `_temporary_mapper`.`lang`,
-    `_temporary_mapper`.`value`,
-    `_temporary_mapper`.`uri`,
-    `_temporary_mapper`.`is_public`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
-$properties
-;
-SQL;
+            # Insert values according to the temporary table.
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+            SELECT DISTINCT
+                `value`.`resource_id`,
+                `_temporary_mapper`.`property_id`,
+                `_temporary_mapper`.`value_resource_id`,
+                `_temporary_mapper`.`type`,
+                `_temporary_mapper`.`lang`,
+                `_temporary_mapper`.`value`,
+                `_temporary_mapper`.`uri`,
+                `_temporary_mapper`.`is_public`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `_temporary_mapper`
+                ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+            $properties
+            ;
+            SQL;
     }
 
     protected function processValuesTransformReplace(
@@ -2627,16 +2626,16 @@ SQL;
         // This max value id is saved temporary in the settings for simplicity.
         $random = $this->operationRandoms[$this->operationIndex];
         $this->operationSqls[] = <<<SQL
-# Explode values according to the temporary table (step 1/4).
-# Store the max value id to remove source values after copy.
-INSERT INTO `setting`
-    (`id`, `value`)
-SELECT
-    "bulkimport_max_value_id_$random",
-    MAX(`value`.`id`)
-FROM `value`
-;
-SQL;
+            # Explode values according to the temporary table (step 1/4).
+            # Store the max value id to remove source values after copy.
+            INSERT INTO `setting`
+                (`id`, `value`)
+            SELECT
+                "bulkimport_max_value_id_$random",
+                MAX(`value`.`id`)
+            FROM `value`
+            ;
+            SQL;
 
         $joinMapper = '';
         $sqlProperty = '';
@@ -2652,56 +2651,54 @@ SQL;
         }
 
         $this->operationSqls[] = <<<SQL
-# Explode values according to the temporary table (step 2/4).
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    `_temporary_mapper`.`property_id`,
-    `_temporary_mapper`.`value_resource_id`,
-    `_temporary_mapper`.`type`,
-    `_temporary_mapper`.`lang`,
-    `_temporary_mapper`.`value`,
-    `_temporary_mapper`.`uri`,
-    `_temporary_mapper`.`is_public`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
-    $joinMapper
-WHERE 1 = 1
-    $sqlProperty
-;
-
-SQL;
+            # Explode values according to the temporary table (step 2/4).
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+            SELECT DISTINCT
+                `value`.`resource_id`,
+                `_temporary_mapper`.`property_id`,
+                `_temporary_mapper`.`value_resource_id`,
+                `_temporary_mapper`.`type`,
+                `_temporary_mapper`.`lang`,
+                `_temporary_mapper`.`value`,
+                `_temporary_mapper`.`uri`,
+                `_temporary_mapper`.`is_public`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `_temporary_mapper`
+                ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+                $joinMapper
+            WHERE 1 = 1
+                $sqlProperty
+            ;
+            SQL . "\n";
 
         $this->operationSqls[] = <<<SQL
-# Explode values according to the temporary table (step 3/4).
-DELETE `value`
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
-JOIN `setting`
-WHERE
-    `value`.`id` <= `setting`.`value`
-    AND `setting`.`id` = "bulkimport_max_value_id_$random"
-    AND `setting`.`value` IS NOT NULL
-    AND `setting`.`value` > 0
-    $sqlProperty
-;
-
-SQL;
+            # Explode values according to the temporary table (step 3/4).
+            DELETE `value`
+            FROM `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `_temporary_mapper`
+                ON `_temporary_mapper`.`source` = `value`.`$joinColumn`
+            JOIN `setting`
+            WHERE
+                `value`.`id` <= `setting`.`value`
+                AND `setting`.`id` = "bulkimport_max_value_id_$random"
+                AND `setting`.`value` IS NOT NULL
+                AND `setting`.`value` > 0
+                $sqlProperty
+            ;
+            SQL . "\n";
         $this->operationSqls[] = <<<SQL
-# Explode values according to the temporary table (step 4/4).
-DELETE `setting`
-FROM `setting`
-WHERE
-    `setting`.`id` = "bulkimport_max_value_id_$random"
-;
-SQL;
+            # Explode values according to the temporary table (step 4/4).
+            DELETE `setting`
+            FROM `setting`
+            WHERE
+                `setting`.`id` = "bulkimport_max_value_id_$random"
+            ;
+            SQL;
     }
 
     /**
@@ -2792,21 +2789,21 @@ SQL;
 
         // Don't limit values, because values are new.
         $this->operationSqls[] = <<<SQL
-# Update values according to the temporary table.
-UPDATE `resource`
-JOIN `value`
-    ON `value`.`resource_id` = `resource`.`id`
-JOIN `_temporary_mapper`
-    ON `_temporary_mapper`.`property_id` = `value`.`property_id`
-    AND `_temporary_mapper`.`source` = `value`.`value`
-SET
-    `resource`.`resource_template_id` = $destination,
-    `resource`.`resource_class_id` = $destinationClass
-WHERE
-    `value`.`property_id` = $propertyId
-    $whereDestination
-;
-SQL;
+            # Update values according to the temporary table.
+            UPDATE `resource`
+            JOIN `value`
+                ON `value`.`resource_id` = `resource`.`id`
+            JOIN `_temporary_mapper`
+                ON `_temporary_mapper`.`property_id` = `value`.`property_id`
+                AND `_temporary_mapper`.`source` = `value`.`value`
+            SET
+                `resource`.`resource_template_id` = $destination,
+                `resource`.`resource_class_id` = $destinationClass
+            WHERE
+                `value`.`property_id` = $propertyId
+                $whereDestination
+            ;
+            SQL;
     }
 
     protected function processCreateResources(array $params): void
@@ -2842,116 +2839,115 @@ SQL;
         $random = $this->operationRandoms[$this->operationIndex];
 
         $this->operationSqls[] = <<<SQL
-# Create resources.
-INSERT INTO `resource`
-    (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
-SELECT DISTINCT
-    $ownerIdOrNull,
-    $classId,
-    $templateId,
-    $isPublic,
-    "$this->currentDateTimeFormatted",
-    NULL,
-    $quotedResourceName,
-    NULL,
-    CONCAT("$random ", `_temporary_mapper`.`source`)
-FROM `_temporary_mapper`
-;
-SQL;
+            # Create resources.
+            INSERT INTO `resource`
+                (`owner_id`, `resource_class_id`, `resource_template_id`, `is_public`, `created`, `modified`, `resource_type`, `thumbnail_id`, `title`)
+            SELECT DISTINCT
+                $ownerIdOrNull,
+                $classId,
+                $templateId,
+                $isPublic,
+                "$this->currentDateTimeFormatted",
+                NULL,
+                $quotedResourceName,
+                NULL,
+                CONCAT("$random ", `_temporary_mapper`.`source`)
+            FROM `_temporary_mapper`
+            ;
+            SQL;
 
         $position = strlen($random) + 2;
         $this->operationSqls[] = <<<SQL
-# Store new resource ids to speed next steps. and to remove random titles.
-DROP TABLE IF EXISTS `_temporary_new_resource`;
-CREATE TABLE `_temporary_new_resource` (
-    `id` int(11) NOT NULL,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-INSERT INTO `_temporary_new_resource`
-    (`id`)
-SELECT DISTINCT
-    `resource`.`id`
-FROM `resource` AS `resource`
-WHERE `resource`.`title` LIKE "$random %"
-ON DUPLICATE KEY UPDATE
-    `id` = `_temporary_new_resource`.`id`
-;
-UPDATE `resource`
-JOIN `_temporary_new_resource`
-    ON `_temporary_new_resource`.`id` = `resource`.`id`
-SET
-    `resource`.`title` = SUBSTRING(`resource`.`title`, $position)
-WHERE
-    `resource`.`title` LIKE "$random %"
-;
-
-SQL;
+            # Store new resource ids to speed next steps. and to remove random titles.
+            DROP TABLE IF EXISTS `_temporary_new_resource`;
+            CREATE TABLE `_temporary_new_resource` (
+                `id` int(11) NOT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            INSERT INTO `_temporary_new_resource`
+                (`id`)
+            SELECT DISTINCT
+                `resource`.`id`
+            FROM `resource` AS `resource`
+            WHERE `resource`.`title` LIKE "$random %"
+            ON DUPLICATE KEY UPDATE
+                `id` = `_temporary_new_resource`.`id`
+            ;
+            UPDATE `resource`
+            JOIN `_temporary_new_resource`
+                ON `_temporary_new_resource`.`id` = `resource`.`id`
+            SET
+                `resource`.`title` = SUBSTRING(`resource`.`title`, $position)
+            WHERE
+                `resource`.`title` LIKE "$random %"
+            ;
+            SQL . "\n";
 
         if ($resourceName === \Omeka\Entity\Item::class) {
             $this->operationSqls[] = <<<SQL
-# Create items for created resources.
-INSERT INTO `item`
-    (`id`)
-SELECT DISTINCT
-    `resource`.`id`
-FROM `_temporary_new_resource` AS `resource`
-ON DUPLICATE KEY UPDATE
-    `id` = `item`.`id`
-;
-SQL;
+                # Create items for created resources.
+                INSERT INTO `item`
+                    (`id`)
+                SELECT DISTINCT
+                    `resource`.`id`
+                FROM `_temporary_new_resource` AS `resource`
+                ON DUPLICATE KEY UPDATE
+                    `id` = `item`.`id`
+                ;
+                SQL;
         } elseif ($resourceName === \Omeka\Entity\ItemSet::class) {
             $this->operationSqls[] = <<<SQL
-# Create item sets for created resources.
-INSERT INTO `item_set`
-    (`id`, `is_open`)
-SELECT DISTINCT
-    `resource`.`id`,
-    1
-FROM `_temporary_new_resource` AS `resource`
-ON DUPLICATE KEY UPDATE
-    `id` = `item_set`.`id`,
-    `is_open` = `item_set`.`is_open`
-;
-SQL;
+                # Create item sets for created resources.
+                INSERT INTO `item_set`
+                    (`id`, `is_open`)
+                SELECT DISTINCT
+                    `resource`.`id`,
+                    1
+                FROM `_temporary_new_resource` AS `resource`
+                ON DUPLICATE KEY UPDATE
+                    `id` = `item_set`.`id`,
+                    `is_open` = `item_set`.`is_open`
+                ;
+                SQL;
         } elseif ($resourceName === \Omeka\Entity\Media::class) {
             $this->operationSqls[] = <<<SQL
-# Create medias for created resources.
-INSERT INTO `media`
-    (`id`, `item_id`, `ingester`, `renderer`, `has_original`, `has_tumbnails`)
-SELECT DISTINCT
-    `resource`.`id`,
-    0,
-    "",
-    "",
-    0,
-    0
-FROM `_temporary_new_resource` AS `resource`
-ON DUPLICATE KEY UPDATE
-    `id` = `media`.`id`
-;
-SQL;
+                # Create medias for created resources.
+                INSERT INTO `media`
+                    (`id`, `item_id`, `ingester`, `renderer`, `has_original`, `has_tumbnails`)
+                SELECT DISTINCT
+                    `resource`.`id`,
+                    0,
+                    "",
+                    "",
+                    0,
+                    0
+                FROM `_temporary_new_resource` AS `resource`
+                ON DUPLICATE KEY UPDATE
+                    `id` = `media`.`id`
+                ;
+                SQL;
         }
 
         $this->operationSqls[] = <<<SQL
-# Add the main value to new resources.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
-SELECT DISTINCT
-    `resource`.`id`,
-    `_temporary_mapper`.`property_id`,
-    `_temporary_mapper`.`value_resource_id`,
-    `_temporary_mapper`.`type`,
-    `_temporary_mapper`.`lang`,
-    `_temporary_mapper`.`value`,
-    `_temporary_mapper`.`uri`,
-    `_temporary_mapper`.`is_public`
-FROM `_temporary_mapper`
-JOIN `resource`
-    ON `resource`.`title` = `_temporary_mapper`.`source`
-JOIN `_temporary_new_resource`
-    ON `_temporary_new_resource`.`id` = `resource`.`id`
-;
-SQL;
+            # Add the main value to new resources.
+            INSERT INTO `value`
+                (`resource_id`, `property_id`, `value_resource_id`, `type`, `lang`, `value`, `uri`, `is_public`)
+            SELECT DISTINCT
+                `resource`.`id`,
+                `_temporary_mapper`.`property_id`,
+                `_temporary_mapper`.`value_resource_id`,
+                `_temporary_mapper`.`type`,
+                `_temporary_mapper`.`lang`,
+                `_temporary_mapper`.`value`,
+                `_temporary_mapper`.`uri`,
+                `_temporary_mapper`.`is_public`
+            FROM `_temporary_mapper`
+            JOIN `resource`
+                ON `resource`.`title` = `_temporary_mapper`.`source`
+            JOIN `_temporary_new_resource`
+                ON `_temporary_new_resource`.`id` = `resource`.`id`
+            ;
+            SQL;
     }
 
     protected function processCreateLinkForCreatedResourcesFromValues(array $params): bool
@@ -3011,51 +3007,51 @@ SQL;
         [$sqlExclude, $sqlExcludeWhere] = $this->transformHelperExcludeStart($params);
 
         $this->operationSqls[] = <<<SQL
-# Link created resources.
-UPDATE `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `resource`
-    ON `resource`.`title` = `value`.`value`
-JOIN `_temporary_new_resource`
-    ON `_temporary_new_resource`.`id` = `resource`.`id`
-$sqlExclude
-SET
-    `value`.`value_resource_id` = `resource`.`id`,
-    `value`.`type` = $quotedType,
-    `value`.`value` = NULL,
-    `value`.`uri` = NULL,
-    `value`.`lang` = NULL
-WHERE
-    `value`.`property_id` IN ($sourceIds)
-    $sqlExcludeWhere
-;
-SQL;
+            # Link created resources.
+            UPDATE `value`
+            JOIN `_temporary_value`
+                ON `_temporary_value`.`id` = `value`.`id`
+            JOIN `resource`
+                ON `resource`.`title` = `value`.`value`
+            JOIN `_temporary_new_resource`
+                ON `_temporary_new_resource`.`id` = `resource`.`id`
+            $sqlExclude
+            SET
+                `value`.`value_resource_id` = `resource`.`id`,
+                `value`.`type` = $quotedType,
+                `value`.`value` = NULL,
+                `value`.`uri` = NULL,
+                `value`.`lang` = NULL
+            WHERE
+                `value`.`property_id` IN ($sourceIds)
+                $sqlExcludeWhere
+            ;
+            SQL;
 
         if ($reciprocalId) {
             $this->operationSqls[] = <<<SQL
-# Create reciprocal link for created resources.
-INSERT INTO `value`
-    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
-SELECT DISTINCT
-    `value`.`resource_id`,
-    $reciprocalId,
-    `resource`.`id`,
-    $quotedType,
-    $isPublic
-FROM `value`
-JOIN `_temporary_value`
-    ON `_temporary_value`.`id` = `value`.`id`
-JOIN `resource`
-    ON `resource`.`title` = `value`.`value`
-JOIN `_temporary_new_resource`
-    ON `_temporary_new_resource`.`id` = `resource`.`id`
-$sqlExclude
-WHERE
-    `value`.`property_id` IN ($sourceIds)
-    $sqlExcludeWhere
-;
-SQL;
+                # Create reciprocal link for created resources.
+                INSERT INTO `value`
+                    (`resource_id`, `property_id`, `value_resource_id`, `type`, `is_public`)
+                SELECT DISTINCT
+                    `value`.`resource_id`,
+                    $reciprocalId,
+                    `resource`.`id`,
+                    $quotedType,
+                    $isPublic
+                FROM `value`
+                JOIN `_temporary_value`
+                    ON `_temporary_value`.`id` = `value`.`id`
+                JOIN `resource`
+                    ON `resource`.`title` = `value`.`value`
+                JOIN `_temporary_new_resource`
+                    ON `_temporary_new_resource`.`id` = `resource`.`id`
+                $sqlExclude
+                WHERE
+                    `value`.`property_id` IN ($sourceIds)
+                    $sqlExcludeWhere
+                ;
+                SQL;
         }
 
         return true;
@@ -3825,69 +3821,68 @@ SQL;
         $tableHeadersHtml = trim($tableHeadersHtml);
 
         $html = <<<HTML
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8" />
-        <title>$title</title>
-        <!-- From https://divtable.com/table-styler -->
-        <style>
-        table.blueTable {
-            border: 1px solid #1c6ea4;
-            background-color: #eeeeee;
-            width: 100%;
-            text-align: left;
-            border-collapse: collapse;
-        }
-        table.blueTable td, table.blueTable th {
-            border: 1px solid #aaaaaa;
-            padding: 3px 2px;
-        }
-        table.blueTable tbody td {
-            font-size: 13px;
-        }
-        table.blueTable tr:nth-child(even) {
-            background: #d0e4f5;
-        }
-        table.blueTable thead {
-            background: #1c6ea4;
-            background: -moz-linear-gradient(top, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
-            background: -webkit-linear-gradient(top, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
-            background: linear-gradient(to bottom, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
-            border-bottom: 2px solid #444444;
-        }
-        table.blueTable thead th {
-            font-size: 15px;
-            font-weight: bold;
-            color: #ffffff;
-            border-left: 2px solid #d0e4f5;
-        }
-        table.blueTable thead th:first-child {
-            border-left: none;
-        }
-        table th,
-        table td {
-            min-width: 10%;
-            width: auto;
-            max-width: 25%;
-        }
-        </style>
-    </head>
-    <body>
-        <h1>$title</h1>
-        <table class="blueTable">
-            <thead>
-                <tr>
-                    $tableHeadersHtml
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </body>
-</html>
-
-HTML;
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>$title</title>
+                    <!-- From https://divtable.com/table-styler -->
+                    <style>
+                    table.blueTable {
+                        border: 1px solid #1c6ea4;
+                        background-color: #eeeeee;
+                        width: 100%;
+                        text-align: left;
+                        border-collapse: collapse;
+                    }
+                    table.blueTable td, table.blueTable th {
+                        border: 1px solid #aaaaaa;
+                        padding: 3px 2px;
+                    }
+                    table.blueTable tbody td {
+                        font-size: 13px;
+                    }
+                    table.blueTable tr:nth-child(even) {
+                        background: #d0e4f5;
+                    }
+                    table.blueTable thead {
+                        background: #1c6ea4;
+                        background: -moz-linear-gradient(top, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
+                        background: -webkit-linear-gradient(top, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
+                        background: linear-gradient(to bottom, #5592bb 0%, #327cad 66%, #1c6ea4 100%);
+                        border-bottom: 2px solid #444444;
+                    }
+                    table.blueTable thead th {
+                        font-size: 15px;
+                        font-weight: bold;
+                        color: #ffffff;
+                        border-left: 2px solid #d0e4f5;
+                    }
+                    table.blueTable thead th:first-child {
+                        border-left: none;
+                    }
+                    table th,
+                    table td {
+                        min-width: 10%;
+                        width: auto;
+                        max-width: 25%;
+                    }
+                    </style>
+                </head>
+                <body>
+                    <h1>$title</h1>
+                    <table class="blueTable">
+                        <thead>
+                            <tr>
+                                $tableHeadersHtml
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+            HTML . "\n";
         if ($part === 'continue') {
             $fp = fopen($filepath, 'ab');
             ftruncate($fp, filesize($filepath) - 58);

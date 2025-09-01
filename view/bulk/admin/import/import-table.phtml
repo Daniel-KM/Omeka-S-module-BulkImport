@@ -70,11 +70,11 @@ $(document).ready(function(){
                         'title' => $translate('Remove imported data'), // @translate
                     ]) ?></li>
                     <?php endif; ?>
-                    <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
+                    <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'show', 'id' => $import->id()]), [
                         'class' => 'fas fa-cogs',
                         'title' => $translate('See params'), // @translate
                     ]) ?></li>
-                    <li><?= $hyperlink('', $this->url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
+                    <li><?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'import', 'action' => 'logs', 'id' => $import->id()]), [
                         'class' => 'fas fa-list',
                         'title' => $translate('See logs'), // @translate
                     ]) ?></li>

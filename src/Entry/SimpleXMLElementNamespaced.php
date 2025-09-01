@@ -18,7 +18,7 @@ class SimpleXMLElementNamespaced extends \SimpleXMLElement implements \JsonSeria
     /**
      * This method is recursive even if it is not called recursively.
      *
-     * @TODO XML elements order is not kept when namespaces are used (not so important since data are mapped later).
+     * @todo XML elements order is not kept when namespaces are used (not so important since data are mapped later).
      */
     #[\ReturnTypeWillChange]
     public function jsonSerialize()

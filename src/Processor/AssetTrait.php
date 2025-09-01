@@ -48,10 +48,10 @@ trait AssetTrait
         $storageIds = implode(',', array_map([$this->connection, 'quote'], $assetStorages));
         // Get existing duplicates for reimport (same storage id).
         $sql = <<<SQL
-SELECT `asset`.`id` AS `d`
-FROM `asset` AS `asset`
-WHERE `asset`.`storage_id` IN ($storageIds);
-SQL;
+            SELECT `asset`.`id` AS `d`
+            FROM `asset` AS `asset`
+            WHERE `asset`.`storage_id` IN ($storageIds);
+            SQL;
         $existingAssets = array_map('intval', $this->connection->executeQuery($sql)->fetchFirstColumn());
 
         $sql = '';
@@ -67,14 +67,14 @@ SQL;
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
-SELECT SUBSTRING(`asset`.`storage_id`, 12) AS `s`, `asset`.`id` AS `d`
-FROM `asset` AS `asset`
-WHERE `asset`.`name` = ""
-    AND `asset`.`media_type` = ""
-    AND (`asset`.`extension` IS NULL OR `asset`.`extension` = "")
-    AND `asset`.`owner_id` IS NULL
-    AND `asset`.`storage_id` LIKE "$timestamp-%";
-SQL;
+            SELECT SUBSTRING(`asset`.`storage_id`, 12) AS `s`, `asset`.`id` AS `d`
+            FROM `asset` AS `asset`
+            WHERE `asset`.`name` = ""
+                AND `asset`.`media_type` = ""
+                AND (`asset`.`extension` IS NULL OR `asset`.`extension` = "")
+                AND `asset`.`owner_id` IS NULL
+                AND `asset`.`storage_id` LIKE "$timestamp-%";
+            SQL;
         $this->map['assets'] = array_map('intval', $this->connection->executeQuery($sql)->fetchAllKeyValue());
 
         $this->logger->notice(

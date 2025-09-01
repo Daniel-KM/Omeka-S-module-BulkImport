@@ -203,6 +203,7 @@ class UpdateResource extends AbstractPlugin
         if (!empty($newData['o-module-mapping:mapping']['o:id']) && empty($newData['o-module-mapping:mapping']['o-module-mapping:bounds'])) {
             try {
                 $newData['o-module-mapping:mapping'] = $this->api->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
+                // TODO Don't use json_decode(json_encode()).
                 $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
             } catch (\Exception $e) {
                 $this->logger->err(
@@ -217,6 +218,7 @@ class UpdateResource extends AbstractPlugin
             foreach ($newData['o-module-mapping:marker'] as $value) {
                 try {
                     $value = $this->api->read('mapping_markers', ['id' => $value['o:id']])->getContent();
+                    // TODO Don't use json_decode(json_encode()).
                     $markers[$value->id()] = json_decode(json_encode($value), true);
                 } catch (\Exception $e) {
                     $this->logger->err(

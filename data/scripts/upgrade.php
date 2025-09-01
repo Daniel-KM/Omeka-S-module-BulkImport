@@ -132,10 +132,11 @@ if (version_compare($oldVersion, '3.4.45', '<')) {
 
 if (version_compare($oldVersion, '3.4.46', '<')) {
     // Update vocabulary via sql.
-    foreach ([
+    $terms = [
         'curation:dateStart' => 'curation:start',
         'curation:dateEnd' => 'curation:end',
-    ] as $propertyOld => $propertyNew) {
+    ];
+    foreach ($terms as $propertyOld => $propertyNew) {
         $propertyOld = $api->searchOne('properties', ['term' => $propertyOld])->getContent();
         $propertyNew = $api->searchOne('properties', ['term' => $propertyNew])->getContent();
         if ($propertyOld && $propertyNew) {
@@ -162,44 +163,44 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
     }
 
     $sql = <<<SQL
-UPDATE `vocabulary`
-SET
-    `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
-WHERE `prefix` = 'curation'
-;
-UPDATE `property`
-JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
-SET
-    `property`.`local_name` = 'start',
-    `property`.`label` = 'Start',
-    `property`.`comment` = 'A start related to the resource, for example the start of an embargo.'
-WHERE
-    `vocabulary`.`prefix` = 'curation'
-    AND `property`.`local_name` = 'dateStart'
-;
-UPDATE `property`
-JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
-SET
-    `property`.`local_name` = 'end',
-    `property`.`label` = 'End',
-    `property`.`comment` = 'A end related to the resource, for example the end of an embargo.'
-WHERE
-    `vocabulary`.`prefix` = 'curation'
-    AND `property`.`local_name` = 'dateEnd'
-;
-SQL;
+        UPDATE `vocabulary`
+        SET
+            `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
+        WHERE `prefix` = 'curation'
+        ;
+        UPDATE `property`
+        JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
+        SET
+            `property`.`local_name` = 'start',
+            `property`.`label` = 'Start',
+            `property`.`comment` = 'A start related to the resource, for example the start of an embargo.'
+        WHERE
+            `vocabulary`.`prefix` = 'curation'
+            AND `property`.`local_name` = 'dateStart'
+        ;
+        UPDATE `property`
+        JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
+        SET
+            `property`.`local_name` = 'end',
+            `property`.`label` = 'End',
+            `property`.`comment` = 'A end related to the resource, for example the end of an embargo.'
+        WHERE
+            `vocabulary`.`prefix` = 'curation'
+            AND `property`.`local_name` = 'dateEnd'
+        ;
+        SQL;
     $connection->executeStatement($sql);
 }
 
 if (version_compare($oldVersion, '3.4.47', '<')) {
     // Update vocabulary via sql.
     $sql = <<<SQL
-UPDATE `vocabulary`
-SET
-    `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
-WHERE `prefix` = 'curation'
-;
-SQL;
+        UPDATE `vocabulary`
+        SET
+            `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
+        WHERE `prefix` = 'curation'
+        ;
+        SQL;
     $connection->executeStatement($sql);
 
     $basePath = $services->get('ViewHelperManager')->get('BasePath');
@@ -214,114 +215,109 @@ SQL;
 if (version_compare($oldVersion, '3.4.48', '<')) {
     // Update bulk importer.
     $sql = <<<'SQL'
-UPDATE `bulk_importer`
-SET
-    `reader_config` = '[]'
-WHERE `reader_config` IS NULL OR `reader_config` = "" OR `reader_config` = "{}"
-;
-UPDATE `bulk_importer`
-SET
-    `processor_config` = '[]'
-WHERE `processor_config` IS NULL OR `processor_config` = "" OR `processor_config` = "{}"
-;
-UPDATE `bulk_importer`
-SET
-    `config` = '[]'
-WHERE `config` IS NULL OR `config` = "" OR `config` = "{}"
-;
-UPDATE `bulk_importer`
-SET
-    `config` = CONCAT(
-        '{',
-            '"importer":', `config`,
-            ',"reader":', `reader_config`,
-            ',"mapper":[]',
-            ',"processor":', `processor_config`,
-        "}"
-    )
-;
-
-UPDATE `bulk_importer`
-SET
-    `label` = "-"
-WHERE `label` IS NULL
-;
-UPDATE `bulk_importer`
-SET
-    `reader_class` = ""
-WHERE `reader_class` IS NULL
-;
-UPDATE `bulk_importer`
-SET
-    `processor_class` = ""
-WHERE `processor_class` IS NULL
-;
-
-ALTER TABLE `bulk_importer`
-DROP `reader_config`,
-DROP `processor_config`,
-ADD `mapper`  VARCHAR(190) DEFAULT NULL AFTER `reader`,
-CHANGE `label` `label` VARCHAR(190) NOT NULL,
-CHANGE `reader_class` `reader` VARCHAR(190) NOT NULL,
-CHANGE `processor_class` `processor` VARCHAR(190) NOT NULL,
-CHANGE `config` `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor`
-;
-SQL;
+        UPDATE `bulk_importer`
+        SET
+            `reader_config` = '[]'
+        WHERE `reader_config` IS NULL OR `reader_config` = "" OR `reader_config` = "{}"
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `processor_config` = '[]'
+        WHERE `processor_config` IS NULL OR `processor_config` = "" OR `processor_config` = "{}"
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `config` = '[]'
+        WHERE `config` IS NULL OR `config` = "" OR `config` = "{}"
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `config` = CONCAT(
+                '{',
+                    '"importer":', `config`,
+                    ',"reader":', `reader_config`,
+                    ',"mapper":[]',
+                    ',"processor":', `processor_config`,
+                "}"
+            )
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `label` = "-"
+        WHERE `label` IS NULL
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `reader_class` = ""
+        WHERE `reader_class` IS NULL
+        ;
+        UPDATE `bulk_importer`
+        SET
+            `processor_class` = ""
+        WHERE `processor_class` IS NULL
+        ;
+        ALTER TABLE `bulk_importer`
+        DROP `reader_config`,
+        DROP `processor_config`,
+        ADD `mapper`  VARCHAR(190) DEFAULT NULL AFTER `reader`,
+        CHANGE `label` `label` VARCHAR(190) NOT NULL,
+        CHANGE `reader_class` `reader` VARCHAR(190) NOT NULL,
+        CHANGE `processor_class` `processor` VARCHAR(190) NOT NULL,
+        CHANGE `config` `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor`
+        ;
+        SQL;
     $connection->executeStatement($sql);
 
     // Update bulk import.
     $sql = <<<'SQL'
-ALTER TABLE `bulk_import`
-ADD `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor_params`
-;
-
-UPDATE `bulk_import`
-SET
-    `reader_params` = '[]'
-WHERE `reader_params` IS NULL OR `reader_params` = "" OR `reader_params` = "{}"
-;
-UPDATE `bulk_import`
-SET
-    `processor_params` = '[]'
-WHERE `processor_params` IS NULL OR `processor_params` = "" OR `processor_params` = "{}"
-;
-UPDATE `bulk_import`
-SET
-    `params` = '[]'
-WHERE `params` IS NULL OR `params` = "" OR `params` = "{}"
-;
-UPDATE `bulk_import`
-SET
-    `params` = CONCAT(
-        '{',
-            '"reader":', `reader_params`,
-            ',"mapping":[]',
-            ',"processor":', `processor_params`,
-        "}"
-    )
-;
-
-UPDATE `bulk_import`
-SET `params` = REPLACE(`params`, ',"mapper":[', ',"mapping":[');
-
-ALTER TABLE `bulk_import`
-DROP `reader_params`,
-DROP `processor_params`
-;
-SQL;
+        ALTER TABLE `bulk_import`
+        ADD `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor_params`
+        ;
+        UPDATE `bulk_import`
+        SET
+            `reader_params` = '[]'
+        WHERE `reader_params` IS NULL OR `reader_params` = "" OR `reader_params` = "{}"
+        ;
+        UPDATE `bulk_import`
+        SET
+            `processor_params` = '[]'
+        WHERE `processor_params` IS NULL OR `processor_params` = "" OR `processor_params` = "{}"
+        ;
+        UPDATE `bulk_import`
+        SET
+            `params` = '[]'
+        WHERE `params` IS NULL OR `params` = "" OR `params` = "{}"
+        ;
+        UPDATE `bulk_import`
+        SET
+            `params` = CONCAT(
+                '{',
+                    '"reader":', `reader_params`,
+                    ',"mapping":[]',
+                    ',"processor":', `processor_params`,
+                "}"
+            )
+        ;
+        UPDATE `bulk_import`
+        SET `params` = REPLACE(`params`, ',"mapper":[', ',"mapping":[');
+        ALTER TABLE `bulk_import`
+        DROP `reader_params`,
+        DROP `processor_params`
+        ;
+        SQL;
     $connection->executeStatement($sql);
 
     // Set mapping "manual" for all spreadsheet reader.
     $sql = <<<'SQL'
-UPDATE `bulk_importer`
-SET
-    `mapper` = "manual"
-WHERE `reader` LIKE "%CsvReader"
-    OR `reader` LIKE "%TsvReader"
-    OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
-    OR `reader` LIKE "%SpreadsheetReader"
-;
-SQL;
+        UPDATE `bulk_importer`
+        SET
+            `mapper` = "manual"
+        WHERE `reader` LIKE "%CsvReader"
+            OR `reader` LIKE "%TsvReader"
+            OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
+            OR `reader` LIKE "%SpreadsheetReader"
+        ;
+        SQL;
     $connection->executeStatement($sql);
 
     // Move mapping config to mapper.
@@ -389,15 +385,15 @@ if (version_compare($oldVersion, '3.4.53', '<')) {
 if (version_compare($oldVersion, '3.4.54', '<')) {
     // Set mapping "manual" for all spreadsheet reader.
     $sql = <<<'SQL'
-UPDATE `bulk_importer`
-SET
-    `mapper` = "manual"
-WHERE `reader` LIKE "%CsvReader"
-    OR `reader` LIKE "%TsvReader"
-    OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
-    OR `reader` LIKE "%SpreadsheetReader"
-;
-SQL;
+        UPDATE `bulk_importer`
+        SET
+            `mapper` = "manual"
+        WHERE `reader` LIKE "%CsvReader"
+            OR `reader` LIKE "%TsvReader"
+            OR `reader` LIKE "%OpenDocumentSpreadsheetReader"
+            OR `reader` LIKE "%SpreadsheetReader"
+        ;
+        SQL;
     $connection->executeStatement($sql);
 
     $message = new PsrMessage(
@@ -443,9 +439,9 @@ if (version_compare($oldVersion, '3.4.55', '<')) {
 if (version_compare($oldVersion, '3.4.56', '<')) {
     // Update existing importers for default action for unidentified resources.
     $sql = <<<'SQL'
-UPDATE `bulk_importer`
-SET `config` = REPLACE(`config`, '"action_unidentified":"skip"', '"action_unidentified":"error"')
-SQL;
+        UPDATE `bulk_importer`
+        SET `config` = REPLACE(`config`, '"action_unidentified":"skip"', '"action_unidentified":"error"')
+        SQL;
     $connection->executeStatement($sql);
 }
 

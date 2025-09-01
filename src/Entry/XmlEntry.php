@@ -553,7 +553,7 @@ class XmlEntry extends BaseEntry
             case 'http://www.w3.org/2001/XMLSchema#date':
             case 'http://www.w3.org/2001/XMLSchema#gYearMonth':
             case 'http://www.w3.org/2001/XMLSchema#gYear':
-                if (class_exists('NumericDataTypes\DataType\Timestamp')) {
+                if (class_exists('NumericDataTypes\Module', false)) {
                     try {
                         $value = [
                             'type' => 'numeric:timestamp',
