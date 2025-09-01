@@ -165,11 +165,14 @@ class EprintsProcessor extends AbstractFullProcessor
         // "deletion": a document removed (fake deletion, as google).
         // Buffer and inbox may be converted into contributions
         // for module Contribute via a task.
+        // The option "include_deleted_records" modifies filters for items and media.
         'items' => [
             'source' => 'eprint',
             'key_id' => 'eprintid',
             'filters' => [
-                '`eprint_status` IN ("archive", "buffer", "inbox")',
+                // An option allows to import deleted records.
+                // 'status' => '`eprint_status` IN ("archive", "buffer", "inbox", "deletion")',
+                'status' => '`eprint_status` IN ("archive", "buffer", "inbox")',
             ],
         ],
         // It may be simpler to use file then document, than document.
@@ -184,7 +187,9 @@ class EprintsProcessor extends AbstractFullProcessor
             'filters' => [
                 // The join avoids to load media whose item is not imported.
                 'JOIN `eprint` ON `eprint`.`eprintid` = `document`.`eprintid`',
-                '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox")',
+                // An option allows to import deleted records.
+                // 'status' => '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox", "deletion")',
+                'status' => '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox")',
                 // There is a filter on eprints, so use it here too.
                 '`document`.`format` != "other"',
                 '`document`.`main` NOT IN ("preview.jpg", "indexcodes.txt")',
@@ -715,6 +720,11 @@ class EprintsProcessor extends AbstractFullProcessor
                 'The job cannot be restarted. Restart import from the beginning.' // @translate
             );
             return;
+        }
+
+        if (!empty($args['include_deleted_records'])) {
+            $this->mapping['items']['filters']['status'] = '`eprint_status` IN ("archive", "buffer", "inbox", "deletion")';
+            $this->mapping['media']['filters']['status'] = '`eprint`.`eprint_status` IN ("archive", "buffer", "inbox", "deletion")';
         }
 
         // No special table to copy or prepare.

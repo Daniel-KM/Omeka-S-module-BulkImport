@@ -128,6 +128,11 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
     protected $fakeFiles = false;
 
     /**
+     * @var bool
+     */
+    protected $includeDeletedRecords = false;
+
+    /**
      * @var array
      */
     protected $resourceNamesMore;
@@ -249,6 +254,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
 
         $this->allowDuplicateIdentifiers = (bool) $this->getParam('allow_duplicate_identifiers', false);
         $this->fakeFiles = (bool) $this->getParam('fake_files', false);
+        $this->includeDeletedRecords = (bool) $this->getParam('include_deleted_records', false);
         $this->identifierNames = $this->getParam('identifier_name', $this->identifierNames);
         $this->skipMissingFiles = (bool) $this->getParam('skip_missing_files', false);
         $this->fileCheckMode = $this->getParam('file_check_mode', 'quick');

@@ -195,6 +195,18 @@ class EprintsProcessorParamsForm extends EprintsProcessorConfigForm
                     'placeholder' => 'fr',
                 ],
             ])
+
+            ->add([
+                'name' => 'include_deleted_records',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Include records marked deleted', // @translate
+                    'info' => 'In ePrints, records may not be not really deleted, but simply marked deleted and made unavailable.', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'include_deleted_records',
+                ],
+            ])
         ;
         return $this;
     }
