@@ -86,7 +86,7 @@ class ImportRepresentation extends AbstractEntityRepresentation
     public function mapper(): string
     {
         $mapper = $this->importer()->mapper();
-        return in_array((string) $mapper, ['', 'automatic', 'manual'])
+        return in_array((string) $mapper, ['', 'none', 'automatic', 'manual'])
             ? 'import:' . $this->id()
             : $mapper;
     }

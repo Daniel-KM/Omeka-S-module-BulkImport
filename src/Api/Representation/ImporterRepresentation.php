@@ -157,7 +157,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     public function mapping(): ?array
     {
         $mapper = $this->mapper();
-        if (in_array((string) $mapper, ['', 'automatic', 'manual'])) {
+        if (in_array((string) $mapper, ['', 'none', 'automatic', 'manual'])) {
             return null;
         }
 

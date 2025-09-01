@@ -54,6 +54,8 @@ class ImporterForm extends Form
                 'options' => [
                     'label' => 'Mapper', // @translate
                     'value_options' => [
+                        // TODO Use "" or "none"? it is an issue in some cases for now.
+                        // '' => 'None (already mapped)', // @translate
                         // 'automatic' => 'Automatic', // @ translate
                         'manual' => 'Manual', // @translate
                     ] + $this->getMapperOptions(),
@@ -62,7 +64,7 @@ class ImporterForm extends Form
                 'attributes' => [
                     'id' => 'o-bulk-mapper',
                     'class' => 'chosen-select',
-                    'data-placeholder' => 'Select a mapper…', // @translate
+                    'data-placeholder' => 'Select an optional mapper…', // @translate
                 ],
             ])
 
