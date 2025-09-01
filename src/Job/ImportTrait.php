@@ -578,17 +578,32 @@ trait ImportTrait
             ['total' => $this->bulkIdentifiers->countMappedIdentifiers(), 'count' => $this->bulkIdentifiers->countIdentifiers()]
         );
 
-        $this->logger->notice(
-            'End of initial listing of identifiers: {total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_identifiers' => $this->bulkIdentifiers->countIdentifiers(),
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
+        if ($this->totalToProcess) {
+            $this->logger->notice(
+                'End of initial listing of identifiers: {total_processed}/{total_resources} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_resources' => $this->totalToProcess,
+                    'total_identifiers' => $this->bulkIdentifiers->countIdentifiers(),
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        } else {
+            $this->logger->notice(
+                'End of initial listing of identifiers: {total_processed} resources to process, {total_identifiers} unique identifiers, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_identifiers' => $this->bulkIdentifiers->countIdentifiers(),
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        }
 
         return $this;
     }
@@ -714,16 +729,30 @@ trait ImportTrait
             ['names' => implode(', ', array_keys($this->identifierNames))]
         );
 
-        $this->logger->notice(
-            'End of global check: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
+        if ($this->totalToProcess) {
+            $this->logger->notice(
+                'End of global check: {total_processed}/{total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_resources' => $this->totalToProcess,
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        } else {
+            $this->logger->notice(
+                'End of global check: {total_processed} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        }
 
         return $this;
     }
@@ -858,16 +887,30 @@ trait ImportTrait
             );
         }
 
-        $this->logger->notice(
-            'End of process: {total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
-            [
-                'total_resources' => $this->totalIndexResources,
-                'total_skipped' => $this->totalSkipped,
-                'total_processed' => $this->totalProcessed,
-                'total_empty' => $this->totalEmpty,
-                'total_errors' => $this->totalErrors,
-            ]
-        );
+        if ($this->totalToProcess) {
+            $this->logger->notice(
+                'End of process: {total_processed}/{total_resources} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_resources' => $this->totalToProcess,
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        } else {
+            $this->logger->notice(
+                'End of process: {total_processed} resources to process, {total_skipped} skipped, {total_processed} processed, {total_empty} empty, {total_errors} errors inside data. Note: errors can occur separately for each imported file.', // @translate
+                [
+                    'total_processed' => $this->totalIndexResources,
+                    'total_skipped' => $this->totalSkipped,
+                    'total_processed' => $this->totalProcessed,
+                    'total_empty' => $this->totalEmpty,
+                    'total_errors' => $this->totalErrors,
+                ]
+            );
+        }
 
         return $this;
     }
