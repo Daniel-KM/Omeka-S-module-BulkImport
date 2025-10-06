@@ -86,7 +86,7 @@
     </xsl:template>
 
     <xsl:template match="record">
-        <resource o:is_public="true" o:resource_template="{$resource_template}">
+        <resource o:resource_template="{$resource_template}">
             <!--
             <xsl:apply-templates select="leader"/>
             -->

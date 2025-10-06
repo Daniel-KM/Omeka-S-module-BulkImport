@@ -431,6 +431,10 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                 $resource[$field] = $this->cleanString($v);
                 break;
             case 'boolean':
+                $resource[$field] = is_array($values)
+                    ? ($values ? end($values) : null)
+                    : $values;
+                break;
             case 'integer':
             case 'array':
                 $resource[$field] = is_array($values) ? end($values) : $values;
@@ -1635,5 +1639,20 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         }
 
         return $fieldTypesForResource[$resourceName];
+    }
+
+    protected function isFalse($value): bool
+    {
+        return in_array($value, [0, false, '0', 'false', 'no', 'off', 'private', 'closed', 'none'], true);
+    }
+
+    protected function isNull($value): bool
+    {
+        return $value === null || $value === 'null';
+    }
+
+    protected function isTrue($value): bool
+    {
+        return in_array($value, [1, true, '1', 'true', 'yes', 'on', 'public', 'open'], true);
     }
 }

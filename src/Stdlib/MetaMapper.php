@@ -531,12 +531,12 @@ class MetaMapper
                 return $this;
             case 'boolean':
             case 'booleans':
-                $false = ['0', 'false', 'no', 'off', $translate['false'], $translate['no'], $translate['off']];
-                $true = ['1', 'true', 'yes', 'on', $translate['true'], $translate['yes'], $translate['on']];
+                $false = [false, 0, '0', 'false', 'no', 'off', $translate['false'], $translate['no'], $translate['off']];
+                $true = [true, 1, '1', 'true', 'yes', 'on', $translate['true'], $translate['yes'], $translate['on']];
                 $cleanResult = [];
                 foreach ($result as $value) {
-                    $cleanResult[] = in_array(strtolower((string) $value), $true, true)
-                        ?: (in_array(strtolower((string) $value), $false, true)
+                    $cleanResult[] = in_array(is_string($value) ? strtolower($value) : $value, $true, true)
+                        ?: (in_array(is_string($value) ? strtolower($value) : $value, $false, true)
                             ? false
                             : null);
                 }

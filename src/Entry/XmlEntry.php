@@ -22,10 +22,6 @@ class XmlEntry extends BaseEntry
         | LIBXML_NSCLEAN
     ;
 
-    protected $false = [0, false, '0', 'false', 'no', 'off', 'private', 'closed', 'none'];
-    protected $true = [1, true, '1', 'true', 'yes', 'on', 'public', 'open'];
-    protected $null = [null, 'null'];
-
     protected function init(): void
     {
         if (!$this->data) {
@@ -201,8 +197,10 @@ class XmlEntry extends BaseEntry
     {
         $resource = $this->attributes($element);
 
-        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
-        $resource['o:is_open'] = !array_key_exists('o:is_open', $resource) || !in_array($resource['o:is_open'], $this->false, true);
+        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource)
+            || !$this->isFalse($resource['o:is_public']);
+        $resource['o:is_open'] = !array_key_exists('o:is_open', $resource)
+            || !$this->isFalse($resource['o:is_open']);
 
         $mainElement = $element;
         unset($element);
@@ -232,7 +230,8 @@ class XmlEntry extends BaseEntry
         if (!$element->count()) {
             $resource = $this->initMediaBase($element);
             // Only visibility is checked to get a public value by default.
-            $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
+            $resource['o:is_public'] = !array_key_exists('o:is_public', $resource)
+                || !$this->isFalse($resource['o:is_public']);
             return $resource;
         }
 
@@ -276,7 +275,8 @@ class XmlEntry extends BaseEntry
             }
         }
 
-        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource) || !in_array($resource['o:is_public'], $this->false, true);
+        $resource['o:is_public'] = !array_key_exists('o:is_public', $resource)
+            || !$this->isFalse($resource['o:is_public']);
 
         return empty($resource['o:ingester'])
             ? null
@@ -418,7 +418,9 @@ class XmlEntry extends BaseEntry
                 $value = [
                     'type' => 'uri',
                     '@id' => $string,
-                    'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label']) ? $attributes['o:label'] : null,
+                    'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label'])
+                        ? $attributes['o:label']
+                        : null,
                     '@language' => null,
                 ];
                 break;
@@ -444,7 +446,9 @@ class XmlEntry extends BaseEntry
                 $value = [
                     'type' => $type,
                     '@id' => $string,
-                    'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label']) ? $attributes['o:label'] : null,
+                    'o:label' => isset($attributes['o:label']) && strlen($attributes['o:label'])
+                        ? $attributes['o:label']
+                        : null,
                 ];
                 break;
 
@@ -473,7 +477,7 @@ class XmlEntry extends BaseEntry
             case 'http://www.w3.org/2001/XMLSchema#boolean':
                 $value = [
                     'type' => 'boolean',
-                    '@value' => !(empty($string) || $string === 'false'),
+                    '@value' => !$this->isFalse($string),
                     '@language' => null,
                 ];
                 break;
@@ -593,7 +597,11 @@ class XmlEntry extends BaseEntry
                 break;
         }
 
-        $value['is_public'] = !array_key_exists('o:is_public', $attributes) || !in_array($attributes['o:is_public'], $this->false, true);
+        // Do not force value if not set, so it can be defined later.
+        // Warning: null will mean true here.
+        $value['is_public'] = !array_key_exists('o:is_public', $attributes)
+            ? null
+            : !$this->isFalse($attributes['o:is_public']);
 
         if (!array_key_exists('@language', $value)) {
             $value['@language'] = empty($attributes['xml:lang']) ? null : $attributes['xml:lang'];
@@ -674,6 +682,21 @@ class XmlEntry extends BaseEntry
             }
         }
         return $attributes;
+    }
+
+    protected function isFalse($value): bool
+    {
+        return in_array($value, [0, false, '0', 'false', 'no', 'off', 'private', 'closed', 'none'], true);
+    }
+
+    protected function isNull($value): bool
+    {
+        return $value === null || $value === 'null';
+    }
+
+    protected function isTrue($value): bool
+    {
+        return in_array($value, [1, true, '1', 'true', 'yes', 'on', 'public', 'open'], true);
     }
 
     /**

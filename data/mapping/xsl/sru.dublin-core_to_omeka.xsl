@@ -58,7 +58,7 @@
     </xsl:template>
 
     <xsl:template match="oai_dc:dcterms | oai_dc:dc">
-        <resource o:is_public="true" o:resource_template="{$resource_template}">
+        <resource o:resource_template="{$resource_template}">
             <xsl:apply-templates select="*"/>
         </resource>
     </xsl:template>

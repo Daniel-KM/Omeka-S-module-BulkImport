@@ -122,17 +122,17 @@ class ResourceProcessor extends AbstractResourceProcessor
         ];
 
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
-        $result['skip_missing_files'] = (bool) $result['skip_missing_files'];
+        $result['skip_missing_files'] = $this->isTrue($result['skip_missing_files']);
         $result['file_check_mode'] = in_array($result['file_check_mode'] ?? '', ['skip', 'full']) ? $result['file_check_mode'] : 'quick';
         $result['entries_to_skip'] = (int) $result['entries_to_skip'];
         $result['entries_max'] = (int) $result['entries_max'];
-        $result['info_diffs'] = (bool) $result['info_diffs'];
-        $result['value_datatype_literal'] = (bool) $result['value_datatype_literal'];
-        $result['allow_duplicate_identifiers'] = (bool) $result['allow_duplicate_identifiers'];
+        $result['info_diffs'] = $this->isTrue($result['info_diffs']);
+        $result['value_datatype_literal'] = $this->isTrue($result['value_datatype_literal']);
+        $result['allow_duplicate_identifiers'] = $this->isTrue($result['allow_duplicate_identifiers']);
         $result['o:resource_template'] = empty($result['o:resource_template']) ? null : (int) $result['o:resource_template'];
         $result['o:resource_class'] = empty($result['o:resource_class']) ? null : (string) $result['o:resource_class'];
         $result['o:owner'] = empty($result['o:owner']) ? null : (is_numeric($result['o:owner']) ? (int) $result['o:owner'] : (string) $result['o:owner']);
-        $result['o:is_public'] = (bool) $result['o:is_public'];
+        $result['o:is_public'] = !$this->isFalse($result['o:is_public']);
         $args->exchangeArray($result);
         return $this;
     }
@@ -162,7 +162,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function handleFormItemSet(ArrayObject $args, array $values): self
     {
         if (isset($values['o:is_open'])) {
-            $args['o:is_open'] = $values['o:is_open'] !== 'false';
+            $args['o:is_open'] = !$this->isFalse($values['o:is_open']);
         }
         return $this;
     }
@@ -307,7 +307,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resource['o:thumbnail'] = ['o:id' => $thumbnailId];
         }
 
-        $resource['o:is_public'] = $this->getParam('o:is_public') !== 'false';
+        $resource['o:is_public'] = !$this->isFalse($this->getParam('o:is_public'));
         return $this;
     }
 
@@ -322,8 +322,7 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected function prepareBaseItemSet(ArrayObject $resource): self
     {
         $resource['resource_name'] = 'item_sets';
-        $isOpen = $this->getParam('o:is_open', null);
-        $resource['o:is_open'] = $isOpen;
+        $resource['o:is_open'] = $this->getParam('o:is_open', null);
         return $this;
     }
 
