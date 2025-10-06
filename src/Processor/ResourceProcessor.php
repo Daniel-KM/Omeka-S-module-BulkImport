@@ -444,85 +444,112 @@ class ResourceProcessor extends AbstractResourceProcessor
             $lastData[$field] = is_array($values) ? end($values) : $values;
         }
 
+        // There are special settings for resource template, resource class,
+        // owner, visibility, item sets.
+        // TODO Add a special setting for o:thumbnail.
+
         // Get the entity id for all entities that have a value.
         foreach (array_intersect_key($lastData, $fields) as $field => $value) switch ($field) {
             case 'o:resource_template':
-                if (!$value) {
-                    $resource[$field] = null;
-                    continue 2;
-                }
-                if (is_array($value)) {
-                    $id = empty($value['o:id']) ? null : $value['o:id'];
-                    $label = empty($value['o:label']) ? null : $value['o:label'];
-                    $value = $id ?? $label ?? reset($value);
-                }
-                $id = $this->easyMeta->resourceTemplateId($value);
-                if ($id) {
-                    $resource['o:resource_template'] = empty($label)
-                        ? ['o:id' => $id]
-                        : ['o:id' => $id, 'o:label' => $label];
+                if ($value) {
+                    if (is_array($value)) {
+                        $id = empty($value['o:id']) ? null : $value['o:id'];
+                        $label = empty($value['o:label']) ? null : $value['o:label'];
+                        $value = $id ?? $label ?? reset($value);
+                    }
+                    $id = $this->easyMeta->resourceTemplateId($value);
+                    if ($id) {
+                        $resource['o:resource_template'] = empty($label)
+                            ? ['o:id' => $id]
+                            : ['o:id' => $id, 'o:label' => $label];
+                    } else {
+                        $resource['o:resource_template'] = null;
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The resource template "{source}" does not exist.', // @translate
+                            ['source' => $value]
+                        ));
+                    }
                 } else {
                     $resource['o:resource_template'] = null;
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The resource template "{source}" does not exist.', // @translate
-                        ['source' => $value]
-                    ));
+                }
+                // When the option is set, force the resource template.
+                if (!$resource['o:resource_template'] && $id = (int) $this->getParam('o:resource_template')) {
+                    $resource['o:resource_template'] = ['o:id' => $id];
                 }
                 continue 2;
 
             case 'o:resource_class':
-                if (!$value) {
-                    $resource[$field] = null;
-                    continue 2;
-                }
-                if (is_array($value)) {
-                    $id = empty($value['o:id']) ? null : $value['o:id'];
-                    $term = empty($value['o:term']) ? null : $value['o:term'];
-                    $value = $id ?? $term ?? reset($value);
-                }
-                $id = $this->easyMeta->resourceClassId($value);
-                if ($id) {
-                    $resource['o:resource_class'] = empty($term)
-                        ? ['o:id' => $id]
-                        : ['o:id' => $id, 'o:term' => $term];
+                if ($value) {
+                    if (is_array($value)) {
+                        $id = empty($value['o:id']) ? null : $value['o:id'];
+                        $term = empty($value['o:term']) ? null : $value['o:term'];
+                        $value = $id ?? $term ?? reset($value);
+                    }
+                    $id = $this->easyMeta->resourceClassId($value);
+                    if ($id) {
+                        $resource['o:resource_class'] = empty($term)
+                            ? ['o:id' => $id]
+                            : ['o:id' => $id, 'o:term' => $term];
+                    } else {
+                        $resource['o:resource_class'] = null;
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The resource class "{source}" does not exist.', // @translate
+                            ['source' => $value]
+                        ));
+                    }
                 } else {
                     $resource['o:resource_class'] = null;
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The resource class "{source}" does not exist.', // @translate
-                        ['source' => $value]
-                    ));
+                }
+                // When the option is set, force the resource class.
+                // Else get the resource class from the resource template of the
+                // resource if already set, else from option resource template.
+                if (!$resource['o:resource_class']) {
+                    $id = $this->easyMeta->resourceClassId($this->getParam('o:resource_class'));
+                    if (!$id && isset($resource['o:resource_template']['o:id']) ) {
+                        $id = $this->easyMeta->resourceTemplateClassId($resource['o:resource_template']['o:id']);
+                    }
+                    if (!$id && $rt = $this->getParam('o:resource_template')) {
+                        $id = $this->easyMeta->resourceTemplateClassId($rt);
+                    }
+                    if ($id) {
+                        $resource['o:resource_class'] = ['o:id' => $id];
+                    }
                 }
                 continue 2;
 
             case 'o:thumbnail':
-                if (!$value) {
-                    $resource[$field] = null;
-                    continue 2;
-                }
-                if (is_array($value)) {
-                    $id = empty($value['o:id']) ? null : $value['o:id'];
-                    $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
-                    $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
-                    $value = $id ?? $url ?? reset($value);
-                }
-                if (is_numeric($value)) {
-                    $id = $this->getAssetId($value);
-                } elseif (is_string($value)) {
-                    // TODO Temporary creation of the asset.
-                    $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
-                    $id = $asset ? $asset->getId() : null;
-                }
-                if ($id) {
-                    $resource['o:thumbnail'] = empty($altText)
-                        ? ['o:id' => $id]
-                        // TODO Check if the alt text is updated.
-                        : ['o:id' => $id, 'o:alt_text' => $altText];
+                if ($value) {
+                    if (is_array($value)) {
+                        $id = empty($value['o:id']) ? null : $value['o:id'];
+                        $url = empty($value['ingest_url']) ? null : $value['ingest_url'];
+                        $altText = empty($value['o:alt_text']) ? null : $value['o:alt_text'];
+                        $value = $id ?? $url ?? reset($value);
+                    }
+                    if (is_numeric($value)) {
+                        $id = $this->getAssetId($value);
+                    } elseif (is_string($value)) {
+                        // TODO Temporary creation of the asset.
+                        $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                        $id = $asset ? $asset->getId() : null;
+                    }
+                    if ($id) {
+                        $resource['o:thumbnail'] = empty($altText)
+                            ? ['o:id' => $id]
+                            // TODO Check if the alt text is updated.
+                            : ['o:id' => $id, 'o:alt_text' => $altText];
+                    } else {
+                        $resource['o:thumbnail'] = null;
+                        $resource['messageStore']->addError('values', new PsrMessage(
+                            'The thumbnail "{source}" does not exist or cannot be created.', // @translate
+                            ['source' => $value]
+                        ));
+                    }
                 } else {
                     $resource['o:thumbnail'] = null;
-                    $resource['messageStore']->addError('values', new PsrMessage(
-                        'The thumbnail "{source}" does not exist or cannot be created.', // @translate
-                        ['source' => $value]
-                    ));
+                }
+                // When the option is set, force the thumbnail.
+                if (!$resource['o:thumbnail'] && $id = (int) $this->getParam('o:thumbnail')) {
+                    $resource['o:thumbnail'] = ['o:id' => $id];
                 }
                 continue 2;
 

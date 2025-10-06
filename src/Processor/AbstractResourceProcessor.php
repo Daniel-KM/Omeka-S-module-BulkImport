@@ -447,17 +447,23 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     $resource[$field][] = ['@value' => $value];
                 }
                 break;
-            /* // Don't fill entities here: they require other data to check.
             case 'entity':
+                // Resource templates, etc. are entities and should not be
+                // filled via case default in order to keep the default object
+                // set in settings.
+                // Don't fill entities here: they require other data to check.
+                /*
                 $value = end($values);
                 $resource[$field] = $this->fillEntity($resource, $field, $value);
+                */
                 break;
             case 'entities':
-                foreach ($values as $value) {
+                /* // See above.
+                 foreach ($values as $value) {
                     $this->fillEntity($resource, $field, $value, true);
                 }
+                */
                 break;
-            */
             case 'strings':
                 $vv = is_array($values) ? $values : [$values];
                 foreach ($vv as $v) {
