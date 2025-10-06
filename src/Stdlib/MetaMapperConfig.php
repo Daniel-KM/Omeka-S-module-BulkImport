@@ -1450,7 +1450,7 @@ class MetaMapperConfig
             if (preg_match_all($regex, $cleanerPattern, $matches) !== false) {
                 $result['twig'] = empty($matches[0]) ? [] : array_unique($matches[0]);
                 foreach ($result['twig'] as &$twig) {
-                    $twig = strtr($twig, array_flip($skip));
+                    $twig = strtr($twig, array_flip($skips));
                 }
                 unset($twig);
                 // Avoid to use twig when a replacement is enough.
