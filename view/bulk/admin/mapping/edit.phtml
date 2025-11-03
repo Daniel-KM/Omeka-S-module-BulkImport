@@ -11,7 +11,6 @@ $escape = $plugins->get('escapeHtml');
 $assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 
-$this->htmlElement('body')->appendAttribute('class', 'bulk-mappings edit');
 $this->headLink()
     ->appendStylesheet($assetUrl('vendor/codemirror/lib/codemirror.css', 'BulkImport'))
     ->appendStylesheet($assetUrl('vendor/codemirror/addon/hint/show-hint.css', 'BulkImport'))
@@ -27,6 +26,8 @@ $this->headScript()
     ->appendFile($assetUrl('vendor/codemirror/addon/hint/xml-hint.js', 'BulkImport'))
     ->appendFile($assetUrl('vendor/codemirror/mode/xml/xml.js', 'BulkImport'))
     ->appendFile($assetUrl('js/bulk-import-mapping.js', 'BulkImport'));
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-mappings edit');
 
 $form->prepare();
 ?>

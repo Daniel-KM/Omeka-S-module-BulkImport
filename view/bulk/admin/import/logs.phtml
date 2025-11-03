@@ -11,12 +11,11 @@ $url = $plugins->get('url');
 $i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
 $jobState = $plugins->get('jobState');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
 
 $strLength = 240;
-
-$this->htmlElement('body')->appendAttribute('class', 'bulk-imports logs browse');
 
 $script = <<<'JS'
 $(document).ready(function() {
@@ -27,13 +26,15 @@ $(document).ready(function() {
 JS;
 
 $this->headLink()
-    ->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'))
-    ->appendStylesheet($this->assetUrl('css/job.css', 'Log'))
-    ->appendStylesheet($this->assetUrl('css/log.css', 'Log'));
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('css/job.css', 'Log'))
+    ->appendStylesheet($assetUrl('css/log.css', 'Log'));
 $this->headScript()
     ->appendScript($script)
-    ->appendFile($this->assetUrl('js/job.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
-    ->appendFile($this->assetUrl('js/log.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
+    ->appendFile($assetUrl('js/job.js', 'Log'), 'text/javascript', ['defer' => 'defer'])
+    ->appendFile($assetUrl('js/log.js', 'Log'), 'text/javascript', ['defer' => 'defer']);
+
+$this->htmlElement('body')->appendAttribute('class', 'bulk-imports logs browse');
 
 $severityNames = [
     \Laminas\Log\Logger::EMERG => $escape($translate('Emergency')),

@@ -9,13 +9,16 @@
 $plugins = $this->getHelperPluginManager();
 $i18n = $plugins->get('i18n');
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
 $urlHelper = $plugins->get('url');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 
+$this->headLink()
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+
 $this->htmlElement('body')->appendAttribute('class', 'bulk-mappings browse');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 
 $userIsAllowedCreate = $this->userIsAllowed(\BulkImport\Api\Adapter\MappingAdapter::class, 'create')
 ?>

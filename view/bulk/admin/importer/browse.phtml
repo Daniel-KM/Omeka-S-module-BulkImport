@@ -9,11 +9,14 @@ use BulkImport\Interfaces\Configurable as ConfigurableImport;
 $plugins = $this->getHelperPluginManager();
 $url = $plugins->get('url');
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
 
+$this->headLink()
+    ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'));
+
 $this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
-$this->headLink()->appendStylesheet($this->assetUrl('css/bulk-import.css', 'BulkImport'));
 ?>
 
 <?= $this->pageTitle($translate('Importers'), 1, $translate('Bulk import')) ?>
