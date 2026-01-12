@@ -255,6 +255,19 @@ class BulkIdentifiers extends AbstractPlugin
         };
 
         $storeLinkedIdentifier = function ($idOrIdentifier, $vrId, $mainResourceName): void {
+            // Handle array of identifiers (when a property has multiple values).
+            if (is_array($idOrIdentifier)) {
+                foreach ($idOrIdentifier as $singleId) {
+                    if (is_scalar($singleId) && strlen((string) $singleId)) {
+                        $key = $singleId . $this->unitSeparator . $mainResourceName;
+                        if (!isset($this->identifiers['revert'][$key])) {
+                            $this->identifiers['revert'][$key] = [];
+                        }
+                        $this->identifiers['map'][$key] = $vrId;
+                    }
+                }
+                return;
+            }
             // As soon as an array exists, a check can be done on identifier,
             // even if the id is defined later. The same for map.
             if (!isset($this->identifiers['revert'][$idOrIdentifier . $this->unitSeparator . $mainResourceName])) {
@@ -263,7 +276,9 @@ class BulkIdentifiers extends AbstractPlugin
             $this->identifiers['map'][$idOrIdentifier . $this->unitSeparator . $mainResourceName] = $vrId;
         };
 
-        $mainResourceName = $resource['resource_name'] ?? 'resources';
+        // Use the mapped main resource name for consistency with getId() lookups.
+        $resourceName = $resource['resource_name'] ?? 'resources';
+        $mainResourceName = $this->mainResourceNames[$resourceName] ?? $resourceName;
 
         // Main identifiers.
         foreach ($this->identifierNames as $identifierName) {

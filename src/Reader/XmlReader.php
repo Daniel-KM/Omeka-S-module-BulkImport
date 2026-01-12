@@ -527,7 +527,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
             $xslpath = $this->basePath . '/mapping/' . mb_substr($xslpath, 5);
         } elseif (mb_substr($xslpath, 0, 7) === 'module:') {
             // Use Mapper module's data/mapping directory.
-            $xslpath = dirname(__DIR__, 4) . '/Mapper/data/mapping/' . mb_substr($xslpath, 7);
+            $xslpath = dirname(__DIR__, 4) . '/modules/Mapper/data/mapping/' . mb_substr($xslpath, 7);
         } else {
             return null;
         }

@@ -315,6 +315,8 @@ trait ImportTrait
             $this->checkFiles = $this->processor->getParam('file_check_mode', 'quick');
             $this->checkFiles = in_array($this->checkFiles, ['skip', 'full']) ? $this->checkFiles : 'quick';
             $infoDiffs = (bool) $this->processor->getParam('info_diffs');
+            $this->action = $this->processor->getParam('action') ?: 'create';
+            $this->actionUnidentified = $this->processor->getParam('action_unidentified') ?: 'skip';
         }
 
         if ($this->toSkip === 1) {

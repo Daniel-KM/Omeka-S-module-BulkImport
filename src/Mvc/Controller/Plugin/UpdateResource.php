@@ -182,12 +182,13 @@ class UpdateResource extends AbstractPlugin
                 $newData = array_replace($data, $replaced);
                 break;
             case AbstractProcessor::ACTION_REPLACE:
+                $newData = $data;
                 if ($resourceName === 'items') {
                     if ($this->actionMedia !== AbstractProcessor::ACTION_UPDATE) {
-                        $newData = $this->keepExistingMedia($currentData, $data);
+                        $newData = $this->keepExistingMedia($currentData, $newData);
                     }
                     if ($this->actionItemSet !== AbstractProcessor::ACTION_UPDATE) {
-                        $newData = $this->keepExistingItemSets($currentData, $data);
+                        $newData = $this->keepExistingItemSets($currentData, $newData);
                     }
                 }
                 break;

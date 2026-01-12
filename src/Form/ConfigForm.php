@@ -15,8 +15,12 @@ class ConfigForm extends Form
                 'type' => Element\Text::class,
                 'options' => [
                     'label' => 'Command of the xslt processor', // @translate
-                    'info' => 'Needed to import metadata in xml files, when the process uses xslt2 sheets.', // @translate
+                    'info' => 'Needed to import metadata in xml files, when the process uses xslt2 sheets or xsl:import. Leave empty to use PHP internal processor (may crash with xsl:import).', // @translate
                     'documentation' => 'https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#Install',
+                ],
+                'attributes' => [
+                    'id' => 'bulkimport_xslt_processor',
+                    'placeholder' => 'java -jar /usr/share/java/Saxon-HE.jar -s:%s -xsl:%s -o:%s',
                 ],
             ])
             ->add([

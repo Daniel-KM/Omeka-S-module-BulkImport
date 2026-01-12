@@ -16,8 +16,10 @@ class XmlReaderConfigForm extends Form
         /** @var \Mapper\Mvc\Controller\Plugin\MapperConfigList $mapperConfigList */
         $mapperConfigList = $this->services->get('ControllerPluginManager')->get('mapperConfigList');
 
+        // XSL files are organized in subdirectories by format.
+        // Use '*' to scan all subdirectories dynamically.
         $xslConfig = $mapperConfigList->listMappings([
-            ['xsl' => 'xsl'],
+            ['*' => 'xsl'],
         ]);
         $xslConfig['mapping']['label'] = 'Configured xsl'; // @translate
         $xslConfig['user']['label'] = 'User xsl files'; // @translate

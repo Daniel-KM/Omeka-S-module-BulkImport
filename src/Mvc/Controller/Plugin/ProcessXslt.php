@@ -294,7 +294,7 @@ class ProcessXslt extends AbstractPlugin
             ));
         }
 
-        if (!file_exists($output) || !file_size($output)) {
+        if (!file_exists($output) || !filesize($output)) {
             if (file_exists($output)) {
                 unlink($output);
             }
