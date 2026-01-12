@@ -140,10 +140,12 @@ class JsonReader extends AbstractPaginatedReader
         if ($resourceUrl) {
             $resourceUrl = $this->mapper
                 ->setVariables($this->mapper->getMapperConfig()->getSection('params'))
-                ->convertToString('params', 'resource_url', $current);
-            $this->mapper->setVariable('url_resource', $resourceUrl);
-            if (!$this->listFiles) {
-                $current = $this->bulkFile->fetchUrlJson($resourceUrl);
+                ->convertToString('params', 'resource_url', null);
+            if ($resourceUrl) {
+                $this->mapper->setVariable('url_resource', $resourceUrl);
+                if (!$this->listFiles) {
+                    $current = $this->bulkFile->fetchUrlJson($resourceUrl);
+                }
             }
         }
 
@@ -250,13 +252,14 @@ class JsonReader extends AbstractPaginatedReader
         $currentContentType = $this->currentResponse->getHeaders()->get('Content-Type');
         $currentMediaType = $currentContentType->getMediaType();
         $currentCharset = (string) $currentContentType->getCharset();
-        if ($currentMediaType !== 'application/json'
+        // Accept both application/json and application/ld+json (IIIF manifests).
+        if (!in_array($currentMediaType, ['application/json', 'application/ld+json'])
             // Some servers don't send charset (see sub-queries for Content-DM).
             || ($currentCharset && strtolower($currentCharset) !== 'utf-8')
         ) {
             $this->lastErrorMessage = new PsrMessage(
                 'Content-type "{content_type}" or charset "{charset}" is invalid for url "{url}".', // @translate
-                ['content_type' => $currentContentType->getMediaType(), 'charset' => $currentContentType->getCharset(), 'url' => $this->bulkFile->getLastRequestUrl()]
+                ['content_type' => $currentMediaType, 'charset' => $currentCharset, 'url' => $this->bulkFile->getLastRequestUrl()]
             );
             $this->logger->err(
                 $this->lastErrorMessage->getMessage(),

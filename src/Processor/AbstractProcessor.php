@@ -248,6 +248,10 @@ abstract class AbstractProcessor implements Processor
     {
         static $cleaners;
 
+        // Handle JSON-LD formatted values from Mapper - extract the actual string.
+        if (is_array($string)) {
+            $string = $string['@value'] ?? $string['@id'] ?? $string['o:label'] ?? reset($string);
+        }
         $string = (string) $string;
 
         if ($cleaners === false) {

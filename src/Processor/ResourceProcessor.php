@@ -408,8 +408,18 @@ class ResourceProcessor extends AbstractResourceProcessor
             foreach (array_values($subResources) as $key => $dataArray) {
                 // If the source is only a string, it is an identifier that is
                 // already filled, mainly item sets for item.
+                // Also skip if the data is just an identifier reference in JSON-LD
+                // format (has @value or @id) - these are processed by fillItem/fillMedia.
+                // Only process full sub-resource data (e.g., embedded media for items).
                 if (is_array($dataArray)) {
-                    $resource[$field][$key] = $fillResourceDataAndProperties($dataArray, $resourceName);
+                    // Check if this is just an identifier reference (from JSON-LD Mapper output).
+                    // Identifier references have @value/@id but lack property data like dcterms:title.
+                    $isIdentifierRef = isset($dataArray['@value']) || isset($dataArray['@id']);
+                    // Also check if fillItem/fillMedia already processed this (has source_identifier).
+                    $alreadyProcessed = isset($resource[$field][$key]['source_identifier']);
+                    if (!$isIdentifierRef && !$alreadyProcessed) {
+                        $resource[$field][$key] = $fillResourceDataAndProperties($dataArray, $resourceName);
+                    }
                 }
             }
         }
@@ -454,7 +464,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                     if (is_array($value)) {
                         $id = empty($value['o:id']) ? null : $value['o:id'];
                         $label = empty($value['o:label']) ? null : $value['o:label'];
-                        $value = $id ?? $label ?? reset($value);
+                        // Support JSON-LD format from Mapper: {"type": "literal", "@value": "..."}
+                        $value = $id ?? $label ?? $value['@value'] ?? $value['@id'] ?? null;
+                        if ($value === null) {
+                            // Fall back but skip 'type' key which would give "literal"
+                            unset($value);
+                            $val = reset($data['o:resource_template'] ?? []);
+                            $value = is_array($val) ? ($val['@value'] ?? $val['@id'] ?? null) : $val;
+                        }
                     }
                     $id = $this->easyMeta->resourceTemplateId($value);
                     if ($id) {
@@ -482,7 +499,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                     if (is_array($value)) {
                         $id = empty($value['o:id']) ? null : $value['o:id'];
                         $term = empty($value['o:term']) ? null : $value['o:term'];
-                        $value = $id ?? $term ?? reset($value);
+                        // Support JSON-LD format from Mapper: {"type": "literal", "@value": "..."}
+                        $value = $id ?? $term ?? $value['@value'] ?? $value['@id'] ?? null;
+                        if ($value === null) {
+                            // Fall back but skip 'type' key which would give "literal"
+                            unset($value);
+                            $val = reset($data['o:resource_class'] ?? []);
+                            $value = is_array($val) ? ($val['@value'] ?? $val['@id'] ?? null) : $val;
+                        }
                     }
                     $id = $this->easyMeta->resourceClassId($value);
                     if ($id) {
@@ -630,10 +654,13 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o:item_set':
+                // The Mapper output may have 'o:item_set' in $data with identifiers.
+                // Use $data['o:item_set'] if available; otherwise fall back to $resource['o:item_set'].
+                $itemSetValues = $data['o:item_set'] ?? $values;
                 // TODO Allow to use specific identifier names like "o:item_set/dcterms:title".
                 $identifierNames = $this->identifierNames;
                 // Check values one by one to manage source identifiers.
-                foreach ($values as $key => $value) {
+                foreach ($itemSetValues as $key => $value) {
                     // May be already filled.
                     if (is_array($value) && !empty($value['o:id'])) {
                         if (!empty($value['checked_id'])) {
@@ -649,10 +676,31 @@ class ResourceProcessor extends AbstractResourceProcessor
                         }
                         continue;
                     }
-                    $identifier = is_array($value)
-                        ? (array_key_exists('o:id', $value) ? $value['o:id'] : end($value))
-                        : $value;
-                    $storedId = $this->bulkIdentifiers->getId($value, 'item_sets');
+                    // Extract identifier from JSON-LD format if needed.
+                    // Value can be: string, array with 'o:id', or JSON-LD format with @value.
+                    // The Mapper output may produce: {"type":["literal"],"@value":["..."],"resource_name":"item_sets","o:id":null}
+                    if (is_array($value)) {
+                        if (!empty($value['o:id'])) {
+                            // Already has a resolved ID.
+                            $identifier = $value['o:id'];
+                        } elseif (array_key_exists('@value', $value)) {
+                            // JSON-LD format with @value at top level.
+                            $identifier = is_array($value['@value']) ? reset($value['@value']) : $value['@value'];
+                        } elseif (array_key_exists('@id', $value)) {
+                            // JSON-LD format with @id at top level (for resources).
+                            $identifier = $value['@id'];
+                        } else {
+                            // Fallback: try to get the last value.
+                            $identifier = end($value);
+                            // Handle nested JSON-LD format: [{"type": "literal", "@value": "..."}]
+                            if (is_array($identifier)) {
+                                $identifier = $identifier['@value'] ?? $identifier['@id'] ?? $identifier['o:label'] ?? reset($identifier);
+                            }
+                        }
+                    } else {
+                        $identifier = $value;
+                    }
+                    $storedId = $this->bulkIdentifiers->getId($identifier, 'item_sets');
                     if ($storedId) {
                         $resource['o:item_set'][$key] = [
                             'o:id' => $storedId,
@@ -867,8 +915,9 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
 
             case 'o:item':
-                // May be already filled.
-                $value = $values;
+                // The Mapper output may have 'o:item' in $data with the identifier.
+                // Use $data['o:item'] if available; otherwise fall back to $resource['o:item'].
+                $value = $data['o:item'] ?? $values;
                 if (is_array($value) && !empty($value['o:id'])) {
                     if (!empty($value['checked_id'])) {
                         continue 2;
@@ -883,9 +932,30 @@ class ResourceProcessor extends AbstractResourceProcessor
                     }
                     continue 2;
                 }
-                $identifier = is_array($value)
-                    ? (array_key_exists('o:id', $value) ? $value['o:id'] : end($value))
-                    : $value;
+                // Extract identifier from JSON-LD format if needed.
+                // Value can be: string, array with 'o:id', or JSON-LD format with @value.
+                // The Mapper output may produce: {"type":["literal"],"@value":["..."],"resource_name":"items","o:id":null}
+                if (is_array($value)) {
+                    if (!empty($value['o:id'])) {
+                        // Already has a resolved ID.
+                        $identifier = $value['o:id'];
+                    } elseif (array_key_exists('@value', $value)) {
+                        // JSON-LD format with @value at top level.
+                        $identifier = is_array($value['@value']) ? reset($value['@value']) : $value['@value'];
+                    } elseif (array_key_exists('@id', $value)) {
+                        // JSON-LD format with @id at top level (for resources).
+                        $identifier = $value['@id'];
+                    } else {
+                        // Fallback: try to get the last value.
+                        $identifier = end($value);
+                        // Handle nested JSON-LD format: [{"type": "literal", "@value": "..."}]
+                        if (is_array($identifier)) {
+                            $identifier = $identifier['@value'] ?? $identifier['@id'] ?? $identifier['o:label'] ?? reset($identifier);
+                        }
+                    }
+                } else {
+                    $identifier = $value;
+                }
                 if (!$identifier) {
                     // The item is required, so skip during first loop.
                 } elseif ($storedId = $this->bulkIdentifiers->getId($identifier, 'items')) {
@@ -967,6 +1037,14 @@ class ResourceProcessor extends AbstractResourceProcessor
     {
         if (!$value) {
             return [];
+        }
+
+        // Handle JSON-LD formatted values from Mapper - extract the actual string.
+        if (is_array($value)) {
+            $value = $value['@id'] ?? $value['@value'] ?? $value['o:label'] ?? reset($value);
+            if (!is_string($value) || !$value) {
+                return [];
+            }
         }
 
         switch ($field) {

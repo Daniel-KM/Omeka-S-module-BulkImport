@@ -508,14 +508,41 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
      */
     protected function fillResourceName(ArrayObject $resource, array $data): self
     {
-        if (isset($resource['resource_name'])
+        // First, copy resource_name from $data if present.
+        if (isset($data['resource_name'])) {
+            $resourceName = $data['resource_name'];
+            // Handle array of values (from mapping).
+            if (is_array($resourceName)) {
+                // Could be [{"type": "literal", "@value": "Item Set"}] or just {"type": "literal", "@value": "Item Set"}
+                $resourceName = end($resourceName);
+                // Handle JSON-LD format from Mapper: {"type": "literal", "@value": "..."}
+                if (is_array($resourceName)) {
+                    $resourceName = $resourceName['@value'] ?? $resourceName['@id'] ?? reset($resourceName);
+                }
+            }
+            $resourceName = (string) $resourceName;
+            if ($resourceName) {
+                $resolved = $this->easyMeta->resourceName($resourceName)
+                    ?? $this->easyMeta->resourceName(mb_strtolower($resourceName))
+                    ?? $this->resourceNamesMore[mb_strtolower($resourceName)]
+                    ?? $resourceName;
+                $this->logger->notice('fillResourceName: extracted=' . $resourceName . ', resolved=' . $resolved);
+                $resource['resource_name'] = $resolved;
+            }
+        } elseif (isset($resource['resource_name'])
             // Don't revalidate data from the resource base entity.
             && $resource['resource_name'] !== $this->resourceName
         ) {
-            $resource['resource_name'] = $this->easyMeta->resourceName($resource['resource_name'])
-                ?? $this->easyMeta->resourceName(mb_strtolower($resource['resource_name']))
-                ?? $this->resourceNamesMore[mb_strtolower($resource['resource_name'])]
-                ?? $resource['resource_name'];
+            $resourceName = $resource['resource_name'];
+            // Handle JSON-LD format from Mapper: {"type": "literal", "@value": "..."}
+            if (is_array($resourceName)) {
+                $resourceName = $resourceName['@value'] ?? $resourceName['@id'] ?? reset($resourceName);
+            }
+            $resourceName = (string) $resourceName;
+            $resource['resource_name'] = $this->easyMeta->resourceName($resourceName)
+                ?? $this->easyMeta->resourceName(mb_strtolower($resourceName))
+                ?? $this->resourceNamesMore[mb_strtolower($resourceName)]
+                ?? $resourceName;
         }
         return $this;
     }
