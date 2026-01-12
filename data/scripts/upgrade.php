@@ -28,14 +28,26 @@ $connection = $services->get('Omeka\Connection');
 $messenger = $plugins->get('messenger');
 $entityManager = $services->get('Omeka\EntityManager');
 
+// For very old versions (< 3.3.35 or < 3.4.35), use the consolidated upgrade script
+// that handles all migrations up to 3.4.47+ in a single pass.
 if (version_compare($newVersion, '3.4.47', '>')
     && (version_compare($oldVersion, '3.3.35', '<') || version_compare($oldVersion, '3.4.35', '<'))
 ) {
-    $message = new Message(
-        $translate('To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.'), // @translate
-        $oldVersion, $newVersion, '3.4.47'
-    );
-    throw new ModuleCannotInstallException((string) $message);
+    $filepath = __DIR__ . '/upgrade.3.4.47.php';
+    if (file_exists($filepath)) {
+        require_once $filepath;
+        // After running the consolidated script, skip individual migrations
+        // that were already handled by the consolidated script.
+        // Set oldVersion to 3.4.48 to skip already-processed migrations
+        // (the consolidated script includes all migrations up to and including 3.4.48).
+        $oldVersion = '3.4.48';
+    } else {
+        $message = new Message(
+            $translate('To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.'), // @translate
+            $oldVersion, $newVersion, '3.4.47'
+        );
+        throw new ModuleCannotInstallException((string) $message);
+    }
 }
 
 if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.76')) {
@@ -54,10 +66,10 @@ if (!$this->checkModuleActiveVersion('Log', '3.4.33')) {
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
 
-if (!$this->checkModuleActiveVersion('Mapper', '3.4.1')) {
+if (!$this->checkModuleActiveVersion('Mapper', '3.4.2')) {
     $message = new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Mapper', 'version' => '3.4.1']
+        ['module' => 'Mapper', 'version' => '3.4.2']
     );
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
@@ -527,6 +539,232 @@ if (version_compare($oldVersion, '3.4.61', '<')) {
         'The mapping functionality is now provided by the Mapper module. Access mappings via the Mapper menu.' // @translate
     );
     $messenger->addWarning($message);
-}
 
-// TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.
+    // Update mapping_config paths after Mapper module folder reorganization.
+    // Old paths like "module:json/iiif2xx.base.jsdot" become "module:iiif/iiif2xx.base.jsdot".
+    // Covers all formats: JSON, XML, INI. Mirrors the path mappings from Mapper upgrade.php.
+    $pathMappings = [
+        // Content-DM (old flat → old underscore → new dot format)
+        'base/content-dm.jsdot' => 'content-dm/content-dm.base.jsdot',
+        'base/content-dm.jmespath' => 'content-dm/content-dm.base.jmespath',
+        'base/content-dm.jsonpath' => 'content-dm/content-dm.base.jsonpath',
+        'content-dm.jsdot' => 'content-dm/content-dm.base.jsdot',
+        'content-dm.jmespath' => 'content-dm/content-dm.base.jmespath',
+        'content-dm.jsonpath' => 'content-dm/content-dm.base.jsonpath',
+        'json/content-dm.base.jsdot' => 'content-dm/content-dm.base.jsdot',
+        'json/content-dm.base.jmespath' => 'content-dm/content-dm.base.jmespath',
+        'json/content-dm.base.jsonpath' => 'content-dm/content-dm.base.jsonpath',
+        'content-dm/content-dm_base.jsdot' => 'content-dm/content-dm.base.jsdot',
+        'content-dm/content-dm_base.jmespath' => 'content-dm/content-dm.base.jmespath',
+        'content-dm/content-dm_base.jsonpath' => 'content-dm/content-dm.base.jsonpath',
+        // IIIF
+        'base/iiif2xx.jsdot' => 'iiif/iiif2xx.base.jsdot',
+        'base/iiif2xx.jmespath' => 'iiif/iiif2xx.base.jmespath',
+        'base/iiif2xx.jsonpath' => 'iiif/iiif2xx.base.jsonpath',
+        'iiif2xx.jsdot' => 'iiif/iiif2xx.base.jsdot',
+        'iiif2xx.jmespath' => 'iiif/iiif2xx.base.jmespath',
+        'iiif2xx.jsonpath' => 'iiif/iiif2xx.base.jsonpath',
+        'json/iiif2xx.base.jsdot' => 'iiif/iiif2xx.base.jsdot',
+        'json/iiif2xx.base.jmespath' => 'iiif/iiif2xx.base.jmespath',
+        'json/iiif2xx.base.jsonpath' => 'iiif/iiif2xx.base.jsonpath',
+        'json/iiif2xx.bnf.jsdot' => 'iiif/iiif2xx.bnf.jsdot',
+        'json/iiif2xx.bnf.jmespath' => 'iiif/iiif2xx.bnf.jmespath',
+        'json/iiif2xx.bnf.jsonpath' => 'iiif/iiif2xx.bnf.jsonpath',
+        'json/iiif2xx.unistra.jsdot' => 'iiif/iiif2xx.unistra.jsdot',
+        'json/iiif2xx.unistra.jmespath' => 'iiif/iiif2xx.unistra.jmespath',
+        'json/iiif2xx.unistra.jsonpath' => 'iiif/iiif2xx.unistra.jsonpath',
+        'iiif/iiif2xx_base.jsdot' => 'iiif/iiif2xx.base.jsdot',
+        'iiif/iiif2xx_base.jmespath' => 'iiif/iiif2xx.base.jmespath',
+        'iiif/iiif2xx_base.jsonpath' => 'iiif/iiif2xx.base.jsonpath',
+        'iiif/iiif2xx_bnf.jsdot' => 'iiif/iiif2xx.bnf.jsdot',
+        'iiif/iiif2xx_bnf.jmespath' => 'iiif/iiif2xx.bnf.jmespath',
+        'iiif/iiif2xx_bnf.jsonpath' => 'iiif/iiif2xx.bnf.jsonpath',
+        'iiif/iiif2xx_unistra.jsdot' => 'iiif/iiif2xx.unistra.jsdot',
+        'iiif/iiif2xx_unistra.jmespath' => 'iiif/iiif2xx.unistra.jmespath',
+        'iiif/iiif2xx_unistra.jsonpath' => 'iiif/iiif2xx.unistra.jsonpath',
+        // File metadata (note: jsondot was a typo, now jsdot)
+        'base/file.jsdot' => 'file/file.base.jsdot',
+        'base/file.jsondot' => 'file/file.base.jsdot',
+        'base/file.jmespath' => 'file/file.base.jmespath',
+        'base/file.jsonpath' => 'file/file.base.jsonpath',
+        'file.jsdot' => 'file/file.base.jsdot',
+        'file.jsondot' => 'file/file.base.jsdot',
+        'file.jmespath' => 'file/file.base.jmespath',
+        'file.jsonpath' => 'file/file.base.jsonpath',
+        'json/file.application_pdf.jsdot' => 'file/file.application_pdf.jsdot',
+        'json/file.audio_mpeg.jsdot' => 'file/file.audio_mpeg.jsdot',
+        'json/file.audio_wav.jsdot' => 'file/file.audio_wav.jsdot',
+        'json/file.image_jpeg.jsdot' => 'file/file.image_jpeg.jsdot',
+        'json/file.image_png.jsdot' => 'file/file.image_png.jsdot',
+        'json/file.image_tiff.jsdot' => 'file/file.image_tiff.jsdot',
+        'json/file.video_mp4.jsdot' => 'file/file.video_mp4.jsdot',
+        'file/file_base.jsdot' => 'file/file.base.jsdot',
+        'file/file_base.jmespath' => 'file/file.base.jmespath',
+        'file/file_base.jsonpath' => 'file/file.base.jsonpath',
+        // XML mappings (EAD)
+        'xml/ead_to_omeka.xml' => 'ead/ead.base.xml',
+        'xml/ead_presentation_to_omeka.xml' => 'ead/ead.presentation.xml',
+        'xml/ead_components_to_omeka.xml' => 'ead/ead.components.xml',
+        'ead/ead_base.xml' => 'ead/ead.base.xml',
+        'ead/ead_presentation.xml' => 'ead/ead.presentation.xml',
+        'ead/ead_components.xml' => 'ead/ead.components.xml',
+        'ead/ead_tags.xml' => 'ead/ead.tags.xml',
+        // XML mappings (Unimarc)
+        'xml/unimarc_to_omeka.xml' => 'unimarc/unimarc.base.xml',
+        'unimarc/unimarc_base.xml' => 'unimarc/unimarc.base.xml',
+        // XML mappings (LIDO)
+        'xml/lido_mc_to_omeka.xml' => 'lido/lido.mc.xml',
+        'lido/lido_mc.xml' => 'lido/lido.mc.xml',
+        // XML mappings (IdRef → RDF) - used by CopIdRef module
+        'xml/idref_personne.xml' => 'rdf/rdf.idref_personne.xml',
+        'idref/idref_personne.xml' => 'rdf/rdf.idref_personne.xml',
+        // JSON mappings (Unimarc IdRef) - used by CopIdRef module
+        'json/unimarc_idref_personne.json' => 'unimarc/unimarc.idref_personne.json',
+        'json/unimarc_idref_collectivites.json' => 'unimarc/unimarc.idref_collectivites.json',
+        'json/unimarc_idref_autre.json' => 'unimarc/unimarc.idref_autre.json',
+        'idref/unimarc_idref_personne.json' => 'unimarc/unimarc.idref_personne.json',
+        'idref/unimarc_idref_collectivites.json' => 'unimarc/unimarc.idref_collectivites.json',
+        'idref/unimarc_idref_autre.json' => 'unimarc/unimarc.idref_autre.json',
+        // Tables
+        'json/geonames_countries.json' => 'tables/geonames.countries.json',
+        'tables/geonames_countries.json' => 'tables/geonames.countries.json',
+        // XSL transformations (used by XML readers)
+        'xsl/identity.xslt1.xsl' => 'common/identity.xslt1.xsl',
+        'xsl/identity.xslt2.xsl' => 'common/identity.xslt2.xsl',
+        'xsl/identity.xslt3.xsl' => 'common/identity.xslt3.xsl',
+        'xsl/ead_to_resources.xsl' => 'ead/ead_to_resources.xsl',
+        'xsl/lido_to_resources.xsl' => 'lido/lido_to_resources.xsl',
+        'xsl/mets_to_omeka.xsl' => 'mets/mets_to_omeka.xsl',
+        'xsl/mets_exlibris_to_omeka.xsl' => 'mets/mets_exlibris_to_omeka.xsl',
+        'xsl/mets_wrapped_exlibris_to_mets.xsl' => 'mets/mets_wrapped_exlibris_to_mets.xsl',
+        'xsl/mods_to_omeka.xsl' => 'mods/mods_to_omeka.xsl',
+        'xsl/sru.dublin-core_to_omeka.xsl' => 'sru/sru.dublin-core_to_omeka.xsl',
+        'xsl/sru.dublin-core_with_file_gallica_to_omeka.xsl' => 'sru/sru.dublin-core_with_file_gallica_to_omeka.xsl',
+        'xsl/sru.unimarc_to_resources.xsl' => 'unimarc/sru.unimarc_to_resources.xsl',
+        'xsl/sru.unimarc_to_unimarc.xsl' => 'unimarc/sru.unimarc_to_unimarc.xsl',
+    ];
+
+    // Helper to update path with mappings.
+    $updatePath = function ($path) use ($pathMappings) {
+        $newPath = $path;
+        foreach ($pathMappings as $old => $new) {
+            // Handle "module:" prefix - the path is after the prefix.
+            if (strpos($newPath, 'module:') !== false) {
+                $newPath = str_replace('module:' . $old, 'module:' . $new, $newPath);
+            } else {
+                $newPath = str_replace($old, $new, $newPath);
+            }
+        }
+        return $newPath;
+    };
+
+    // Update bulk_importer.mapper column (direct mapping path).
+    $sql = 'SELECT id, mapper FROM bulk_importer WHERE mapper IS NOT NULL AND mapper != "" AND mapper != "manual" AND mapper NOT LIKE "mapping:%"';
+    $results = $connection->executeQuery($sql)->fetchAllAssociative();
+    $updatedMapper = 0;
+    foreach ($results as $row) {
+        $newPath = $updatePath($row['mapper']);
+        if ($newPath !== $row['mapper']) {
+            $connection->executeStatement(
+                'UPDATE bulk_importer SET mapper = ? WHERE id = ?',
+                [$newPath, $row['id']]
+            );
+            $updatedMapper++;
+        }
+    }
+
+    // Update bulk_importer.config (mapping_config, xsl_sheet, xsl_sheet_pre in reader section).
+    $sql = 'SELECT id, config FROM bulk_importer';
+    $results = $connection->executeQuery($sql)->fetchAllAssociative();
+    $updated = 0;
+    foreach ($results as $row) {
+        $config = json_decode($row['config'], true);
+        $modified = false;
+        // Update mapping_config path.
+        $mappingConfig = $config['reader']['mapping_config'] ?? null;
+        if ($mappingConfig) {
+            $newPath = $updatePath($mappingConfig);
+            if ($newPath !== $mappingConfig) {
+                $config['reader']['mapping_config'] = $newPath;
+                $modified = true;
+            }
+        }
+        // Update xsl_sheet path.
+        $xslSheet = $config['reader']['xsl_sheet'] ?? null;
+        if ($xslSheet) {
+            $newPath = $updatePath($xslSheet);
+            if ($newPath !== $xslSheet) {
+                $config['reader']['xsl_sheet'] = $newPath;
+                $modified = true;
+            }
+        }
+        // Update xsl_sheet_pre path.
+        $xslSheetPre = $config['reader']['xsl_sheet_pre'] ?? null;
+        if ($xslSheetPre) {
+            $newPath = $updatePath($xslSheetPre);
+            if ($newPath !== $xslSheetPre) {
+                $config['reader']['xsl_sheet_pre'] = $newPath;
+                $modified = true;
+            }
+        }
+        if ($modified) {
+            $connection->executeStatement(
+                'UPDATE bulk_importer SET config = ? WHERE id = ?',
+                [json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $row['id']]
+            );
+            $updated++;
+        }
+    }
+
+    // Update bulk_import.params (mapping_config, xsl_sheet, xsl_sheet_pre in reader section).
+    $sql = 'SELECT id, params FROM bulk_import';
+    $results = $connection->executeQuery($sql)->fetchAllAssociative();
+    $updatedImports = 0;
+    foreach ($results as $row) {
+        $params = json_decode($row['params'], true);
+        $modified = false;
+        // Update mapping_config path.
+        $mappingConfig = $params['reader']['mapping_config'] ?? null;
+        if ($mappingConfig) {
+            $newPath = $updatePath($mappingConfig);
+            if ($newPath !== $mappingConfig) {
+                $params['reader']['mapping_config'] = $newPath;
+                $modified = true;
+            }
+        }
+        // Update xsl_sheet path.
+        $xslSheet = $params['reader']['xsl_sheet'] ?? null;
+        if ($xslSheet) {
+            $newPath = $updatePath($xslSheet);
+            if ($newPath !== $xslSheet) {
+                $params['reader']['xsl_sheet'] = $newPath;
+                $modified = true;
+            }
+        }
+        // Update xsl_sheet_pre path.
+        $xslSheetPre = $params['reader']['xsl_sheet_pre'] ?? null;
+        if ($xslSheetPre) {
+            $newPath = $updatePath($xslSheetPre);
+            if ($newPath !== $xslSheetPre) {
+                $params['reader']['xsl_sheet_pre'] = $newPath;
+                $modified = true;
+            }
+        }
+        if ($modified) {
+            $connection->executeStatement(
+                'UPDATE bulk_import SET params = ? WHERE id = ?',
+                [json_encode($params, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $row['id']]
+            );
+            $updatedImports++;
+        }
+    }
+
+    $totalUpdated = $updatedMapper + $updated + $updatedImports;
+    if ($totalUpdated) {
+        $message = new PsrMessage(
+            'Updated {total} record(s) with new Mapper module paths: {mapper} importer mapper(s), {config} importer config(s), {imports} import(s).', // @translate
+            ['total' => $totalUpdated, 'mapper' => $updatedMapper, 'config' => $updated, 'imports' => $updatedImports]
+        );
+        $messenger->addSuccess($message);
+    }
+}

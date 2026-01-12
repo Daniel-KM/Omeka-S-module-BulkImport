@@ -64,10 +64,10 @@ class Module extends AbstractModule
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
 
-        if (!$this->checkModuleActiveVersion('Mapper', '3.4.1')) {
+        if (!$this->checkModuleActiveVersion('Mapper', '3.4.2')) {
             $message = new \Common\Stdlib\PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Mapper', 'version' => '3.4.1']
+                ['module' => 'Mapper', 'version' => '3.4.2']
             );
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
