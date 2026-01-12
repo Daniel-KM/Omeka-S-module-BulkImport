@@ -1376,7 +1376,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
                     'actionMedia' => $this->actionMedia,
                     'actionIdentifier' => $this->actionIdentifier,
                     'identifierNames' => $this->identifierNames,
-                    'metaMapping' => $this->metaMapper->getMetaMapping(),
+                    'metaMapping' => $this->mapper->getMapping(),
                 ]);
             if (!$updatedResource
                 || (isset($updatedResource['messageStore']) && $updatedResource['messageStore']->hasErrors())

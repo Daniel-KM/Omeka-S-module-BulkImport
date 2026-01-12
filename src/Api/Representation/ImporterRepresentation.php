@@ -32,7 +32,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
     /**
      * @var array|null|false
      */
-    protected $metaMapperMapping = false;
+    protected $mapperMapping = false;
 
     public function getControllerName()
     {
@@ -161,15 +161,15 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             return null;
         }
 
-        /** @var \BulkImport\Stdlib\MetaMapperConfig $metaMapperConfig */
-        $metaMapperConfig = $this->getServiceLocator()->get('Bulk\MetaMapperConfig');
-        return $metaMapperConfig($mapper, $mapper, [
+        /** @var \Mapper\Stdlib\MapperConfig $mapperConfig */
+        $mapperConfig = $this->getServiceLocator()->get('Mapper\MapperConfig');
+        return $mapperConfig($mapper, $mapper, [
             'resource_name' => $this->processor()->getResourceName(),
             'field_types' => $this->processor()->getFieldTypes(),
         ]);
     }
 
-    public function bulkMapping(): ?MappingRepresentation
+    public function bulkMapping(): ?\Mapper\Api\Representation\MapperRepresentation
     {
         $mapper = $this->mapper();
         if (!$mapper || substr($mapper, 0, 8) !== 'mapping:') {
@@ -180,7 +180,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
             return null;
         }
         try {
-            return $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', $mappingId)->getContent();
+            return $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', $mappingId)->getContent();
         } catch (\Exception $e) {
             return null;
         }

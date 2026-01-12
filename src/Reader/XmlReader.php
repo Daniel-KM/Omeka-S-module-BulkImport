@@ -117,9 +117,9 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 }
             } elseif (mb_substr($xmlConfig, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($xmlConfig, 8);
-                /* @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                /** @var \Mapper\Api\Representation\MapperRepresentation $mapping */
                 try {
-                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
+                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', ['id' => $mappingId])->getContent();
                     $result[$xmlConfig] = trim((string) $mapping->mapping());
                 } catch (\Exception $e) {
                     $mapping = null;
@@ -167,7 +167,8 @@ class XmlReader extends AbstractMultiplePaginatedReader
                     );
                     return parent::isValid();
                 }
-                $moduleConfigPath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($configName, mb_strpos($configName, ':') + 1, mb_strpos($configName, '/') - mb_strpos($configName, ':'));
+                // Use Mapper module's data/mapping directory.
+                $moduleConfigPath = dirname(__DIR__, 4) . '/Mapper/data/mapping/' . mb_substr($configName, mb_strpos($configName, ':') + 1, mb_strpos($configName, '/') - mb_strpos($configName, ':'));
                 $filesPath = $this->getServiceLocator()->get('Config')['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
                 if (strpos($filepath, $moduleConfigPath) !== 0 && strpos($filepath, $filesPath) !== 0) {
                     $this->lastErrorMessage = new PsrMessage(
@@ -186,9 +187,9 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 }
             } elseif (mb_substr($configName, 0, 8) === 'mapping:') {
                 $mappingId = (int) mb_substr($configName, 8);
-                /* @var \BulkImport\Api\Representation\MappingRepresentation $mapping */
+                /** @var \Mapper\Api\Representation\MapperRepresentation $mapping */
                 try {
-                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('bulk_mappings', ['id' => $mappingId])->getContent();
+                    $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', ['id' => $mappingId])->getContent();
                 } catch (\Exception $e) {
                     $mapping = null;
                 }
@@ -398,8 +399,8 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 // $this->key(),
                 $currentIndexInPage,
                 $this->availableFields,
-                // TODO Remove metamapper.
-                $this->getParams() + ['metaMapper' => $this->metaMapper]
+                // TODO Remove mapper.
+                $this->getParams() + ['mapper' => $this->mapper]
             );
             ++$currentIndexInPage;
         }
@@ -525,7 +526,8 @@ class XmlReader extends AbstractMultiplePaginatedReader
         if (mb_substr($xslpath, 0, 5) === 'user:') {
             $xslpath = $this->basePath . '/mapping/' . mb_substr($xslpath, 5);
         } elseif (mb_substr($xslpath, 0, 7) === 'module:') {
-            $xslpath = dirname(__DIR__, 2) . '/data/mapping/' . mb_substr($xslpath, 7);
+            // Use Mapper module's data/mapping directory.
+            $xslpath = dirname(__DIR__, 4) . '/Mapper/data/mapping/' . mb_substr($xslpath, 7);
         } else {
             return null;
         }

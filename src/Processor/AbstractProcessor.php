@@ -102,9 +102,9 @@ abstract class AbstractProcessor implements Processor
     protected $logger;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapper
+     * @var \Mapper\Stdlib\Mapper
      */
-    protected $metaMapper;
+    protected $mapper;
 
     /**
      * @var \Omeka\Settings\Settings
@@ -170,7 +170,7 @@ abstract class AbstractProcessor implements Processor
         $this->adapterManager = $services->get('Omeka\ApiAdapterManager');
 
         $this->easyMeta = $services->get('Common\EasyMeta');
-        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->mapper = $services->get('Mapper\Mapper');
 
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');

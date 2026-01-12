@@ -9,11 +9,11 @@ return [
     'o:config' => [
         'reader' => [
             'xsl_sheet_pre' => '',
-            'xsl_sheet' => 'module:xsl/ead_to_resources.xsl',
+            'xsl_sheet' => 'module:ead/ead_to_resources.xsl',
             'xsl_params' => [],
         ],
         'mapper' => [
-            'mapper' => 'module:xml/ead_to_omeka.xml',
+            'mapper' => 'module:ead/ead.base.xml',
         ],
         'processor' => [
             'entries_to_skip' => 0,

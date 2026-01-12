@@ -7,7 +7,7 @@ use BulkImport\Form\Processor\EprintsProcessorParamsForm;
 use BulkImport\Stdlib\MessageStore;
 
 /**
- * @todo Use metaMapper() instead hard coded mapping or create sql views.
+ * @todo Use Mapper instead of hard coded mapping or create sql views.
  *
  * Warning: contains mapping with a special vocabulary "dante" for special columns.
  *

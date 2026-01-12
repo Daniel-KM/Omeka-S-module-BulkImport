@@ -12,7 +12,7 @@ use Omeka\Entity\ItemSet;
 
 /**
  * @todo The processor is only parametrizable currently.
- * @deprecated Use MetaMapper and convert full processors into standard processors and make a multi-processor for full migration.
+ * @deprecated Use Mapper module and convert full processors into standard processors and make a multi-processor for full migration.
  */
 abstract class AbstractFullProcessor extends AbstractProcessor implements Parametrizable
 {

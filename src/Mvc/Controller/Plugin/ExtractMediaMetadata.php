@@ -10,7 +10,7 @@ if (!class_exists(\JamesHeinrich\GetID3\GetId3::class)) {
     require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/Utils.php';
 }
 
-use BulkImport\Stdlib\MetaMapper;
+use Mapper\Stdlib\Mapper;
 use JamesHeinrich\GetID3\GetId3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
@@ -27,9 +27,9 @@ class ExtractMediaMetadata extends AbstractPlugin
     protected $logger;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapper
+     * @var \Mapper\Stdlib\Mapper
      */
-    protected $metaMapper;
+    protected $mapper;
 
     /**
      * @var \BulkImport\Mvc\Controller\Plugin\ExtractDataFromPdf
@@ -67,13 +67,13 @@ class ExtractMediaMetadata extends AbstractPlugin
 
     public function __construct(
         Logger $logger,
-        MetaMapper $metaMapper,
+        Mapper $mapper,
         ExtractDataFromPdf $extractDataFromPdf,
         string $basePath,
         bool $logExtractedMetadata
     ) {
         $this->logger = $logger;
-        $this->metaMapper = $metaMapper;
+        $this->mapper = $mapper;
         $this->extractDataFromPdf = $extractDataFromPdf;
         $this->basePath = $basePath;
         $this->logExtractedMetadata = $logExtractedMetadata;
@@ -105,8 +105,8 @@ class ExtractMediaMetadata extends AbstractPlugin
         // Adapted from AbstractResourceProcessor.
         // TODO Merge with AbstractResourceProcessor.
         // Here, the mapping reference is used as mapping name.
-        $mappingReference = 'module:json/file.' . strtr($mediaType, ['/' => '_']) . '.jsdot.ini';
-        $mapping = $this->metaMapper->__invoke($mediaType, $mappingReference)->getMetaMapperConfig()->getMapping();
+        $mappingReference = 'module:file/file.' . strtr($mediaType, ['/' => '_']) . '.jsdot.ini';
+        $mapping = $this->mapper->__invoke($mediaType, $mappingReference)->getMapperConfig()->getMapping();
         if ($mapping === null) {
             return null;
         }
@@ -150,7 +150,7 @@ class ExtractMediaMetadata extends AbstractPlugin
             );
         }
 
-        $resource = $this->metaMapper
+        $resource = $this->mapper
             ->__invoke($mediaType, $mappingReference)
             ->convert($data);
         return $resource;

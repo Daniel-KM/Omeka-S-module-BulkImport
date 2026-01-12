@@ -39,9 +39,6 @@
         "laminas/laminas-zendframework-bridge": "*",
         "symfony/polyfill-mbstring": "*"
     },
-    "require-dev": {
-        "biblibre/omeka-s-test-helper": "dev-master"
-    },
     "autoload-dev": {
         "psr-4": {
             "BulkImportTest\\": "test/BulkImportTest/"

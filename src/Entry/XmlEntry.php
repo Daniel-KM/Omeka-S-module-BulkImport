@@ -134,7 +134,7 @@ class XmlEntry extends BaseEntry
      * When the xml is an Omeka resource with integrated vocabularies, there is
      * no need to convert it.
      *
-     * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with metaMapper.
+     * @todo Important: For xml entry, convert this simple internal mapping into a hidden mapping to use with Mapper.
      */
     public function extractWithoutMapping(): array
     {

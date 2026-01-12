@@ -54,6 +54,14 @@ if (!$this->checkModuleActiveVersion('Log', '3.4.33')) {
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
 
+if (!$this->checkModuleActiveVersion('Mapper', '3.4.1')) {
+    $message = new PsrMessage(
+        'The module {module} should be upgraded to version {version} or later.', // @translate
+        ['module' => 'Mapper', 'version' => '3.4.1']
+    );
+    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+}
+
 if (version_compare($oldVersion, '3.3.36', '<')) {
     $user = $services->get('Omeka\AuthenticationService')->getIdentity();
 
@@ -493,6 +501,32 @@ if (version_compare($oldVersion, '3.4.59', '<')) {
         'A new option allows to skip full check of files, so only their presence, not if they are well formed and thumbnailable.' // @translate
     );
     $messenger->addSuccess($message);
+}
+
+if (version_compare($oldVersion, '3.4.61', '<')) {
+    // The internal mapping functionality has been moved to the Mapper module.
+    // The Mapper module already migrates data from bulk_mapping table during
+    // its installation, so we just need to drop the old table.
+    // Check if bulk_mapping table still exists.
+    try {
+        $tableExists = $connection->executeQuery(
+            'SHOW TABLES LIKE "bulk_mapping"'
+        )->fetchOne();
+        if ($tableExists) {
+            $connection->executeStatement('DROP TABLE IF EXISTS `bulk_mapping`');
+            $message = new PsrMessage(
+                'The internal mapping table has been removed. Mappings are now managed by the Mapper module.' // @translate
+            );
+            $messenger->addSuccess($message);
+        }
+    } catch (\Exception $e) {
+        // Ignore errors if table doesn't exist.
+    }
+
+    $message = new PsrMessage(
+        'The mapping functionality is now provided by the Mapper module. Access mappings via the Mapper menu.' // @translate
+    );
+    $messenger->addWarning($message);
 }
 
 // TODO Remove bulkimport_allow_empty_files and bulkimport_local_path in some version to keep config for EasyAdmin.

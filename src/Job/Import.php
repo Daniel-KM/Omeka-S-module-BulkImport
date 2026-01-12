@@ -34,7 +34,7 @@ class Import extends AbstractJob
         $this->easyMeta = $services->get('Common\EasyMeta');
         $this->entityManager = $services->get('Omeka\EntityManager');
         $this->logger = $services->get('Omeka\Logger');
-        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->mapper = $services->get('Mapper\Mapper');
         $this->settings = $services->get('Omeka\Settings');
         $this->translator = $services->get('MvcTranslator');
 
@@ -134,7 +134,7 @@ class Import extends AbstractJob
             return;
         }
 
-        // TODO Finalize separation of metaMapper and metaMapperConfig.
+        // TODO Finalize separation of Mapper and MapperConfig.
         // Init the mapping first before storing it as default.
         $mapping = $this->import->mapping();
         if ($mapping['has_error']) {
@@ -144,7 +144,7 @@ class Import extends AbstractJob
         }
 
         $mapper = $this->import->mapper();
-        $this->metaMapper->setMappingName($mapper);
+        $this->mapper->setMappingName($mapper);
 
         $this->logger->log(Logger::NOTICE, 'Import started'); // @translate
 

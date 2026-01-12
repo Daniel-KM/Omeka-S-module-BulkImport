@@ -5,8 +5,6 @@ namespace BulkImport;
 return [
     'service_manager' => [
         'factories' => [
-            'Bulk\MetaMapper' => Service\Stdlib\MetaMapperFactory::class,
-            'Bulk\MetaMapperConfig' => Service\Stdlib\MetaMapperConfigFactory::class,
             Processor\Manager::class => Service\PluginManagerFactory::class,
             Reader\Manager::class => Service\PluginManagerFactory::class,
         ],
@@ -24,7 +22,6 @@ return [
             'bulk_importeds' => Api\Adapter\ImportedAdapter::class,
             'bulk_importers' => Api\Adapter\ImporterAdapter::class,
             'bulk_imports' => Api\Adapter\ImportAdapter::class,
-            'bulk_mappings' => Api\Adapter\MappingAdapter::class,
         ],
     ],
     'media_ingesters' => [
@@ -41,7 +38,6 @@ return [
             Controller\Admin\BulkImportController::class => 'bulk/admin/index',
             Controller\Admin\ImportController::class => 'bulk/admin/import',
             Controller\Admin\ImporterController::class => 'bulk/admin/importer',
-            Controller\Admin\MappingController::class => 'bulk/admin/mapping',
         ],
         'strategies' => [
             'ViewJsonStrategy',
@@ -51,8 +47,6 @@ return [
     'form_elements' => [
         'invokables' => [
             Form\SettingsFieldset::class => Form\SettingsFieldset::class,
-            Form\MappingDeleteForm::class => Form\MappingDeleteForm::class,
-            Form\MappingForm::class => Form\MappingForm::class,
         ],
         'factories' => [
             Form\ConfigForm::class => \Omeka\Form\Factory\InvokableFactory::class,
@@ -95,9 +89,6 @@ return [
         ],
     ],
     'controllers' => [
-        'invokables' => [
-            'BulkImport\Controller\Admin\Mapping' => Controller\Admin\MappingController::class,
-        ],
         'factories' => [
             // Class is not used as key, since it's set dynamically by sub-route
             // and it should be available in acl (so alias is mapped later).
@@ -108,7 +99,6 @@ return [
     ],
     'controller_plugins' => [
         'factories' => [
-            'automapFields' => Service\ControllerPlugin\AutomapFieldsFactory::class,
             'bulk' => Service\ControllerPlugin\BulkFactory::class,
             'bulkCheckLog' => Service\ControllerPlugin\BulkCheckLogFactory::class,
             'bulkDiffResources' => Service\ControllerPlugin\BulkDiffResourcesFactory::class,
@@ -119,7 +109,6 @@ return [
             'diffResources' => Service\ControllerPlugin\DiffResourcesFactory::class,
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
-            'metaMapperConfigList' => Service\ControllerPlugin\MetaMapperConfigListFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
             'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
             'updateResource' => Service\ControllerPlugin\UpdateResourceFactory::class,
@@ -152,7 +141,7 @@ return [
                                 'options' => [
                                     'route' => '/:controller[/:action]',
                                     'constraints' => [
-                                        'controller' => 'bulk-import|importer|import|mapping',
+                                        'controller' => 'bulk-import|importer|import',
                                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                                     ],
                                     'defaults' => [
@@ -165,7 +154,7 @@ return [
                                 'options' => [
                                     'route' => '/:controller/:id[/:action]',
                                     'constraints' => [
-                                        'controller' => 'bulk-import|importer|import|mapping',
+                                        'controller' => 'bulk-import|importer|import',
                                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                                         'id' => '\d+',
                                     ],
@@ -260,19 +249,6 @@ return [
                                 'route' => 'admin/bulk/id',
                                 'controller' => 'importer',
                                 'action' => 'configure-processor',
-                                'visible' => false,
-                            ],
-                        ],
-                    ],
-                    [
-                        'label' => 'Field mappings', // @translate
-                        'route' => 'admin/bulk/default',
-                        'controller' => 'mapping',
-                        'resource' => 'BulkImport\Controller\Admin\Mapping',
-                        'pages' => [
-                            [
-                                'route' => 'admin/bulk/id',
-                                'controller' => 'mapping',
                                 'visible' => false,
                             ],
                         ],

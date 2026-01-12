@@ -109,7 +109,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->processAllSheets
                 ? $this->availableFieldsMultiSheets[$this->sheetIndex]
                 : $this->availableFields,
-            $this->getParams() + ['metaMapper' => $this->metaMapper]
+            $this->getParams() + ['mapper' => $this->mapper]
         );
     }
 

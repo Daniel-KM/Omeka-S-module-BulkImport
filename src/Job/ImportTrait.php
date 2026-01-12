@@ -49,9 +49,9 @@ trait ImportTrait
     protected $logger;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapper
+     * @var \Mapper\Stdlib\Mapper
      */
-    protected $metaMapper;
+    protected $mapper;
 
     /**
      * @var \Omeka\Settings\Settings
@@ -931,7 +931,7 @@ trait ImportTrait
 
         /** @var \BulkImport\Mvc\Controller\Plugin\BulkDiffValues $bulkDiffValues*/
         $bulkDiffValues = $plugins->get('bulkDiffValues');
-        $result = $bulkDiffValues($this->action, $importId, $this->metaMapper->getMetaMapping());
+        $result = $bulkDiffValues($this->action, $importId, $this->mapper->getMapping());
         if ($result['status'] === 'error') {
             // Log is already logged.
             ++$this->totalErrors;
@@ -954,8 +954,8 @@ trait ImportTrait
             return null;
         }
 
-        $metaMapping = $this->metaMapper->getMetaMapping();
-        $noMapping = empty($metaMapping) || empty($metaMapping['maps']);
+        $mapping = $this->mapper->getMapping();
+        $noMapping = empty($mapping) || empty($mapping['maps']);
 
         // TODO Normalize process for entry (remove entry in fact).
         if ($entry instanceof \BulkImport\Entry\JsonEntry) {
@@ -972,7 +972,7 @@ trait ImportTrait
 
         $resource = $noMapping
             ? $data
-            : $this->metaMapper->convert($data);
+            : $this->mapper->convert($data);
 
         // Fill the result into the entity as array object.
         return $this->processor->fillResource($resource, $this->indexResource);

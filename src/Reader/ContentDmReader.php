@@ -17,7 +17,7 @@ class ContentDmReader extends JsonReader
     protected function initArgs(): self
     {
         // Prepare mapper one time.
-        if ($this->metaMapper) {
+        if ($this->mapper) {
             return $this;
         }
 

@@ -17,7 +17,7 @@ use Omeka\Module\AbstractModule;
 /**
  * Bulk Import
  *
- * @copyright Daniel Berthereau, 2018-2025
+ * @copyright Daniel Berthereau, 2018-2026
  * @license http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.txt
  */
 class Module extends AbstractModule
@@ -29,6 +29,7 @@ class Module extends AbstractModule
     protected $dependencies = [
         'Common',
         'Log',
+        'Mapper',
     ];
 
     public function init(ModuleManager $moduleManager): void
@@ -54,6 +55,14 @@ class Module extends AbstractModule
             $message = new \Common\Stdlib\PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
                 ['module' => 'Log', 'version' => '3.4.33']
+            );
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+        }
+
+        if (!$this->checkModuleActiveVersion('Mapper', '3.4.1')) {
+            $message = new \Common\Stdlib\PsrMessage(
+                'The module {module} should be upgraded to version {version} or later.', // @translate
+                ['module' => 'Mapper', 'version' => '3.4.1']
             );
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
         }

@@ -16,7 +16,7 @@ class ExtractMediaMetadataFactory implements FactoryInterface
         $settings = $services->get('Omeka\Settings');
         return new ExtractMediaMetadata(
             $services->get('Omeka\Logger'),
-            $services->get('Bulk\MetaMapper'),
+            $services->get('Mapper\Mapper'),
             $plugins->get('extractDataFromPdf'),
             $basePath,
             (bool) $settings->get('bulkimport_extract_metadata_log', false)

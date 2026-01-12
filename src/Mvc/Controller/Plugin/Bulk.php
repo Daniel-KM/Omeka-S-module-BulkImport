@@ -260,7 +260,7 @@ class Bulk extends AbstractPlugin
     /**
      * Check if a datatype exists and normalize its name.
      *
-     * @todo Move to automapFields (see MetaMapperConfig too).
+     * @todo Move to automapFields (see MapperConfig too).
      */
     public function dataTypeName(?string $dataType): ?string
     {
@@ -277,7 +277,7 @@ class Bulk extends AbstractPlugin
      * Get the list of datatype names.
      *
      * @todo Remove the short data types here.
-     * @todo Move to automapFields (see MetaMapperConfig too).
+     * @todo Move to automapFields (see MapperConfig too).
      */
     protected function dataTypeNames(bool $noShort = false): array
     {

@@ -43,9 +43,9 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
     protected $bulkFile;
 
     /**
-     * @var \BulkImport\Stdlib\MetaMapper|null
+     * @var \Mapper\Stdlib\Mapper|null
      */
-    protected $metaMapper;
+    protected $mapper;
 
     /**
      * @var \Laminas\Log\Logger
@@ -157,7 +157,7 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
         $plugins = $services->get('ControllerPluginManager');
         $this->bulk = $plugins->get('bulk');
         $this->bulkFile = $plugins->get('bulkFile');
-        $this->metaMapper = $services->get('Bulk\MetaMapper');
+        $this->mapper = $services->get('Mapper\Mapper');
     }
 
     public function getLabel(): string
@@ -314,8 +314,8 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
             $this->currentData,
             $this->key(),
             $this->availableFields,
-            // TODO Remove metamapper.
-            $this->getParams() + ['metaMapper' => $this->metaMapper]
+            // TODO Remove mapper.
+            $this->getParams() + ['mapper' => $this->mapper]
         );
     }
 

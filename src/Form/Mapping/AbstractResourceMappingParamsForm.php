@@ -30,8 +30,8 @@ abstract class AbstractResourceMappingParamsForm extends Form
         }
 
         $services = $this->getServiceLocator();
-        /** @var \BulkImport\Mvc\Controller\Plugin\AutomapFields $automapFields */
-        $automapFields = $services->get('ControllerPluginManager')->get('automapFields');
+        /** @var \Mapper\Stdlib\AutomapFields $automapFields */
+        $automapFields = $services->get('Mapper\AutomapFields');
 
         $this
             ->add([

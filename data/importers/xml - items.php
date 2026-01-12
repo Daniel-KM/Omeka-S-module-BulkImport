@@ -9,7 +9,7 @@ return [
     'o:config' => [
         'reader' => [
             'xsl_sheet_pre' => '',
-            'xsl_sheet' => 'module:xsl/identity.xslt1.xsl',
+            'xsl_sheet' => 'module:common/identity.xslt1.xsl',
             'xsl_params' => [],
         ],
         'mapper' => [

@@ -9,7 +9,7 @@ return [
     'o:config' => [
         'reader' => [
             'xsl_sheet_pre' => '',
-            'xsl_sheet' => 'module:xsl/sru.dublin-core_to_omeka.xsl',
+            'xsl_sheet' => 'module:sru/sru.dublin-core_to_omeka.xsl',
             'xsl_params' => [],
         ],
         'mapper' => [

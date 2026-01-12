@@ -151,9 +151,9 @@ class ImporterForm extends Form
 
     protected function getMapperOptions(): array
     {
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfigList $metaMapperConfigList */
-        $metaMapperConfigList = $this->services->get('ControllerPluginManager')->get('metaMapperConfigList');
-        return $metaMapperConfigList->listMappings([
+        /** @var \Mapper\Mvc\Controller\Plugin\MapperConfigList $mapperConfigList */
+        $mapperConfigList = $this->services->get('ControllerPluginManager')->get('mapperConfigList');
+        return $mapperConfigList->listMappings([
             ['mapping' => true],
             ['xml' => 'xml'],
             ['json' => 'ini'],

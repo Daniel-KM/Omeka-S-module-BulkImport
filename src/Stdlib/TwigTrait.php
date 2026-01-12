@@ -35,7 +35,7 @@ use Iso639p3\Iso639p3;
 /**
  * @todo Finalize clarification of twig command. Normally, only a pattern, that may be pre-parsed, and variables, and make it a service.
  *
- * Currently, it requires ->bulk() (translation and api) and ->metaMapperConfig() (to get tables).
+ * Currently, it requires ->bulk() (translation and api) and ->mapperConfig() (to get tables).
  */
 trait TwigTrait
 {
@@ -305,7 +305,7 @@ trait TwigTrait
                     } elseif ($name === 'iso-3166-french') {
                         $v = Iso3166p1::frenchName($w) ?: $w;
                     } else {
-                        $v = $this->metaMapperConfig->getSectionSettingSub('tables', $name, $w, $w);
+                        $v = $this->mapperConfig->getSectionSettingSub('tables', $name, $w, $w);
                     }
                 }
                 break;

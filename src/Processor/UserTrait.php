@@ -136,7 +136,7 @@ trait UserTrait
      *
      * Only id, email and name are needed here. Other data are filled later.
      *
-     * @todo Use metaMapper().
+     * @todo Use Mapper.
      */
     protected function prepareUser(array $source): array
     {
@@ -150,7 +150,7 @@ trait UserTrait
     }
 
     /**
-     * @todo Move to sql reader with metaMapper().
+     * @todo Move to sql reader with Mapper.
      *
      * @param iterable $sources
      */
@@ -275,7 +275,7 @@ trait UserTrait
      * Normally, "o:id", "o:email" and "o-module-usernames:username" should not
      * be overridden.
      *
-     * @todo Use metaMapper().
+     * @todo Use Mapper.
      */
     protected function fillUser(array $source, array $user): array
     {

@@ -17,7 +17,7 @@ use SimpleXMLElement;
  * This feature may is no more available for some formats for now (xml).
  *
  * @todo Extend Entry from ArrayObject (or ArrayIterator)?
- * @todo Remove iterator since it is managed by metaMapper.
+ * @todo Remove iterator since it is managed by Mapper.
  *
  * \IteratorAggregate implies \Traversable.
  */

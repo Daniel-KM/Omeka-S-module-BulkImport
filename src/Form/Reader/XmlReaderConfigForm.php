@@ -13,10 +13,10 @@ class XmlReaderConfigForm extends Form
 
     public function init(): void
     {
-        /** @var \BulkImport\Mvc\Controller\Plugin\MetaMapperConfigList $metaMapperConfigList */
-        $metaMapperConfigList = $this->services->get('ControllerPluginManager')->get('metaMapperConfigList');
+        /** @var \Mapper\Mvc\Controller\Plugin\MapperConfigList $mapperConfigList */
+        $mapperConfigList = $this->services->get('ControllerPluginManager')->get('mapperConfigList');
 
-        $xslConfig = $metaMapperConfigList->listMappings([
+        $xslConfig = $mapperConfigList->listMappings([
             ['xsl' => 'xsl'],
         ]);
         $xslConfig['mapping']['label'] = 'Configured xsl'; // @translate

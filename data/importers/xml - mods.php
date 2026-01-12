@@ -9,7 +9,7 @@ return [
     'o:config' => [
         'reader' => [
             'xsl_sheet_pre' => '',
-            'xsl_sheet' => 'module:xsl/mods_to_omeka.xsl',
+            'xsl_sheet' => 'module:mods/mods_to_omeka.xsl',
             'xsl_params' => [],
         ],
         'mapper' => [
