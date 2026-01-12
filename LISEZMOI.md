@@ -412,7 +412,7 @@ indiquer les types de données, les langues et la visibilité automatiquement. I
 est donc recommandé de les utiliser, par exemple `dcterms:title ^^resource:item @fra §private`.
 Le format est le même que celui décrit précédemment pour la destination.
 
-En outre, il existe un mappage automatique configurable dans [data/mappings/fields_to_metadata.php],
+En outre, il existe un mappage automatique configurable fourni par le module Mapper,
 et les libellés et noms de propriété standard sont déjà gérés.
 
 Ainsi, l’en-tête de chaque colonne peut avoir un type de données (avec `^^datatype`),
@@ -601,7 +601,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2025 (voir [Daniel-KM] sur GitLab)
+* Copyright Daniel Berthereau, 2017-2026 (voir [Daniel-KM] sur GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivière, Emmanuel Saint-James (code de Spip)
 * Copyright 2011-2022, Steffen Fagerström Christensen & alii (bibliothèques [Flow.js] et [flow-php-server])
 * Copyright 2011-2023, Marijn Haverbeke & alii (Bibliothèque [CodeMirror])
@@ -638,7 +638,6 @@ l’entrepôt institutionnel des travaux étudiants [Dante] de l’[Université 
 [e-prints]: https://eprints.org/
 [OAI-PMH repository]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
 [Spip]: https://spip.net
-[data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
 [Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
 [Data Type Rdf]: https://gitlab.com/Daniel-KM/Omeka-S-module-DataTypeRdf

@@ -37,9 +37,9 @@ Default importers are:
 Installation
 ------------
 
-This module requires the modules [Log] and [Common]. An external xslt 2 processor
-may be needed if you import xml files that are not importable with xlt 1. Some
-specific readers or processors may need some other modules.
+This module requires the modules [Common], [Log] and [Mapper]. An external xslt 2
+processor may be needed if you import xml files that are not importable with
+xlt 1. Some specific readers or processors may need some other modules.
 
 Since 3.4.39, the module requires php 7.4.
 
@@ -394,7 +394,7 @@ manages advanced headers names to manage data types, languages and visibility
 automatically, so it is recommended to use them, for example `dcterms:title ^^resource:item @fra ¬ßprivate`.
 The format is  the same than described above for the destination.
 
-Furthermore, there is a configurable automatic mapping in [data/mappings/fields_to_metadata.php],
+Furthermore, there is a configurable automatic mapping provided by the Mapper module,
 and labels and names of standard property terms are already managed.
 
 So the header of each column can have a data type (with `^^datatype`), a
@@ -578,7 +578,7 @@ Copyright
 
 * Copyright BibLibre, 2016-2017
 * Copyright Roy Rosenzweig Center for History and New Media, 2015-2018
-* Copyright Daniel Berthereau, 2017-2025 (see [Daniel-KM] on GitLab)
+* Copyright Daniel Berthereau, 2017-2026 (see [Daniel-KM] on GitLab)
 * Copyright (c) 2001-2019, Arnaud Martin, Antoine Pitrou, Philippe Rivi√®re, Emmanuel Saint-James (code from Spip)
 * Copyright 2011-2022, Steffen Fagerstr√∂m Christensen & alii (libraries [Flow.js] and [flow-php-server])
 * Copyright 2011-2023, Marijn Haverbeke & alii (library [CodeMirror])
@@ -598,6 +598,7 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
+[Mapper]: https://gitlab.com/Daniel-KM/Omeka-S-module-Mapper
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installing a module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
 [CSV Import]: https://github.com/omeka-s-modules/CSVImport
@@ -614,7 +615,6 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [e-prints]: https://eprints.org/
 [OAI-PMH repository]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
 [Spip]: https://spip.net
-[data/mappings/fields_to_metadata.php]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mappings/fields_to_metadata.php
 [Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
 [Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
 [Data Type Rdf]: https://gitlab.com/Daniel-KM/Omeka-S-module-DataTypeRdf
