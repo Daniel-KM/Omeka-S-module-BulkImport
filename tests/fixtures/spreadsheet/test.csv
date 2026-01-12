@@ -1,0 +1,4 @@
+title, creator, description, tags, file
+"Walden", "Henry David Thoreau", "A man seeks simplicity.", "book, classic, New England", "http://localhost/modules/BulkImport/test/fixtures/files/image_test.jpg, http://localhost/modules/BulkImport/test/fixtures/files/image_test_1.png"
+"The Count of Monte Cristo", "Alexandre Dumas", "A man seeks revenge.", "book, classic, France", "http://localhost/modules/BulkImport/test/fixtures/files/image_test.jpg"
+"Narrative of the Life of Frederick Douglass", "Frederick Douglass", "A man seeks freedom.", "book, classic, Maryland", "http://localhost/modules/BulkImport/test/fixtures/files/image_test_1.png"

@@ -1,0 +1,41 @@
+{
+  "@context": "https://localhost/api-context",
+  "@id": "https://localhost/api/media/3",
+  "@type": "o:Media",
+  "o:id": 3,
+  "o:is_public": true,
+  "o:owner": {
+    "@id": "https://localhost/api/users/1",
+    "o:id": 1
+  },
+  "o:resource_class": null,
+  "o:resource_template": null,
+  "o:thumbnail": null,
+  "o:created": {
+    "@value": "2000-01-01T00:00:00+00:00",
+    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+  },
+  "o:modified": {
+    "@value": "2000-01-01T00:00:00+00:00",
+    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+  },
+  "o:ingester": "url",
+  "o:renderer": "file",
+  "o:item": {
+    "@id": "https://localhost/api/items/1",
+    "o:id": 1
+  },
+  "o:source": "http://localhost/modules/BulkImport/test/fixtures/files/image_test_1.png",
+  "o:media_type": "image/png",
+  "o:sha256": "e83b197013c83e4f35ba48de6f681103acd58f9e",
+  "o:size": 45192,
+  "o:filename": "e83b197013c83e4f35ba48de6f681103acd58f9e.png",
+  "o:lang": null,
+  "o:original_url": "https://localhost/files/original/e83b197013c83e4f35ba48de6f681103acd58f9e.png",
+  "o:thumbnail_urls": {
+    "large": "https://localhost/files/large/e83b197013c83e4f35ba48de6f681103acd58f9e.jpg",
+    "medium": "https://localhost/files/medium/e83b197013c83e4f35ba48de6f681103acd58f9e.jpg",
+    "square": "https://localhost/files/square/e83b197013c83e4f35ba48de6f681103acd58f9e.jpg"
+  },
+  "data": []
+}

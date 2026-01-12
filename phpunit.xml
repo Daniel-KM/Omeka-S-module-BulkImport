@@ -1,25 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE phpunit>
-<phpunit
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/6.3/phpunit.xsd"
-    bootstrap="test/bootstrap.php"
-    backupGlobals="false"
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+    bootstrap="./tests/bootstrap.php"
+    cacheResultFile="./tests/.phpunit.cache/test-results"
     colors="true"
-    verbose="true"
-    forceCoversAnnotation="true"
-    beStrictAboutCoversAnnotation="true"
-    beStrictAboutOutputDuringTests="true"
-    beStrictAboutTodoAnnotatedTests="true"
-    >
+    verbose="true">
     <testsuites>
-        <testsuite name="BulkImport">
-            <directory suffix="Test.php">test/BulkImportTest</directory>
+        <testsuite name="BulkImport Test Suite">
+            <directory>./tests/BulkImportTest</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">src</directory>
-        </whitelist>
-    </filter>
+    <coverage cacheDirectory="./tests/.phpunit.cache/code-coverage">
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+    </coverage>
 </phpunit>

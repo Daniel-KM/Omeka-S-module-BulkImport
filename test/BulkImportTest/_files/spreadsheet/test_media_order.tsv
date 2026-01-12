@@ -1,4 +1,0 @@
-Identifier	Dublin Core:Title	Item	Tags	Resource template	Resource class	Media url
-aa	aa title	1	Aa tag | Bb tag | Cc tag	Base Resource	dctype:Image	http://localhost/modules/BulkImport/test/BulkImportTest/_files/image_test_1.png
-bb	bb title	1	Bb tag | Cc tag | Dd tag		dctype:Image	http://localhost/modules/BulkImport/test/BulkImportTest/_files/image_test_2.png
-cc	cc title	1	Cc tag | Dd tag | Ee tag	Base Resource		http://localhost/modules/BulkImport/test/BulkImportTest/_files/image_test_3.png

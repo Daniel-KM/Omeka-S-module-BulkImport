@@ -1,0 +1,9 @@
+Identifier	Resource Type	Collection	Item	Media Url	Resource class	Title	Creator	Date	Rights	Description	Format	Tags	Latitude	Longitude	Default Zoom
+Architectural Heritage	Item Set				dctype:Collection	Architectural Heritage				A collection of well-known monuments.
+Mont Saint-Michel	Item	Architectural Heritage			dctype:PhysicalObject	Mont Saint-Michel | English: Saint Michael's Mount		709			92 m	Abbey | Monastery	48.6360166	-1.5111145	15
+Mont Saint-Michel m1	Media		Mont Saint-Michel	https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/France-Mont-Saint-Michel-1900_bordercropped.jpg/1200px-France-Mont-Saint-Michel-1900_bordercropped.jpg	dctype:StillImage	Looking east at high water in 1900, Mont St. Michel, France	Unknown	Between 1890 and 1905	Public domain
+Coliseum	Item	Architectural Heritage			dctype:PhysicalObject	Coliseum | English: Colosseum	Vespasian | Titus	70-80			61 m	Amphitheatre	41.8902492	12.4923563	17
+Coliseum m1	Media		Coliseum	https://upload.wikimedia.org/wikipedia/commons/8/87/Exterior_of_the_Coliseum_Rome_Italy.jpg	dctype:StillImage	Exterior of the Coliseum, Rome, Italy	The Library of Congress	Between ca. 1890 and ca. 1900	Public domain
+Coliseum m2	Media		Coliseum	https://upload.wikimedia.org/wikipedia/commons/b/b3/Fyodor_Matveyev_1.jpg	dctype:StillImage	The Colosseum in Rome	Fedor Mikhailovich Matveev (1753-1826)	1816	Public domain
+Saint-Louis Cathedral	Item	Architectural Heritage			dctype:PhysicalObject	Saint-Louis Cathedral (Carthage)	Joseph Pougnet	1884-1890
+Saint-Louis Cathedral m1	Media		Saint-Louis Cathedral	https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/La_Cath%C3%A9drale%2C_Carthage%2C_Tunisia%2C_ca._1885.jpg/1280px-La_Cath%C3%A9drale%2C_Carthage%2C_Tunisia%2C_ca._1885.jpg	dctype:StillImage	La Cathédrale, Carthage, Tunisia, ca. 1885	Neurdein Frères	1885	Public domain
