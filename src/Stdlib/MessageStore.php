@@ -46,7 +46,7 @@ class MessageStore extends \Omeka\Stdlib\ErrorStore
     public function addMessage($key, $message, $severity = Logger::ERR): self
     {
         if ($this->storeNewErrorAsWarning && $severity === Logger::ERR) {
-            $severity === Logger::WARN;
+            $severity = Logger::WARN;
         }
         $this->messages[$severity][$key][] = $message;
         return $this;
