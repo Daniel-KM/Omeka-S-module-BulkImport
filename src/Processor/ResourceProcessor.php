@@ -904,23 +904,20 @@ class ResourceProcessor extends AbstractResourceProcessor
                         'resource_name' => 'items',
                     ];
                 } else {
-                    $itemIds = $this->bulkIdentifiers->findResourcesFromIdentifiers($values, $this->identifierNames, 'items', $resource['messageStore']);
-                    if ($itemIds) {
-                        if (count($values) === 1) {
-                            $resource['o:item'] = [
-                                'o:id' => end($itemIds),
-                                'checked_id' => true,
-                                'source_identifier' => $identifier,
-                                'resource_name' => 'items',
-                            ];
-                        } else {
-                            // TODO Set the source identifier anywhere (rare anyway).
-                            $resource['o:item'] = [
-                                'o:id' => end($itemIds),
-                                'checked_id' => true,
-                                'resource_name' => 'items',
-                            ];
-                        }
+                    // Use the extracted identifier, not the original $values which may be
+                    // a pre-processed structure like {"o:id": null}.
+                    $itemId = $this->bulkIdentifiers->findResourcesFromIdentifiers($identifier, $this->identifierNames, 'items', $resource['messageStore']);
+                    // When a single identifier is passed, returns int directly; otherwise array.
+                    if (is_array($itemId)) {
+                        $itemId = end($itemId) ?: null;
+                    }
+                    if ($itemId) {
+                        $resource['o:item'] = [
+                            'o:id' => $itemId,
+                            'checked_id' => true,
+                            'source_identifier' => $identifier,
+                            'resource_name' => 'items',
+                        ];
                     } else {
                         // Only for first loop. Normally not possible after: all
                         // identifiers are stored in the list "map" during first loop.
