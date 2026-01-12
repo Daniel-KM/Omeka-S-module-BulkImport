@@ -22,79 +22,24 @@
         "migration"
     ],
     "require": {
-        "ext-xml": "*",
-        "codemirror/codemirror": "^5.65",
-        "daniel-km/simple-iso-3166-1": "^0.2",
-        "daniel-km/simple-iso-639-3": "^0.2",
-        "hakre/xmlreaderiterator": "^0.1",
         "james-heinrich/getid3": "^2.0-dev",
-        "mikehaertl/php-pdftk": "^0.13",
-        "mtdowling/jmespath.php": "^2.7",
-        "oomphinc/composer-installers-extender": "^2.0",
-        "openspout/openspout": "^3.7",
-        "softcreatr/jsonpath": "^0.7"
+        "mikehaertl/php-pdftk": "^0.13"
     },
     "replace": {
         "laminas/laminas-escaper": "*",
-        "laminas/laminas-zendframework-bridge": "*",
-        "symfony/polyfill-mbstring": "*"
+        "laminas/laminas-zendframework-bridge": "*"
     },
     "autoload-dev": {
         "psr-4": {
             "BulkImportTest\\": "test/BulkImportTest/"
         }
     },
-    "repositories": [
-        {
-            "type": "package",
-            "package": {
-                "type": "omeka-addon-asset",
-                "name": "codemirror/codemirror",
-                "version": "5.65.20",
-                "dist": {
-                    "type": "zip",
-                    "url": "https://codemirror.net/5/codemirror.zip"
-                }
-            }
-        },
-        {
-            "type": "package",
-            "package": {
-                "name": "hakre/xmlreaderiterator",
-                "version": "0.1.13",
-                "dist": {
-                    "type": "tar",
-                    "url": "https://github.com/Daniel-KM/XMLReaderIterator/archive/refs/tags/v0.1.13.tar.gz"
-                }
-            }
-        }
-    ],
-    "extra": {
-        "installer-types": [
-            "omeka-addon-asset"
-        ],
-        "installer-paths": {
-            "asset/vendor/{$name}/": [
-                "type:omeka-addon-asset"
-            ]
-        },
-        "installer-name" : "BulkImport"
-    },
-    "scripts": {
-        "post-install-cmd": "@build",
-        "post-update-cmd": "@build",
-        "build": [
-            "# Fix deprecation for JsonPath 0.7.6 on php 8 (minimum required by Omeka is php 7.4)",
-            "@php -r '$f = __DIR__ . \"/vendor/softcreatr/jsonpath/src/JSONPath.php\"; $c = file_get_contents($f); $a1 = \"*/\n    public function offsetGet(\"; $a2 = \"*/\n    public function current(\"; $a3 = \"*/\n    public function key(\"; $r = \"*/\n    #[\\ReturnTypeWillChange]\"; file_put_contents($f, strtr($c, [$a1 => $r . substr($a1, 2), $a2 => $r . substr($a2, 2), $a3 => $r . substr($a3, 2)]));'"
-        ]
-    },
     "config": {
         "platform": {
             "php": "7.4"
-        },
-        "allow-plugins": {
-            "composer/installers": true,
-            "oomphinc/composer-installers-extender": true
         }
+    },
+    "extra": {
+        "installer-name" : "BulkImport"
     }
 }

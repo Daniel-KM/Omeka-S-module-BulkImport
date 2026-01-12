@@ -3,10 +3,10 @@
 namespace BulkImport\Reader;
 
 /**
- * The xmlreader itherator is not included by default in the autoload, so load
- * it just for BulkImport.
+ * The xmlreader iterator is not included by default in the autoload, so load
+ * it manually. The library is provided by the Mapper module.
  */
-$xmlReaderIterator_libPath = dirname(__DIR__, 2) . '/vendor/hakre/xmlreaderiterator/src';
+$xmlReaderIterator_libPath = dirname(__DIR__, 3) . '/Mapper/vendor/hakre/xmlreaderiterator/src';
 
 require_once $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
 require_once $xmlReaderIterator_libPath . '/XMLBuild.php';

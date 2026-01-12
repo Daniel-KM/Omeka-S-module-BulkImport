@@ -34,6 +34,11 @@ class Module extends AbstractModule
 
     public function init(ModuleManager $moduleManager): void
     {
+        // Load Mapper autoloader first for shared dependencies (OpenSpout, etc.).
+        $mapperAutoload = dirname(__DIR__) . '/Mapper/vendor/autoload.php';
+        if (file_exists($mapperAutoload)) {
+            require_once $mapperAutoload;
+        }
         require_once __DIR__ . '/vendor/autoload.php';
     }
 
