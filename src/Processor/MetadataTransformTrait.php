@@ -636,7 +636,7 @@ trait MetadataTransformTrait
             libxml_use_internal_errors(true);
             $doc = new DOMDocument();
             try {
-                $doc->loadXML($xml);
+                $doc->loadXML($xml, LIBXML_NONET);
             } catch (\Exception $e) {
                 $doc = null;
             }

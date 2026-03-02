@@ -241,7 +241,7 @@ class ProcessXslt extends AbstractPlugin
                     basename($filepath)
                 ));
             }
-            $domDocument->loadXML($xmlContent);
+            $domDocument->loadXML($xmlContent, LIBXML_NONET);
         }
 
         // Default import via file system.

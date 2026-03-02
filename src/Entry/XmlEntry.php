@@ -35,7 +35,7 @@ class XmlEntry extends BaseEntry
                 }
                 $this->data = simplexml_load_file($this->data);
             } else {
-                $this->data = simplexml_load_string($this->data);
+                $this->data = simplexml_load_string($this->data, null, LIBXML_NONET);
             }
             $simpleXml = $this->data;
         } elseif ($this->data instanceof SimpleXMLElement) {
@@ -52,7 +52,7 @@ class XmlEntry extends BaseEntry
         $dom = new DOMDocument('1.0');
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
-        $dom->loadXML($simpleXml->asXML());
+        $dom->loadXML($simpleXml->asXML(), LIBXML_NONET);
         echo $dom->saveXML();
         $this->logger->debug($dom->saveXML());
         */
