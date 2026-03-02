@@ -2,36 +2,6 @@
 
 namespace BulkImport\Reader;
 
-/**
- * The xmlreader iterator is not included by default in the autoload, so load
- * it manually. The library is provided by the Mapper module.
- */
-$xmlReaderIterator_libPath = dirname(__DIR__, 3) . '/Mapper/vendor/hakre/xmlreaderiterator/src';
-
-require_once $xmlReaderIterator_libPath . '/XMLReaderAggregate.php';
-require_once $xmlReaderIterator_libPath . '/XMLBuild.php';
-require_once $xmlReaderIterator_libPath . '/XMLAttributeIterator.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderIterator.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderIteration.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderNextIteration.php';
-require_once $xmlReaderIterator_libPath . '/DOMReadingIteration.php';
-require_once $xmlReaderIterator_libPath . '/XMLWritingIteration.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderNode.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderElement.php';
-require_once $xmlReaderIterator_libPath . '/XMLChildIterator.php';
-require_once $xmlReaderIterator_libPath . '/XMLElementIterator.php';
-require_once $xmlReaderIterator_libPath . '/XMLChildElementIterator.php';
-require_once $xmlReaderIterator_libPath . '/XMLReaderFilterBase.php';
-require_once $xmlReaderIterator_libPath . '/XMLNodeTypeFilter.php';
-require_once $xmlReaderIterator_libPath . '/XMLAttributeFilterBase.php';
-require_once $xmlReaderIterator_libPath . '/XMLAttributeFilter.php';
-require_once $xmlReaderIterator_libPath . '/XMLAttributePreg.php';
-require_once $xmlReaderIterator_libPath . '/XMLElementXpathFilter.php';
-require_once $xmlReaderIterator_libPath . '/BufferedFileRead.php';
-require_once $xmlReaderIterator_libPath . '/BufferedFileReaders.php';
-require_once $xmlReaderIterator_libPath . '/XMLSequenceStreamPath.php';
-require_once $xmlReaderIterator_libPath . '/XMLSequenceStream.php';
-
 use BulkImport\Entry\XmlEntry;
 use BulkImport\Form\Reader\XmlReaderConfigForm;
 use BulkImport\Form\Reader\XmlReaderParamsForm;
@@ -39,12 +9,11 @@ use Common\Stdlib\PsrMessage;
 use Iterator;
 use Laminas\Http\Response as HttpResponse;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use XMLElementIterator;
 use XMLReader as XMLReaderCore;
 
 /**
- * Once transformed into a normalized xml, the reader uses XmlElementIterator
- * instead of XmlReader, that is forward only.
+ * Once transformed into a normalized xml, the reader iterates over first-level
+ * elements using native XMLReader, that is forward only.
  */
 class XmlReader extends AbstractMultiplePaginatedReader
 {
@@ -384,28 +353,24 @@ class XmlReader extends AbstractMultiplePaginatedReader
         $reader = new XMLReaderCore();
         $reader->open($filePath);
 
-        $elementIterator = new XmlElementIterator($reader, $firstLevelElementName);
-
-        // TODO XMLReaderIterator requires a rewind if not managed here for an undetermined reason.
-        // $elementIterator->rewind();
-
         $currentIndexInPage = 0;
-        foreach ($elementIterator as $resource) {
-            // $this->currentData = $resource;
-            yield new XmlEntry(
-                // $this->currentData,
-                $resource,
-                // The key is needed only for spreedsheets.
-                // $this->key(),
-                $currentIndexInPage,
-                $this->availableFields,
-                // TODO Remove mapper.
-                $this->getParams() + ['mapper' => $this->mapper]
-            );
-            ++$currentIndexInPage;
+        while ($reader->read()) {
+            if ($reader->nodeType === XMLReaderCore::ELEMENT
+                && $reader->localName === $firstLevelElementName
+            ) {
+                $node = $reader->expand();
+                $simpleXml = simplexml_import_dom($node);
+                yield new XmlEntry(
+                    $simpleXml,
+                    $currentIndexInPage,
+                    $this->availableFields,
+                    // TODO Remove mapper.
+                    $this->getParams() + ['mapper' => $this->mapper]
+                );
+                ++$currentIndexInPage;
+            }
         }
-
-        // No return, this is a generator.
+        $reader->close();
     }
 
     /**

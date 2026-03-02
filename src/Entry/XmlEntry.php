@@ -3,7 +3,6 @@
 namespace BulkImport\Entry;
 
 use SimpleXMLElement;
-use XMLReaderNode;
 
 class XmlEntry extends BaseEntry
 {
@@ -39,13 +38,8 @@ class XmlEntry extends BaseEntry
                 $this->data = simplexml_load_string($this->data);
             }
             $simpleXml = $this->data;
-        } elseif ($this->data instanceof XMLReaderNode) {
-            $simpleXml = $this->data->getSimpleXMLElement();
-            // Fix issue with cdata (no: it will escape html tags).
-            // $simpleXml = new SimpleXMLElement($simpleXml->asXML(), self::LIBXML_OPTIONS);
-            $simpleXml = new \BulkImport\Entry\SimpleXMLElementNamespaced($simpleXml->asXML(), self::LIBXML_OPTIONS);
         } elseif ($this->data instanceof SimpleXMLElement) {
-            $simpleXml = $this->data;
+            $simpleXml = new \BulkImport\Entry\SimpleXMLElementNamespaced($this->data->asXML(), self::LIBXML_OPTIONS);
         } else {
             $this->data = [];
             return;
@@ -204,7 +198,7 @@ class XmlEntry extends BaseEntry
 
         $mainElement = $element;
         unset($element);
-        /** @var \XMLReaderNode $data */
+        /** @var \SimpleXMLElement $data */
         $namespaces = [null] + $mainElement->getNamespaces(true);
 
         foreach ($namespaces as $prefix => $namespace) {
@@ -241,7 +235,7 @@ class XmlEntry extends BaseEntry
 
         $mainElement = $element;
         unset($element);
-        /** @var \XMLReaderNode $data */
+        /** @var \SimpleXMLElement $data */
         $namespaces = [null] + $mainElement->getNamespaces(true);
 
         foreach ($namespaces as $prefix => $namespace) {
@@ -375,7 +369,7 @@ class XmlEntry extends BaseEntry
 
         // Get properties if any.
         $mainElement = $element;
-        /** @var \XMLReaderNode $data */
+        /** @var \SimpleXMLElement $data */
         $namespaces = [null] + $mainElement->getNamespaces(true);
         foreach ($namespaces as $prefix => $namespace) {
             $nsElements = $namespace
