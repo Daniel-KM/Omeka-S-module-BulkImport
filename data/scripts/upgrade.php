@@ -46,7 +46,8 @@ if (version_compare($newVersion, '3.4.47', '>')
             $translate('To upgrade from version %1$s to version %2$s, you must upgrade to version %3$s first.'), // @translate
             $oldVersion, $newVersion, '3.4.47'
         );
-        throw new ModuleCannotInstallException((string) $message);
+        $messenger->addError($message);
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
     }
 }
 
@@ -55,7 +56,8 @@ if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActi
         $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
         'Common', '3.4.80'
     );
-    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+    $messenger->addError($message);
+    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
 }
 
 if (!$this->checkModuleActiveVersion('Log', '3.4.33')) {
@@ -147,7 +149,8 @@ if (version_compare($oldVersion, '3.4.39', '<')) {
             'Since version {version}, this module requires php 7.4.', // @translate
             ['version' => '3.4.39']
         );
-        throw new ModuleCannotInstallException((string) $message);
+        $messenger->addError($message);
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
     }
 }
 
