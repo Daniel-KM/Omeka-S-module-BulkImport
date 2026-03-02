@@ -557,6 +557,10 @@ if (version_compare($oldVersion, '3.4.61', '<')) {
         'content-dm/content-dm_base.jsdot' => 'content-dm/content-dm.base.jsdot',
         'content-dm/content-dm_base.jmespath' => 'content-dm/content-dm.base.jmespath',
         'content-dm/content-dm_base.jsonpath' => 'content-dm/content-dm.base.jsonpath',
+        // Content-DM unistra (old dot separator → new underscore)
+        'json/content-dm.unistra.collection-3.jsdot' => 'content-dm/content-dm.unistra_collection-3.jsdot',
+        'json/content-dm.unistra.collection-3.jmespath' => 'content-dm/content-dm.unistra_collection-3.jmespath',
+        'json/content-dm.unistra.collection-3.jsonpath' => 'content-dm/content-dm.unistra_collection-3.jsonpath',
         // IIIF
         'base/iiif2xx.jsdot' => 'iiif/iiif2xx.base.jsdot',
         'base/iiif2xx.jmespath' => 'iiif/iiif2xx.base.jmespath',
