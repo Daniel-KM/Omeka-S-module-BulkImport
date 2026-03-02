@@ -1,26 +1,30 @@
 {
     "name": "daniel-km/omeka-s-module-bulk-import",
-    "description": "Module for Omeka S implementing extensible bulk import for xml, sql databases, spreedsheets, and json endpoints.",
-    "type": "library",
+    "type": "omeka-s-module",
+    "description": "Module for Omeka S: Extensible bulk import module for xml, sql databases, spreedsheets, and json endpoints.",
+    "keywords": [
+        "Omeka S",
+        "Omeka S module",
+        "admin",
+        "import",
+        "migration"
+    ],
     "license": "CECILL-2.1",
+    "homepage": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport",
     "authors": [
         {
             "name": "Daniel Berthereau",
             "email": "Daniel.packagist@Berthereau.net"
         }
     ],
-    "homepage": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport",
     "support": {
         "issues": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues",
         "forum": "https://forum.omeka.org/"
     },
-    "keywords": [
-        "Omeka S",
-        "module",
-        "admin",
-        "import",
-        "migration"
-    ],
+    "_require (not set until Omeka S merges PR #2412)": {
+        "omeka/omeka-s": "^4.0",
+        "daniel-km/omeka-s-module-common": "*"
+    },
     "require": {
         "james-heinrich/getid3": "^2.0-dev",
         "mikehaertl/php-pdftk": "^0.13"
@@ -28,6 +32,11 @@
     "replace": {
         "laminas/laminas-escaper": "*",
         "laminas/laminas-zendframework-bridge": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "BulkImport\\": "src/"
+        }
     },
     "autoload-dev": {
         "psr-4": {
@@ -40,6 +49,7 @@
         }
     },
     "extra": {
-        "installer-name" : "BulkImport"
+        "installer-name": "BulkImport",
+        "configurable": true
     }
 }
