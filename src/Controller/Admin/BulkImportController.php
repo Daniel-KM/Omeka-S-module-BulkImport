@@ -23,12 +23,12 @@ class BulkImportController extends AbstractActionController
     {
         $this->setBrowseDefaults('label', 'asc');
 
-        // Importers.
+        /** @var \BulkImport\Api\Representation\ImporterRepresentation[] $importers */
         $response = $this->api()->search('bulk_importers', ['sort_by' => 'label', 'sort_order' => 'asc']);
         $importers = $response->getContent();
 
-        // Imports.
-        $perPage = 25;
+        /** @var \BulkImport\Api\Representation\ImportRepresentation[] $imports */
+        $perPage = \Omeka\Stdlib\Paginator::PER_PAGE;
         $query = [
             'page' => 1,
             'per_page' => $perPage,

@@ -31,8 +31,8 @@ class TsvReader extends CsvReader
     {
         parent::__construct($services);
         $this->delimiter = "\t";
-        $this->enclosure = chr(0);
-        $this->escape = chr(0);
+        $this->enclosure = "\0";
+        $this->escape = "\0";
     }
 
     public function handleParamsForm(Form $form): self
@@ -40,8 +40,8 @@ class TsvReader extends CsvReader
         parent::handleParamsForm($form);
         $params = $this->getParams();
         $params['delimiter'] = "\t";
-        $params['enclosure'] = chr(0);
-        $params['escape'] = chr(0);
+        $params['enclosure'] = "\0";
+        $params['escape'] = "\0";
         $this->setParams($params);
         $this->appendInternalParams();
         return $this;
@@ -51,8 +51,8 @@ class TsvReader extends CsvReader
     {
         parent::reset();
         $this->delimiter = "\t";
-        $this->enclosure = chr(0);
-        $this->escape = chr(0);
+        $this->enclosure = "\0";
+        $this->escape = "\0";
         return $this;
     }
 

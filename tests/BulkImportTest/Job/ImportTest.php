@@ -624,8 +624,8 @@ class ImportTest extends AbstractHttpControllerTestCase
                     'size' => 27482,
                 ],
                 'delimiter' => "\t",
-                'enclosure' => chr(0),
-                'escape' => chr(0),
+                'enclosure' => "\0",
+                'escape' => "\0",
             ],
             'processor_params' => [
                 'o:resource_template' => '1',

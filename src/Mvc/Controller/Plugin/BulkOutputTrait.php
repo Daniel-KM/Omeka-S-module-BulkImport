@@ -62,7 +62,7 @@ trait BulkOutputTrait
                     // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
                     $this->logger->err(
                         'Error when saving "{filename}" (temp file: "{tempfile}"): {error}', // @translate
-                        ['filename' => $filename, 'tempfile' => $filePath, 'error' => error_get_last()['message']]
+                        ['filename' => $filename, 'tempfile' => $filePath, 'error' => error_get_last()['message'] ?? 'unknown error']
                     );
                     return null;
                 }

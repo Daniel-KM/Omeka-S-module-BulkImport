@@ -521,7 +521,7 @@ class Bulk extends AbstractPlugin
      */
     public function trimUnicode($string): string
     {
-        return preg_replace('/^[\s\h\v[:blank:][:space:]]+|[\s\h\v[:blank:][:space:]]+$/u', '', (string) $string);
+        return preg_replace('/^\s+|\s+$/u', '', (string) $string);
     }
 
     /**

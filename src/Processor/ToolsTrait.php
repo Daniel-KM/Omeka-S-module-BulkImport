@@ -379,7 +379,8 @@ trait ToolsTrait
         $sha1 = sha1($string);
         $string = mb_strtolower($string);
         if (extension_loaded('intl')) {
-            $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+            static $transliterator;
+            $transliterator ??= \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
             $string = $transliterator->transliterate($string);
         } elseif (extension_loaded('iconv')) {
             $string = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $string);

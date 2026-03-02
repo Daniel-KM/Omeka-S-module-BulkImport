@@ -16,8 +16,8 @@ class TsvReaderTest extends AbstractReader
         // TSV requires specific delimiter/enclosure/escape params.
         $tsvParams = [
             'delimiter' => "\t",
-            'enclosure' => chr(0),
-            'escape' => chr(0),
+            'enclosure' => "\0",
+            'escape' => "\0",
         ];
 
         return [

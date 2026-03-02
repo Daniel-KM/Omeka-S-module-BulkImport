@@ -413,7 +413,7 @@ class BulkCheckLog extends AbstractPlugin
         if (!$this->handleLog) {
             $message = new PsrMessage(
                 'Unable to open output: {error}.', // @translate
-                ['error' => error_get_last()['message']]
+                ['error' => error_get_last()['message'] ?? 'unknown error']
             );
             $this->logger->err($message->getMessage(), $message->getContext());
             return [
@@ -426,10 +426,10 @@ class BulkCheckLog extends AbstractPlugin
         fwrite($this->handleLog, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
         if ($this->options['enclosure'] === 0) {
-            $this->options['enclosure'] = chr(0);
+            $this->options['enclosure'] = "\0";
         }
         if ($this->options['escape'] === 0) {
-            $this->options['escape'] = chr(0);
+            $this->options['escape'] = "\0";
         }
 
         $row = [];

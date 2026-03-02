@@ -191,6 +191,6 @@ class BaseEntry implements Entry
         } else {
             $string = (string) $string;
         }
-        return preg_replace('/^[\h\v\s[:blank:][:space:]]+|[\h\v\s[:blank:][:space:]]+$/u', '', $string);
+        return preg_replace('/^\s+|\s+$/u', '', $string);
     }
 }
