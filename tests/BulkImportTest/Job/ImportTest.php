@@ -100,17 +100,17 @@ class ImportTest extends AbstractHttpControllerTestCase
     {
         $conn = $this->getApplicationServiceLocator()->get('Omeka\Connection');
         // Execute each statement separately - PDO exec() may not handle multi-statement.
-        $conn->exec('SET FOREIGN_KEY_CHECKS = 0');
-        $conn->exec('TRUNCATE TABLE item');
-        $conn->exec('TRUNCATE TABLE item_set');
-        $conn->exec('TRUNCATE TABLE item_item_set');
-        $conn->exec('TRUNCATE TABLE media');
-        $conn->exec('TRUNCATE TABLE resource');
-        $conn->exec('TRUNCATE TABLE value');
-        $conn->exec('TRUNCATE TABLE bulk_import');
-        $conn->exec('TRUNCATE TABLE bulk_importer');
-        $conn->exec('TRUNCATE TABLE bulk_imported');
-        $conn->exec('SET FOREIGN_KEY_CHECKS = 1');
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $conn->executeStatement('TRUNCATE TABLE item');
+        $conn->executeStatement('TRUNCATE TABLE item_set');
+        $conn->executeStatement('TRUNCATE TABLE item_item_set');
+        $conn->executeStatement('TRUNCATE TABLE media');
+        $conn->executeStatement('TRUNCATE TABLE resource');
+        $conn->executeStatement('TRUNCATE TABLE value');
+        $conn->executeStatement('TRUNCATE TABLE bulk_import');
+        $conn->executeStatement('TRUNCATE TABLE bulk_importer');
+        $conn->executeStatement('TRUNCATE TABLE bulk_imported');
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
         $this->entityManager->clear();
 
         // Clear the BulkIdentifiers cache which stores identifier->resource mappings.
