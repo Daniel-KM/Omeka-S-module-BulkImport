@@ -133,6 +133,15 @@ removed with default xsl, that doesn’t warn anything.
 Anyway, if there is no xslt2 processor installed, the command field should be
 cleared. The module will use the default xslt 1 processor of php, if installed.
 
+* For test
+
+The module includes a comprehensive test suite with unit and functional tests.
+Run them from the root of Omeka:
+
+```sh
+vendor/bin/phpunit -c modules/BulkImport/phpunit.xml --testdox
+```
+
 
 Usage
 -----
