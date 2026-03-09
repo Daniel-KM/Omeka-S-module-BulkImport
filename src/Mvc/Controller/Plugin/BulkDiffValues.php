@@ -9,10 +9,9 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Stdlib\Message;
 use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Common\Type;
-use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
-use OpenSpout\Writer\Common\Creator\WriterFactory;
 
 /**
  * Manage diff of values.
@@ -280,15 +279,10 @@ class BulkDiffValues extends AbstractPlugin
         $countColumns = count($headers);
         $countRows = max(array_map('count', $result));
 
-        // This is for OpenSpout v3, for php 7.2+.
-        // A value cannot be an empty string.
-
         // Prepare output.
         /** @var \OpenSpout\Writer\ODS\Writer $writer */
-        $writer = WriterFactory::createFromType(Type::ODS);
-        $writer
-            // ->setTempFolder($this->tempPath)
-            ->openToFile($this->filepathDiffValuesOds);
+        $writer = new \OpenSpout\Writer\ODS\Writer();
+        $writer->openToFile($this->filepathDiffValuesOds);
 
         $writer
             ->getCurrentSheet()
@@ -297,25 +291,22 @@ class BulkDiffValues extends AbstractPlugin
             ));
 
         // Add headers.
-        $row = WriterEntityFactory::createRowFromArray(
-            $headers,
-            (new Style())->setShouldShrinkToFit(true)->setFontBold()
-        );
+        $style = (new Style())->setShouldShrinkToFit(true)->setFontBold();
+        $row = new Row(array_map(fn($v) => new StringCell((string) ($v ?? ''), null), $headers), $style);
         $writer->addRow($row);
 
         for ($i = 0; $i < $countRows; $i++) {
-            $row = array_fill(0, $countColumns, new Cell(null));
+            $row = array_fill(0, $countColumns, Cell::fromValue(null));
             foreach ($headers as $k => $header) {
                 $value = $result[$header][$i] ?? null;
                 if ($value === null || $value === '') {
                     continue;
                 }
-                $cell = new Cell($value);
-                // Fix issues with strings starting with "=" (formulas).
-                $cell->setType(Cell::TYPE_STRING);
-                $row[$k] = $cell;
+                // Use StringCell to avoid strings starting with "=" being
+                // interpreted as formulas.
+                $row[$k] = new StringCell((string) $value, null);
             }
-            $row = WriterEntityFactory::createRow($row);
+            $row = new Row($row);
             $writer->addRow($row);
         }
 
@@ -326,7 +317,7 @@ class BulkDiffValues extends AbstractPlugin
     }
 
     /**
-     * Add a  message with the url to the file.
+     * Add a message with the url to the file.
      */
     protected function messageResultFile(): self
     {

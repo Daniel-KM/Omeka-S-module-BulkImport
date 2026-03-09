@@ -7,9 +7,6 @@ use BulkImport\Entry\SpreadsheetEntry;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderConfigForm;
 use BulkImport\Form\Reader\OpenDocumentSpreadsheetReaderParamsForm;
 use Common\Stdlib\PsrMessage;
-use OpenSpout\Common\Type;
-use OpenSpout\Reader\Common\Creator\ReaderEntityFactory;
-use OpenSpout\Reader\ReaderInterface;
 
 class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
 {
@@ -43,6 +40,17 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     protected $sheetIterator;
 
     /**
+     * Cached current sheet from the sheet iterator.
+     *
+     * In openspout v4, SheetIterator::current() reads directly from the XML
+     * reader position. It must be called only once per iterator step (after
+     * rewind/next), then cached, because row iteration moves the reader.
+     *
+     * @var ?\OpenSpout\Reader\ODS\Sheet
+     */
+    protected $currentSheet = null;
+
+    /**
      * @var ?int
      */
     protected $sheetIndex = null;
@@ -74,10 +82,8 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
      *
      * @var string
      */
-    protected $spreadsheetType = Type::ODS;
-
     /**
-     * @var ReaderInterface
+     * @var \OpenSpout\Reader\ODS\Reader
      */
     protected $spreadsheetReader;
 
@@ -147,11 +153,13 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     {
         $this->isReady();
 
+        if (!$this->currentSheet) {
+            return false;
+        }
+
         // In some cases (false empty rows), the iterator doesn't stop until
         // last row of the spreadsheet, so check the number of processed rows.
-        $sheet = $this->sheetIterator->current();
-        // There should be at least one filled row, excluding the header.
-        $index = $sheet->getIndex();
+        $index = $this->currentSheet->getIndex();
         if (empty($this->sheetsRowCount[$index])
             || ($this->processAllSheets && empty($this->availableFieldsMultiSheets[$index]))
         ) {
@@ -180,12 +188,12 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         // When the row is false (invalid), prepare next sheet until last one.
         $this->sheetIndex = null;
         $this->sheetName = null;
+        $this->currentSheet = null;
         do {
             $this->sheetIterator->next();
             if (!$this->sheetIterator->valid()) {
                 return false;
             }
-            /** @var \OpenSpout\Reader\SheetInterface $sheet */
             $sheet = $this->sheetIterator->current();
             if (!$sheet->isVisible()) {
                 continue;
@@ -201,6 +209,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             break;
         } while (true);
 
+        $this->currentSheet = $sheet;
         $this->sheetIndex = $sheet->getIndex();
         $this->sheetName = $sheet->getName();
 
@@ -218,10 +227,6 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         if (!$this->valid()) {
             $this->sheetIndex = null;
             $this->sheetName = null;
-        } elseif ($this->sheetIndex === null) {
-            $sheet = $this->sheetIterator->current();
-            $this->sheetIndex = $sheet->getIndex();
-            $this->sheetName = $sheet->getName();
         }
         return $this->sheetIndex;
     }
@@ -234,10 +239,6 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
         if (!$this->valid()) {
             $this->sheetIndex = null;
             $this->sheetName = null;
-        } elseif ($this->sheetIndex === null) {
-            $sheet = $this->sheetIterator->current();
-            $this->sheetIndex = $sheet->getIndex();
-            $this->sheetName = $sheet->getName();
         }
         return $this->sheetName;
     }
@@ -249,19 +250,14 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
     {
         if (!$this->valid()) {
             return null;
-        } elseif ($this->sheetIndex === null || !isset($this->sheetsRowCount[$this->sheetIndex])) {
-            $sheet = $this->sheetIterator->current();
-            $this->sheetIndex = $sheet->getIndex();
-            $this->sheetName = $sheet->getName();
-            $total = $this->countSheetRows($sheet->getRowIterator());
-            $this->sheetsRowCount[$this->sheetIndex] = max(0, $total - 1);
         }
-        return $this->sheetsRowCount[$this->sheetIndex];
+        return $this->sheetsRowCount[$this->sheetIndex] ?? null;
     }
 
     protected function reset(): self
     {
         parent::reset();
+        $this->currentSheet = null;
         if ($this->spreadsheetReader) {
             $this->spreadsheetReader->close();
         }
@@ -282,10 +278,14 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             $this->spreadsheetReader->close();
         }
 
-        $this->spreadsheetReader = ReaderEntityFactory::createODSReader();
         // Important, else next rows will be skipped.
         // Nevertheless, the count should remove all last empty rows.
-        $this->spreadsheetReader->setShouldPreserveEmptyRows(true);
+        $options = new \OpenSpout\Reader\ODS\Options();
+        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
+        // Read the dates as text. See fix #179 in CSVImport.
+        // TODO Read the good format in spreadsheet entry.
+        $options->SHOULD_FORMAT_DATES = true;
+        $this->spreadsheetReader = new \OpenSpout\Reader\ODS\Reader($options);
 
         $filepath = $this->getParam('filename');
 
@@ -308,12 +308,6 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
                 )
             );
         }
-
-        $this->spreadsheetReader
-            // ->setTempFolder($this->getServiceLocator()->get('Config')['temp_dir'])
-            // Read the dates as text. See fix #179 in CSVImport.
-            // TODO Read the good format in spreadsheet entry.
-            ->setShouldFormatDates(true);
 
         // Initialize first sheet and sheet iterator.
         $this->sheetIterator = $this->spreadsheetReader->getSheetIterator();
@@ -363,6 +357,7 @@ class OpenDocumentSpreadsheetReader extends AbstractSpreadsheetFileReader
             throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
         }
 
+        $this->currentSheet = $sheet;
         $this->iterator = $sheet->getRowIterator();
 
         $this->sheetIndex = $sheet->getIndex();

@@ -27,7 +27,8 @@
     },
     "require": {
         "james-heinrich/getid3": "^2.0-dev",
-        "mikehaertl/php-pdftk": "^0.13"
+        "mikehaertl/php-pdftk": "^0.13",
+        "openspout/openspout": "^4.25"
     },
     "replace": {
         "laminas/laminas-escaper": "*",
@@ -45,7 +46,7 @@
     },
     "config": {
         "platform": {
-            "php": "7.4"
+            "php": "8.1"
         }
     },
     "extra": {

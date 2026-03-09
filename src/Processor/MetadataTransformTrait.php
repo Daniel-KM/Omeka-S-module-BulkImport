@@ -7,9 +7,10 @@ use DOMNodeList;
 use DOMXPath;
 use Laminas\Http\Client\Exception\ExceptionInterface as HttpExceptionInterface;
 use Laminas\Http\ClientStatic;
+use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Color;
-use OpenSpout\Writer\Common\Creator\Style\StyleBuilder;
-use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
+use OpenSpout\Common\Entity\Style\Style;
 
 // use SimpleXMLElement;
 
@@ -3660,7 +3661,7 @@ trait MetadataTransformTrait
         $baseUrl = $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/' : '/');
 
         /** @var \OpenSpout\Writer\ODS\Writer $spreadsheetWriter */
-        $spreadsheetWriter = WriterEntityFactory::createODSWriter();
+        $spreadsheetWriter = new \OpenSpout\Writer\ODS\Writer();
 
         try {
             @unlink($filepath);
@@ -3690,10 +3691,11 @@ trait MetadataTransformTrait
         $emptyRow = array_fill_keys($tableHeaders, '');
 
         /** @var \OpenSpout\Common\Entity\Row $row */
-        $row = WriterEntityFactory::createRowFromArray($tableHeaders, (new StyleBuilder())->setFontBold()->build());
+        $style = (new Style())->setFontBold();
+        $row = new Row(array_map(fn($v) => new StringCell((string) ($v ?? ''), null), $tableHeaders), $style);
         $spreadsheetWriter->addRow($row);
 
-        $newStyle = (new StyleBuilder())->setBackgroundColor(Color::rgb(208, 228, 245))->build();
+        $newStyle = (new Style())->setBackgroundColor(Color::rgb(208, 228, 245));
 
         $even = false;
         foreach ($mapper as $source => $rows) {
@@ -3723,7 +3725,7 @@ trait MetadataTransformTrait
                 $row = array_filter(array_map('strval', $row), 'strlen');
                 // The order should be always the same.
                 $row = array_replace($emptyRow, array_intersect_key($row, $emptyRow));
-                $sheetRow = WriterEntityFactory::createRowFromArray($row);
+                $sheetRow = new Row(array_map(fn($v) => new StringCell((string) ($v ?? ''), null), $row));
                 if ($even) {
                     $sheetRow->setStyle($newStyle);
                 }

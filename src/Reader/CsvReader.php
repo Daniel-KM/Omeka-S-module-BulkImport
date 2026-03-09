@@ -5,7 +5,6 @@ namespace BulkImport\Reader;
 use BulkImport\Form\Reader\CsvReaderConfigForm;
 use BulkImport\Form\Reader\CsvReaderParamsForm;
 use Common\Stdlib\PsrMessage;
-use OpenSpout\Common\Type;
 use SplFileObject;
 
 /**
@@ -47,13 +46,6 @@ class CsvReader extends AbstractSpreadsheetFileReader
      * @var \SplFileObject.
      */
     protected $iterator;
-
-    /**
-     * Type of spreadsheet.
-     *
-     * @var string
-     */
-    protected $spreadsheetType = Type::CSV;
 
     /**
      * @var string

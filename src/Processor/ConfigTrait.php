@@ -2,8 +2,6 @@
 
 namespace BulkImport\Processor;
 
-use OpenSpout\Reader\Common\Creator\ReaderEntityFactory;
-
 /**
  * Manage specific configs and mappings for some import processes.
  */
@@ -334,10 +332,14 @@ trait ConfigTrait
             return null;
         }
 
-        /** @var \OpenSpout\Reader\ODS\Reader $spreadsheetReader */
-        $spreadsheetReader = ReaderEntityFactory::createODSReader();
         // Important, else next rows will be skipped.
-        $spreadsheetReader->setShouldPreserveEmptyRows(true);
+        $options = new \OpenSpout\Reader\ODS\Options();
+        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
+        // Read the dates as text. See fix #179 in CSVImport.
+        // TODO Read the good format in spreadsheet entry.
+        $options->SHOULD_FORMAT_DATES = true;
+        /** @var \OpenSpout\Reader\ODS\Reader $spreadsheetReader */
+        $spreadsheetReader = new \OpenSpout\Reader\ODS\Reader($options);
 
         try {
             $spreadsheetReader->open($filepath);
@@ -349,12 +351,6 @@ trait ConfigTrait
             );
             return null;
         }
-
-        $spreadsheetReader
-            // ->setTempFolder($this->getServiceLocator()->get('Config')['temp_dir'])
-            // Read the dates as text. See fix #179 in CSVImport.
-            // TODO Read the good format in spreadsheet entry.
-            ->setShouldFormatDates(true);
 
         // Process first sheet only.
         foreach ($spreadsheetReader->getSheetIterator() as $sheet) {

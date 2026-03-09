@@ -53,7 +53,14 @@ abstract class AbstractPluginManager
         $this->getRegisteredNames();
         $services = $this->getServiceLocator();
         foreach ($this->registeredNames as $name => $class) {
-            $this->plugins[$name] = new $class($services);
+            try {
+                $this->plugins[$name] = new $class($services);
+            } catch (\Error $e) {
+                $services->get('Omeka\Logger')->err(
+                    'Plugin "{plugin}" (class "{class}") cannot be instantiated: {error}. Check that the required library (e.g. openspout) is the correct version.', // @translate
+                    ['plugin' => $name, 'class' => $class, 'error' => $e->getMessage()]
+                );
+            }
         }
 
         return $this->plugins;
@@ -70,7 +77,14 @@ abstract class AbstractPluginManager
         $this->getRegisteredNames();
         if (isset($this->registeredNames[$name])) {
             $class = $this->registeredNames[$name];
-            return new $class($this->getServiceLocator());
+            try {
+                return new $class($this->getServiceLocator());
+            } catch (\Error $e) {
+                $this->getServiceLocator()->get('Omeka\Logger')->err(
+                    'Plugin "{plugin}" (class "{class}") cannot be instantiated: {error}. Check that the required library (e.g. openspout) is the correct version.', // @translate
+                    ['plugin' => $name, 'class' => $class, 'error' => $e->getMessage()]
+                );
+            }
         }
         return null;
     }
@@ -87,8 +101,15 @@ abstract class AbstractPluginManager
         $items = $services->get('Config')['bulk_import'][$this->getName()];
         $interface = $this->getInterface();
         foreach ($items as $name => $class) {
-            if (class_exists($class) && in_array($interface, class_implements($class))) {
-                $this->registeredNames[$name] = $class;
+            try {
+                if (class_exists($class) && in_array($interface, class_implements($class))) {
+                    $this->registeredNames[$name] = $class;
+                }
+            } catch (\Error $e) {
+                $services->get('Omeka\Logger')->err(
+                    'Plugin "{plugin}" cannot be loaded: {error}. Check that the required library (e.g. openspout) is the correct version.', // @translate
+                    ['plugin' => $name, 'error' => $e->getMessage()]
+                );
             }
         }
 

@@ -7,11 +7,10 @@ use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Stdlib\Message;
 use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Color;
 use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Common\Type;
-use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
-use OpenSpout\Writer\Common\Creator\WriterFactory;
 
 /**
  * Manage diff of resources.
@@ -212,15 +211,10 @@ class BulkDiffResources extends AbstractPlugin
     {
         $headers = $this->diffSpreadsheetHeader($result);
 
-        // This is for OpenSpout v3, for php 7.2+.
-        // A value cannot be an empty string.
-
         // Prepare output.
         /** @var \OpenSpout\Writer\ODS\Writer $writer */
-        $writer = WriterFactory::createFromType(Type::ODS);
-        $writer
-            // ->setTempFolder($this->tempPath)
-            ->openToFile($this->filepathDiffOdsRow);
+        $writer = new \OpenSpout\Writer\ODS\Writer();
+        $writer->openToFile($this->filepathDiffOdsRow);
 
         $writer
             ->getCurrentSheet()
@@ -230,10 +224,8 @@ class BulkDiffResources extends AbstractPlugin
             ));
 
         // Add headers
-        $row = WriterEntityFactory::createRowFromArray(
-            $headers,
-            (new Style())->setShouldShrinkToFit(true)->setFontBold()
-        );
+        $style = (new Style())->setShouldShrinkToFit(true)->setFontBold();
+        $row = new Row(array_map(fn($v) => new StringCell((string) ($v ?? ''), null), $headers), $style);
         $writer->addRow($row);
 
         $cellDiffStyles = $this->diffSpreadsheetStyles();
@@ -266,18 +258,21 @@ class BulkDiffResources extends AbstractPlugin
                             // Not possible normally.
                             $val = null;
                         }
-                        $cell = new Cell($val, $cellDataStyle);
+                        // Use StringCell to avoid strings starting with "="
+                        // being interpreted as formulas.
+                        $cell = $val !== null
+                            ? new StringCell($val, $cellDataStyle)
+                            : Cell::fromValue(null, $cellDataStyle);
                     } else {
                         $val = $diff['diff'] === '' ? null : $diff['diff'];
-                        $cell = new Cell($val, $cellDiffStyles[$diff['diff']] ?? $cellDiffStyles['?']);
-                    }
-                    // Fix issues with strings starting with "=" (formulas).
-                    if ($val !== null) {
-                        $cell->setType(Cell::TYPE_STRING);
+                        $style = $cellDiffStyles[$diff['diff']] ?? $cellDiffStyles['?'];
+                        $cell = $val !== null
+                            ? new StringCell($val, $style)
+                            : Cell::fromValue(null, $style);
                     }
                     $row[] = $cell;
                 }
-                $row = WriterEntityFactory::createRow($row);
+                $row = new Row($row);
                 $writer->addRow($row);
             }
         }
@@ -299,20 +294,15 @@ class BulkDiffResources extends AbstractPlugin
         $headerStyleDiff = (new Style())->setShouldShrinkToFit(true);
         $fullColumns = [];
         foreach ($columns as $column) {
-            $fullColumns[] = new Cell($column . ' / 1', $headerStyleDiff);
-            $fullColumns[] = new Cell($column . ' / 2', $headerStyleDiff);
-            $fullColumns[] = new Cell($column . ' / ?', $headerStyleDiff);
+            $fullColumns[] = new StringCell($column . ' / 1', $headerStyleDiff);
+            $fullColumns[] = new StringCell($column . ' / 2', $headerStyleDiff);
+            $fullColumns[] = new StringCell($column . ' / ?', $headerStyleDiff);
         }
-
-        // This is for OpenSpout v3, that allows php 7.2+.
-        // A value cannot be an empty string.
 
         // Prepare output.
         /** @var \OpenSpout\Writer\ODS\Writer $writer */
-        $writer = WriterFactory::createFromType(Type::ODS);
-        $writer
-            // ->setTempFolder($this->tempPath)
-            ->openToFile($this->filepathDiffOdsColumn);
+        $writer = new \OpenSpout\Writer\ODS\Writer();
+        $writer->openToFile($this->filepathDiffOdsColumn);
 
         $writer
             ->getCurrentSheet()
@@ -322,7 +312,7 @@ class BulkDiffResources extends AbstractPlugin
             ));
 
         // Add headers.
-        $row = WriterEntityFactory::createRow(
+        $row = new Row(
             $fullColumns,
             (new Style())->setShouldShrinkToFit(true)->setFontBold()
         );
@@ -355,22 +345,19 @@ class BulkDiffResources extends AbstractPlugin
                         // Not possible normally.
                         $val = null;
                     }
-                    $cell = new Cell($val, $cellDataStyle);
-                    // Fix issues with strings starting with "=" (formulas).
-                    if ($val !== null) {
-                        $cell->setType(Cell::TYPE_STRING);
-                    }
-                    $row[] = $cell;
+                    // Use StringCell to avoid strings starting with "=" being
+                    // interpreted as formulas.
+                    $row[] = $val !== null
+                        ? new StringCell($val, $cellDataStyle)
+                        : Cell::fromValue(null, $cellDataStyle);
                 }
                 $val = $diff['diff'] === '' ? null : $diff['diff'];
-                $cell = new Cell($val, $cellDiffStyles[$diff['diff']] ?? $cellDiffStyles['?']);
-                // Fix issues with "=" (formula).
-                if ($val !== null) {
-                    $cell->setType(Cell::TYPE_STRING);
-                }
-                $row[] = $cell;
+                $style = $cellDiffStyles[$diff['diff']] ?? $cellDiffStyles['?'];
+                $row[] = $val !== null
+                    ? new StringCell($val, $style)
+                    : Cell::fromValue(null, $style);
             }
-            $row = WriterEntityFactory::createRow($row);
+            $row = new Row($row);
             $writer->addRow($row);
         }
 

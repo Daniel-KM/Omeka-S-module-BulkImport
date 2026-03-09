@@ -6,13 +6,11 @@ use BulkImport\Form\Reader\SpreadsheetReaderConfigForm;
 use BulkImport\Form\Reader\TsvReaderParamsForm;
 use Laminas\Form\Form;
 use Laminas\ServiceManager\ServiceLocatorInterface;
-use OpenSpout\Common\Type;
 
 class TsvReader extends CsvReader
 {
     protected $label = 'TSV (tab-separated values)'; // @translate
     protected $mediaType = 'text/tab-separated-values';
-    protected $spreadsheetType = Type::CSV;
     protected $configFormClass = SpreadsheetReaderConfigForm::class;
     protected $paramsFormClass = TsvReaderParamsForm::class;
 
