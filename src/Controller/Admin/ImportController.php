@@ -154,10 +154,20 @@ class ImportController extends AbstractActionController
         $job = $dispatcher->dispatch(\BulkImport\Job\Undo::class, ['bulkImportId' => $import->id()]);
         $this->api()->update('bulk_imports', $import->id(), ['undo_job' => $job->getId()], [], ['isPartial' => true]);
 
+        $urlPlugin = $this->url();
         $message = new PsrMessage(
-            'Undo in progress for import #{import} with job #{job}.', // @translate
-            ['import' => $id, 'job' => $job->getId()]
+            'Undo in progress for import #{import} (job {link_job}#{job_id}{link_end}, {link_log}logs{link_end}).', // @translate
+            [
+                'import' => $id,
+                'link_job' => sprintf('<a href="%s">', htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId()]))),
+                'job_id' => $job->getId(),
+                'link_end' => '</a>',
+                'link_log' => class_exists('Log\Module', false)
+                    ? sprintf('<a href="%1$s">', $urlPlugin->fromRoute('admin/default', ['controller' => 'log'], ['query' => ['job_id' => $job->getId()]]))
+                    : sprintf('<a href="%1$s" target="_blank">', $urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'action' => 'log', 'id' => $job->getId()])),
+            ]
         );
+        $message->setEscapeHtml(false);
         $this->messenger()->addSuccess($message);
 
         return $this->redirect()->toRoute('admin/bulk/default', ['controller' => 'bulk-import']);
