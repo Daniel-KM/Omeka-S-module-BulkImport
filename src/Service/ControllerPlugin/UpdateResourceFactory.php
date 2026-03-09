@@ -3,7 +3,7 @@
 namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\UpdateResource;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class UpdateResourceFactory implements FactoryInterface

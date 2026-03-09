@@ -2,7 +2,7 @@
 
 namespace BulkImport\Service\Controller;
 
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class ControllerFactory implements FactoryInterface

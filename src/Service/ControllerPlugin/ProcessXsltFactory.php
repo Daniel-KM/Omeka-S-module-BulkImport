@@ -3,7 +3,7 @@
 namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\ProcessXslt;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class ProcessXsltFactory implements FactoryInterface

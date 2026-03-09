@@ -3,7 +3,7 @@
 namespace BulkImport\Service\ControllerPlugin;
 
 use BulkImport\Mvc\Controller\Plugin\BulkFileUploaded;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 
 class BulkFileUploadedFactory implements FactoryInterface
