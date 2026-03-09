@@ -44,7 +44,7 @@ class UpdateResourceProperties extends AbstractPlugin
     /**
      * Update property values of a resources according to a mode.
      */
-    public function __invoke($resource = null, array $values = null, ?string $mode = null): self
+    public function __invoke($resource = null, ?array $values = null, ?string $mode = null): self
     {
         if ($resource === null && $values === null && $mode === null) {
             return $this;
