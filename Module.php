@@ -49,47 +49,57 @@ class Module extends AbstractModule
         $translate = $services->get('ControllerPluginManager')->get('translate');
         $translator = $services->get('MvcTranslator');
 
+        $errors = [];
+
+        if (PHP_VERSION_ID < 80100) {
+            $message = new \Omeka\Stdlib\Message(
+                $translate('The module %1$s requires PHP %2$s or later.'), // @translate
+                'BulkImport', '8.1'
+            );
+            $errors[] = (string) $message;
+        }
+
         if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.81')) {
             $message = new \Omeka\Stdlib\Message(
                 $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
                 'Common', '3.4.81'
             );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+            $errors[] = (string) $message;
         }
 
-        if (!$this->checkModuleActiveVersion('Log', '3.4.33')) {
-            $message = new \Common\Stdlib\PsrMessage(
+        if (!$this->checkModuleActiveVersion('Log', '3.4.36')) {
+            $errors[] = (string) (new PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Log', 'version' => '3.4.33']
-            );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+                ['module' => 'Log', 'version' => '3.4.36']
+            ))->setTranslator($translator);
         }
 
-        if (!$this->checkModuleActiveVersion('Mapper', '3.4.2')) {
-            $message = new \Common\Stdlib\PsrMessage(
+        if (!$this->checkModuleActiveVersion('Mapper', '3.4.4')) {
+            $errors[] = (string) (new PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Mapper', 'version' => '3.4.2']
-            );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+                ['module' => 'Mapper', 'version' => '3.4.4']
+            ))->setTranslator($translator);
         }
 
         $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
 
         if (!$this->checkDestinationDir($basePath . '/xsl')) {
-            $message = new PsrMessage(
+            $errors[] = (string) (new PsrMessage(
                 'The directory "{directory}" is not writeable.', // @translate
                 ['directory' => $basePath . '/xsl']
-            );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+            ))->setTranslator($translator);
         }
 
         if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
-            $message = new PsrMessage(
+            $errors[] = (string) (new PsrMessage(
                 'The directory "{directory}" is not writeable.', // @translate
                 ['directory' => $basePath . '/bulk_import']
-            );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+            ))->setTranslator($translator);
+        }
+
+        if ($errors) {
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException(implode("\n", $errors));
         }
     }
 

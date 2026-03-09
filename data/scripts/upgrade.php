@@ -28,6 +28,15 @@ $connection = $services->get('Omeka\Connection');
 $messenger = $plugins->get('messenger');
 $entityManager = $services->get('Omeka\EntityManager');
 
+if (PHP_VERSION_ID < 80100) {
+    $message = new \Omeka\Stdlib\Message(
+        $translate('The module %1$s requires PHP %2$s or later.'), // @translate
+        'BulkImport', '8.1'
+    );
+    $messenger->addError($message);
+    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
+}
+
 // For very old versions (< 3.3.35 or < 3.4.35), use the consolidated upgrade script
 // that handles all migrations up to 3.4.47+ in a single pass.
 if (version_compare($newVersion, '3.4.47', '>')
@@ -60,18 +69,18 @@ if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActi
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
 }
 
-if (!$this->checkModuleActiveVersion('Log', '3.4.33')) {
+if (!$this->checkModuleActiveVersion('Log', '3.4.36')) {
     $message = new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Log', 'version' => '3.4.33']
+        ['module' => 'Log', 'version' => '3.4.36']
     );
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
 
-if (!$this->checkModuleActiveVersion('Mapper', '3.4.2')) {
+if (!$this->checkModuleActiveVersion('Mapper', '3.4.4')) {
     $message = new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Mapper', 'version' => '3.4.2']
+        ['module' => 'Mapper', 'version' => '3.4.4']
     );
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
