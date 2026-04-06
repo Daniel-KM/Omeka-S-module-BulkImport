@@ -44,7 +44,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
     ];
 
     /**
-     * @var \BulkImport\Mvc\Controller\Plugin\ProcessXslt
+     * @var \Mapper\Stdlib\ProcessXslt
      */
     protected $processXslt;
 
@@ -65,7 +65,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
     public function __construct(ServiceLocatorInterface $services)
     {
         parent::__construct($services);
-        $this->processXslt = $services->get('ControllerPluginManager')->get('processXslt');
+        $this->processXslt = $services->get('Mapper\ProcessXslt');
     }
 
     public function getConfigMainComments(): array

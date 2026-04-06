@@ -110,7 +110,7 @@ return [
             'extractDataFromPdf' => Service\ControllerPlugin\ExtractDataFromPdfFactory::class,
             'extractMediaMetadata' => Service\ControllerPlugin\ExtractMediaMetadataFactory::class,
             Mvc\Controller\Plugin\FindResourcesFromIdentifiers::class => Service\ControllerPlugin\FindResourcesFromIdentifiersFactory::class,
-            'processXslt' => Service\ControllerPlugin\ProcessXsltFactory::class,
+
             'updateResource' => Service\ControllerPlugin\UpdateResourceFactory::class,
             'updateResourceProperties' => Service\ControllerPlugin\UpdateResourcePropertiesFactory::class,
         ],
@@ -286,7 +286,7 @@ return [
     ],
     'bulkimport' => [
         'config' => [
-            'bulkimport_xslt_processor' => '',
+
             'bulkimport_pdftk' => '',
         ],
         'settings' => [
