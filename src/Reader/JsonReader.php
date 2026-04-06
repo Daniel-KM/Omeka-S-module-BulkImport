@@ -151,7 +151,7 @@ class JsonReader extends AbstractPaginatedReader
 
         // When it is a list of files, the iterator returns a url or a filepath.
         if ($this->listFiles) {
-            $content = @file_get_contents($current);
+            $content = $this->fetchUrl($current);
             if ($content === false) {
                 $this->lastErrorMessage = new PsrMessage(
                     'File "{fileurl}" is not available.', // @translate

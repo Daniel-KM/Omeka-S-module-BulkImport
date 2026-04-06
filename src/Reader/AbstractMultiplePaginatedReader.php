@@ -289,7 +289,7 @@ abstract class AbstractMultiplePaginatedReader extends AbstractReader
                 if (file_exists($localPath)) {
                     $content = file_get_contents($localPath);
                 } else {
-                    $content = @file_get_contents($file);
+                    $content = $this->fetchUrl($file);
                     if ($content !== false) {
                         file_put_contents($localPath, $content);
                     } else {
@@ -323,7 +323,7 @@ abstract class AbstractMultiplePaginatedReader extends AbstractReader
                     $pageUrl = $this->getPaginatedPathOrUrl($format, $file, $page, $resultsPerPage, null);
                     $pageLocalPath = sys_get_temp_dir() . '/omk_bi_' . sha1($pageUrl) . '.xml';
                     if (!file_exists($pageLocalPath)) {
-                        $pageContent = @file_get_contents($pageUrl);
+                        $pageContent = $this->fetchUrl($pageUrl);
                         if ($pageContent !== false) {
                             file_put_contents($pageLocalPath, $pageContent);
                         } else {

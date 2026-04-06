@@ -413,4 +413,23 @@ abstract class AbstractReader implements Reader, Configurable, Parametrizable
 
         return $this;
     }
+
+    /**
+     * Fetch a remote url with a proper user agent to avoid 403 from some
+     * providers (Gallica BnF, etc.).
+     *
+     * @return string|false
+     */
+    protected function fetchUrl(string $url)
+    {
+        $options = [
+            'method' => 'GET',
+            'timeout' => 30,
+            'follow_location' => 1,
+            'user_agent' => 'Mozilla/5.0 (compatible; Omeka-S BulkImport)',
+            'header' => "Accept: application/xml, text/xml, application/json, */*\r\n",
+        ];
+        $context = stream_context_create(['http' => $options, 'https' => $options]);
+        return @file_get_contents($url, false, $context);
+    }
 }
