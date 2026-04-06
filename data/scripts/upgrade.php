@@ -77,10 +77,10 @@ if (!$this->checkModuleActiveVersion('Log', '3.4.36')) {
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
 
-if (!$this->checkModuleActiveVersion('Mapper', '3.4.4')) {
+if (!$this->checkModuleActiveVersion('Mapper', '3.4.6')) {
     $message = new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Mapper', 'version' => '3.4.4']
+        ['module' => 'Mapper', 'version' => '3.4.6']
     );
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
 }
@@ -694,39 +694,39 @@ if (version_compare($oldVersion, '3.4.61', '<')) {
     $results = $connection->executeQuery($sql)->fetchAllAssociative();
     $updated = 0;
     foreach ($results as $row) {
-        $config = json_decode($row['config'], true);
+        $importerConfig = json_decode($row['config'], true);
         $modified = false;
         // Update mapping_config path.
-        $mappingConfig = $config['reader']['mapping_config'] ?? null;
+        $mappingConfig = $importerConfig['reader']['mapping_config'] ?? null;
         if ($mappingConfig) {
             $newPath = $updatePath($mappingConfig);
             if ($newPath !== $mappingConfig) {
-                $config['reader']['mapping_config'] = $newPath;
+                $importerConfig['reader']['mapping_config'] = $newPath;
                 $modified = true;
             }
         }
         // Update xsl_sheet path.
-        $xslSheet = $config['reader']['xsl_sheet'] ?? null;
+        $xslSheet = $importerConfig['reader']['xsl_sheet'] ?? null;
         if ($xslSheet) {
             $newPath = $updatePath($xslSheet);
             if ($newPath !== $xslSheet) {
-                $config['reader']['xsl_sheet'] = $newPath;
+                $importerConfig['reader']['xsl_sheet'] = $newPath;
                 $modified = true;
             }
         }
         // Update xsl_sheet_pre path.
-        $xslSheetPre = $config['reader']['xsl_sheet_pre'] ?? null;
+        $xslSheetPre = $importerConfig['reader']['xsl_sheet_pre'] ?? null;
         if ($xslSheetPre) {
             $newPath = $updatePath($xslSheetPre);
             if ($newPath !== $xslSheetPre) {
-                $config['reader']['xsl_sheet_pre'] = $newPath;
+                $importerConfig['reader']['xsl_sheet_pre'] = $newPath;
                 $modified = true;
             }
         }
         if ($modified) {
             $connection->executeStatement(
                 'UPDATE bulk_importer SET config = ? WHERE id = ?',
-                [json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $row['id']]
+                [json_encode($importerConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $row['id']]
             );
             $updated++;
         }

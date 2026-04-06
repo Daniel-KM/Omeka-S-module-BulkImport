@@ -46,22 +46,20 @@ class Module extends AbstractModule
     protected function preInstall(): void
     {
         $services = $this->getServiceLocator();
-        $translate = $services->get('ControllerPluginManager')->get('translate');
         $translator = $services->get('MvcTranslator');
 
         $errors = [];
 
         if (PHP_VERSION_ID < 80100) {
-            $message = new \Omeka\Stdlib\Message(
+            $errors[] = (string) new \Omeka\Stdlib\Message(
                 $translate('The module %1$s requires PHP %2$s or later.'), // @translate
                 'BulkImport', '8.1'
             );
-            $errors[] = (string) $message;
         }
 
         if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.84')) {
             $errors[] = (string) new \Omeka\Stdlib\Message(
-                $translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
+                $translator->translate('The module %1$s should be upgraded to version %2$s or later.'), // @translate
                 'Common', '3.4.84'
             );
         }
@@ -73,10 +71,10 @@ class Module extends AbstractModule
             ))->setTranslator($translator);
         }
 
-        if (!$this->checkModuleActiveVersion('Mapper', '3.4.4')) {
+        if (!$this->checkModuleActiveVersion('Mapper', '3.4.6')) {
             $errors[] = (string) (new PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Mapper', 'version' => '3.4.4']
+                ['module' => 'Mapper', 'version' => '3.4.6']
             ))->setTranslator($translator);
         }
 
