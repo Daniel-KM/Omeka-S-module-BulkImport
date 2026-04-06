@@ -82,56 +82,9 @@ they should be allowed in the page `/admin/setting`.
 
 * XSLT processor
 
-The xslt processor is only needed to import xml files that are not formatted as
-flat ressources.
-
-Xslt has two main versions:  xslt 1.0 and xslt 2.0. The first is often installed
-with php via the extension `php-xsl` or the package `php5-xsl`, depending on
-your system. It is until ten times slower than xslt 2.0 and sheets are more
-complex to write.
-
-So it’s recommended to install an xslt 2 processor, that can process xslt 1.0
-and xslt 2.0 sheets and generally xslt 3.0 too.
-
-To intall xslt 2 on Debian / Ubuntu :
-```sh
-sudo apt install --reinstall default-jre libsaxonhe-java
-```
-
-Then, the command can be configured in the configuration page of the module.
-Use "%1$s", "%2$s", "%3$s", without escape, for the file input, the stylesheet,
-and the output.
-
-Examples for Debian 6+ / Ubuntu / Mint (with the package "libsaxonb-java"):
-```sh
-saxonb-xslt -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Examples for Debian 8+ / Ubuntu / Mint (with the package "libsaxonhe-java"):
-```sh
-CLASSPATH=/usr/share/java/Saxon-HE.jar java net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Example for Fedora / RedHat / Centos / Mandriva / Mageia (package "saxon"):
-```sh
-java -cp /usr/share/java/saxon.jar net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Or with packages "saxon", "saxon-scripts", "xml-commons-apis" and "xerces-j2":
-```sh
-saxon -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Note: Only saxon is currently supported as xslt 2 processor. Because Saxon is a
-Java tool, a JRE should be installed, for example `openjdk-11-jre-headless` or
-upper (or use `default-jre`).
-
-Note: Warnings are processed as errors. That’s why the parameter "-warnings:silent"
-is important to be able to process an import with a bad xsl sheet. It can be
-removed with default xsl, that doesn’t warn anything.
-
-Anyway, if there is no xslt2 processor installed, the command field should be
-cleared. The module will use the default xslt 1 processor of php, if installed.
+To import xml files that require xslt 2/3 transformation, install an external
+xslt processor. See the [Mapper] module documentation for distribution packages
+and configuration of the command.
 
 * For test
 

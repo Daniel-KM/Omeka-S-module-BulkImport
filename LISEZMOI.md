@@ -87,58 +87,9 @@ dans la page `/admin/setting`.
 
 * Processeur XSLT
 
-Le processeur xslt est nécessaire seulement pour l’import de fichiers xml qui ne
-sont pas formatés en tant que ressources plates.
-
-Xslt a deux versions principales : xslt 1.0 et xslt 2.0. La première est souvent
-installée avec php via l’extension `php-xsl` ou le paquet `php5-xsl`, en
-fonction de votre votre système. Il est jusqu’à dix fois plus lent que xslt 2.0
-et les feuilles sont plus complexes à écrire.
-
-Il est donc recommandé d’installer un processeur xslt 2, qui peut traiter xslt 1.0
-et les xslt 2.0 et en général également xsl 3.0.
-
-Pour installer xslt 2 sur Debian / Ubuntu :
-```sh
-sudo apt install --reinstall default-jre libsaxonhe-java
-```
-
-Ensuite, la commande peut être indiquée dans la page de configuration du module.
-Utilisez "%1$s", "%2$s", "%3$s", sans échappement, pour le fichier d’entrée, la
-feuille de style, et la sortie.
-
-Exemples pour Debian 6+ / Ubuntu / Mint (avec le paquet "libsaxonb-java") :
-```sh
-saxonb-xslt -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Exemples pour Debian 8+ / Ubuntu / Mint (avec le paquet "libsaxonhe-java") :
-```sh
-CLASSPATH=/usr/share/java/Saxon-HE.jar java net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Exemple pour Fedora / RedHat / Centos / Mandriva / Mageia (paquet "saxon") :
-```sh
-java -cp /usr/share/java/saxon.jar net.sf.saxon.Transform -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Ou avec les paquets "saxon", "saxon-scripts", "xml-commons-apis" et "xerces-j2" :
-```sh
-saxon -ext:on -versionmsg:off -warnings:silent -s:%1$s -xsl:%2$s -o:%3$s
-```
-
-Note : Seul saxon est actuellement supporté comme processeur xslt 2. Comme Saxon
-est un outil Java, un JRE doit être installé, par exemple `openjdk-11-jre-headless`
-ou supérieur (ou utilisez `default-jre`).
-
-Note : Les avertissements sont traités comme des erreurs. C’est la raison pour
-laquelle le paramètre "-warnings:silent" est important pour pouvoir traiter un
-import avec une mauvaise feuille xsl. Il peut être supprimée avec la feuille xsl
-par défaut, qui n’avertit pas.
-
-De toute façon, s’il n’y a pas de processeur xslt2 installé, le champ de commande
-doit être effacé. Le module utilisera le processeur xslt 1 par défaut de php,
-s’il est disponible.
+Pour importer des fichiers xml qui nécessitent une transformation xslt 2/3,
+installez un processeur xslt externe. Voir la documentation du module [Mapper]
+pour les paquets selon la distribution et la configuration de la commande.
 
 
 Usage
