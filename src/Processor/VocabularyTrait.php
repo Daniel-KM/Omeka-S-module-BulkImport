@@ -309,7 +309,7 @@ trait VocabularyTrait
                 $member = $vocabulary
                     ? $api->read($resourceName, ['vocabulary' => $vocabulary->id(), 'localName' => strtok(':')])->getContent()
                     : null;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $member = null;
             }
             if (!$member) {

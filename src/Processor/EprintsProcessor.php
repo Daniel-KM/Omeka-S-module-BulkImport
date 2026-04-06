@@ -760,7 +760,7 @@ class EprintsProcessor extends AbstractFullProcessor
                     ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
                     ->setResourceName($table)
                     ->fetchAll();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->tableData[$table] = [];
             }
         }
@@ -772,7 +772,7 @@ class EprintsProcessor extends AbstractFullProcessor
                     ->setOrders([['by' => 'eprintid'], ['by' => 'pos']])
                     ->setResourceName($table)
                     ->fetchAll(null, 'eprintid');
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->tableDataBy[$table] = [];
             }
         }
@@ -785,7 +785,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 ->setOrders([['by' => 'eprintid']])
                 ->setResourceName('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific']);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->tableData['directors'] = [];
         }
 
@@ -795,7 +795,7 @@ class EprintsProcessor extends AbstractFullProcessor
                 ->setOrders([['by' => 'eprintid']])
                 ->setResourceName('eprint')
                 ->fetchAll(['eprintid', 'director_family', 'director_given', 'director_lineage', 'director_honourific'], 'eprintid');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->tableDataBy['directors'] = [];
         }
     }

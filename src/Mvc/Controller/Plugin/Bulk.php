@@ -325,7 +325,7 @@ class Bulk extends AbstractPlugin
             try {
                 /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
                 $customVocab = $this->api->read('custom_vocabs', ['id' => $id])->getContent();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $customVocabs[$customVocabDataType]['cv'] = null;
                 return false;
             }
@@ -376,7 +376,7 @@ class Bulk extends AbstractPlugin
             // Manage dynamic list.
             try {
                 $customVocab = $this->api->read('custom_vocabs', ['id' => $customVocabs[$customVocabDataType]['cv']])->getContent();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return false;
             }
             $uris = array_filter(array_map('trim', explode("\n", $customVocab->uris())));
@@ -396,7 +396,7 @@ class Bulk extends AbstractPlugin
                 }
                 try {
                     $value = $this->api->read('items', ['id' => $value])->getContent();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     return false;
                 }
             } elseif (!is_object($value) || !($value instanceof \Omeka\Api\Representation\ItemRepresentation)) {
@@ -446,7 +446,7 @@ class Bulk extends AbstractPlugin
                     $customVocabs['customvocab:' . $label] = 'customvocab:' . $id;
                     $customVocabs['customvocab' . $cleanLabel] = 'customvocab:' . $id;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Nothing.
             }
         }

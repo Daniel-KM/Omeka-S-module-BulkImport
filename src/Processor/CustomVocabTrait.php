@@ -160,7 +160,7 @@ trait CustomVocabTrait
             /** @var \CustomVocab\Api\Representation\CustomVocabRepresentation $customVocab */
             try {
                 $customVocabRepr = $id ? $api->read('custom_vocabs', $id)->getContent() : null;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $customVocabRepr = null;
             }
             if (!$customVocabRepr) {

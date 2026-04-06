@@ -60,7 +60,7 @@ class ImporterController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $importer = null;
         }
         if ($id && !$importer) {
@@ -116,7 +116,7 @@ class ImporterController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $importer = null;
         }
 
@@ -166,7 +166,7 @@ class ImporterController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $importer = null;
         }
 
@@ -232,7 +232,7 @@ class ImporterController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $importer = null;
         }
 
@@ -306,7 +306,7 @@ class ImporterController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $importer = $id ? $this->api()->read('bulk_importers', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $importer = null;
         }
 
@@ -392,7 +392,7 @@ class ImporterController extends AbstractActionController
                         if (method_exists($reader, 'currentSheetName')) {
                             try {
                                 $sheetName = $reader->currentSheetName();
-                            } catch (\Exception $e) {
+                            } catch (\Throwable $e) {
                                 $sheetName = null;
                             }
                             if ($sheetName) {
@@ -409,7 +409,7 @@ class ImporterController extends AbstractActionController
                         if ($isCountable && method_exists($reader, 'count')) {
                             try {
                                 $count = $reader->count();
-                            } catch (\Exception $e) {
+                            } catch (\Throwable $e) {
                                 $count = 0;
                                 $next = 'reader';
                                 $this->messenger()->addError($reader->getLastErrorMessage());
@@ -525,7 +525,7 @@ class ImporterController extends AbstractActionController
                             );
                             $message->setEscapeHtml(false);
                             $this->messenger()->addSuccess($message);
-                        } catch (\Exception $e) {
+                        } catch (\Throwable $e) {
                             $this->messenger()->addError('Import start failed'); // @translate
                         }
 

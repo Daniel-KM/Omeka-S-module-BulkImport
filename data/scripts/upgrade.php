@@ -194,7 +194,7 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
                     'property_id_1' => $propertyOld->id(),
                     'property_id_2' => $propertyNew->id(),
                 ]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
             }
             $connection->executeStatement('DELETE FROM `property` WHERE id = :property_id;', [
                 'property_id' => $propertyNew->id(),
@@ -543,7 +543,7 @@ if (version_compare($oldVersion, '3.4.61', '<')) {
             );
             $messenger->addSuccess($message);
         }
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Ignore errors if table doesn't exist.
     }
 

@@ -1702,7 +1702,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         try {
             $this->api->read('assets', ['id' => $id]);
             return $id;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }

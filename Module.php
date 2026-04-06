@@ -229,7 +229,7 @@ class Module extends AbstractModule
         try {
             /** @var \Omeka\Api\Representation\ItemRepresentation $item */
             $item = $api->read('items', $itemId, [], ['initialize' => false, 'finalize' => false])->getContent();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return;
         }
 
@@ -410,7 +410,7 @@ class Module extends AbstractModule
                             'Data extracted for media #{media_id}.', // @translate
                             ['media_id' => $mediaId]
                         );
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         $services->get('Omeka\Logger')->err(
                             'Media #{media_id}: an issue occurred during update: {exception}.', // @translate
                             ['media_id' => $mediaId, 'exception' => $e]

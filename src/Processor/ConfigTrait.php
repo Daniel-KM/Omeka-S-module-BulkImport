@@ -507,7 +507,7 @@ trait ConfigTrait
         $filepath = @tempnam(sys_get_temp_dir(), 'omk_bki_');
         try {
             @touch($filepath . '.csv');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->hasError = true;
             $this->logger->warn(
                 'Unable to put content in a temp file.' // @translate

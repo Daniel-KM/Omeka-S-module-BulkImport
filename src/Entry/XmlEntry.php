@@ -558,7 +558,7 @@ class XmlEntry extends BaseEntry
                             '@value' => \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($string),
                             '@language' => null,
                         ];
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         $value = [
                             'type' => 'literal',
                             '@value' => $string,

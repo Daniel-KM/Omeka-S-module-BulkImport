@@ -257,7 +257,7 @@ trait HttpClientTrait
         }
         try {
             return json_decode($body, true) ?: [];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return [];
         }
     }

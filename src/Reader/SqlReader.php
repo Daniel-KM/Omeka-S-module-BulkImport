@@ -188,7 +188,7 @@ class SqlReader extends AbstractPaginatedReader
                 $this->logger->err($this->lastErrorMessage);
                 return false;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
 
@@ -202,10 +202,10 @@ class SqlReader extends AbstractPaginatedReader
         try {
             /** @uses \Laminas\Db\Adapter\Driver\Pdo\Statement */
             $result = $this->dbAdapter->query($sql)->execute();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             try {
                 $result = $connection->executeQuery($sql)->fetchAll();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->lastErrorMesage = 'Unable to check grants of a user.'; // @translate
                 $this->logger->err($this->lastErrorMessage);
                 return false;
@@ -228,10 +228,10 @@ class SqlReader extends AbstractPaginatedReader
             SQL;
         try {
             $this->dbAdapter->query($sql)->execute();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             try {
                 $connection->executeStatement($sql);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return false;
             }
             return false;
@@ -239,10 +239,10 @@ class SqlReader extends AbstractPaginatedReader
 
         try {
             $this->dbAdapter->query('FLUSH PRIVILEGES;')->execute();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             try {
                 $connection->executeStatement('FLUSH PRIVILEGES;');
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return false;
             }
             return false;

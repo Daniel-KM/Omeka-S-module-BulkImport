@@ -137,7 +137,7 @@ class BulkDiffResources extends AbstractPlugin
             if (!empty($resource2['o:id'])) {
                 try {
                     $resource1 = $this->api->read('resources', ['id' => $resource2['o:id']])->getContent();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $resource1 = null;
                 }
             }

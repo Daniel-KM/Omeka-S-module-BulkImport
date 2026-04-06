@@ -90,7 +90,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 try {
                     $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', ['id' => $mappingId])->getContent();
                     $result[$xmlConfig] = trim((string) $mapping->mapping());
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $mapping = null;
                 }
             }
@@ -159,7 +159,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
                 /** @var \Mapper\Api\Representation\MapperRepresentation $mapping */
                 try {
                     $mapping = $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', ['id' => $mappingId])->getContent();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $mapping = null;
                 }
                 if (!$mapping) {
@@ -410,7 +410,7 @@ class XmlReader extends AbstractMultiplePaginatedReader
                     $this->lastErrorMessage = new PsrMessage('No output.'); // @translate
                     throw new \Omeka\Service\Exception\RuntimeException((string) $this->lastErrorMessage);
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->lastErrorMessage = $e->getMessage();
                 throw new \Omeka\Service\Exception\RuntimeException((string) $this->getLastErrorMessage());
             }

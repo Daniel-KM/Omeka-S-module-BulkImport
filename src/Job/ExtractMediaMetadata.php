@@ -62,7 +62,7 @@ class ExtractMediaMetadata extends AbstractJob
         $api = $services->get('Omeka\ApiManager');
         try {
             $item = $api->read('items', ['id' => $itemId], [], ['responseContent' => 'resource'])->getContent();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $logger->err(
                 'The item #{item_id} is not available.', // @translate
                 ['item_id' => $itemId]
@@ -161,7 +161,7 @@ class ExtractMediaMetadata extends AbstractJob
             // FIXME There may be a doctrine issue with AccessStatus (status of item not found).
             try {
                 $api->update('media', ['id' => $mediaId], $data, [], ['isPartial' => true]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $logger->err(
                     'Media #{media_id}: an issue occurred during update: {exception}.', // @translate
                     ['media_id' => $mediaId, 'exception' => $e]

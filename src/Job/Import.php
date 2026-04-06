@@ -300,7 +300,7 @@ class Import extends AbstractJob
 
         try {
             $mailer->send($message);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->err(
                 'Error when sending email to notify end of process.' // @translate
             );

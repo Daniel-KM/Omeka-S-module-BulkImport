@@ -181,7 +181,7 @@ class ImporterRepresentation extends AbstractEntityRepresentation
         }
         try {
             return $this->getServiceLocator()->get('Omeka\ApiManager')->read('mappers', $mappingId)->getContent();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }

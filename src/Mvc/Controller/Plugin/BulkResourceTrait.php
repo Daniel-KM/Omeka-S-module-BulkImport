@@ -109,7 +109,7 @@ trait BulkResourceTrait
                             // TODO Don't use json_decode(json_encode()).
                             $repr[$term][] = json_decode(json_encode($value), true);
                         }
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         if ($this->easyMeta->dataTypeMain($valueType) === 'resource') {
                             $this->logger->warn(
                                 'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
@@ -118,7 +118,7 @@ trait BulkResourceTrait
                         } else {
                             try {
                                 $repr[$term][] = $value->jsonSerialize();
-                            } catch (\Exception $e) {
+                            } catch (\Throwable $e) {
                                 $this->logger->warn(
                                     'The {resource} #{id} has a linked resource or an annotation for term {term} that is not available and cannot be serialized.', // @translate
                                     ['resource' => $resource->resourceName(), 'id' => $resource->id(), 'term' => $term]

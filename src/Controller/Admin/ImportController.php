@@ -58,7 +58,7 @@ class ImportController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $import = $id ? $this->api()->read('bulk_imports', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $import = null;
         }
 
@@ -127,7 +127,7 @@ class ImportController extends AbstractActionController
         try {
             // Don't use searchOne for performance and simplicity.
             $import = $id ? $this->api()->read('bulk_imports', ['id' => $id])->getContent() : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $import = null;
         }
 

@@ -638,7 +638,7 @@ trait MetadataTransformTrait
             $doc = new DOMDocument();
             try {
                 $doc->loadXML($xml, LIBXML_NONET);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $doc = null;
             }
             if (!$doc) {
@@ -3597,7 +3597,7 @@ trait MetadataTransformTrait
                     @mkdir(dirname($filepath), 0775, true);
                 }
                 @touch($filepath);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Don't set error, it can be managed outside.
                 // $this->hasError = true;
                 $this->logger->warn(

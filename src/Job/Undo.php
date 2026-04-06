@@ -72,7 +72,7 @@ class Undo extends AbstractJob
             if (count($importedIdsMediaIds)) {
                 try {
                     $api->batchDelete('media', $importedIdsMediaIds, [], ['continueOnError' => true]);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     // Probably nothing to do.
                 }
             }
@@ -89,7 +89,7 @@ class Undo extends AbstractJob
                     $entityId = $notMediaIds[$importedId] ?? null;
                     try {
                         $api->delete($entityName, $entityId);
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         // Nothing to do: already deleted.
                         // TODO Implement on delete cascade in the entity Imported, but check for doctrine events (search index…).
                     }
@@ -97,7 +97,7 @@ class Undo extends AbstractJob
             }
             try {
                 $api->batchDelete('bulk_importeds', array_keys($importedIdsResourceIds), [], ['continueOnError' => true]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
             }
             $entityManager->clear();
             $logger->info(

@@ -859,7 +859,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         try {
             /** @see \Omeka\Api\Manager::initialize() */
             $this->api->initialize($adapter, $request);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $resource['messageStore']->addError('modules', new PsrMessage(
                 'Initialization exception: {exception}', // @translate
                 ['exception' => $e]
@@ -922,7 +922,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
         $errorStore = new \Omeka\Stdlib\ErrorStore;
         try {
             $adapter->hydrateEntity($request, $entity, $errorStore);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $resource['messageStore']->addError('validation', new PsrMessage(
                 'Validation exception: {exception}', // @translate
                 ['exception' => $e]
@@ -1307,7 +1307,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
             ++$this->totalErrors;
             return null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $resource['messageStore']->addError('resource', new PsrMessage(
                 'Core error during creation: {exception}', // @translate
                 ['exception' => $e]
@@ -1432,7 +1432,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
             ++$this->totalErrors;
             return null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $resource['messageStore']->addError('resource', new PsrMessage(
                 'Core error during update: {exception}', // @translate
                 ['exception' => $e]
@@ -1494,7 +1494,7 @@ abstract class AbstractResourceProcessor extends AbstractProcessor implements Co
             $this->bulkCheckLog->logCheckedResource($this->indexResource, $resource);
             ++$this->totalErrors;
             return null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // There is no error, only id already deleted, so continue.
             $resource['messageStore']->addWarning('resource', new PsrMessage(
                 'Core error during deletion: {exception}', // @translate

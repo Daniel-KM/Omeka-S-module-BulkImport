@@ -989,7 +989,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!empty($this->main[$name]['template'])) {
             try {
                 $entity = $this->bulk->api()->read('resource_templates', ['label' => $this->main[$name]['template']], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $entity = null;
             }
             if (!$entity) {
@@ -1010,7 +1010,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 $entity = $entityVocabulary
                     ? $this->bulk->api()->read('resource_classes', ['vocabulary' => $entityVocabulary->getId(), 'localName' => strtok(':')], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent()
                     : null;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $entity = null;
             }
             if (!$entity) {
@@ -1028,7 +1028,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         if (!empty($this->main[$name]['custom_vocab'])) {
             try {
                 $entity = $this->bulk->api()->read('custom_vocabs', ['label' => $this->main[$name]['custom_vocab']], [], ['initialize' => false, 'finalize' => false, 'responseContent' => 'resource'])->getContent();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $entity = null;
             }
             if (!$entity) {
@@ -1447,7 +1447,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
         $this->logger->notice('Reindexing full text search. It may take about some minutes to one hour.'); // @translate
         try {
             $this->dispatchJob(\Omeka\Job\IndexFulltextSearch::class);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
         }
         $this->logger->notice('Full text search reindexed.'); // @translate
 

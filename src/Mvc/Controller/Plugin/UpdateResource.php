@@ -206,7 +206,7 @@ class UpdateResource extends AbstractPlugin
                 $newData['o-module-mapping:mapping'] = $this->api->read('mappings', ['id' => $newData['o-module-mapping:mapping']['o:id']])->getContent();
                 // TODO Don't use json_decode(json_encode()).
                 $newData['o-module-mapping:mapping'] = json_decode(json_encode($newData['o-module-mapping:mapping']), true);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->logger->err(
                     'Index #{index}: Unable to find mappings #{mapping_id}.', // @translate
                     ['index' => $this->indexResource, 'mapping_id' => $newData['o-module-mapping:mapping']['o:id']]
@@ -221,7 +221,7 @@ class UpdateResource extends AbstractPlugin
                     $value = $this->api->read('mapping_markers', ['id' => $value['o:id']])->getContent();
                     // TODO Don't use json_decode(json_encode()).
                     $markers[$value->id()] = json_decode(json_encode($value), true);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->logger->err(
                         'Index #{index}: Unable to find mapping marker #{mapping_marker_id}.', // @translate
                         ['index' => $this->indexResource, 'mapping_marker_id' => $value['o:id']]
@@ -252,7 +252,7 @@ class UpdateResource extends AbstractPlugin
                 $this->resourceToUpdateEntity = $this->api->read($resourceName, $resourceId, [], ['responseContent' => 'resource'])->getContent();
                 $this->resourceToUpdate = $this->adapterManager->get($resourceName)->getRepresentation($this->resourceToUpdateEntity);
                 $this->resourceToUpdateArray = $this->resourceJson($this->resourceToUpdate);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->resourceToUpdateEntity = null;
                 $this->resourceToUpdate = null;
                 $this->resourceToUpdateArray = [];

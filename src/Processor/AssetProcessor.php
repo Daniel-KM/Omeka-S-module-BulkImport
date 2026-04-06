@@ -133,7 +133,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                     $id = $this->bulkIdentifiers->getIdFromIndex($resource['source_index'])
                         // Read does not allow to return scalar.
                         ?: $this->api->read('assets', ['storage_id' => $value])->getContent();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $id = null;
                 }
                 if ($id) {
@@ -397,7 +397,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
         // multiple update of the same resource.
         try {
             $this->api->read('assets', $resource['o:id'], [], ['responseContent' => 'resource'])->getContent();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Normally already checked.
             $resource['messageStore']->addError('resource', new PsrMessage(
                 'Index #{index}: The resource {resource} #{id} is not available and cannot be updated.', // @translate
@@ -434,7 +434,7 @@ class AssetProcessor extends AbstractResourceProcessor implements Configurable, 
                 try {
                     $resourceForThumbnail['resource_name'] = $this->api->read('resources', $resourceForThumbnail['o:id'], [], ['responseContent' => 'resource'])->getContent()
                         ->getResourceName();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $resource['messageStore']->addError('resource', new PsrMessage(
                         'The resource #{resource_id} for asset #{asset_id} does not exist and cannot be updated.', // @translate
                         ['resource_id' => $resourceForThumbnail['o:id'], 'asset_id' => $resource['o:id']]

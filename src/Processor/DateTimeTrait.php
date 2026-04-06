@@ -78,7 +78,7 @@ trait DateTimeTrait
 
         try {
             $date = (string) $date;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
 
@@ -103,7 +103,7 @@ trait DateTimeTrait
             try {
                 $dateTimeZone = new \DateTimeZone($timeZone);
                 $dateTimeZone->setTimezone($dateTimeZone);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $dateTimeZone = null;
             }
         }
@@ -112,7 +112,7 @@ trait DateTimeTrait
             $dateTime = strpos($date, ':', 1) || strpos($date, '-', 1)
                 ? new DateTime(substr(strtr($date, ['T' => ' ']), 0, 19), $dateTimeZone)
                 : new DateTime(date('Y-m-d H:i:s', $date), $dateTimeZone);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
 
@@ -210,7 +210,7 @@ trait DateTimeTrait
                     if (!$timestamp) {
                         continue;
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
                 $timestamp = $timestamp->getTimestamp();

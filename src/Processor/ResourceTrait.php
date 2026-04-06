@@ -469,7 +469,7 @@ trait ResourceTrait
                                     $value['@value'] = \NumericDataTypes\DataType\Timestamp::getDateTimeFromValue($value['@value']);
                                     $datatype = 'numeric:timestamp';
                                     $value['type'] = 'numeric:timestamp';
-                                } catch (\Exception $e) {
+                                } catch (\Throwable $e) {
                                     $datatype = 'literal';
                                     $value['type'] = 'literal';
                                     $this->logger->warn(

@@ -49,7 +49,7 @@ trait BulkOutputTrait
             if (!file_exists($filePath)) {
                 try {
                     $result = @touch($filePath);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->logger->err(
                         // $this->job->getJob()->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
                         'Error when saving "{filename}" (temp file: "{tempfile}"): {exception}', // @translate

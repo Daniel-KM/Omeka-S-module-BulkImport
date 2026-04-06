@@ -44,7 +44,7 @@ $columnExists = function (string $table, string $column) use ($connection): bool
         $sql = "SHOW COLUMNS FROM `$table` LIKE '$column'";
         $result = $connection->executeQuery($sql)->fetchOne();
         return $result !== false;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return false;
     }
 };
@@ -56,7 +56,7 @@ $tableExists = function (string $table) use ($connection): bool {
     try {
         $connection->executeQuery("SELECT 1 FROM `$table` LIMIT 1");
         return true;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return false;
     }
 };
@@ -69,7 +69,7 @@ $indexExists = function (string $table, string $indexName) use ($connection): bo
         $sql = "SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'";
         $result = $connection->executeQuery($sql)->fetchOne();
         return $result !== false;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return false;
     }
 };
@@ -85,7 +85,7 @@ $foreignKeyExists = function (string $table, string $fkName) use ($connection): 
                 AND CONSTRAINT_NAME = '$fkName' AND CONSTRAINT_TYPE = 'FOREIGN KEY'";
         $result = $connection->executeQuery($sql)->fetchOne();
         return $result !== false;
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return false;
     }
 };
@@ -99,12 +99,12 @@ if ($tableExists('bulk_log')) {
     $messenger->addNotice($message);
     try {
         $connection->executeStatement('ALTER TABLE bulk_log DROP FOREIGN KEY FK_3B78A07DB6A263D9');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // FK may not exist
     }
     try {
         $connection->executeStatement('DROP TABLE bulk_log');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Table may not exist
     }
 }
@@ -136,7 +136,7 @@ if ($columnExists('bulk_import', 'status')) {
         if (!$indexExists('bulk_import', 'UNIQ_BD98E874BE04EA9') && $columnExists('bulk_import', 'job_id')) {
             $connection->executeStatement('CREATE UNIQUE INDEX UNIQ_BD98E874BE04EA9 ON bulk_import (job_id)');
         }
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Continue on error
     }
 }
@@ -168,7 +168,7 @@ if ($columnExists('bulk_importer', 'name') || $columnExists('bulk_importer', 're
         if ($columnExists('bulk_importer', 'processor_name') && !$columnExists('bulk_importer', 'processor_class')) {
             $connection->executeStatement('ALTER TABLE bulk_importer CHANGE processor_name processor_class VARCHAR(190) DEFAULT NULL');
         }
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Continue on error
     }
 }
@@ -182,7 +182,7 @@ if (!$columnExists('bulk_import', 'comment')) {
     $messenger->addNotice($message);
     try {
         $connection->executeStatement('ALTER TABLE `bulk_import` ADD `comment` VARCHAR(190) DEFAULT NULL AFTER `job_id`');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Column may already exist
     }
 }
@@ -205,7 +205,7 @@ if (!$columnExists('bulk_import', 'undo_job_id')) {
         if (!$foreignKeyExists('bulk_import', 'FK_BD98E8744C276F75')) {
             $connection->executeStatement('ALTER TABLE bulk_import ADD CONSTRAINT FK_BD98E8744C276F75 FOREIGN KEY (undo_job_id) REFERENCES job (id) ON DELETE SET NULL');
         }
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Continue on error
     }
 }
@@ -226,7 +226,7 @@ SQL;
     try {
         $connection->executeStatement($sql);
         $connection->executeStatement('ALTER TABLE bulk_imported ADD CONSTRAINT FK_F60E437CBE04EA9 FOREIGN KEY (job_id) REFERENCES job (id)');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Table may already exist
     }
 }
@@ -235,7 +235,7 @@ SQL;
 if ($columnExists('bulk_imported', 'resource_type')) {
     try {
         $connection->executeStatement('ALTER TABLE `bulk_imported` CHANGE `resource_type` `entity_name` VARCHAR(190) NOT NULL');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Continue on error
     }
 }
@@ -263,7 +263,7 @@ SQL;
     try {
         $connection->executeStatement($sql);
         $connection->executeStatement('ALTER TABLE `bulk_mapping` ADD CONSTRAINT FK_7DA823507E3C61F9 FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE SET NULL');
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Table may already exist
     }
 }
@@ -278,7 +278,7 @@ if (!$columnExists('bulk_importer', 'config')) {
     try {
         $connection->executeStatement("ALTER TABLE bulk_importer ADD `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `label`");
         $connection->executeStatement("UPDATE bulk_importer SET `config` = '{}'");
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Column may already exist
     }
 }
@@ -309,14 +309,14 @@ foreach ($terms as $propertyOld => $propertyNew) {
                     'property_id_1' => $propertyOldResult->id(),
                     'property_id_2' => $propertyNewResult->id(),
                 ]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Table may not exist
             }
             $connection->executeStatement('DELETE FROM `property` WHERE id = :property_id;', [
                 'property_id' => $propertyNewResult->id(),
             ]);
         }
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         // Properties may not exist
     }
 }
@@ -328,7 +328,7 @@ try {
         SET `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
         WHERE `prefix` = 'curation'
         SQL);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Vocabulary may not exist.
 }
 try {
@@ -343,7 +343,7 @@ try {
             `vocabulary`.`prefix` = 'curation'
             AND `property`.`local_name` = 'dateStart'
         SQL);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Property may not exist.
 }
 try {
@@ -358,7 +358,7 @@ try {
             `vocabulary`.`prefix` = 'curation'
             AND `property`.`local_name` = 'dateEnd'
         SQL);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Property may not exist.
 }
 
@@ -586,7 +586,7 @@ try {
     $connection->executeStatement("ALTER TABLE `bulk_importer` CHANGE `processor` `processor` VARCHAR(190) NOT NULL");
     $connection->executeStatement("ALTER TABLE `bulk_importer` CHANGE `config` `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)'");
     $connection->executeStatement("ALTER TABLE `bulk_import` CHANGE `params` `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)'");
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Continue on error
 }
 
@@ -603,7 +603,7 @@ require_once dirname(__DIR__, 2) . '/src/Entity/Importer.php';
 $existingLabels = [];
 try {
     $existingLabels = $connection->executeQuery('SELECT `label` FROM `bulk_importer`')->fetchFirstColumn();
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Table may have issues
 }
 
@@ -642,7 +642,7 @@ foreach ($filenames as $filename) {
 
 try {
     $entityManager->flush();
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Continue on error
 }
 

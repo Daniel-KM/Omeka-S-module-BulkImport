@@ -173,7 +173,7 @@ trait TwigTrait
                     $v = $format === ''
                         ? @strtotime($w)
                         : @date($format, @strtotime($w));
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     // Nothing: keep value.
                 }
                 break;
@@ -192,7 +192,7 @@ trait TwigTrait
                 if ($arga) {
                     try {
                         $v = @vsprintf($w, $arga);
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         // Nothing: keep value.
                     }
                 }
@@ -610,7 +610,7 @@ trait TwigTrait
             // Don't use searchOne for performance and simplicity.
             try {
                 $tables[$idOrSlug] = $this->bulk->api()->read('tables', is_numeric($idOrSlug) ? ['id' => $idOrSlug] : ['slug' => $idOrSlug])->getContent();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $tables[$idOrSlug] = null;
             }
         }
