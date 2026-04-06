@@ -500,7 +500,7 @@ class ImporterController extends AbstractActionController
                         $strategy = null;
                         // $strategy = 'synchronous';
                         $strategy = $strategy === 'synchronous'
-                            ? $this->getServiceLocator()->get(\Omeka\Job\DispatchStrategy\Synchronous::class)
+                            ? $this->getEvent()->getApplication()->getServiceManager()->get(\Omeka\Job\DispatchStrategy\Synchronous::class)
                             : null;
 
                         /** @var \Omeka\Job\Dispatcher $dispatcher */
