@@ -266,30 +266,50 @@ class Module extends AbstractModule
             && $services->get('Omeka\Settings')->get('bulkimport_extract_metadata', false)
         ) {
             $itemId = $item->getId();
-            // Run a job for item to avoid the 30 seconds issue with many files.
-            $args = [
-                'item_id' => $itemId,
-                'skip_media_ids' => $this->storeExistingItemMediaIds($itemId),
-            ];
-            // FIXME Use a plugin, not a fake job. Or strategy "sync", but there is a doctrine exception on owner of the job.
-            // Of course, it is useless for a background job.
-            // $strategy = $this->isBackgroundProcess() ? $services->get(\Omeka\Job\DispatchStrategy\Synchronous::class) : null;
-            $strategy = null;
+            $skipMediaIds = $this->storeExistingItemMediaIds($itemId);
+
+            // In background (bulk import), run synchronously.
             if ($this->isBackgroundProcess()) {
                 $job = new \Omeka\Entity\Job();
                 $job->setPid(null);
                 $job->setStatus(\Omeka\Entity\Job::STATUS_IN_PROGRESS);
                 $job->setClass(\BulkImport\Job\ExtractMediaMetadata::class);
-                $job->setArgs($args);
+                $job->setArgs([
+                    'item_id' => $itemId,
+                    'skip_media_ids' => $skipMediaIds,
+                ]);
                 $job->setOwner($services->get('Omeka\AuthenticationService')->getIdentity());
                 $job->setStarted(new \DateTime('now'));
                 $jobClass = new \BulkImport\Job\ExtractMediaMetadata($job, $services);
                 $jobClass->perform();
-            } else {
-                /** @var \Omeka\Job\Dispatcher $dispatcher */
-                $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-                $dispatcher->dispatch(\BulkImport\Job\ExtractMediaMetadata::class, $args, $strategy);
+                return;
             }
+
+            // Use deferred job to avoid to run one job by resource.
+            $services->get('Common\DeferredJobDispatch')
+                ->defer(
+                    \BulkImport\Job\ExtractMediaMetadata::class,
+                    'bulkimport_extract_metadata',
+                    [
+                        'item_id' => $itemId,
+                        'skip_media_ids' => $skipMediaIds,
+                    ],
+                    function (string $key, array $all) {
+                        // One job per item (job only supports a single
+                        // item_id).
+                        $seen = [];
+                        $dispatches = [];
+                        foreach ($all as $p) {
+                            $id = $p['item_id'];
+                            if (isset($seen[$id])) {
+                                continue;
+                            }
+                            $seen[$id] = true;
+                            $dispatches[] = $p;
+                        }
+                        return $dispatches;
+                    }
+                );
         }
     }
 
