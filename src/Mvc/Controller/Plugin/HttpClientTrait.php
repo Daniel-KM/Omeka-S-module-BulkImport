@@ -16,7 +16,7 @@ trait HttpClientTrait
     /**
      * @var string
      */
-    protected $userAgent = 'Omeka S - module BulkImport version 3.4.48';
+    protected $userAgent = 'Omeka-S-BulkImport/3.4.64';
 
     /**
      * @var \Laminas\Http\Client

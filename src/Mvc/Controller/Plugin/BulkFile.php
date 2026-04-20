@@ -395,7 +395,7 @@ class BulkFile extends AbstractPlugin
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_MAXREDIRS => 10,
-                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+                CURLOPT_USERAGENT => $this->userAgent,
             ]);
             $result = curl_exec($curl);
             if ($result === false) {
@@ -955,7 +955,7 @@ class BulkFile extends AbstractPlugin
                     CURLOPT_FILE => $fp,
                     CURLOPT_HEADER => false,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+                    CURLOPT_USERAGENT => $this->userAgent,
                 ]);
                 curl_exec($curl);
                 curl_close($curl);
@@ -1084,12 +1084,16 @@ class BulkFile extends AbstractPlugin
     public function fetchUrlToTempFile(string $url): ?string
     {
         $tempname = @tempnam($this->tempDir, 'omk_bki_');
+        if ($tempname === false) {
+            return null;
+        }
 
         // @see https://stackoverflow.com/questions/724391/saving-image-from-php-url
         // Curl is faster than copy or file_get_contents/file_put_contents.
         if (function_exists('curl_init')) {
             $curl = curl_init($url);
             if (!$curl) {
+                @unlink($tempname);
                 return null;
             }
             $fp = fopen($tempname, 'wb');
@@ -1097,21 +1101,33 @@ class BulkFile extends AbstractPlugin
                 CURLOPT_FILE => $fp,
                 CURLOPT_HEADER => false,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+                CURLOPT_USERAGENT => $this->userAgent,
             ]);
             curl_exec($curl);
             curl_close($curl);
             fclose($fp);
         } else {
-            // copy($url, $tempname);
-            $result = file_put_contents($tempname, (string) file_get_contents($url), \LOCK_EX);
-            if ($result === false) {
+            try {
+                $response = $this->fetchUrl($url, [], ['User-Agent' => $this->userAgent]);
+            } catch (\Laminas\Http\Exception\RuntimeException $e) {
+                @unlink($tempname);
+                return null;
+            } catch (\Laminas\Http\Client\Exception\RuntimeException $e) {
+                @unlink($tempname);
+                return null;
+            }
+            if (!$response->isSuccess()) {
+                @unlink($tempname);
+                return null;
+            }
+            if (file_put_contents($tempname, $response->getBody(), \LOCK_EX) === false) {
+                @unlink($tempname);
                 return null;
             }
         }
 
         if (!filesize($tempname)) {
-            unlink($tempname);
+            @unlink($tempname);
             return null;
         }
 
