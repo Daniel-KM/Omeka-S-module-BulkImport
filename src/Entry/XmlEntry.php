@@ -23,7 +23,7 @@ class XmlEntry extends BaseEntry
 
     protected function init(): void
     {
-        if (!$this->data) {
+        if ($this->data === null || $this->data === '' || $this->data === []) {
             $this->data = [];
             return;
         } elseif (is_string($this->data)) {

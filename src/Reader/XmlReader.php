@@ -358,7 +358,10 @@ class XmlReader extends AbstractMultiplePaginatedReader
             if ($reader->nodeType === XMLReaderCore::ELEMENT
                 && $reader->localName === $firstLevelElementName
             ) {
-                $node = $reader->expand();
+                $node = $reader->expand(new \DOMDocument());
+                if (!$node) {
+                    continue;
+                }
                 $simpleXml = simplexml_import_dom($node);
                 yield new XmlEntry(
                     $simpleXml,
