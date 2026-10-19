@@ -26,9 +26,10 @@
         "daniel-km/omeka-s-module-common": "*"
     },
     "require": {
-        "james-heinrich/getid3": "^2.0-dev",
+        "daniel-km/simple-iso-639-3": "^0.3",
         "mikehaertl/php-pdftk": "^0.13",
-        "openspout/openspout": "^4.25"
+        "openspout/openspout": "^4.25",
+        "sempia/getid3": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -48,9 +49,5 @@
     "extra": {
         "installer-name": "BulkImport",
         "configurable": true
-    },
-    "provide": {
-        "laminas/laminas-escaper": "*",
-        "laminas/laminas-zendframework-bridge": "*"
     }
 }
