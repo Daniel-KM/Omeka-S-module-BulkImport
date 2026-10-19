@@ -22,6 +22,13 @@ class ResourceProcessor extends AbstractResourceProcessor
     protected $paramsFormClass = ResourceProcessorParamsForm::class;
 
     /**
+     * Ids of the assets created from a url or a path during the job.
+     *
+     * @var array
+     */
+    protected $createdAssetIds = [];
+
+    /**
      * @see \Omeka\Api\Representation\ResourceReference
      *
      * @var array
@@ -552,8 +559,14 @@ class ResourceProcessor extends AbstractResourceProcessor
                         $id = $this->getAssetId($value);
                     } elseif (is_string($value)) {
                         // TODO Temporary creation of the asset.
-                        $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
-                        $id = $asset ? $asset->getId() : null;
+                        // The resources are filled multiple times (listing of
+                        // identifiers, check, process), so create the asset
+                        // only once.
+                        if (!isset($this->createdAssetIds[$value])) {
+                            $asset = $this->createAssetFromUrl($value, $resource['messageStore']);
+                            $this->createdAssetIds[$value] = $asset ? $asset->getId() : null;
+                        }
+                        $id = $this->createdAssetIds[$value];
                     }
                     if ($id) {
                         $resource['o:thumbnail'] = empty($altText)
