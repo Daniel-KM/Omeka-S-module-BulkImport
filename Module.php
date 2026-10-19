@@ -2,6 +2,12 @@
 
 namespace BulkImport;
 
+// Load the module dependencies when installed as a zip.
+// With composer, libraries are stored in omeka vendor/ and the module has none.
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
 if (!class_exists('Common\TraitModule', false)) {
     require_once file_exists(dirname(__DIR__) . '/Common/src/TraitModule.php')
         ? dirname(__DIR__) . '/Common/src/TraitModule.php'
@@ -32,16 +38,6 @@ class Module extends AbstractModule
         'Log',
         'Mapper',
     ];
-
-    public function init(ModuleManager $moduleManager): void
-    {
-        // Load Mapper autoloader first for shared dependencies (OpenSpout, etc.).
-        $mapperAutoload = dirname(__DIR__) . '/Mapper/vendor/autoload.php';
-        if (file_exists($mapperAutoload)) {
-            require_once $mapperAutoload;
-        }
-        require_once __DIR__ . '/vendor/autoload.php';
-    }
 
     protected function preInstall(): void
     {

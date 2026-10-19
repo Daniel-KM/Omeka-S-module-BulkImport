@@ -2,16 +2,8 @@
 
 namespace BulkImport\Mvc\Controller\Plugin;
 
-// The autoload doesn’t work with GetId3.
-// And all main classes should be loaded.
-if (!class_exists(\JamesHeinrich\GetID3\GetId3::class)) {
-    require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/GetID3.php';
-    require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/Exception.php';
-    require_once dirname(__DIR__, 4) . '/vendor/james-heinrich/getid3/src/Utils.php';
-}
-
 use Mapper\Stdlib\Mapper;
-use JamesHeinrich\GetID3\GetId3;
+use JamesHeinrich\GetID3\GetID3;
 use Laminas\Log\Logger;
 use Laminas\Mvc\Controller\Plugin\AbstractPlugin;
 use Omeka\Entity\Media;
@@ -132,7 +124,7 @@ class ExtractMediaMetadata extends AbstractPlugin
                 $data = $this->extractDataFromPdf->__invoke($filepath);
                 break;
             default:
-                $getId3 = new GetId3();
+                $getId3 = new GetID3();
                 $data = $getId3->analyze($filepath);
                 $data = array_diff_key($data, array_flip($this->ignoredKeys));
                 break;
