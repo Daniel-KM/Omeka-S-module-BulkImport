@@ -65,6 +65,7 @@ class ResourceProcessor extends AbstractResourceProcessor
 
         // Media.
         'o:item' => 'entity',
+        'o:alt_text' => 'string',
         // 'o:lang' => 'string',
         // 'o:ingester' => 'string',
         // 'o:source' => 'string',
@@ -650,6 +651,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         unset(
             $resource['o:email'],
             $resource['o:item'],
+            $resource['o:alt_text'],
             $resource['o:lang'],
             $resource['o:ingester'],
             $resource['o:source'],
@@ -826,6 +828,63 @@ class ResourceProcessor extends AbstractResourceProcessor
                 continue 2;
         }
 
+        return $this
+            ->fillMediaSubFields($resource);
+    }
+
+    /**
+     * Fill the media of an item with the fields like "o:media/o:alt_text",
+     * "o:media/o:is_public" or "o:media/dcterms:title".
+     *
+     * The values are set to the media in the same order. A single value is set
+     * to all the media of the item.
+     */
+    protected function fillMediaSubFields(ArrayObject $resource): self
+    {
+        $mediaFieldTypes = $this->getFieldTypesForResource('media');
+        foreach (array_keys($resource->getArrayCopy()) as $field) {
+            if (strpos((string) $field, 'o:media/') !== 0) {
+                continue;
+            }
+            $values = array_values((array) $resource[$field]);
+            unset($resource[$field]);
+            if (!$values || empty($resource['o:media'])) {
+                continue;
+            }
+
+            $subField = mb_substr($field, 8);
+            $isProperty = (bool) $this->easyMeta->propertyId($subField);
+            $fieldType = $mediaFieldTypes[$subField] ?? null;
+            if (!$isProperty && !in_array($fieldType, ['string', 'boolean'], true)) {
+                $resource['messageStore']->addWarning('values', new PsrMessage(
+                    'The field "{field}" is not managed for media.', // @translate
+                    ['field' => $field]
+                ));
+                continue;
+            }
+
+            $index = 0;
+            foreach (array_keys($resource['o:media']) as $key) {
+                $value = count($values) === 1 ? $values[0] : ($values[$index] ?? null);
+                ++$index;
+                if ($value === null || !is_array($resource['o:media'][$key])) {
+                    continue;
+                }
+                if ($isProperty) {
+                    $media = new ArrayObject([
+                        $subField => [$value],
+                        'messageStore' => $resource['messageStore'],
+                    ]);
+                    $this->fillProperty($media, $subField, [$value]);
+                    $resource['o:media'][$key][$subField] = $media[$subField];
+                } else {
+                    $value = is_array($value) ? ($value['@value'] ?? $value['@id'] ?? reset($value)) : $value;
+                    $resource['o:media'][$key][$subField] = $fieldType === 'boolean'
+                        ? !$this->isFalse($value)
+                        : $this->cleanString($value);
+                }
+            }
+        }
         return $this;
     }
 
@@ -840,6 +899,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             $resource['o:item'],
             $resource['o:media'],
             $resource['o:item_set'],
+            $resource['o:alt_text'],
             $resource['o:lang'],
             $resource['o:ingester'],
             $resource['o:source'],

@@ -29,6 +29,7 @@ class ItemMappingParamsForm extends AbstractResourceMappingParamsForm
                     // 'tile' => 'Tile', // @translate
                     'o:media/dcterms:title' => 'Title', // @translate
                     'o:media/o:is_public' => 'Visibility public/private', // @translate
+                    'o:media/o:alt_text' => 'Alternative text', // @translate
                 ],
             ],
         ]);

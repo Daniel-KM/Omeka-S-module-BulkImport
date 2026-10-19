@@ -25,6 +25,7 @@ class MediaMappingParamsForm extends AbstractResourceMappingParamsForm
                     'iiif_presentation' => 'IIIF Presentation', // @translate
                     'oembed' => 'oEmbed', // @translate
                     'youtube' => 'Youtube', // @translate
+                    'o:alt_text' => 'Alternative text', // @translate
                     // Removed since Image Server 3.6.13.
                     // 'tile' => 'Tile', // @translate
                 ],

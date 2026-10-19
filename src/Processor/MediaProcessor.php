@@ -40,6 +40,7 @@ class MediaProcessor extends ResourceProcessor
         'property' => 'arrays',
         // Media.
         'o:item' => 'entity',
+        'o:alt_text' => 'string',
         'o:lang' => 'string',
         'o:ingester' => 'string',
         'o:source' => 'string',
