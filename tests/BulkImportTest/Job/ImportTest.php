@@ -422,6 +422,51 @@ class ImportTest extends AbstractHttpControllerTestCase
     /**
      * Patch a fixture file to replace the ID in the first data row.
      */
+    /**
+     * A thumbnail from a url is created once, even if resources are filled
+     * multiple times.
+     *
+     * @see https://github.com/Daniel-KM/Omeka-S-module-BulkImport/issues/10
+     */
+    public function testThumbnailCreatesOneAsset(): void
+    {
+        $services = $this->getApplicationServiceLocator();
+        $services->get('ControllerPluginManager')->get('bulkFile')->setFakeFiles(true);
+        $connection = $services->get('Omeka\Connection');
+        $maxAssetId = (int) $connection->fetchOne('SELECT MAX(id) FROM asset');
+        $maxItemId = (int) $connection->fetchOne('SELECT MAX(id) FROM item');
+
+        $this->performProcessForFile($this->basepath . 'spreadsheet/test_thumbnail.csv');
+
+        $assetIds = $connection->fetchFirstColumn('SELECT id FROM asset WHERE id > ?', [$maxAssetId]);
+        $thumbnailId = $connection->fetchOne(
+            'SELECT r.thumbnail_id FROM resource r JOIN item i ON i.id = r.id WHERE i.id > ?',
+            [$maxItemId]
+        );
+        $this->assertCount(1, $assetIds);
+        $this->assertSame((int) reset($assetIds), (int) $thumbnailId);
+    }
+
+    /**
+     * The fields of the media of an item can be set with "o:media/…".
+     *
+     * @see https://github.com/Daniel-KM/Omeka-S-module-BulkImport/issues/5
+     */
+    public function testMediaSubFields(): void
+    {
+        $connection = $this->getApplicationServiceLocator()->get('Omeka\Connection');
+        $maxMediaId = (int) $connection->fetchOne('SELECT MAX(id) FROM media');
+
+        $this->performProcessForFile($this->basepath . 'spreadsheet/test_media_sub_fields.csv');
+
+        $mediaIds = $connection->fetchFirstColumn('SELECT id FROM media WHERE id > ?', [$maxMediaId]);
+        $this->assertCount(1, $mediaIds);
+        $media = $this->api->read('media', reset($mediaIds))->getContent();
+        $this->assertSame('A described image', $media->altText());
+        $this->assertSame('Image title', (string) $media->value('dcterms:title'));
+        $this->assertFalse($media->isPublic());
+    }
+
     protected function patchFixtureId(string $filepath, int $actualId): void
     {
         $content = file_get_contents($filepath);
