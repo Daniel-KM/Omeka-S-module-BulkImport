@@ -863,7 +863,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             }
         }
 
-        if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
+        if (array_intersect(['items', 'media', 'media_items', 'item_sets', 'digital_objects'], $toImport)) {
             $this->logger->info('Initialization of all resources.'); // @translate
             if (in_array('items', $toImport)
                 && $this->prepareImport('items')
@@ -897,6 +897,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                     return;
                 }
             }
+            if (in_array('digital_objects', $toImport)
+                && class_exists('DigitalObject\Module', false)
+                && $this->prepareImport('digital_objects')
+                && method_exists($this, 'prepareDigitalObjects')
+            ) {
+                $this->prepareDigitalObjects();
+                if ($this->isErrorOrStop()) {
+                    return;
+                }
+            }
         }
 
         // For child processors.
@@ -921,7 +931,7 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             $this->fillAssets();
         }
 
-        if (array_intersect(['items', 'media', 'media_items', 'item_sets'], $toImport)) {
+        if (array_intersect(['items', 'media', 'media_items', 'item_sets', 'digital_objects'], $toImport)) {
             $this->logger->info('Preparation of metadata of all resources.'); // @translate
             if (in_array('items', $toImport)
                 && $this->prepareImport('items')
@@ -951,6 +961,16 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
                 && $this->prepareImport('item_sets')
             ) {
                 $this->fillItemSets();
+                if ($this->isErrorOrStop()) {
+                    return;
+                }
+            }
+            if (in_array('digital_objects', $toImport)
+                && class_exists('DigitalObject\Module', false)
+                && $this->prepareImport('digital_objects')
+                && method_exists($this, 'fillDigitalObjects')
+            ) {
+                $this->fillDigitalObjects();
                 if ($this->isErrorOrStop()) {
                     return;
                 }
