@@ -13,7 +13,8 @@ class BulkDiffResourcesFactory implements FactoryInterface
         $plugins = $services->get('ControllerPluginManager');
 
         $config = $services->get('Config');
-        $baseUrl = $config['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
+        // The directory files/bulk_import is protected.
+        $baseUrl = $services->get('Router')->assemble([], ['name' => 'admin/bulk/file']);
         $basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
 
         return new BulkDiffResources(

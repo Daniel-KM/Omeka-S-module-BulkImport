@@ -299,9 +299,8 @@ class ImportRepresentation extends AbstractEntityRepresentation
         if (empty($jobArgs['filename_log'])) {
             return null;
         }
-        $services = $this->getServiceLocator();
-        $baseUrl = $services->get('Config')['file_store']['local']['base_uri'] ?: $services->get('Router')->getBaseUrl() . '/files';
-        return $baseUrl . '/bulk_import/' . $jobArgs['filename_log'];
+        return $this->getServiceLocator()->get('ControllerPluginManager')->get('bulk')
+            ->fileUrl($jobArgs['filename_log']);
     }
 
     /**

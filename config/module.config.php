@@ -149,6 +149,20 @@ return [
                                     ],
                                 ],
                             ],
+                            // The directory files/bulk_import is protected.
+                            'file' => [
+                                'type' => \Laminas\Router\Http\Segment::class,
+                                'options' => [
+                                    'route' => '/file[/:filename]',
+                                    'constraints' => [
+                                        'filename' => '[A-Za-z0-9][A-Za-z0-9_.-]*',
+                                    ],
+                                    'defaults' => [
+                                        'controller' => 'import',
+                                        'action' => 'file',
+                                    ],
+                                ],
+                            ],
                             'id' => [
                                 'type' => \Laminas\Router\Http\Segment::class,
                                 'options' => [

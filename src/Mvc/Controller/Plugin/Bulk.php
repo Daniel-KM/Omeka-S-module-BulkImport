@@ -147,6 +147,21 @@ class Bulk extends AbstractPlugin
     }
 
     /**
+     * Get the url of a file of an import (log, diff…).
+     *
+     * The directory files/bulk_import is protected, so the file is served by an
+     * admin route.
+     */
+    public function fileUrl(string $filename, bool $absolute = false): string
+    {
+        $url = $this->services->get('Router')
+            ->assemble(['filename' => basename($filename)], ['name' => 'admin/bulk/file']);
+        return $absolute
+            ? $this->services->get('ViewHelperManager')->get('ServerUrl')->__invoke($url)
+            : $url;
+    }
+
+    /**
      * Check if a string or a id is a managed term.
      */
     public function isPropertyTerm($termOrId): bool

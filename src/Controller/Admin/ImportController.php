@@ -51,6 +51,30 @@ class ImportController extends AbstractActionController
         ]);
     }
 
+    /**
+     * Send a file of an import (log, diff…).
+     *
+     * The file name starts with the import id, that should be readable.
+     */
+    public function fileAction()
+    {
+        $filename = (string) $this->params()->fromRoute('filename');
+        if (!preg_match('~^(?:import_)?(\d+)[-_]~', $filename, $matches)) {
+            throw new \Omeka\Mvc\Exception\NotFoundException();
+        }
+
+        // Throw an exception when the import does not exist or is private.
+        $this->api()->read('bulk_imports', ['id' => (int) $matches[1]]);
+
+        $config = $this->getServiceLocator()->get('Config');
+        $baseDir = ($config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files')) . '/bulk_import';
+        $response = $this->sendFilePrivate($baseDir . '/' . $filename, $baseDir);
+        if (!$response) {
+            throw new \Omeka\Mvc\Exception\NotFoundException();
+        }
+        return $response;
+    }
+
     public function stopAction()
     {
         /** @var \BulkImport\Api\Representation\ImportRepresentation $import */

@@ -324,8 +324,8 @@ class BulkDiffValues extends AbstractPlugin
         $this->logger->notice(
             'Data about new values is available in this json {url_1} or in this spreadsheet {url_2}. Check is case sensitive.', // @translate
             [
-                'url_1' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffValuesJson, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_2' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffValuesOds, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_1' => $this->baseUrl . '/' . basename($this->filepathDiffValuesJson),
+                'url_2' => $this->baseUrl . '/' . basename($this->filepathDiffValuesOds),
             ]
         );
         return $this;

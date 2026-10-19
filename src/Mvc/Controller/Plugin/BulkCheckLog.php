@@ -525,7 +525,7 @@ class BulkCheckLog extends AbstractPlugin
     {
         $this->logger->notice(
             'Results are available in this spreadsheet: {url}.', // @translate
-            ['url' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathLog, mb_strlen($this->basePath . '/bulk_import/'))]
+            ['url' => $this->baseUrl . '/' . basename($this->filepathLog)]
         );
         return $this;
     }

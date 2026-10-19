@@ -3584,13 +3584,11 @@ trait MetadataTransformTrait
             : $filtereds;
     }
 
-    protected function getOutputFilepath(string $filename, string $extension, bool $relative = false): ?string
+    protected function getOutputFilepath(string $filename, string $extension): ?string
     {
-        $relativePath = 'bulk_import/' . 'import_' . $this->job->getImportId() . '_' . strtr($filename, [':' => '-']) . '.' . $extension;
-        if ($relative) {
-            return 'files/' . $relativePath;
-        }
-        $filepath = $this->basePath . '/' . $relativePath;
+        // The file is served by a route that accepts only some characters.
+        $filename = preg_replace('/[^A-Za-z0-9_.-]/', '_', strtr($filename, [':' => '-']));
+        $filepath = $this->basePath . '/bulk_import/import_' . $this->job->getImportId() . '_' . $filename . '.' . $extension;
         if (!file_exists($filepath)) {
             try {
                 if (!is_dir(dirname($filepath))) {
@@ -3648,17 +3646,12 @@ trait MetadataTransformTrait
     protected function saveMappingSourceUrisToOds(string $name, array $mapper, array $extraColumns = []): void
     {
         $filepath = $this->getOutputFilepath($name, 'ods');
-        $relativePath = $this->getOutputFilepath($name, 'ods', true);
-        if (!$filepath || !$relativePath) {
+        if (!$filepath) {
             $this->logger->err(
                 'Unable to create output file.' // @translate
             );
             return;
         }
-
-        $serverUrlHelper = $this->services->get('ViewHelperManager')->get('ServerUrl');
-        $baseUrlPath = $this->services->get('Router')->getBaseUrl();
-        $baseUrl = $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/' : '/');
 
         /** @var \OpenSpout\Writer\ODS\Writer $spreadsheetWriter */
         $spreadsheetWriter = new \OpenSpout\Writer\ODS\Writer();
@@ -3741,7 +3734,7 @@ trait MetadataTransformTrait
             'The mapping spreadsheet for "{name}" is available in "{url}".', // @translate
             [
                 'name' => $name,
-                'url' => $baseUrl . $relativePath,
+                'url' => $this->bulk->fileUrl($filepath, true),
             ]
         );
     }
@@ -3749,17 +3742,12 @@ trait MetadataTransformTrait
     protected function saveMappingSourceUrisToHtml(string $name, array $mapper, array $extraColumns = []): void
     {
         $filepath = $this->getOutputFilepath($name, 'html');
-        $relativePath = $this->getOutputFilepath($name, 'html', true);
-        if (!$filepath || !$relativePath) {
+        if (!$filepath) {
             $this->logger->err(
                 'Unable to create output file.' // @translate
             );
             return;
         }
-
-        $serverUrlHelper = $this->services->get('ViewHelperManager')->get('ServerUrl');
-        $baseUrlPath = $this->services->get('Router')->getBaseUrl();
-        $baseUrl = $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/' : '/');
 
         $headers = [
             'source',
@@ -3802,7 +3790,7 @@ trait MetadataTransformTrait
             'The mapping checking page for "{name}" is available in "{url}".', // @translate
             [
                 'name' => $name,
-                'url' => $baseUrl . $relativePath,
+                'url' => $this->bulk->fileUrl($filepath, true),
             ]
         );
     }

@@ -428,9 +428,9 @@ class BulkDiffResources extends AbstractPlugin
         $this->logger->notice(
             'Data about update is available in this json {url_1} and in this spreadsheet by row {url_2} or by column {url_3}.', // @translate
             [
-                'url_1' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffJson, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_2' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsRow, mb_strlen($this->basePath . '/bulk_import/')),
-                'url_3' => $this->baseUrl . '/bulk_import/' . mb_substr($this->filepathDiffOdsColumn, mb_strlen($this->basePath . '/bulk_import/')),
+                'url_1' => $this->baseUrl . '/' . basename($this->filepathDiffJson),
+                'url_2' => $this->baseUrl . '/' . basename($this->filepathDiffOdsRow),
+                'url_3' => $this->baseUrl . '/' . basename($this->filepathDiffOdsColumn),
             ]
         );
         return $this;
