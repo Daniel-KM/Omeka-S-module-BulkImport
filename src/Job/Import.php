@@ -172,36 +172,26 @@ class Import extends AbstractJob
     }
 
     /**
-     * Override the thumbnailer for the whole import process when requested.
+     * Disable the thumbnailer for the whole import process when requested.
      *
      * The import job runs in a dedicated cli process, so overriding the core
-     * "Omeka\File\Thumbnailer" alias here only affects this import. The main
-     * use case is "No thumbnail" to skip derivative creation and speed up big
-     * imports (recreate the thumbnails later).
+     * "Omeka\File\Thumbnailer" alias here only affects this import. It skips
+     * derivative creation to speed up big imports (recreate them later).
      */
     protected function overrideThumbnailer(\Laminas\ServiceManager\ServiceLocatorInterface $services): void
     {
-        $map = [
-            'imagemagick' => \Omeka\File\Thumbnailer\ImageMagick::class,
-            'imagick' => \Omeka\File\Thumbnailer\Imagick::class,
-            'gd' => \Omeka\File\Thumbnailer\Gd::class,
-            'nothumbnail' => \Omeka\File\Thumbnailer\NoThumbnail::class,
-        ];
-
-        $choice = $this->processor instanceof Parametrizable
-            ? (string) $this->processor->getParam('thumbnailer', '')
-            : '';
-        if (!isset($map[$choice])) {
+        $disable = $this->processor instanceof Parametrizable
+            && $this->processor->getParam('disable_thumbnails');
+        if (!$disable) {
             return;
         }
 
         $services->setAllowOverride(true);
-        $services->setAlias('Omeka\File\Thumbnailer', $map[$choice]);
+        $services->setAlias('Omeka\File\Thumbnailer', \Omeka\File\Thumbnailer\NoThumbnail::class);
         $services->setAllowOverride(false);
 
         $this->logger->notice(
-            'Thumbnailer set to "{thumbnailer}" for this import.', // @translate
-            ['thumbnailer' => $choice]
+            'Creation of thumbnails is disabled for this import.' // @translate
         );
     }
 
