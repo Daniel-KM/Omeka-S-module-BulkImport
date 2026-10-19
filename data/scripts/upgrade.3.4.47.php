@@ -660,7 +660,7 @@ if (!$this->checkDestinationDir($basePath . '/xsl')) {
     $messenger->addWarning($message);
 }
 
-if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
+if (!$this->checkDestinationDir($basePath . '/bulk_import', true)) {
     $message = new PsrMessage(
         'The directory "{directory}" is not writeable.', // @translate
         ['directory' => $basePath . '/bulk_import']

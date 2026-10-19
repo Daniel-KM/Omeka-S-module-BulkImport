@@ -88,7 +88,7 @@ class Module extends AbstractModule
             ))->setTranslator($translator);
         }
 
-        if (!$this->checkDestinationDir($basePath . '/bulk_import')) {
+        if (!$this->checkDestinationDir($basePath . '/bulk_import', true)) {
             $errors[] = (string) (new PsrMessage(
                 'The directory "{directory}" is not writeable.', // @translate
                 ['directory' => $basePath . '/bulk_import']
