@@ -194,7 +194,8 @@ class BulkFile extends AbstractPlugin
         $this->allowedMediaTypesAssets = $allowedMediaTypesAssets;
         $this->allowedExtensionsAssets = $allowedExtensionsAssets;
         $this->allowEmptyFiles = $allowEmptyFiles;
-        $this->sideloadPath = $sideloadPath;
+        // Like module File Sideload, use the real path to compare real paths.
+        $this->sideloadPath = ($sideloadPath === '' ? '' : realpath($sideloadPath)) ?: $sideloadPath;
         $this->sideloadDeleteFile = $sideloadDeleteFile;
 
         $this->streamContextHeadersOnly = stream_context_create([
@@ -694,10 +695,11 @@ class BulkFile extends AbstractPlugin
             return null;
         }
 
-        $isAbsolutePathInsideDir = strpos($filepath, $this->sideloadPath) === 0;
-        $fileinfo = $isAbsolutePathInsideDir
-            ? new SplFileInfo($filepath)
-            : new SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $filepath);
+        // An absolute path may be inside the directory or relative to it.
+        $fileinfo = new SplFileInfo($this->sideloadPath . DIRECTORY_SEPARATOR . $filepath);
+        if (mb_substr($filepath, 0, 1) === DIRECTORY_SEPARATOR && !$fileinfo->getRealPath()) {
+            $fileinfo = new SplFileInfo($filepath);
+        }
 
         $realPath = $fileinfo->getRealPath();
         if (!$realPath) {
@@ -710,7 +712,10 @@ class BulkFile extends AbstractPlugin
             return null;
         }
 
-        if (strpos($realPath, $this->sideloadPath) !== 0) {
+        // Append the separator to skip sibling directories with the same prefix.
+        if ($realPath !== $this->sideloadPath
+            && strpos($realPath, $this->sideloadPath . DIRECTORY_SEPARATOR) !== 0
+        ) {
             if ($messageStore) {
                 $messageStore->addError('file', new PsrMessage(
                     'Cannot sideload file "{filepath}": file not inside sideload directory.', // @translate
