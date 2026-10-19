@@ -73,7 +73,7 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
                 <?php $reader = $importer->reader(); ?>
                 <?= $reader ? $reader->getLabel() : null; ?>
                 <?php if ($reader instanceof ConfigurableImport): ?>
-                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()]), ['class' => 'o-icon-edit']) ?>
+                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-reader', 'id' => $importer->id()]), ['class' => 'o-icon-edit', 'title' => $translate('Configure reader'), 'aria-label' => $translate('Configure reader')]) ?>
                 <?php endif; ?>
             </td>
             <td class="configure">
@@ -81,7 +81,7 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
                 <?php $bulkMapping = $importer->bulkMapping(); ?>
                 <?php if ($bulkMapping): ?>
                     <?= $bulkMapping->link($bulkMapping->label(), 'show') ?>
-                    <?= $bulkMapping->link('', 'edit', ['class' => 'o-icon-edit']) ?>
+                    <?= $bulkMapping->link('', 'edit', ['class' => 'o-icon-edit', 'title' => $translate('Edit mapping'), 'aria-label' => $translate('Edit mapping')]) ?>
                     <?php elseif ($mapper): ?>
                     <?= $escape(strtr((string) $mapper, ['/' => ' / ', ':' => ': '])) ?>
                 <?php endif; ?>
@@ -90,7 +90,7 @@ $this->htmlElement('body')->appendAttribute('class', 'bulk-importers browse');
                 <?php $processor = $importer->processor(); ?>
                 <?= $processor ? $escape($processor->getLabel()) : null; ?>
                 <?php if ($processor instanceof ConfigurableImport): ?>
-                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()]), ['class' => 'o-icon-edit']) ?>
+                    <?= $hyperlink('', $url('admin/bulk/id', ['controller' => 'importer', 'action' => 'configure-processor', 'id' => $importer->id()]), ['class' => 'o-icon-edit', 'title' => $translate('Configure processor'), 'aria-label' => $translate('Configure processor')]) ?>
                 <?php endif; ?>
             </td>
         </tr>
