@@ -41,7 +41,8 @@ This module requires the modules [Common], [Log] and [Mapper]. An external xslt 
 processor may be needed if you import xml files that are not importable with
 xlt 1. Some specific readers or processors may need some other modules.
 
-Since 3.4.39, the module requires php 7.4.
+Since 3.4.63, the module requires php 8.1. Since 3.4.66, it requires the modules
+[Common] 3.4.94, [Log] 3.4.42 and [Mapper] 3.4.9 or later.
 
 **Warning**: Some parts of this module may not support use of remote files: only
 files saved locally on the server may be managed.
@@ -85,6 +86,18 @@ they should be allowed in the page `/admin/setting`.
 To import xml files that require xslt 2/3 transformation, install an external
 xslt processor. See the [Mapper] module documentation for distribution packages
 and configuration of the command.
+
+* Php extension zip
+
+The php extension "zip" is required to import uploaded zip files.
+
+* Files of the imports
+
+The logs, the diffs and the other files created by the imports are stored in
+the directory `files/bulk_import`, protected by a `.htaccess` against a direct
+access. They are available via links in the admin interface only. With Nginx,
+the direct access to this directory should be denied in the config of the
+server.
 
 * For test
 
@@ -412,7 +425,15 @@ will be used for now: `dcterms:creator ^^resource:item ^^literal | foaf:name`.
 The visibility of each data can be "public" (default) or "private", prefixed by `¬ß`.
 
 Media can be imported with the item. The mapping is automatic with headers `Media url`,
-`Media html`, etc.
+`Media html`, etc. The metadata of these media can be set with the targets
+`o:media/o:alt_text` (alternative text), `o:media/o:is_public` or a property like
+`o:media/dcterms:title`. The values are set to the media of the item in the same
+order, and a single value is set to all the media of the item. When media are
+imported directly, the alternative text is the target `o:alt_text`.
+
+To speed up a big import, the creation of thumbnails can be disabled in the
+form of the process. The thumbnails should be created later, for example with
+the module [Easy Admin].
 
 For more details about the possible values, see the [config above].
 
@@ -563,28 +584,21 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [Mapper]: https://gitlab.com/Daniel-KM/Omeka-S-module-Mapper
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installing a module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
-[CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [patch]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
-[version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
+[version]: https://gitlab.com/Daniel-KM/Omeka-S-module-NumericDataTypes
 [example mapping for Unimarc]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
 [JsonPath]: https://goessner.net/articles/JsonPath/index.html
-[JMESPath]: https://jmespath.org
 [Unimarc conversion to Omeka]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [Twig]: https://twig.symfony.com/doc/3.x
 [config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
 [Bulk Edit]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkEdit
+[Easy Admin]: https://gitlab.com/Daniel-KM/Omeka-S-module-EasyAdmin
 [e-prints]: https://eprints.org/
 [OAI-PMH repository]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
 [Spip]: https://spip.net
-[Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
-[Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
-[Data Type Rdf]: https://gitlab.com/Daniel-KM/Omeka-S-module-DataTypeRdf
 [Numeric Data Types]: https://github.com/Omeka-S-modules/NumericDataTypes
-[Spip ]: https://gitlab.com/Daniel-KM/Omeka-S-module-Spip
-[Thesaurus]: https://gitlab.com/Daniel-KM/Omeka-S-module-Thesaurus
-[User Profile]: https://gitlab.com/Daniel-KM/Omeka-S-module-UserProfile
-[module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues
+[module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/work_items
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
 [FSF]: https://www.fsf.org
@@ -594,5 +608,10 @@ and for the institutional repository of student works [Dante] of the [Universit√
 [flow-php-server]: https://github.com/flowjs/flow-php-server
 [CodeMirror]: https://codemirror.net
 [BibLibre]: https://github.com/BibLibre
+[Manioc]: http://www.manioc.org
+[Greenstone]: http://www.greenstone.org
+[Le Menestrel]: http://www.menestrel.fr
+[Dante]: https://dante.univ-tlse2.fr
+[Universit√© de Toulouse Jean-Jaur√®s]: https://www.univ-tlse2.fr
 [GitLab]: https://gitlab.com/Daniel-KM
 [Daniel-KM]: https://gitlab.com/Daniel-KM "Daniel Berthereau"

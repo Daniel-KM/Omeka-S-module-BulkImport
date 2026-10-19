@@ -38,12 +38,14 @@ Les importeurs par défaut sont :
 Installation
 ------------
 
-Ce module nécessite le module [Log] et [Common]. Un processeur xslt 2 externe
+Ce module nécessite les modules [Common], [Log] et [Mapper]. Un processeur xslt 2 externe
 peut être nécessaire si vous importez des fichiers xml qui ne sont pas
 importables avec xlt 1. Certains lecteurs ou processeurs spécifiques peuvent
 nécessiter d’autres modules.
 
-À partir de la version 3.4.39, le module requiert php 7.4.
+À partir de la version 3.4.63, le module requiert php 8.1. À partir de la version
+3.4.66, il requiert les modules [Common] 3.4.94, [Log] 3.4.42 et [Mapper] 3.4.9
+ou supérieurs.
 
 **Avertissement** : Certaines parties de ce module ne supportent pas les
 fichiers distants : seuls ceux enregistrés localement sur le serveur peuvent
@@ -90,6 +92,18 @@ dans la page `/admin/setting`.
 Pour importer des fichiers xml qui nécessitent une transformation xslt 2/3,
 installez un processeur xslt externe. Voir la documentation du module [Mapper]
 pour les paquets selon la distribution et la configuration de la commande.
+
+* Extension php zip
+
+L’extension php "zip" est nécessaire pour importer des fichiers zip téléversés.
+
+* Fichiers des imports
+
+Les journaux, les différences et les autres fichiers créés par les imports sont
+enregistrés dans le dossier `files/bulk_import`, protégé par un `.htaccess`
+contre un accès direct. Ils sont disponibles via les liens de l’interface
+d’administration uniquement. Avec Nginx, l’accès direct à ce dossier doit être
+refusé dans la configuration du serveur.
 
 
 Usage
@@ -420,7 +434,16 @@ La visibilité de chaque donnée peut être "publique" (par défaut) ou "privée
 préfixée par `§`.
 
 Les médias peuvent être importés avec l’article. L’alignement est automatique
-avec les en-têtes `Media url`, `Media html`, etc.
+avec les en-têtes `Media url`, `Media html`, etc. Les métadonnées de ces médias
+peuvent être définies avec les destinations `o:media/o:alt_text` (texte
+alternatif), `o:media/o:is_public` ou une propriété comme `o:media/dcterms:title`.
+Les valeurs sont attribuées aux médias de l’article dans le même ordre, et une
+valeur unique est attribuée à tous les médias de l’article. Quand les médias sont
+importés directement, le texte alternatif est la destination `o:alt_text`.
+
+Pour accélérer un gros import, la création des vignettes peut être désactivée
+dans le formulaire du traitement. Les vignettes doivent alors être créées plus
+tard, par exemple avec le module [Easy Admin].
 
 Pour plus de détails sur les valeurs possibles, voir la [config ci-dessus].
 
@@ -573,30 +596,25 @@ l’entrepôt institutionnel des travaux étudiants [Dante] de l’[Université 
 [Import plugin]: https://github.com/BibLibre/Omeka-plugin-Import
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Log]: https://gitlab.com/Daniel-KM/Omeka-S-module-Log
+[Mapper]: https://gitlab.com/Daniel-KM/Omeka-S-module-Mapper
 [BulkImport.zip]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/releases
 [installer un module]: https://omeka.org/s/docs/user-manual/modules/#installing-modules
-[CSV Import]: https://github.com/omeka-s-modules/CSVImport
 [correctif]: https://github.com/omeka-s-modules/NumericDataTypes/pull/29
-[version]: https://github.com/Daniel-KM/Omeka-S-module-NumericDataTypes
+[version]: https://gitlab.com/Daniel-KM/Omeka-S-module-NumericDataTypes
 [exemple d’alignement pour Unimarc]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [ISO 8601]: https://www.iso.org/iso-8601-date-and-time-format.html
 [JsonPath]: https://goessner.net/articles/JsonPath/index.html
 [JMESPath]: https://jmespath.org
 [conversion d’Unimarc vers Omeka]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/data/mapping/xml/unimarc_to_omeka.xml
 [Twig]: https://twig.symfony.com/doc/3.x
-[config above]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport#config-of-the-mappings
+[config ci-dessus]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/blob/master/LISEZMOI.md#configuration-des-alignements
 [Bulk Edit]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkEdit
+[Easy Admin]: https://gitlab.com/Daniel-KM/Omeka-S-module-EasyAdmin
 [e-prints]: https://eprints.org/
-[OAI-PMH repository]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
+[dépôt OAI-PMH]: https://gitlab.com/Daniel-KM/Omeka-S-module-OaiPmhRepository
 [Spip]: https://spip.net
-[Advanced Resource Template]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedResourceTemplate
-[Custom Vocab]: https://github.com/Omeka-S-modules/CustomVocab
-[Data Type Rdf]: https://gitlab.com/Daniel-KM/Omeka-S-module-DataTypeRdf
 [Numeric Data Types]: https://github.com/Omeka-S-modules/NumericDataTypes
-[Spip ]: https://gitlab.com/Daniel-KM/Omeka-S-module-Spip
-[Thesaurus]: https://gitlab.com/Daniel-KM/Omeka-S-module-Thesaurus
-[User Profile]: https://gitlab.com/Daniel-KM/Omeka-S-module-UserProfile
-[questions du module]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues
+[questions du module]: https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/work_items
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
 [FSF]: https://www.fsf.org
