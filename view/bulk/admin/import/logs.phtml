@@ -14,6 +14,7 @@ $jobState = $plugins->get('jobState');
 $assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $hyperlink = $plugins->get('hyperlink');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $strLength = 240;
 
@@ -27,6 +28,7 @@ JS;
 
 $this->headLink()
     ->appendStylesheet($assetUrl('css/bulk-import.css', 'BulkImport'))
+    ->appendStylesheet($assetUrl('css/common-dialog-admin.css', 'Common'))
     ->appendStylesheet($assetUrl('css/job.css', 'Log'))
     ->appendStylesheet($assetUrl('css/log.css', 'Log'));
 $this->headScript()
@@ -111,15 +113,14 @@ $state = $jobState($job);
                         <?= $shouldEscape ? $escape($text) : $text ?>
                         <?php endif; ?>
                     </span>
+                    <?php // Same markup than module Log, managed by its script. ?>
                     <ul class="actions">
                         <?php if ($isLong): ?>
-                        <li><?= $hyperlink('', '#', [
-                                'class' => 'o-icon- fa fa-expand popover',
-                                'title' => $translate('Full log'),
-                            ]) ?>
+                        <li><button type="button" class="o-icon- fa fa-expand popover" title="<?= $escapeAttr($translate('Full log')) ?>" aria-label="<?= $escapeAttr($translate('Full log')) ?>"></button>
                             <div class="log-message-full log-popover-content log-popover-current"><?= $shouldEscape ? $escape($text) : $text ?></div>
                         </li>
                         <?php endif; ?>
+                        <li><button type="button" class="o-icon- far fa-copy log-copy" title="<?= $escapeAttr($translate('Copy')) ?>" aria-label="<?= $escapeAttr($translate('Copy')) ?>"></button></li>
                     </ul>
                 </td>
                 <td><?= $translate($log->severityLabel()) ?></td>
