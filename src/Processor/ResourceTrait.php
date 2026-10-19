@@ -251,7 +251,9 @@ trait ResourceTrait
                     JOIN `_temporary_source_media` ON `_temporary_source_media`.`id` = `resource`.`id`;
                     DROP TABLE IF EXISTS `_temporary_source_media`;
                     SQL;
-                $this->connection->executeStatement($sql);
+                foreach (array_filter(array_map('trim', explode(";\n", $sql))) as $sql) {
+                    $this->connection->executeStatement($sql);
+                }
                 break;
         }
     }

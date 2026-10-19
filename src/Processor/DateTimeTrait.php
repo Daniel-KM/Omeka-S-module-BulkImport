@@ -194,7 +194,9 @@ trait DateTimeTrait
             ;
             SQL;
 
-        $this->connection->executeStatement($sql);
+        foreach (array_filter(array_map('trim', explode(";\n", $sql))) as $sql) {
+            $this->connection->executeStatement($sql);
+        }
 
         $sql = <<<'SQL'
             SELECT `value` FROM `_temporary_date`;
@@ -221,12 +223,10 @@ trait DateTimeTrait
             $timestamps = array_filter($result);
             if (count($timestamps)) {
                 foreach (array_chunk($timestamps, self::CHUNK_SIMPLE_RECORDS, true) as $chunk) {
-                    $sql = '';
                     foreach ($chunk as $datetime => $timestamp) {
                         $value = $this->connection->quote($datetime);
-                        $sql .= "UPDATE `_temporary_date` SET `timestamp` = '$timestamp' WHERE `value` = $value;\n";
+                        $this->connection->executeStatement("UPDATE `_temporary_date` SET `timestamp` = '$timestamp' WHERE `value` = $value");
                     }
-                    $this->connection->executeStatement($sql);
                 }
 
                 $sql = <<<'SQL'
@@ -279,7 +279,9 @@ trait DateTimeTrait
             DROP TABLE IF EXISTS `_temporary_rid`;
             DROP TABLE IF EXISTS `_temporary_date`;
             SQL;
-        $this->connection->executeStatement($sql);
+        foreach (array_filter(array_map('trim', explode(";\n", $sql))) as $sql) {
+            $this->connection->executeStatement($sql);
+        }
     }
 
     /**

@@ -202,12 +202,14 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
         }
     }
 
-    $sql = <<<SQL
+    $sqls = [];
+    $sqls[] = <<<SQL
         UPDATE `vocabulary`
         SET
             `comment` = 'Generic and common properties that are useful in Omeka for the curation of resources. The use of more common or more precise ontologies is recommended when it is possible.'
         WHERE `prefix` = 'curation'
-        ;
+        SQL;
+    $sqls[] = <<<SQL
         UPDATE `property`
         JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
         SET
@@ -217,7 +219,8 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
         WHERE
             `vocabulary`.`prefix` = 'curation'
             AND `property`.`local_name` = 'dateStart'
-        ;
+        SQL;
+    $sqls[] = <<<SQL
         UPDATE `property`
         JOIN `vocabulary` on `vocabulary`.`id` = `property`.`vocabulary_id`
         SET
@@ -227,9 +230,10 @@ if (version_compare($oldVersion, '3.4.46', '<')) {
         WHERE
             `vocabulary`.`prefix` = 'curation'
             AND `property`.`local_name` = 'dateEnd'
-        ;
         SQL;
-    $connection->executeStatement($sql);
+    foreach ($sqls as $sql) {
+        $connection->executeStatement($sql);
+    }
 }
 
 if (version_compare($oldVersion, '3.4.47', '<')) {
@@ -254,22 +258,26 @@ if (version_compare($oldVersion, '3.4.47', '<')) {
 
 if (version_compare($oldVersion, '3.4.48', '<')) {
     // Update bulk importer.
-    $sql = <<<'SQL'
+    $sqls = [];
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `reader_config` = '[]'
         WHERE `reader_config` IS NULL OR `reader_config` = "" OR `reader_config` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `processor_config` = '[]'
         WHERE `processor_config` IS NULL OR `processor_config` = "" OR `processor_config` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `config` = '[]'
         WHERE `config` IS NULL OR `config` = "" OR `config` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `config` = CONCAT(
@@ -280,22 +288,26 @@ if (version_compare($oldVersion, '3.4.48', '<')) {
                     ',"processor":', `processor_config`,
                 "}"
             )
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `label` = "-"
         WHERE `label` IS NULL
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `reader_class` = ""
         WHERE `reader_class` IS NULL
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_importer`
         SET
             `processor_class` = ""
         WHERE `processor_class` IS NULL
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         ALTER TABLE `bulk_importer`
         DROP `reader_config`,
         DROP `processor_config`,
@@ -304,30 +316,36 @@ if (version_compare($oldVersion, '3.4.48', '<')) {
         CHANGE `reader_class` `reader` VARCHAR(190) NOT NULL,
         CHANGE `processor_class` `processor` VARCHAR(190) NOT NULL,
         CHANGE `config` `config` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor`
-        ;
         SQL;
-    $connection->executeStatement($sql);
+    foreach ($sqls as $sql) {
+        $connection->executeStatement($sql);
+    }
 
     // Update bulk import.
-    $sql = <<<'SQL'
+    $sqls = [];
+    $sqls[] = <<<'SQL'
         ALTER TABLE `bulk_import`
         ADD `params` LONGTEXT NOT NULL COMMENT '(DC2Type:json)' AFTER `processor_params`
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_import`
         SET
             `reader_params` = '[]'
         WHERE `reader_params` IS NULL OR `reader_params` = "" OR `reader_params` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_import`
         SET
             `processor_params` = '[]'
         WHERE `processor_params` IS NULL OR `processor_params` = "" OR `processor_params` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_import`
         SET
             `params` = '[]'
         WHERE `params` IS NULL OR `params` = "" OR `params` = "{}"
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_import`
         SET
             `params` = CONCAT(
@@ -337,15 +355,19 @@ if (version_compare($oldVersion, '3.4.48', '<')) {
                     ',"processor":', `processor_params`,
                 "}"
             )
-        ;
+        SQL;
+    $sqls[] = <<<'SQL'
         UPDATE `bulk_import`
-        SET `params` = REPLACE(`params`, ',"mapper":[', ',"mapping":[');
+        SET `params` = REPLACE(`params`, ',"mapper":[', ',"mapping":[')
+        SQL;
+    $sqls[] = <<<'SQL'
         ALTER TABLE `bulk_import`
         DROP `reader_params`,
         DROP `processor_params`
-        ;
         SQL;
-    $connection->executeStatement($sql);
+    foreach ($sqls as $sql) {
+        $connection->executeStatement($sql);
+    }
 
     // Set mapping "manual" for all spreadsheet reader.
     $sql = <<<'SQL'
@@ -367,7 +389,7 @@ if (version_compare($oldVersion, '3.4.48', '<')) {
         ->from('bulk_importer', 'bulk_importer')
         ->where('bulk_importer.config LIKE "%mapping_config%"')
         ->orderBy('bulk_importer.id', 'asc');
-    $importerConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
+    $importerConfigs = $connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
     foreach ($importerConfigs as $id => $importerConfig) {
         $importerConfig = json_decode($importerConfig, true);
         $mappingConfig = $importerConfig['reader']['mapping_config'] ?? null;
@@ -393,7 +415,7 @@ if (version_compare($oldVersion, '3.4.48', '<')) {
         ->select('bulk_import.id', 'bulk_import.params')
         ->from('bulk_import', 'bulk_import')
         ->orderBy('bulk_import.id', 'asc');
-    $importParameters = $connection->executeQuery($qb)->fetchAllKeyValue();
+    $importParameters = $connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
     foreach ($importParameters as $id => $importParams) {
         $importParams = json_decode($importParams, true);
         $mappingMapper = $importParams['mapping'] ?? [];

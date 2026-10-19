@@ -214,8 +214,12 @@ trait MetadataTransformTrait
             $this->transformHelperExcludeEnd();
         }
 
-        // Transaction is implicit.
-        $this->connection->executeStatement(implode("\n", $this->operationSqls));
+        // Each operation is a single statement, executed separately because
+        // multi-statement queries are not portable across PDO drivers (native
+        // prepares or multi-statements disabled).
+        foreach ($this->operationSqls as $sql) {
+            $this->connection->executeStatement($sql);
+        }
 
         if ($flush) {
             $this->operationSqls = [];
@@ -1511,13 +1515,13 @@ trait MetadataTransformTrait
         $index = &$this->operationIndex;
         $this->operationExcludes[] = $index;
         // To exclude is to keep only other ones.
+        // Prepare the list of values not to process.
+        $this->operationSqls[] = "DROP TABLE IF EXISTS `_temporary_value_exclude_$index`";
         $this->operationSqls[] = <<<SQL
-            # Prepare the list of values not to process.
-            DROP TABLE IF EXISTS `_temporary_value_exclude_$index`;
             CREATE TABLE `_temporary_value_exclude_$index` (
                 `exclude` longtext COLLATE utf8mb4_unicode_ci,
                 KEY `IDX_exclude` (`exclude`(190))
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL;
         // The list is already filtered.
         foreach (array_chunk($exclude, self::CHUNK_ENTITIES, true) as $chunk) {
@@ -1902,15 +1906,13 @@ trait MetadataTransformTrait
      */
     protected function storeMappingTablePrepare(): void
     {
-        // Create a temporary table with the mapper.
+        // Create a temporary table to map values.
+        $this->operationSqls[] = 'DROP TABLE IF EXISTS `_temporary_mapper`';
+        $this->operationSqls[] = 'CREATE TABLE `_temporary_mapper` LIKE `value`';
         $this->operationSqls[] = <<<'SQL'
-            # Create a temporary table to map values.
-            DROP TABLE IF EXISTS `_temporary_mapper`;
-            CREATE TABLE `_temporary_mapper` LIKE `value`;
             ALTER TABLE `_temporary_mapper`
                 DROP `resource_id`,
                 ADD `source` longtext COLLATE utf8mb4_unicode_ci
-            ;
             SQL;
     }
 
@@ -2044,10 +2046,8 @@ trait MetadataTransformTrait
 
     protected function removeMappingTables(): void
     {
-        $this->operationSqls[] = <<<'SQL'
-            DROP TABLE IF EXISTS `_temporary_mapper`;
-            DROP TABLE IF EXISTS `_temporary_new_resource`;
-            SQL;
+        $this->operationSqls[] = 'DROP TABLE IF EXISTS `_temporary_mapper`';
+        $this->operationSqls[] = 'DROP TABLE IF EXISTS `_temporary_new_resource`';
     }
 
     /**
@@ -2858,13 +2858,16 @@ trait MetadataTransformTrait
             SQL;
 
         $position = strlen($random) + 2;
+        // Store new resource ids to speed next steps and to remove random
+        // titles.
+        $this->operationSqls[] = 'DROP TABLE IF EXISTS `_temporary_new_resource`';
         $this->operationSqls[] = <<<SQL
-            # Store new resource ids to speed next steps. and to remove random titles.
-            DROP TABLE IF EXISTS `_temporary_new_resource`;
             CREATE TABLE `_temporary_new_resource` (
                 `id` int(11) NOT NULL,
                 PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            SQL;
+        $this->operationSqls[] = <<<SQL
             INSERT INTO `_temporary_new_resource`
                 (`id`)
             SELECT DISTINCT
@@ -2873,7 +2876,8 @@ trait MetadataTransformTrait
             WHERE `resource`.`title` LIKE "$random %"
             ON DUPLICATE KEY UPDATE
                 `id` = `_temporary_new_resource`.`id`
-            ;
+            SQL;
+        $this->operationSqls[] = <<<SQL
             UPDATE `resource`
             JOIN `_temporary_new_resource`
                 ON `_temporary_new_resource`.`id` = `resource`.`id`
@@ -2881,8 +2885,7 @@ trait MetadataTransformTrait
                 `resource`.`title` = SUBSTRING(`resource`.`title`, $position)
             WHERE
                 `resource`.`title` LIKE "$random %"
-            ;
-            SQL . "\n";
+            SQL;
 
         if ($resourceName === \Omeka\Entity\Item::class) {
             $this->operationSqls[] = <<<SQL

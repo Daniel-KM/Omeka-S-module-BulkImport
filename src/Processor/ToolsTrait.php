@@ -123,13 +123,17 @@ trait ToolsTrait
         $idType = $keysAreStrings
             ? 'VARCHAR(1024) COLLATE `latin1_bin`'
             : 'INT unsigned';
-        $sqls = <<<SQL
-            DROP TABLE IF EXISTS `_temporary_source_entities`;
+        // Each statement is executed separately because multi-statement queries
+        // are not portable across PDO drivers and the inserted ids may be
+        // arbitrary quoted strings.
+        $sqls = [];
+        $sqls[] = 'DROP TABLE IF EXISTS `_temporary_source_entities`';
+        $sqls[] = <<<SQL
             CREATE TABLE `_temporary_source_entities` (
                 `id` $idType NOT NULL,
                 UNIQUE (`id`)
-            );
-            SQL . "\n";
+            )
+            SQL;
 
         // TODO Find a way to prepare the ids without the map, but original source.
         if ($isAlreadyFilled) {
@@ -142,32 +146,33 @@ trait ToolsTrait
         if ($keysAreStrings) {
             foreach (array_chunk($ids, self::CHUNK_SIMPLE_RECORDS) as $chunk) {
                 $chunk = array_map([$this->connection, 'quote'], $chunk);
-                $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+                $sqls[] = 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ')';
             }
         } else {
             foreach (array_chunk($ids, self::CHUNK_RECORD_IDS) as $chunk) {
                 $chunk = array_map('intval', $chunk);
-                $sqls .= 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ");\n";
+                $sqls[] = 'INSERT INTO `_temporary_source_entities` (`id`) VALUES(' . implode('),(', $chunk) . ')';
             }
         }
 
-        $sqls .= <<<SQL
+        $sqls[] = <<<SQL
             INSERT INTO `$table`
                 ($columnsString)
             SELECT
                 $valuesString
-            FROM `_temporary_source_entities`;
-            SQL . "\n";
+            FROM `_temporary_source_entities`
+            SQL;
 
         // Don't need to fill the ids when they are filled.
         if ($isAlreadyFilled) {
-            $sqls .= <<<SQL
-                DROP TABLE IF EXISTS `_temporary_source_entities`;
-                SQL . "\n";
-            $this->connection->executeStatement($sqls);
+            $sqls[] = 'DROP TABLE IF EXISTS `_temporary_source_entities`';
+        }
+        foreach ($sqls as $sql) {
+            $this->connection->executeStatement($sql);
+        }
+        if ($isAlreadyFilled) {
             return;
         }
-        $this->connection->executeStatement($sqls);
 
         // Get the mapping of source and destination ids.
         $sql = <<<SQL
@@ -343,25 +348,21 @@ trait ToolsTrait
 
         $table = $this->importables[$sourceType]['table'];
 
-        $sql = '';
-
         $first = reset($dates);
         if (count($first) === 2) {
             foreach ($dates as $date) {
                 [$id, $created] = $date;
-                $sql .= "UPDATE `$table` SET `created` = '$created', WHERE `$columnId` = '$id';\n";
+                $this->connection->executeStatement("UPDATE `$table` SET `created` = '$created' WHERE `$columnId` = '$id'");
             }
         } elseif (count($first) === 3) {
             foreach ($dates as $date) {
                 [$id, $created, $modified] = $date;
                 $modified = $modified ? "'" . $modified . "'" : 'NULL';
-                $sql .= "UPDATE `$table` SET `created` = '$created', `modified` = $modified WHERE `$columnId` = '$id';\n";
+                $this->connection->executeStatement("UPDATE `$table` SET `created` = '$created', `modified` = $modified WHERE `$columnId` = '$id'");
             }
         } else {
             return;
         }
-
-        $this->connection->executeStatement($sql);
     }
 
     protected function randomString(int $length = 1): string

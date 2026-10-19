@@ -380,7 +380,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         $qb
             ->setParameters($parameters);
 
-        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchFirstColumn();
+        $result = $conn->executeQuery($qb->getSQL(), $qb->getParameters())->fetchFirstColumn();
 
         // Reorder the result according to the input (simpler in php and there
         // is no duplicated identifiers).
@@ -483,7 +483,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         // $stmt->fetchAllKeyValue() cannot be used, because it replaces the
         // first id by later ids in case of true duplicates. Anyway, count() is
         // needed now.
-        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAllAssociative();
+        $result = $conn->executeQuery($qb->getSQL(), $qb->getParameters())->fetchAllAssociative();
 
         return $this->cleanResult($identifiers, $result);
     }
@@ -551,7 +551,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         // $stmt->fetchAllKeyValue() cannot be used, because it replaces the
         // first id by later ids in case of true duplicates. Anyway, count() is
         // needed now.
-        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAllAssociative();
+        $result = $conn->executeQuery($qb->getSQL(), $qb->getParameters())->fetchAllAssociative();
 
         return $this->cleanResult($identifiers, $result);
     }
@@ -633,7 +633,7 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
         // $stmt->fetchAllKeyValues() cannot be used, because it replaces the
         // first id by later ids in case of true duplicates. Anyway, count() is
         // needed now.
-        $result = $conn->executeQuery($qb, $qb->getParameters())->fetchAll();
+        $result = $conn->executeQuery($qb->getSQL(), $qb->getParameters())->fetchAllAssociative();
 
         return $this->cleanResult($identifiers, $result);
     }

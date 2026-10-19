@@ -471,7 +471,7 @@ SQL;
         ->from('bulk_importer', 'bulk_importer')
         ->where('bulk_importer.config LIKE "%mapping_config%"')
         ->orderBy('bulk_importer.id', 'asc');
-    $importerConfigs = $connection->executeQuery($qb)->fetchAllKeyValue();
+    $importerConfigs = $connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
     foreach ($importerConfigs as $id => $importerConfig) {
         $importerConfig = json_decode($importerConfig, true);
         $mappingConfig = $importerConfig['reader']['mapping_config'] ?? null;
@@ -552,7 +552,7 @@ SQL;
         ->select('bulk_import.id', 'bulk_import.params')
         ->from('bulk_import', 'bulk_import')
         ->orderBy('bulk_import.id', 'asc');
-    $importParameters = $connection->executeQuery($qb)->fetchAllKeyValue();
+    $importParameters = $connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
     foreach ($importParameters as $id => $importParams) {
         $importParams = json_decode($importParams, true);
         if (!is_array($importParams)) {

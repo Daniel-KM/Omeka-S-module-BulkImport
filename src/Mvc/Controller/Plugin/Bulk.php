@@ -222,7 +222,7 @@ class Bulk extends AbstractPlugin
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.label', 'asc')
         ;
-        $this->resourceTemplateClassIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
+        $this->resourceTemplateClassIds = $this->connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
         $this->resourceTemplateClassIds = array_map(fn ($v) => empty($v) ? null : (int) $v, $this->resourceTemplateClassIds);
         return $this->resourceTemplateClassIds;
     }
@@ -247,7 +247,7 @@ class Bulk extends AbstractPlugin
             ->from('resource_template', 'resource_template')
             ->orderBy('resource_template.id', 'asc')
         ;
-        $this->resourceTemplateTitleIds = $this->connection->executeQuery($qb)->fetchAllKeyValue();
+        $this->resourceTemplateTitleIds = $this->connection->executeQuery($qb->getSQL())->fetchAllKeyValue();
         $this->resourceTemplateTitleIds = array_map(fn ($v) => empty($v) ? null : (int) $v, $this->resourceTemplateTitleIds);
         return $this->resourceTemplateTitleIds;
     }

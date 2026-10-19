@@ -204,7 +204,7 @@ class SqlReader extends AbstractPaginatedReader
             $result = $this->dbAdapter->query($sql)->execute();
         } catch (\Throwable $e) {
             try {
-                $result = $connection->executeQuery($sql)->fetchAll();
+                $result = $connection->executeQuery($sql)->fetchAllAssociative();
             } catch (\Throwable $e) {
                 $this->lastErrorMesage = 'Unable to check grants of a user.'; // @translate
                 $this->logger->err($this->lastErrorMessage);
