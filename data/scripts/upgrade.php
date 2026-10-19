@@ -69,20 +69,24 @@ if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActi
     throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $translate('Missing requirement. Unable to upgrade.')); // @translate
 }
 
-if (!$this->checkModuleActiveVersion('Log', '3.4.36')) {
-    $message = new PsrMessage(
+$errors = [];
+
+if (!$this->checkModuleActiveVersion('Log', '3.4.42')) {
+    $errors[] = (string) (new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Log', 'version' => '3.4.36']
-    );
-    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+        ['module' => 'Log', 'version' => '3.4.42']
+    ))->setTranslator($translator);
 }
 
-if (!$this->checkModuleActiveVersion('Mapper', '3.4.6')) {
-    $message = new PsrMessage(
+if (!$this->checkModuleActiveVersion('Mapper', '3.4.9')) {
+    $errors[] = (string) (new PsrMessage(
         'The module {module} should be upgraded to version {version} or later.', // @translate
-        ['module' => 'Mapper', 'version' => '3.4.6']
-    );
-    throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message->setTranslator($translator));
+        ['module' => 'Mapper', 'version' => '3.4.9']
+    ))->setTranslator($translator);
+}
+
+if ($errors) {
+    throw new \Omeka\Module\Exception\ModuleCannotInstallException(implode("\n", $errors));
 }
 
 if (version_compare($oldVersion, '3.3.36', '<')) {

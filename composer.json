@@ -18,7 +18,7 @@
         }
     ],
     "support": {
-        "issues": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/issues",
+        "issues": "https://gitlab.com/Daniel-KM/Omeka-S-module-BulkImport/-/work_items",
         "forum": "https://forum.omeka.org/"
     },
     "_require (not set until Omeka S merges PR #2432)": {

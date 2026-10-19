@@ -65,7 +65,7 @@ class Module extends AbstractModule
 
         if (PHP_VERSION_ID < 80100) {
             $errors[] = (string) new \Omeka\Stdlib\Message(
-                $translate('The module %1$s requires PHP %2$s or later.'), // @translate
+                $translator->translate('The module %1$s requires PHP %2$s or later.'), // @translate
                 'BulkImport', '8.1'
             );
         }
@@ -77,17 +77,17 @@ class Module extends AbstractModule
             );
         }
 
-        if (!$this->checkModuleActiveVersion('Log', '3.4.36')) {
+        if (!$this->checkModuleActiveVersion('Log', '3.4.42')) {
             $errors[] = (string) (new PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Log', 'version' => '3.4.36']
+                ['module' => 'Log', 'version' => '3.4.42']
             ))->setTranslator($translator);
         }
 
-        if (!$this->checkModuleActiveVersion('Mapper', '3.4.6')) {
+        if (!$this->checkModuleActiveVersion('Mapper', '3.4.9')) {
             $errors[] = (string) (new PsrMessage(
                 'The module {module} should be upgraded to version {version} or later.', // @translate
-                ['module' => 'Mapper', 'version' => '3.4.6']
+                ['module' => 'Mapper', 'version' => '3.4.9']
             ))->setTranslator($translator);
         }
 
