@@ -150,6 +150,21 @@ class BulkFileUploaded extends AbstractPlugin
             return $this;
         }
 
+        // The zip files are extracted with the extension zip, that is not
+        // required to install the module, so check it here to fail with a
+        // message instead of a fatal error.
+        if (!class_exists('ZipArchive')) {
+            $message = new PsrMessage(
+                'The php extension "zip" is required to extract the uploaded zip files.' // @translate
+            );
+            if ($this->errorStore) {
+                $this->errorStore->addError('uploaded_files', $message);
+            }
+            $this->logger->err($message);
+            ++$this->totalErrors;
+            return $this;
+        }
+
         foreach ($this->filesUploaded as $key => $file) {
             if ($file['error']) {
                 $message = new PsrMessage(
