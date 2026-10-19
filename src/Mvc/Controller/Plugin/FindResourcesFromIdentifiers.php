@@ -323,6 +323,13 @@ class FindResourcesFromIdentifiers extends AbstractPlugin
             'itemset' => \Omeka\Entity\ItemSet::class,
             'resource:item_set' => \Omeka\Entity\ItemSet::class,
             'resource:item-set' => \Omeka\Entity\ItemSet::class,
+            // Module Thesaurus: a concept is a specific resource type.
+            'concepts' => \Thesaurus\Entity\Concept::class,
+            'concept' => \Thesaurus\Entity\Concept::class,
+            'o:concept' => \Thesaurus\Entity\Concept::class,
+            'resource:concept' => \Thesaurus\Entity\Concept::class,
+            \Thesaurus\Api\Representation\ConceptRepresentation::class => \Thesaurus\Entity\Concept::class,
+            \Thesaurus\Entity\Concept::class => \Thesaurus\Entity\Concept::class,
         ];
         return $entityClasses[$name] ?? null;
     }

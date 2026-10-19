@@ -285,7 +285,9 @@ class Bulk extends AbstractPlugin
         $datatypes = $this->dataTypeNames();
         return $datatypes[$dataType]
         // Manage exception for customvocab, that may use label as name.
-        ?? $this->customVocabDataTypeName($dataType);
+        ?? $this->customVocabDataTypeName($dataType)
+        // Manage exception for thesaurus, that may use label as name too.
+        ?? $this->thesaurusDataTypeName($dataType);
     }
 
     /**
@@ -472,6 +474,43 @@ class Bulk extends AbstractPlugin
 
         return $customVocabs[$dataType]
             ?? $customVocabs[preg_replace('/[\W]/u', '', mb_strtolower($dataType))]
+            ?? null;
+    }
+
+    /**
+     * Normalize thesaurus data type from a "thesaurus:label".
+     *
+     * The id of a thesaurus is specific to each install, so the data type may
+     * be set with the label of the scheme, like for the custom vocabs.
+     */
+    public function thesaurusDataTypeName(?string $dataType): ?string
+    {
+        static $thesaurus;
+
+        if (empty($dataType) || mb_substr($dataType, 0, 10) !== 'thesaurus:') {
+            return null;
+        }
+
+        if ($thesaurus === null) {
+            $thesaurus = [];
+            foreach ($this->dataTypeManager->getRegisteredNames() as $dataTypeName) {
+                if (mb_substr($dataTypeName, 0, 10) !== 'thesaurus:') {
+                    continue;
+                }
+                $label = (string) $this->dataTypeManager->get($dataTypeName)->getLabel();
+                $cleanLabel = preg_replace('/[\W]/u', '', mb_strtolower($label));
+                $thesaurus[$dataTypeName] = $dataTypeName;
+                $thesaurus['thesaurus:' . $label] = $dataTypeName;
+                $thesaurus['thesaurus' . $cleanLabel] = $dataTypeName;
+            }
+        }
+
+        if (empty($thesaurus)) {
+            return null;
+        }
+
+        return $thesaurus[$dataType]
+            ?? $thesaurus[preg_replace('/[\W]/u', '', mb_strtolower($dataType))]
             ?? null;
     }
 

@@ -165,6 +165,29 @@ trait ResourceTrait
                 $this->connection->executeStatement($sql);
                 return;
 
+            case 'concepts':
+                // A concept requires the scheme, that is created early by
+                // prepareThesaurus(). The tree (top concept, broader, position)
+                // is set later by the job IndexThesaurus.
+                $schemeId = (int) ($this->main['concept']['item_id'] ?? 0);
+                if (!$schemeId) {
+                    $this->hasError = true;
+                    $this->logger->err(
+                        'The scheme of the thesaurus is required to create concepts.' // @translate
+                    );
+                    return;
+                }
+                $sql = <<<SQL
+                    INSERT INTO `concept` (`id`, `scheme_id`)
+                    SELECT `resource`.`id`, $schemeId
+                    FROM `resource` AS `resource`
+                    LEFT JOIN `$table` AS `specific` ON `specific`.`id` = `resource`.`id`
+                    WHERE `specific`.`id` IS NULL
+                        AND `resource`.`resource_type` = $resourceClass;
+                    SQL;
+                $this->connection->executeStatement($sql);
+                return;
+
             case 'item_sets':
                 // Finalize custom vocabs early: item sets map is available.
                 $this->prepareCustomVocabsFinalize();

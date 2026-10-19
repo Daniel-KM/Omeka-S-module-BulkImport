@@ -345,10 +345,10 @@ abstract class AbstractFullProcessor extends AbstractProcessor implements Parame
             'fill' => 'fillMappingMarker',
         ],
         'concepts' => [
-            'name' => 'items',
-            'class' => \Omeka\Entity\Item::class,
+            'name' => 'concepts',
+            'class' => \Thesaurus\Entity\Concept::class,
             'main_entity' => 'resources',
-            'table' => 'item',
+            'table' => 'concept',
             'fill' => 'fillConcept',
             'is_resource' => true,
         ],

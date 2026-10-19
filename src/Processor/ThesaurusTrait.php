@@ -105,8 +105,14 @@ trait ThesaurusTrait
             }
         }
 
+        // The module CustomVocab is optional and deprecated for thesaurus: the
+        // data type "thesaurus:{schemeId}" does not require it.
+        $hasCustomVocab = class_exists(\CustomVocab\Entity\CustomVocab::class);
+
         // Custom vocab requires a single name.
-        $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name]);
+        $customVocab = $hasCustomVocab
+            ? $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $name])
+            : null;
         $customVocabName = $customVocab
             ? $name . ' ' . $this->currentDateTimeFormatted . ' ' . $randomName
             : $name;
@@ -114,12 +120,10 @@ trait ThesaurusTrait
         /**
          * @var \Omeka\Entity\Vocabulary $vocabulary
          * @var \Omeka\Entity\ResourceClass $classSkosConceptScheme
-         * @var \Omeka\Entity\ResourceClass $classSkosCollection
          * @var \Omeka\Entity\ResourceTemplate $templateThesaurusScheme
          */
         $vocabulary = $this->entityManager->getRepository(\Omeka\Entity\Vocabulary::class)->findOneBy(['prefix' => 'skos']);
         $classSkosConceptScheme = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'ConceptScheme']);
-        $classSkosCollection = $this->entityManager->getRepository(\Omeka\Entity\ResourceClass::class)->findOneBy(['vocabulary' => $vocabulary, 'localName' => 'Collection']);
         $templateThesaurusSchemeId = (int) $this->getServiceLocator()->get('Omeka\Settings')->get('thesaurus_skos_scheme_template_id');
         $templateThesaurusScheme = $templateThesaurusSchemeId
             ? $this->entityManager->getRepository(\Omeka\Entity\ResourceTemplate::class)->find($templateThesaurusSchemeId)
@@ -143,7 +147,6 @@ trait ThesaurusTrait
         $itemSet->setCreated($this->currentDateTime);
         $itemSet->setIsPublic(true);
         $itemSet->setIsOpen(true);
-        $itemSet->setResourceClass($classSkosCollection);
         $this->appendValue([
             'term' => 'dcterms:title',
             'value' => $name,
@@ -151,14 +154,16 @@ trait ThesaurusTrait
 
         $item->getItemSets()->add($itemSet);
 
-        $customVocab = $customVocabReal ?? new \CustomVocab\Entity\CustomVocab();
-        $customVocab->setOwner($this->owner);
-        $customVocab->setLabel($randomName);
-        $customVocab->setItemSet($itemSet);
+        if ($hasCustomVocab) {
+            $customVocab = $customVocabReal ?? new \CustomVocab\Entity\CustomVocab();
+            $customVocab->setOwner($this->owner);
+            $customVocab->setLabel($randomName);
+            $customVocab->setItemSet($itemSet);
+            $this->entityManager->persist($customVocab);
+        }
 
         $this->entityManager->persist($item);
         $this->entityManager->persist($itemSet);
-        $this->entityManager->persist($customVocab);
         $this->entityManager->flush();
 
         // Get the ids and set real name.
@@ -170,15 +175,19 @@ trait ThesaurusTrait
          */
         $item = $this->entityManager->getRepository(\Omeka\Entity\Item::class)->findOneBy(['title' => $randomName]);
         $itemSet = $this->entityManager->getRepository(\Omeka\Entity\ItemSet::class)->findOneBy(['title' => $randomName]);
-        $customVocab = $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $randomName]);
+        $customVocab = $hasCustomVocab
+            ? $this->entityManager->getRepository(\CustomVocab\Entity\CustomVocab::class)->findOneBy(['label' => $randomName])
+            : null;
 
         $item->setTitle($name);
         $itemSet->setTitle($name);
-        $customVocab->setLabel($customVocabName);
+        if ($customVocab) {
+            $customVocab->setLabel($customVocabName);
+            $this->entityManager->persist($customVocab);
+        }
 
         $this->entityManager->persist($item);
         $this->entityManager->persist($itemSet);
-        $this->entityManager->persist($customVocab);
         $this->entityManager->flush();
 
         $this->main[$mainName]['item'] = $item;
@@ -186,7 +195,7 @@ trait ThesaurusTrait
         $this->main[$mainName]['item_set'] = $itemSet;
         $this->main[$mainName]['item_set_id'] = $itemSet->getId();
         $this->main[$mainName]['custom_vocab'] = $customVocab;
-        $this->main[$mainName]['custom_vocab_id'] = $customVocab->getId();
+        $this->main[$mainName]['custom_vocab_id'] = $customVocab ? $customVocab->getId() : null;
         $this->refreshMainResources();
 
         // Prepare the structure of the thesaurus during this first loop.
@@ -311,7 +320,7 @@ trait ThesaurusTrait
         foreach ($this->thesaurus[$mappingName]['tops'] as $value) {
             $this->appendValue([
                 'term' => 'skos:hasTopConcept',
-                'type' => 'resource:item',
+                'type' => 'resource:concept',
                 'value_resource' => $this->map[$mappingName][$value],
             ], $this->main[$mainName]['item']);
         }
@@ -437,11 +446,11 @@ trait ThesaurusTrait
     protected function fillConceptProcessParent(array &$values, array $source, string $mappingName, string $mainName, $keyId, $keyParentId): void
     {
         if ($keyParentId && $source[$keyParentId]) {
-            $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$source[$keyParentId]]);
+            $linked = $this->entityManager->find(\Thesaurus\Entity\Concept::class, $this->map[$mappingName][$source[$keyParentId]]);
             if ($linked) {
                 $values[] = [
                     'term' => 'skos:broader',
-                    'type' => 'resource:item',
+                    'type' => 'resource:concept',
                     'value_resource' => $linked,
                 ];
             } else {
@@ -472,10 +481,10 @@ trait ThesaurusTrait
                     'value' => $value,
                 ];
             } else {
-                $linked = $this->entityManager->find(\Omeka\Entity\Item::class, $this->map[$mappingName][$value]);
+                $linked = $this->entityManager->find(\Thesaurus\Entity\Concept::class, $this->map[$mappingName][$value]);
                 $values[] = [
                     'term' => 'skos:narrower',
-                    'type' => 'resource:item',
+                    'type' => 'resource:concept',
                     'value_resource' => $linked,
                 ];
             }
