@@ -213,7 +213,7 @@ class BulkCheckLog extends AbstractPlugin
         }
         $resource['messageStore'] = new MessageStore();
         if (!empty($resource['has_error'])) {
-            $resource['messageStore']->addError('has_error', new PsrMessage('Has error.')); // @ŧranslate
+            $resource['messageStore']->addError('has_error', new PsrMessage('Has error.')); // @translate
         }
         return $resource;
     }
