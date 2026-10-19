@@ -109,6 +109,7 @@ class ResourceProcessor extends AbstractResourceProcessor
             'processing' => 'stop_on_error',
             'skip_missing_files' => false,
             'file_check_mode' => 'quick',
+            'thumbnailer' => '',
             'entries_to_skip' => 0,
             'entries_max' => 0,
             'info_diffs' => false,
@@ -132,6 +133,7 @@ class ResourceProcessor extends AbstractResourceProcessor
         $result = array_intersect_key($values, $defaults) + $args->getArrayCopy() + $defaults;
         $result['skip_missing_files'] = $this->isTrue($result['skip_missing_files']);
         $result['file_check_mode'] = in_array($result['file_check_mode'] ?? '', ['skip', 'full']) ? $result['file_check_mode'] : 'quick';
+        $result['thumbnailer'] = in_array($result['thumbnailer'] ?? '', ['imagemagick', 'imagick', 'gd', 'nothumbnail']) ? $result['thumbnailer'] : '';
         $result['entries_to_skip'] = (int) $result['entries_to_skip'];
         $result['entries_max'] = (int) $result['entries_max'];
         $result['info_diffs'] = $this->isTrue($result['info_diffs']);

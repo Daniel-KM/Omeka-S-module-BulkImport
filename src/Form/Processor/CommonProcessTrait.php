@@ -76,6 +76,26 @@ trait CommonProcessTrait
             ])
 
             ->add([
+                'name' => 'thumbnailer',
+                'type' => Element\Select::class,
+                'options' => [
+                    'label' => 'Thumbnailer', // @translate
+                    'info' => 'Thumbnailer used to create derivative images during this import. "No thumbnail" skips their creation to speed up the import; recreate them later with module Easy Admin or Bulk Check.', // @translate
+                    'value_options' => [
+                        '' => 'Default (site thumbnailer)', // @translate
+                        'imagemagick' => 'ImageMagick (command line)', // @translate
+                        'imagick' => 'Imagick (php extension)', // @translate
+                        'gd' => 'GD (php extension)', // @translate
+                        'nothumbnail' => 'No thumbnail', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'thumbnailer',
+                    'value' => '',
+                ],
+            ])
+
+            ->add([
                 'name' => 'entries_to_skip',
                 'type' => Element\Number::class,
                 'options' => [
